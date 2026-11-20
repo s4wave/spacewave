@@ -59,17 +59,24 @@ func newLinkedTestController(t *testing.T, push *testPushServer, kv kvtx.Store) 
 	return s, xfrm
 }
 
-// linkTestFile writes n random bytes from seed to a new file and links it
-// through idx, returning the refs the index holds for it.
-func linkTestFile(t *testing.T, idx *block_store_filesegment.Index, xfrm block.Transformer, n int, seed uint64) string {
-	// Write the file.
-	t.Helper()
+// testFileData returns n random bytes from seed.
+func testFileData(n int, seed uint64) []byte {
 	data := make([]byte, n)
 	r := rand.New(rand.NewPCG(seed, seed))
 	for i := range data {
 		data[i] = byte(r.Uint32())
 	}
-	path := filepath.Join(t.TempDir(), "linked.bin")
+	return data
+}
+
+// linkTestFile writes data to the file at path, or a new file when path is
+// empty, and links it through idx, returning its path.
+func linkTestFile(t *testing.T, idx *block_store_filesegment.Index, xfrm block.Transformer, path string, data []byte) string {
+	// Write the file.
+	t.Helper()
+	if path == "" {
+		path = filepath.Join(t.TempDir(), "linked.bin")
+	}
 	if err := os.WriteFile(path, data, 0o644); err != nil {
 		t.Fatalf("write file: %v", err)
 	}
@@ -128,6 +135,29 @@ func indexedRefs(t *testing.T, l *linkedLane) []*block.BlockRef {
 	return refs
 }
 
+// queuedRefs returns the hashes of the lane's queued refs, and fails unless
+// the lane's count matches them.
+func queuedRefs(t *testing.T, l *linkedLane) map[string]struct{} {
+	// Read the queue.
+	t.Helper()
+	page, err := l.readQueue(t.Context(), nil)
+	if err != nil {
+		t.Fatalf("read queue: %v", err)
+	}
+	queued := make(map[string]struct{}, len(page))
+	for _, e := range page {
+		queued[e.ref.GetHash().MarshalString()] = struct{}{}
+	}
+
+	// Compare the count.
+	var pending int
+	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { pending = l.pending })
+	if pending != len(page) {
+		t.Fatalf("lane counts %d queued chunks, queue holds %d", pending, len(page))
+	}
+	return queued
+}
+
 // requireInCloud fails unless the cloud's catalog holds each ref.
 func requireInCloud(t *testing.T, s *syncController, refs []*block.BlockRef, want bool) {
 	t.Helper()
@@ -144,7 +174,9 @@ func requireInCloud(t *testing.T, s *syncController, refs []*block.BlockRef, wan
 
 // TestLinkedLaneUploadsBesideFlush checks that a flush of a tree's own blocks
 // succeeds while its linked chunks exist only in their file and the lane is
-// still uploading them, and that every chunk ends in the cloud.
+// still uploading them, that an edit meanwhile deletes the queue entries of
+// the chunks it supersedes in its own write, and that every current chunk
+// ends in the cloud.
 func TestLinkedLaneUploadsBesideFlush(t *testing.T) {
 	// Hold the first upload, the lane's, until the flush is done.
 	ctx := t.Context()
@@ -160,16 +192,43 @@ func TestLinkedLaneUploadsBesideFlush(t *testing.T) {
 
 	// Link a file and start the lane.
 	s, xfrm := newLinkedTestController(t, push, newSyncTestKvStore())
-	linkTestFile(t, s.linked.files.GetIndex(), xfrm, 3<<20, 1)
-	chunks := indexedRefs(t, s.linked)
-	if len(chunks) < 2 {
-		t.Fatalf("linked %d chunks, want several", len(chunks))
+	idx := s.linked.files.GetIndex()
+	data := testFileData(3<<20, 1)
+	path := linkTestFile(t, idx, xfrm, "", data)
+	old := indexedRefs(t, s.linked)
+	if len(old) < 2 {
+		t.Fatalf("linked %d chunks, want several", len(old))
 	}
 	idle := startLinkedLane(t, s.linked)
 	select {
 	case <-laneUploading:
 	case <-time.After(10 * time.Second):
 		t.Fatal("the lane did not upload")
+	}
+
+	// Edit the file's middle and link it again: the superseded chunks leave
+	// the queue in that write.
+	copy(data[1<<20:], testFileData(1<<20, 4))
+	linkTestFile(t, idx, xfrm, path, data)
+	chunks := indexedRefs(t, s.linked)
+	current := make(map[string]struct{}, len(chunks))
+	for _, ref := range chunks {
+		current[ref.GetHash().MarshalString()] = struct{}{}
+	}
+	queued := queuedRefs(t, s.linked)
+	var superseded int
+	for _, ref := range old {
+		key := ref.GetHash().MarshalString()
+		if _, ok := current[key]; ok {
+			continue
+		}
+		superseded++
+		if _, ok := queued[key]; ok {
+			t.Fatalf("superseded chunk %s is still queued", key)
+		}
+	}
+	if superseded == 0 {
+		t.Fatal("the edit superseded no chunk")
 	}
 
 	// Flush a dirty tree block while the lane's pack is in flight.
@@ -182,12 +241,13 @@ func TestLinkedLaneUploadsBesideFlush(t *testing.T) {
 	}
 	requireInCloud(t, s, chunks, false)
 
-	// Release the lane: every chunk ends in the cloud.
+	// Release the lane: every current chunk ends in the cloud and the queue
+	// empties.
 	close(releaseLane)
 	idle()
 	requireInCloud(t, s, chunks, true)
-	if packs := push.committed(); len(packs) != 2 {
-		t.Fatalf("committed %d packs, want 2", len(packs))
+	if queued := queuedRefs(t, s.linked); len(queued) != 0 {
+		t.Fatalf("%d chunks still queued", len(queued))
 	}
 }
 
@@ -201,14 +261,17 @@ func TestLinkedLaneQueuesUnheldChunks(t *testing.T) {
 	kv := newSyncTestKvStore()
 	s, xfrm := newLinkedTestController(t, push, kv)
 	unqueued := block_store_filesegment.NewIndex(kv, nil)
-	linkTestFile(t, unqueued, xfrm, 2<<20, 2)
+	linkTestFile(t, unqueued, xfrm, "", testFileData(2<<20, 2))
 	kept := indexedRefs(t, s.linked)
 
-	// Link and drop a second file, leaving its queue entries behind.
+	// Link and drop a second file: the drop deletes its queue entries.
 	idx := s.linked.files.GetIndex()
-	dropped := linkTestFile(t, idx, xfrm, 2<<20, 3)
+	dropped := linkTestFile(t, idx, xfrm, "", testFileData(2<<20, 3))
 	if err := idx.DropPath(t.Context(), dropped); err != nil {
 		t.Fatalf("drop path: %v", err)
+	}
+	if queued := queuedRefs(t, s.linked); len(queued) != 0 {
+		t.Fatalf("%d chunks of the dropped file still queued", len(queued))
 	}
 
 	// The lane uploads the kept file's chunks and empties its queue.

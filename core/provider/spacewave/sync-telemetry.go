@@ -25,6 +25,19 @@ const (
 	SyncTelemetryUploadPhaseCorrupt = synctelemetry.UploadPhaseCorrupt
 )
 
+// SyncTelemetryUploadHold names the account limit that holds uploads.
+type SyncTelemetryUploadHold = synctelemetry.UploadHold
+
+const (
+	// SyncTelemetryUploadHoldNone means no account limit holds the uploads.
+	SyncTelemetryUploadHoldNone = synctelemetry.UploadHoldNone
+	// SyncTelemetryUploadHoldStorageFull means the account's storage is full.
+	SyncTelemetryUploadHoldStorageFull = synctelemetry.UploadHoldStorageFull
+	// SyncTelemetryUploadHoldSpendingLimit means the account reached its
+	// spending limit.
+	SyncTelemetryUploadHoldSpendingLimit = synctelemetry.UploadHoldSpendingLimit
+)
+
 // SyncTelemetrySnapshot describes Spacewave cloud sync activity.
 type SyncTelemetrySnapshot = synctelemetry.Snapshot
 
@@ -71,6 +84,10 @@ func (a *ProviderAccount) registerSyncTelemetryStore(
 
 func (a *ProviderAccount) setSyncTelemetryPending(bstoreID string, bytes int64, count int) {
 	a.syncTelemetry.SetPending(bstoreID, bytes, count)
+}
+
+func (a *ProviderAccount) setSyncTelemetryLinkedPending(bstoreID string, count int) {
+	a.syncTelemetry.SetLinkedPending(bstoreID, count)
 }
 
 func (a *ProviderAccount) setSyncTelemetryCorruptDirty(bstoreID string, count int, since time.Time, partial bool) {

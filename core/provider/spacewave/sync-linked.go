@@ -2,9 +2,7 @@ package provider_spacewave
 
 import (
 	"context"
-	"encoding/binary"
 	"slices"
-	"sync/atomic"
 
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
@@ -18,8 +16,9 @@ import (
 )
 
 // linkedQueuePrefix prefixes the upload queue of linked chunks in the store of
-// the linked file index: each key is the prefix and a big-endian sequence,
-// and holds the encoded ref of a chunk a path gained.
+// the linked file index: each key is the prefix and the encoded ref of a chunk
+// a path gained, with an empty value, so a ref is queued at most once and the
+// write that drops its last range deletes its entry by key.
 const linkedQueuePrefix = "u/"
 
 // linkedRefPage bounds the refs one reconcile step reads from the index.
@@ -27,7 +26,7 @@ const linkedRefPage = 1024
 
 // errLinkedStale reports queued chunks that no file serves now while the index
 // still names their files. The folder links a changed file again, which drops
-// the old ranges, so a later pass drops or uploads them.
+// the old ranges and their entries, so a later pass finds them gone.
 var errLinkedStale = errors.New("linked chunks wait for their changed files to link again")
 
 // linkedLane uploads the chunks of linked files to the cloud. A linked chunk
@@ -41,16 +40,20 @@ var errLinkedStale = errors.New("linked chunks wait for their changed files to l
 // Invariants:
 //  1. A ref a path gained is queued in the same transaction that records the
 //     range, so a recorded range has its queue entry until a current pack
-//     holds its chunk. The reconcile, at start and after a pull that trashes
-//     packs, queues again every indexed ref no current pack holds. That
-//     covers a crash between the index write and the World write, after
-//     which an unchanged file is never linked again, and a lane pack that a
-//     reclaim pass trashed before a published tree reached its chunks.
+//     holds its chunk; the transaction that drops a ref's last range deletes
+//     its entry, so a superseded chunk is never read or pushed. The
+//     reconcile, at start and after a pull that trashes packs, queues again
+//     every indexed ref no current pack holds. That covers a crash between
+//     the index write and the World write, after which an unchanged file is
+//     never linked again, and a lane pack that a reclaim pass trashed before
+//     a published tree reached its chunks.
 //  2. The lane deletes only its own queue entries, and only once a current
 //     pack holds the chunk or the index names no file for the ref.
-//  3. A checkpoint does not wait for the lane: it may name a linked chunk the
+//  3. pending counts the queue's keys: each write counts only the entries it
+//     created or deleted.
+//  4. A checkpoint does not wait for the lane: it may name a linked chunk the
 //     cloud does not hold yet, which the file serves meanwhile.
-//  4. The lane never takes flushMtx and pushes no pack while a flush runs,
+//  5. The lane never takes flushMtx and pushes no pack while a flush runs,
 //     so a checkpoint never waits behind a large linked folder.
 type linkedLane struct {
 	// s is the sync controller whose packs and manifest the lane extends.
@@ -59,8 +62,6 @@ type linkedLane struct {
 	store kvtx.Store
 	// files serves the linked chunks from their files.
 	files *block_store_filesegment.Store
-	// seq is the last queue sequence handed out.
-	seq atomic.Uint64
 
 	// bcast wakes the lane when the fields below change.
 	bcast broadcast.Broadcast
@@ -85,47 +86,90 @@ func newLinkedLane(ctx context.Context, s *syncController, store kvtx.Store) (*l
 	}
 	defer tx.Discard()
 
-	// Count the queue and find its last sequence.
-	it := tx.Iterate(ctx, []byte(linkedQueuePrefix), true, false)
-	defer it.Close()
-	var last uint64
-	for it.Next() {
+	// Count the queue.
+	err = tx.ScanPrefixKeys(ctx, []byte(linkedQueuePrefix), func([]byte) error {
 		l.pending++
-		last = linkedQueueSeq(it.Key())
-	}
-	if err := it.Err(); err != nil {
+		return nil
+	})
+	if err != nil {
 		return nil, err
 	}
-	l.seq.Store(last)
+	l.reportPending()
 
-	// Serve the files through an index that queues what paths gain.
+	// Serve the files through an index that queues what paths gain and
+	// dequeues what no path holds.
 	l.files = block_store_filesegment.NewStore(block_store_filesegment.NewIndex(store, l.enqueue))
 	return l, nil
 }
 
-// enqueue writes a queue entry for each gained ref in the index's write, and
-// counts them once it commits. It is the index's GainHook.
-func (l *linkedLane) enqueue(ctx context.Context, tx kvtx.Tx, gained []*block.BlockRef) (func(), error) {
-	// Write one entry per ref.
+// enqueue writes a queue entry for each gained ref and deletes the entry of
+// each lost ref in the index's write, and counts the entries it created and
+// deleted once it commits. It is the index's RefsHook; each ref costs one
+// point read.
+func (l *linkedLane) enqueue(ctx context.Context, tx kvtx.Tx, gained, lost []*block.BlockRef) (func(), error) {
+	// Create the missing entries of the gained refs.
+	var n int
 	for _, ref := range gained {
-		data, err := ref.MarshalVT()
+		key, err := linkedQueueKey(ref)
 		if err != nil {
 			return nil, err
 		}
-		if err := tx.Set(ctx, linkedQueueKey(l.seq.Add(1)), data); err != nil {
+		queued, err := tx.Exists(ctx, key)
+		if err != nil || queued {
+			if err != nil {
+				return nil, err
+			}
+			continue
+		}
+		if err := tx.Set(ctx, key, nil); err != nil {
 			return nil, err
+		}
+		n++
+	}
+
+	// Delete the entries of the lost refs.
+	for _, ref := range lost {
+		key, err := linkedQueueKey(ref)
+		if err != nil {
+			return nil, err
+		}
+		deleted, err := deleteQueued(ctx, tx, key)
+		if err != nil {
+			return nil, err
+		}
+		if deleted {
+			n--
 		}
 	}
 
 	// Wake the lane after the commit.
-	return func() { l.addPending(len(gained)) }, nil
+	return func() { l.addPending(n) }, nil
 }
 
-// addPending adds n to the queue count and wakes the lane.
+// deleteQueued deletes the queue entry at key and reports whether it existed.
+func deleteQueued(ctx context.Context, tx kvtx.Tx, key []byte) (bool, error) {
+	queued, err := tx.Exists(ctx, key)
+	if err != nil || !queued {
+		return false, err
+	}
+	return true, tx.Delete(ctx, key)
+}
+
+// addPending adds n to the queue count, shows it in the sync status, and
+// wakes the lane.
 func (l *linkedLane) addPending(n int) {
 	l.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		l.pending += n
+		l.reportPending()
 		broadcast()
+	})
+}
+
+// reportPending shows the queue count in the store's sync status, so a held
+// queue of linked chunks reads as pending uploads. Call under bcast.
+func (l *linkedLane) reportPending() {
+	l.s.telemetrySafeCall(func(t *ProviderAccount, id string) {
+		t.setSyncTelemetryLinkedPending(id, l.pending)
 	})
 }
 
@@ -307,6 +351,8 @@ func (l *linkedLane) pass(ctx context.Context) error {
 				return err
 			}
 			if stored == nil {
+				// A reconcile can queue a ref just as its last range drops;
+				// the index then names no file and the entry goes.
 				segs, err := l.files.GetIndex().Lookup(ctx, e.ref)
 				if err != nil {
 					return err
@@ -394,15 +440,11 @@ func (l *linkedLane) readQueue(ctx context.Context, after []byte) ([]linkedQueue
 		ok = it.Next()
 	}
 
-	// Decode each entry's ref.
+	// Decode each entry's ref from its key.
 	var page []linkedQueueEntry
 	for ; ok && len(page) < syncDirtyPageLimit; ok = it.Next() {
-		data, err := it.Value()
-		if err != nil {
-			return nil, err
-		}
 		ref := &block.BlockRef{}
-		if err := ref.UnmarshalVT(data); err != nil {
+		if err := ref.UnmarshalVT(it.Key()[len(linkedQueuePrefix):]); err != nil {
 			return nil, errors.Wrap(err, "decoding queued linked chunk")
 		}
 		page = append(page, linkedQueueEntry{key: slices.Clone(it.Key()), ref: ref})
@@ -410,18 +452,27 @@ func (l *linkedLane) readQueue(ctx context.Context, after []byte) ([]linkedQueue
 	return page, it.Err()
 }
 
-// dequeue deletes the queue entries at keys in one write.
+// dequeue deletes the queue entries at keys in one write, counting only the
+// entries that still existed: the index's write may have deleted some.
 func (l *linkedLane) dequeue(ctx context.Context, keys [][]byte) error {
 	// Skip an empty write.
 	if len(keys) == 0 {
 		return nil
 	}
+
+	// Delete the entries that remain.
+	var n int
 	err := kvtx.RunTransaction(ctx, true,
 		func(ctx context.Context) (kvtx.Tx, error) { return l.store.NewTransaction(ctx, true) },
 		func(ctx context.Context, tx kvtx.Tx) error {
+			n = 0
 			for _, key := range keys {
-				if err := tx.Delete(ctx, key); err != nil {
+				deleted, err := deleteQueued(ctx, tx, key)
+				if err != nil {
 					return err
+				}
+				if deleted {
+					n++
 				}
 			}
 			return nil
@@ -430,7 +481,7 @@ func (l *linkedLane) dequeue(ctx context.Context, keys [][]byte) error {
 	if err != nil {
 		return err
 	}
-	l.addPending(-len(keys))
+	l.addPending(-n)
 	return nil
 }
 
@@ -465,7 +516,7 @@ func (l *linkedLane) queueUnheld(ctx context.Context) error {
 		err = kvtx.RunTransaction(ctx, true,
 			func(ctx context.Context) (kvtx.Tx, error) { return l.store.NewTransaction(ctx, true) },
 			func(ctx context.Context, tx kvtx.Tx) error {
-				counted, err = l.enqueue(ctx, tx, missing)
+				counted, err = l.enqueue(ctx, tx, missing, nil)
 				return err
 			},
 		)
@@ -476,15 +527,11 @@ func (l *linkedLane) queueUnheld(ctx context.Context) error {
 	}
 }
 
-// linkedQueueKey returns the queue key of sequence seq.
-func linkedQueueKey(seq uint64) []byte {
-	return binary.BigEndian.AppendUint64([]byte(linkedQueuePrefix), seq)
-}
-
-// linkedQueueSeq returns the sequence of the queue key key.
-func linkedQueueSeq(key []byte) uint64 {
-	if len(key) != len(linkedQueuePrefix)+8 {
-		return 0
+// linkedQueueKey returns the queue key of ref.
+func linkedQueueKey(ref *block.BlockRef) ([]byte, error) {
+	data, err := ref.MarshalVT()
+	if err != nil {
+		return nil, err
 	}
-	return binary.BigEndian.Uint64(key[len(linkedQueuePrefix):])
+	return append([]byte(linkedQueuePrefix), data...), nil
 }

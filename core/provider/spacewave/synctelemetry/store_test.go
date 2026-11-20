@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/core/provider/spacewave/clouderror"
 	packfile_store "github.com/s4wave/spacewave/db/packfile/store"
 )
 
@@ -195,7 +196,8 @@ func TestSnapshotTransitions(t *testing.T) {
 }
 
 // TestUploadErrorFollowsPendingUploads checks that UploadError reports only a
-// push error of a store with uploads still pending.
+// push error of a store with uploads still pending, and that UploadHold names
+// an account limit that refused one.
 func TestUploadErrorFollowsPendingUploads(t *testing.T) {
 	// A pull error on a store with pending uploads is not an upload error.
 	store := &Store{}
@@ -224,6 +226,22 @@ func TestUploadErrorFollowsPendingUploads(t *testing.T) {
 	store.RecordError("bstore-1", nil)
 	if snap := store.Snapshot(); snap.UploadError != "" {
 		t.Fatalf("upload error = %q after a successful flush", snap.UploadError)
+	}
+
+	// A storage limit refusal of a linked chunk push holds the uploads while
+	// only linked chunks are pending, and a later push clears the hold.
+	store.SetPendingPublications("bstore-1", 0)
+	store.SetLinkedPending("bstore-1", 3)
+	store.StartPush("bstore-1", 64)
+	store.FinishPush("bstore-1", 64, &clouderror.Error{StatusCode: 402, Code: "storage_limit"})
+	snap := store.Snapshot()
+	if snap.UploadHold != UploadHoldStorageFull || snap.PendingUploadCount != 3 {
+		t.Fatalf("hold = %v with %d pending, want storage full with 3", snap.UploadHold, snap.PendingUploadCount)
+	}
+	store.StartPush("bstore-1", 64)
+	store.FinishPush("bstore-1", 64, nil)
+	if snap := store.Snapshot(); snap.UploadHold != UploadHoldNone {
+		t.Fatalf("hold = %v after a successful push", snap.UploadHold)
 	}
 }
 

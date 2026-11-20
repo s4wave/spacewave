@@ -32,6 +32,7 @@ type state struct {
 
 	pendingUploadBytes       int64
 	pendingUploadCount       int
+	linkedPendingCount       int
 	corruptDirtyCount        int
 	heldSince                time.Time
 	heldPartial              bool
@@ -51,6 +52,7 @@ type state struct {
 	lastActivityAt           time.Time
 	lastPushError            string
 	lastPushErrorAt          time.Time
+	uploadHold               UploadHold
 	lastPullError            string
 	lastPullErrorAt          time.Time
 	directHitCount           uint64
@@ -135,6 +137,15 @@ func (s *Store) SetPending(bstoreID string, bytes int64, count int) {
 	})
 }
 
+// SetLinkedPending replaces the count of linked file chunks queued for upload
+// beside the dirty backlog.
+func (s *Store) SetLinkedPending(bstoreID string, count int) {
+	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		s.getOrCreateStateLocked(bstoreID).linkedPendingCount = max(count, 0)
+		broadcast()
+	})
+}
+
 // SetCorruptDirty records the count of dirty blocks the last flush held back
 // because their local bytes fail their hash, since when the store holds them,
 // and whether the count is a lower bound because the flush stopped early.
@@ -207,6 +218,7 @@ func (s *Store) FinishPush(bstoreID string, bytes int64, err error) {
 		}
 
 		// Record the result: an error, or a push that clears the last one.
+		state.uploadHold = uploadHoldOf(err)
 		if err != nil {
 			state.lastPushError = err.Error()
 			state.lastPushErrorAt = now
@@ -232,6 +244,7 @@ func (s *Store) RecordError(bstoreID string, err error) {
 		state := s.getOrCreateStateLocked(bstoreID)
 		state.lastPushError = ""
 		state.lastPushErrorAt = time.Time{}
+		state.uploadHold = uploadHoldOf(err)
 		if err != nil {
 			state.lastPushError = err.Error()
 			state.lastPushErrorAt = now

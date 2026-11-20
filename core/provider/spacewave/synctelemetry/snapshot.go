@@ -147,6 +147,10 @@ type Snapshot struct {
 	// UploadError is the latest push error of a store whose uploads are still
 	// pending. It clears when that store's uploads succeed or drain.
 	UploadError string
+	// UploadHold is the account limit that refused the last push of a store
+	// whose uploads are still pending. Its uploads wait for the account state
+	// to change.
+	UploadHold UploadHold
 	// LastPullError is the latest sync-pull error.
 	LastPullError string
 	// LastPullErrorAt is the latest sync-pull error time.
@@ -183,7 +187,7 @@ func BuildSnapshot(states []state) Snapshot {
 			HeldPartial:              state.heldPartial,
 		})
 		snap.PendingUploadBytes += state.pendingUploadBytes
-		snap.PendingUploadCount += state.pendingUploadCount + state.pendingPublications
+		snap.PendingUploadCount += state.pendingUploadCount + state.linkedPendingCount + state.pendingPublications
 		snap.CorruptDirtyCount += state.corruptDirtyCount
 		snap.ActiveUploadBytes += state.activeUploadBytes
 		snap.ActiveUploadTransferredBytes += state.activeUploadSent
@@ -201,8 +205,12 @@ func BuildSnapshot(states []state) Snapshot {
 		if state.lastPushError != "" {
 			snap.LastPushError = state.lastPushError
 			snap.LastPushErrorAt = state.lastPushErrorAt
-			if state.pendingUploadCount != 0 || state.pendingPublications != 0 || state.pendingUploadBytes != 0 || state.inFlightPushes != 0 {
+			pending := state.pendingUploadCount + state.linkedPendingCount + state.pendingPublications
+			if pending != 0 || state.pendingUploadBytes != 0 || state.inFlightPushes != 0 {
 				snap.UploadError = state.lastPushError
+				if state.uploadHold != UploadHoldNone {
+					snap.UploadHold = state.uploadHold
+				}
 			}
 			if snap.LastErrorAt.Before(state.lastPushErrorAt) {
 				snap.LastError = state.lastPushError

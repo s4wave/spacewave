@@ -44,21 +44,23 @@ const versionKeyPrefix = "v/"
 type Index struct {
 	// store holds the entries.
 	store kvtx.Store
-	// gained runs in each SetPath that adds refs to a path, or is nil.
-	gained GainHook
+	// changed runs in each SetPath that changes the refs of a path, or is nil.
+	changed RefsHook
 }
 
-// GainHook runs inside the write transaction of a SetPath with the refs the
-// path gained: those it holds after the write and did not hold before, in
-// path order. It may write to tx keys outside the Index's prefixes, which
-// commit with the path. It returns a func to run after the commit, or nil;
-// when the hook fails, the SetPath fails and writes nothing.
-type GainHook func(ctx context.Context, tx kvtx.Tx, gained []*block.BlockRef) (func(), error)
+// RefsHook runs inside the write transaction of a SetPath that changes the
+// refs of a path. gained holds the refs the path holds after the write and did
+// not hold before, in path order; lost holds the refs the path held before
+// that no path holds after the write. It may write to tx keys outside the
+// Index's prefixes, which commit with the path. It returns a func to run after
+// the commit, or nil; when the hook fails, the SetPath fails and writes
+// nothing.
+type RefsHook func(ctx context.Context, tx kvtx.Tx, gained, lost []*block.BlockRef) (func(), error)
 
 // NewIndex constructs the Index kept in store, which holds no other keys
-// than the Index's own and those gained writes. gained may be nil.
-func NewIndex(store kvtx.Store, gained GainHook) *Index {
-	return &Index{store: store, gained: gained}
+// than the Index's own and those changed writes. changed may be nil.
+func NewIndex(store kvtx.Store, changed RefsHook) *Index {
+	return &Index{store: store, changed: changed}
 }
 
 // Lookup returns the segments recorded for ref, ordered by path, with one scan
@@ -94,7 +96,8 @@ func (x *Index) Lookup(ctx context.Context, ref *block.BlockRef) ([]*Segment, er
 // SetPath replaces the segments of path with segs, where segs[i] held refs[i],
 // in one write: a reader sees the path's old segments or its new ones. A ref
 // keeps one segment per path, the first. Nil refs drop the path. The write
-// reads the path's entry and touches only the path's own keys.
+// reads the path's entry and touches only the path's own keys, plus, with a
+// RefsHook, one seek per dropped ref to learn whether another path holds it.
 func (x *Index) SetPath(ctx context.Context, path string, refs []*block.BlockRef, segs []*Segment) error {
 	// Read the refs the path held.
 	tx, err := x.store.NewTransaction(ctx, true)
@@ -116,7 +119,7 @@ func (x *Index) SetPath(ctx context.Context, path string, refs []*block.BlockRef
 
 	// Write the new segments, one per ref, noting the refs the path gained.
 	held := make(map[string]struct{}, len(old.GetRefs()))
-	if x.gained != nil {
+	if x.changed != nil {
 		for _, ref := range old.GetRefs() {
 			key, err := segKey(ref, path)
 			if err != nil {
@@ -141,12 +144,14 @@ func (x *Index) SetPath(ctx context.Context, path string, refs []*block.BlockRef
 			return err
 		}
 		next.Refs = append(next.Refs, ref)
-		if _, ok := held[string(key)]; x.gained != nil && !ok {
+		if _, ok := held[string(key)]; x.changed != nil && !ok {
 			gained = append(gained, ref)
 		}
 	}
 
-	// Delete the old segments the new ones did not replace.
+	// Delete the old segments the new ones did not replace, noting the refs
+	// no path holds any more.
+	var lost []*block.BlockRef
 	for _, ref := range old.GetRefs() {
 		key, err := segKey(ref, path)
 		if err != nil {
@@ -158,16 +163,26 @@ func (x *Index) SetPath(ctx context.Context, path string, refs []*block.BlockRef
 		if err := tx.Delete(ctx, key); err != nil {
 			return err
 		}
+		if x.changed == nil {
+			continue
+		}
+		indexed, err := refIndexed(ctx, tx, ref)
+		if err != nil {
+			return err
+		}
+		if !indexed {
+			lost = append(lost, ref)
+		}
 	}
 
-	// Write the path and what the hook writes for its gained refs, then
+	// Write the path and what the hook writes for its changed refs, then
 	// commit and run the hook's follow-up.
 	if err := putOrDelete(ctx, tx, pkey, next, len(next.GetRefs()) == 0); err != nil {
 		return err
 	}
 	var after func()
-	if len(gained) != 0 {
-		if after, err = x.gained(ctx, tx, gained); err != nil {
+	if len(gained) != 0 || len(lost) != 0 {
+		if after, err = x.changed(ctx, tx, gained, lost); err != nil {
 			return err
 		}
 	}
@@ -393,6 +408,20 @@ func putOrDelete(ctx context.Context, tx kvtx.Tx, key []byte, msg interface{ Mar
 		return err
 	}
 	return tx.Set(ctx, key, data)
+}
+
+// refIndexed reports whether tx holds a segment of ref in any path, with one
+// seek of the ref's prefix.
+func refIndexed(ctx context.Context, tx kvtx.Tx, ref *block.BlockRef) (bool, error) {
+	// Seek the first key under the ref's prefix.
+	prefix, err := refPrefix(ref)
+	if err != nil {
+		return false, err
+	}
+	it := tx.Iterate(ctx, prefix, true, false)
+	defer it.Close()
+	found := it.Next()
+	return found, it.Err()
 }
 
 // refPrefix returns the prefix of ref's segment keys: the encoded ref behind

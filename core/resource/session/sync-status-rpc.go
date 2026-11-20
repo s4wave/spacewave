@@ -197,7 +197,10 @@ func (r *SessionResource) buildLocalSyncStatusSnapshot(
 		resp.State = s4wave_session.SyncStatusState_SyncStatusState_ACTIVE
 	}
 	if rate != nil {
-		rate.apply(resp, syncStatusCounters{uploadBytes: signedTransferCounter(traffic.UploadedBytes), downloadBytes: signedTransferCounter(traffic.DownloadedBytes)}, now)
+		rate.apply(resp, syncStatusCounters{
+			uploadBytes:   signedTransferCounter(traffic.UploadedBytes),
+			downloadBytes: signedTransferCounter(traffic.DownloadedBytes),
+		}, now)
 	}
 	if resp.UploadBytesPerSecond > 0 {
 		resp.Direction = s4wave_session.SyncActivityDirection_SyncActivityDirection_UPLOAD
@@ -213,6 +216,17 @@ func (r *SessionResource) buildLocalSyncStatusSnapshot(
 		resp.P2PState = s4wave_session.SyncP2PState_SyncP2PState_NO_PEERS
 	}
 	return resp, append(waits, pairingCh, transportCh, p2pCh, copyCh)
+}
+
+// syncUploadHold returns the status form of the account limit holding uploads.
+func syncUploadHold(hold provider_spacewave.SyncTelemetryUploadHold) s4wave_session.SyncUploadHold {
+	switch hold {
+	case provider_spacewave.SyncTelemetryUploadHoldStorageFull:
+		return s4wave_session.SyncUploadHold_SyncUploadHold_STORAGE_FULL
+	case provider_spacewave.SyncTelemetryUploadHoldSpendingLimit:
+		return s4wave_session.SyncUploadHold_SyncUploadHold_SPENDING_LIMIT
+	}
+	return s4wave_session.SyncUploadHold_SyncUploadHold_NONE
 }
 
 func syncStatusFromSpacewaveTelemetry(
@@ -240,6 +254,7 @@ func syncStatusFromSpacewaveTelemetry(
 		DirectP2PDisabled:                 !composition.DirectP2PEnabled,
 		LastError:                         telemetry.LastError,
 		UploadError:                       telemetry.UploadError,
+		UploadHold:                        syncUploadHold(telemetry.UploadHold),
 		PackRangeRequestCount:             telemetry.RangeRequestCount,
 		PackRangeResponseBytes:            nonNegativeUint64(telemetry.RangeResponseBytes),
 		PackFullResponseFallbackCount:     telemetry.FullResponseFallbackCount,

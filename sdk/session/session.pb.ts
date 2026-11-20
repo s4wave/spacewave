@@ -84,6 +84,38 @@ export const SyncStatusState_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
+ * SyncUploadHold names the account limit that holds cloud uploads.
+ *
+ * @generated from enum s4wave.session.SyncUploadHold
+ */
+export enum SyncUploadHold {
+  /**
+   * SyncUploadHold_NONE means no account limit holds uploads.
+   */
+  SyncUploadHold_NONE = 0,
+
+  /**
+   * SyncUploadHold_STORAGE_FULL means the account's cloud storage is full.
+   */
+  SyncUploadHold_STORAGE_FULL = 1,
+
+  /**
+   * SyncUploadHold_SPENDING_LIMIT means the account reached its spending
+   * limit.
+   */
+  SyncUploadHold_SPENDING_LIMIT = 2,
+}
+
+export const SyncUploadHold_Enum = /* @__PURE__ */ createEnumType(
+  's4wave.session.SyncUploadHold',
+  [
+    [0, 'SyncUploadHold_NONE'],
+    [1, 'SyncUploadHold_STORAGE_FULL'],
+    [2, 'SyncUploadHold_SPENDING_LIMIT'],
+  ],
+)
+
+/**
  * SyncActivityDirection describes the direction of active sync work.
  *
  * @generated from enum s4wave.session.SyncActivityDirection
@@ -1254,6 +1286,12 @@ export interface WatchSyncStatusResponse {
    * ignores download and transport errors.
    */
   uploadError?: string
+  /**
+   * UploadHold names the account limit that refused the latest upload of a
+   * store whose uploads are still pending. Those uploads wait, without
+   * retrying, until the account state changes, as when the limit is raised.
+   */
+  uploadHold?: SyncUploadHold
 }
 
 export const WatchSyncStatusResponse: MessageType<WatchSyncStatusResponse> =
@@ -1321,6 +1359,7 @@ export const WatchSyncStatusResponse: MessageType<WatchSyncStatusResponse> =
       [60, 'peer_download_bytes', 4],
       [61, 'peers', 11, 1, SyncPeerTransferStatus.codec],
       [62, 'upload_error', 9],
+      [63, 'upload_hold', 14, 0, SyncUploadHold_Enum],
     ],
   )
 
