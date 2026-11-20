@@ -1,68 +1,45 @@
 #!/bin/sh
-# pre-push refuses to push a tree the pre-commit checks never passed. A rebase,
-# cherry-pick or merge writes commits without running pre-commit, so the tree
-# such a push carries may combine changes that passed apart and fail together.
-#
-# For each pushed ref it reads the tip's tree. A tree pre-commit recorded in
-# hook-passed, in the common Git directory, pushes at once: one file read. Any
-# other tree runs the pre-commit hook over the pushed range: the tip's tree as
-# the index, diffed against the parent of the oldest commit no remote holds,
-# so every check covers the files the range changes. The checks read the
-# working tree, as a commit's do, so the tip must be checked out.
-#
-# git push --dry-run runs the same checks without pushing.
-set -eu
+set -e
 
-# Git hands the hook the pushed refs on stdin, one per line; read them all
-# before any check runs, since a check's command may read stdin.
-refs=$(cat)
-remote_name=$1
+# pre-push refuses to move master to a commit that no stack branch holds.
+#
+# Spacewave lands on its stack branch (dev-stack on the canonical checkout,
+# another *-stack name on another machine), and master moves only by
+# fast-forward to a stack head whose CI run passed. A commit pushed straight to
+# master skips that run and makes the whole stack rebase onto it. Git passes one
+# line per ref on stdin: <local ref> <local sha> <remote ref> <remote sha>.
+unset GIT_DIR GIT_WORK_TREE
+
+remote=$1
 zero=0000000000000000000000000000000000000000
-passed=$(git rev-parse --path-format=absolute --git-common-dir)/hook-passed
-index=$(mktemp "${TMPDIR:-/tmp}/pre-push-index.XXXXXX")
-trap 'rm -f "$index"' EXIT HUP INT TERM
-
-# check_ref checks the tree of the pushed commit $1, named $2, which the
-# remote had at $3.
-check_ref() {
-	tree=$(git rev-parse "$1^{tree}")
-	if [ -f "$passed" ] && grep -q "^$tree " "$passed"; then
-		return 0
-	fi
-
-	# The range is what no remote holds; a tree a remote already holds was
-	# pushed before and needs no check here.
-	exclude=
-	if [ "$3" != "$zero" ] && git cat-file -e "$3^{commit}" 2>/dev/null; then
-		exclude=^$3
-	fi
-	oldest=$(git rev-list --reverse --topo-order "$1" ${exclude:+"$exclude"} --not --remotes | head -n 1)
-	[ -n "$oldest" ] || return 0
-	base=$(git rev-parse -q --verify "$oldest^" || git hash-object -t tree /dev/null)
-
-	if [ "$(git rev-parse "HEAD^{tree}")" != "$tree" ]; then
-		printf 'pre-push: %s (%s) was never checked, and the checks read the working tree; check it out and push again: git switch --detach %s\n' "$2" "$1" "$1" >&2
-		return 1
-	fi
-
-	printf 'pre-push: %s: no commit hook saw tree %s; checking %s..%s\n' "$2" "$tree" "$(git rev-parse --short "$base")" "$(git rev-parse --short "$1")" >&2
-	GIT_INDEX_FILE=$index git read-tree "$1"
-	if ! GIT_INDEX_FILE=$index PRE_COMMIT_BASE=$base "$(dirname "$0")/pre-commit" </dev/null; then
-		printf 'pre-push: %s failed the commit checks; fix the findings, commit, and run git push --dry-run %s %s to check again\n' "$2" "$remote_name" "$2" >&2
-		return 1
-	fi
-	if ! grep -q "^$tree " "$passed"; then
-		printf 'pre-push: the checks reformatted files in %s; commit them and push again\n' "$2" >&2
-		return 1
-	fi
-}
-
+stacks=
 failed=
-while read -r local_ref local_sha _ remote_sha; do
-	[ -n "$local_ref" ] || continue
-	[ "$local_sha" != "$zero" ] || continue
-	check_ref "$local_sha" "$local_ref" "$remote_sha" || failed=1
-done <<REFS
-$refs
-REFS
-[ -z "$failed" ] || exit 1
+while read -r _ local_sha remote_ref _; do
+	[ "$remote_ref" = refs/heads/master ] || continue
+	if [ "$local_sha" = "$zero" ]; then
+		echo "pre-push: refusing to delete master" >&2
+		failed=1
+		continue
+	fi
+
+	# Read the stack heads as the remote holds them now, once per push.
+	if [ -z "$stacks" ]; then
+		stacks=$(git ls-remote "$remote" 'refs/heads/*-stack' | cut -f1)
+	fi
+	held=
+	for stack_sha in $stacks; do
+		git cat-file -e "$stack_sha^{commit}" 2>/dev/null ||
+			git fetch -q "$remote" "$stack_sha"
+		if git merge-base --is-ancestor "$local_sha" "$stack_sha"; then
+			held=1
+			break
+		fi
+	done
+	if [ -z "$held" ]; then
+		echo "pre-push: master moves only to a commit a *-stack branch holds;" >&2
+		echo "push to the stack branch and let master fast-forward after its CI passes" >&2
+		failed=1
+	fi
+done
+
+[ -z "$failed" ]
