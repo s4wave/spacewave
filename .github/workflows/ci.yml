@@ -161,16 +161,17 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
 
-      # Bldr's Resource tests run Python clients and servers through uv.
+      # Bldr's Resource tests run Python clients and servers through uv, and
+      # the OS lint checks its Python scripts through uv.
       - name: Install uv
-        if: ${{ matrix.name == 'bldr' }}
+        if: ${{ matrix.name == 'bldr' || matrix.name == 'os' }}
         run: pipx install uv==0.12.3
 
       - name: Install Bun dependencies
         run: bun install --frozen-lockfile --ignore-scripts
 
-      - name: Install Python Resource environment
-        if: ${{ matrix.name == 'bldr' }}
+      - name: Install Python environment
+        if: ${{ matrix.name == 'bldr' || matrix.name == 'os' }}
         run: uv sync --frozen --all-groups
 
       - name: Cache aptre tools

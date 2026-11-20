@@ -103,6 +103,16 @@ const members: Member[] = [
     test_go_script: 'test:go:identity',
     test_js_script: 'test:js:identity',
   },
+  // The OS tree's lint also checks its Python QEMU and storage scripts.
+  {
+    name: 'os',
+    roots: ['os'],
+    build_script: '',
+    lint_go_script: 'lint:os',
+    lint_js_script: '',
+    test_go_script: 'test:go:os',
+    test_js_script: '',
+  },
   {
     name: 'e2e',
     roots: ['e2e'],
@@ -665,11 +675,18 @@ function deltaSelection(base: string): Selection {
   const goscriptSelected =
     modulesChanged || [...goscript].some((pkg) => tested.has(pkg))
   const sliceCoverage = files.some((file) => sliceCoverageInputs.test(file))
+  const osPython = files.some(
+    (file) => file.startsWith('os/') && file.endsWith('.py'),
+  )
   const memberEntries: MemberEntry[] = []
   for (const { roots, ...member } of members) {
     const goPackages = packageDirs(graph, tested, roots)
     const lintPackages = packageDirs(graph, changed, roots)
     let testGo = goPackages.length > 0 ? member.test_go_script : ''
+    let lintGo = lintPackages.length > 0 ? member.lint_go_script : ''
+    if (member.name === 'os' && osPython) {
+      lintGo = member.lint_go_script
+    }
     if (member.name === 'e2e') {
       testGo = sliceCoverage ? member.test_go_script : ''
     }
@@ -679,7 +696,7 @@ function deltaSelection(base: string): Selection {
     memberEntries.push({
       ...member,
       build_script: js ? member.build_script : '',
-      lint_go_script: lintPackages.length > 0 ? member.lint_go_script : '',
+      lint_go_script: lintGo,
       lint_js_script: js ? member.lint_js_script : '',
       test_go_script: testGo,
       test_js_script: js ? member.test_js_script : '',
