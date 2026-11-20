@@ -186,6 +186,8 @@ func importOpenedLocalRepo(
 			}
 			source := &importObjectStore{Storer: repo.Storer, ctx: ctx, afterObject: afterObject}
 			if _, err := packfile.NewEncoder(writer, source, false).Encode(missing, 1); err != nil {
+				// Close ends the writer's stream; the partial pack is discarded.
+				_ = writer.Close()
 				return errors.Wrap(err, "encode local repository pack")
 			}
 			if err := writer.Close(); err != nil {

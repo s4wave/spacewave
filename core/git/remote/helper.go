@@ -326,8 +326,12 @@ func (h *Helper) servePush(ctx context.Context, r *bufio.Reader, w *bufio.Writer
 // push applies cmds to the Repo, creating it when missing, and returns a
 // failure reason per command, empty on success. Git transfer runs outside the
 // World writer; the new Repo root is adopted only if no other writer moved it
-// meanwhile, otherwise the push repeats against the current root.
+// meanwhile, otherwise the push repeats against the current root. A git gc or
+// maintenance run that repacks the local repository during the transfer
+// deletes objects the open repository listed; the push then repeats with the
+// local repository reopened, up to localRepackRetries times.
 func (h *Helper) push(ctx context.Context, cmds []pushCommand) ([]string, error) {
+	repacks := 0
 	for {
 		// Resolve the Repo root, creating the Repo when missing.
 		prevRef, prevRev, found, err := h.repoRoot(ctx)
@@ -344,6 +348,10 @@ func (h *Helper) push(ctx context.Context, cmds []pushCommand) ([]string, error)
 		// Apply the commands and adopt the new root, or retry against the
 		// writer that moved it.
 		results, applied, err := h.pushAt(ctx, cmds, prevRef, prevRev)
+		if errors.Is(err, plumbing.ErrObjectNotFound) && repacks < localRepackRetries {
+			repacks++
+			continue
+		}
 		if err != nil || applied {
 			h.pushed = applied
 			return results, err
@@ -441,6 +449,10 @@ func (h *Helper) pushOne(ctx context.Context, local, repo *git.Repository, remot
 		return "non-fast-forward", nil
 	case ctx.Err() != nil:
 		return "", ctx.Err()
+	case errors.Is(err, plumbing.ErrObjectNotFound):
+		// A repack of the local repository removed an object the open
+		// repository listed; push retries with a fresh open.
+		return "", errors.Wrap(err, "read the local repository")
 	default:
 		return strings.ReplaceAll(err.Error(), "\n", " "), nil
 	}
@@ -452,6 +464,10 @@ func (h *Helper) openLocal() (*git.Repository, error) {
 	local, err := git.PlainOpen(h.gitDir)
 	return local, errors.Wrap(err, "open local repository")
 }
+
+// localRepackRetries bounds the push attempts a concurrent repack of the local
+// repository can fail.
+const localRepackRetries = 3
 
 // localRemote returns a remote on repo that names the local repository.
 func (h *Helper) localRemote(repo *git.Repository) *git.Remote {
