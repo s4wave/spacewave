@@ -44,7 +44,7 @@ func (r *Reference) IsNil() bool {
 // Validate checks the reference.
 func (r *Reference) Validate() error {
 	// Validate the stored reference name before checking its type.
-	if err := ValidateRefName(r.GetName(), false); err != nil {
+	if err := ValidateRefName(r.GetName()); err != nil {
 		return err
 	}
 
@@ -63,8 +63,13 @@ func (r *Reference) Validate() error {
 			return errors.New("reference hash field filled for non-hash ref type")
 		}
 	}
+
+	// A clone points HEAD at go-git's and Git's placeholder plumbing.Invalid
+	// until it learns the remote's default branch, so a symbolic target may
+	// name it.
 	if rt == plumbing.SymbolicReference {
-		if err := ValidateRefName(r.GetTargetReferenceName(), false); err != nil {
+		target := r.GetTargetReferenceName()
+		if err := ValidateRefName(target); err != nil && target != plumbing.Invalid.String() {
 			return errors.Wrap(err, "symbolic ref")
 		}
 	} else {

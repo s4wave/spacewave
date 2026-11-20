@@ -20,7 +20,7 @@ func (r *Submodule) IsNil() bool {
 
 // Validate checks the reference.
 func (r *Submodule) Validate() error {
-	if err := ValidateRefName(r.GetName(), false); err != nil {
+	if err := ValidateRefName(r.GetName()); err != nil {
 		return err
 	}
 	// disallow empty repo ref

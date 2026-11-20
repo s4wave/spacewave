@@ -1,7 +1,6 @@
 package git_block
 
 import (
-	"regexp"
 	"strings"
 
 	"github.com/go-git/go-git/v6/plumbing"
@@ -35,31 +34,24 @@ func ValidateRefHash(h *hash.Hash) error {
 	return nil
 }
 
-// reValidRef is used to constrain allowed ref names.
-// see check-ref-format
-// https://github.com/libgit2/libgit2/blob/29715d/src/refs.c#L879
-// extended perl regex not supported by Go
-// instead, check simplified regex (less permissive)
-// note: additional constraints are added in ValidateRefName.
-var reValidRef = regexp.MustCompile(`^([a-zA-Z0-9\-\/\.])+$`)
-
-// ^(?!/|.*([/.]\.|//|@\{|\\\\))[^\040\177 ~^:?*\[]+(?<!\.lock|[/.])$
-
-// ValidateRefName validates a reference name.
-func ValidateRefName(name string, allowOneLevel bool) error {
-	// ref name cannot be empty
-	if len(name) == 0 {
+// ValidateRefName validates a reference name by Git's check-ref-format
+// rules, which go-git implements, so a Repo stores every name Git does, such
+// as Buildroot's tag 2009.02_rc1. A one-level name such as HEAD is allowed,
+// its single component held to the same rules, as Git's --allow-onelevel does.
+func ValidateRefName(name string) error {
+	// Refuse an empty name with its own error.
+	if name == "" {
 		return ErrReferenceNameEmpty
 	}
-	// constrain to a limited subset of allowed characters
-	invRef := !reValidRef.MatchString(name) ||
-		// ref name cannot end with "."
-		strings.HasSuffix(name, ".") ||
-		// ref name cannot end with "/"
-		strings.HasSuffix(name, "/")
-	// allow only one level if configured
-	if invRef || (allowOneLevel && strings.Contains(name, "/")) {
-		return ErrReferenceNameInvalid
+
+	// Check a one-level name's component as the last of a full name; "@"
+	// alone stays invalid, as in Git.
+	full := plumbing.ReferenceName(name)
+	if name != "@" && !strings.Contains(name, "/") {
+		full = "refs/" + full
+	}
+	if err := full.Validate(); err != nil {
+		return errors.Wrapf(ErrReferenceNameInvalid, "%q", name)
 	}
 	return nil
 }
