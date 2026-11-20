@@ -2,13 +2,18 @@ import { useEffect, useState, type DependencyList } from 'react'
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
-import type { ListObjectsRequest } from '@s4wave/sdk/world/world.pb.js'
+import type {
+  ListObjectsRequest,
+  TypeCountEntry,
+} from '@s4wave/sdk/world/world.pb.js'
 import type { WorldQuery } from '@s4wave/sdk/world/world-query.js'
 
 // TypedObject is a seeded World object for a fake World.
 export interface TypedObject {
   objectKey: string
   objectType: string
+  // internal marks the object's type internal in the type counts.
+  internal?: boolean
 }
 
 // typedObjectsWorld answers type queries from a fixed object list. Getting
@@ -24,22 +29,33 @@ export function typedObjectsWorld(getObjects: () => TypedObject[]) {
   } as Partial<IWorldState> as IWorldState
 }
 
-// listingWorld answers listing pages from an object list, grouping keys when
-// a request has a delimiter. Getting objects may be a function so a test can
-// reseed between renders. Its small pages exercise cursors.
+// listingWorld answers listing pages and type counts from an object list,
+// grouping keys when a request has a delimiter. Getting objects may be a
+// function so a test can reseed between renders. Its small pages exercise
+// cursors.
 export function listingWorld(
   objects: TypedObject[] | (() => TypedObject[]),
   pageSize = 2,
 ): IWorldState {
+  const list = () => (typeof objects === 'function' ? objects() : objects)
   return {
+    listTypeCounts: () => {
+      const counts = new Map<string, TypeCountEntry>()
+      for (const { objectType: typeId, internal } of list()) {
+        if (!typeId) continue
+        const entry = counts.get(typeId) ?? { typeId, count: 0n, internal }
+        entry.count = (entry.count ?? 0n) + 1n
+        counts.set(typeId, entry)
+      }
+      return Promise.resolve(Array.from(counts.values()))
+    },
     listObjects: ({
       prefix = '',
       delimiter = '',
       startAfter = '',
       limit = 0,
     }: ListObjectsRequest) => {
-      const listed = typeof objects === 'function' ? objects() : objects
-      const sorted = listed.toSorted((a, b) =>
+      const sorted = list().toSorted((a, b) =>
         a.objectKey < b.objectKey ? -1 : 1,
       )
 

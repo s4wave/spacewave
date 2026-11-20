@@ -5,11 +5,15 @@ import { createSpaceObjectNavigationActions } from './space-object-navigation-ac
 
 describe('space object navigation actions', () => {
   it('builds visible object targets from the Space object tree policy', () => {
-    const targets = buildSpaceObjectActionTargets([
-      { objectKey: 'settings', typeId: 'space/settings' },
-      { objectKey: 'files', typeId: 'unixfs/fs-node' },
-      { objectKey: 'object-layout/main', typeId: 'alpha/object-layout' },
-    ])
+    const targets = buildSpaceObjectActionTargets(
+      [
+        { objectKey: 'settings', typeId: 'space/settings' },
+        { objectKey: 'files', typeId: 'unixfs/fs-node' },
+        { objectKey: 'object-layout/main', typeId: 'alpha/object-layout' },
+      ],
+      undefined,
+      new Set(['space/settings']),
+    )
 
     expect(targets.map((target) => target.objectKey)).toEqual([
       'files',

@@ -26,14 +26,9 @@ import {
   LuWrench,
 } from 'react-icons/lu'
 
-import {
-  SPACE_SETTINGS_BLOCK_TYPE,
-  SPACE_SETTINGS_OBJECT_KEY,
-} from '@s4wave/core/space/world/world.js'
 import type { TreeNode } from '@s4wave/web/ui/tree/TreeNode.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import type { ObjectMetadata } from '@s4wave/sdk/world/world.pb.js'
-import { WizardEndingsTypeID } from '@s4wave/sdk/world/wizard/wizard_typeid.pb.js'
 import {
   ObjectTypeVisibility,
   type ObjectTypeMetadata,
@@ -69,25 +64,35 @@ export interface SpaceObjectTargets {
 
 export type ObjectTypeMetadataById = ReadonlyMap<string, ObjectTypeMetadata>
 
-// HIDDEN_OBJECT_TYPES is the set of object types hidden from the tree: Space
-// bookkeeping a person did not make.
-export const HIDDEN_OBJECT_TYPES = new Set([
-  SPACE_SETTINGS_BLOCK_TYPE,
-  WizardEndingsTypeID,
-])
+// InternalTypes is the set of World types declared internal: bookkeeping a
+// person did not make, such as Space settings, which browsers and pickers hide.
+export type InternalTypes = ReadonlySet<string>
 
-// isHiddenSpaceObject returns whether an object should be hidden from space
-// object browsers and pickers.
-export function isHiddenSpaceObject(
-  objectKey?: string,
-  objectType?: string,
+// listInternalTypes reads which of the World's present types are internal. The
+// read touches one count entry per type, not the objects.
+export async function listInternalTypes(
+  world: IWorldState,
+  signal?: AbortSignal,
+): Promise<InternalTypes> {
+  const counts = await world.listTypeCounts(signal)
+  return new Set(
+    counts.flatMap((entry) => (entry.internal ? [entry.typeId ?? ''] : [])),
+  )
+}
+
+// isInternalObject returns whether an object of objectType is hidden from
+// browsers and pickers: its World type is internal, or its registered viewer
+// metadata marks it hidden or internal.
+export function isInternalObject(
+  objectType: string | undefined,
+  internalTypes?: InternalTypes,
   metadataById?: ObjectTypeMetadataById,
 ): boolean {
-  if ((objectKey ?? '') === SPACE_SETTINGS_OBJECT_KEY) return true
-  if (isHiddenObjectTypeMetadata(metadataById?.get(objectType ?? ''))) {
-    return true
-  }
-  return HIDDEN_OBJECT_TYPES.has(objectType ?? '')
+  const typeId = objectType ?? ''
+  return (
+    !!internalTypes?.has(typeId) ||
+    isHiddenObjectTypeMetadata(metadataById?.get(typeId))
+  )
 }
 
 const iconSize = 'h-3.5 w-3.5'
@@ -254,13 +259,16 @@ export function isObjectKeyName(name: string, objectKey: string): boolean {
   )
 }
 
+// buildSpaceObjectActionTargets builds the action targets of the listed
+// objects that are not internal, in key order.
 export function buildSpaceObjectActionTargets(
   objects: readonly ObjectMetadata[],
   metadataById?: ObjectTypeMetadataById,
+  internalTypes?: InternalTypes,
 ): SpaceObjectActionTarget[] {
   return objects
     .flatMap((object) => {
-      if (isHiddenSpaceObject(object.objectKey, object.typeId, metadataById)) {
+      if (isInternalObject(object.typeId, internalTypes, metadataById)) {
         return []
       }
       const objectKey = object.objectKey ?? ''
@@ -294,6 +302,7 @@ export async function listSpaceObjectTargets(
   metadataById?: ObjectTypeMetadataById,
   signal?: AbortSignal,
 ): Promise<SpaceObjectTargets> {
+  const internalTypes = await listInternalTypes(world, signal)
   const targets: SpaceObjectActionTarget[] = []
   let startAfter = ''
   for (let page = 0; page < spaceObjectTargetPages; page++) {
@@ -301,7 +310,9 @@ export async function listSpaceObjectTargets(
       { startAfter, limit: spaceObjectTargetLimit + 1 },
       signal,
     )
-    targets.push(...buildSpaceObjectActionTargets(objects, metadataById))
+    targets.push(
+      ...buildSpaceObjectActionTargets(objects, metadataById, internalTypes),
+    )
     if (targets.length > spaceObjectTargetLimit) {
       return { targets: targets.slice(0, spaceObjectTargetLimit), more: true }
     }
@@ -363,6 +374,7 @@ export async function listObjectLevel(
   metadataById?: ObjectTypeMetadataById,
   signal?: AbortSignal,
 ): Promise<ObjectLevel> {
+  const internalTypes = await listInternalTypes(world, signal)
   const objects: ObjectMetadata[] = []
   const groups: string[] = []
   let startAfter = ''
@@ -388,7 +400,10 @@ export async function listObjectLevel(
     if (!last) break
     startAfter = last
   }
-  return { nodes: buildObjectLevel(objects, groups, metadataById), more }
+  return {
+    nodes: buildObjectLevel(objects, groups, metadataById, internalTypes),
+    more,
+  }
 }
 
 // buildObjectLevel builds the tree nodes of one level from its listed objects
@@ -397,12 +412,17 @@ export function buildObjectLevel(
   objects: readonly ObjectMetadata[],
   groups: readonly string[],
   metadataById?: ObjectTypeMetadataById,
+  internalTypes?: InternalTypes,
 ): TreeNode<ObjectTreeNode>[] {
   const entries = new Map<
     string,
     { object?: SpaceObjectActionTarget; hasChildren: boolean }
   >()
-  for (const object of buildSpaceObjectActionTargets(objects, metadataById)) {
+  for (const object of buildSpaceObjectActionTargets(
+    objects,
+    metadataById,
+    internalTypes,
+  )) {
     entries.set(object.objectKey, { object, hasChildren: false })
   }
   for (const group of groups) {

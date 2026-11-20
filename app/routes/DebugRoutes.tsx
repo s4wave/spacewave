@@ -24,6 +24,10 @@ const ForgeViewerStatesDebug = debugPage(
   () => import('@s4wave/app/debug/forge/ForgeViewerStatesDebug.js'),
   'ForgeViewerStatesDebug',
 )
+const ObjectBrowserStatesDebug = debugPage(
+  () => import('@s4wave/app/debug/object-browser/ObjectBrowserStatesDebug.js'),
+  'ObjectBrowserStatesDebug',
+)
 const TerminalViewerDebug = debugPage(
   () => import('@s4wave/app/debug/terminal/TerminalViewerDebug.js'),
   'TerminalViewerDebug',
@@ -268,6 +272,13 @@ const debugRouteEntries = [
     description: 'Open a Forge viewer in one state; add /log, /waiting...',
     element: <ForgeViewerStatesDebug />,
   },
+  {
+    path: '/debug/ui/object-browser-states',
+    title: 'Object browser states',
+    description:
+      'Open the object browser in one state; add /offline, /empty...',
+    element: <ObjectBrowserStatesDebug />,
+  },
 
   {
     path: '/debug/ui/terminal',
@@ -371,6 +382,9 @@ export const DebugRoutes = (
     </Route>
     <Route path="/debug/ui/forge-states/:state">
       <ForgeViewerStatesDebug />
+    </Route>
+    <Route path="/debug/ui/object-browser-states/:state">
+      <ObjectBrowserStatesDebug />
     </Route>
     <Route path="/debug/ui/terminal/:state">
       <TerminalViewerDebug />

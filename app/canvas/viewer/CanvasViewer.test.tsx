@@ -269,19 +269,13 @@ describe('CanvasViewer', () => {
 })
 
 describe('isCanvasInsertableObject', () => {
-  it('hides the reserved space settings object', () => {
-    expect(
-      isCanvasInsertableObject('settings', 'space/settings', 'canvas-1'),
-    ).toBe(false)
+  it('leaves out the canvas itself', () => {
+    expect(isCanvasInsertableObject('canvas-1', 'canvas-1')).toBe(false)
   })
 
-  it('keeps regular objects available for insertion', () => {
-    expect(
-      isCanvasInsertableObject(
-        'object-layout/main',
-        'alpha/object-layout',
-        'canvas-1',
-      ),
-    ).toBe(true)
+  it('keeps other objects available for insertion', () => {
+    expect(isCanvasInsertableObject('object-layout/main', 'canvas-1')).toBe(
+      true,
+    )
   })
 })

@@ -20,7 +20,7 @@ const refersPred = '<glados/evidence>'
 
 // putObject stores a new World object of typeId, with its root block when
 // given one and any quads the object declares, in one batch.
-async function putObject(
+export async function putObject(
   world: EngineWorldState,
   key: string,
   typeId: string,

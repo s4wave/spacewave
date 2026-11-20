@@ -1,6 +1,9 @@
 import type { ObjectMetadata } from '@s4wave/sdk/world/world.pb.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
-import { isHiddenSpaceObject } from '@s4wave/web/space/object-tree.js'
+import {
+  isInternalObject,
+  listInternalTypes,
+} from '@s4wave/web/space/object-tree.js'
 
 // canvasPickerPageSize bounds the listing page the object picker searches.
 const canvasPickerPageSize = 1000
@@ -8,25 +11,25 @@ const canvasPickerPageSize = 1000
 // canvasPickerPrefixPageSize bounds the keys read under the typed query.
 const canvasPickerPrefixPageSize = 100
 
-// isCanvasInsertableObject returns whether an object should appear in the
-// canvas "Add Existing Object" picker.
+// isCanvasInsertableObject returns whether a listed object may go on the
+// canvas: any object but the canvas itself.
 export function isCanvasInsertableObject(
   objectKey: string,
-  objectType: string,
   canvasObjectKey: string,
 ): boolean {
-  if (!objectKey || objectKey === canvasObjectKey) return false
-  return !isHiddenSpaceObject(objectKey, objectType)
+  return !!objectKey && objectKey !== canvasObjectKey
 }
 
 // listCanvasPickerObjects lists the objects the canvas object picker searches:
-// the first listing page and the keys that start with query, in key order.
+// the first listing page and the keys that start with query, in key order,
+// leaving out internal objects.
 export async function listCanvasPickerObjects(
   world: IWorldState,
   query: string,
   signal?: AbortSignal,
 ): Promise<ObjectMetadata[]> {
-  const [first, prefixed] = await Promise.all([
+  const [internalTypes, first, prefixed] = await Promise.all([
+    listInternalTypes(world, signal),
     world.listObjects({ limit: canvasPickerPageSize }, signal),
     query
       ? world.listObjects(
@@ -40,6 +43,7 @@ export async function listCanvasPickerObjects(
     ...(first.objects ?? []),
     ...(prefixed?.objects ?? []),
   ]) {
+    if (isInternalObject(object.typeId, internalTypes)) continue
     byKey.set(object.objectKey ?? '', object)
   }
   return Array.from(byKey.values()).toSorted((a, b) =>

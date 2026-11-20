@@ -68,6 +68,10 @@ vi.mock('@s4wave/web/hooks/useWorldQuery.js', async () => {
   }
 })
 
+vi.mock('./browser/ObjectBrowser.js', () => ({
+  ObjectBrowser: () => <p>Object browser</p>,
+}))
+
 import { SpaceIndex } from './SpaceIndex.js'
 
 describe('SpaceIndex', () => {
@@ -104,7 +108,7 @@ describe('SpaceIndex', () => {
     const applyWorldOp = vi.fn().mockResolvedValue({ seqno: 1n, sysErr: false })
     h.objects = [
       { objectKey: 'files-1', objectType: 'unixfs/fs-node' },
-      { objectKey: 'settings', objectType: 'space/settings' },
+      { objectKey: 'settings', objectType: 'space/settings', internal: true },
     ]
     mockUseSpaceContainer.mockReturnValue({
       spaceWorldResource: {},
@@ -151,8 +155,7 @@ describe('SpaceIndex', () => {
     expect(await screen.findByText('Empty Space')).toBeDefined()
   })
 
-  it('renders the object list when objects exist without an index path', async () => {
-    const navigateToObjects = vi.fn()
+  it('renders the object browser when objects exist without an index path', async () => {
     h.objects = [{ objectKey: 'files', objectType: 'unixfs/fs-node' }]
     mockUseSpaceContainer.mockReturnValue({
       spaceWorldResource: {},
@@ -160,7 +163,6 @@ describe('SpaceIndex', () => {
         settings: {},
       },
       spaceWorld: { applyWorldOp: vi.fn() },
-      navigateToObjects,
       navigateToSubPath: vi.fn(),
       canDeleteObjects: false,
     })
@@ -168,15 +170,12 @@ describe('SpaceIndex', () => {
     render(<SpaceIndex />)
 
     await waitFor(() => {
-      expect(screen.getByText('files')).toBeDefined()
+      expect(screen.getByText('Object browser')).toBeDefined()
     })
     expect(
       screen.getByText('Select an object to view, or add a new one.'),
     ).toBeDefined()
     expect(screen.queryByText('Empty Space')).toBeNull()
-
-    fireEvent.doubleClick(screen.getByRole('treeitem', { name: /files/i }))
-    expect(navigateToObjects).toHaveBeenCalledWith(['files'])
 
     fireEvent.click(screen.getByRole('button', { name: 'Add an object' }))
     expect(mockOpenCommand).toHaveBeenCalledWith('spacewave.create-object')
@@ -206,7 +205,9 @@ describe('SpaceIndex', () => {
   it('renders the empty state without repair when a stale index has no visible replacement', async () => {
     const navigateToSubPath = vi.fn()
     const applyWorldOp = vi.fn()
-    h.objects = [{ objectKey: 'settings', objectType: 'space/settings' }]
+    h.objects = [
+      { objectKey: 'settings', objectType: 'space/settings', internal: true },
+    ]
     mockUseSpaceContainer.mockReturnValue({
       spaceWorldResource: {},
       spaceState: {

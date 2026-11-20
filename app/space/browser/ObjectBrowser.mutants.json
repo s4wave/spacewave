@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Follow shows on a deleted object",
+    "replace": [
+      [
+        "[] target = \"deleted\" -> nav",
+        "[] target = \"deleted\" -> nav \\cup {\"follow\"}"
+      ]
+    ],
+    "expect": "EveryShownActionWorks"
+  },
+  {
+    "name": "Graph or List shows while the relations load",
+    "replace": [
+      [
+        "CASE load = \"loading\" -> nav",
+        "CASE load = \"loading\" -> nav \\cup (IF view = \"object\" THEN {\"toggleRelations\"} ELSE {})"
+      ]
+    ],
+    "expect": "EveryShownActionWorks"
+  },
+  {
+    "name": "an object offers no Back",
+    "replace": [
+      [
+        "nav == IF view = \"types\" THEN {} ELSE {\"back\"}",
+        "nav == IF view \\in {\"types\", \"object\"} THEN {} ELSE {\"back\"}"
+      ]
+    ],
+    "expect": "CanGoHome"
+  }
+]

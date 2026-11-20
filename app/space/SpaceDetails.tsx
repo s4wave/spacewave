@@ -3,7 +3,7 @@ import { LuBuilding2, LuPlus } from 'react-icons/lu'
 import { SharedObjectDetails } from '@s4wave/app/sobject/SharedObjectDetails.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 
-import { SpaceObjectBrowser } from './SpaceObjectBrowser.js'
+import { ObjectBrowser } from './browser/ObjectBrowser.js'
 import { SpacePlugins } from './SpacePlugins.js'
 import { SpaceSettingsEditor } from './SpaceSettingsEditor.js'
 import { SpaceDataSection } from './SpaceTransformSection.js'
@@ -100,7 +100,7 @@ export function SpaceDetails({
           <LuPlus className="size-3.5" />
         </button>
       }
-      objectsSection={<SpaceObjectBrowser embedded={true} />}
+      objectsSection={<ObjectBrowser />}
       settingsSection={
         <SpaceSettingsEditor
           canEdit={true}

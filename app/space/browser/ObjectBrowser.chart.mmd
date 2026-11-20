@@ -1,0 +1,32 @@
+---
+title: "Space object browser"
+---
+stateDiagram-v2
+  s0: Types and their counts
+  s1: Cannot load: offline or Retry
+  s2: Objects: of a type, search results or key tree
+  s3: Object and its relations as a graph
+  s4: Deleted by another writer
+  s5: Object and its relations as a list
+  [*] --> s0
+  s0 --> s1: connection drops or read fails
+  s1 --> s0: connection returns or Retry or Back
+  s0 --> s2: opens a type, searches or opens the key tree
+  s2 --> s0: Back
+  s2 --> s1: connection drops or read fails
+  s1 --> s2: connection returns or Retry or Back
+  s2 --> s3: opens an object
+  s3 --> s2: Back
+  s3 --> s1: connection drops or read fails
+  s3 --> s4: another writer deletes it
+  s1 --> s3: connection returns or Retry
+  s4 --> s2: Back
+  s4 --> s1: connection drops or read fails
+  s3 --> s5: Graph or List
+  s1 --> s4: connection returns or Retry
+  s5 --> s3: Graph or List
+  s5 --> s1: connection drops or read fails
+  s5 --> s4: another writer deletes it
+  s5 --> s2: Back
+  s1 --> s5: connection returns or Retry
+  s2 --> s5: opens an object

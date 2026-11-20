@@ -11,14 +11,16 @@ import { useOpenCommand } from '@s4wave/web/command/CommandContext.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { useWorldQuery } from '@s4wave/web/hooks/useWorldQuery.js'
 import {
-  isHiddenSpaceObject,
+  isInternalObject,
+  listInternalTypes,
   OBJECT_KEY_DELIMITER,
+  type InternalTypes,
 } from '@s4wave/web/space/object-tree.js'
 import { ViewerStatus } from '@s4wave/web/object/ViewerStatus.js'
 import { EmptyState } from '@s4wave/web/ui/EmptyState.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 
-import { SpaceObjectBrowser } from './SpaceObjectBrowser.js'
+import { ObjectBrowser } from './browser/ObjectBrowser.js'
 import { applySpaceIndexPath } from './space-settings.js'
 
 // spaceIndexPageSize is how many keys one index lookup reads at a time.
@@ -42,7 +44,8 @@ export async function resolveSpaceIndex(
   indexPath: string | undefined,
   signal?: AbortSignal,
 ): Promise<SpaceIndexResolution> {
-  const first = await firstVisibleObjectKey(world, signal)
+  const internalTypes = await listInternalTypes(world, signal)
+  const first = await firstVisibleObjectKey(world, internalTypes, signal)
   const hasVisibleObjects = !!first
   const path = indexPath ?? ''
   if (!path || path === '/') {
@@ -54,12 +57,17 @@ export async function resolveSpaceIndex(
   if (!indexObjectKey) {
     return { path: '', stale: true, hasVisibleObjects }
   }
-  if (await isVisibleObject(world, indexObjectKey, signal)) {
+  if (await isVisibleObject(world, indexObjectKey, internalTypes, signal)) {
     return { path, stale: false, hasVisibleObjects }
   }
 
   const replacement =
-    (await lowestNumberedObjectKey(world, indexObjectKey, signal)) || first
+    (await lowestNumberedObjectKey(
+      world,
+      indexObjectKey,
+      internalTypes,
+      signal,
+    )) || first
   if (!replacement) {
     return { path: '', stale: true, hasVisibleObjects }
   }
@@ -76,17 +84,21 @@ export async function resolveSpaceIndex(
 async function isVisibleObject(
   world: IWorldState,
   key: string,
+  internalTypes: InternalTypes,
   signal?: AbortSignal,
 ): Promise<boolean> {
   const { objects } = await world.listObjects({ prefix: key, limit: 1 }, signal)
   const object = objects?.[0]
-  return object?.objectKey === key && !isHiddenSpaceObject(key, object.typeId)
+  return (
+    object?.objectKey === key && !isInternalObject(object.typeId, internalTypes)
+  )
 }
 
 // firstVisibleObjectKey returns the first key shown in the Space, or empty.
-// Hidden objects are few, so the scan ends within a page or two.
+// Internal objects are few, so the scan ends within a page or two.
 async function firstVisibleObjectKey(
   world: IWorldState,
+  internalTypes: InternalTypes,
   signal?: AbortSignal,
 ): Promise<string> {
   let startAfter = ''
@@ -97,7 +109,7 @@ async function firstVisibleObjectKey(
     )
     for (const object of objects ?? []) {
       const key = object.objectKey ?? ''
-      if (key && !isHiddenSpaceObject(key, object.typeId)) return key
+      if (key && !isInternalObject(object.typeId, internalTypes)) return key
       startAfter = key
     }
     if (!more || !objects?.length) return ''
@@ -109,6 +121,7 @@ async function firstVisibleObjectKey(
 async function lowestNumberedObjectKey(
   world: IWorldState,
   key: string,
+  internalTypes: InternalTypes,
   signal?: AbortSignal,
 ): Promise<string> {
   const prefix = key + '-'
@@ -119,7 +132,7 @@ async function lowestNumberedObjectKey(
   const numbered = (objects ?? [])
     .flatMap((object) => {
       const objectKey = object.objectKey ?? ''
-      if (isHiddenSpaceObject(objectKey, object.typeId)) return []
+      if (isInternalObject(object.typeId, internalTypes)) return []
       const suffix = Number(objectKey.slice(prefix.length))
       return Number.isInteger(suffix) && suffix > 0
         ? [{ objectKey, suffix }]
@@ -200,7 +213,7 @@ export function SpaceIndex() {
     />
   )
   if (failure && !indexResolution?.hasVisibleObjects) {
-    return <div className="flex min-h-0 flex-1 flex-col">{failure}</div>
+    return <div className="flex min-h-0 min-w-0 flex-1 flex-col">{failure}</div>
   }
   if (!indexResolution) {
     return null
@@ -208,7 +221,7 @@ export function SpaceIndex() {
 
   if (indexResolution.hasVisibleObjects) {
     return (
-      <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         {failure}
         <EmptyState
           className="shrink-0"
@@ -221,7 +234,7 @@ export function SpaceIndex() {
           }}
         />
         <div className="min-h-0 flex-1 overflow-auto px-4 pb-4">
-          <SpaceObjectBrowser embedded={true} />
+          <ObjectBrowser />
         </div>
       </div>
     )

@@ -122,7 +122,7 @@ describe('SpaceObjectBrowser', () => {
       { objectKey: 'object-layout/main', objectType: 'alpha/object-layout' },
       { objectKey: 'files', objectType: 'unixfs/fs-node' },
       { objectKey: 'canvas-1', objectType: 'canvas' },
-      { objectKey: 'settings', objectType: 'space/settings' },
+      { objectKey: 'settings', objectType: 'space/settings', internal: true },
     ],
     settings: { indexPath: 'object-layout/main' },
   }

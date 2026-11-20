@@ -8,12 +8,11 @@ import {
 import {
   buildObjectTypeMetadataMap,
   buildObjectLevel,
-  HIDDEN_OBJECT_TYPES,
   getObjectTypeLabel,
   getObjectTypeIcon,
   getObjectTypeIconComponent,
   getObjectDisplayName,
-  isHiddenSpaceObject,
+  isInternalObject,
   listObjectLevel,
   listSpaceObjectTargets,
 } from '@s4wave/web/space/object-tree.js'
@@ -23,19 +22,11 @@ beforeEach(() => {
   cleanup()
 })
 
-describe('HIDDEN_OBJECT_TYPES', () => {
-  it('contains space/settings', () => {
-    expect(HIDDEN_OBJECT_TYPES.has('space/settings')).toBe(true)
-  })
-})
-
-describe('isHiddenSpaceObject', () => {
-  it('hides the reserved settings object key', () => {
-    expect(isHiddenSpaceObject('settings', 'canvas')).toBe(true)
-  })
-
-  it('hides the SpaceSettings block type', () => {
-    expect(isHiddenSpaceObject('custom-settings', 'space/settings')).toBe(true)
+describe('isInternalObject', () => {
+  it('hides a type the World declares internal', () => {
+    const internal = new Set(['space/settings'])
+    expect(isInternalObject('space/settings', internal)).toBe(true)
+    expect(isInternalObject('canvas', internal)).toBe(false)
   })
 
   it('hides object types marked hidden or internal by metadata', () => {
@@ -51,10 +42,8 @@ describe('isHiddenSpaceObject', () => {
         metadata: { visibility: ObjectTypeVisibility.HIDDEN },
       },
     ])
-    expect(isHiddenSpaceObject('internal', 'plugin/internal', metadata)).toBe(
-      true,
-    )
-    expect(isHiddenSpaceObject('hidden', 'plugin/hidden', metadata)).toBe(true)
+    expect(isInternalObject('plugin/internal', undefined, metadata)).toBe(true)
+    expect(isInternalObject('plugin/hidden', undefined, metadata)).toBe(true)
   })
 })
 
@@ -230,13 +219,15 @@ describe('buildObjectLevel', () => {
     expect(result[0].data?.objectType).toBe('canvas')
   })
 
-  it('filters out hidden types', () => {
+  it('filters out internal types', () => {
     const result = buildObjectLevel(
       [
         { objectKey: 'settings', typeId: 'space/settings' },
         { objectKey: 'doc', typeId: 'canvas' },
       ],
       [],
+      undefined,
+      new Set(['space/settings']),
     )
     expect(result.map((node) => node.id)).toEqual(['doc'])
   })
@@ -341,7 +332,7 @@ describe('listSpaceObjectTargets', () => {
     const world = listingWorld([
       { objectKey: 'a-internal', objectType: 'plugin/internal' },
       { objectKey: 'b-doc', objectType: 'canvas' },
-      { objectKey: 'settings', objectType: 'space/settings' },
+      { objectKey: 'settings', objectType: 'space/settings', internal: true },
       { objectKey: 'z-doc', objectType: 'canvas' },
     ])
 

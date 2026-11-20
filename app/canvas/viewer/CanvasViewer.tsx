@@ -526,7 +526,7 @@ export function CanvasViewer({
         const type = obj.typeId ?? ''
         const label = getObjectTypeLabel(type).toLowerCase()
         if (
-          !isCanvasInsertableObject(key, type, objectKey) ||
+          !isCanvasInsertableObject(key, objectKey) ||
           (q && !key.toLowerCase().includes(q) && !label.includes(q))
         ) {
           return []
