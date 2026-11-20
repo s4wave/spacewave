@@ -25,15 +25,15 @@ import (
 //
 // It commits with write ordering when the store supports it. A direct write is
 // safe to lose in a crash as long as no earlier commit is lost: the log pages
-// it appends go with it. The head publication that follows commits
-// fully and makes these writes durable, as does Sync.
+// it appends go with it. The head publication that follows, SetBucketRoots,
+// commits fully and makes these writes durable, as does Sync.
 func (v *Volume) withDirectAtomic(ctx context.Context, fn func(p *physicalTx) error) error {
 	return v.withDirect(ctx, false, fn)
 }
 
 // withDirectPlain runs fn as withDirectAtomic does, for the plain block
-// writes of the block.StoreOps contract, with a full commit: such a write is
-// durable when it returns unless ctx asks for write ordering.
+// writes and root moves of the block.StoreOps contract, with a full commit:
+// such a write is durable when it returns unless ctx asks for write ordering.
 func (v *Volume) withDirectPlain(ctx context.Context, fn func(p *physicalTx) error) error {
 	return v.withDirect(ctx, true, fn)
 }
