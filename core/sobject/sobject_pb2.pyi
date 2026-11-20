@@ -696,12 +696,14 @@ class SOInviteParticipation(_message.Message):
     def __init__(self, shared_object_ids: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class SOJoinRequest(_message.Message):
-    __slots__ = ("join_response", "created_at")
+    __slots__ = ("join_response", "created_at", "storage_join_response")
     JOIN_RESPONSE_FIELD_NUMBER: _ClassVar[int]
     CREATED_AT_FIELD_NUMBER: _ClassVar[int]
+    STORAGE_JOIN_RESPONSE_FIELD_NUMBER: _ClassVar[int]
     join_response: SOJoinResponse
     created_at: _timestamp_pb2.Timestamp
-    def __init__(self, join_response: _Optional[_Union[SOJoinResponse, _Mapping]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    storage_join_response: SOJoinResponse
+    def __init__(self, join_response: _Optional[_Union[SOJoinResponse, _Mapping]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., storage_join_response: _Optional[_Union[SOJoinResponse, _Mapping]] = ...) -> None: ...
 
 class SOJoinRequestList(_message.Message):
     __slots__ = ("requests",)

@@ -21,7 +21,6 @@ import (
 	"github.com/s4wave/spacewave/core/transport"
 	"github.com/s4wave/spacewave/db/block"
 	dex_solicit "github.com/s4wave/spacewave/db/dex/solicit"
-	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/link"
 	"github.com/s4wave/spacewave/net/peer"
 )
@@ -1215,10 +1214,7 @@ func (a *ProviderAccount) startInviteServer(ctx context.Context, childBus bus.Bu
 	lookupFn := func(ctx context.Context, tokenHash []byte) (*sobject_invite.InviteLookupResult, error) {
 		soList := a.soListCtr.GetValue()
 		for _, entry := range soList.GetSharedObjects() {
-			ref := entry.GetRef()
-			soID := ref.GetProviderResourceRef().GetId()
-
-			so, relSO, err := a.MountSharedObject(ctx, ref, nil)
+			so, relSO, err := a.MountSharedObject(ctx, entry.GetRef(), nil)
 			if err != nil {
 				continue
 			}
@@ -1237,26 +1233,8 @@ func (a *ProviderAccount) startInviteServer(ctx context.Context, childBus bus.Bu
 
 			for _, inv := range soState.GetInvites() {
 				if bytes.Equal(inv.GetTokenHash(), tokenHash) {
-					// Get the owner's private key for signing config changes.
-					volPeer, err := a.vol.GetPeer(ctx, true)
-					if err != nil {
-						relSO()
-						return nil, err
-					}
-					volPriv, err := volPeer.GetPrivKey(ctx)
-					if err != nil {
-						relSO()
-						return nil, err
-					}
 					relSO()
-
-					return &sobject_invite.InviteLookupResult{
-						Host:           localSO.soHost,
-						InviteMutator:  localSO,
-						Invite:         inv,
-						SharedObjectID: soID,
-						OwnerPrivKey:   volPriv,
-					}, nil
+					return a.inviteLookupResult(ctx, localSO, inv)
 				}
 			}
 			relSO()
@@ -1264,41 +1242,8 @@ func (a *ProviderAccount) startInviteServer(ctx context.Context, childBus bus.Bu
 		return nil, nil
 	}
 
-	// Build enroll function: add the invitee as a participant.
-	enrollFn := func(ctx context.Context, result *sobject_invite.InviteLookupResult, inviteePeerID peer.ID, inviteePubKey crypto.PubKey) (*sobject.SOGrant, sobject.SOParticipantAddOutcome, sobject.SOParticipantRole, error) {
-		// Add the invitee under the owner key. Local participants have no entity.
-		ownerPeerIDStr, err := peer.IDFromPrivateKey(result.OwnerPrivKey)
-		if err != nil {
-			return nil, 0, 0, err
-		}
-		grant, outcome, held, err := sobject.AddSOParticipant(
-			ctx,
-			result.Host,
-			result.SharedObjectID,
-			result.OwnerPrivKey,
-			ownerPeerIDStr.String(),
-			inviteePeerID.String(),
-			inviteePubKey,
-			result.Invite.GetRole(),
-			"",
-			"",
-		)
-		if err != nil {
-			return nil, 0, 0, err
-		}
-
-		// Keep the invitee connected once enrolled, whether or not the invite
-		// targeted it: the invitee's own dial does not hold the link open. The
-		// storage peer enrolls here too and waits in signaling until it dials.
-		a.clearP2PPendingEnrollPeer(inviteePeerID)
-		if err := a.RetainP2PPeer(ctx, inviteePeerID); err != nil {
-			return nil, 0, 0, errors.Wrap(err, "retain enrolled peer")
-		}
-		return grant, outcome, held, nil
-	}
-
 	// Build queue function: hold a redemption for the owner's approval.
-	queueFn := func(ctx context.Context, result *sobject_invite.InviteLookupResult, joinResp *sobject.SOJoinResponse) error {
+	queueFn := func(ctx context.Context, result *sobject_invite.InviteLookupResult, joinResp, storageJoinResp *sobject.SOJoinResponse) error {
 		// Mount the invite's shared object.
 		so, relSO, err := a.mountListedSharedObject(ctx, result.SharedObjectID)
 		if err != nil {
@@ -1310,7 +1255,7 @@ func (a *ProviderAccount) startInviteServer(ctx context.Context, childBus bus.Bu
 		defer relSO()
 
 		// Persist the request on the shared object.
-		return so.QueueJoinRequest(ctx, joinResp)
+		return so.QueueJoinRequest(ctx, joinResp, storageJoinResp)
 	}
 
 	// Build withdraw function: drop a requester's held redemption.
@@ -1349,7 +1294,7 @@ func (a *ProviderAccount) startInviteServer(ctx context.Context, childBus bus.Bu
 		childBus,
 		sobject_invite.Handlers{
 			Lookup:     lookupFn,
-			Enroll:     enrollFn,
+			Enroll:     a.enrollInvitee,
 			Leave:      a.acceptSharedObjectLeave,
 			Queue:      queueFn,
 			Withdraw:   withdrawFn,

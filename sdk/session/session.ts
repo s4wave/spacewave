@@ -532,7 +532,8 @@ export class Session extends Resource {
   }
 
   // resolveSpaceJoinRequest grants or refuses the pending join request of
-  // peerId. A grant returns a single-use invite for the peer.
+  // peerId. A grant admits the peer, which receives its grant when it redeems
+  // the invite again.
   public async resolveSpaceJoinRequest(
     spaceId: string,
     peerId: string,

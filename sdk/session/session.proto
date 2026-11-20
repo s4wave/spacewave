@@ -965,16 +965,13 @@ message ResolveSpaceJoinRequestRequest {
   string space_id = 1;
   // PeerId is the requesting peer (b58).
   string peer_id = 2;
-  // Grant issues the requester a personal invite; false refuses the request.
+  // Grant admits the requester at the role of the invite it redeemed; false
+  // refuses the request.
   bool grant = 3;
 }
 
 // ResolveSpaceJoinRequestResponse is the response for ResolveSpaceJoinRequest.
-message ResolveSpaceJoinRequestResponse {
-  // InviteMessage is the granted personal invite for delivery to the
-  // requester. Empty when the request was refused.
-  .sobject.SOInviteMessage invite_message = 1;
-}
+message ResolveSpaceJoinRequestResponse {}
 
 // WithdrawSpaceJoinRequestRequest is the request for WithdrawSpaceJoinRequest.
 message WithdrawSpaceJoinRequestRequest {

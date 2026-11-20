@@ -2162,6 +2162,11 @@ export interface SOJoinRequest {
    * CreatedAt is when the host queued the request.
    */
   createdAt?: Date
+  /**
+   * StorageJoinResponse is the redemption signed by the peer that writes the
+   * Space for the requester. A grant admits it with the requester.
+   */
+  storageJoinResponse?: SOJoinResponse
 }
 
 export const SOJoinRequest: MessageType<SOJoinRequest> =
@@ -2170,6 +2175,7 @@ export const SOJoinRequest: MessageType<SOJoinRequest> =
     () => [
       [1, 'join_response', 11, 0, SOJoinResponse.codec],
       [2, 'created_at', 11, 0, Timestamp.codec],
+      [3, 'storage_join_response', 11, 0, SOJoinResponse.codec],
     ],
   )
 

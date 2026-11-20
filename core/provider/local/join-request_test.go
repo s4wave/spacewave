@@ -113,7 +113,8 @@ func requesters(space *provider_local.SharedObject) []string {
 }
 
 // TestJoinRequestApproval queues a redemption, refuses it, lets the requester
-// withdraw a repeat, and grants another by personal invite.
+// withdraw a repeat, drops a request whose invite is revoked, and grants a
+// request that the requester then redeems again for its grant.
 func TestJoinRequestApproval(t *testing.T) {
 	// Offer a Space by an invite that requires approval.
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
@@ -122,6 +123,7 @@ func TestJoinRequestApproval(t *testing.T) {
 	space := h.createSpace("knock-space")
 	knock := h.invite(space, &sobject.SOInvite{ApprovalRequired: true})
 	readerPeer := h.readerKey.GetPeerId().String()
+	spaceID := space.GetSharedObjectID()
 
 	// The redemption waits for the owner without admitting the reader.
 	if !h.redeem(knock) {
@@ -135,7 +137,7 @@ func TestJoinRequestApproval(t *testing.T) {
 	}
 
 	// A refusal clears the request and admits nobody.
-	if err := space.RemoveJoinRequest(ctx, readerPeer); err != nil {
+	if err := h.owner.ResolveJoinRequest(ctx, spaceID, readerPeer, false); err != nil {
 		t.Fatal(err)
 	}
 	if len(requesters(space)) != 0 || h.participates(space) {
@@ -156,32 +158,35 @@ func TestJoinRequestApproval(t *testing.T) {
 		t.Fatal("withdrawal left a request or a participant")
 	}
 
-	// Asking again makes a new request. Revoking the invite it redeemed, as a
-	// change of admission terms does, keeps the role a grant reads.
+	// Revoking the redeemed invite, as a change of admission terms does, drops
+	// its requests, so no grant can follow.
 	if !h.redeem(knock) {
 		t.Fatal("repeat request was not queued")
 	}
 	if err := space.RevokeInvite(ctx, space.GetPrivKey(), knock.GetInviteId()); err != nil {
 		t.Fatal(err)
 	}
-	state, err := space.GetSOHostState(ctx)
-	if err != nil {
-		t.Fatal(err)
+	if err := h.owner.ResolveJoinRequest(ctx, spaceID, readerPeer, true); err == nil {
+		t.Fatal("grant under a revoked invite succeeded")
 	}
-	if role := sobject.FindInvite(state, knock.GetInviteId()).GetRole(); role != sobject.SOParticipantRole_SOParticipantRole_WRITER {
-		t.Fatalf("revoked invite grants role %v", role)
+	if h.participates(space) || len(requesters(space)) != 0 {
+		t.Fatal("revocation left the request or admitted the reader")
 	}
 
-	// The owner grants the request by personal invite.
-	personal := h.invite(space, &sobject.SOInvite{TargetPeerId: readerPeer, MaxUses: 1})
-	if err := space.RemoveJoinRequest(ctx, readerPeer); err != nil {
+	// A grant under a usable invite admits the requester and its storage peer,
+	// so redeeming the invite again returns the grant instead of queuing.
+	current := h.invite(space, &sobject.SOInvite{ApprovalRequired: true})
+	if !h.redeem(current) {
+		t.Fatal("request under the current invite was not queued")
+	}
+	if err := h.owner.ResolveJoinRequest(ctx, spaceID, readerPeer, true); err != nil {
 		t.Fatal(err)
 	}
-	if h.redeem(personal) {
-		t.Fatal("personal invite was queued")
+	if !h.participates(space) || len(requesters(space)) != 0 {
+		t.Fatal("grant did not admit the reader or left its request")
 	}
-	if !h.participates(space) {
-		t.Fatal("granted reader is not a participant")
+	if h.redeem(current) {
+		t.Fatal("admitted reader was queued again")
 	}
 	mountJoined(ctx, t, h.reader, space.GetSharedObjectID())
 }

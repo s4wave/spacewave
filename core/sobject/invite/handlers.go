@@ -22,7 +22,9 @@ type EnrollFn func(ctx context.Context, result *InviteLookupResult, inviteePeerI
 type LeaveFn func(context.Context, *sobject.SOLeaveRequest) (*sobject.SOLeaveResponse, error)
 
 // QueueFn holds a redemption as a join request for an owner to grant or refuse.
-type QueueFn func(ctx context.Context, result *InviteLookupResult, joinResp *sobject.SOJoinResponse) error
+// The request keeps both join responses, so a grant admits the session peer
+// and its storage peer as an immediate redemption would.
+type QueueFn func(ctx context.Context, result *InviteLookupResult, joinResp, storageJoinResp *sobject.SOJoinResponse) error
 
 // WithdrawFn removes the pending join request of peerID to join the shared
 // object, succeeding when none remains.

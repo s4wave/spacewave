@@ -3240,7 +3240,8 @@ type ResolveSpaceJoinRequestRequest struct {
 	SpaceId string `protobuf:"bytes,1,opt,name=space_id,json=spaceId,proto3" json:"spaceId,omitempty"`
 	// PeerId is the requesting peer (b58).
 	PeerId string `protobuf:"bytes,2,opt,name=peer_id,json=peerId,proto3" json:"peerId,omitempty"`
-	// Grant issues the requester a personal invite; false refuses the request.
+	// Grant admits the requester at the role of the invite it redeemed; false
+	// refuses the request.
 	Grant bool `protobuf:"varint,3,opt,name=grant,proto3" json:"grant,omitempty"`
 }
 
@@ -3274,9 +3275,6 @@ func (x *ResolveSpaceJoinRequestRequest) GetGrant() bool {
 // ResolveSpaceJoinRequestResponse is the response for ResolveSpaceJoinRequest.
 type ResolveSpaceJoinRequestResponse struct {
 	unknownFields []byte
-	// InviteMessage is the granted personal invite for delivery to the
-	// requester. Empty when the request was refused.
-	InviteMessage *sobject.SOInviteMessage `protobuf:"bytes,1,opt,name=invite_message,json=inviteMessage,proto3" json:"inviteMessage,omitempty"`
 }
 
 func (x *ResolveSpaceJoinRequestResponse) Reset() {
@@ -3284,13 +3282,6 @@ func (x *ResolveSpaceJoinRequestResponse) Reset() {
 }
 
 func (*ResolveSpaceJoinRequestResponse) ProtoMessage() {}
-
-func (x *ResolveSpaceJoinRequestResponse) GetInviteMessage() *sobject.SOInviteMessage {
-	if x != nil {
-		return x.InviteMessage
-	}
-	return nil
-}
 
 // WithdrawSpaceJoinRequestRequest is the request for WithdrawSpaceJoinRequest.
 type WithdrawSpaceJoinRequestRequest struct {
@@ -5829,7 +5820,6 @@ func (m *ResolveSpaceJoinRequestResponse) CloneVT() *ResolveSpaceJoinRequestResp
 		return (*ResolveSpaceJoinRequestResponse)(nil)
 	}
 	r := new(ResolveSpaceJoinRequestResponse)
-	r.InviteMessage = protobuf_go_lite.CloneVTValue(m.InviteMessage)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -8542,9 +8532,6 @@ func (this *ResolveSpaceJoinRequestResponse) EqualVT(that *ResolveSpaceJoinReque
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
-		return false
-	}
-	if !protobuf_go_lite.IsEqualVT(this.InviteMessage, that.InviteMessage) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -14551,12 +14538,6 @@ func (x *ResolveSpaceJoinRequestResponse) MarshalProtoJSON(s *json.MarshalState)
 		return
 	}
 	s.WriteObjectStart()
-	var wroteField bool
-	if x.InviteMessage != nil || s.HasField("inviteMessage") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("inviteMessage")
-		x.InviteMessage.MarshalProtoJSON(s.WithField("inviteMessage"))
-	}
 	s.WriteObjectEnd()
 }
 
@@ -14571,17 +14552,7 @@ func (x *ResolveSpaceJoinRequestResponse) UnmarshalProtoJSON(s *json.UnmarshalSt
 		return
 	}
 	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "invite_message", "inviteMessage":
-			if s.ReadNil() {
-				x.InviteMessage = nil
-				return
-			}
-			x.InviteMessage = &sobject.SOInviteMessage{}
-			x.InviteMessage.UnmarshalProtoJSON(s.WithField("invite_message", true))
-		}
+		// no fields
 	})
 }
 
@@ -20516,16 +20487,6 @@ func (m *ResolveSpaceJoinRequestResponse) MarshalToSizedBufferVT(dAtA []byte) (i
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
-	if m.InviteMessage != nil {
-		size, err := m.InviteMessage.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0xa
-	}
 	return len(dAtA) - i, nil
 }
 
@@ -23332,10 +23293,6 @@ func (m *ResolveSpaceJoinRequestResponse) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	if m.InviteMessage != nil {
-		l = m.InviteMessage.SizeVT()
-		n += protobuf_go_lite.SizeMessage(1, l)
-	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -25691,11 +25648,7 @@ func (x *ResolveSpaceJoinRequestRequest) String() string {
 
 func (x *ResolveSpaceJoinRequestResponse) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
-	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ResolveSpaceJoinRequestResponse")
-	if x.InviteMessage != nil {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "invite_message")
-		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.InviteMessage)
-	}
+	protobuf_go_lite.TextStartMessage(&sb, "ResolveSpaceJoinRequestResponse")
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -32158,21 +32111,6 @@ func (m *ResolveSpaceJoinRequestResponse) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: ResolveSpaceJoinRequestResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field InviteMessage", wireType)
-			}
-			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			if m.InviteMessage == nil {
-				m.InviteMessage = &sobject.SOInviteMessage{}
-			}
-			if err := m.InviteMessage.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -962,6 +962,9 @@ message SOJoinRequest {
   SOJoinResponse join_response = 1;
   // CreatedAt is when the host queued the request.
   .google.protobuf.Timestamp created_at = 2;
+  // StorageJoinResponse is the redemption signed by the peer that writes the
+  // Space for the requester. A grant admits it with the requester.
+  SOJoinResponse storage_join_response = 3;
 }
 
 // SOJoinRequestList is a host's pending join requests for one Space, at most

@@ -94,8 +94,6 @@ type InviteHost interface {
 type JoinRequestHost interface {
 	// GetJoinRequestsCtr returns the pending join requests, at most one per peer.
 	GetJoinRequestsCtr() ccontainer.Watchable[*SOJoinRequestList]
-	// RemoveJoinRequest removes the pending request of peerID.
-	RemoveJoinRequest(ctx context.Context, peerID string) error
 }
 
 // InviteMutator mutates shared-object invite state.

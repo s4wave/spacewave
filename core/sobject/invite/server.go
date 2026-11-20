@@ -98,28 +98,14 @@ func (s *Server) AcceptInvite(ctx context.Context, req *AcceptInviteRequest) (*A
 	}
 	streamPeerID := ms.GetPeerID()
 
-	// Parse the responder peer ID from the join response.
-	responderPeerID, responderPubKey, err := ValidateJoinResponse(joinResp)
+	// Verify both join responses; the stream peer must be their author.
+	redeemer, err := ValidateRedeemer(joinResp, req.GetStorageJoinResponse())
 	if err != nil {
 		return nil, err
 	}
-
-	// The stream peer must match the join response author.
+	responderPeerID := redeemer.PeerID
 	if streamPeerID != responderPeerID {
 		return nil, errors.New("stream peer ID does not match join response responder")
-	}
-
-	// The storage join response must be valid and name the same invite.
-	storageJoinResp := req.GetStorageJoinResponse()
-	if storageJoinResp == nil {
-		return nil, errors.New("storage_join_response is required")
-	}
-	storagePeerID, storagePubKey, err := ValidateJoinResponse(storageJoinResp)
-	if err != nil {
-		return nil, errors.Wrap(err, "validate storage join response")
-	}
-	if storageJoinResp.GetInviteId() != joinResp.GetInviteId() {
-		return nil, errors.New("storage join response invite ID mismatch")
 	}
 
 	// Hold the acceptance lock so the usability check below observes every
@@ -157,7 +143,7 @@ func (s *Server) AcceptInvite(ctx context.Context, req *AcceptInviteRequest) (*A
 	}
 	ownerConfig := ownerState.GetConfig()
 	if sobject.InviteEnrolled(ownerConfig, result.Invite, responderPeerID.String()) &&
-		sobject.InviteEnrolled(ownerConfig, result.Invite, storagePeerID.String()) {
+		sobject.InviteEnrolled(ownerConfig, result.Invite, redeemer.StoragePeerID.String()) {
 		role := ownerConfig.GetParticipantRole(responderPeerID.String())
 		return s.answerAccept(ctx, result, responderPeerID, nil, sobject.SOParticipantAddOutcome_SOParticipantAddOutcome_UNCHANGED, role)
 	}
@@ -181,40 +167,19 @@ func (s *Server) AcceptInvite(ctx context.Context, req *AcceptInviteRequest) (*A
 		if s.h.Queue == nil {
 			return nil, errors.New("join requests are unavailable")
 		}
-		if err := s.h.Queue(ctx, result, joinResp); err != nil {
+		if err := s.h.Queue(ctx, result, joinResp, req.GetStorageJoinResponse()); err != nil {
 			return nil, errors.Wrap(err, "queue join request")
 		}
 		return &AcceptInviteResponse{SharedObjectId: result.SharedObjectID, Pending: true}, nil
 	}
 
-	// Enroll the participant first. If enrollment fails, the invite use
-	// is not consumed (avoids burning limited-use invites on transient errors).
+	// Admit the redeemer and its storage peer.
 	if s.h.Enroll == nil {
 		return nil, errors.New("enrollment not configured")
 	}
-	grant, outcome, joinedRole, err := s.h.Enroll(ctx, result, responderPeerID, responderPubKey)
+	grant, outcome, joinedRole, err := Admit(ctx, s.h.Enroll, result, redeemer)
 	if err != nil {
-		return nil, errors.Wrap(err, "enroll participant")
-	}
-
-	// The storage identity writes for the Session, which never builds on the
-	// checkpointer's edits, so the Session leaves the trimming roster.
-	if storagePeerID != responderPeerID {
-		if _, _, _, err := s.h.Enroll(ctx, result, storagePeerID, storagePubKey); err != nil {
-			return nil, errors.Wrap(err, "enroll storage participant")
-		}
-		if _, err := sobject.DropFromSORoster(ctx, result.Host, []string{responderPeerID.String()}, result.OwnerPrivKey); err != nil {
-			return nil, errors.Wrap(err, "drop session from trimming roster")
-		}
-	}
-
-	// Enrollment succeeded, so the redemption consumes a use.
-	inviteMutator := result.InviteMutator
-	if inviteMutator == nil {
-		inviteMutator = result.Host
-	}
-	if err := inviteMutator.IncrementInviteUses(ctx, result.OwnerPrivKey, result.Invite.GetInviteId()); err != nil {
-		return nil, errors.Wrap(err, "increment invite uses")
+		return nil, err
 	}
 	return s.answerAccept(ctx, result, responderPeerID, grant, outcome, joinedRole)
 }

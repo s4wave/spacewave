@@ -1273,8 +1273,14 @@ func (s *SharedObject) CreateSOInviteOp(
 }
 
 // RevokeInvite revokes an invite locally.
+//
+// The requests queued under the invite go with it, since no grant can admit
+// them once the invite is revoked.
 func (s *SharedObject) RevokeInvite(ctx context.Context, signerPrivKey crypto.PrivKey, inviteID string) error {
-	return s.soHost.RevokeInvite(ctx, signerPrivKey, inviteID)
+	if err := s.soHost.RevokeInvite(ctx, signerPrivKey, inviteID); err != nil {
+		return err
+	}
+	return s.dropInviteJoinRequests(ctx, inviteID)
 }
 
 // IncrementInviteUses increments invite uses locally.

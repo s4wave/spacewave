@@ -2854,6 +2854,9 @@ type SOJoinRequest struct {
 	JoinResponse *SOJoinResponse `protobuf:"bytes,1,opt,name=join_response,json=joinResponse,proto3" json:"joinResponse,omitempty"`
 	// CreatedAt is when the host queued the request.
 	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=created_at,json=createdAt,proto3" json:"createdAt,omitempty"`
+	// StorageJoinResponse is the redemption signed by the peer that writes the
+	// Space for the requester. A grant admits it with the requester.
+	StorageJoinResponse *SOJoinResponse `protobuf:"bytes,3,opt,name=storage_join_response,json=storageJoinResponse,proto3" json:"storageJoinResponse,omitempty"`
 }
 
 func (x *SOJoinRequest) Reset() {
@@ -2872,6 +2875,13 @@ func (x *SOJoinRequest) GetJoinResponse() *SOJoinResponse {
 func (x *SOJoinRequest) GetCreatedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *SOJoinRequest) GetStorageJoinResponse() *SOJoinResponse {
+	if x != nil {
+		return x.StorageJoinResponse
 	}
 	return nil
 }
@@ -4248,6 +4258,7 @@ func (m *SOJoinRequest) CloneVT() *SOJoinRequest {
 	r := new(SOJoinRequest)
 	r.JoinResponse = protobuf_go_lite.CloneVTValue(m.JoinResponse)
 	r.CreatedAt = protobuf_go_lite.CloneVTValue(m.CreatedAt)
+	r.StorageJoinResponse = protobuf_go_lite.CloneVTValue(m.StorageJoinResponse)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -5865,6 +5876,9 @@ func (this *SOJoinRequest) EqualVT(that *SOJoinRequest) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.CreatedAt, that.CreatedAt) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.StorageJoinResponse, that.StorageJoinResponse) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -10039,6 +10053,11 @@ func (x *SOJoinRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("createdAt")
 		x.CreatedAt.MarshalProtoJSON(s.WithField("createdAt"))
 	}
+	if x.StorageJoinResponse != nil || s.HasField("storageJoinResponse") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("storageJoinResponse")
+		x.StorageJoinResponse.MarshalProtoJSON(s.WithField("storageJoinResponse"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -10070,6 +10089,13 @@ func (x *SOJoinRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.CreatedAt = &timestamppb.Timestamp{}
 			x.CreatedAt.UnmarshalProtoJSON(s.WithField("created_at", true))
+		case "storage_join_response", "storageJoinResponse":
+			if s.ReadNil() {
+				x.StorageJoinResponse = nil
+				return
+			}
+			x.StorageJoinResponse = &SOJoinResponse{}
+			x.StorageJoinResponse.UnmarshalProtoJSON(s.WithField("storage_join_response", true))
 		}
 	})
 }
@@ -13573,6 +13599,16 @@ func (m *SOJoinRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.StorageJoinResponse != nil {
+		size, err := m.StorageJoinResponse.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
 	if m.CreatedAt != nil {
 		size, err := m.CreatedAt.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -14947,6 +14983,10 @@ func (m *SOJoinRequest) SizeVT() (n int) {
 	}
 	if m.CreatedAt != nil {
 		l = m.CreatedAt.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.StorageJoinResponse != nil {
+		l = m.StorageJoinResponse.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += len(m.unknownFields)
@@ -16488,6 +16528,10 @@ func (x *SOJoinRequest) MarshalProtoText() string {
 	if x.CreatedAt != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "created_at")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.CreatedAt)
+	}
+	if x.StorageJoinResponse != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "storage_join_response")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.StorageJoinResponse)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -20727,6 +20771,21 @@ func (m *SOJoinRequest) UnmarshalVT(dAtA []byte) error {
 				m.CreatedAt = &timestamppb.Timestamp{}
 			}
 			if err := m.CreatedAt.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StorageJoinResponse", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.StorageJoinResponse == nil {
+				m.StorageJoinResponse = &SOJoinResponse{}
+			}
+			if err := m.StorageJoinResponse.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

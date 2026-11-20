@@ -902,10 +902,8 @@ class ResolveSpaceJoinRequestRequest(_message.Message):
     def __init__(self, space_id: _Optional[str] = ..., peer_id: _Optional[str] = ..., grant: _Optional[bool] = ...) -> None: ...
 
 class ResolveSpaceJoinRequestResponse(_message.Message):
-    __slots__ = ("invite_message",)
-    INVITE_MESSAGE_FIELD_NUMBER: _ClassVar[int]
-    invite_message: _sobject_pb2.SOInviteMessage
-    def __init__(self, invite_message: _Optional[_Union[_sobject_pb2.SOInviteMessage, _Mapping]] = ...) -> None: ...
+    __slots__ = ()
+    def __init__(self) -> None: ...
 
 class WithdrawSpaceJoinRequestRequest(_message.Message):
     __slots__ = ("invite_message",)

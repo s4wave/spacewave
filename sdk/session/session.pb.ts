@@ -2632,7 +2632,8 @@ export interface ResolveSpaceJoinRequestRequest {
    */
   peerId?: string
   /**
-   * Grant issues the requester a personal invite; false refuses the request.
+   * Grant admits the requester at the role of the invite it redeemed; false
+   * refuses the request.
    */
   grant?: boolean
 }
@@ -2652,18 +2653,12 @@ export const ResolveSpaceJoinRequestRequest: MessageType<ResolveSpaceJoinRequest
  *
  * @generated from message s4wave.session.ResolveSpaceJoinRequestResponse
  */
-export interface ResolveSpaceJoinRequestResponse {
-  /**
-   * InviteMessage is the granted personal invite for delivery to the
-   * requester. Empty when the request was refused.
-   */
-  inviteMessage?: SOInviteMessage
-}
+export interface ResolveSpaceJoinRequestResponse {}
 
 export const ResolveSpaceJoinRequestResponse: MessageType<ResolveSpaceJoinRequestResponse> =
   /* @__PURE__ */ createMessageType<ResolveSpaceJoinRequestResponse>(
     's4wave.session.ResolveSpaceJoinRequestResponse',
-    () => [[1, 'invite_message', 11, 0, SOInviteMessage.codec]],
+    () => [],
   )
 
 /**
