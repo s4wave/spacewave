@@ -58,7 +58,7 @@ func TestRunServeCommandCompletesTakeoverBeforeBusInitialization(t *testing.T) {
 		commandErr <- runServeCommand(child, func() cli_entrypoint.CliBus {
 			close(busInitialized)
 			return nil
-		}, yield_policy.NewBroker(), "", daemon.LauncherManual, true, 0, "", nil, NewCollectorFrees())
+		}, yield_policy.NewBroker(), "", daemon.LauncherManual, true, 0, "", nil, "", NewCollectorFrees())
 	}()
 
 	// Confirm the serve command waits for the shutdown to finish.

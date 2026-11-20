@@ -45,11 +45,13 @@ type keeperSpaceWatch struct {
 
 // startLocalSessionKeeper keeps configured local sessions mounted while the
 // daemon serves requests. Their session transports and P2P controllers must
-// remain available after a short CLI request releases its own resource.
+// remain available after a short CLI request releases its own resource. A
+// non-empty grantPath names the bootstrap grant the Device enrolls through.
 func startLocalSessionKeeper(
 	ctx context.Context,
 	le *logrus.Entry,
 	statePath string,
+	grantPath string,
 	invoker srpc.Invoker,
 ) {
 	if invoker == nil {
@@ -115,24 +117,44 @@ func startLocalSessionKeeper(
 				mounted,
 				mount,
 			)
-			reconcileDeviceEnrollment(ctx, le, statePath, client, mount, &enrollmentCleanup)
+			reconcileDeviceEnrollment(ctx, le, statePath, grantPath, client, mount, &enrollmentCleanup)
 		}
 	}()
 }
 
 // reconcileDeviceEnrollment restores a persisted local Device enrollment once
-// its session can be mounted, and keeps it until the keeper exits.
+// its session can be mounted, and keeps it until the keeper exits. With a
+// bootstrap grant, one routine enrolls through it and holds the enrollment.
 func reconcileDeviceEnrollment(
 	ctx context.Context,
 	le *logrus.Entry,
 	statePath string,
+	grantPath string,
 	client *sdkClient,
 	mount func(uint32) (localSessionMount, error),
 	enrollmentCleanup *func(),
 ) {
+	// Keep the enrollment already held.
 	if *enrollmentCleanup != nil {
 		return
 	}
+
+	// A grant enrollment retries on its own clock, not on session revisions.
+	if grantPath != "" {
+		grantCtx, cancel := context.WithCancel(ctx)
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			runGrantEnrollment(grantCtx, le, statePath, grantPath, client, mount)
+		}()
+		*enrollmentCleanup = func() {
+			cancel()
+			<-done
+		}
+		return
+	}
+
+	// Otherwise restore an enrollment a completion import made.
 	cleanup, err := restoreLocalDeviceEnrollment(ctx, le, statePath, client, mount)
 	if err != nil {
 		le.WithError(err).Warn("local Device enrollment restore failed")

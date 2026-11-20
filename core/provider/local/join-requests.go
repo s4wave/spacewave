@@ -41,9 +41,22 @@ func (s *SharedObject) GetJoinRequestsCtr() ccontainer.Watchable[*sobject.SOJoin
 
 // QueueJoinRequest holds a redemption, signed by the requester and its storage
 // peer, as a pending join request. A later request by the same peer replaces
-// the earlier one.
+// the earlier one; a repeat of the held request, as a pending Device sends
+// while it waits, keeps the held request and its age without a write.
 func (s *SharedObject) QueueJoinRequest(ctx context.Context, joinResp, storageJoinResp *sobject.SOJoinResponse) error {
+	// Skip the write when the peer repeats the request already held.
 	peerID := joinResp.GetResponderPeerId()
+	for _, req := range s.joinRequests.GetValue().GetRequests() {
+		if req.GetJoinResponse().GetResponderPeerId() != peerID {
+			continue
+		}
+		if req.GetJoinResponse().EqualVT(joinResp) && req.GetStorageJoinResponse().EqualVT(storageJoinResp) {
+			return nil
+		}
+		break
+	}
+
+	// Replace any earlier request by the peer.
 	return s.updateJoinRequests(ctx, func(requests []*sobject.SOJoinRequest) ([]*sobject.SOJoinRequest, error) {
 		requests = slices.DeleteFunc(requests, func(req *sobject.SOJoinRequest) bool {
 			return req.GetJoinResponse().GetResponderPeerId() == peerID

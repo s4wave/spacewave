@@ -5,11 +5,14 @@ package spacewave_cli
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	"github.com/s4wave/spacewave/bldr/util/packedmsg"
 	process_binding "github.com/s4wave/spacewave/core/plugin/process"
 	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
 	plugin_space_runtime "github.com/s4wave/spacewave/core/plugin/space/runtime"
@@ -23,6 +26,8 @@ import (
 	volume_kvtxinmem "github.com/s4wave/spacewave/db/volume/kvtxinmem"
 	"github.com/s4wave/spacewave/db/world"
 	forge_worker "github.com/s4wave/spacewave/forge/worker"
+	"github.com/s4wave/spacewave/net/peer"
+	os_image "github.com/s4wave/spacewave/os/image"
 	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 	"github.com/s4wave/spacewave/testbed"
@@ -354,8 +359,8 @@ func TestReconcileDeviceEnrollmentRestoresAndReleasesLocalSession(t *testing.T) 
 	// Reconcile across two snapshots and confirm one retained mount.
 	le := logrus.NewEntry(logrus.New())
 	var cleanup func()
-	reconcileDeviceEnrollment(t.Context(), le, statePath, nil, mountFunc, &cleanup)
-	reconcileDeviceEnrollment(t.Context(), le, statePath, nil, mountFunc, &cleanup)
+	reconcileDeviceEnrollment(t.Context(), le, statePath, "", nil, mountFunc, &cleanup)
+	reconcileDeviceEnrollment(t.Context(), le, statePath, "", nil, mountFunc, &cleanup)
 	if cleanup == nil || mountCalls != 1 || mount.released {
 		t.Fatalf("retained enrollment: cleanup=%v mounts=%d released=%v", cleanup != nil, mountCalls, mount.released)
 	}
@@ -374,6 +379,100 @@ func TestReconcileDeviceEnrollmentRestoresAndReleasesLocalSession(t *testing.T) 
 	}
 	if ready.SetupState != deviceSetupStateSessionReady || ready.DeviceObjectKey != "devices/key" || ready.FailureReason != "" {
 		t.Fatalf("projected Device record = %+v", ready)
+	}
+}
+
+// TestReconcileDeviceEnrollmentRedeemsGrantUntilAdmitted covers first boot
+// from an image's bootstrap grant: the Device makes its key, completes the
+// setup with the grant, redeems again while the owner holds the request, and
+// holds the restored session once admitted until the keeper exits.
+func TestReconcileDeviceEnrollmentRedeemsGrantUntilAdmitted(t *testing.T) {
+	// Write the card's grant and shorten the redemption backoff.
+	statePath, grantPath := t.TempDir(), filepath.Join(t.TempDir(), os_image.CardGrant)
+	grant := &sobject.SOInviteMessage{InviteId: "invite", SharedObjectId: "space", ProviderId: "local"}
+	data, err := grant.MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(grantPath, []byte(packedmsg.EncodePackedMessage(data)+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	oldMin, oldMax := deviceGrantRetryMin, deviceGrantRetryMax
+	deviceGrantRetryMin, deviceGrantRetryMax = time.Millisecond, time.Millisecond
+	t.Cleanup(func() { deviceGrantRetryMin, deviceGrantRetryMax = oldMin, oldMax })
+
+	// Answer pending twice, then admit the Device at session index 3.
+	redeemed := make(chan *deviceSetupRecord, 4)
+	calls := 0
+	oldMount := deviceMountLocalSession
+	deviceMountLocalSession = func(_ context.Context, _ *sdkClient, _ string, current *deviceSetupRecord) (*deviceSetupRecord, error) {
+		calls++
+		redeemed <- current
+		if calls < 3 {
+			return nil, errDeviceEnrollmentPending
+		}
+		admitted := *current
+		admitted.SessionIndex = 3
+		return &admitted, nil
+	}
+	t.Cleanup(func() { deviceMountLocalSession = oldMount })
+	withDeviceObjectUpsertStub(t, func(context.Context, *sdkClient, *deviceSetupRecord, func(error)) (string, error) {
+		return "devices/key", nil
+	})
+
+	// Report the retained session mount.
+	mount := &testLocalSessionMount{}
+	mounted := make(chan uint32, 1)
+	mountFunc := func(index uint32) (localSessionMount, error) {
+		mounted <- index
+		return mount, nil
+	}
+
+	// Start the enrollment and wait for the admitted session's mount.
+	var cleanup func()
+	reconcileDeviceEnrollment(t.Context(), logrus.NewEntry(logrus.New()), statePath, grantPath, nil, mountFunc, &cleanup)
+	if cleanup == nil {
+		t.Fatal("grant enrollment did not start")
+	}
+	select {
+	case index := <-mounted:
+		if index != 3 {
+			t.Fatalf("mount index = %d, want 3", index)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("admitted Device session was not mounted")
+	}
+
+	// Each redemption carried the same key and the grant as its completion.
+	first := <-redeemed
+	for range 2 {
+		if next := <-redeemed; next.PeerID != first.PeerID || next.Completion != first.Completion {
+			t.Fatalf("redemption changed identity: %+v then %+v", first, next)
+		}
+	}
+	completion, err := decodeDeviceLocalCompletion(first.Completion)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sessionPeerID, err := peer.IDFromBytes(completion.GetSessionPeerId())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if completion.GetInvite().GetInviteId() != "invite" || sessionPeerID.String() != first.PeerID || first.CompletionMode != deviceCompletionModeGrant {
+		t.Fatalf("grant completion = %+v mode %q", completion, first.CompletionMode)
+	}
+
+	// Release, then check the persisted admitted record and the session release.
+	cleanup()
+	if !mount.released {
+		t.Fatal("keeper exit did not release the Device session")
+	}
+	ready, err := readDeviceSetupRecord(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ready.SessionIndex != 3 || ready.SetupState != deviceSetupStateSessionReady || ready.FailureReason != "" {
+		t.Fatalf("admitted Device record = %+v", ready)
 	}
 }
 

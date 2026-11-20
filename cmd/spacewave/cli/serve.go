@@ -61,6 +61,9 @@ func newServeCommand(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_pol
 	var udpPeers cli.StringSlice
 	var takeover bool
 	idleTimeout := defaultDaemonIdleTimeout
+
+	// Keep the bootstrap grant the Device enrolls through, then build the command.
+	var deviceGrant string
 	return &cli.Command{
 		Name:  "serve",
 		Usage: "start the daemon and listen for CLI connections",
@@ -104,6 +107,11 @@ func newServeCommand(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_pol
 				Usage:       "admit links from this session peer ID on the --udp-listen socket, such as a Space member joining by invite (repeatable)",
 				Destination: &udpPeers,
 			},
+			&cli.StringFlag{
+				Name:        "device-grant",
+				Usage:       "enroll this Device in a Space through the bootstrap grant at this path, such as a Spacewave OS image's grant",
+				Destination: &deviceGrant,
+			},
 		}, append(append(frees.BuildFlags(), upgrade.BuildFlags()...), serveColdPackFlags()...)...),
 		Action: func(c *cli.Context) (retErr error) {
 			return runWithRuntimeTrace(runtimeTracePath, func() error {
@@ -117,6 +125,7 @@ func newServeCommand(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_pol
 					idleTimeout,
 					udpListen,
 					udpPeers.Value(),
+					deviceGrant,
 					frees,
 				)
 			})
@@ -136,6 +145,7 @@ func runServeCommand(
 	idleTimeout time.Duration,
 	udpListen string,
 	udpPeers []string,
+	deviceGrant string,
 	frees *CollectorFrees,
 ) (retErr error) {
 	// Resolve the command target before any writable bus is requested.
@@ -375,7 +385,7 @@ func runServeCommand(
 	}
 
 	// Project the daemon's Device state into the Space.
-	startLocalSessionKeeper(serveCtx, le, resolved, invoker)
+	startLocalSessionKeeper(serveCtx, le, resolved, deviceGrant, invoker)
 	startDeviceLauncherUpdateProjection(serveCtx, le, resolved, cliBus.GetBus(), invoker)
 
 	// Serve the core Flowgraph node types.
