@@ -55,11 +55,11 @@ func TestPatternDrawAndEncode(t *testing.T) {
 	}
 
 	// Decode the rendered frame through the standard JPEG reader.
-	var encoded bytes.Buffer
-	if err := p.Encode(&encoded); err != nil {
+	encoded, err := p.Encode()
+	if err != nil {
 		t.Fatal(err)
 	}
-	decoded, err := jpeg.Decode(&encoded)
+	decoded, err := jpeg.Decode(bytes.NewReader(encoded))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,17 +70,13 @@ func TestPatternDrawAndEncode(t *testing.T) {
 
 // BenchmarkPatternDrawEncode measures one draw and JPEG encode per frame.
 func BenchmarkPatternDrawEncode(b *testing.B) {
-	// Use one pattern and one output buffer for the stream of frames.
+	// Encode each frame into new bytes, as the source does for the track.
 	p := New()
 	p.SetPointer(image.Pt(Width/2, Height/2))
-	var encoded bytes.Buffer
 	b.ReportAllocs()
-
-	// Replace the last JPEG after its buffer becomes available for reuse.
 	for b.Loop() {
 		p.Draw()
-		encoded.Reset()
-		if err := p.Encode(&encoded); err != nil {
+		if _, err := p.Encode(); err != nil {
 			b.Fatal(err)
 		}
 	}

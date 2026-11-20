@@ -1,7 +1,6 @@
 package testpattern
 
 import (
-	"bytes"
 	"context"
 	"io"
 	"time"
@@ -63,8 +62,8 @@ func (s *JPEGSource) ReadFrame(ctx context.Context) (*frametrack.GroupHeader, *f
 	}
 
 	// Encode the current picture into bytes owned by this frame.
-	var encoded bytes.Buffer
-	if err := s.pattern.Encode(&encoded); err != nil {
+	encoded, err := s.pattern.Encode()
+	if err != nil {
 		return nil, nil, err
 	}
 	s.pattern.Draw()
@@ -73,7 +72,7 @@ func (s *JPEGSource) ReadFrame(ctx context.Context) (*frametrack.GroupHeader, *f
 	return s.header, &frametrack.Frame{
 		CapturedAt: timestamp.New(captured),
 		Keyframe:   true,
-		Data:       encoded.Bytes(),
+		Data:       encoded,
 	}, nil
 }
 

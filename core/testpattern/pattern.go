@@ -2,11 +2,11 @@
 package testpattern
 
 import (
+	"bytes"
 	"image"
 	"image/color"
 	"image/draw"
 	"image/jpeg"
-	"io"
 	"strconv"
 )
 
@@ -55,6 +55,8 @@ type Pattern struct {
 	number uint64
 	// pointer is the latest pointer position in frame pixels.
 	pointer image.Point
+	// encodedSize is the length of the last JPEG, which sizes the next one.
+	encodedSize int
 }
 
 // New constructs a Pattern with frame zero drawn and the pointer hidden.
@@ -89,9 +91,29 @@ func (p *Pattern) Draw() {
 	p.number++
 }
 
-// Encode writes the most recently drawn frame as a JPEG image.
-func (p *Pattern) Encode(w io.Writer) error {
-	return jpeg.Encode(w, p.frame, &jpeg.Options{Quality: 85})
+// Encode returns the most recently drawn frame as a new JPEG the caller owns.
+// The buffer starts at the previous frame's length plus an eighth, so a steady
+// pattern costs one allocation of about one frame.
+func (p *Pattern) Encode() ([]byte, error) {
+	// Size the buffer from the previous frame so a steady pattern grows it once.
+	var buf jpegBuffer
+	buf.Grow(p.encodedSize + p.encodedSize/8)
+	if err := jpeg.Encode(&buf, p.frame, &jpeg.Options{Quality: 85}); err != nil {
+		return nil, err
+	}
+	p.encodedSize = buf.Len()
+	return buf.Bytes(), nil
+}
+
+// jpegBuffer lets image/jpeg write straight into memory: jpeg.Encode wraps any
+// writer without Flush and WriteByte in a new 4 KiB bufio.Writer per call.
+type jpegBuffer struct {
+	bytes.Buffer
+}
+
+// Flush has nothing to do, since every byte is already in the buffer.
+func (*jpegBuffer) Flush() error {
+	return nil
 }
 
 // drawCounter paints a high-contrast decimal counter over the lower band.
