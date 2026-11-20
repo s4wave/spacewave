@@ -89,7 +89,8 @@ func TestAddressMatchesBuildBlob(t *testing.T) {
 }
 
 // TestReadThroughFile reads a linked file through the Volume read pipeline:
-// the Volume holds only the Blob, and every chunk comes from the file.
+// the Volume holds only the Blob, every chunk of the large file comes from the
+// file, and the small file is inlined in its raw Blob.
 func TestReadThroughFile(t *testing.T) {
 	ctx := context.Background()
 	xfrm := spaceTransform(t)
@@ -115,6 +116,9 @@ func TestReadThroughFile(t *testing.T) {
 		b, err := LinkFile(ctx, idx, tc.path, nil, xfrm, 0)
 		if err != nil {
 			t.Fatal(err)
+		}
+		if raw := len(tc.want) <= InlineLimit; raw != (b.GetBlobType() == blob.BlobType_BlobType_RAW) {
+			t.Fatalf("%s: blob type %v for %d bytes", tc.path, b.GetBlobType(), len(tc.want))
 		}
 
 		// Write only the Blob to the Volume.

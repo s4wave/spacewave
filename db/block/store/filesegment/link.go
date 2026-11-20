@@ -2,6 +2,7 @@ package block_store_filesegment
 
 import (
 	"context"
+	"io"
 	"os"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -9,13 +10,19 @@ import (
 	"github.com/s4wave/spacewave/net/hash"
 )
 
+// InlineLimit is the largest file LinkFile copies into its Blob instead of
+// leaving it in the file. A file this small is one block either way, and
+// inlining it saves a peer the round trip for that block, the index its
+// entries and a read the stat check against the file.
+const InlineLimit = 4 << 10
+
 // LinkFile addresses the file at path, an absolute path, with the Space's
 // transform xfrm and hashType, commits each chunk's range to idx in one write,
 // and returns the chunked Blob that describes the file. Only the Blob goes to
-// the Volume; the chunk bytes stay in the file. Every file is chunked, however
-// small, so no file's bytes land in the Blob. The index write commits before
-// LinkFile returns, so a World transaction naming the Blob's refs commits after
-// it.
+// the Volume; the chunk bytes stay in the file. A file of at most InlineLimit
+// bytes is the exception: its bytes go into a raw Blob, as of link time, and
+// idx keeps no range for it. The index write commits before LinkFile returns,
+// so a World transaction naming the Blob's refs commits after it.
 func LinkFile(
 	ctx context.Context,
 	idx *Index,
@@ -35,6 +42,24 @@ func LinkFile(
 		return nil, err
 	}
 	modTime, size := fi.ModTime().UnixNano(), fi.Size()
+
+	// Inline a small file, dropping any ranges an earlier, larger version left.
+	// A file that grew since the stat is chunked from its start.
+	if size <= InlineLimit {
+		data, err := io.ReadAll(io.LimitReader(f, InlineLimit+1))
+		if err != nil {
+			return nil, err
+		}
+		if len(data) <= InlineLimit {
+			if err := idx.DropPath(ctx, path); err != nil {
+				return nil, err
+			}
+			return blob.NewRawBlob(data), nil
+		}
+		if _, err := f.Seek(0, io.SeekStart); err != nil {
+			return nil, err
+		}
+	}
 
 	// Address the chunks, keeping each range.
 	var refs []*block.BlockRef
