@@ -372,7 +372,7 @@
       "toolVersions": "protoc=embedded,generator=h1:PyfQFeourKBuI7y7aK3Ni+G0Eh9x4gjhlrfH/NjrN7A=,protobuf-go-lite=v0.19.1-0.20261028131920-f644656fc4a7,starpc=v0.52.3,protobuf-es-lite=1.2.6",
       "packages": {
         "github.com/s4wave/spacewave/forge/lib/skiffos": {
-          "hash": "e8a48041e0db299c9cede5abc297eb88e3cd6b1afac1cb53e4cd95f6406051f7",
+          "hash": "7e2951c58018a522c9a30c3aab518a5286fbc893a3b5821794bf85a91dbd2aec",
           "generatedFiles": [
             "forge/lib/skiffos/config.pb.go",
             "forge/lib/skiffos/config.pb.ts"

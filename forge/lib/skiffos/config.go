@@ -17,9 +17,6 @@ const ConfigID = ControllerID
 // envNamePattern matches a portable environment variable name.
 var envNamePattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 
-// revisionPattern matches a full SHA-1 or SHA-256 Git commit.
-var revisionPattern = regexp.MustCompile(`^([0-9a-f]{40}|[0-9a-f]{64})$`)
-
 // Validate validates the configuration.
 func (c *Config) Validate() error {
 	// The checkout must be absolute, since the build runs from it.
@@ -43,21 +40,17 @@ func (c *Config) Validate() error {
 		}
 	}
 
-	// The checkout is named by a full Git commit.
-	if !revisionPattern.MatchString(c.GetSkiffRevision()) {
-		return errors.Errorf("skiff_revision must be a full Git commit: %q", c.GetSkiffRevision())
-	}
-
-	// Each config input names a directory under inputs/.
+	// Each config input names a directory under inputs/, apart from the
+	// source input.
 	for _, name := range c.GetExtraConfigInputs() {
-		if err := forge_lib_util_inputfs.ValidateName(name); err != nil {
+		if err := validateInputName(name); err != nil {
 			return errors.Wrap(err, "extra_config_inputs")
 		}
 	}
 
 	// Each input names a directory under inputs/ and sets one variable.
 	for name, env := range c.GetInputEnv() {
-		if err := forge_lib_util_inputfs.ValidateName(name); err != nil {
+		if err := validateInputName(name); err != nil {
 			return errors.Wrap(err, "input_env")
 		}
 		if !envNamePattern.MatchString(env) {
@@ -65,6 +58,15 @@ func (c *Config) Validate() error {
 		}
 	}
 	return nil
+}
+
+// validateInputName checks that a UnixFS input names a directory under
+// inputs/ and is not the source input, which is a Repo.
+func validateInputName(name string) error {
+	if name == InputSkiffOS {
+		return errors.Errorf("input %q is the SkiffOS source", name)
+	}
+	return forge_lib_util_inputfs.ValidateName(name)
 }
 
 // GetConfigID returns the unique string for this configuration type.

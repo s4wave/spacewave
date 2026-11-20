@@ -40,15 +40,15 @@ func TestHelperPushListFetch(t *testing.T) {
 		t.Fatalf("list = %q, want %s", got, head)
 	}
 
-	// A fresh clone receives the objects without the helper's transfer refs.
+	// A fresh clone receives the objects and no refs, which Git writes itself.
 	dst := newLocalRepo(t)
 	fetch := NewHelper(engine, testRepoKey, filepath.Join(dst, ".git"))
 	if got := run(t, ctx, fetch, "fetch "+head+" refs/heads/master\n\n"); got != "\n" {
 		t.Fatalf("fetch = %q", got)
 	}
 	gitCmd(t, dst, "cat-file", "-e", head+"^{commit}")
-	if refs := gitCmd(t, dst, "for-each-ref", fetchRefPrefix); refs != "" {
-		t.Fatalf("transfer refs remain: %q", refs)
+	if refs := gitCmd(t, dst, "for-each-ref"); refs != "" {
+		t.Fatalf("fetch wrote refs: %q", refs)
 	}
 }
 

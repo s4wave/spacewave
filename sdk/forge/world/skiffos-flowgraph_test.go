@@ -9,7 +9,6 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -20,6 +19,11 @@ import (
 
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/go-git/go-billy/v6"
+	"github.com/go-git/go-git/v6"
+	git_config "github.com/go-git/go-git/v6/config"
+	"github.com/go-git/go-git/v6/plumbing"
+	"github.com/go-git/go-git/v6/plumbing/client"
+	"github.com/go-git/go-git/v6/plumbing/transport"
 	"github.com/pierrec/lz4/v4"
 
 	"github.com/s4wave/spacewave/bldr/util/packedmsg"
@@ -27,6 +31,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	git_world "github.com/s4wave/spacewave/db/git/world"
 	db_testbed "github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
@@ -60,7 +65,9 @@ const skiffosGraph = "flowgraph/skiffos"
 // newSkiffOSProof names the settings it reads.
 func TestSkiffOSFlowgraph(t *testing.T) {
 	f := newSkiffOSProof(t)
+	f.storeRepo(skiffOSRepo)
 	build := f.stepNode(forge_lib_skiffos.ControllerID, f.buildConfig("intel/x64", "virt/qemu"), forge_lib_skiffos.OutputImages, true)
+	build.Step.Target.Inputs = []*forge_target.Input{worldObjectInput(forge_lib_skiffos.InputSkiffOS, skiffOSRepo)}
 	f.storeGraph(skiffosGraph, "SkiffOS QEMU build", map[string]*s4wave_flowgraph.FlowgraphNode{"build": build}, nil)
 
 	// The first run builds and stores the boot set.
@@ -129,6 +136,7 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 		"make-initramfs.sh": {Data: makeInitramfs, Mode: 0o755},
 	})
 	f.storeTree("os/skiff", os.DirFS(filepath.Join(osDir, "skiff")))
+	f.storeRepo(skiffOSRepo)
 	tools := fstest.MapFS{}
 	for _, name := range []string{"rehearse.sh", "install.sh", "run_app.py", "kill_trial.py", "refusal_trial.py", "revision_trial.py"} {
 		data, err := os.ReadFile(filepath.Join(osDir, "qemu", name))
@@ -144,7 +152,9 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 	conf.ExtraConfigInputs = []string{"configs"}
 	conf.InputEnv = map[string]string{"boot": "SPACEWAVE_OS_BOOT"}
 	build := f.stepNode(forge_lib_skiffos.ControllerID, conf, forge_lib_skiffos.OutputImages, true)
-	build.Step.Target.Inputs = []*forge_target.Input{worldObjectInput("boot", "os/boot"), worldObjectInput("configs", "os/skiff")}
+	build.Step.Target.Inputs = []*forge_target.Input{
+		worldObjectInput(forge_lib_skiffos.InputSkiffOS, skiffOSRepo), worldObjectInput("boot", "os/boot"), worldObjectInput("configs", "os/skiff"),
+	}
 	seed := f.imageNode(image, dockerPath)
 	rehearse := f.rehearsalNode(image, dockerPath)
 	rehearse.Ports = append(rehearse.Ports, inputPort(forge_lib_skiffos.OutputImages), inputPort(osImage))
@@ -440,17 +450,93 @@ type skiffOSProof struct {
 	*flowgraphFixture
 	// skiffDir is the SkiffOS checkout on this host.
 	skiffDir string
-	// revision is the checkout's commit, which the build Steps pin.
-	revision string
 	// workspace is the SkiffOS workspace the Steps own.
 	workspace string
 }
 
-// buildConfig returns a build of the pinned checkout with the config list.
+// buildConfig returns a build in the checkout with the config list.
 func (f *skiffOSProof) buildConfig(configs ...string) *forge_lib_skiffos.Config {
-	return &forge_lib_skiffos.Config{
-		SkiffDir: f.skiffDir, SkiffRevision: f.revision, Workspace: f.workspace, Configs: configs,
+	return &forge_lib_skiffos.Config{SkiffDir: f.skiffDir, Workspace: f.workspace, Configs: configs}
+}
+
+// skiffOSRepo is the World Repo the build Steps take as their SkiffOS source.
+const skiffOSRepo = "os/skiffos"
+
+// storeRepo creates the World Repo key holding the checkout's HEAD at depth 1,
+// and each submodule's pinned commit at depth 1 from the checkout's own module
+// repository, so the import reads no network.
+func (f *skiffOSProof) storeRepo(key string) {
+	// Read the checkout's HEAD and its submodules' pins.
+	local, err := git.PlainOpen(f.skiffDir)
+	if err != nil {
+		f.t.Fatal(err)
 	}
+	head, err := local.Head()
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	wt, err := local.Worktree()
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	subs, err := wt.Submodules()
+	if err != nil {
+		f.t.Fatal(err)
+	}
+
+	// Create the Repo, then fetch HEAD and each module into it.
+	f.transact(func(ctx context.Context, ws world.WorldState) error {
+		_, _, err := ws.ApplyWorldOp(ctx, git_world.NewGitInitOp(key, nil, true, nil, nil), f.sender)
+		return err
+	})
+	f.transact(func(ctx context.Context, ws world.WorldState) error {
+		_, _, err := git_world.AccessWorldObjectRepo(ctx, ws, key, true, nil, nil, nil, func(repo *git.Repository) error {
+			if err := fetchCommit(ctx, repo, local, filepath.Join(f.skiffDir, ".git"), head.Hash()); err != nil {
+				return err
+			}
+			for _, sub := range subs {
+				status, err := sub.Status()
+				if err != nil {
+					return err
+				}
+				name := sub.Config().Name
+				gitDir := filepath.Join(f.skiffDir, ".git", "modules", name)
+				src, err := git.PlainOpen(gitDir)
+				if err != nil {
+					return err
+				}
+				store, err := repo.Storer.Module(name)
+				if err != nil {
+					return err
+				}
+				mod, err := git.Init(store)
+				if err != nil {
+					return err
+				}
+				if err := fetchCommit(ctx, mod, src, gitDir, status.Expected); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+		return err
+	})
+}
+
+// fetchCommit fetches commit at depth 1 from the local repository src at
+// gitDir into repo as its main branch, and points HEAD at it.
+func fetchCommit(ctx context.Context, repo, src *git.Repository, gitDir string, commit plumbing.Hash) error {
+	main := plumbing.NewBranchReferenceName("main")
+	remote := git.NewRemote(repo.Storer, &git_config.RemoteConfig{Name: "local", URLs: []string{gitDir}})
+	err := remote.FetchContext(ctx, &git.FetchOptions{
+		RemoteName: "local", Depth: 1, Tags: git.NoTags,
+		RefSpecs:      []git_config.RefSpec{git_config.RefSpec("+" + commit.String() + ":" + main.String())},
+		ClientOptions: []client.Option{client.WithLoader(transport.MapLoader{gitDir: src.Storer})},
+	})
+	if err != nil {
+		return err
+	}
+	return repo.Storer.SetReference(plumbing.NewSymbolicReference(plumbing.HEAD, main))
 }
 
 // newSkiffOSProof starts a Worker for SkiffOS build Steps, or skips the test.
@@ -462,10 +548,6 @@ func newSkiffOSProof(t *testing.T) *skiffOSProof {
 	skiffDir := os.Getenv("SPACEWAVE_SKIFFOS_DIR")
 	if skiffDir == "" {
 		t.Skip("set SPACEWAVE_SKIFFOS_DIR for the real SkiffOS build")
-	}
-	head, err := exec.Command("git", "-C", skiffDir, "rev-parse", "HEAD").Output()
-	if err != nil {
-		t.Fatal(err)
 	}
 	workspace := os.Getenv("SPACEWAVE_SKIFFOS_WORKSPACE")
 	if workspace == "" {
@@ -498,7 +580,6 @@ func newSkiffOSProof(t *testing.T) *skiffOSProof {
 	return &skiffOSProof{
 		flowgraphFixture: &flowgraphFixture{workerHarness: h, t: t},
 		skiffDir:         skiffDir,
-		revision:         strings.TrimSpace(string(head)),
 		workspace:        workspace,
 	}
 }

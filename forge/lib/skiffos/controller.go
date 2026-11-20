@@ -5,7 +5,6 @@ import (
 	"context"
 	"maps"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -69,8 +68,15 @@ func (c *Controller) InitForgeExecController(
 // output. A failed build returns its error, which retries the Execution with
 // backoff; the workspace keeps its build tree, so a retry resumes the build.
 func (c *Controller) Execute(ctx context.Context) error {
-	// Create the workspace, which keeps the build log beside its tree.
+	// Bring the Step's checkout to the source's commit.
 	conf := c.conf
+	commit, err := c.syncSource(ctx, conf.GetSkiffDir())
+	if err != nil {
+		_ = c.handle.WriteLog(ctx, "error", err.Error())
+		return err
+	}
+
+	// Create the workspace, which keeps the build log beside its tree.
 	wsDir := filepath.Join(conf.GetSkiffDir(), "workspaces", conf.GetWorkspace())
 	if err := os.MkdirAll(wsDir, 0o755); err != nil {
 		return err
@@ -79,16 +85,9 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 	// Announce the build in the host log and the Execution log.
 	skiffConfig := strings.Join(conf.GetConfigs(), ",")
-	le := c.le.WithField("workspace", conf.GetWorkspace()).WithField("skiff-config", skiffConfig)
+	le := c.le.WithField("workspace", conf.GetWorkspace()).WithField("skiff-config", skiffConfig).WithField("skiffos", commit)
 	le.WithField("log", logPath).Info("building SkiffOS workspace")
-	if err := c.handle.WriteLog(ctx, "info", "building SkiffOS "+skiffConfig+" in workspace "+conf.GetWorkspace()+", log "+logPath); err != nil {
-		return err
-	}
-
-	// Refuse a checkout the reuse key cannot see: another commit or local
-	// changes would build different images under the same key.
-	if err := checkRevision(ctx, conf.GetSkiffDir(), conf.GetSkiffRevision()); err != nil {
-		_ = c.handle.WriteLog(ctx, "error", err.Error())
+	if err := c.handle.WriteLog(ctx, "info", "building SkiffOS "+commit+" for "+skiffConfig+" in workspace "+conf.GetWorkspace()+", log "+logPath); err != nil {
 		return err
 	}
 
@@ -157,29 +156,6 @@ func (c *Controller) checkoutInputs(ctx context.Context, dir string) ([]string, 
 		env = append(env, "SKIFF_EXTRA_CONFIGS_PATH="+strings.Join(paths, ":"))
 	}
 	return env, nil
-}
-
-// checkRevision returns an error unless the Git checkout at dir is at the
-// commit rev with no changes to tracked or unignored files.
-func checkRevision(ctx context.Context, dir, rev string) error {
-	// Compare the checked-out commit.
-	head, err := exec.CommandContext(ctx, "git", "-C", dir, "rev-parse", "HEAD").Output()
-	if err != nil {
-		return errors.Wrap(err, "read SkiffOS checkout revision")
-	}
-	if got := strings.TrimSpace(string(head)); got != rev {
-		return errors.Errorf("SkiffOS checkout is at %s, want %s", got, rev)
-	}
-
-	// Refuse local changes, including submodules and untracked files.
-	status, err := exec.CommandContext(ctx, "git", "-C", dir, "status", "--porcelain").Output()
-	if err != nil {
-		return errors.Wrap(err, "read SkiffOS checkout status")
-	}
-	if len(status) != 0 {
-		return errors.Errorf("SkiffOS checkout has local changes:\n%s", status)
-	}
-	return nil
 }
 
 // readLogTail returns the end of the build log.

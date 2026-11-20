@@ -8,17 +8,21 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 /**
  * Config configures one whole-workspace SkiffOS build on the Worker host.
  *
- * Runs "make configure compile" in a SkiffOS checkout for one workspace and
- * config list, then stores the workspace's images directory, the boot set, as
- * a UnixFS directory in the Task's World. The build runs on the Worker that
- * serves the Execution and owns its workspace: a later build of the same
- * workspace reuses its build tree and ccache.
+ * Brings the Step's SkiffOS checkout to the commit its skiffos input names,
+ * runs "make configure compile" there for one workspace and config list, then
+ * stores the workspace's images directory, the boot set, as a UnixFS
+ * directory in the Task's World. The build runs on the Worker that serves the
+ * Execution and owns its checkout and workspace: a later build reuses the
+ * checkout's objects, its build tree and ccache.
  *
  * The Task's reuse key covers the config and the input values, so the build
- * takes everything it reads as either: the checkout is pinned by revision and
- * out-of-tree config packages arrive as inputs.
+ * takes everything it reads as either: the source arrives as a Repo snapshot
+ * and out-of-tree config packages as UnixFS inputs.
  *
  * Inputs:
+ *  - skiffos: a SkiffOS Repo snapshot, such as forge/lib/git/clone's repo
+ *    output. The build checks out its HEAD commit and each submodule's commit
+ *    from the Repo's module of that name.
  *  - each name in extra_config_inputs: a UnixFS directory of config packages.
  *  - each name in input_env: a UnixFS directory the build reads.
  *
@@ -29,7 +33,10 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
  */
 export interface Config {
   /**
-   * SkiffDir is the absolute path of the SkiffOS checkout on the Worker host.
+   * SkiffDir is the absolute path of the Step's SkiffOS checkout on the
+   * Worker host, created on the first build. The Step moves it to each
+   * build's commit and refuses one holding local changes, which the reuse key
+   * could not see.
    */
   skiffDir?: string
   /**
@@ -56,12 +63,6 @@ export interface Config {
    * part of the Task's reuse key, so changed input bytes rebuild.
    */
   inputEnv?: { [key: string]: string }
-  /**
-   * SkiffRevision is the Git commit the checkout must be at. The controller
-   * refuses a checkout at another commit or with local changes, which the
-   * reuse key could not see.
-   */
-  skiffRevision?: string
 }
 
 export const Config: MessageType<Config> =
@@ -71,5 +72,4 @@ export const Config: MessageType<Config> =
     [3, 'configs', 9, 1],
     [4, 'extra_config_inputs', 9, 1],
     [5, 'input_env', 9, 584],
-    [6, 'skiff_revision', 9],
   ])

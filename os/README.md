@@ -148,9 +148,11 @@ turns off the U-Boot ramdisk wrapper, so a U-Boot board needs one added.
 The Forge Step `forge/lib/skiffos` runs that build. Its `input_env` checks the
 boot input, a UnixFS directory holding `init` and `make-initramfs.sh`, out of
 the World and sets `SPACEWAVE_OS_BOOT`, and its `extra_config_inputs` checks out
-`os/skiff` the same way. The build pins the SkiffOS checkout by
-`skiff_revision` and refuses one at another commit or with local changes, so
-the Task's reuse key covers every byte the build reads.
+`os/skiff` the same way. Its `skiffos` input is a Repo snapshot: the build
+brings its SkiffOS checkout to the snapshot's HEAD commit and each submodule to
+the commit that HEAD pins, copying only the objects the checkout lacks, and
+refuses a checkout with local changes, so the Task's reuse key covers every
+byte the build reads.
 
 An image Step runs `spacewave-init seed` in the `os/qemu` tool image and
 stores the image store as a UnixFS tree; the rehearsal and the install both
