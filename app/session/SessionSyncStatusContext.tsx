@@ -6,6 +6,7 @@ import {
   SyncP2PState,
   SyncStatusState,
   SyncTransportState,
+  SyncUploadHold,
   type WatchSyncStatusResponse,
 } from '@s4wave/sdk/session/session.pb.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
@@ -21,6 +22,9 @@ export interface SessionSyncSummary {
   active: boolean
   error: boolean
   local: boolean
+  // uploadHold names the Spacewave Cloud account limit holding this session's
+  // uploads; the popover offers Manage billing while it is set.
+  uploadHold: SyncUploadHold
   summaryLabel: string
   detailLabel: string
   ariaLabel: string
@@ -62,6 +66,7 @@ const loadingView: SessionSyncStatusView = {
   active: false,
   error: false,
   local: false,
+  uploadHold: SyncUploadHold.SyncUploadHold_NONE,
   summaryLabel: 'Checking sync status',
   detailLabel: 'Waiting for the session sync watcher.',
   ariaLabel: 'Session sync status: checking',
@@ -118,6 +123,7 @@ export function SessionSyncStatusProvider({
     active,
     error,
     local,
+    uploadHold,
     summaryLabel,
     detailLabel,
     ariaLabel,
@@ -130,6 +136,7 @@ export function SessionSyncStatusProvider({
       active,
       error,
       local,
+      uploadHold,
       summaryLabel,
       detailLabel,
       ariaLabel,
@@ -141,6 +148,7 @@ export function SessionSyncStatusProvider({
       active,
       error,
       local,
+      uploadHold,
       summaryLabel,
       detailLabel,
       ariaLabel,
@@ -208,13 +216,19 @@ export function buildSessionSyncStatusView(
     (copy) => !copy.complete && isStorageQuotaError(copy.error ?? ''),
   ).length
   const paused = incomplete > 0 && !snapshot?.activePeerCount
+  const uploadHold = snapshot?.uploadHold ?? SyncUploadHold.SyncUploadHold_NONE
+  const hold = uploadHoldLabels[uploadHold]
   const visualState =
-    storageFull > 0
+    storageFull > 0 || hold
       ? 'error'
       : syncVisualState(snapshot, state, direction, lastError)
   let summaryLabel = syncSummaryLabel(visualState, direction, local)
   let detailLabel = syncDetailLabel(visualState, direction, local, lastError)
-  if (storageFull > 0) {
+  if (hold) {
+    // The account limit outranks the browser quota: it holds every upload
+    // this session makes, and only billing lifts it.
+    ;[summaryLabel, detailLabel] = hold
+  } else if (storageFull > 0) {
     summaryLabel = 'Storage full'
     detailLabel = `This browser is out of storage, so ${storageFull} ${storageFull === 1 ? 'Space' : 'Spaces'} cannot be stored on this device. Free up space to continue.`
   } else if (local && copies.length && !lastError) {
@@ -237,6 +251,7 @@ export function buildSessionSyncStatusView(
     active: visualState === 'active',
     error: visualState === 'error',
     local,
+    uploadHold,
     summaryLabel,
     detailLabel,
     ariaLabel: `Session sync status: ${summaryLabel}`,
@@ -289,6 +304,20 @@ export function buildSessionSyncStatusView(
       traffic: `↑ ${formatBytes(peer.uploadedBytes)} · ↓ ${formatBytes(peer.downloadedBytes)}`,
     })),
   }
+}
+
+// uploadHoldLabels gives the summary and detail of each Spacewave Cloud
+// account limit that holds uploads. They name Spacewave Cloud so they never
+// read as this browser's "Storage full".
+const uploadHoldLabels: Partial<Record<SyncUploadHold, [string, string]>> = {
+  [SyncUploadHold.SyncUploadHold_STORAGE_FULL]: [
+    'Spacewave Cloud storage full',
+    'New changes stay on this device until you free space or raise your storage in billing.',
+  ],
+  [SyncUploadHold.SyncUploadHold_SPENDING_LIMIT]: [
+    'Spacewave Cloud spending limit reached',
+    'New changes stay on this device until you raise your spending limit in billing.',
+  ],
 }
 
 function syncVisualState(

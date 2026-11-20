@@ -37,6 +37,11 @@ export interface Config {
    * Drive follows it one way, replacing others' changes.
    */
   twoWay?: boolean
+  /**
+   * DevicePeerId is the peer of the Device the node is placed on, so a
+   * reader on that Device tells its own link from the node's other copies.
+   */
+  devicePeerId?: string
 }
 
 export const Config: MessageType<Config> =
@@ -48,5 +53,6 @@ export const Config: MessageType<Config> =
       [3, 'folder', 9],
       [4, 'path', 9],
       [5, 'two_way', 8],
+      [6, 'device_peer_id', 9],
     ],
   )

@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, type ReactNode } from 'react'
 import {
   LuCircleAlert,
   LuCircleCheck,
@@ -16,7 +16,12 @@ import {
 } from '@s4wave/web/ui/Popover.js'
 import { cn } from '@s4wave/web/style/utils.js'
 
+import { SyncUploadHold } from '@s4wave/sdk/session/session.pb.js'
+import { useSessionNavigate } from '@s4wave/web/contexts/contexts.js'
+import { Button } from '@s4wave/web/ui/button.js'
+
 import {
+  type SessionSyncStatusView,
   type SessionSyncSummary,
   useSessionSyncStatus,
   useSessionSyncSummary,
@@ -93,6 +98,39 @@ function SessionSyncStatusGlyph({ status }: { status: SessionSyncSummary }) {
 function SessionSyncStatusPopover() {
   const status = useSessionSyncStatus()
   return (
+    <SessionSyncStatusPanel status={status} billing={<ManageBillingButton />} />
+  )
+}
+
+// ManageBillingButton opens the session's billing, which lifts a hold.
+function ManageBillingButton() {
+  const navigateSession = useSessionNavigate()
+  return (
+    <ManageBillingPress onClick={() => navigateSession({ path: 'billing' })} />
+  )
+}
+
+/** ManageBillingPress is the Manage billing press a hold offers. */
+export function ManageBillingPress({ onClick }: { onClick: () => void }) {
+  return (
+    <Button size="sm" variant="outline" className="mt-2" onClick={onClick}>
+      Manage billing
+    </Button>
+  )
+}
+
+/**
+ * SessionSyncStatusPanel draws a sync status. A Spacewave Cloud hold on the
+ * session's uploads draws billing, the press that alone lifts it.
+ */
+export function SessionSyncStatusPanel({
+  status,
+  billing,
+}: {
+  status: SessionSyncStatusView
+  billing: ReactNode
+}) {
+  return (
     <div className="space-y-3 p-3" data-testid="session-sync-status-popover">
       <div className="flex items-start gap-3">
         <div
@@ -113,6 +151,7 @@ function SessionSyncStatusPopover() {
           <div className="text-foreground-alt/60 mt-0.5 text-xs">
             {status.detailLabel}
           </div>
+          {status.uploadHold !== SyncUploadHold.SyncUploadHold_NONE && billing}
         </div>
       </div>
 

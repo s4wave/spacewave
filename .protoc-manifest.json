@@ -4730,7 +4730,7 @@
           ]
         },
         "github.com/s4wave/spacewave/sdk/space": {
-          "hash": "bfd98b4cf8a38d3a3eedfc6192140e47aa335eaee9536c2cd27e10d686ccf235",
+          "hash": "1a1d65019699ea86b3e59a2c1e20eb0d1e51769df48cf5eb999343c4b10694b8",
           "generatedFiles": [
             "sdk/space/space.pb.go",
             "sdk/space/space.pb.ts",
@@ -4972,7 +4972,7 @@
           ]
         },
         "github.com/s4wave/spacewave/sdk/unixfs/linkedfolder": {
-          "hash": "f35c2b55f4610901a82c21467e54c5901a1a8f0af2b735aa1af003be7e95bf45",
+          "hash": "bcefe80afdf9a912bc9217b9fae05744f299d11e825ab0be9700f70c45722979",
           "generatedFiles": [
             "sdk/unixfs/linkedfolder/linkedfolder.pb.go",
             "sdk/unixfs/linkedfolder/linkedfolder.pb.ts"

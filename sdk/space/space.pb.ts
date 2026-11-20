@@ -25,6 +25,8 @@ import { MailboxEntryInfo } from '../provider/spacewave/spacewave.pb.js'
 import { StepConfig } from '../../db/block/transform/transform.pb.js'
 import { Secret, SecretPayload } from '../secret/secret.pb.js'
 import { PluginSwap } from '../../bldr/plugin/plugin.pb.js'
+import type { DeviceAvailabilityState } from '../device/device.pb.js'
+import { DeviceAvailabilityState_Enum } from '../device/device.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 /**
@@ -163,6 +165,44 @@ export const SpacePluginLifecycleState_Enum = /* @__PURE__ */ createEnumType(
     [5, 'SpacePluginLifecycleState_RETRYING'],
     [6, 'SpacePluginLifecycleState_REMOVED'],
     [7, 'SpacePluginLifecycleState_UPGRADED'],
+  ],
+)
+
+/**
+ * DriveLinkState is the state a linked-folder node's Device last recorded.
+ *
+ * @generated from enum s4wave.space.DriveLinkState
+ */
+export enum DriveLinkState {
+  /**
+   * DriveLinkState_STARTING means the Device has not read the folder yet.
+   */
+  DriveLinkState_STARTING = 0,
+
+  /**
+   * DriveLinkState_INDEXING means the Device is reading the whole folder.
+   */
+  DriveLinkState_INDEXING = 1,
+
+  /**
+   * DriveLinkState_LINKED means the Device follows the folder's changes.
+   */
+  DriveLinkState_LINKED = 2,
+
+  /**
+   * DriveLinkState_REJECTED means the Device stopped the link; Detail says
+   * why, as when the folder's root moved to another file system.
+   */
+  DriveLinkState_REJECTED = 3,
+}
+
+export const DriveLinkState_Enum = /* @__PURE__ */ createEnumType(
+  's4wave.space.DriveLinkState',
+  [
+    [0, 'DriveLinkState_STARTING'],
+    [1, 'DriveLinkState_INDEXING'],
+    [2, 'DriveLinkState_LINKED'],
+    [3, 'DriveLinkState_REJECTED'],
   ],
 )
 
@@ -1589,6 +1629,121 @@ export const ResetFolderRootResponse: MessageType<ResetFolderRootResponse> =
     () => [
       [1, 'previous', 4],
       [2, 'current', 4],
+    ],
+  )
+
+/**
+ * WatchDriveLinksRequest selects the Drive whose linked folders to watch.
+ *
+ * @generated from message s4wave.space.WatchDriveLinksRequest
+ */
+export interface WatchDriveLinksRequest {
+  /**
+   * ObjectKey is the key of the UnixFS object.
+   */
+  objectKey?: string
+}
+
+export const WatchDriveLinksRequest: MessageType<WatchDriveLinksRequest> =
+  /* @__PURE__ */ createMessageType<WatchDriveLinksRequest>(
+    's4wave.space.WatchDriveLinksRequest',
+    () => [[1, 'object_key', 9]],
+  )
+
+/**
+ * WatchDriveLinksResponse lists the folders linked into the Drive.
+ *
+ * @generated from message s4wave.space.WatchDriveLinksResponse
+ */
+export interface WatchDriveLinksResponse {
+  /**
+   * Links holds one entry per linking Device, in Flowgraph key, node ID and
+   * Device key order.
+   */
+  links?: DriveLink[]
+}
+
+export const WatchDriveLinksResponse: MessageType<WatchDriveLinksResponse> =
+  /* @__PURE__ */ createMessageType<WatchDriveLinksResponse>(
+    's4wave.space.WatchDriveLinksResponse',
+    () => [[1, 'links', 11, 1, DriveLink.codec]],
+  )
+
+/**
+ * DriveLink is one Device linking a folder into the Drive.
+ *
+ * @generated from message s4wave.space.DriveLink
+ */
+export interface DriveLink {
+  /**
+   * DeviceKey is the object key of the Device the node is placed on.
+   */
+  deviceKey?: string
+  /**
+   * Path is the path in the Drive the folder links to, empty for the root.
+   */
+  path?: string
+  /**
+   * State is the node's state as the Device last recorded it.
+   */
+  state?: DriveLinkState
+  /**
+   * Detail is the Device's note on State.
+   */
+  detail?: string
+  /**
+   * Local is set when the link runs on the Device serving this stream.
+   */
+  local?: DriveLinkLocal
+  /**
+   * DeviceLabel is the Device's name, which names it as a holder.
+   */
+  deviceLabel?: string
+  /**
+   * Availability is whether this session reaches the Device now; a link
+   * running on the Device serving this stream is online.
+   */
+  availability?: DeviceAvailabilityState
+}
+
+export const DriveLink: MessageType<DriveLink> =
+  /* @__PURE__ */ createMessageType<DriveLink>('s4wave.space.DriveLink', () => [
+    [1, 'device_key', 9],
+    [2, 'path', 9],
+    [3, 'state', 14, 0, DriveLinkState_Enum],
+    [4, 'detail', 9],
+    [5, 'local', 11, 0, DriveLinkLocal.codec],
+    [6, 'device_label', 9],
+    [7, 'availability', 14, 0, DeviceAvailabilityState_Enum],
+  ])
+
+/**
+ * DriveLinkLocal is what only the linking Device knows about its link.
+ *
+ * @generated from message s4wave.space.DriveLinkLocal
+ */
+export interface DriveLinkLocal {
+  /**
+   * Folder is the absolute path of the folder on this Device.
+   */
+  folder?: string
+  /**
+   * Files is the number of files the current or last full sync linked.
+   */
+  files?: bigint
+  /**
+   * Bytes is the number of file bytes the current or last full sync linked.
+   */
+  bytes?: bigint
+}
+
+export const DriveLinkLocal: MessageType<DriveLinkLocal> =
+  /* @__PURE__ */ createMessageType<DriveLinkLocal>(
+    's4wave.space.DriveLinkLocal',
+    () => [
+      [1, 'folder', 9],
+      [2, 'files', 4],
+      [3, 'bytes', 4],
     ],
   )
 

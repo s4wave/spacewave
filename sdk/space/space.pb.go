@@ -18,6 +18,7 @@ import (
 	sobject "github.com/s4wave/spacewave/core/sobject"
 	world "github.com/s4wave/spacewave/core/space/world"
 	transform "github.com/s4wave/spacewave/db/block/transform"
+	device "github.com/s4wave/spacewave/sdk/device"
 	spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
 	secret "github.com/s4wave/spacewave/sdk/secret"
 )
@@ -168,6 +169,51 @@ func (x SpacePluginLifecycleState) Enum() *SpacePluginLifecycleState {
 
 func (x SpacePluginLifecycleState) String() string {
 	name, valid := SpacePluginLifecycleState_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// DriveLinkState is the state a linked-folder node's Device last recorded.
+type DriveLinkState int32
+
+const (
+	// DriveLinkState_STARTING means the Device has not read the folder yet.
+	DriveLinkState_DriveLinkState_STARTING DriveLinkState = 0
+	// DriveLinkState_INDEXING means the Device is reading the whole folder.
+	DriveLinkState_DriveLinkState_INDEXING DriveLinkState = 1
+	// DriveLinkState_LINKED means the Device follows the folder's changes.
+	DriveLinkState_DriveLinkState_LINKED DriveLinkState = 2
+	// DriveLinkState_REJECTED means the Device stopped the link; Detail says
+	// why, as when the folder's root moved to another file system.
+	DriveLinkState_DriveLinkState_REJECTED DriveLinkState = 3
+)
+
+// Enum value maps for DriveLinkState.
+var (
+	DriveLinkState_name = map[int32]string{
+		0: "DriveLinkState_STARTING",
+		1: "DriveLinkState_INDEXING",
+		2: "DriveLinkState_LINKED",
+		3: "DriveLinkState_REJECTED",
+	}
+	DriveLinkState_value = map[string]int32{
+		"DriveLinkState_STARTING": 0,
+		"DriveLinkState_INDEXING": 1,
+		"DriveLinkState_LINKED":   2,
+		"DriveLinkState_REJECTED": 3,
+	}
+)
+
+func (x DriveLinkState) Enum() *DriveLinkState {
+	p := new(DriveLinkState)
+	*p = x
+	return p
+}
+
+func (x DriveLinkState) String() string {
+	name, valid := DriveLinkState_name[int32(x)]
 	if valid {
 		return name
 	}
@@ -1982,6 +2028,160 @@ func (x *ResetFolderRootResponse) GetCurrent() uint64 {
 	return 0
 }
 
+// WatchDriveLinksRequest selects the Drive whose linked folders to watch.
+type WatchDriveLinksRequest struct {
+	unknownFields []byte
+	// ObjectKey is the key of the UnixFS object.
+	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+}
+
+func (x *WatchDriveLinksRequest) Reset() {
+	*x = WatchDriveLinksRequest{}
+}
+
+func (*WatchDriveLinksRequest) ProtoMessage() {}
+
+func (x *WatchDriveLinksRequest) GetObjectKey() string {
+	if x != nil {
+		return x.ObjectKey
+	}
+	return ""
+}
+
+// WatchDriveLinksResponse lists the folders linked into the Drive.
+type WatchDriveLinksResponse struct {
+	unknownFields []byte
+	// Links holds one entry per linking Device, in Flowgraph key, node ID and
+	// Device key order.
+	Links []*DriveLink `protobuf:"bytes,1,rep,name=links,proto3" json:"links,omitempty"`
+}
+
+func (x *WatchDriveLinksResponse) Reset() {
+	*x = WatchDriveLinksResponse{}
+}
+
+func (*WatchDriveLinksResponse) ProtoMessage() {}
+
+func (x *WatchDriveLinksResponse) GetLinks() []*DriveLink {
+	if x != nil {
+		return x.Links
+	}
+	return nil
+}
+
+// DriveLink is one Device linking a folder into the Drive.
+type DriveLink struct {
+	unknownFields []byte
+	// DeviceKey is the object key of the Device the node is placed on.
+	DeviceKey string `protobuf:"bytes,1,opt,name=device_key,json=deviceKey,proto3" json:"deviceKey,omitempty"`
+	// Path is the path in the Drive the folder links to, empty for the root.
+	Path string `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
+	// State is the node's state as the Device last recorded it.
+	State DriveLinkState `protobuf:"varint,3,opt,name=state,proto3" json:"state,omitempty"`
+	// Detail is the Device's note on State.
+	Detail string `protobuf:"bytes,4,opt,name=detail,proto3" json:"detail,omitempty"`
+	// Local is set when the link runs on the Device serving this stream.
+	Local *DriveLinkLocal `protobuf:"bytes,5,opt,name=local,proto3" json:"local,omitempty"`
+	// DeviceLabel is the Device's name, which names it as a holder.
+	DeviceLabel string `protobuf:"bytes,6,opt,name=device_label,json=deviceLabel,proto3" json:"deviceLabel,omitempty"`
+	// Availability is whether this session reaches the Device now; a link
+	// running on the Device serving this stream is online.
+	Availability device.DeviceAvailabilityState `protobuf:"varint,7,opt,name=availability,proto3" json:"availability,omitempty"`
+}
+
+func (x *DriveLink) Reset() {
+	*x = DriveLink{}
+}
+
+func (*DriveLink) ProtoMessage() {}
+
+func (x *DriveLink) GetDeviceKey() string {
+	if x != nil {
+		return x.DeviceKey
+	}
+	return ""
+}
+
+func (x *DriveLink) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *DriveLink) GetState() DriveLinkState {
+	if x != nil {
+		return x.State
+	}
+	return DriveLinkState_DriveLinkState_STARTING
+}
+
+func (x *DriveLink) GetDetail() string {
+	if x != nil {
+		return x.Detail
+	}
+	return ""
+}
+
+func (x *DriveLink) GetLocal() *DriveLinkLocal {
+	if x != nil {
+		return x.Local
+	}
+	return nil
+}
+
+func (x *DriveLink) GetDeviceLabel() string {
+	if x != nil {
+		return x.DeviceLabel
+	}
+	return ""
+}
+
+func (x *DriveLink) GetAvailability() device.DeviceAvailabilityState {
+	if x != nil {
+		return x.Availability
+	}
+	return device.DeviceAvailabilityState(0)
+}
+
+// DriveLinkLocal is what only the linking Device knows about its link.
+type DriveLinkLocal struct {
+	unknownFields []byte
+	// Folder is the absolute path of the folder on this Device.
+	Folder string `protobuf:"bytes,1,opt,name=folder,proto3" json:"folder,omitempty"`
+	// Files is the number of files the current or last full sync linked.
+	Files uint64 `protobuf:"varint,2,opt,name=files,proto3" json:"files,omitempty"`
+	// Bytes is the number of file bytes the current or last full sync linked.
+	Bytes uint64 `protobuf:"varint,3,opt,name=bytes,proto3" json:"bytes,omitempty"`
+}
+
+func (x *DriveLinkLocal) Reset() {
+	*x = DriveLinkLocal{}
+}
+
+func (*DriveLinkLocal) ProtoMessage() {}
+
+func (x *DriveLinkLocal) GetFolder() string {
+	if x != nil {
+		return x.Folder
+	}
+	return ""
+}
+
+func (x *DriveLinkLocal) GetFiles() uint64 {
+	if x != nil {
+		return x.Files
+	}
+	return 0
+}
+
+func (x *DriveLinkLocal) GetBytes() uint64 {
+	if x != nil {
+		return x.Bytes
+	}
+	return 0
+}
+
 // SetSpaceBackfillRequest chooses this device's backfill of the World.
 type SetSpaceBackfillRequest struct {
 	unknownFields []byte
@@ -3156,6 +3356,78 @@ func (m *ResetFolderRootResponse) CloneVT() *ResetFolderRootResponse {
 }
 
 func (m *ResetFolderRootResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WatchDriveLinksRequest) CloneVT() *WatchDriveLinksRequest {
+	if m == nil {
+		return (*WatchDriveLinksRequest)(nil)
+	}
+	r := new(WatchDriveLinksRequest)
+	r.ObjectKey = m.ObjectKey
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchDriveLinksRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WatchDriveLinksResponse) CloneVT() *WatchDriveLinksResponse {
+	if m == nil {
+		return (*WatchDriveLinksResponse)(nil)
+	}
+	r := new(WatchDriveLinksResponse)
+	r.Links = protobuf_go_lite.CloneVTSlice(m.Links)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchDriveLinksResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *DriveLink) CloneVT() *DriveLink {
+	if m == nil {
+		return (*DriveLink)(nil)
+	}
+	r := new(DriveLink)
+	r.DeviceKey = m.DeviceKey
+	r.Path = m.Path
+	r.State = m.State
+	r.Detail = m.Detail
+	r.DeviceLabel = m.DeviceLabel
+	r.Availability = m.Availability
+	r.Local = protobuf_go_lite.CloneVTValue(m.Local)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *DriveLink) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *DriveLinkLocal) CloneVT() *DriveLinkLocal {
+	if m == nil {
+		return (*DriveLinkLocal)(nil)
+	}
+	r := new(DriveLinkLocal)
+	r.Folder = m.Folder
+	r.Files = m.Files
+	r.Bytes = m.Bytes
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *DriveLinkLocal) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -4653,6 +4925,110 @@ func (this *ResetFolderRootResponse) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *WatchDriveLinksRequest) EqualVT(that *WatchDriveLinksRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ObjectKey != that.ObjectKey {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchDriveLinksRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchDriveLinksRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WatchDriveLinksResponse) EqualVT(that *WatchDriveLinksResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Links, that.Links, func() *DriveLink { return &DriveLink{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchDriveLinksResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchDriveLinksResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *DriveLink) EqualVT(that *DriveLink) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.DeviceKey != that.DeviceKey {
+		return false
+	}
+	if this.Path != that.Path {
+		return false
+	}
+	if this.State != that.State {
+		return false
+	}
+	if this.Detail != that.Detail {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Local, that.Local) {
+		return false
+	}
+	if this.DeviceLabel != that.DeviceLabel {
+		return false
+	}
+	if this.Availability != that.Availability {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *DriveLink) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*DriveLink)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *DriveLinkLocal) EqualVT(that *DriveLinkLocal) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Folder != that.Folder {
+		return false
+	}
+	if this.Files != that.Files {
+		return false
+	}
+	if this.Bytes != that.Bytes {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *DriveLinkLocal) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*DriveLinkLocal)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 func (this *SetSpaceBackfillRequest) EqualVT(that *SetSpaceBackfillRequest) bool {
 	if this == that {
 		return true
@@ -5067,6 +5443,46 @@ func (x *SpacePluginLifecycleState) UnmarshalText(b []byte) error {
 
 // UnmarshalJSON unmarshals the SpacePluginLifecycleState from JSON.
 func (x *SpacePluginLifecycleState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the DriveLinkState to JSON.
+func (x DriveLinkState) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), DriveLinkState_name)
+}
+
+// MarshalText marshals the DriveLinkState to text.
+func (x DriveLinkState) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), DriveLinkState_name)), nil
+}
+
+// MarshalJSON marshals the DriveLinkState to JSON.
+func (x DriveLinkState) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DriveLinkState from JSON.
+func (x *DriveLinkState) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(DriveLinkState_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read DriveLinkState enum: %v", err)
+		return
+	}
+	*x = DriveLinkState(v)
+}
+
+// UnmarshalText unmarshals the DriveLinkState from text.
+func (x *DriveLinkState) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), DriveLinkState_value)
+	if err != nil {
+		return err
+	}
+	*x = DriveLinkState(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the DriveLinkState from JSON.
+func (x *DriveLinkState) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -8115,6 +8531,263 @@ func (x *ResetFolderRootResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the WatchDriveLinksRequest message to JSON.
+func (x *WatchDriveLinksRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ObjectKey != "" || s.HasField("objectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectKey")
+		s.WriteString(x.ObjectKey)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchDriveLinksRequest to JSON.
+func (x *WatchDriveLinksRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchDriveLinksRequest message from JSON.
+func (x *WatchDriveLinksRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "object_key", "objectKey":
+			s.AddField("object_key")
+			x.ObjectKey = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchDriveLinksRequest from JSON.
+func (x *WatchDriveLinksRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WatchDriveLinksResponse message to JSON.
+func (x *WatchDriveLinksResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Links) > 0 || s.HasField("links") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("links")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Links {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("links"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchDriveLinksResponse to JSON.
+func (x *WatchDriveLinksResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchDriveLinksResponse message from JSON.
+func (x *WatchDriveLinksResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "links":
+			s.AddField("links")
+			if s.ReadNil() {
+				x.Links = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Links = append(x.Links, nil)
+					return
+				}
+				v := &DriveLink{}
+				v.UnmarshalProtoJSON(s.WithField("links", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Links = append(x.Links, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchDriveLinksResponse from JSON.
+func (x *WatchDriveLinksResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the DriveLink message to JSON.
+func (x *DriveLink) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.DeviceKey != "" || s.HasField("deviceKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("deviceKey")
+		s.WriteString(x.DeviceKey)
+	}
+	if x.Path != "" || s.HasField("path") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("path")
+		s.WriteString(x.Path)
+	}
+	if x.State != 0 || s.HasField("state") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("state")
+		x.State.MarshalProtoJSON(s)
+	}
+	if x.Detail != "" || s.HasField("detail") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("detail")
+		s.WriteString(x.Detail)
+	}
+	if x.Local != nil || s.HasField("local") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("local")
+		x.Local.MarshalProtoJSON(s.WithField("local"))
+	}
+	if x.DeviceLabel != "" || s.HasField("deviceLabel") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("deviceLabel")
+		s.WriteString(x.DeviceLabel)
+	}
+	if x.Availability != 0 || s.HasField("availability") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("availability")
+		x.Availability.MarshalProtoJSON(s)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the DriveLink to JSON.
+func (x *DriveLink) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DriveLink message from JSON.
+func (x *DriveLink) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "device_key", "deviceKey":
+			s.AddField("device_key")
+			x.DeviceKey = s.ReadString()
+		case "path":
+			s.AddField("path")
+			x.Path = s.ReadString()
+		case "state":
+			s.AddField("state")
+			x.State.UnmarshalProtoJSON(s)
+		case "detail":
+			s.AddField("detail")
+			x.Detail = s.ReadString()
+		case "local":
+			if s.ReadNil() {
+				x.Local = nil
+				return
+			}
+			x.Local = &DriveLinkLocal{}
+			x.Local.UnmarshalProtoJSON(s.WithField("local", true))
+		case "device_label", "deviceLabel":
+			s.AddField("device_label")
+			x.DeviceLabel = s.ReadString()
+		case "availability":
+			s.AddField("availability")
+			x.Availability.UnmarshalProtoJSON(s)
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the DriveLink from JSON.
+func (x *DriveLink) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the DriveLinkLocal message to JSON.
+func (x *DriveLinkLocal) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Folder != "" || s.HasField("folder") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("folder")
+		s.WriteString(x.Folder)
+	}
+	if x.Files != 0 || s.HasField("files") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("files")
+		s.WriteUint64(x.Files)
+	}
+	if x.Bytes != 0 || s.HasField("bytes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("bytes")
+		s.WriteUint64(x.Bytes)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the DriveLinkLocal to JSON.
+func (x *DriveLinkLocal) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DriveLinkLocal message from JSON.
+func (x *DriveLinkLocal) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "folder":
+			s.AddField("folder")
+			x.Folder = s.ReadString()
+		case "files":
+			s.AddField("files")
+			x.Files = s.ReadUint64()
+		case "bytes":
+			s.AddField("bytes")
+			x.Bytes = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the DriveLinkLocal from JSON.
+func (x *DriveLinkLocal) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the SetSpaceBackfillRequest message to JSON.
 func (x *SetSpaceBackfillRequest) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -11151,6 +11824,206 @@ func (m *ResetFolderRootResponse) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 	return len(dAtA) - i, nil
 }
 
+func (m *WatchDriveLinksRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchDriveLinksRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchDriveLinksRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.ObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ObjectKey)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WatchDriveLinksResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchDriveLinksResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchDriveLinksResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Links) > 0 {
+		for iNdEx := len(m.Links) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Links[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *DriveLink) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DriveLink) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *DriveLink) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Availability != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Availability))
+		i--
+		dAtA[i] = 0x38
+	}
+	if len(m.DeviceLabel) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.DeviceLabel)
+		i--
+		dAtA[i] = 0x32
+	}
+	if m.Local != nil {
+		size, err := m.Local.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.Detail) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Detail)
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.State != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.State))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.Path) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Path)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.DeviceKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.DeviceKey)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *DriveLinkLocal) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DriveLinkLocal) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *DriveLinkLocal) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Bytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Bytes))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.Files != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Files))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Folder) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Folder)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *SetSpaceBackfillRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -12402,6 +13275,64 @@ func (m *ResetFolderRootResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *WatchDriveLinksRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ObjectKey)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WatchDriveLinksResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	for _, e := range m.Links {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *DriveLink) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.DeviceKey)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Path)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.State)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Detail)
+	if m.Local != nil {
+		l = m.Local.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.DeviceLabel)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Availability)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *DriveLinkLocal) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Folder)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Files)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Bytes)
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *SetSpaceBackfillRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -12581,6 +13512,10 @@ func (x SpaceSequencer) MarshalProtoText() string {
 }
 
 func (x SpacePluginLifecycleState) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x DriveLinkState) MarshalProtoText() string {
 	return x.String()
 }
 
@@ -13745,6 +14680,102 @@ func (x *ResetFolderRootResponse) MarshalProtoText() string {
 }
 
 func (x *ResetFolderRootResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WatchDriveLinksRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "WatchDriveLinksRequest")
+	if x.ObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.ObjectKey)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *WatchDriveLinksRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WatchDriveLinksResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "WatchDriveLinksResponse")
+	if len(x.Links) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "links")
+		for i, v := range x.Links {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &DriveLink{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *WatchDriveLinksResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *DriveLink) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "DriveLink")
+	if x.DeviceKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "device_key")
+		protobuf_go_lite.TextWriteString(&sb, x.DeviceKey)
+	}
+	if x.Path != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "path")
+		protobuf_go_lite.TextWriteString(&sb, x.Path)
+	}
+	if x.State != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "state")
+		protobuf_go_lite.TextWriteStringer(&sb, DriveLinkState(x.State))
+	}
+	if x.Detail != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "detail")
+		protobuf_go_lite.TextWriteString(&sb, x.Detail)
+	}
+	if x.Local != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "local")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Local)
+	}
+	if x.DeviceLabel != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "device_label")
+		protobuf_go_lite.TextWriteString(&sb, x.DeviceLabel)
+	}
+	if x.Availability != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "availability")
+		protobuf_go_lite.TextWriteStringer(&sb, device.DeviceAvailabilityState(x.Availability))
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *DriveLink) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *DriveLinkLocal) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "DriveLinkLocal")
+	if x.Folder != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "folder")
+		protobuf_go_lite.TextWriteString(&sb, x.Folder)
+	}
+	if x.Files != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "files")
+		protobuf_go_lite.TextWriteUint(&sb, x.Files)
+	}
+	if x.Bytes != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "bytes")
+		protobuf_go_lite.TextWriteUint(&sb, x.Bytes)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *DriveLinkLocal) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -17511,6 +18542,306 @@ func (m *ResetFolderRootResponse) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Current = 0
 			m.Current, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchDriveLinksRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchDriveLinksRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchDriveLinksRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ObjectKey = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchDriveLinksResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchDriveLinksResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchDriveLinksResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Links", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Links = append(m.Links, &DriveLink{})
+			if err := m.Links[len(m.Links)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *DriveLink) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DriveLink: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DriveLink: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DeviceKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.DeviceKey = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Path", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Path = v
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field State", wireType)
+			}
+			m.State = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.State = DriveLinkState(_v)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Detail", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Detail = v
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Local", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Local == nil {
+				m.Local = &DriveLinkLocal{}
+			}
+			if err := m.Local.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DeviceLabel", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.DeviceLabel = v
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Availability", wireType)
+			}
+			m.Availability = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Availability = device.DeviceAvailabilityState(_v)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *DriveLinkLocal) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DriveLinkLocal: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DriveLinkLocal: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Folder", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Folder = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Files", wireType)
+			}
+			m.Files = 0
+			m.Files, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Bytes", wireType)
+			}
+			m.Bytes = 0
+			m.Bytes, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

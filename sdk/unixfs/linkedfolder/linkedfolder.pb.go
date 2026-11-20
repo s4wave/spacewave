@@ -32,6 +32,9 @@ type Config struct {
 	// the file to the Device's trash. Off, the folder is the only source and the
 	// Drive follows it one way, replacing others' changes.
 	TwoWay bool `protobuf:"varint,5,opt,name=two_way,json=twoWay,proto3" json:"twoWay,omitempty"`
+	// DevicePeerId is the peer of the Device the node is placed on, so a
+	// reader on that Device tells its own link from the node's other copies.
+	DevicePeerId string `protobuf:"bytes,6,opt,name=device_peer_id,json=devicePeerId,proto3" json:"devicePeerId,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -75,6 +78,13 @@ func (x *Config) GetTwoWay() bool {
 	return false
 }
 
+func (x *Config) GetDevicePeerId() string {
+	if x != nil {
+		return x.DevicePeerId
+	}
+	return ""
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -85,6 +95,7 @@ func (m *Config) CloneVT() *Config {
 	r.Folder = m.Folder
 	r.Path = m.Path
 	r.TwoWay = m.TwoWay
+	r.DevicePeerId = m.DevicePeerId
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -114,6 +125,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.TwoWay != that.TwoWay {
+		return false
+	}
+	if this.DevicePeerId != that.DevicePeerId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -160,6 +174,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("twoWay")
 		s.WriteBool(x.TwoWay)
 	}
+	if x.DevicePeerId != "" || s.HasField("devicePeerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("devicePeerId")
+		s.WriteString(x.DevicePeerId)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -192,6 +211,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "two_way", "twoWay":
 			s.AddField("two_way")
 			x.TwoWay = s.ReadBool()
+		case "device_peer_id", "devicePeerId":
+			s.AddField("device_peer_id")
+			x.DevicePeerId = s.ReadString()
 		}
 	})
 }
@@ -229,6 +251,11 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.DevicePeerId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.DevicePeerId)
+		i--
+		dAtA[i] = 0x32
 	}
 	if m.TwoWay {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.TwoWay)
@@ -269,6 +296,7 @@ func (m *Config) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Folder)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Path)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.TwoWay)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.DevicePeerId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -295,6 +323,10 @@ func (x *Config) MarshalProtoText() string {
 	if x.TwoWay != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "two_way")
 		protobuf_go_lite.TextWriteBool(&sb, x.TwoWay)
+	}
+	if x.DevicePeerId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "device_peer_id")
+		protobuf_go_lite.TextWriteString(&sb, x.DevicePeerId)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -373,6 +405,16 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.TwoWay = bool(v)
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DevicePeerId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.DevicePeerId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

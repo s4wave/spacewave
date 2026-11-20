@@ -54,6 +54,8 @@ import {
   SpaceState,
   ValidatePluginRepositoryRequest,
   ValidatePluginRepositoryResponse,
+  WatchDriveLinksRequest,
+  WatchDriveLinksResponse,
   WatchProcessBindingsRequest,
   WatchProcessBindingsResponse,
   WatchSpaceBackfillRequest,
@@ -389,6 +391,19 @@ export const SpaceResourceServiceDefinition = {
       O: ResetFolderRootResponse,
       kind: MethodKind.Unary,
     },
+    /**
+     * WatchDriveLinks streams the folders linked into a Drive: one entry for
+     * each Device a linked-folder node writing the Drive is placed on. It sends
+     * the list, then again after each change.
+     *
+     * @generated from rpc s4wave.space.SpaceResourceService.WatchDriveLinks
+     */
+    WatchDriveLinks: {
+      name: 'WatchDriveLinks',
+      I: WatchDriveLinksRequest,
+      O: WatchDriveLinksResponse,
+      kind: MethodKind.ServerStreaming,
+    },
   },
 } as const
 
@@ -678,6 +693,18 @@ export interface SpaceResourceService {
     request: ResetFolderRootRequest,
     abortSignal?: AbortSignal,
   ): Promise<ResetFolderRootResponse>
+
+  /**
+   * WatchDriveLinks streams the folders linked into a Drive: one entry for
+   * each Device a linked-folder node writing the Drive is placed on. It sends
+   * the list, then again after each change.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.WatchDriveLinks
+   */
+  WatchDriveLinks(
+    request: WatchDriveLinksRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchDriveLinksResponse>
 }
 
 /**
@@ -993,6 +1020,19 @@ export interface SpaceResourceServiceHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): Promise<ResetFolderRootResponse>
+
+  /**
+   * WatchDriveLinks streams the folders linked into a Drive: one entry for
+   * each Device a linked-folder node writing the Drive is placed on. It sends
+   * the list, then again after each change.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.WatchDriveLinks
+   */
+  WatchDriveLinks(
+    request: WatchDriveLinksRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchDriveLinksResponse>
 }
 
 export const SpaceResourceServiceServiceName =
@@ -1031,6 +1071,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
     this.ApproveSpaceChange = this.ApproveSpaceChange.bind(this)
     this.LinkFolder = this.LinkFolder.bind(this)
     this.ResetFolderRoot = this.ResetFolderRoot.bind(this)
+    this.WatchDriveLinks = this.WatchDriveLinks.bind(this)
   }
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.WatchSpaceState
@@ -1555,6 +1596,27 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
       abortSignal || undefined,
     )
     return ResetFolderRootResponse.fromBinary(result)
+  }
+
+  /**
+   * WatchDriveLinks streams the folders linked into a Drive: one entry for
+   * each Device a linked-folder node writing the Drive is placed on. It sends
+   * the list, then again after each change.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.WatchDriveLinks
+   */
+  WatchDriveLinks(
+    request: WatchDriveLinksRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchDriveLinksResponse> {
+    const requestMsg = WatchDriveLinksRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      SpaceResourceServiceDefinition.methods.WatchDriveLinks.name,
+      WatchDriveLinksRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(WatchDriveLinksResponse)(result)
   }
 }
 /**

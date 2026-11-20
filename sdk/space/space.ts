@@ -18,6 +18,7 @@ import {
   DeleteSecretResponse,
   FetchPluginRepositoryRequest,
   FetchPluginRepositoryResponse,
+  ResetFolderRootResponse,
   SetSpaceBackfillResponse,
   SetSpaceControlResponse,
   SetSpaceSequencerResponse,
@@ -28,6 +29,7 @@ import {
   SpaceState,
   ValidatePluginRepositoryRequest,
   ValidatePluginRepositoryResponse,
+  WatchDriveLinksResponse,
   WatchSpaceBackfillRequest,
   WatchSpaceSharingStateRequest,
   WatchSpaceStateRequest,
@@ -68,6 +70,23 @@ export class Space extends Resource {
     abortSignal?: AbortSignal,
   ): AsyncIterable<SpaceBackfillState> {
     return this.service.WatchSpaceBackfill(req ?? {}, abortSignal)
+  }
+
+  // watchDriveLinks watches the folders linked into the Drive at objectKey.
+  public watchDriveLinks(
+    objectKey: string,
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<WatchDriveLinksResponse> {
+    return this.service.WatchDriveLinks({ objectKey }, abortSignal)
+  }
+
+  // resetFolderRoot records the file system the linked folder at folder, on
+  // this device, is on now, so a link stopped by its root's change resumes.
+  public async resetFolderRoot(
+    folder: string,
+    abortSignal?: AbortSignal,
+  ): Promise<ResetFolderRootResponse> {
+    return this.service.ResetFolderRoot({ folder }, abortSignal)
   }
 
   // setSpaceBackfill chooses whether this device copies the whole space into

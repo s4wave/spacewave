@@ -54,6 +54,8 @@ func (NodeType) Compile(_ context.Context, node *s4wave_flowgraph.PlacedFlowgrap
 		Folder:    params[ParamFolder],
 		Path:      params[ParamPath],
 		TwoWay:    params[ParamTwoWay] == "true",
+
+		DevicePeerId: node.DevicePeerID,
 	}
 	if err := conf.Validate(); err != nil {
 		return nil, err

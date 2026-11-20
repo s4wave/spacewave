@@ -7,6 +7,7 @@ import "github.com/s4wave/spacewave/core/sobject/sobject.proto";
 import "github.com/s4wave/spacewave/core/space/world/world.proto";
 import "github.com/s4wave/spacewave/sdk/provider/spacewave/spacewave.proto";
 import "github.com/s4wave/spacewave/sdk/deploy/deploy.proto";
+import "github.com/s4wave/spacewave/sdk/device/device.proto";
 import "github.com/s4wave/spacewave/sdk/secret/secret.proto";
 import "github.com/s4wave/spacewave/db/block/transform/transform.proto";
 import "google/protobuf/timestamp.proto";
@@ -112,6 +113,11 @@ service SpaceResourceService {
   // identity. A link stopped because its folder root changed then resumes
   // with a full sync, which removes every Drive entry the folder lacks.
   rpc ResetFolderRoot(ResetFolderRootRequest) returns (ResetFolderRootResponse) {}
+
+  // WatchDriveLinks streams the folders linked into a Drive: one entry for
+  // each Device a linked-folder node writing the Drive is placed on. It sends
+  // the list, then again after each change.
+  rpc WatchDriveLinks(WatchDriveLinksRequest) returns (stream WatchDriveLinksResponse) {}
 }
 
 // BuildSpacePluginRequest selects a Space source tree and authorized build device.
@@ -682,6 +688,61 @@ message ResetFolderRootResponse {
   uint64 previous = 1;
   // Current is the identity of the file system the root is on now.
   uint64 current = 2;
+}
+
+// WatchDriveLinksRequest selects the Drive whose linked folders to watch.
+message WatchDriveLinksRequest {
+  // ObjectKey is the key of the UnixFS object.
+  string object_key = 1;
+}
+
+// WatchDriveLinksResponse lists the folders linked into the Drive.
+message WatchDriveLinksResponse {
+  // Links holds one entry per linking Device, in Flowgraph key, node ID and
+  // Device key order.
+  repeated DriveLink links = 1;
+}
+
+// DriveLinkState is the state a linked-folder node's Device last recorded.
+enum DriveLinkState {
+  // DriveLinkState_STARTING means the Device has not read the folder yet.
+  DriveLinkState_STARTING = 0;
+  // DriveLinkState_INDEXING means the Device is reading the whole folder.
+  DriveLinkState_INDEXING = 1;
+  // DriveLinkState_LINKED means the Device follows the folder's changes.
+  DriveLinkState_LINKED = 2;
+  // DriveLinkState_REJECTED means the Device stopped the link; Detail says
+  // why, as when the folder's root moved to another file system.
+  DriveLinkState_REJECTED = 3;
+}
+
+// DriveLink is one Device linking a folder into the Drive.
+message DriveLink {
+  // DeviceKey is the object key of the Device the node is placed on.
+  string device_key = 1;
+  // Path is the path in the Drive the folder links to, empty for the root.
+  string path = 2;
+  // State is the node's state as the Device last recorded it.
+  DriveLinkState state = 3;
+  // Detail is the Device's note on State.
+  string detail = 4;
+  // Local is set when the link runs on the Device serving this stream.
+  DriveLinkLocal local = 5;
+  // DeviceLabel is the Device's name, which names it as a holder.
+  string device_label = 6;
+  // Availability is whether this session reaches the Device now; a link
+  // running on the Device serving this stream is online.
+  .s4wave.device.DeviceAvailabilityState availability = 7;
+}
+
+// DriveLinkLocal is what only the linking Device knows about its link.
+message DriveLinkLocal {
+  // Folder is the absolute path of the folder on this Device.
+  string folder = 1;
+  // Files is the number of files the current or last full sync linked.
+  uint64 files = 2;
+  // Bytes is the number of file bytes the current or last full sync linked.
+  uint64 bytes = 3;
 }
 
 // SetSpaceBackfillRequest chooses this device's backfill of the World.

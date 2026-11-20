@@ -21,4 +21,7 @@ message Config {
   // the file to the Device's trash. Off, the folder is the only source and the
   // Drive follows it one way, replacing others' changes.
   bool two_way = 5;
+  // DevicePeerId is the peer of the Device the node is placed on, so a
+  // reader on that Device tells its own link from the node's other copies.
+  string device_peer_id = 6;
 }

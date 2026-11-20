@@ -7,7 +7,10 @@ import {
   SharedObjectHealthStatus,
 } from '@s4wave/core/sobject/sobject.pb.js'
 import { SessionLockMode } from '@s4wave/core/session/session.pb.js'
-import { PairingStatus } from '@s4wave/sdk/session/session.pb.js'
+import {
+  PairingStatus,
+  SyncUploadHold,
+} from '@s4wave/sdk/session/session.pb.js'
 import type {
   Resource,
   ResourceFields,
@@ -36,6 +39,7 @@ function fakeSyncStatus(
     active: false,
     error: false,
     local: false,
+    uploadHold: SyncUploadHold.SyncUploadHold_NONE,
     summaryLabel: 'Synced',
     detailLabel: 'All sync work complete.',
     ariaLabel: 'Session sync status: Synced',

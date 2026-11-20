@@ -6,10 +6,9 @@ stateDiagram-v2
   s1: No row yet
   s2: Listed, Open shown
   s3: Opening
-  s4: On this device
+  s4: Opened
   s5: Unavailable, holders named
-  s6: On this device, update on its way
-  s7: Newer version on its way
+  s6: Newer version on its way
   [*] --> s0
   s0 --> s1: the folder finishes indexing
   s0 --> s2: the row appears
@@ -19,12 +18,9 @@ stateDiagram-v2
   s3 --> s5: no holder answers
   s5 --> s3: opens it
   s5 --> s2: the owner's Device wakes
-  s4 --> s6: the edit is published
   s2 --> s5: the owner's Device sleeps
-  s2 --> s7: the owner edits it
-  s6 --> s4: the update arrives
-  s5 --> s7: the owner's Device wakes
-  s7 --> s3: opens it
-  s7 --> s5: the owner's Device sleeps
-  s7 --> s2: the edit is published
-  s3 --> s6: its chunks arrive
+  s2 --> s6: the owner edits it
+  s5 --> s6: the owner's Device wakes
+  s6 --> s3: opens it
+  s6 --> s5: the owner's Device sleeps
+  s6 --> s2: the edit is published

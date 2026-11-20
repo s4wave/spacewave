@@ -1,4 +1,6 @@
-// A linked file's row in the Drive view, as Bob, a member, sees it.
+// A linked file's row in the Drive view, as Bob, a member, sees it. The
+// charted config turns RowPresence off, so an opened file reads "Opened"
+// until rows learn whether this device holds the file.
 
 type Status = {
   disk: number
@@ -30,11 +32,7 @@ export const state = (v: Status) => {
       : 'No row yet'
   }
   if (f === 'filling') return 'Opening'
-  if (f === 'present') {
-    return v.have.member < v.pub
-      ? 'On this device, update on its way'
-      : 'On this device'
-  }
+  if (f === 'present') return 'Opened'
   if (f === 'unavailable' && !serves(v)) {
     return v.online && v.linked !== 'rejected'
       ? 'Newer version on its way'

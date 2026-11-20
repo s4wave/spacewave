@@ -99,6 +99,10 @@ type SRPCSpaceResourceServiceClient interface {
 	// identity. A link stopped because its folder root changed then resumes
 	// with a full sync, which removes every Drive entry the folder lacks.
 	ResetFolderRoot(ctx context.Context, in *ResetFolderRootRequest) (*ResetFolderRootResponse, error)
+	// WatchDriveLinks streams the folders linked into a Drive: one entry for
+	// each Device a linked-folder node writing the Drive is placed on. It sends
+	// the list, then again after each change.
+	WatchDriveLinks(ctx context.Context, in *WatchDriveLinksRequest) (SRPCSpaceResourceService_WatchDriveLinksClient, error)
 }
 
 type srpcSpaceResourceServiceClient struct {
@@ -536,6 +540,39 @@ func (c *srpcSpaceResourceServiceClient) ResetFolderRoot(ctx context.Context, in
 	return out, nil
 }
 
+func (c *srpcSpaceResourceServiceClient) WatchDriveLinks(ctx context.Context, in *WatchDriveLinksRequest) (SRPCSpaceResourceService_WatchDriveLinksClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "WatchDriveLinks", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcSpaceResourceService_WatchDriveLinksClient{stream}
+	// A failed half-close means the call ended; MsgRecv reports its outcome.
+	_ = strm.CloseSend()
+	return strm, nil
+}
+
+type SRPCSpaceResourceService_WatchDriveLinksClient interface {
+	srpc.Stream
+	Recv() (*WatchDriveLinksResponse, error)
+	RecvTo(*WatchDriveLinksResponse) error
+}
+
+type srpcSpaceResourceService_WatchDriveLinksClient struct {
+	srpc.Stream
+}
+
+func (x *srpcSpaceResourceService_WatchDriveLinksClient) Recv() (*WatchDriveLinksResponse, error) {
+	m := new(WatchDriveLinksResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcSpaceResourceService_WatchDriveLinksClient) RecvTo(m *WatchDriveLinksResponse) error {
+	return x.MsgRecv(m)
+}
+
 type SRPCSpaceResourceServiceServer interface {
 	WatchSpaceState(*WatchSpaceStateRequest, SRPCSpaceResourceService_WatchSpaceStateStream) error
 	// WatchProcessBindings streams local process binding decisions without
@@ -621,6 +658,10 @@ type SRPCSpaceResourceServiceServer interface {
 	// identity. A link stopped because its folder root changed then resumes
 	// with a full sync, which removes every Drive entry the folder lacks.
 	ResetFolderRoot(context.Context, *ResetFolderRootRequest) (*ResetFolderRootResponse, error)
+	// WatchDriveLinks streams the folders linked into a Drive: one entry for
+	// each Device a linked-folder node writing the Drive is placed on. It sends
+	// the list, then again after each change.
+	WatchDriveLinks(*WatchDriveLinksRequest, SRPCSpaceResourceService_WatchDriveLinksStream) error
 }
 
 const SRPCSpaceResourceServiceServiceID = "s4wave.space.SpaceResourceService"
@@ -676,6 +717,7 @@ func (SRPCSpaceResourceServiceHandler) GetMethodIDs() []string {
 		"ApproveSpaceChange",
 		"LinkFolder",
 		"ResetFolderRoot",
+		"WatchDriveLinks",
 	}
 }
 
@@ -742,6 +784,8 @@ func (d *SRPCSpaceResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_LinkFolder(d.impl, strm)
 	case "ResetFolderRoot":
 		return true, d.InvokeMethod_ResetFolderRoot(d.impl, strm)
+	case "WatchDriveLinks":
+		return true, d.InvokeMethod_WatchDriveLinks(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -1044,6 +1088,15 @@ func (SRPCSpaceResourceServiceHandler) InvokeMethod_ResetFolderRoot(impl SRPCSpa
 		return err
 	}
 	return strm.MsgSend(out)
+}
+
+func (SRPCSpaceResourceServiceHandler) InvokeMethod_WatchDriveLinks(impl SRPCSpaceResourceServiceServer, strm srpc.Stream) error {
+	req := new(WatchDriveLinksRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcSpaceResourceService_WatchDriveLinksStream{strm}
+	return impl.WatchDriveLinks(req, serverStrm)
 }
 
 type SRPCSpaceResourceService_WatchSpaceStateStream interface {
@@ -1379,6 +1432,29 @@ type SRPCSpaceResourceService_ResetFolderRootStream interface {
 
 type srpcSpaceResourceService_ResetFolderRootStream struct {
 	srpc.Stream
+}
+
+type SRPCSpaceResourceService_WatchDriveLinksStream interface {
+	srpc.Stream
+	Send(*WatchDriveLinksResponse) error
+	SendAndClose(*WatchDriveLinksResponse) error
+}
+
+type srpcSpaceResourceService_WatchDriveLinksStream struct {
+	srpc.Stream
+}
+
+func (x *srpcSpaceResourceService_WatchDriveLinksStream) Send(m *WatchDriveLinksResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcSpaceResourceService_WatchDriveLinksStream) SendAndClose(m *WatchDriveLinksResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
 }
 
 type SRPCSpaceContentsResourceServiceClient interface {

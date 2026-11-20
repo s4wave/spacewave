@@ -22,13 +22,15 @@ import { UNIXFS_OBJECT_KEY } from '@s4wave/core/space/world/ops/init-unixfs.js'
 import { DRIVE_STARTER_GUIDE_NAME } from '@s4wave/app/quickstart/drive-starter-guide.js'
 
 import { useIntroWizardPresentation } from '../wizard/intro-context.js'
+import { DriveLinksHeader, DriveLinksProvider } from './DriveLinks.js'
 import {
   UnixFSBrowser,
   type UnixFSBrowserDirectoryHeaderProps,
 } from './UnixFSBrowser.js'
 
-// DriveViewer owns Drive-specific first-run guidance while delegating all file
-// operations to the generic UnixFS browser.
+// DriveViewer owns Drive-specific guidance, the first-run welcome and the
+// folders linked into the Drive, while delegating all file operations to the
+// generic UnixFS browser.
 export function DriveViewer({
   objectInfo,
   worldState,
@@ -42,14 +44,26 @@ export function DriveViewer({
   const isDriveRoot = unixfsId === UNIXFS_OBJECT_KEY
 
   return (
-    <UnixFSBrowser
-      unixfsId={unixfsId}
-      basePath={basePath}
-      currentPath={currentPath}
-      mimeTypeOverride={unixfsInfo?.mimeType}
-      worldState={worldState}
-      directoryHeader={isDriveRoot ? DriveGettingStartedHeader : undefined}
-    />
+    <DriveLinksProvider objectKey={unixfsId}>
+      <UnixFSBrowser
+        unixfsId={unixfsId}
+        basePath={basePath}
+        currentPath={currentPath}
+        mimeTypeOverride={unixfsInfo?.mimeType}
+        worldState={worldState}
+        directoryHeader={isDriveRoot ? DriveRootHeader : DriveLinksHeader}
+      />
+    </DriveLinksProvider>
+  )
+}
+
+// DriveRootHeader draws the linked folders above the first-run welcome.
+function DriveRootHeader(props: UnixFSBrowserDirectoryHeaderProps) {
+  return (
+    <>
+      <DriveLinksHeader />
+      <DriveGettingStartedHeader {...props} />
+    </>
   )
 }
 

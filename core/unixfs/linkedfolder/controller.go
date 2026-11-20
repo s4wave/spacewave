@@ -75,6 +75,13 @@ type Controller struct {
 	state s4wave_device.DeviceCapabilityState
 	// detail describes state.
 	detail string
+
+	// progress guards files and bytes and wakes their watchers. It is apart
+	// from status because the node status reaches the Device record, and
+	// the counts change after every committed batch.
+	progress broadcast.Broadcast
+	// files and bytes count what the current or last full sync linked.
+	files, bytes uint64
 }
 
 // NewController constructs a linked-folder controller.
@@ -84,7 +91,7 @@ func NewController(le *logrus.Entry, b bus.Bus, conf *unixfs_linkedfolder.Config
 		conf:   conf,
 		engine: world.NewBusEngine(nil, b, conf.GetEngineId()),
 		state:  s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE,
-		detail: "starting",
+		detail: unixfs_linkedfolder.StatusStarting,
 	}
 }
 
@@ -464,16 +471,18 @@ func (c *Controller) setStatus(state s4wave_device.DeviceCapabilityState, detail
 	l.Broadcast()
 }
 
-// showIndexing shows a full sync. A targeted sync keeps showing watching, so
-// following the folder writes the Device only when the status changes.
+// showIndexing shows a full sync and starts its counts again. A targeted sync
+// keeps showing watching, so following the folder writes the Device only when
+// the status changes.
 func (c *Controller) showIndexing() {
-	c.setStatus(s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE, "indexing")
+	c.setProgress(0, 0)
+	c.setStatus(s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE, unixfs_linkedfolder.StatusIndexing)
 }
 
 // showWatching shows the link following the folder, with the files waiting
 // out a backoff because they kept changing during their reads.
 func (c *Controller) showWatching(link *unixfs_world.FolderLink) {
-	detail := "watching"
+	detail := unixfs_linkedfolder.StatusWatching
 	switch n, _ := link.Changing(); n {
 	case 0:
 	case 1:
@@ -484,14 +493,56 @@ func (c *Controller) showWatching(link *unixfs_world.FolderLink) {
 	c.setStatus(s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE, detail)
 }
 
-// logProgress logs the files a sync linked so far.
+// logProgress shows the files a sync linked so far. Only a full sync's counts
+// are shown: a targeted sync counts from zero again, and the counts of the full
+// sync before it stay.
 func (c *Controller) logProgress(files, bytes uint64) error {
 	c.le.WithField("files", files).WithField("bytes", bytes).Debug("linked files")
+	if c.isIndexing() {
+		c.setProgress(files, bytes)
+	}
 	return nil
 }
 
-// HandleDirective resolves no directives.
-func (c *Controller) HandleDirective(context.Context, directive.Instance) ([]directive.Resolver, error) {
+// isIndexing reports whether a full sync runs.
+func (c *Controller) isIndexing() bool {
+	l := c.status.Lock()
+	defer l.Unlock()
+	return c.detail == unixfs_linkedfolder.StatusIndexing
+}
+
+// setProgress shows the counts, waking their watchers when they change.
+func (c *Controller) setProgress(files, bytes uint64) {
+	// Keep unchanged counts quiet.
+	l := c.progress.Lock()
+	defer l.Unlock()
+	if c.files == files && c.bytes == bytes {
+		return
+	}
+
+	// Show the new counts.
+	c.files, c.bytes = files, bytes
+	l.Broadcast()
+}
+
+// GetConfig returns the link's config.
+func (c *Controller) GetConfig() *unixfs_linkedfolder.Config {
+	return c.conf
+}
+
+// GetLinkProgress returns the counts of the current or last full sync, and a
+// channel closed at their next change.
+func (c *Controller) GetLinkProgress() (unixfs_linkedfolder.LinkProgress, <-chan struct{}) {
+	l := c.progress.Lock()
+	defer l.Unlock()
+	return unixfs_linkedfolder.LinkProgress{Files: c.files, Bytes: c.bytes}, l.WaitCh()
+}
+
+// HandleDirective resolves a lookup of the linked folders writing its Drive.
+func (c *Controller) HandleDirective(_ context.Context, di directive.Instance) ([]directive.Resolver, error) {
+	if dir, ok := di.GetDirective().(unixfs_linkedfolder.LookupLinkedFolder); ok {
+		return unixfs_linkedfolder.ResolveLinkedFolder(dir, c)
+	}
 	return nil, nil
 }
 
@@ -504,4 +555,5 @@ func (c *Controller) Close() error {
 var (
 	_ controller.Controller                = (*Controller)(nil)
 	_ s4wave_flowgraph.FlowgraphNodeStatus = (*Controller)(nil)
+	_ unixfs_linkedfolder.RunningLink      = (*Controller)(nil)
 )

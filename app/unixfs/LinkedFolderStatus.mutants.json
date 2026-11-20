@@ -2,10 +2,7 @@
   {
     "name": "another Device offers Reset and billing",
     "replace": [
-      [
-        "Shown(p) ==\n  IF p = \"linker\"",
-        "Shown(p) ==\n  IF p \\in People"
-      ],
+      ["Shown(p) ==\n  IF p = \"linker\"", "Shown(p) ==\n  IF p \\in People"],
       [
         "\\/ b = \"resetRoot\" /\\ p = \"linker\" /\\ online",
         "\\/ b = \"resetRoot\" /\\ online"
@@ -43,10 +40,7 @@
   {
     "name": "a row says unavailable while a holder serves the file",
     "replace": [
-      [
-        "    [] Serves(r, pub) -> \"Available from its holders\"\n",
-        ""
-      ]
+      ["    [] Serves(r, pub) -> \"Available from its holders\"\n", ""]
     ],
     "expect": "HintTruthful",
     "config": "LinkedFolderStatusRaces-local.cfg"

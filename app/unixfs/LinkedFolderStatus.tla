@@ -14,6 +14,15 @@
 \* modeled.
 EXTENDS LinkedFolderJourney
 
+\* RowPresence turns on the rows that say a file is on this device and
+\* whether a newer version is on its way. They wait for a per-file presence
+\* projection: once the "keep a full copy" switch exists, the Device that
+\* keeps the copy fetches it and records each file complete at its version
+\* as it finishes, so a row costs one lookup. Until then a row knows only
+\* that its file opened, and the configs that draw the screen turn it off.
+CONSTANT RowPresence
+ASSUME RowPresence \in BOOLEAN
+
 \* Alice on her laptop holds the switch even when her row is not modeled.
 People == {"linker", "owner"} \cup Readers
 
@@ -49,8 +58,10 @@ RowHint(r) ==
          IF linked = "indexing" THEN "The owner's Device is indexing the folder"
          ELSE "Nothing published yet"
     [] file[r] = "filling" -> "Opening"
-    [] file[r] = "present" /\ have[r] < pub -> "On this device; newer version on its way"
-    [] file[r] = "present" -> "On this device"
+    [] file[r] = "present" /\ RowPresence /\ have[r] < pub ->
+         "On this device; newer version on its way"
+    [] file[r] = "present" /\ RowPresence -> "On this device"
+    [] file[r] = "present" -> "Opened"
     [] Serves(r, pub) -> "Available from its holders"
     [] online /\ linked # "rejected" -> "A newer version is on its way"
     [] OTHER -> "Unavailable: no holder can serve it now"
