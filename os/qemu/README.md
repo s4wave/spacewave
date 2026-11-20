@@ -81,3 +81,16 @@ The [Gitea application proof](application.md) uses a separate development tool
 image and explicitly granted KVM access. It checks the complete repository,
 issue, build and VM replacement workflow through Flowgraph and Forge, while
 retaining separate SQL, file and configuration bindings.
+
+## Kill trial
+
+`kill-trial.sh DIR` checks that the console guest keeps every record it
+acknowledged. DIR holds `vmlinuz`, `initramfs.cpio.gz`, a seeded `btrfs.img`
+and `run-console.sh`; run it on a KVM host from a fresh copy of the fixture.
+The guest writes 16 records of 256 KiB, each followed by `sync`, and
+acknowledges each with its SHA-256. The driver kills QEMU with SIGKILL at the
+first host disk write of a later 256 MiB write. It then reboots, checks every
+acknowledged record, repeats the write and the kill, and checks all 32 records
+before a clean poweroff. It prints `KILL_TRIAL_PASS` only if every check
+passes, and leaves the serial logs and `host.log` in DIR. A 1 GiB disk falls
+below the data Volume's disk reserve, so use 4 GiB.
