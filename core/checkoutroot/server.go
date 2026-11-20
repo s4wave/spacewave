@@ -38,14 +38,19 @@ type Server struct {
 }
 
 // serve adds the handler until the checkout-root controller stops.
-func serve(ctx context.Context, le *logrus.Entry, b bus.Bus, id protocol.ID, folder *os.Root, root *unixfs_billy.BillyFSCursor, upload unixfs_rpc_server.FileUpload) error {
-	// Keep one watcher for the root and end its connections if the watcher stops.
+func serve(
+	ctx context.Context,
+	le *logrus.Entry,
+	b bus.Bus,
+	id protocol.ID,
+	folder *os.Root,
+	root *unixfs_billy.BillyFSCursor,
+	upload unixfs_rpc_server.FileUpload,
+) error {
+	// Keep the root available when native directory refresh is unavailable.
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	watcher, err := NewDirectoryWatcher(folder)
-	if err != nil {
-		return err
-	}
+	watcher := NewDirectoryWatcher(le, folder)
 	defer watcher.Close()
 
 	// Offer the checkout root to the Device's Session transport.
@@ -56,8 +61,10 @@ func serve(ctx context.Context, le *logrus.Entry, b bus.Bus, id protocol.ID, fol
 	}
 	defer release()
 
-	// Dispatch host events while the handler is published.
-	return watcher.Run(ctx, le)
+	// Serve snapshots for the lifetime of the root if native dispatch ends.
+	watcher.Run(ctx)
+	<-ctx.Done()
+	return nil
 }
 
 // HandleDirective offers this root when the incoming stream names its protocol.

@@ -19,7 +19,8 @@ import (
 
 // DirectoryWatch subscribes to a directory relative to the served root.
 // The callback receives true when the directory itself is removed.
-type DirectoryWatch func(path string, changed func(removed bool)) (release func(), err error)
+// The release function may be a no-op when native refresh is unavailable.
+type DirectoryWatch func(path string, changed func(removed bool)) (release func())
 
 // FSCursorService exposes an FSCursor and CursorOps tree via RPC.
 //
@@ -568,7 +569,7 @@ func (f *FSCursorService) resolveCursorOps(ctx context.Context, cursorHandleID u
 			case ops == nil:
 				err = unixfs_errors.ErrNotExist
 			case directory != "" && ops.GetIsDirectory():
-				stop, err = f.watch(directory, func(removed bool) {
+				stop = f.watch(directory, func(removed bool) {
 					f.notifyDirectory(cursorHandleID, cursor, sub, removed)
 				})
 			}
