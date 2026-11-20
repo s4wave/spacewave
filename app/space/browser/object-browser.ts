@@ -1,5 +1,6 @@
 import type {
   GraphEdgeBucket,
+  ObjectMeasure,
   ObjectMetadata,
   TypeCountEntry,
 } from '@s4wave/sdk/world/world.pb.js'
@@ -202,6 +203,8 @@ export interface RelationEnd {
   title: string
   // state is what the object's type declares as its state, empty for none.
   state: string
+  // measures are the object's summable quantities, such as a receipt's tokens.
+  measures: readonly ObjectMeasure[]
 }
 
 // RelationGroup is the relations of one direction and predicate to objects of
@@ -253,8 +256,9 @@ export function groupRelations(
       group.members.push({
         objectKey,
         typeId,
-        title: md?.title || '',
-        state: md?.state || '',
+        title: md?.declaration?.title || '',
+        state: md?.declaration?.state || '',
+        measures: md?.declaration?.measures ?? [],
       })
     }
   }
@@ -277,6 +281,40 @@ export function stateSummary(members: readonly RelationEnd[]): string {
     .toSorted((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
     .map(([state, n]) => n + ' ' + state)
     .join(', ')
+}
+
+// measureSummary sums a family's member measures by name, in the order the
+// members first declare them, such as "$3.18, 1.9 M tokens", or empty when no
+// member declares a measure.
+export function measureSummary(members: readonly RelationEnd[]): string {
+  const sums = new Map<string, { unit: string; value: number }>()
+  for (const { measures } of members) {
+    for (const { name = '', unit = '', value = 0 } of measures) {
+      const sum = sums.get(name) ?? { unit, value: 0 }
+      sum.value += value
+      sums.set(name, sum)
+    }
+  }
+  return Array.from(sums, ([name, { unit, value }]) =>
+    formatMeasure(name, unit, value),
+  ).join(', ')
+}
+
+// formatMeasure writes one summed measure: dollars for the usd unit, else the
+// amount with a K or M suffix and its unit or name, such as "1.9 M tokens".
+export function formatMeasure(
+  name: string,
+  unit: string,
+  value: number,
+): string {
+  if (unit === 'usd') return '$' + value.toFixed(2)
+  const scaled =
+    value >= 1e6
+      ? (value / 1e6).toFixed(1) + ' M'
+      : value >= 1e4
+        ? (value / 1e3).toFixed(0) + ' K'
+        : String(Math.round(value * 100) / 100)
+  return scaled + ' ' + (unit || name)
 }
 
 // bucketEnds yields each relation of the bucket as its direction, predicate

@@ -46,6 +46,7 @@ import {
   groupRelations,
   initialBrowserState,
   layoutRelationGraph,
+  measureSummary,
   relationEndKeys,
   shownActions,
   stateSummary,
@@ -399,9 +400,9 @@ function useObjectDetail(world: Resource<IWorldState>, objectKey: string) {
         object: {
           objectKey,
           typeId: self?.typeId ?? '',
-          title: self?.title ?? '',
-          state: self?.state ?? '',
-          time: self?.time,
+          title: self?.declaration?.title ?? '',
+          state: self?.declaration?.state ?? '',
+          time: self?.declaration?.time,
           groups: groupRelations(bucket, byKey),
           truncated: !!(bucket?.outgoingTruncated || bucket?.incomingTruncated),
         },
@@ -1154,6 +1155,7 @@ function RelationList({
                   {[
                     g.members.length + ' ' + nameType(g.typeId, true),
                     stateSummary(g.members),
+                    measureSummary(g.members),
                   ]
                     .filter(Boolean)
                     .join(', ')}
