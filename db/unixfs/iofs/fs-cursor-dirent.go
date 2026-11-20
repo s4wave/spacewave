@@ -37,5 +37,10 @@ func (e *FSCursorDirent) GetIsSymlink() bool {
 	return e.dirent.Type()&fs.ModeSymlink != 0
 }
 
+// Info returns the metadata associated with the directory entry.
+func (e *FSCursorDirent) Info() (fs.FileInfo, error) {
+	return e.dirent.Info()
+}
+
 // _ is a type assertion
 var _ unixfs.FSCursorDirent = (*FSCursorDirent)(nil)

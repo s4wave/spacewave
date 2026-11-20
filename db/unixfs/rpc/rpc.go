@@ -1,6 +1,9 @@
 package unixfs_rpc
 
 import (
+	"io/fs"
+
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
 )
@@ -35,10 +38,25 @@ func (c *FSCursorChange) ToFSCursorChange() *unixfs.FSCursorChange {
 
 // NewFSCursorDirent converts a FSCursorDirent into a RPC FSCursorDirent.
 func NewFSCursorDirent(dirent unixfs.FSCursorDirent) *FSCursorDirent {
-	return &FSCursorDirent{
+	// Encode the name and type every filesystem exposes.
+	out := &FSCursorDirent{
 		Name:     dirent.GetName(),
 		NodeType: unixfs_block.FSCursorNodeTypeToNodeType(dirent),
 	}
+
+	// Carry any metadata already supplied by the directory entry.
+	source, ok := dirent.(interface{ Info() (fs.FileInfo, error) })
+	if !ok {
+		return out
+	}
+	out.Info = &FSCursorDirentInfo{}
+	info, err := source.Info()
+	if err == nil {
+		out.Info.Mode = uint32(info.Mode())
+		out.Info.Size = uint64(max(0, info.Size()))
+		out.Info.ModTime = timestamp.ToTimestamp(info.ModTime())
+	}
+	return out
 }
 
 // GetIsDirectory returns if the node is a directory.

@@ -41,6 +41,18 @@ message FSCursorDirent {
   string name = 1;
   // NodeType is the type of node at the dirent.
   .unixfs.block.NodeType node_type = 2;
+  // Info is the metadata supplied by the directory listing, when supported.
+  FSCursorDirentInfo info = 3;
+}
+
+// FSCursorDirentInfo contains the metadata read with one directory entry.
+message FSCursorDirentInfo {
+  // Size is the entry size in bytes.
+  uint64 size = 1;
+  // Mode is the entry's file mode.
+  uint32 mode = 2;
+  // ModTime is the modification time. Unset when the entry could not be read.
+  google.protobuf.Timestamp mod_time = 3;
 }
 
 // FSCursorClientRequest is the request body for FSCursorClient.

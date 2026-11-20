@@ -16,6 +16,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
+	unixfs_rpc "github.com/s4wave/spacewave/db/unixfs/rpc"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
 	s4wave_unixfs "github.com/s4wave/spacewave/sdk/unixfs"
@@ -717,8 +718,10 @@ func (r *FSHandleResource) Readdir(req *s4wave_unixfs.HandleReaddirRequest, strm
 	// Stream directory entries with the info each child's node carries. An
 	// entry whose node cannot be read goes without its info.
 	err = handle.ReaddirAll(ctx, skip, func(ent unixfs.FSCursorDirent) error {
-		entry := dirEntryFromCursor(ent)
-		_ = readEntryInfo(ctx, handle, entry)
+		entry, listedInfo := dirEntryFromCursor(ent)
+		if !listedInfo {
+			_ = readEntryInfo(ctx, handle, entry)
+		}
 		return strm.Send(&s4wave_unixfs.HandleReaddirResponse{
 			Entry: entry,
 		})
@@ -988,12 +991,27 @@ func (r *FSHandleResource) Clone(ctx context.Context, req *s4wave_unixfs.HandleC
 	}, nil
 }
 
-func dirEntryFromCursor(ent unixfs.FSCursorDirent) *s4wave_unixfs.DirEntry {
-	return &s4wave_unixfs.DirEntry{
+// dirEntryFromCursor copies the entry and reports whether its listing supplied metadata.
+func dirEntryFromCursor(ent unixfs.FSCursorDirent) (*s4wave_unixfs.DirEntry, bool) {
+	// Fill the identity carried by every directory listing.
+	entry := &s4wave_unixfs.DirEntry{
 		Name:      ent.GetName(),
 		IsDir:     ent.GetIsDirectory(),
 		IsSymlink: ent.GetIsSymlink(),
 	}
+
+	// Use server-side listing metadata without opening a cursor for each file.
+	remote, ok := ent.(*unixfs_rpc.FSCursorDirent)
+	if !ok || remote.GetInfo() == nil {
+		return entry, false
+	}
+	info := remote.GetInfo()
+	if mt := info.GetModTime(); mt != nil {
+		entry.Size = info.GetSize()
+		entry.Mode = info.GetMode()
+		entry.ModTime = mt.AsTime().Unix()
+	}
+	return entry, true
 }
 
 // readEntryInfo sets the size, modification time and mode of entry from the
@@ -1033,6 +1051,8 @@ type watchDirent struct {
 	// ref is the block reference of the entry's node, or nil when the directory
 	// does not expose one.
 	ref *block.BlockRef
+	// listedInfo reports whether the serving filesystem supplied this entry's metadata.
+	listedInfo bool
 }
 
 // readWatchEntries reads the directory's block reference and, unless it equals
@@ -1057,7 +1077,9 @@ func readWatchEntries(
 		// Read every entry of the changed directory, copying the node
 		// reference out of the directory node.
 		return ops.ReaddirAll(ctx, 0, func(ent unixfs.FSCursorDirent) error {
-			wd := watchDirent{DirEntry: dirEntryFromCursor(ent)}
+			// Retain the entry's listing metadata and, when present, its block reference.
+			entry, listedInfo := dirEntryFromCursor(ent)
+			wd := watchDirent{DirEntry: entry, listedInfo: listedInfo}
 			if refer, ok := ent.(nodeRefer); ok {
 				wd.ref = refer.GetNodeRef().Clone()
 			}
@@ -1121,18 +1143,24 @@ func (w *readdirWatch) read(ctx context.Context, handle *unixfs.FSHandle) (int, 
 		return 0, err
 	}
 
-	// Index the previous entries by name.
-	prev := make(map[string]watchDirent, len(w.entries))
-	for _, ent := range w.entries {
-		prev[ent.GetName()] = ent
-	}
-
-	// Reuse each unchanged entry and read the node of every other one.
+	// Reuse unchanged block entries and read a node only for missing metadata.
+	var prev map[string]watchDirent
 	var reads int
 	for i, ent := range entries {
-		if old, ok := prev[ent.GetName()]; ok && !ent.ref.GetEmpty() && ent.ref.EqualsRef(old.ref) {
-			entries[i] = old
+		if ent.listedInfo {
 			continue
+		}
+		if !ent.ref.GetEmpty() {
+			if prev == nil {
+				prev = make(map[string]watchDirent, len(w.entries))
+				for _, old := range w.entries {
+					prev[old.GetName()] = old
+				}
+			}
+			if old, ok := prev[ent.GetName()]; ok && ent.ref.EqualsRef(old.ref) {
+				entries[i] = old
+				continue
+			}
 		}
 		reads++
 		if err := readEntryInfo(ctx, handle, ent.DirEntry); err != nil {

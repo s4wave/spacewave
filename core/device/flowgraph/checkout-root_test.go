@@ -147,6 +147,27 @@ func checkCheckoutRootResource(t *testing.T, ctx context.Context, le *logrus.Ent
 	}
 	file := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(fileClient)
 
+	// Read metadata with the directory listing before accessing any file data.
+	listing, err := root.WatchReaddir(ctx, &s4wave_unixfs.HandleWatchReaddirRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err := listing.Recv()
+	_ = listing.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	index := slices.IndexFunc(snapshot.GetEntries(), func(entry *s4wave_unixfs.DirEntry) bool {
+		return entry.GetName() == "file.txt"
+	})
+	if index < 0 {
+		t.Fatal("checkout-root listing omitted the host file")
+	}
+	info := snapshot.GetEntries()[index]
+	if info.GetSize() != 8 || info.GetMode() != 0o600 || info.GetModTime() == 0 {
+		t.Fatalf("checkout-root listing metadata = %v", info)
+	}
+
 	// Read the host bytes from the child and require it to inherit read-only access.
 	want, err := os.ReadFile(filepath.Join(dir, "file.txt"))
 	if err != nil {

@@ -2814,7 +2814,7 @@
           ]
         },
         "github.com/s4wave/spacewave/db/unixfs/rpc": {
-          "hash": "6f0728900e253077c873eba5f5f7ee5fd7c9bb554be622b84e5df8e39764dae9",
+          "hash": "e36d2764917ad18e495fe86a2d619b66d0e31b907e20767c95c7a7a3ade30604",
           "generatedFiles": [
             "db/unixfs/rpc/rpc.pb.go",
             "db/unixfs/rpc/rpc.pb.ts",

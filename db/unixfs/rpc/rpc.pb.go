@@ -130,6 +130,8 @@ type FSCursorDirent struct {
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// NodeType is the type of node at the dirent.
 	NodeType block.NodeType `protobuf:"varint,2,opt,name=node_type,json=nodeType,proto3" json:"nodeType,omitempty"`
+	// Info is the metadata supplied by the directory listing, when supported.
+	Info *FSCursorDirentInfo `protobuf:"bytes,3,opt,name=info,proto3" json:"info,omitempty"`
 }
 
 func (x *FSCursorDirent) Reset() {
@@ -150,6 +152,51 @@ func (x *FSCursorDirent) GetNodeType() block.NodeType {
 		return x.NodeType
 	}
 	return block.NodeType(0)
+}
+
+func (x *FSCursorDirent) GetInfo() *FSCursorDirentInfo {
+	if x != nil {
+		return x.Info
+	}
+	return nil
+}
+
+// FSCursorDirentInfo contains the metadata read with one directory entry.
+type FSCursorDirentInfo struct {
+	unknownFields []byte
+	// Size is the entry size in bytes.
+	Size uint64 `protobuf:"varint,1,opt,name=size,proto3" json:"size,omitempty"`
+	// Mode is the entry's file mode.
+	Mode uint32 `protobuf:"varint,2,opt,name=mode,proto3" json:"mode,omitempty"`
+	// ModTime is the modification time. Unset when the entry could not be read.
+	ModTime *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=mod_time,json=modTime,proto3" json:"modTime,omitempty"`
+}
+
+func (x *FSCursorDirentInfo) Reset() {
+	*x = FSCursorDirentInfo{}
+}
+
+func (*FSCursorDirentInfo) ProtoMessage() {}
+
+func (x *FSCursorDirentInfo) GetSize() uint64 {
+	if x != nil {
+		return x.Size
+	}
+	return 0
+}
+
+func (x *FSCursorDirentInfo) GetMode() uint32 {
+	if x != nil {
+		return x.Mode
+	}
+	return 0
+}
+
+func (x *FSCursorDirentInfo) GetModTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ModTime
+	}
+	return nil
 }
 
 // FSCursorClientRequest is the request body for FSCursorClient.
@@ -1837,6 +1884,7 @@ func (m *FSCursorDirent) CloneVT() *FSCursorDirent {
 	r := new(FSCursorDirent)
 	r.Name = m.Name
 	r.NodeType = m.NodeType
+	r.Info = protobuf_go_lite.CloneVTValue(m.Info)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1844,6 +1892,24 @@ func (m *FSCursorDirent) CloneVT() *FSCursorDirent {
 }
 
 func (m *FSCursorDirent) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *FSCursorDirentInfo) CloneVT() *FSCursorDirentInfo {
+	if m == nil {
+		return (*FSCursorDirentInfo)(nil)
+	}
+	r := new(FSCursorDirentInfo)
+	r.Size = m.Size
+	r.Mode = m.Mode
+	r.ModTime = protobuf_go_lite.CloneVTValue(m.ModTime)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *FSCursorDirentInfo) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -2876,11 +2942,40 @@ func (this *FSCursorDirent) EqualVT(that *FSCursorDirent) bool {
 	if this.NodeType != that.NodeType {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.Info, that.Info) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *FSCursorDirent) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*FSCursorDirent)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *FSCursorDirentInfo) EqualVT(that *FSCursorDirentInfo) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Size != that.Size {
+		return false
+	}
+	if this.Mode != that.Mode {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.ModTime, that.ModTime) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *FSCursorDirentInfo) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*FSCursorDirentInfo)
 	if !ok {
 		return false
 	}
@@ -4372,6 +4467,11 @@ func (x *FSCursorDirent) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("nodeType")
 		x.NodeType.MarshalProtoJSON(s)
 	}
+	if x.Info != nil || s.HasField("info") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("info")
+		x.Info.MarshalProtoJSON(s.WithField("info"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -4395,12 +4495,81 @@ func (x *FSCursorDirent) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "node_type", "nodeType":
 			s.AddField("node_type")
 			x.NodeType.UnmarshalProtoJSON(s)
+		case "info":
+			if s.ReadNil() {
+				x.Info = nil
+				return
+			}
+			x.Info = &FSCursorDirentInfo{}
+			x.Info.UnmarshalProtoJSON(s.WithField("info", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the FSCursorDirent from JSON.
 func (x *FSCursorDirent) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the FSCursorDirentInfo message to JSON.
+func (x *FSCursorDirentInfo) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Size != 0 || s.HasField("size") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("size")
+		s.WriteUint64(x.Size)
+	}
+	if x.Mode != 0 || s.HasField("mode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("mode")
+		s.WriteUint32(x.Mode)
+	}
+	if x.ModTime != nil || s.HasField("modTime") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("modTime")
+		x.ModTime.MarshalProtoJSON(s.WithField("modTime"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the FSCursorDirentInfo to JSON.
+func (x *FSCursorDirentInfo) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the FSCursorDirentInfo message from JSON.
+func (x *FSCursorDirentInfo) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "size":
+			s.AddField("size")
+			x.Size = s.ReadUint64()
+		case "mode":
+			s.AddField("mode")
+			x.Mode = s.ReadUint32()
+		case "mod_time", "modTime":
+			if s.ReadNil() {
+				x.ModTime = nil
+				return
+			}
+			x.ModTime = &timestamppb.Timestamp{}
+			x.ModTime.UnmarshalProtoJSON(s.WithField("mod_time", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the FSCursorDirentInfo from JSON.
+func (x *FSCursorDirentInfo) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -7278,6 +7447,16 @@ func (m *FSCursorDirent) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Info != nil {
+		size, err := m.Info.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
 	if m.NodeType != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.NodeType))
 		i--
@@ -7287,6 +7466,58 @@ func (m *FSCursorDirent) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.Name)
 		i--
 		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *FSCursorDirentInfo) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *FSCursorDirentInfo) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *FSCursorDirentInfo) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.ModTime != nil {
+		size, err := m.ModTime.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Mode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Mode))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Size != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Size))
+		i--
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -9767,6 +9998,26 @@ func (m *FSCursorDirent) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Name)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.NodeType)
+	if m.Info != nil {
+		l = m.Info.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *FSCursorDirentInfo) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Size)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Mode)
+	if m.ModTime != nil {
+		l = m.ModTime.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -10651,10 +10902,36 @@ func (x *FSCursorDirent) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "node_type")
 		protobuf_go_lite.TextWriteStringer(&sb, block.NodeType(x.NodeType))
 	}
+	if x.Info != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "info")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Info)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *FSCursorDirent) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *FSCursorDirentInfo) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "FSCursorDirentInfo")
+	if x.Size != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "size")
+		protobuf_go_lite.TextWriteUint(&sb, x.Size)
+	}
+	if x.Mode != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "mode")
+		protobuf_go_lite.TextWriteUint(&sb, x.Mode)
+	}
+	if x.ModTime != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "mod_time")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.ModTime)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *FSCursorDirentInfo) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -11861,6 +12138,97 @@ func (m *FSCursorDirent) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Info", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Info == nil {
+				m.Info = &FSCursorDirentInfo{}
+			}
+			if err := m.Info.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *FSCursorDirentInfo) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: FSCursorDirentInfo: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: FSCursorDirentInfo: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Size", wireType)
+			}
+			m.Size = 0
+			m.Size, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Mode", wireType)
+			}
+			m.Mode = 0
+			m.Mode, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ModTime", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.ModTime == nil {
+				m.ModTime = &timestamppb.Timestamp{}
+			}
+			if err := m.ModTime.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

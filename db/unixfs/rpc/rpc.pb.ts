@@ -110,6 +110,10 @@ export interface FSCursorDirent {
    * NodeType is the type of node at the dirent.
    */
   nodeType?: NodeType
+  /**
+   * Info is the metadata supplied by the directory listing, when supported.
+   */
+  info?: FSCursorDirentInfo
 }
 
 export const FSCursorDirent: MessageType<FSCursorDirent> =
@@ -118,6 +122,37 @@ export const FSCursorDirent: MessageType<FSCursorDirent> =
     () => [
       [1, 'name', 9],
       [2, 'node_type', 14, 0, NodeType_Enum],
+      [3, 'info', 11, 0, FSCursorDirentInfo.codec],
+    ],
+  )
+
+/**
+ * FSCursorDirentInfo contains the metadata read with one directory entry.
+ *
+ * @generated from message unixfs.rpc.FSCursorDirentInfo
+ */
+export interface FSCursorDirentInfo {
+  /**
+   * Size is the entry size in bytes.
+   */
+  size?: bigint
+  /**
+   * Mode is the entry's file mode.
+   */
+  mode?: number
+  /**
+   * ModTime is the modification time. Unset when the entry could not be read.
+   */
+  modTime?: Date
+}
+
+export const FSCursorDirentInfo: MessageType<FSCursorDirentInfo> =
+  /* @__PURE__ */ createMessageType<FSCursorDirentInfo>(
+    'unixfs.rpc.FSCursorDirentInfo',
+    () => [
+      [1, 'size', 4],
+      [2, 'mode', 13],
+      [3, 'mod_time', 11, 0, Timestamp.codec],
     ],
   )
 
