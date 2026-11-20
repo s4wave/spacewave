@@ -24,7 +24,9 @@ def require_static(binary: Path) -> None:
         raise ValueError(f"{binary} is dynamic; build it with CGO_ENABLED=0")
 
 
-def entry(name: str, mode: int, kind: bytes = tarfile.REGTYPE, size: int = 0) -> tarfile.TarInfo:
+def entry(
+    name: str, mode: int, kind: bytes = tarfile.REGTYPE, size: int = 0
+) -> tarfile.TarInfo:
     """Return a root-owned archive entry with a fixed time."""
     info = tarfile.TarInfo(name)
     info.type, info.mode, info.size = kind, mode, size
