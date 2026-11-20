@@ -89,7 +89,7 @@ type Controller struct {
 
 	bcast broadcast.Broadcast
 	// sessions holds the live sessions with each remote peer, keyed by peer ID,
-	// oldest first, guarded by bcast. Requests use the newest. A peer reached
+	// oldest first, guarded by bcast. Requests use the one pickSession picks. A peer reached
 	// over several links has a session on each, and the two sides may see
 	// them start in different orders, so a new session never closes an older
 	// one: each ends when its own stream does.
@@ -115,6 +115,9 @@ type Controller struct {
 	// received counts the bytes every peer session read from its stream,
 	// framing included, as Store.ReceivedBytes describes.
 	received atomic.Uint64
+	// picks counts the sessions pickSession picked among several, to spread
+	// its probes.
+	picks atomic.Uint64
 }
 
 // peerRecovery restores the session with a peer whose last session ended.
@@ -592,8 +595,8 @@ func (c *Controller) askPeers(
 	return found, err
 }
 
-// waitSessions waits until the solicitation has settled and returns the newest
-// session with each peer other than the peer of exclude. A peer the
+// waitSessions waits until the solicitation has settled and returns the
+// session pickSession picks with each peer other than the peer of exclude. A peer the
 // solicitation is still negotiating with may hold the block, so a read must
 // not report a miss before then.
 //
@@ -612,12 +615,9 @@ func (c *Controller) waitSessions(ctx context.Context, exclude *peerSession, wan
 				continue
 			}
 			// A closed session awaiting removal cannot answer; ask the
-			// newest session that is still open.
-			for _, peerSession := range slices.Backward(peerSessions) {
-				if !peerSession.closed.Load() {
-					sessions = append(sessions, peerSession)
-					break
-				}
+			// open session pickSession picks.
+			if peerSession := c.pickSession(peerSessions); peerSession != nil {
+				sessions = append(sessions, peerSession)
 			}
 		}
 		return !wantPeer || len(sessions) != 0, nil

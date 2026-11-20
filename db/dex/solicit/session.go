@@ -6,6 +6,7 @@ import (
 	"io"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	"github.com/aperturerobotics/util/routine"
@@ -48,6 +49,8 @@ type peerSession struct {
 	// handling maps the remote peer's request ids to the requests this side
 	// is serving.
 	handling map[uint32]*handledRequest
+	// rate measures the session's delivery while pending is not empty.
+	rate deliveryRate
 }
 
 // queuedSend states: a queued message is either written or abandoned by its
@@ -70,18 +73,20 @@ type queuedSend struct {
 	done chan error
 }
 
-// countedStream adds each read's byte count to n, so a reader waiting on one
-// answer sees the stream deliver the answers queued ahead of it.
+// countedStream counts each read's bytes in the session's delivery rate and
+// in the controller's total, so a reader waiting on one answer sees the
+// stream deliver the answers queued ahead of it.
 type countedStream struct {
 	io.ReadWriteCloser
-	// n is the controller's received byte count.
-	n *atomic.Uint64
+	// session and total are the session's and the controller's counts.
+	session, total *atomic.Uint64
 }
 
 // Read reads from the stream and counts the bytes read.
 func (s countedStream) Read(p []byte) (int, error) {
 	n, err := s.ReadWriteCloser.Read(p)
-	s.n.Add(uint64(n)) //nolint:gosec // Read never returns a negative count.
+	s.session.Add(uint64(n)) //nolint:gosec // Read never returns a negative count.
+	s.total.Add(uint64(n))   //nolint:gosec // Read never returns a negative count.
 	return n, err
 }
 
@@ -111,15 +116,16 @@ func newPeerSession(
 	ms link.MountedStream,
 	onExit func(),
 ) *peerSession {
+	// Build the session around its stream, counting what the stream reads.
 	s := &peerSession{
 		c:        c,
 		le:       le,
 		ms:       ms,
-		sess:     stream_packet.NewSession(countedStream{ReadWriteCloser: ms.GetStream(), n: &c.received}, maxMessageSize),
 		onExit:   onExit,
 		pending:  make(map[uint32]chan *DexMessage),
 		handling: make(map[uint32]*handledRequest),
 	}
+	s.sess = stream_packet.NewSession(countedStream{ReadWriteCloser: ms.GetStream(), session: &s.rate.received, total: &c.received}, maxMessageSize)
 	s.runRoutine = routine.NewRoutineContainer()
 	_, _ = s.runRoutine.SetRoutine(func(ctx context.Context) error {
 		s.run(ctx)
@@ -185,6 +191,7 @@ func (s *peerSession) dispatchResponse(msg *DexMessage) {
 	if ok {
 		delete(s.pending, msg.GetRequestId())
 	}
+	s.rate.sample(time.Now(), len(s.pending) != 0)
 	s.mtx.Unlock()
 	if ok {
 		ch <- msg
@@ -601,10 +608,14 @@ func (s *peerSession) requestBlock(ctx context.Context, ref *block.BlockRef, hop
 		return nil, errSessionClosed
 	}
 	s.pending[id] = ch
+	s.rate.begin(time.Now())
 	s.mtx.Unlock()
 	defer func() {
 		s.mtx.Lock()
 		delete(s.pending, id)
+		if len(s.pending) == 0 {
+			s.rate.stop()
+		}
 		s.mtx.Unlock()
 	}()
 

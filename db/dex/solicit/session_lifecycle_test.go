@@ -1002,3 +1002,40 @@ func TestControllerWaitSessionsSkipsClosedSession(t *testing.T) {
 		t.Fatalf("waitSessions = %v, %v", sessions, err)
 	}
 }
+
+// TestPickSessionPrefersFastest checks that a peer's fastest open session
+// takes all but one pick in probeEvery, that the probes reach each other open
+// session, that a measured session outranks a newer unmeasured one, and that a
+// single session takes every pick.
+func TestPickSessionPrefersFastest(t *testing.T) {
+	// Measure three sessions, oldest first, and close a fourth.
+	c := &Controller{}
+	slow, fast, fresh, closed := &peerSession{}, &peerSession{}, &peerSession{}, &peerSession{}
+	slow.rate.begin(time.Now().Add(-time.Second))
+	slow.rate.received.Store(1 << 20)
+	slow.rate.sample(time.Now(), false)
+	fast.rate.begin(time.Now().Add(-time.Second))
+	fast.rate.received.Store(8 << 20)
+	fast.rate.sample(time.Now(), false)
+	closed.closed.Store(true)
+	sessions := []*peerSession{slow, fast, fresh, closed}
+
+	// Count the picks over many rounds.
+	picks := make(map[*peerSession]int)
+	for range probeEvery * 8 {
+		picks[c.pickSession(sessions)]++
+	}
+	if picks[fast] != probeEvery*8-8 || picks[slow] != 4 || picks[fresh] != 4 || picks[closed] != 0 {
+		t.Fatalf("picks: fast %d slow %d fresh %d closed %d", picks[fast], picks[slow], picks[fresh], picks[closed])
+	}
+
+	// A lone open session takes every pick, and none open picks nil.
+	for range probeEvery * 2 {
+		if got := c.pickSession([]*peerSession{closed, slow}); got != slow {
+			t.Fatal("a lone open session was not picked")
+		}
+	}
+	if got := c.pickSession([]*peerSession{closed}); got != nil {
+		t.Fatal("a closed session was picked")
+	}
+}
