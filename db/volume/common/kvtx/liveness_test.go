@@ -470,9 +470,9 @@ func TestLivenessRunThrough(t *testing.T) {
 	// A staged batch's lookups keep no commit waiting, at 3 or 32 children an
 	// entry.
 	if s, l := measureStageLookupWait(t, 3), measureStageLookupWait(t, 32); l > 2*s+time.Millisecond {
-		t.Errorf("a commit beside a staged batch of 32 children an entry waited %v, of 3 %v", l, s)
+		t.Errorf("commits beside a staged batch of 32 children an entry waited %v at the second longest, of 3 %v", l, s)
 	} else {
-		t.Logf("stage lookups: longest commit %v beside 3 children an entry, %v beside 32", s, l)
+		t.Logf("stage lookups: second longest commit %v beside 3 children an entry, %v beside 32", s, l)
 	}
 	t.Logf("deferred: %v over 1x, %v over 10x", small.times["deferred"], large.times["deferred"])
 	if s, l := small.times["deferred"], large.times["deferred"]; l > 2*s+200*time.Microsecond {
@@ -953,7 +953,7 @@ func (s *timedStore) Update(ctx context.Context, fn func(rec *block_gc.Records, 
 
 // measureStageLookupWait looks up the roots a staged batch of 4,096 entries
 // of children children each touches, again and again, and returns the
-// longest a changing commit took meanwhile.
+// second longest of twenty changing commits made meanwhile.
 func measureStageLookupWait(t *testing.T, children int) time.Duration {
 	// Name a batch the stage would put.
 	t.Helper()
@@ -997,7 +997,7 @@ func measureStageLookupWait(t *testing.T, children int) time.Duration {
 	// Commit a root move twenty times meanwhile, timing each.
 	tr := testTree{}
 	var prev *block.BlockRef
-	var longest time.Duration
+	waits := make([]time.Duration, 0, 20)
 	for i := range 20 {
 		name := "c" + strconv.Itoa(i)
 		ref := tr.add(t, name)
@@ -1005,12 +1005,17 @@ func measureStageLookupWait(t *testing.T, children int) time.Duration {
 		if err := v.SetBucketRoots(ctx, "b", tr.entries(name), []block.NamedRoot{{Name: "c", Ref: ref, Previous: prev}}); err != nil {
 			t.Fatal(err)
 		}
-		longest = max(longest, time.Since(start))
+		waits = append(waits, time.Since(start))
 		prev = ref
 	}
 	close(done)
 	<-looked
-	return longest
+
+	// Return the second longest: one preemption or GC pause on a loaded host
+	// lands on a single commit, while a commit that waited on the lookups
+	// would wait in most of them, the lookups running back to back.
+	slices.Sort(waits)
+	return waits[len(waits)-2]
 }
 
 // punchHole loses ref from the store with its child list and count, as
