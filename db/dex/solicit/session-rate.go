@@ -6,10 +6,16 @@ import (
 	"time"
 )
 
-// probeEvery sets how often a pick probes: one pick of a peer's session in
+// probeEvery sets how often a peer's picks probe: one run of probeRun picks in
 // probeEvery goes to a session other than the fastest, each in turn, so a path
 // that recovers is measured again.
 const probeEvery = 16
+
+// probeRun is how many consecutive picks a probe takes. A run keeps as many
+// requests outstanding on the probed session as the fastest one carries, so
+// both are measured at the same depth; single wants would measure the probed
+// session's round trip instead of its rate.
+const probeRun = 16
 
 // rateWeight is the weight of each new sample in a smoothed delivery rate.
 const rateWeight = 0.25
@@ -80,9 +86,9 @@ func (r *deliveryRate) get() float64 {
 
 // pickSession returns the session to ask of one peer's sessions, given
 // oldest first: the open session with the fastest delivery rate, the newest
-// among equals, so a peer with no measured session gets its newest. One pick
-// in probeEvery goes to each other open session in turn. It returns nil when
-// none is open.
+// among equals, so a peer with no measured session gets its newest. One run of
+// probeRun picks in probeEvery goes to each other open session in turn. It
+// returns nil when none is open.
 func (c *Controller) pickSession(sessions []*peerSession) *peerSession {
 	// Find the fastest open session and count the open ones.
 	var best *peerSession
@@ -103,10 +109,11 @@ func (c *Controller) pickSession(sessions []*peerSession) *peerSession {
 
 	// Send a probe to the next other open session.
 	n := c.picks.Add(1)
-	if n%probeEvery != 0 {
+	run := n / probeRun
+	if run%probeEvery != 0 {
 		return best
 	}
-	k := int((n / probeEvery) % uint64(open-1)) //nolint:gosec // open-1 is positive and small.
+	k := int((run / probeEvery) % uint64(open-1)) //nolint:gosec // open-1 is positive and small.
 	for _, s := range sessions {
 		if s.closed.Load() || s == best {
 			continue
