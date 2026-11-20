@@ -12,12 +12,7 @@
   },
   {
     "name": "a release keeps its index record, so a later slice releases the root again",
-    "replace": [
-      [
-        "  /\\ index' = index \\ {<<l, r>>}",
-        "  /\\ index' = index"
-      ]
-    ],
+    "replace": [["  /\\ index' = index \\ {<<l, r>>}", "  /\\ index' = index"]],
     "expect": "IndexExact",
     "config": "ProcessLease.cfg"
   },
@@ -34,22 +29,14 @@
   },
   {
     "name": "the collector ends a lease that still holds roots",
-    "replace": [
-      [
-        "  /\\ \\A e \\in index : e[1] # l",
-        "  /\\ TRUE"
-      ]
-    ],
+    "replace": [["  /\\ \\A e \\in index : e[1] # l", "  /\\ TRUE"]],
     "expect": "RootsOnRecords",
     "config": "ProcessLease.cfg"
   },
   {
     "name": "a recovery holds again a root whose block lost its holders",
     "replace": [
-      [
-        "rootOf[r] = NoLease /\\ r \\in alive}",
-        "rootOf[r] = NoLease}"
-      ]
+      ["rootOf[r] = NoLease /\\ r \\in alive}", "rootOf[r] = NoLease}"]
     ],
     "expect": "StoredAlive",
     "config": "ProcessLease.cfg"
@@ -57,10 +44,7 @@
   {
     "name": "a recovery moves only the roots in memory, not those indexed under the old lease",
     "replace": [
-      [
-        "         keep   == moved \\cup rehold",
-        "         keep   == rehold"
-      ]
+      ["         keep   == moved \\cup rehold", "         keep   == rehold"]
     ],
     "expect": "LiveHolds",
     "config": "ProcessLease.cfg"
@@ -72,10 +56,7 @@
         "Recover(w) ==\n  /\\ holder = NoRenewer\n",
         "Recover(w) ==\n  /\\ TRUE\n"
       ],
-      [
-        "        /\\ holder' = w\n",
-        "        /\\ holder' = holder\n"
-      ]
+      ["        /\\ holder' = w\n", "        /\\ holder' = holder\n"]
     ],
     "expect": "LiveHolds",
     "config": "ProcessLease.cfg"
@@ -87,10 +68,7 @@
         "Recover(w) ==\n  /\\ holder = NoRenewer\n",
         "Recover(w) ==\n  /\\ TRUE\n"
       ],
-      [
-        "        /\\ holder' = w\n",
-        "        /\\ holder' = holder\n"
-      ]
+      ["        /\\ holder' = w\n", "        /\\ holder' = holder\n"]
     ],
     "expect": "NoReleaseUnderLiveProcess",
     "config": "ProcessLease-race.cfg"

@@ -21,22 +21,12 @@
   },
   {
     "name": "stop omits joining the voter",
-    "replace": [
-      [
-        "/\\ workers[\"voter\"] = \"exited\"",
-        "/\\ TRUE"
-      ]
-    ],
+    "replace": [["/\\ workers[\"voter\"] = \"exited\"", "/\\ TRUE"]],
     "expect": "StopsBeforeCleanup"
   },
   {
     "name": "cleanup omits draining background stores",
-    "replace": [
-      [
-        "/\\ store # \"running\"",
-        "/\\ TRUE"
-      ]
-    ],
+    "replace": [["/\\ store # \"running\"", "/\\ TRUE"]],
     "expect": "BackgroundResourcesLive"
   }
 ]

@@ -2,7 +2,12 @@
   {
     "name": "completed foreground cohort never ages background turn",
     "config": "WriterAdmission-liveness.cfg",
-    "replace": [["/\\ aged' = [k \\in AgeKeys |-> TRUE]", "/\\ aged' = [k \\in AgeKeys |-> FALSE]"]],
+    "replace": [
+      [
+        "/\\ aged' = [k \\in AgeKeys |-> TRUE]",
+        "/\\ aged' = [k \\in AgeKeys |-> FALSE]"
+      ]
+    ],
     "expect": "BackgroundFinishes"
   },
   {

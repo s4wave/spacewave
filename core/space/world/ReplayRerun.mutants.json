@@ -1,12 +1,7 @@
 [
   {
     "name": "a refusal from an older cursor is reused",
-    "replace": [
-      [
-        "IF c.ver < Current",
-        "IF FALSE"
-      ]
-    ],
+    "replace": [["IF c.ver < Current", "IF FALSE"]],
     "expect": "PrefixTrue",
     "config": "ReplayRerun.cfg"
   },
@@ -23,33 +18,20 @@
   },
   {
     "name": "an operation every member refused runs again",
-    "replace": [
-      [
-        "IF MemberRefused(i) THEN",
-        "IF FALSE THEN"
-      ]
-    ],
+    "replace": [["IF MemberRefused(i) THEN", "IF FALSE THEN"]],
     "expect": "PrefixTrue",
     "config": "ReplayRerun.cfg"
   },
   {
     "name": "a saved position is reused after a re-run changed the World before it",
-    "replace": [
-      [
-        "/\\ restored[i].before = W",
-        ""
-      ]
-    ],
+    "replace": [["/\\ restored[i].before = W", ""]],
     "expect": "PrefixTrue",
     "config": "ReplayRerun.cfg"
   },
   {
     "name": "a registered handler does not end the wait",
     "replace": [
-      [
-        "IF phase = \"waiting\" THEN \"running\" ELSE phase",
-        "phase"
-      ]
+      ["IF phase = \"waiting\" THEN \"running\" ELSE phase", "phase"]
     ],
     "expect": "CatchesUp",
     "config": "ReplayRerun.cfg"

@@ -24,10 +24,7 @@
   {
     "name": "the flip does not wait for the roots to be seeded",
     "replace": [
-      [
-        "  /\\ complete\n  /\\ seeded\n",
-        "  /\\ complete\n  /\\ TRUE\n"
-      ]
+      ["  /\\ complete\n  /\\ seeded\n", "  /\\ complete\n  /\\ TRUE\n"]
     ],
     "expect": "HeldPresent",
     "config": "Settle.cfg"
@@ -45,22 +42,14 @@
   },
   {
     "name": "the flip unmarks a parked block that gained a holder",
-    "replace": [
-      [
-        "  /\\ \\A b \\in parked : Count(b) = 0\n",
-        "  /\\ TRUE\n"
-      ]
-    ],
+    "replace": [["  /\\ \\A b \\in parked : Count(b) = 0\n", "  /\\ TRUE\n"]],
     "expect": "LiveStored",
     "config": "Settle.cfg"
   },
   {
     "name": "an unparked block does not return to the front",
     "replace": [
-      [
-        "  /\\ front' = front \\cup Owed({b})\n",
-        "  /\\ UNCHANGED front\n"
-      ]
+      ["  /\\ front' = front \\cup Owed({b})\n", "  /\\ UNCHANGED front\n"]
     ],
     "expect": "LiveStored",
     "config": "Settle.cfg"
@@ -100,12 +89,7 @@
   },
   {
     "name": "the walk is not bound to run",
-    "replace": [
-      [
-        "WF_vars(Walk(b)) /\\ ",
-        ""
-      ]
-    ],
+    "replace": [["WF_vars(Walk(b)) /\\ ", ""]],
     "expect": "EventuallySettled",
     "config": "Settle.cfg"
   },
@@ -123,10 +107,7 @@
   {
     "name": "the walk pops an absent block no read resolves while it is held",
     "replace": [
-      [
-        "       [] Hidden(b) \\/ Count(b) = 0 ->",
-        "       [] TRUE ->"
-      ]
+      ["       [] Hidden(b) \\/ Count(b) = 0 ->", "       [] TRUE ->"]
     ],
     "expect": "LiveStored",
     "config": "Settle-lost.cfg"

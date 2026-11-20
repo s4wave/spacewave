@@ -1,8 +1,60 @@
 [
- {"name":"Publish a partial count","replace":[["/\\ committed = Items /\\ pending = {} /\\ identityOK","/\\ pending = {} /\\ identityOK"]],"expect":"CountComplete"},
- {"name":"Move a cursor without clearing pending work","replace":[["committed' = committed \\cup pending /\\ pending' = {}","committed' = committed \\cup pending /\\ UNCHANGED pending"]],"expect":"AtomicCursor"},
- {"name":"Continue after source replacement","replace":[["phase' = \"stale\" /\\ identityOK' = FALSE","phase' = \"inventory\" /\\ identityOK' = FALSE"]],"expect":"StaleStops"},
- {"name":"Change source while scanning","replace":[["/\\ UNCHANGED <<phase, resume, committed, identityOK, source, owners, countedEver, unknown>>","/\\ source' = {} /\\ UNCHANGED <<phase, resume, committed, identityOK, owners, countedEver, unknown>>"]],"expect":"SourceUnchanged"},
- {"name":"Admit two scratch owners","replace":[["Acquire == /\\ owners = {}","Acquire == /\\ TRUE"],["owners' = {worker}","owners' = owners \\cup {worker}"]],"expect":"SingleOwner"},
- {"name":"Erase unsupported evidence","replace":[["unknown' = unknown \\cup (pending \\cap Unsupported)","UNCHANGED unknown"]],"expect":"UnknownReported"}
+  {
+    "name": "Publish a partial count",
+    "replace": [
+      [
+        "/\\ committed = Items /\\ pending = {} /\\ identityOK",
+        "/\\ pending = {} /\\ identityOK"
+      ]
+    ],
+    "expect": "CountComplete"
+  },
+  {
+    "name": "Move a cursor without clearing pending work",
+    "replace": [
+      [
+        "committed' = committed \\cup pending /\\ pending' = {}",
+        "committed' = committed \\cup pending /\\ UNCHANGED pending"
+      ]
+    ],
+    "expect": "AtomicCursor"
+  },
+  {
+    "name": "Continue after source replacement",
+    "replace": [
+      [
+        "phase' = \"stale\" /\\ identityOK' = FALSE",
+        "phase' = \"inventory\" /\\ identityOK' = FALSE"
+      ]
+    ],
+    "expect": "StaleStops"
+  },
+  {
+    "name": "Change source while scanning",
+    "replace": [
+      [
+        "/\\ UNCHANGED <<phase, resume, committed, identityOK, source, owners, countedEver, unknown>>",
+        "/\\ source' = {} /\\ UNCHANGED <<phase, resume, committed, identityOK, owners, countedEver, unknown>>"
+      ]
+    ],
+    "expect": "SourceUnchanged"
+  },
+  {
+    "name": "Admit two scratch owners",
+    "replace": [
+      ["Acquire == /\\ owners = {}", "Acquire == /\\ TRUE"],
+      ["owners' = {worker}", "owners' = owners \\cup {worker}"]
+    ],
+    "expect": "SingleOwner"
+  },
+  {
+    "name": "Erase unsupported evidence",
+    "replace": [
+      [
+        "unknown' = unknown \\cup (pending \\cap Unsupported)",
+        "UNCHANGED unknown"
+      ]
+    ],
+    "expect": "UnknownReported"
+  }
 ]

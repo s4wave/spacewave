@@ -26,7 +26,10 @@ const kept = (v: Apply) =>
 export const title = "Linked folder: applying a member's change"
 
 export const state = (v: Apply) => {
-  if (v.pending.kind === 'none') return (v.disk === 0 ? 'No file at the path' : 'A file at the path') + kept(v)
+  if (v.pending.kind === 'none')
+    return (
+      (v.disk === 0 ? 'No file at the path' : 'A file at the path') + kept(v)
+    )
   const write = v.pending.kind === 'write'
   switch (v.phase) {
     case 'idle':
@@ -36,9 +39,11 @@ export const state = (v: Apply) => {
     case 'restoring':
       return 'Path empty; putting it back'
     case 'checked':
-      return write ? 'Disk matches; exchanging' : 'Disk matches; moving to trash'
+      return write
+        ? 'Disk matches; exchanging'
+        : 'Disk matches; moving to trash'
     case 'swapped':
-      return "Checking the displaced file"
+      return 'Checking the displaced file'
     default:
       return 'Checking the trashed file'
   }

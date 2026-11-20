@@ -11,18 +11,28 @@
   },
   {
     "name": "a worker runs a fill after the mount ended",
-    "replace": [["         run == mount[s] = \"live\"", "         run == TRUE"]],
+    "replace": [
+      ["         run == mount[s] = \"live\"", "         run == TRUE"]
+    ],
     "expect": "NoFillAfterEnd"
   },
   {
     "name": "a worker exits with fills still queued",
-    "replace": [["  /\\ queue[s] = <<>>\n  /\\ running' = [running EXCEPT ![s] = @ - 1]", "  /\\ running' = [running EXCEPT ![s] = @ - 1]"]],
+    "replace": [
+      [
+        "  /\\ queue[s] = <<>>\n  /\\ running' = [running EXCEPT ![s] = @ - 1]",
+        "  /\\ running' = [running EXCEPT ![s] = @ - 1]"
+      ]
+    ],
     "expect": "QueueHasWorker"
   },
   {
     "name": "a fill is queued after the mount ended",
     "replace": [
-      ["  /\\ mount[s] = \"live\"\n  /\\ Len(queue[s]) < QueueMax", "  /\\ Len(queue[s]) < QueueMax"]
+      [
+        "  /\\ mount[s] = \"live\"\n  /\\ Len(queue[s]) < QueueMax",
+        "  /\\ Len(queue[s]) < QueueMax"
+      ]
     ],
     "expect": "EndedStops"
   }

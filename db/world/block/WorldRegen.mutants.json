@@ -51,23 +51,13 @@
   },
   {
     "name": "Verify releases without comparing",
-    "replace": [
-      [
-        "  /\\ swap.old.items = swap.new.items\n",
-        ""
-      ]
-    ],
+    "replace": [["  /\\ swap.old.items = swap.new.items\n", ""]],
     "config": "WorldRegen-faults.cfg",
     "expect": "ReleasedOnlyEqual"
   },
   {
     "name": "Pin does not hold the root",
-    "replace": [
-      [
-        "  /\\ held' = TRUE\n",
-        "  /\\ held' = held\n"
-      ]
-    ],
+    "replace": [["  /\\ held' = TRUE\n", "  /\\ held' = held\n"]],
     "expect": "HeldUntilVerified"
   },
   {
@@ -93,10 +83,7 @@
   {
     "name": "Build reads the head instead of the pin",
     "replace": [
-      [
-        "IF cursor + 1 \\in pin THEN",
-        "IF cursor + 1 \\in head.items THEN"
-      ]
+      ["IF cursor + 1 \\in pin THEN", "IF cursor + 1 \\in head.items THEN"]
     ],
     "expect": "BuiltMatchesBase"
   },
@@ -112,21 +99,13 @@
   },
   {
     "name": "Resume forgets the pages before the position",
-    "replace": [
-      [
-        "/\\ built' = file.built\n",
-        "/\\ built' = {}\n"
-      ]
-    ],
+    "replace": [["/\\ built' = file.built\n", "/\\ built' = {}\n"]],
     "expect": "BuiltMatchesBase"
   },
   {
     "name": "Switch-back round keeps the content it reflected",
     "replace": [
-      [
-        "new |-> [fmt |-> \"new\", items |-> head.items]]",
-        "new |-> swap.new]"
-      ]
+      ["new |-> [fmt |-> \"new\", items |-> head.items]]", "new |-> swap.new]"]
     ],
     "expect": "StopsOnlyOnFault"
   },

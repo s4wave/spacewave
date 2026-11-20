@@ -11,35 +11,19 @@
   },
   {
     "name": "a waiter accepts a captured result without validating replacement",
-    "replace": [
-      [
-        "IF captured = publication THEN captured ELSE 0",
-        "captured"
-      ]
-    ],
+    "replace": [["IF captured = publication THEN captured ELSE 0", "captured"]],
     "expect": "NoRetiredResult"
   },
   {
     "name": "a retired load clears its successor restart condition",
-    "replace": [
-      [
-        "IF loadOwner = 1 THEN FALSE ELSE awaiting",
-        "FALSE"
-      ]
-    ],
+    "replace": [["IF loadOwner = 1 THEN FALSE ELSE awaiting", "FALSE"]],
     "expect": "RefusalKeepsRevive"
   },
   {
     "name": "a waiter ignores a stopped account",
     "replace": [
-      [
-        "\\/ StopAccount \\/ CancelResult",
-        "\\/ StopAccount"
-      ],
-      [
-        "        /\\ WF_resultVars(CancelResult)\n",
-        ""
-      ]
+      ["\\/ StopAccount \\/ CancelResult", "\\/ StopAccount"],
+      ["        /\\ WF_resultVars(CancelResult)\n", ""]
     ],
     "expect": "AccountWaitEnds"
   },

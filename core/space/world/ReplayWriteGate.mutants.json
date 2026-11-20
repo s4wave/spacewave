@@ -13,10 +13,7 @@
   {
     "name": "replay steps while a writer holds the lock",
     "replace": [
-      [
-        "Step == /\\ holder = \"free\" /\\ StepReady",
-        "Step == /\\ StepReady"
-      ]
+      ["Step == /\\ holder = \"free\" /\\ StepReady", "Step == /\\ StepReady"]
     ],
     "expect": "NoWriteWhileWaiting",
     "config": "ReplayWriteGate.cfg"
@@ -78,12 +75,7 @@
   },
   {
     "name": "a handler wait is never resumed",
-    "replace": [
-      [
-        "             \\/ replay = \"waitHandler\" /\\ Seen\n",
-        ""
-      ]
-    ],
+    "replace": [["             \\/ replay = \"waitHandler\" /\\ Seen\n", ""]],
     "expect": "deadlock",
     "config": "ReplayWriteGate.cfg"
   },
@@ -145,10 +137,7 @@
   {
     "name": "an owner's skip never wakes a waiting replay",
     "replace": [
-      [
-        "             \\/ replay \\in Waits /\\ Head(todo) \\in skipped\n",
-        ""
-      ]
+      ["             \\/ replay \\in Waits /\\ Head(todo) \\in skipped\n", ""]
     ],
     "expect": "StallExits",
     "config": "ReplayWriteGate-SkipNoHandler.cfg"
@@ -156,10 +145,7 @@
   {
     "name": "replay applies a skipped op",
     "replace": [
-      [
-        "                IF op \\in skipped\n",
-        "                IF FALSE\n"
-      ]
+      ["                IF op \\in skipped\n", "                IF FALSE\n"]
     ],
     "expect": "SkippedNeverApplied",
     "config": "ReplayWriteGate-Skip.cfg"

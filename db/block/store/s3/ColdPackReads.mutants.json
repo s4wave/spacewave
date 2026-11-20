@@ -1,23 +1,13 @@
 [
   {
     "name": "Recovery accepts an unqualified legacy row",
-    "replace": [
-      [
-        "r.current /\\ r.scope = s",
-        "r.scope = s"
-      ]
-    ],
+    "replace": [["r.current /\\ r.scope = s", "r.scope = s"]],
     "expect": "NoFalseYes",
     "config": "ColdPackReads.cfg"
   },
   {
     "name": "Recovery accepts a row from a different scope",
-    "replace": [
-      [
-        "r.current /\\ r.scope = s",
-        "r.current"
-      ]
-    ],
+    "replace": [["r.current /\\ r.scope = s", "r.current"]],
     "expect": "NoFalseYes",
     "config": "ColdPackReads.cfg"
   },
@@ -34,12 +24,7 @@
   },
   {
     "name": "An authentic index authorizes an unreadable extent",
-    "replace": [
-      [
-        "(Bound /\\ k \\in tail)",
-        "(k \\in tail)"
-      ]
-    ],
+    "replace": [["(Bound /\\ k \\in tail)", "(k \\in tail)"]],
     "expect": "NoUnreadableYes",
     "config": "ColdPackReads-unreadable.cfg"
   }

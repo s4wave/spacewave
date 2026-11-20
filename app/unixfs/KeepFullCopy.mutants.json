@@ -1,12 +1,7 @@
 [
   {
     "name": "the switch is offered while its write is saving",
-    "replace": [
-      [
-        "IF sw = \"saving\" THEN {}",
-        "IF FALSE THEN {}"
-      ]
-    ],
+    "replace": [["IF sw = \"saving\" THEN {}", "IF FALSE THEN {}"]],
     "expect": "EveryShownActionWorks",
     "config": "KeepFullCopy.cfg"
   },

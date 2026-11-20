@@ -6,17 +6,26 @@
   },
   {
     "name": "a disconnect interrupts a commit before its publication",
-    "replace": [["phase[c] \\notin {\"closed\", \"committing\"}", "phase[c] # \"closed\""]],
+    "replace": [
+      ["phase[c] \\notin {\"closed\", \"committing\"}", "phase[c] # \"closed\""]
+    ],
     "expect": "PrivateIsOwned"
   },
   {
     "name": "disconnect retains the transaction writer",
-    "replace": [["owner' = IF owner = c THEN \"none\" ELSE owner", "owner' = owner"]],
+    "replace": [
+      ["owner' = IF owner = c THEN \"none\" ELSE owner", "owner' = owner"]
+    ],
     "expect": "ClosedOwnsNothing"
   },
   {
     "name": "a canceled waiting client acquires the writer",
-    "replace": [["phase[c] = \"waiting\" /\\ owner = \"none\"", "phase[c] \\in {\"waiting\", \"closed\"} /\\ owner = \"none\""]],
+    "replace": [
+      [
+        "phase[c] = \"waiting\" /\\ owner = \"none\"",
+        "phase[c] \\in {\"waiting\", \"closed\"} /\\ owner = \"none\""
+      ]
+    ],
     "expect": "NoResurrection"
   }
 ]

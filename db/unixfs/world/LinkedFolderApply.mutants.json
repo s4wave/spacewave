@@ -1,10 +1,90 @@
 [
-  {"name":"The displaced file is discarded without verifying it","replace":[["  /\\ (IF held = pending.base\n       THEN remoteReplaced'","  /\\ (IF TRUE\n       THEN remoteReplaced'"]],"expect":"RemoteReplacesOnlyBase"},
-  {"name":"A conflict drops the member's version","replace":[["ELSE copies' = copies \\cup {pending.new} /\\ Done","ELSE UNCHANGED copies /\\ Done"]],"expect":"MemberWriteKept"},
-  {"name":"The write overwrites the path in place","replace":[["/\\ held' = disk /\\ Put(pending.new)","/\\ held' = 0 /\\ Put(pending.new)"]],"expect":"NoLostVersion"},
-  {"name":"A delete unlinks instead of trashing","replace":[["THEN trash' = trash \\cup {held} /\\ UNCHANGED <<disk, copies, everOwned>>","THEN UNCHANGED <<trash, disk, copies, everOwned>>"]],"expect":"NoLostVersion"},
-  {"name":"The trash keeps a file edited after the check","replace":[["  /\\ (IF held = pending.base\n       THEN trash'","  /\\ (IF held # 0\n       THEN trash'"]],"expect":"TrashOnlyDeleted"},
-  {"name":"A delete skips the check","replace":[["  /\\ (IF disk = pending.base\n       THEN phase' = \"checked\" /\\ UNCHANGED pending\n       ELSE Done)","  /\\ phase' = \"checked\" /\\ UNCHANGED pending"],["  /\\ (IF held = pending.base\n       THEN trash'","  /\\ (IF held # 0\n       THEN trash'"]],"expect":"TrashOnlyDeleted"},
-  {"name":"A restore after a raced delete replaces the owner's new file","replace":[["       ELSE IF held = 0\n         THEN UNCHANGED <<disk, trash, copies, everOwned>>\n",""],["       ELSE IF disk = 0\n         THEN Put(held)","       ELSE IF held = 0 \\/ disk = 0\n         THEN Put(held)"]],"expect":"NoLostVersion"},
-  {"name":"A write onto an emptied path replaces the owner's new file","replace":[["  /\\ (IF disk = 0\n       THEN Put(pending.new)","  /\\ (IF TRUE\n       THEN Put(pending.new)"]],"expect":"NoLostVersion"}
+  {
+    "name": "The displaced file is discarded without verifying it",
+    "replace": [
+      [
+        "  /\\ (IF held = pending.base\n       THEN remoteReplaced'",
+        "  /\\ (IF TRUE\n       THEN remoteReplaced'"
+      ]
+    ],
+    "expect": "RemoteReplacesOnlyBase"
+  },
+  {
+    "name": "A conflict drops the member's version",
+    "replace": [
+      [
+        "ELSE copies' = copies \\cup {pending.new} /\\ Done",
+        "ELSE UNCHANGED copies /\\ Done"
+      ]
+    ],
+    "expect": "MemberWriteKept"
+  },
+  {
+    "name": "The write overwrites the path in place",
+    "replace": [
+      [
+        "/\\ held' = disk /\\ Put(pending.new)",
+        "/\\ held' = 0 /\\ Put(pending.new)"
+      ]
+    ],
+    "expect": "NoLostVersion"
+  },
+  {
+    "name": "A delete unlinks instead of trashing",
+    "replace": [
+      [
+        "THEN trash' = trash \\cup {held} /\\ UNCHANGED <<disk, copies, everOwned>>",
+        "THEN UNCHANGED <<trash, disk, copies, everOwned>>"
+      ]
+    ],
+    "expect": "NoLostVersion"
+  },
+  {
+    "name": "The trash keeps a file edited after the check",
+    "replace": [
+      [
+        "  /\\ (IF held = pending.base\n       THEN trash'",
+        "  /\\ (IF held # 0\n       THEN trash'"
+      ]
+    ],
+    "expect": "TrashOnlyDeleted"
+  },
+  {
+    "name": "A delete skips the check",
+    "replace": [
+      [
+        "  /\\ (IF disk = pending.base\n       THEN phase' = \"checked\" /\\ UNCHANGED pending\n       ELSE Done)",
+        "  /\\ phase' = \"checked\" /\\ UNCHANGED pending"
+      ],
+      [
+        "  /\\ (IF held = pending.base\n       THEN trash'",
+        "  /\\ (IF held # 0\n       THEN trash'"
+      ]
+    ],
+    "expect": "TrashOnlyDeleted"
+  },
+  {
+    "name": "A restore after a raced delete replaces the owner's new file",
+    "replace": [
+      [
+        "       ELSE IF held = 0\n         THEN UNCHANGED <<disk, trash, copies, everOwned>>\n",
+        ""
+      ],
+      [
+        "       ELSE IF disk = 0\n         THEN Put(held)",
+        "       ELSE IF held = 0 \\/ disk = 0\n         THEN Put(held)"
+      ]
+    ],
+    "expect": "NoLostVersion"
+  },
+  {
+    "name": "A write onto an emptied path replaces the owner's new file",
+    "replace": [
+      [
+        "  /\\ (IF disk = 0\n       THEN Put(pending.new)",
+        "  /\\ (IF TRUE\n       THEN Put(pending.new)"
+      ]
+    ],
+    "expect": "NoLostVersion"
+  }
 ]

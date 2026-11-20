@@ -1,21 +1,13 @@
 [
   {
     "name": "A refusal loses its queue entry",
-    "replace": [
-      [
-        "IF RetryRefused THEN epoch ELSE -1",
-        "-1"
-      ]
-    ],
+    "replace": [["IF RetryRefused THEN epoch ELSE -1", "-1"]],
     "expect": "RefusedRetained"
   },
   {
     "name": "A retry trusts its queue entry instead of the remote",
     "replace": [
-      [
-        "current \\in marked \\/ current \\notin remote",
-        "current \\in marked"
-      ],
+      ["current \\in marked \\/ current \\notin remote", "current \\in marked"],
       [
         "current \\in remote /\\ current \\notin marked",
         "current \\notin marked"
@@ -26,34 +18,20 @@
   {
     "name": "A fill commits its queue only after writing its value",
     "replace": [
-      [
-        "IF RetryRefused THEN \"reserve\" ELSE \"write\"",
-        "\"write\""
-      ],
-      [
-        "IF RetryRefused THEN \"done\" ELSE \"queue\"",
-        "\"queue\""
-      ]
+      ["IF RetryRefused THEN \"reserve\" ELSE \"write\"", "\"write\""],
+      ["IF RetryRefused THEN \"done\" ELSE \"queue\"", "\"queue\""]
     ],
     "expect": "NoStrandedValue"
   },
   {
     "name": "Eviction cleans a fill reservation before its value write",
-    "replace": [
-      [
-        "(~RetryRefused \\/ ~FillActive)",
-        "TRUE"
-      ]
-    ],
+    "replace": [["(~RetryRefused \\/ ~FillActive)", "TRUE"]],
     "expect": "NoStrandedValue"
   },
   {
     "name": "A pass deletes the entry a fill reserved under the pass epoch",
     "replace": [
-      [
-        "![current] = IF @ >= epoch THEN @ ELSE -1]",
-        "![current] = -1]"
-      ]
+      ["![current] = IF @ >= epoch THEN @ ELSE -1]", "![current] = -1]"]
     ],
     "expect": "NoStrandedValue"
   }

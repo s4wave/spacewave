@@ -1,12 +1,22 @@
 [
   {
     "name": "A group supplies a live ID from the wrong peer",
-    "replace": [["IF group.id \\in live /\\ Owner(group.id) = group.peer", "IF group.id \\in live"]],
+    "replace": [
+      [
+        "IF group.id \\in live /\\ Owner(group.id) = group.peer",
+        "IF group.id \\in live"
+      ]
+    ],
     "expect": "OnlyLiveDeviceReads"
   },
   {
     "name": "An ended subscription still gets groups",
-    "replace": [["IF group.id \\in live /\\ Owner(group.id) = group.peer", "IF Owner(group.id) = group.peer"]],
+    "replace": [
+      [
+        "IF group.id \\in live /\\ Owner(group.id) = group.peer",
+        "IF Owner(group.id) = group.peer"
+      ]
+    ],
     "expect": "OnlyLiveDeviceReads"
   },
   {

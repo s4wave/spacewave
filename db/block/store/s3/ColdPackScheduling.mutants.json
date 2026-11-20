@@ -1,32 +1,17 @@
 [
   {
     "name": "Moves can reserve all demand slots",
-    "replace": [
-      [
-        "movePermits < MoveSlots",
-        "movePermits < Slots"
-      ]
-    ],
+    "replace": [["movePermits < MoveSlots", "movePermits < Slots"]],
     "expect": "MoveReservationsBounded"
   },
   {
     "name": "A move fills the user cache",
-    "replace": [
-      [
-        "/\\ userTail' = userTail",
-        "/\\ userTail' = t"
-      ]
-    ],
+    "replace": [["/\\ userTail' = userTail", "/\\ userTail' = t"]],
     "expect": "NoMoveEviction"
   },
   {
     "name": "A user queues behind a full lane",
-    "replace": [
-      [
-        "/\\ userWaited' = FALSE",
-        "/\\ userWaited' = Full"
-      ]
-    ],
+    "replace": [["/\\ userWaited' = FALSE", "/\\ userWaited' = Full"]],
     "expect": "NoUserWaiting"
   },
   {

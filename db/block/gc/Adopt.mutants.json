@@ -13,44 +13,28 @@
   {
     "name": "the settle ends one slice early, leaving the last block's tally raw",
     "replace": [
-      [
-        "  /\\ cursor.at = Len(Lists)",
-        "  /\\ cursor.at >= Len(Lists) - 1"
-      ]
+      ["  /\\ cursor.at = Len(Lists)", "  /\\ cursor.at >= Len(Lists) - 1"]
     ],
     "expect": "CountsExact",
     "config": "Adopt.cfg"
   },
   {
     "name": "a run deletes its marks without the owner fence, under a later run's adoption",
-    "replace": [
-      [
-        "IF adoption = \"adopted\" /\\ owner = r",
-        "IF TRUE"
-      ]
-    ],
+    "replace": [["IF adoption = \"adopted\" /\\ owner = r", "IF TRUE"]],
     "expect": "CountsExact",
     "config": "Adopt.cfg"
   },
   {
     "name": "a takeover accepts a cursor another run left",
     "replace": [
-      [
-        "AdoptTakeover ==\n  /\\ Owned",
-        "AdoptTakeover ==\n  /\\ Adopting"
-      ]
+      ["AdoptTakeover ==\n  /\\ Owned", "AdoptTakeover ==\n  /\\ Adopting"]
     ],
     "expect": "CountsExact",
     "config": "Adopt.cfg"
   },
   {
     "name": "a refill logs its children's holders whatever the count passed",
-    "replace": [
-      [
-        "lacks(q) == ~Adopting \\/ Counted(q)",
-        "lacks(q) == TRUE"
-      ]
-    ],
+    "replace": [["lacks(q) == ~Adopting \\/ Counted(q)", "lacks(q) == TRUE"]],
     "expect": "CountsExact",
     "config": "Adopt.cfg"
   },
@@ -68,10 +52,7 @@
   {
     "name": "Land writes no born mark, so the count reads a born list again",
     "replace": [
-      [
-        "THEN /\\ bmark' = bmark \\cup born",
-        "THEN /\\ bmark' = bmark"
-      ]
+      ["THEN /\\ bmark' = bmark \\cup born", "THEN /\\ bmark' = bmark"]
     ],
     "expect": "CountsExact",
     "config": "Adopt.cfg"
@@ -111,12 +92,7 @@
   },
   {
     "name": "the count pass ends once the roots are counted, before any list",
-    "replace": [
-      [
-        "  /\\ cursor.at = Len(Scan)",
-        "  /\\ cursor.at >= 2"
-      ]
-    ],
+    "replace": [["  /\\ cursor.at = Len(Scan)", "  /\\ cursor.at >= 2"]],
     "expect": "CountsExact",
     "config": "Adopt.cfg"
   },

@@ -3,14 +3,20 @@
     "name": "Renamed directory gets a second registration by path",
     "replace": [
       ["Key(p) == IF ByInode THEN Inode ELSE p", "Key(p) == p"],
-      ["OneRegistrationPerInode == Cardinality(registrations) <= 1", "OneRegistrationPerInode == TRUE"]
+      [
+        "OneRegistrationPerInode == Cardinality(registrations) <= 1",
+        "OneRegistrationPerInode == TRUE"
+      ]
     ],
     "expect": "LiveHasWatch"
   },
   {
     "name": "Last release leaves the kernel watch installed",
     "replace": [
-      ["kernel' = (kernel /\\ registrations \\subseteq remaining)", "kernel' = kernel"]
+      [
+        "kernel' = (kernel /\\ registrations \\subseteq remaining)",
+        "kernel' = kernel"
+      ]
     ],
     "expect": "NoWatchWithoutCursor"
   },
@@ -24,15 +30,16 @@
   {
     "name": "Close keeps the native watch",
     "replace": [
-      ["kernel' = FALSE\n  /\\ pending' = \"none\"\n  /\\ dirty' = IF to", "kernel' = kernel\n  /\\ pending' = \"none\"\n  /\\ dirty' = IF to"]
+      [
+        "kernel' = FALSE\n  /\\ pending' = \"none\"\n  /\\ dirty' = IF to",
+        "kernel' = kernel\n  /\\ pending' = \"none\"\n  /\\ dirty' = IF to"
+      ]
     ],
     "expect": "NoWatchWithoutCursor"
   },
   {
     "name": "A queued rename can remain unhandled",
-    "replace": [
-      [" /\\ WF_vars(DispatchMove \\/ Overflow)", ""]
-    ],
+    "replace": [[" /\\ WF_vars(DispatchMove \\/ Overflow)", ""]],
     "expect": "PendingMoveReconciled"
   },
   {

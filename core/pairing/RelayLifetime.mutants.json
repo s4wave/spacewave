@@ -6,7 +6,12 @@
   },
   {
     "name": "transport teardown leaves the pairing worker orphaned",
-    "replace": [["bound /\\ ~canceled /\\ (~transport \\/ ~attempt)", "bound /\\ ~canceled /\\ (~attempt)"]],
+    "replace": [
+      [
+        "bound /\\ ~canceled /\\ (~transport \\/ ~attempt)",
+        "bound /\\ ~canceled /\\ (~attempt)"
+      ]
+    ],
     "expect": "OwnerEndsWorker"
   }
 ]

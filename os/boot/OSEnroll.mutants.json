@@ -2,20 +2,14 @@
   {
     "name": "the card carries the Device key",
     "replace": [
-      [
-        "           /\\ key' = \"volume\"",
-        "           /\\ key' = \"card\""
-      ]
+      ["           /\\ key' = \"volume\"", "           /\\ key' = \"card\""]
     ],
     "expect": "KeyNeverOnCard"
   },
   {
     "name": "the Device key lives only in memory until enrollment",
     "replace": [
-      [
-        "           /\\ key' = \"volume\"",
-        "           /\\ key' = \"memory\""
-      ]
+      ["           /\\ key' = \"volume\"", "           /\\ key' = \"memory\""]
     ],
     "expect": "AdmittedKeyHeld"
   },
@@ -31,12 +25,7 @@
   },
   {
     "name": "the root is served before its signature is checked",
-    "replace": [
-      [
-        "          /\\ manifestSigner = pinned\n",
-        ""
-      ]
-    ],
+    "replace": [["          /\\ manifestSigner = pinned\n", ""]],
     "expect": "ServesOwnerImage"
   },
   {

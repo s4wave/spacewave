@@ -1,7 +1,12 @@
 [
   {
     "name": "the list container takes an inline editor's focus",
-    "replace": [["IF PreserveEditor /\\ active = \"editor\" THEN active ELSE \"list\"", "\"list\""]],
+    "replace": [
+      [
+        "IF PreserveEditor /\\ active = \"editor\" THEN active ELSE \"list\"",
+        "\"list\""
+      ]
+    ],
     "expect": "EditorKeepsFocus"
   }
 ]

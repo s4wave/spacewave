@@ -56,34 +56,21 @@
   },
   {
     "name": "a checkpoint names a config without its skips",
-    "replace": [
-      [
-        "cfg |-> seen[\"owner\"]]",
-        "cfg |-> 0]"
-      ]
-    ],
+    "replace": [["cfg |-> seen[\"owner\"]]", "cfg |-> 0]"]],
     "expect": "CheckpointHoldsSkips",
     "config": "ReplaySkip.cfg"
   },
   {
     "name": "the owner skips past the cap",
     "replace": [
-      [
-        "           /\\ Cardinality(Held(d)) < MaxLive",
-        "           /\\ TRUE"
-      ]
+      ["           /\\ Cardinality(Held(d)) < MaxLive", "           /\\ TRUE"]
     ],
     "expect": "LiveCapped",
     "config": "ReplaySkip.cfg"
   },
   {
     "name": "a config change prunes a skip the checkpoint does not cover",
-    "replace": [
-      [
-        "LET skips == Live \\cup Held(d) \\cup",
-        "LET skips =="
-      ]
-    ],
+    "replace": [["LET skips == Live \\cup Held(d) \\cup", "LET skips =="]],
     "expect": "Agree",
     "config": "ReplaySkip-Two.cfg"
   },

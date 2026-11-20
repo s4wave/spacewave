@@ -1,21 +1,13 @@
 [
   {
     "name": "replacement discards attached data",
-    "replace": [
-      [
-        "vm = 2 /\\ ~PreserveBindings",
-        "vm = 2"
-      ]
-    ],
+    "replace": [["vm = 2 /\\ ~PreserveBindings", "vm = 2"]],
     "expect": "SameAttachedObjects"
   },
   {
     "name": "replacement starts before stop confirmation",
     "replace": [
-      [
-        "Replace == /\\ phase = \"off\"",
-        "Replace == /\\ phase = \"stopping\""
-      ]
+      ["Replace == /\\ phase = \"off\"", "Replace == /\\ phase = \"stopping\""]
     ],
     "expect": "ReplacedAfterStop"
   }

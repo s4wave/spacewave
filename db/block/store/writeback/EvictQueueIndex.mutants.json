@@ -2,10 +2,7 @@
   {
     "name": "Legacy marked-byte counterexample remains reachable",
     "replace": [
-      [
-        "NoMarkedOverlap == Repaired =>",
-        "NoMarkedOverlap == trace = 7 =>"
-      ]
+      ["NoMarkedOverlap == Repaired =>", "NoMarkedOverlap == trace = 7 =>"]
     ],
     "expect": "NoMarkedOverlap",
     "config": "EvictQueueIndex.cfg"
@@ -46,10 +43,7 @@
   {
     "name": "Rebuild retains duplicates",
     "replace": [
-      [
-        "(live /\\ pointer[h] # e[1])",
-        "FALSE"
-      ],
+      ["(live /\\ pointer[h] # e[1])", "FALSE"],
       [
         "duplicate == <<pointer[h],h>> \\in entries /\\ pointer[h] # e[1]",
         "duplicate == FALSE"
@@ -93,12 +87,7 @@
   },
   {
     "name": "Eviction trusts metadata instead of remote existence",
-    "replace": [
-      [
-        "2 \\notin marked /\\ 2 \\in remote",
-        "2 \\notin marked"
-      ]
-    ],
+    "replace": [["2 \\notin marked /\\ 2 \\in remote", "2 \\notin marked"]],
     "expect": "NoMissingCopyDropped",
     "config": "EvictQueueIndex.cfg"
   },
@@ -115,23 +104,13 @@
   },
   {
     "name": "A staged off marker bypasses the activation fence",
-    "replace": [
-      [
-        "/\\ markFence = fence",
-        "/\\ TRUE"
-      ]
-    ],
+    "replace": [["/\\ markFence = fence", "/\\ TRUE"]],
     "expect": "NoMarkedOverlap",
     "config": "EvictQueueIndex-fence.cfg"
   },
   {
     "name": "An absent old snapshot is debited again",
-    "replace": [
-      [
-        "IF captured \\in entries THEN -1 ELSE 0",
-        "-1"
-      ]
-    ],
+    "replace": [["IF captured \\in entries THEN -1 ELSE 0", "-1"]],
     "expect": "ExactBytes",
     "config": "EvictQueueIndex-snapshot.cfg"
   }

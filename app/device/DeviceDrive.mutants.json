@@ -1,19 +1,39 @@
 [
   {
     "name": "Editing tools appear before Enable editing",
-    "replace": [["(IF Ready /\\ Writable /\\ editing THEN {\"edit\"} ELSE {})", "(IF Ready /\\ Writable THEN {\"edit\"} ELSE {})"], ["\\/ b = \"edit\" /\\ Ready /\\ Writable /\\ editing", "\\/ b = \"edit\" /\\ Ready /\\ Writable"]],
+    "replace": [
+      [
+        "(IF Ready /\\ Writable /\\ editing THEN {\"edit\"} ELSE {})",
+        "(IF Ready /\\ Writable THEN {\"edit\"} ELSE {})"
+      ],
+      [
+        "\\/ b = \"edit\" /\\ Ready /\\ Writable /\\ editing",
+        "\\/ b = \"edit\" /\\ Ready /\\ Writable"
+      ]
+    ],
     "expect": "EditOnlyApproved",
     "config": "DeviceDrive-read-write.cfg"
   },
   {
     "name": "A read-only folder offers editing",
-    "replace": [["(IF Ready /\\ Writable /\\ ~editing THEN", "(IF Ready /\\ ~editing THEN"], ["(IF Ready /\\ Writable /\\ editing THEN", "(IF Ready /\\ editing THEN"]],
+    "replace": [
+      [
+        "(IF Ready /\\ Writable /\\ ~editing THEN",
+        "(IF Ready /\\ ~editing THEN"
+      ],
+      ["(IF Ready /\\ Writable /\\ editing THEN", "(IF Ready /\\ editing THEN"]
+    ],
     "expect": "EveryShownActionWorks",
     "config": "DeviceDrive-read-only.cfg"
   },
   {
     "name": "A Device that leaves keeps its root",
-    "replace": [["/\\ device' = \"offline\"\n  /\\ root' = \"none\"", "/\\ device' = \"offline\"\n  /\\ UNCHANGED root"]],
+    "replace": [
+      [
+        "/\\ device' = \"offline\"\n  /\\ root' = \"none\"",
+        "/\\ device' = \"offline\"\n  /\\ UNCHANGED root"
+      ]
+    ],
     "expect": "NoRootWhileOffline",
     "config": "DeviceDrive-read-only.cfg"
   }
