@@ -40,8 +40,8 @@ import (
 // Version 11 keys are those of version 10. A leased root names its lease,
 // and the lease record keeps the expiry in place of an index of the roots
 // by expiry, so a version 7 to 10 store has its leased roots carried onto
-// one lapsed lease the collector releases, and a version 10 store keeps its
-// liveness state.
+// leases that keep their expiries, and a version 10 store keeps its liveness
+// state.
 const FormatVersion = 11
 
 // formatVersionKey names the key holding the store's format version.

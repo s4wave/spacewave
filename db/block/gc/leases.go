@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/binary"
 
+	"github.com/aperturerobotics/util/ulid"
 	"github.com/pkg/errors"
 )
 
@@ -23,10 +24,13 @@ import (
 //     a root onto a lease only while the lease is live, in the transaction
 //     that reads it so, and the collector deletes a lease's record only in
 //     the slice that finds no root under it.
-//  2. A lease that lapsed never lives again: RenewLease renews only a live
-//     lease, and the collector marks a lapsed lease released in the
-//     transaction of its first release, so the mark precedes every root the
-//     collector releases for it, and Land refuses a root onto it.
+//  2. A released lease never lives again: the collector marks a lapsed
+//     lease released, expiry zero, in the transaction that reads it lapsed
+//     and releases its first root, so the mark precedes every root the
+//     collector releases for it, and neither RenewLease nor Land accepts a
+//     released or missing lease. A lease that lapsed but is not yet released
+//     may still be renewed by a holder whose clock or admission lagged, and
+//     the collector then finds it live again.
 //  3. So the collector never releases a root under a live lease: it releases
 //     only the roots of a released lease, and a lease reaches released only
 //     from lapsed, in the collector's own commit.
@@ -73,9 +77,11 @@ func (r *Records) StartLease(ctx context.Context, id string, expires int64) erro
 
 // RenewLease moves the expiry of the lease id to expires, in Unix
 // milliseconds, when the lease is live at now, and reports whether it was.
-// It never renews a lapsed or released lease, whose roots the collector may
-// be releasing; the holder starts a new lease instead. Cost: one point read
-// and one write.
+// It never renews a released lease, whose roots the collector may be
+// releasing, nor one lapsed at the caller's now; the holder starts a new
+// lease instead. A caller whose now lags may renew a lease the collector's
+// clock finds lapsed, which is safe until the collector marks it released.
+// Cost: one point read and one write.
 func (r *Records) RenewLease(ctx context.Context, id string, now, expires int64) (bool, error) {
 	live, err := r.LeaseLive(ctx, id, now)
 	if err != nil || !live {
@@ -221,24 +227,26 @@ func (r *Records) leaseRootKey(id, bucketID, name string) []byte {
 	)
 }
 
-// format10LeaseID is the lease the format upgrade gives the leased roots of
-// a format 10 or older store, lapsed from the start: the upgrade runs at
-// open, before this process holds a root, and a store such as s4db refuses
-// it while another process shares the store, so no live process holds them.
-const format10LeaseID = "format10"
-
-// format10LeaseExpiry is the expiry of format10LeaseID: lapsed at once, and
-// the same on every rerun of the upgrade.
-const format10LeaseExpiry = 1
-
 // CarryFormat10Leases moves up to limit of the leased roots a format 10 or
-// older store indexed by expiry under its retired kind 'E' onto
-// format10LeaseID, a lapsed lease the collector then releases in slices as
-// it does any other, and deletes their old index records. It rewrites each
-// entry whole, so the retired expiry field goes with the record. It moves no
-// holder: each root keeps its block. It returns whether more may follow.
-// Each call works in the caller's transaction, so a rerun after a crash
-// carries the records left.
+// older store indexed by expiry under its retired kind 'E' onto a new lease,
+// and deletes their old index records. The lease expires at the largest
+// expiry the slice carries, so a root another process still held when the
+// upgrade ran lapses no sooner than it would have, and once it lapses the
+// collector releases its roots in slices as it does any other lease's. Each
+// slice starts a lease of its own, so a rerun after a crash never revives a
+// carried lease that a collector already released.
+//
+// The upgrade runs at open, before this process holds a root. Only s4db
+// refuses it while another process shares the store, and only through a
+// check made before the open, which another process may race. SQLite, which
+// several processes share through its file lock, and redis refuse nothing,
+// so there an old process may still hold carried roots; the carried expiry
+// keeps them for it until it would have lapsed.
+//
+// The rewrite takes each entry whole, so the retired expiry field goes with
+// the record. It moves no holder: each root keeps its block. It returns
+// whether more may follow. Each call works in the caller's transaction, so a
+// rerun after a crash carries the records left.
 func (r *Records) CarryFormat10Leases(ctx context.Context, limit int) (bool, error) {
 	// Read a run of the old index records, each with the root it indexes.
 	type old struct {
@@ -246,13 +254,15 @@ func (r *Records) CarryFormat10Leases(ctx context.Context, limit int) (bool, err
 		bucketID, name string
 	}
 
-	// Scan up to limit of them.
+	// Scan up to limit of them, with the largest expiry they hold.
 	var run []old
+	var expires int64
 	err := r.scan(ctx, r.key(format10Lease), nil, func(key []byte, _ func() ([]byte, error)) (bool, error) {
-		// Skip the expiry and read the root's bucket and name.
+		// Read the expiry and the root's bucket and name.
 		if len(key) < 8 {
 			return false, errors.New("format 10 lease record is malformed")
 		}
+		expires = max(expires, int64(binary.BigEndian.Uint64(key[:8]))) //nolint:gosec // written from a non-negative int64.
 		bucketID, name, err := ParseNamedKey(key[8:])
 		if err != nil {
 			return false, err
@@ -264,8 +274,10 @@ func (r *Records) CarryFormat10Leases(ctx context.Context, limit int) (bool, err
 		return false, err
 	}
 
-	// Start the carried lease, then move each root still held onto it.
-	if err := r.setLease(ctx, format10LeaseID, format10LeaseExpiry); err != nil {
+	// Start the slice's lease, then move each root still held onto it. An
+	// expiry of zero would mark the lease released, so it holds at least 1.
+	id := ulid.NewULID()
+	if err := r.StartLease(ctx, id, max(expires, 1)); err != nil {
 		return false, err
 	}
 	for _, o := range run {
@@ -279,7 +291,7 @@ func (r *Records) CarryFormat10Leases(ctx context.Context, limit int) (bool, err
 		if entry == nil {
 			continue
 		}
-		carried := &RootEntry{Ref: entry.GetRef(), Lease: format10LeaseID}
+		carried := &RootEntry{Ref: entry.GetRef(), Lease: id}
 		if err := r.SetRoot(ctx, o.bucketID, o.name, carried); err != nil {
 			return false, err
 		}

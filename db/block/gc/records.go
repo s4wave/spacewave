@@ -200,7 +200,7 @@ const format9PopMark byte = 'p'
 // format10Lease is the kind of format 10's lease index, which keyed each
 // leased root by its expiry and then its bucket and name. Format 11 keeps the
 // expiry on the root's lease instead, and CarryFormat10Leases moves the roots
-// onto one.
+// onto leases.
 const format10Lease byte = 'E'
 
 // CarryFormat9Counts rewrites up to limit of the zero records format 9 wrote
