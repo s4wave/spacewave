@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -31,6 +32,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	git_block "github.com/s4wave/spacewave/db/git/block"
 	git_world "github.com/s4wave/spacewave/db/git/world"
 	db_testbed "github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/unixfs"
@@ -41,7 +43,9 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	forge_execution "github.com/s4wave/spacewave/forge/execution"
 	forge_lib_docker "github.com/s4wave/spacewave/forge/lib/docker"
+	forge_lib_git_clone "github.com/s4wave/spacewave/forge/lib/git/clone"
 	forge_lib_skiffos "github.com/s4wave/spacewave/forge/lib/skiffos"
+	forge_lib_skiffos_audit "github.com/s4wave/spacewave/forge/lib/skiffos/audit"
 	forge_pass "github.com/s4wave/spacewave/forge/pass"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	target_json "github.com/s4wave/spacewave/forge/target/json"
@@ -93,6 +97,160 @@ func TestSkiffOSFlowgraph(t *testing.T) {
 		t.Fatalf("second boot set %s, want %s", again.MarshalString(), images.MarshalString())
 	}
 	t.Logf("task cache hit: %s completed with the outputs of %s", second, first)
+}
+
+// TestSkiffOSAudit runs the audit Flowgraph: clone Steps fetch SkiffOS and
+// its Buildroot fork from local sources into upstream Repos, and the audit
+// Step compares the build's depth-1 Repo with them. A build one commit behind
+// reports Behind and leaves the build's Repo as it was; after the Repo moves
+// to upstream's head, the next run reports Current.
+func TestSkiffOSAudit(t *testing.T) {
+	// Build a Buildroot fork with a skiff tag, and SkiffOS whose first commit
+	// pins it and is released, then a second commit.
+	tmp := t.TempDir()
+	br, up := filepath.Join(tmp, "buildroot"), filepath.Join(tmp, "skiffos")
+	runGit(t, tmp, "init", "-q", br)
+	pinned := commitGit(t, br, "a")
+	runGit(t, br, "tag", "-a", "-m", "release", "skiff-1")
+	runGit(t, tmp, "init", "-q", "-b", "master", up)
+	runGit(t, up, "update-index", "--add", "--cacheinfo", "160000,"+pinned+",buildroot")
+	runGit(t, up, "commit", "-qm", "pin")
+	runGit(t, up, "tag", "2026.01")
+	first := runGit(t, up, "rev-parse", "HEAD")
+	head := commitGit(t, up, "b")
+
+	// Start a Worker, and store the build's Repo at the first commit.
+	h := newWorkerHarness(t)
+	h.tb.StaticResolver.AddFactory(flowgraph_run.NewFactory(h.tb.Bus))
+	h.tb.StaticResolver.AddFactory(forge_lib_git_clone.NewFactory(h.tb.Bus))
+	h.tb.StaticResolver.AddFactory(forge_lib_skiffos_audit.NewFactory())
+	stopWorker := h.startWorker(h.newAdmission("skiffos-audit"), make(chan *s4wave_device.ForgeWorkerDeclaration))
+	t.Cleanup(func() {
+		if err := stopWorker(); !errors.Is(err, context.Canceled) {
+			t.Errorf("Worker stop: %v", err)
+		}
+	})
+	f := &flowgraphFixture{workerHarness: h, t: t}
+	f.transact(func(ctx context.Context, ws world.WorldState) error {
+		_, _, err := ws.ApplyWorldOp(ctx, git_world.NewGitInitOp(skiffOSRepo, nil, true, nil, nil), f.sender)
+		return err
+	})
+	f.moveRepo(skiffOSRepo, up, first)
+
+	// Fetch both upstreams, then audit the build against them.
+	fetch := func(key, dir string) *s4wave_flowgraph.FlowgraphNode {
+		return f.stepNode(forge_lib_git_clone.ControllerID, &forge_lib_git_clone.Config{
+			ObjectKey: key,
+			CloneOpts: &git_block.CloneOpts{Url: "file://" + dir, DisableCheckout: true, TagMode: git_block.TagMode_TagMode_ALL},
+		}, "repo", false)
+	}
+	audit := f.stepNode(forge_lib_skiffos_audit.ControllerID, &forge_lib_skiffos_audit.Config{UpstreamRef: "refs/remotes/origin/master"}, forge_lib_skiffos_audit.OutputReport, false)
+	audit.Step.Target.Inputs = []*forge_target.Input{worldObjectInput(forge_lib_skiffos_audit.InputBuild, skiffOSRepo)}
+	audit.Ports = append(audit.Ports, inputPort(forge_lib_skiffos_audit.InputUpstream), inputPort(forge_lib_skiffos_audit.InputBuildroot))
+	f.storeGraph("flowgraph/skiffos-audit", "SkiffOS audit", map[string]*s4wave_flowgraph.FlowgraphNode{
+		"fetch-skiffos": fetch("os/skiffos-upstream", up), "fetch-buildroot": fetch("os/buildroot-upstream", br), "audit": audit,
+	}, map[string]*s4wave_flowgraph.FlowgraphConnection{
+		"skiffos":   {OutputNode: "fetch-skiffos", OutputPort: "repo", InputNode: "audit", InputPort: forge_lib_skiffos_audit.InputUpstream},
+		"buildroot": {OutputNode: "fetch-buildroot", OutputPort: "repo", InputNode: "audit", InputPort: forge_lib_skiffos_audit.InputBuildroot},
+	})
+
+	// The build one commit behind is stale, and the audit leaves its Repo.
+	before := f.objectRoot(skiffOSRepo)
+	stale := f.auditReport("flowgraph-run/skiffos-audit-stale")
+	if got := stale.GetBehind().GetCommits(); got != 1 {
+		t.Fatalf("stale build reported %s", stale.MarshalProtoText())
+	}
+	if after := f.objectRoot(skiffOSRepo); !after.EqualsRef(before) {
+		t.Fatal("the audit changed the build's Repo")
+	}
+	want := &forge_lib_skiffos_audit.Report{
+		Build: &forge_lib_skiffos_audit.Revision{
+			Skiffos:   &forge_lib_skiffos_audit.Described{Commit: first, Tag: "2026.01"},
+			Buildroot: &forge_lib_skiffos_audit.Described{Commit: pinned, Tag: "skiff-1"},
+		},
+		Upstream: &forge_lib_skiffos_audit.Revision{
+			Skiffos:   &forge_lib_skiffos_audit.Described{Commit: head, Tag: "2026.01", Distance: 1},
+			Buildroot: &forge_lib_skiffos_audit.Described{Commit: pinned, Tag: "skiff-1"},
+		},
+		SkiffTags: 1,
+		Freshness: &forge_lib_skiffos_audit.Report_Behind{Behind: &forge_lib_skiffos_audit.Behind{Commits: 1}},
+	}
+	if !stale.EqualVT(want) {
+		t.Fatalf("stale report %s, want %s", stale.MarshalProtoText(), want.MarshalProtoText())
+	}
+
+	// Moved to upstream's head, the build is current.
+	f.moveRepo(skiffOSRepo, up, head)
+	if current := f.auditReport("flowgraph-run/skiffos-audit-current"); current.GetCurrent() == nil {
+		t.Fatalf("current build reported %s", current.MarshalProtoText())
+	}
+}
+
+// moveRepo points the World Repo key's main branch and HEAD at commit,
+// fetched at depth 1 from the local repository at dir.
+func (f *flowgraphFixture) moveRepo(key, dir, commit string) {
+	src, err := git.PlainOpen(dir)
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	f.transact(func(ctx context.Context, ws world.WorldState) error {
+		_, _, err := git_world.AccessWorldObjectRepo(ctx, ws, key, true, nil, nil, nil, func(repo *git.Repository) error {
+			return fetchCommit(ctx, repo, src, filepath.Join(dir, ".git"), plumbing.NewHash(commit))
+		})
+		return err
+	})
+}
+
+// objectRoot returns the root the World object key holds.
+func (f *flowgraphFixture) objectRoot(key string) *block.BlockRef {
+	obj, err := world.MustGetObject(f.ctx, f.tb.WorldState, key)
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	defer world.ReleaseObjectState(obj)
+	ref, _, err := obj.GetRootRef(f.ctx)
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	return ref.GetRootRef()
+}
+
+// auditReport runs the audit graph as runKey and returns its Report.
+func (f *flowgraphFixture) auditReport(runKey string) *forge_lib_skiffos_audit.Report {
+	f.startRun(runKey, "flowgraph/skiffos-audit")
+	tree := f.taskTree(f.waitTask(runKey, "audit", true), forge_lib_skiffos_audit.OutputReport)
+	rep := &forge_lib_skiffos_audit.Report{}
+	if err := rep.UnmarshalJSON(f.readTreeFile(tree, forge_lib_skiffos_audit.ReportFile)); err != nil {
+		f.t.Fatal(err)
+	}
+	return rep
+}
+
+// commitGit writes content to a file of that name in the repository at dir,
+// commits it, and returns the commit.
+func commitGit(t *testing.T, dir, content string) string {
+	t.Helper()
+	if err := os.WriteFile(filepath.Join(dir, content), []byte(content+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGit(t, dir, "add", content)
+	runGit(t, dir, "commit", "-qm", content)
+	return runGit(t, dir, "rev-parse", "HEAD")
+}
+
+// runGit runs git in dir with a fixed identity and returns its trimmed output.
+func runGit(t *testing.T, dir string, args ...string) string {
+	t.Helper()
+	cmd := exec.Command("git", append([]string{"-C", dir}, args...)...)
+	cmd.Env = append(os.Environ(),
+		"GIT_AUTHOR_NAME=t", "GIT_AUTHOR_EMAIL=t@t", "GIT_COMMITTER_NAME=t", "GIT_COMMITTER_EMAIL=t@t",
+		"GIT_CONFIG_GLOBAL=/dev/null",
+	)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("git %v: %v\n%s", args, err, out)
+	}
+	return strings.TrimSpace(string(out))
 }
 
 // TestSpacewaveOSRehearsal builds the QEMU board with the spacewave/os package

@@ -27,32 +27,15 @@ func Open(
 	inputVals forge_target.InputMap,
 	name string,
 ) (*unixfs.FSHandle, error) {
-	// Resolve the input to a non-empty value.
-	iv, ok := inputVals[name]
-	if !ok {
-		return nil, errors.Errorf("input %q not found in input values", name)
-	}
-	val, err := forge_target.InputValueToValue(iv)
+	// Resolve the input to the root of its tree.
+	ref, err := inputVals.ObjectRef(name)
 	if err != nil {
-		return nil, errors.Wrapf(err, "input %q", name)
-	}
-	if val == nil || val.IsEmpty() {
-		return nil, errors.Errorf("input %q is empty", name)
-	}
-
-	// The value names the root of its tree.
-	bref, err := val.ToBucketRef()
-	if err != nil {
-		return nil, errors.Wrapf(err, "input %q", name)
-	}
-	rootRef := bref.GetRootRef()
-	if rootRef.GetEmpty() {
-		return nil, errors.Errorf("input %q has empty root ref", name)
+		return nil, err
 	}
 
 	// Read the tree through a cursor at its root with no writer.
 	inputCs := cs.Clone()
-	inputCs.SetRootRef(rootRef)
+	inputCs.SetRootRef(ref.GetRootRef())
 	fs := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, inputCs, nil)
 	handle, err := unixfs.NewFSHandle(fs)
 	if err != nil {

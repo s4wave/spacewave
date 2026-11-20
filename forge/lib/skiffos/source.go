@@ -19,7 +19,6 @@ import (
 	"github.com/pkg/errors"
 	git_remote "github.com/s4wave/spacewave/core/git/remote"
 	git_world "github.com/s4wave/spacewave/db/git/world"
-	forge_target "github.com/s4wave/spacewave/forge/target"
 )
 
 // InputSkiffOS names the input holding the SkiffOS source, a Repo snapshot
@@ -40,20 +39,9 @@ type submodule struct {
 // only the Repo.
 func (c *Controller) syncSource(ctx context.Context, dir string) (string, error) {
 	// Resolve the input to the Repo's object ref.
-	iv, ok := c.inputVals[InputSkiffOS]
-	if !ok {
-		return "", errors.Errorf("input %q not found in input values", InputSkiffOS)
-	}
-	val, err := forge_target.InputValueToValue(iv)
+	ref, err := c.inputVals.ObjectRef(InputSkiffOS)
 	if err != nil {
-		return "", errors.Wrapf(err, "input %q", InputSkiffOS)
-	}
-	if val == nil || val.IsEmpty() {
-		return "", errors.Errorf("input %q is empty", InputSkiffOS)
-	}
-	ref, err := val.ToBucketRef()
-	if err != nil {
-		return "", errors.Wrapf(err, "input %q", InputSkiffOS)
+		return "", err
 	}
 
 	// Create the checkout on the first build.

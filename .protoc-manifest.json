@@ -3266,13 +3266,23 @@
           ]
         },
         "github.com/s4wave/spacewave/forge/lib/skiffos": {
-          "hash": "e8a48041e0db299c9cede5abc297eb88e3cd6b1afac1cb53e4cd95f6406051f7",
+          "hash": "7e2951c58018a522c9a30c3aab518a5286fbc893a3b5821794bf85a91dbd2aec",
           "generatedFiles": [
             "forge/lib/skiffos/config.pb.go",
             "forge/lib/skiffos/config.pb.ts"
           ],
           "protoFiles": [
             "forge/lib/skiffos/config.proto"
+          ]
+        },
+        "github.com/s4wave/spacewave/forge/lib/skiffos/audit": {
+          "hash": "e3ace1ca4d0121c9f0d17049968011273e8297cc6134a18dd2bdef5cc46c324b",
+          "generatedFiles": [
+            "forge/lib/skiffos/audit/config.pb.go",
+            "forge/lib/skiffos/audit/config.pb.ts"
+          ],
+          "protoFiles": [
+            "forge/lib/skiffos/audit/config.proto"
           ]
         },
         "github.com/s4wave/spacewave/forge/lib/util/presence": {

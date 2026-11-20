@@ -1,0 +1,80 @@
+syntax = "proto3";
+package forge.lib.skiffos.audit;
+
+// Config audits the SkiffOS source a build consumes against upstream.
+//
+// The audit reads three Repo snapshots and changes none: it compares the
+// build's commit with upstream's head, names the nearest release tag of each
+// and of each one's Buildroot pin, counts the Buildroot fork's skiff-* tags,
+// and writes the result as one Report. A maintenance Flowgraph refreshes the
+// upstream Repos with forge/lib/git/clone before the audit, apart from the
+// build's own Repo, so a fetch never moves what the build consumes.
+//
+// Inputs:
+//  - build: the Repo the build's skiffos input holds. The audit reads its HEAD
+//    commit and the commit that commit's buildroot gitlink pins.
+//  - upstream: the SkiffOS Repo the fetch refreshes, holding upstream_ref and
+//    the release tags.
+//  - buildroot: the SkiffOS Buildroot fork's Repo, fetched with its tags.
+//
+// Outputs:
+//  - report: a tree holding report.json, the Report as JSON.
+message Config {
+  // UpstreamRef names the upstream Repo's ref holding upstream's head, the ref
+  // a fetch moves, such as refs/remotes/origin/master.
+  string upstream_ref = 1;
+}
+
+// Report is one audit's evidence: where the build stands against upstream.
+message Report {
+  // Build is the commit the build consumes, with its Buildroot pin.
+  Revision build = 1;
+  // Upstream is upstream's head, with its Buildroot pin.
+  Revision upstream = 2;
+  // SkiffTags counts the Buildroot Repo's skiff-* tags, which a fetch that
+  // prunes tags would lose.
+  uint32 skiff_tags = 3;
+  // Freshness is how the build's commit relates to upstream's head.
+  oneof freshness {
+    // Current reports the build at upstream's head.
+    Current current = 4;
+    // Behind reports upstream's head descending from the build.
+    Behind behind = 5;
+    // Diverged reports a build commit that upstream's head lacks.
+    Diverged diverged = 6;
+  }
+}
+
+// Current reports a build at upstream's head: nothing to update.
+message Current {}
+
+// Behind reports a build that upstream's head descends from: an update moves
+// the build forward and drops nothing.
+message Behind {
+  // Commits counts the commits upstream's head holds that the build lacks.
+  uint32 commits = 1;
+}
+
+// Diverged reports a build commit that upstream's head does not hold, so an
+// update to upstream's head would drop it; a person decides.
+message Diverged {}
+
+// Revision is one SkiffOS commit and the Buildroot commit it pins.
+message Revision {
+  // Skiffos describes the SkiffOS commit by its nearest release tag.
+  Described skiffos = 1;
+  // Buildroot describes the pinned Buildroot commit by its nearest skiff-* tag.
+  Described buildroot = 2;
+}
+
+// Described is a commit with its nearest tagged ancestor, as git describe
+// names it.
+message Described {
+  // Commit is the commit's hash.
+  string commit = 1;
+  // Tag is the nearest tag on the commit or its ancestors. Tag is empty when
+  // the Repo holds no tagged ancestor, or not the commit.
+  string tag = 2;
+  // Distance counts the parent steps from the commit back to the tag.
+  uint32 distance = 3;
+}

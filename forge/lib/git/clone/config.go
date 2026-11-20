@@ -27,9 +27,12 @@ func (c *Config) Validate() error {
 		return errors.Wrap(err, "auth_opts")
 	}
 
-	// Validate the worktree created from the repository snapshot.
-	if err := c.GetWorktreeOpts().Validate(); err != nil {
-		return errors.Wrap(err, "worktree_opts")
+	// Validate the worktree created from the repository snapshot, if any; a
+	// clone without one holds only the repository.
+	if wt := c.GetWorktreeOpts(); wt != nil {
+		if err := wt.Validate(); err != nil {
+			return errors.Wrap(err, "worktree_opts")
+		}
 	}
 
 	return nil
