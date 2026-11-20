@@ -105,8 +105,9 @@ func newServeCommand(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_pol
 				Destination: &udpListen,
 			},
 			&cli.StringSliceFlag{
-				Name:        "udp-peer",
-				Usage:       "admit links from this session peer ID on the --udp-listen socket, such as a Space member joining by invite (repeatable)",
+				Name: "udp-peer",
+				Usage: "admit links from this session peer ID on the --udp-listen socket, such as a Space member joining by invite; " +
+					"ID@HOST:PORT also dials it and holds the link, a test path for a LAN without signaling (repeatable)",
 				Destination: &udpPeers,
 			},
 			&cli.StringFlag{

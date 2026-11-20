@@ -8,7 +8,9 @@ import (
 	"net"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/net/link"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/transport"
 	"github.com/s4wave/spacewave/net/transport/common/dialer"
@@ -30,7 +32,8 @@ type UDPConfig struct {
 }
 
 // StartUDP runs a UDP transport under the Session's peer until ctx ends or the
-// current transport run stops. It dials each named peer that has an address.
+// current transport run stops. It dials each named peer that has an address
+// and holds its link while the transport runs.
 // Naming a peer, or the link authorizer admitting it, admits only its link:
 // services that grant authority, such as those served with ServeAuthorized,
 // still apply AuthorizePeer to each stream.
@@ -107,6 +110,10 @@ func (t *SessionTransport) StartUDP(ctx context.Context, conf UDPConfig) (net.Ad
 			cancel()
 			return nil, errors.New("udp transport has no local address")
 		}
+		if err := holdDialedLinks(runCtx, b, t.peerID, dialers); err != nil {
+			cancel()
+			return nil, err
+		}
 		return addr.LocalAddr(), nil
 	case err := <-exited:
 		if err == nil {
@@ -117,4 +124,25 @@ func (t *SessionTransport) StartUDP(ctx context.Context, conf UDPConfig) (net.Ad
 		cancel()
 		return nil, ctx.Err()
 	}
+}
+
+// holdDialedLinks holds a link to each peer in dialers until ctx ends. A static
+// dialer answers only a link request, and a link nobody holds closes after its
+// hold-open, so without the hold a named address would never be dialed.
+func holdDialedLinks(ctx context.Context, b bus.Bus, local peer.ID, dialers map[string]*dialer.DialerOpts) error {
+	for id := range dialers {
+		remote, err := peer.IDB58Decode(id)
+		if err != nil {
+			return err
+		}
+		hold := directive.NewTypedCallbackHandler[link.MountedLink](
+			func(directive.TypedAttachedValue[link.MountedLink]) {}, nil, nil, nil,
+		)
+		_, ref, err := b.AddDirective(ctx, link.NewEstablishLinkWithPeer(local, remote), hold)
+		if err != nil {
+			return err
+		}
+		context.AfterFunc(ctx, ref.Release)
+	}
+	return nil
 }

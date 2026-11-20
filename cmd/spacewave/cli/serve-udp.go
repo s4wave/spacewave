@@ -4,6 +4,7 @@ package spacewave_cli
 
 import (
 	"context"
+	"strings"
 
 	"github.com/pkg/errors"
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
@@ -14,7 +15,9 @@ import (
 // the Resource service to other active sessions of its account until ctx
 // ends. The listener also admits the links of the session peer IDs in peers,
 // such as a Space member of another account, without granting them the
-// Resource service. A locked Session delays the listener until it unlocks.
+// Resource service. A peer given as ID@HOST:PORT is also dialed at that address
+// and its link held: a test path for peers on a LAN without signaling. A locked
+// Session delays the listener until it unlocks.
 func serveUDPListener(ctx context.Context, le *logrus.Entry, client *sdkClient, addr string, peers []string) error {
 	// Select the one Session the listener speaks for.
 	sessions, err := client.root.ListSessions(ctx)
@@ -33,8 +36,9 @@ func serveUDPListener(ctx context.Context, le *logrus.Entry, client *sdkClient, 
 	// Hold the UDP transport and remote resource service open. A named peer
 	// with no address is admitted when it dials in but is never dialed.
 	peerAddrs := make(map[string]string, len(peers))
-	for _, id := range peers {
-		peerAddrs[id] = ""
+	for _, named := range peers {
+		id, addr, _ := strings.Cut(named, "@")
+		peerAddrs[id] = addr
 	}
 	pt, err := sess.OpenPeerTransport(ctx, &s4wave_session.AccessPeerTransportRequest{
 		UdpListenAddr:  addr,
