@@ -1011,13 +1011,25 @@ func deleteSpace(ctx context.Context, t *testing.T, f *adapterFixture, served *s
 	if err := f.acc.DeleteSharedObject(ctx, f.ref.GetProviderResourceRef().GetId()); err != nil {
 		t.Fatal(err)
 	}
-	f.collect(t)
 
-	// The deleted Space's World is gone, and the other Space reads its
-	// object after a remount.
-	if found, err := f.volume.GetBlockExists(ctx, base); err != nil || found {
-		t.Fatalf("the deleted Space's World root after a collection: %v, %v; %s", found, err, f.collectReport(ctx))
+	// Collect until the deleted Space's World is gone. A release the delete
+	// starts can reach the down log after it returns, and so after the first
+	// pass: across 600 stressed runs it landed within about 30 ms. The bound
+	// fails a root that stays held.
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		f.collect(t)
+		found, err := f.volume.GetBlockExists(ctx, base)
+		if err == nil && !found {
+			break
+		}
+		if err != nil || time.Now().After(deadline) {
+			t.Fatalf("the deleted Space's World root after its collections: %v, %v; %s", found, err, f.collectReport(ctx))
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
+
+	// The other Space reads its object after a remount.
 	otherRef.Release()
 	otherEng, otherRef, err = world.StartEngine(ctx, f.tb.Bus, space_world.NewConfig("other-space-world", other), nil)
 	if err != nil {
