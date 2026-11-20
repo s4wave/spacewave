@@ -305,6 +305,40 @@ message OpsMknodResponse {
   .unixfs.errors.UnixFSError unixfs_error = 1;
 }
 
+// OpsMknodWithContentStart names the file and its complete size.
+message OpsMknodWithContentStart {
+  // CursorHandleId identifies the target directory cursor.
+  uint64 cursor_handle_id = 1;
+  // OpsHandleId identifies the current operations of that cursor.
+  uint64 ops_handle_id = 2;
+  // Name is one entry name within the directory.
+  string name = 3;
+  // TotalSize is the number of bytes the stream must deliver.
+  int64 total_size = 4;
+  // Permissions is the new file's mode. Zero selects the default.
+  uint32 permissions = 5;
+  // Timestamp sets the new file's modification time.
+  google.protobuf.Timestamp timestamp = 6;
+  // Exclusive requires the destination to be absent at publication.
+  bool exclusive = 7;
+}
+
+// OpsMknodWithContentRequest carries the start followed by the file data.
+message OpsMknodWithContentRequest {
+  oneof body {
+    // Start names the destination and appears once, in the first message.
+    OpsMknodWithContentStart start = 1;
+    // Data carries a nonempty chunk of file content.
+    bytes data = 2;
+  }
+}
+
+// OpsMknodWithContentResponse reports the publication result.
+message OpsMknodWithContentResponse {
+  // UnixfsError contains the filesystem error, if any.
+  .unixfs.errors.UnixFSError unixfs_error = 1;
+}
+
 // OpsSymlinkRequest is the body of the ops Symlink request.
 message OpsSymlinkRequest {
   // OpsHandleId uniquely identifies the open ops handle.
@@ -497,6 +531,9 @@ service FSCursorService {
 
   // OpsMknod creates child entries in a directory.
   rpc OpsMknod(OpsMknodRequest) returns (OpsMknodResponse) {};
+
+  // OpsMknodWithContent receives and publishes one complete regular file.
+  rpc OpsMknodWithContent(stream OpsMknodWithContentRequest) returns (OpsMknodWithContentResponse) {};
 
   // OpsSymlink creates a symbolic link from a location to a path.
   rpc OpsSymlink(OpsSymlinkRequest) returns (OpsSymlinkResponse) {};

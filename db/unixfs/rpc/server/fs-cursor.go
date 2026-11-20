@@ -23,6 +23,8 @@ import (
 type FSCursorService struct {
 	// readOnly refuses mutations to every cursor this service exposes.
 	readOnly bool
+	// upload publishes a file on a backend that supplies its own atomic writer.
+	upload FileUpload
 
 	// mtx guards below fields
 	// note: mtx is only ever locked for very short periods of time.
@@ -109,9 +111,13 @@ func NewFSCursorService(rootCursor unixfs.FSCursor) *FSCursorService {
 	return newFSCursorService(rootCursor, false)
 }
 
-// NewReadOnlyFSCursorService exposes a cursor tree and refuses all mutation RPCs.
-func NewReadOnlyFSCursorService(rootCursor unixfs.FSCursor) *FSCursorService {
-	return newFSCursorService(rootCursor, true)
+// NewFSCursorServiceWithFileUpload serves a root with an atomic file publisher.
+// A nil publisher serves a read-only root.
+func NewFSCursorServiceWithFileUpload(rootCursor unixfs.FSCursor, upload FileUpload) *FSCursorService {
+	// Bind the publisher to this connection's directory cursor tree.
+	service := newFSCursorService(rootCursor, upload == nil)
+	service.upload = upload
+	return service
 }
 
 // newFSCursorService records the root handle and the service's access mode.
@@ -673,10 +679,12 @@ func (f *FSCursorService) removeFSCursorRefLocked(cursorHandleID, clientHandleID
 // if cursor is nil, we will look it up in this function.
 // if no clients and (cursor is nil OR no children), release the cursor
 func (f *FSCursorService) maybeReleaseFSCursorLocked(cursorHandleID uint64, cursor *localFSCursor) {
-	if cursorHandleID == 0 {
+	// The service owns the root through every temporary child's release.
+	if cursorHandleID <= 1 {
 		return
 	}
 
+	// Check whether the cursor is still registered when the caller has no entry.
 	if cursor == nil {
 		cursor = f.lookupFSCursorLocked(cursorHandleID)
 		if cursor == nil {
@@ -684,6 +692,7 @@ func (f *FSCursorService) maybeReleaseFSCursorLocked(cursorHandleID uint64, curs
 		}
 	}
 
+	// Release a descendant once neither a client nor one of its children needs it.
 	if len(cursor.clients) == 0 && len(cursor.children) == 0 {
 		f.releaseFSCursorLocked(cursorHandleID, cursor, nil)
 	}

@@ -979,6 +979,12 @@ func (h *FSHandle) Rename(ctx context.Context, dest *FSHandle, destName string, 
 // The new file appears fully formed with all content written.
 func (h *FSHandle) MknodWithContent(ctx context.Context, name string, nodeType FSCursorNodeType, dataLen int64, rdr io.Reader, permissions fs.FileMode, ts time.Time) error {
 	return h.i().accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
+		// A backend must opt in before it can handle an exclusive upload.
+		if IsExclusiveFileCreate(ctx) {
+			if _, ok := ops.(ExclusiveFileCreator); !ok {
+				return errors.New("filesystem does not support exclusive file publication")
+			}
+		}
 		return ops.MknodWithContent(ctx, name, nodeType, dataLen, rdr, permissions, ts)
 	})
 }

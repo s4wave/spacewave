@@ -1133,6 +1133,154 @@ func (x *OpsMknodResponse) GetUnixfsError() *errors.UnixFSError {
 	return nil
 }
 
+// OpsMknodWithContentStart names the file and its complete size.
+type OpsMknodWithContentStart struct {
+	unknownFields []byte
+	// CursorHandleId identifies the target directory cursor.
+	CursorHandleId uint64 `protobuf:"varint,1,opt,name=cursor_handle_id,json=cursorHandleId,proto3" json:"cursorHandleId,omitempty"`
+	// OpsHandleId identifies the current operations of that cursor.
+	OpsHandleId uint64 `protobuf:"varint,2,opt,name=ops_handle_id,json=opsHandleId,proto3" json:"opsHandleId,omitempty"`
+	// Name is one entry name within the directory.
+	Name string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	// TotalSize is the number of bytes the stream must deliver.
+	TotalSize int64 `protobuf:"varint,4,opt,name=total_size,json=totalSize,proto3" json:"totalSize,omitempty"`
+	// Permissions is the new file's mode. Zero selects the default.
+	Permissions uint32 `protobuf:"varint,5,opt,name=permissions,proto3" json:"permissions,omitempty"`
+	// Timestamp sets the new file's modification time.
+	Timestamp *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	// Exclusive requires the destination to be absent at publication.
+	Exclusive bool `protobuf:"varint,7,opt,name=exclusive,proto3" json:"exclusive,omitempty"`
+}
+
+func (x *OpsMknodWithContentStart) Reset() {
+	*x = OpsMknodWithContentStart{}
+}
+
+func (*OpsMknodWithContentStart) ProtoMessage() {}
+
+func (x *OpsMknodWithContentStart) GetCursorHandleId() uint64 {
+	if x != nil {
+		return x.CursorHandleId
+	}
+	return 0
+}
+
+func (x *OpsMknodWithContentStart) GetOpsHandleId() uint64 {
+	if x != nil {
+		return x.OpsHandleId
+	}
+	return 0
+}
+
+func (x *OpsMknodWithContentStart) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *OpsMknodWithContentStart) GetTotalSize() int64 {
+	if x != nil {
+		return x.TotalSize
+	}
+	return 0
+}
+
+func (x *OpsMknodWithContentStart) GetPermissions() uint32 {
+	if x != nil {
+		return x.Permissions
+	}
+	return 0
+}
+
+func (x *OpsMknodWithContentStart) GetTimestamp() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Timestamp
+	}
+	return nil
+}
+
+func (x *OpsMknodWithContentStart) GetExclusive() bool {
+	if x != nil {
+		return x.Exclusive
+	}
+	return false
+}
+
+// OpsMknodWithContentRequest carries the start followed by the file data.
+type OpsMknodWithContentRequest struct {
+	unknownFields []byte
+	// Types that are assignable to Body:
+	//	*OpsMknodWithContentRequest_Start
+	//	*OpsMknodWithContentRequest_Data
+	Body isOpsMknodWithContentRequest_Body `protobuf_oneof:"body"`
+}
+
+func (x *OpsMknodWithContentRequest) Reset() {
+	*x = OpsMknodWithContentRequest{}
+}
+
+func (*OpsMknodWithContentRequest) ProtoMessage() {}
+
+func (m *OpsMknodWithContentRequest) GetBody() isOpsMknodWithContentRequest_Body {
+	if m != nil {
+		return m.Body
+	}
+	return nil
+}
+
+func (x *OpsMknodWithContentRequest) GetStart() *OpsMknodWithContentStart {
+	if x, ok := x.GetBody().(*OpsMknodWithContentRequest_Start); ok {
+		return x.Start
+	}
+	return nil
+}
+
+func (x *OpsMknodWithContentRequest) GetData() []byte {
+	if x, ok := x.GetBody().(*OpsMknodWithContentRequest_Data); ok {
+		return x.Data
+	}
+	return nil
+}
+
+type isOpsMknodWithContentRequest_Body interface {
+	isOpsMknodWithContentRequest_Body()
+}
+
+type OpsMknodWithContentRequest_Start struct {
+	// Start names the destination and appears once, in the first message.
+	Start *OpsMknodWithContentStart `protobuf:"bytes,1,opt,name=start,proto3,oneof"`
+}
+
+type OpsMknodWithContentRequest_Data struct {
+	// Data carries a nonempty chunk of file content.
+	Data []byte `protobuf:"bytes,2,opt,name=data,proto3,oneof"`
+}
+
+func (*OpsMknodWithContentRequest_Start) isOpsMknodWithContentRequest_Body() {}
+
+func (*OpsMknodWithContentRequest_Data) isOpsMknodWithContentRequest_Body() {}
+
+// OpsMknodWithContentResponse reports the publication result.
+type OpsMknodWithContentResponse struct {
+	unknownFields []byte
+	// UnixfsError contains the filesystem error, if any.
+	UnixfsError *errors.UnixFSError `protobuf:"bytes,1,opt,name=unixfs_error,json=unixfsError,proto3" json:"unixfsError,omitempty"`
+}
+
+func (x *OpsMknodWithContentResponse) Reset() {
+	*x = OpsMknodWithContentResponse{}
+}
+
+func (*OpsMknodWithContentResponse) ProtoMessage() {}
+
+func (x *OpsMknodWithContentResponse) GetUnixfsError() *errors.UnixFSError {
+	if x != nil {
+		return x.UnixfsError
+	}
+	return nil
+}
+
 // OpsSymlinkRequest is the body of the ops Symlink request.
 type OpsSymlinkRequest struct {
 	unknownFields []byte
@@ -2309,6 +2457,90 @@ func (m *OpsMknodResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *OpsMknodWithContentStart) CloneVT() *OpsMknodWithContentStart {
+	if m == nil {
+		return (*OpsMknodWithContentStart)(nil)
+	}
+	r := new(OpsMknodWithContentStart)
+	r.CursorHandleId = m.CursorHandleId
+	r.OpsHandleId = m.OpsHandleId
+	r.Name = m.Name
+	r.TotalSize = m.TotalSize
+	r.Permissions = m.Permissions
+	r.Exclusive = m.Exclusive
+	r.Timestamp = protobuf_go_lite.CloneVTValue(m.Timestamp)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *OpsMknodWithContentStart) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *OpsMknodWithContentRequest) CloneVT() *OpsMknodWithContentRequest {
+	if m == nil {
+		return (*OpsMknodWithContentRequest)(nil)
+	}
+	r := new(OpsMknodWithContentRequest)
+	if m.Body != nil {
+		r.Body = m.Body.(interface {
+			CloneOneofVT() isOpsMknodWithContentRequest_Body
+		}).CloneOneofVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *OpsMknodWithContentRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *OpsMknodWithContentRequest_Start) CloneVT() *OpsMknodWithContentRequest_Start {
+	if m == nil {
+		return (*OpsMknodWithContentRequest_Start)(nil)
+	}
+	r := new(OpsMknodWithContentRequest_Start)
+	r.Start = protobuf_go_lite.CloneVTValue(m.Start)
+	return r
+}
+
+func (m *OpsMknodWithContentRequest_Start) CloneOneofVT() isOpsMknodWithContentRequest_Body {
+	return m.CloneVT()
+}
+
+func (m *OpsMknodWithContentRequest_Data) CloneVT() *OpsMknodWithContentRequest_Data {
+	if m == nil {
+		return (*OpsMknodWithContentRequest_Data)(nil)
+	}
+	r := new(OpsMknodWithContentRequest_Data)
+	r.Data = protobuf_go_lite.CloneBytes(m.Data)
+	return r
+}
+
+func (m *OpsMknodWithContentRequest_Data) CloneOneofVT() isOpsMknodWithContentRequest_Body {
+	return m.CloneVT()
+}
+
+func (m *OpsMknodWithContentResponse) CloneVT() *OpsMknodWithContentResponse {
+	if m == nil {
+		return (*OpsMknodWithContentResponse)(nil)
+	}
+	r := new(OpsMknodWithContentResponse)
+	r.UnixfsError = protobuf_go_lite.CloneVTValue(m.UnixfsError)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *OpsMknodWithContentResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *OpsSymlinkRequest) CloneVT() *OpsSymlinkRequest {
 	if m == nil {
 		return (*OpsSymlinkRequest)(nil)
@@ -3473,6 +3705,127 @@ func (this *OpsMknodResponse) EqualVT(that *OpsMknodResponse) bool {
 
 func (this *OpsMknodResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*OpsMknodResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *OpsMknodWithContentStart) EqualVT(that *OpsMknodWithContentStart) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.CursorHandleId != that.CursorHandleId {
+		return false
+	}
+	if this.OpsHandleId != that.OpsHandleId {
+		return false
+	}
+	if this.Name != that.Name {
+		return false
+	}
+	if this.TotalSize != that.TotalSize {
+		return false
+	}
+	if this.Permissions != that.Permissions {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Timestamp, that.Timestamp) {
+		return false
+	}
+	if this.Exclusive != that.Exclusive {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *OpsMknodWithContentStart) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*OpsMknodWithContentStart)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *OpsMknodWithContentRequest) EqualVT(that *OpsMknodWithContentRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Body == nil && that.Body != nil {
+		return false
+	} else if this.Body != nil {
+		if that.Body == nil {
+			return false
+		}
+		if !this.Body.(interface {
+			EqualVT(isOpsMknodWithContentRequest_Body) bool
+		}).EqualVT(that.Body) {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *OpsMknodWithContentRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*OpsMknodWithContentRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *OpsMknodWithContentRequest_Start) EqualVT(thatIface isOpsMknodWithContentRequest_Body) bool {
+	that, ok := thatIface.(*OpsMknodWithContentRequest_Start)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Start, that.Start, func() *OpsMknodWithContentStart { return &OpsMknodWithContentStart{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *OpsMknodWithContentRequest_Data) EqualVT(thatIface isOpsMknodWithContentRequest_Body) bool {
+	that, ok := thatIface.(*OpsMknodWithContentRequest_Data)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Data, that.Data) {
+		return false
+	}
+	return true
+}
+
+func (this *OpsMknodWithContentResponse) EqualVT(that *OpsMknodWithContentResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.UnixfsError, that.UnixfsError) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *OpsMknodWithContentResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*OpsMknodWithContentResponse)
 	if !ok {
 		return false
 	}
@@ -5708,6 +6061,206 @@ func (x *OpsMknodResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the OpsMknodResponse from JSON.
 func (x *OpsMknodResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the OpsMknodWithContentStart message to JSON.
+func (x *OpsMknodWithContentStart) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.CursorHandleId != 0 || s.HasField("cursorHandleId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("cursorHandleId")
+		s.WriteUint64(x.CursorHandleId)
+	}
+	if x.OpsHandleId != 0 || s.HasField("opsHandleId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("opsHandleId")
+		s.WriteUint64(x.OpsHandleId)
+	}
+	if x.Name != "" || s.HasField("name") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("name")
+		s.WriteString(x.Name)
+	}
+	if x.TotalSize != 0 || s.HasField("totalSize") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("totalSize")
+		s.WriteInt64(x.TotalSize)
+	}
+	if x.Permissions != 0 || s.HasField("permissions") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("permissions")
+		s.WriteUint32(x.Permissions)
+	}
+	if x.Timestamp != nil || s.HasField("timestamp") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("timestamp")
+		x.Timestamp.MarshalProtoJSON(s.WithField("timestamp"))
+	}
+	if x.Exclusive || s.HasField("exclusive") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("exclusive")
+		s.WriteBool(x.Exclusive)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the OpsMknodWithContentStart to JSON.
+func (x *OpsMknodWithContentStart) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the OpsMknodWithContentStart message from JSON.
+func (x *OpsMknodWithContentStart) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "cursor_handle_id", "cursorHandleId":
+			s.AddField("cursor_handle_id")
+			x.CursorHandleId = s.ReadUint64()
+		case "ops_handle_id", "opsHandleId":
+			s.AddField("ops_handle_id")
+			x.OpsHandleId = s.ReadUint64()
+		case "name":
+			s.AddField("name")
+			x.Name = s.ReadString()
+		case "total_size", "totalSize":
+			s.AddField("total_size")
+			x.TotalSize = s.ReadInt64()
+		case "permissions":
+			s.AddField("permissions")
+			x.Permissions = s.ReadUint32()
+		case "timestamp":
+			if s.ReadNil() {
+				x.Timestamp = nil
+				return
+			}
+			x.Timestamp = &timestamppb.Timestamp{}
+			x.Timestamp.UnmarshalProtoJSON(s.WithField("timestamp", true))
+		case "exclusive":
+			s.AddField("exclusive")
+			x.Exclusive = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the OpsMknodWithContentStart from JSON.
+func (x *OpsMknodWithContentStart) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the OpsMknodWithContentRequest message to JSON.
+func (x *OpsMknodWithContentRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Body != nil {
+		switch ov := x.Body.(type) {
+		case *OpsMknodWithContentRequest_Start:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("start")
+			ov.Start.MarshalProtoJSON(s.WithField("start"))
+		case *OpsMknodWithContentRequest_Data:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("data")
+			s.WriteBytes(ov.Data)
+		}
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the OpsMknodWithContentRequest to JSON.
+func (x *OpsMknodWithContentRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the OpsMknodWithContentRequest message from JSON.
+func (x *OpsMknodWithContentRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "start":
+			ov := &OpsMknodWithContentRequest_Start{}
+			x.Body = ov
+			if s.ReadNil() {
+				ov.Start = nil
+				return
+			}
+			ov.Start = &OpsMknodWithContentStart{}
+			ov.Start.UnmarshalProtoJSON(s.WithField("start", true))
+		case "data":
+			s.AddField("data")
+			ov := &OpsMknodWithContentRequest_Data{}
+			x.Body = ov
+			ov.Data = s.ReadBytes()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the OpsMknodWithContentRequest from JSON.
+func (x *OpsMknodWithContentRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the OpsMknodWithContentResponse message to JSON.
+func (x *OpsMknodWithContentResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.UnixfsError != nil || s.HasField("unixfsError") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("unixfsError")
+		x.UnixfsError.MarshalProtoJSON(s.WithField("unixfsError"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the OpsMknodWithContentResponse to JSON.
+func (x *OpsMknodWithContentResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the OpsMknodWithContentResponse message from JSON.
+func (x *OpsMknodWithContentResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "unixfs_error", "unixfsError":
+			if s.ReadNil() {
+				x.UnixfsError = nil
+				return
+			}
+			x.UnixfsError = &errors.UnixFSError{}
+			x.UnixfsError.UnmarshalProtoJSON(s.WithField("unixfs_error", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the OpsMknodWithContentResponse from JSON.
+func (x *OpsMknodWithContentResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -8258,6 +8811,198 @@ func (m *OpsMknodResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *OpsMknodWithContentStart) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *OpsMknodWithContentStart) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *OpsMknodWithContentStart) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Exclusive {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Exclusive)
+		i--
+		dAtA[i] = 0x38
+	}
+	if m.Timestamp != nil {
+		size, err := m.Timestamp.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x32
+	}
+	if m.Permissions != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Permissions))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.TotalSize != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.TotalSize))
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.Name) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Name)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.OpsHandleId != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.OpsHandleId))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.CursorHandleId != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CursorHandleId))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *OpsMknodWithContentRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *OpsMknodWithContentRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *OpsMknodWithContentRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if vtmsg, ok := m.Body.(interface {
+		MarshalToSizedBufferVT([]byte) (int, error)
+	}); ok {
+		size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *OpsMknodWithContentRequest_Start) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *OpsMknodWithContentRequest_Start) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Start != nil {
+		size, err := m.Start.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *OpsMknodWithContentRequest_Data) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *OpsMknodWithContentRequest_Data) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Data)
+	i--
+	dAtA[i] = 0x12
+	return len(dAtA) - i, nil
+}
+
+func (m *OpsMknodWithContentResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *OpsMknodWithContentResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *OpsMknodWithContentResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.UnixfsError != nil {
+		size, err := m.UnixfsError.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *OpsSymlinkRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -9538,6 +10283,78 @@ func (m *OpsMknodResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *OpsMknodWithContentStart) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.CursorHandleId)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.OpsHandleId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Name)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.TotalSize)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Permissions)
+	if m.Timestamp != nil {
+		l = m.Timestamp.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Exclusive)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *OpsMknodWithContentRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if vtmsg, ok := m.Body.(interface{ SizeVT() int }); ok {
+		n += vtmsg.SizeVT()
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *OpsMknodWithContentRequest_Start) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Start != nil {
+		l = m.Start.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *OpsMknodWithContentRequest_Data) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBytesValue(1, len(m.Data))
+	return n
+}
+
+func (m *OpsMknodWithContentResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.UnixfsError != nil {
+		l = m.UnixfsError.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *OpsSymlinkRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -10422,6 +11239,80 @@ func (x *OpsMknodResponse) MarshalProtoText() string {
 }
 
 func (x *OpsMknodResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *OpsMknodWithContentStart) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "OpsMknodWithContentStart")
+	if x.CursorHandleId != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "cursor_handle_id")
+		protobuf_go_lite.TextWriteUint(&sb, x.CursorHandleId)
+	}
+	if x.OpsHandleId != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "ops_handle_id")
+		protobuf_go_lite.TextWriteUint(&sb, x.OpsHandleId)
+	}
+	if x.Name != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "name")
+		protobuf_go_lite.TextWriteString(&sb, x.Name)
+	}
+	if x.TotalSize != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "total_size")
+		protobuf_go_lite.TextWriteInt(&sb, x.TotalSize)
+	}
+	if x.Permissions != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "permissions")
+		protobuf_go_lite.TextWriteUint(&sb, x.Permissions)
+	}
+	if x.Timestamp != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "timestamp")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Timestamp)
+	}
+	if x.Exclusive != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "exclusive")
+		protobuf_go_lite.TextWriteBool(&sb, x.Exclusive)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *OpsMknodWithContentStart) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *OpsMknodWithContentRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "OpsMknodWithContentRequest")
+	switch body := x.Body.(type) {
+	case *OpsMknodWithContentRequest_Start:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "start")
+		if body.Start == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &OpsMknodWithContentStart{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Start)
+		}
+	case *OpsMknodWithContentRequest_Data:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "data")
+		protobuf_go_lite.TextWriteBytes(&sb, body.Data)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *OpsMknodWithContentRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *OpsMknodWithContentResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "OpsMknodWithContentResponse")
+	if x.UnixfsError != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "unixfs_error")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.UnixfsError)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *OpsMknodWithContentResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -13024,6 +13915,251 @@ func (m *OpsMknodResponse) UnmarshalVT(dAtA []byte) error {
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: OpsMknodResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UnixfsError", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.UnixfsError == nil {
+				m.UnixfsError = &errors.UnixFSError{}
+			}
+			if err := m.UnixfsError.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *OpsMknodWithContentStart) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: OpsMknodWithContentStart: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: OpsMknodWithContentStart: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CursorHandleId", wireType)
+			}
+			m.CursorHandleId = 0
+			m.CursorHandleId, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OpsHandleId", wireType)
+			}
+			m.OpsHandleId = 0
+			m.OpsHandleId, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Name = v
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TotalSize", wireType)
+			}
+			m.TotalSize = 0
+			m.TotalSize, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Permissions", wireType)
+			}
+			m.Permissions = 0
+			m.Permissions, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Timestamp", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Timestamp == nil {
+				m.Timestamp = &timestamppb.Timestamp{}
+			}
+			if err := m.Timestamp.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Exclusive", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Exclusive = bool(v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *OpsMknodWithContentRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: OpsMknodWithContentRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: OpsMknodWithContentRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Start", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Body.(*OpsMknodWithContentRequest_Start); ok {
+				if err := oneof.Start.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &OpsMknodWithContentStart{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Body = &OpsMknodWithContentRequest_Start{Start: v}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
+			}
+			var v []byte
+			v, iNdEx, err = protobuf_go_lite.DecodeBytes(dAtA, iNdEx, true)
+			if err != nil {
+				return err
+			}
+			m.Body = &OpsMknodWithContentRequest_Data{Data: v}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *OpsMknodWithContentResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: OpsMknodWithContentResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: OpsMknodWithContentResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:

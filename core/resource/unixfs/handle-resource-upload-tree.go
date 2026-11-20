@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/unixfs"
+	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
 	s4wave_unixfs "github.com/s4wave/spacewave/sdk/unixfs"
@@ -32,14 +33,20 @@ type uploadTreeState struct {
 	ordered bool
 }
 
-// UploadTree uploads a directory tree relative to this handle in one batch.
+// UploadTree uploads a directory tree relative to this handle.
+// A World root publishes the tree in one commit. A detached root publishes
+// each complete file separately. A cancelled batch keeps files and directories
+// already published.
 func (r *FSHandleResource) UploadTree(
 	strm s4wave_unixfs.SRPCFSHandleResourceService_UploadTreeStream,
 ) (_ *s4wave_unixfs.HandleUploadTreeResponse, rerr error) {
-	// Require a handle attached to a World object.
+	// Check the resource's access before reading entries from the client.
 	ctx := strm.Context()
+	if r.readOnly {
+		return nil, unixfs_errors.ErrReadOnly
+	}
 	if r.ws == nil || r.objKey == "" {
-		return nil, errors.New("batch tree upload unavailable for detached handle resource")
+		return r.uploadDetachedTree(strm)
 	}
 
 	// Require a directory handle.

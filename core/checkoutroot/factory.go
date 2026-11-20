@@ -4,6 +4,7 @@ package checkoutroot
 
 import (
 	"context"
+	"io"
 	"os"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -12,6 +13,8 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/callback"
 	"github.com/go-git/go-billy/v6/osfs"
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
+	unixfs_rpc "github.com/s4wave/spacewave/db/unixfs/rpc"
+	unixfs_rpc_server "github.com/s4wave/spacewave/db/unixfs/rpc/server"
 )
 
 // version is the checkout-root controller version.
@@ -64,7 +67,14 @@ func (f *Factory) Construct(_ context.Context, config config.Config, opts contro
 	le := opts.GetLogger().WithField("controller", ControllerID)
 	cursor := unixfs_billy.NewBillyFSCursor(filesystem, "")
 	return callback.NewCallbackController(info, func(ctx context.Context) error {
-		return serve(ctx, le, f.b, conf.ProtocolID(), cursor, conf.GetWritable())
+		// The absence of a file publisher makes the RPC connection read-only.
+		var upload unixfs_rpc_server.FileUpload
+		if conf.GetWritable() {
+			upload = func(ctx context.Context, dir string, start *unixfs_rpc.OpsMknodWithContentStart, src io.Reader) error {
+				return publishFile(ctx, root, dir, start, src)
+			}
+		}
+		return serve(ctx, le, f.b, conf.ProtocolID(), cursor, upload)
 	}, nil, root.Close), nil
 }
 

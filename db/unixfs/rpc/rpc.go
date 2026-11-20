@@ -11,6 +11,9 @@ import (
 // This value may be changed in future and is applied server-side.
 const ReadAtSizeLimit int64 = 256e7
 
+// FileUploadChunkSize bounds one file upload frame.
+const FileUploadChunkSize = 64 * 1024
+
 // NewFSCursorChange converts a FSCursorChange into a RPC FSCursorChange.
 func NewFSCursorChange(cursorHandleID uint64, ch *unixfs.FSCursorChange) *FSCursorChange {
 	return &FSCursorChange{

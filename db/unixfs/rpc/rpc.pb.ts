@@ -880,6 +880,98 @@ export const OpsMknodResponse: MessageType<OpsMknodResponse> =
   )
 
 /**
+ * OpsMknodWithContentStart names the file and its complete size.
+ *
+ * @generated from message unixfs.rpc.OpsMknodWithContentStart
+ */
+export interface OpsMknodWithContentStart {
+  /**
+   * CursorHandleId identifies the target directory cursor.
+   */
+  cursorHandleId?: bigint
+  /**
+   * OpsHandleId identifies the current operations of that cursor.
+   */
+  opsHandleId?: bigint
+  /**
+   * Name is one entry name within the directory.
+   */
+  name?: string
+  /**
+   * TotalSize is the number of bytes the stream must deliver.
+   */
+  totalSize?: bigint
+  /**
+   * Permissions is the new file's mode. Zero selects the default.
+   */
+  permissions?: number
+  /**
+   * Timestamp sets the new file's modification time.
+   */
+  timestamp?: Date
+  /**
+   * Exclusive requires the destination to be absent at publication.
+   */
+  exclusive?: boolean
+}
+
+export const OpsMknodWithContentStart: MessageType<OpsMknodWithContentStart> =
+  /* @__PURE__ */ createMessageType<OpsMknodWithContentStart>(
+    'unixfs.rpc.OpsMknodWithContentStart',
+    () => [
+      [1, 'cursor_handle_id', 4],
+      [2, 'ops_handle_id', 4],
+      [3, 'name', 9],
+      [4, 'total_size', 3],
+      [5, 'permissions', 13],
+      [6, 'timestamp', 11, 0, Timestamp.codec],
+      [7, 'exclusive', 8],
+    ],
+  )
+
+/**
+ * OpsMknodWithContentRequest carries the start followed by the file data.
+ *
+ * @generated from message unixfs.rpc.OpsMknodWithContentRequest
+ */
+export interface OpsMknodWithContentRequest {
+  /**
+   * @generated from oneof unixfs.rpc.OpsMknodWithContentRequest.body
+   */
+  body?:
+    | { value?: undefined; case: undefined }
+    | { value: OpsMknodWithContentStart; case: 'start' }
+    | { value: Uint8Array; case: 'data' }
+}
+
+export const OpsMknodWithContentRequest: MessageType<OpsMknodWithContentRequest> =
+  /* @__PURE__ */ createMessageType<OpsMknodWithContentRequest>(
+    'unixfs.rpc.OpsMknodWithContentRequest',
+    () => [
+      [1, 'start', 11, 0, OpsMknodWithContentStart.codec, 'body'],
+      [2, 'data', 12, 0, 0, 'body'],
+    ],
+  )
+
+/**
+ * OpsMknodWithContentResponse reports the publication result.
+ *
+ * @generated from message unixfs.rpc.OpsMknodWithContentResponse
+ */
+export interface OpsMknodWithContentResponse {
+  /**
+   * UnixfsError contains the filesystem error, if any.
+   */
+  unixfsError?: UnixFSError
+}
+
+export const OpsMknodWithContentResponse: MessageType<OpsMknodWithContentResponse> =
+  /* @__PURE__ */ createMessageType<OpsMknodWithContentResponse>(
+    'unixfs.rpc.OpsMknodWithContentResponse',
+    () => [[1, 'unixfs_error', 11, 0, UnixFSError.codec]],
+  )
+
+/**
  * OpsSymlinkRequest is the body of the ops Symlink request.
  *
  * @generated from message unixfs.rpc.OpsSymlinkRequest

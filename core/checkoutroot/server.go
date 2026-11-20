@@ -30,14 +30,14 @@ type Server struct {
 	protocol protocol.ID
 	// root supplies independent cursors that share the same filesystem.
 	root *unixfs_billy.BillyFSCursor
-	// writable is the node's setting for all connections to this root.
-	writable bool
+	// upload publishes files when the node allows writes.
+	upload unixfs_rpc_server.FileUpload
 }
 
 // serve adds the handler until the checkout-root controller stops.
-func serve(ctx context.Context, le *logrus.Entry, b bus.Bus, id protocol.ID, root *unixfs_billy.BillyFSCursor, writable bool) error {
+func serve(ctx context.Context, le *logrus.Entry, b bus.Bus, id protocol.ID, root *unixfs_billy.BillyFSCursor, upload unixfs_rpc_server.FileUpload) error {
 	// Offer the checkout root to the Device's Session transport.
-	s := &Server{ctx: ctx, le: le, b: b, protocol: id, root: root, writable: writable}
+	s := &Server{ctx: ctx, le: le, b: b, protocol: id, root: root, upload: upload}
 	release, err := b.AddHandler(s)
 	if err != nil {
 		return err
@@ -104,11 +104,7 @@ func (s *Server) serveStream(linkCtx context.Context, ms link.MountedStream) {
 
 	// Give this connection its own set of cursor and operation handles.
 	cursor := s.root.Clone()
-	newService := unixfs_rpc_server.NewReadOnlyFSCursorService
-	if s.writable {
-		newService = unixfs_rpc_server.NewFSCursorService
-	}
-	service := newService(cursor)
+	service := unixfs_rpc_server.NewFSCursorServiceWithFileUpload(cursor, s.upload)
 	defer service.Release(true)
 	mux := srpc.NewMux()
 	if err := unixfs_rpc.SRPCRegisterFSCursorService(mux, service); err != nil {

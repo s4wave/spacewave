@@ -25,6 +25,8 @@ import {
   OpsLookupResponse,
   OpsMknodRequest,
   OpsMknodResponse,
+  OpsMknodWithContentRequest,
+  OpsMknodWithContentResponse,
   OpsMoveFromRequest,
   OpsMoveFromResponse,
   OpsMoveToRequest,
@@ -53,6 +55,7 @@ import {
 import { MethodKind } from '@aptre/protobuf-es-lite'
 import {
   buildDecodeMessageTransform,
+  buildEncodeMessageTransform,
   MessageStream,
   ProtoRpc,
   ServerContext,
@@ -252,6 +255,17 @@ export const FSCursorServiceDefinition = {
       I: OpsMknodRequest,
       O: OpsMknodResponse,
       kind: MethodKind.Unary,
+    },
+    /**
+     * OpsMknodWithContent receives and publishes one complete regular file.
+     *
+     * @generated from rpc unixfs.rpc.FSCursorService.OpsMknodWithContent
+     */
+    OpsMknodWithContent: {
+      name: 'OpsMknodWithContent',
+      I: OpsMknodWithContentRequest,
+      O: OpsMknodWithContentResponse,
+      kind: MethodKind.ClientStreaming,
     },
     /**
      * OpsSymlink creates a symbolic link from a location to a path.
@@ -509,6 +523,16 @@ export interface FSCursorService {
     request: OpsMknodRequest,
     abortSignal?: AbortSignal,
   ): Promise<OpsMknodResponse>
+
+  /**
+   * OpsMknodWithContent receives and publishes one complete regular file.
+   *
+   * @generated from rpc unixfs.rpc.FSCursorService.OpsMknodWithContent
+   */
+  OpsMknodWithContent(
+    request: MessageStream<OpsMknodWithContentRequest>,
+    abortSignal?: AbortSignal,
+  ): Promise<OpsMknodWithContentResponse>
 
   /**
    * OpsSymlink creates a symbolic link from a location to a path.
@@ -775,6 +799,17 @@ export interface FSCursorServiceHandler {
   ): Promise<OpsMknodResponse>
 
   /**
+   * OpsMknodWithContent receives and publishes one complete regular file.
+   *
+   * @generated from rpc unixfs.rpc.FSCursorService.OpsMknodWithContent
+   */
+  OpsMknodWithContent(
+    request: MessageStream<OpsMknodWithContentRequest>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<OpsMknodWithContentResponse>
+
+  /**
    * OpsSymlink creates a symbolic link from a location to a path.
    *
    * @generated from rpc unixfs.rpc.FSCursorService.OpsSymlink
@@ -876,6 +911,7 @@ export class FSCursorServiceClient implements FSCursorService {
     this.OpsLookup = this.OpsLookup.bind(this)
     this.OpsReaddirAll = this.OpsReaddirAll.bind(this)
     this.OpsMknod = this.OpsMknod.bind(this)
+    this.OpsMknodWithContent = this.OpsMknodWithContent.bind(this)
     this.OpsSymlink = this.OpsSymlink.bind(this)
     this.OpsReadlink = this.OpsReadlink.bind(this)
     this.OpsCopyTo = this.OpsCopyTo.bind(this)
@@ -1192,6 +1228,24 @@ export class FSCursorServiceClient implements FSCursorService {
       abortSignal || undefined,
     )
     return OpsMknodResponse.fromBinary(result)
+  }
+
+  /**
+   * OpsMknodWithContent receives and publishes one complete regular file.
+   *
+   * @generated from rpc unixfs.rpc.FSCursorService.OpsMknodWithContent
+   */
+  async OpsMknodWithContent(
+    request: MessageStream<OpsMknodWithContentRequest>,
+    abortSignal?: AbortSignal,
+  ): Promise<OpsMknodWithContentResponse> {
+    const result = await this.rpc.clientStreamingRequest(
+      this.service,
+      FSCursorServiceDefinition.methods.OpsMknodWithContent.name,
+      buildEncodeMessageTransform(OpsMknodWithContentRequest)(request),
+      abortSignal || undefined,
+    )
+    return OpsMknodWithContentResponse.fromBinary(result)
   }
 
   /**

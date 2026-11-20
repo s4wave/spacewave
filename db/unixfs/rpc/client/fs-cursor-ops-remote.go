@@ -426,7 +426,7 @@ func (o *remoteFSCursorOps) ReaddirAll(ctx context.Context, skip uint64, cb func
 // Mknod creates child entries in a directory.
 // inode must be a directory.
 // if permissions is zero, default permissions will be set.
-// if checkExist, checks if name exists, returns ErrExist if so
+// if checkExist, checks if name exists, returns ErrExist if so.
 func (o *remoteFSCursorOps) Mknod(
 	ctx context.Context,
 	checkExist bool,
@@ -726,12 +726,57 @@ func (o *remoteFSCursorOps) Remove(ctx context.Context, names []string, ts time.
 	return nil
 }
 
-// MknodWithContent returns ErrReadOnly (RPC support not yet implemented).
+// SupportsExclusiveFileCreate forwards the exclusive creation requirement to the server.
+func (o *remoteFSCursorOps) SupportsExclusiveFileCreate() {}
+
+// MknodWithContent streams a regular file to the remote directory for atomic publication.
 func (o *remoteFSCursorOps) MknodWithContent(ctx context.Context, name string, nodeType unixfs.FSCursorNodeType, dataLen int64, rdr io.Reader, permissions fs.FileMode, ts time.Time) error {
+	// Validate the operation before opening an upload stream.
 	if o.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
-	return unixfs_errors.ErrReadOnly
+	if !nodeType.GetIsFile() {
+		return unixfs_errors.ErrNotFile
+	}
+	if dataLen < 0 {
+		return io.ErrUnexpectedEOF
+	}
+
+	// Open the stream and give the server the file's identity and publication rule.
+	strm, err := o.c.c.client.OpsMknodWithContent(ctx)
+	if err != nil {
+		return err
+	}
+	defer strm.Close()
+	start := &unixfs_rpc.OpsMknodWithContentStart{
+		CursorHandleId: o.c.cursorHandleID, OpsHandleId: o.handleID, Name: name,
+		TotalSize: dataLen, Permissions: uint32(permissions.Perm()), Timestamp: timestamp.ToTimestamp(ts),
+		Exclusive: unixfs.IsExclusiveFileCreate(ctx),
+	}
+	if err := strm.Send(&unixfs_rpc.OpsMknodWithContentRequest{Body: &unixfs_rpc.OpsMknodWithContentRequest_Start{Start: start}}); err != nil {
+		return err
+	}
+
+	// Read and send bounded chunks without consuming bytes from the next file.
+	buf := make([]byte, min(dataLen, unixfs_rpc.FileUploadChunkSize))
+	for remaining := dataLen; remaining > 0; {
+		chunk := buf[:min(remaining, int64(len(buf)))]
+		if _, err := io.ReadFull(rdr, chunk); err != nil {
+			return err
+		}
+		if err := strm.Send(&unixfs_rpc.OpsMknodWithContentRequest{Body: &unixfs_rpc.OpsMknodWithContentRequest_Data{Data: chunk}}); err != nil {
+			return err
+		}
+		remaining -= int64(len(chunk))
+	}
+
+	// Finish the stream and report the Device's publication result.
+	res, err := strm.CloseAndRecv()
+	if err == nil {
+		err = res.GetUnixfsError().ToGoError()
+	}
+	o.handleErr(err, true)
+	return err
 }
 
 // handleErr handles when an operations function returns an error.

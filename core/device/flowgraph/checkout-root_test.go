@@ -7,6 +7,8 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -86,6 +88,14 @@ func checkCheckoutRootAccess(t *testing.T, ctx context.Context, device peer.ID, 
 	}
 	if !writable && !errors.Is(writeErr, unixfs_errors.ErrReadOnly) {
 		t.Fatalf("write error = %v, want read-only refusal", writeErr)
+	}
+
+	// A read-only root also refuses the streaming file-create method.
+	if !writable {
+		checkReadOnlyUpload(t, ctx, client, init.GetCursorHandleId(), root.GetOpsHandleId())
+	}
+	if writable {
+		checkInterruptedUpload(t, ctx, client, init.GetCursorHandleId(), root.GetOpsHandleId(), dir)
 	}
 
 	// Check the host bytes independently of the RPC service.
@@ -177,4 +187,131 @@ func checkCheckoutRootResource(t *testing.T, ctx context.Context, le *logrus.Ent
 		t.Fatal(err)
 	}
 
+	// Check streamed publication through the same Resource SDK.
+	checkLiveUploadTree(t, ctx, writer, dir)
+}
+
+// checkReadOnlyUpload requires a refusal with all file upload start fields populated.
+func checkReadOnlyUpload(t *testing.T, ctx context.Context, client unixfs_rpc.SRPCFSCursorServiceClient, cursorID, opsID uint64) {
+	// Open the upload stream and populate every field before closing the sender.
+	t.Helper()
+	strm, err := client.OpsMknodWithContent(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer strm.Close()
+	// The Device may return its refusal before Send finishes.
+	_ = strm.Send(&unixfs_rpc.OpsMknodWithContentRequest{
+		Body: &unixfs_rpc.OpsMknodWithContentRequest_Start{Start: &unixfs_rpc.OpsMknodWithContentStart{
+			CursorHandleId: cursorID, OpsHandleId: opsID, Name: "cannot-create",
+			TotalSize: 1, Permissions: 0o600, Timestamp: timestamppb.Now(), Exclusive: true,
+		}},
+	})
+
+	// Refusal must come from the Device before the body starts.
+	resp, err := strm.CloseAndRecv()
+	if err != nil || !errors.Is(resp.GetUnixfsError().ToGoError(), unixfs_errors.ErrReadOnly) {
+		t.Fatalf("read-only upload returned %v, error %v", resp, err)
+	}
+}
+
+// checkInterruptedUpload verifies cleanup before an incomplete Device stream returns.
+func checkInterruptedUpload(t *testing.T, ctx context.Context, client unixfs_rpc.SRPCFSCursorServiceClient, cursorID, opsID uint64, host string) {
+	// Send a short body targeting an existing file.
+	t.Helper()
+	strm, err := client.OpsMknodWithContent(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer strm.Close()
+	start := &unixfs_rpc.OpsMknodWithContentStart{
+		CursorHandleId: cursorID, OpsHandleId: opsID, Name: "file.txt",
+		TotalSize: 9, Permissions: 0o600, Timestamp: timestamppb.Now(),
+	}
+	if err := strm.Send(&unixfs_rpc.OpsMknodWithContentRequest{Body: &unixfs_rpc.OpsMknodWithContentRequest_Start{Start: start}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := strm.Send(&unixfs_rpc.OpsMknodWithContentRequest{Body: &unixfs_rpc.OpsMknodWithContentRequest_Data{Data: []byte("short")}}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Wait for publication to fail and its staging entry to be removed.
+	res, err := strm.CloseAndRecv()
+	if err != nil || res.GetUnixfsError() == nil {
+		t.Fatalf("incomplete upload returned %v, error %v", res, err)
+	}
+	entries, err := os.ReadDir(host)
+	if err != nil || len(entries) != 1 || entries[0].Name() != "file.txt" {
+		t.Fatalf("host entries after incomplete upload = %v, error %v", entries, err)
+	}
+}
+
+// checkLiveUploadTree checks batch completion and partial batch retention on disk.
+func checkLiveUploadTree(t *testing.T, ctx context.Context, root s4wave_unixfs.SRPCFSHandleResourceServiceClient, host string) {
+	// Publish a folder and two files in one batch through the Device stream.
+	t.Helper()
+	strm, err := root.UploadTree(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer strm.Close()
+	dir := &s4wave_unixfs.HandleUploadTreeDirectory{Path: "upload", ExpectMissing: true}
+	if err := strm.Send(&s4wave_unixfs.HandleUploadTreeRequest{Body: &s4wave_unixfs.HandleUploadTreeRequest_Directory{Directory: dir}}); err != nil {
+		t.Fatal(err)
+	}
+	sendLiveUploadFile(t, strm, "upload/data.txt", 4, "data")
+	sendLiveUploadFile(t, strm, "upload/empty.txt", 0, "")
+	resp, err := strm.CloseAndRecv()
+	written := resp.GetWritten()
+	if err != nil || written.GetFilesWritten() != 2 || written.GetDirectoriesWritten() != 1 || written.GetBytesWritten() != 4 {
+		t.Fatalf("folder upload returned %v, error %v", resp, err)
+	}
+
+	// Interrupt a later file after an earlier one in the batch was published.
+	broken, err := root.UploadTree(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer broken.Close()
+	sendLiveUploadFile(t, broken, "upload/retained.txt", 4, "keep")
+	sendLiveUploadFile(t, broken, "upload/partial.txt", int64(unixfs_rpc.FileUploadChunkSize+1), strings.Repeat("x", unixfs_rpc.FileUploadChunkSize))
+	if _, err := broken.CloseAndRecv(); err == nil {
+		t.Fatal("short upload succeeded")
+	}
+
+	// Confirm what reached the host before the interrupted batch ended.
+	for name, want := range map[string]string{"data.txt": "data", "empty.txt": "", "retained.txt": "keep"} {
+		bytes, err := os.ReadFile(filepath.Join(host, "upload", name))
+		if err != nil || string(bytes) != want {
+			t.Fatalf("host upload %s = %q, error %v", name, bytes, err)
+		}
+	}
+	entries, err := os.ReadDir(filepath.Join(host, "upload"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	names := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		if !strings.HasPrefix(entry.Name(), ".spacewave-upload-") {
+			names = append(names, entry.Name())
+		}
+	}
+	if !slices.Equal(names, []string{"data.txt", "empty.txt", "retained.txt"}) {
+		t.Fatalf("published names = %v", names)
+	}
+}
+
+// sendLiveUploadFile sends the start and one data frame of a test file.
+func sendLiveUploadFile(t *testing.T, strm s4wave_unixfs.SRPCFSHandleResourceService_UploadTreeClient, path string, size int64, data string) {
+	// Start the file, then send its frame when it has content.
+	t.Helper()
+	start := &s4wave_unixfs.HandleUploadTreeFileStart{Path: path, TotalSize: size, Mode: 0o600}
+	if err := strm.Send(&s4wave_unixfs.HandleUploadTreeRequest{Body: &s4wave_unixfs.HandleUploadTreeRequest_FileStart{FileStart: start}}); err != nil {
+		t.Fatal(err)
+	}
+	if data != "" {
+		if err := strm.Send(&s4wave_unixfs.HandleUploadTreeRequest{Body: &s4wave_unixfs.HandleUploadTreeRequest_Data{Data: []byte(data)}}); err != nil {
+			t.Fatal(err)
+		}
+	}
 }
