@@ -1853,6 +1853,85 @@ func (x *SetSpaceRosterResponse) GetAwaitingGroup() bool {
 	return false
 }
 
+// LinkFolderRequest selects a folder on this device and the UnixFS directory
+// it links to.
+type LinkFolderRequest struct {
+	unknownFields []byte
+	// ObjectKey is the key of the UnixFS object.
+	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+	// Path is the existing directory below the UnixFS root that receives the
+	// folder's entries, empty for the root.
+	Path string `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
+	// Folder is the absolute path of the folder on this device.
+	Folder string `protobuf:"bytes,3,opt,name=folder,proto3" json:"folder,omitempty"`
+}
+
+func (x *LinkFolderRequest) Reset() {
+	*x = LinkFolderRequest{}
+}
+
+func (*LinkFolderRequest) ProtoMessage() {}
+
+func (x *LinkFolderRequest) GetObjectKey() string {
+	if x != nil {
+		return x.ObjectKey
+	}
+	return ""
+}
+
+func (x *LinkFolderRequest) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *LinkFolderRequest) GetFolder() string {
+	if x != nil {
+		return x.Folder
+	}
+	return ""
+}
+
+// LinkFolderProgress counts the files a LinkFolder call has published.
+type LinkFolderProgress struct {
+	unknownFields []byte
+	// Files is the number of files linked.
+	Files uint64 `protobuf:"varint,1,opt,name=files,proto3" json:"files,omitempty"`
+	// Bytes is the number of file bytes indexed.
+	Bytes uint64 `protobuf:"varint,2,opt,name=bytes,proto3" json:"bytes,omitempty"`
+	// Done is set on the last message, once the World holding every file is
+	// durable.
+	Done bool `protobuf:"varint,3,opt,name=done,proto3" json:"done,omitempty"`
+}
+
+func (x *LinkFolderProgress) Reset() {
+	*x = LinkFolderProgress{}
+}
+
+func (*LinkFolderProgress) ProtoMessage() {}
+
+func (x *LinkFolderProgress) GetFiles() uint64 {
+	if x != nil {
+		return x.Files
+	}
+	return 0
+}
+
+func (x *LinkFolderProgress) GetBytes() uint64 {
+	if x != nil {
+		return x.Bytes
+	}
+	return 0
+}
+
+func (x *LinkFolderProgress) GetDone() bool {
+	if x != nil {
+		return x.Done
+	}
+	return false
+}
+
 // SetSpaceBackfillRequest chooses this device's backfill of the World.
 type SetSpaceBackfillRequest struct {
 	unknownFields []byte
@@ -2958,6 +3037,42 @@ func (m *SetSpaceRosterResponse) CloneVT() *SetSpaceRosterResponse {
 }
 
 func (m *SetSpaceRosterResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *LinkFolderRequest) CloneVT() *LinkFolderRequest {
+	if m == nil {
+		return (*LinkFolderRequest)(nil)
+	}
+	r := new(LinkFolderRequest)
+	r.ObjectKey = m.ObjectKey
+	r.Path = m.Path
+	r.Folder = m.Folder
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *LinkFolderRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *LinkFolderProgress) CloneVT() *LinkFolderProgress {
+	if m == nil {
+		return (*LinkFolderProgress)(nil)
+	}
+	r := new(LinkFolderProgress)
+	r.Files = m.Files
+	r.Bytes = m.Bytes
+	r.Done = m.Done
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *LinkFolderProgress) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -4354,6 +4469,58 @@ func (this *SetSpaceRosterResponse) EqualVT(that *SetSpaceRosterResponse) bool {
 
 func (this *SetSpaceRosterResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SetSpaceRosterResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *LinkFolderRequest) EqualVT(that *LinkFolderRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ObjectKey != that.ObjectKey {
+		return false
+	}
+	if this.Path != that.Path {
+		return false
+	}
+	if this.Folder != that.Folder {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *LinkFolderRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*LinkFolderRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *LinkFolderProgress) EqualVT(that *LinkFolderProgress) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Files != that.Files {
+		return false
+	}
+	if this.Bytes != that.Bytes {
+		return false
+	}
+	if this.Done != that.Done {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *LinkFolderProgress) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*LinkFolderProgress)
 	if !ok {
 		return false
 	}
@@ -7614,6 +7781,122 @@ func (x *SetSpaceRosterResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the LinkFolderRequest message to JSON.
+func (x *LinkFolderRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ObjectKey != "" || s.HasField("objectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectKey")
+		s.WriteString(x.ObjectKey)
+	}
+	if x.Path != "" || s.HasField("path") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("path")
+		s.WriteString(x.Path)
+	}
+	if x.Folder != "" || s.HasField("folder") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("folder")
+		s.WriteString(x.Folder)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the LinkFolderRequest to JSON.
+func (x *LinkFolderRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the LinkFolderRequest message from JSON.
+func (x *LinkFolderRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "object_key", "objectKey":
+			s.AddField("object_key")
+			x.ObjectKey = s.ReadString()
+		case "path":
+			s.AddField("path")
+			x.Path = s.ReadString()
+		case "folder":
+			s.AddField("folder")
+			x.Folder = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the LinkFolderRequest from JSON.
+func (x *LinkFolderRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the LinkFolderProgress message to JSON.
+func (x *LinkFolderProgress) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Files != 0 || s.HasField("files") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("files")
+		s.WriteUint64(x.Files)
+	}
+	if x.Bytes != 0 || s.HasField("bytes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("bytes")
+		s.WriteUint64(x.Bytes)
+	}
+	if x.Done || s.HasField("done") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("done")
+		s.WriteBool(x.Done)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the LinkFolderProgress to JSON.
+func (x *LinkFolderProgress) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the LinkFolderProgress message from JSON.
+func (x *LinkFolderProgress) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "files":
+			s.AddField("files")
+			x.Files = s.ReadUint64()
+		case "bytes":
+			s.AddField("bytes")
+			x.Bytes = s.ReadUint64()
+		case "done":
+			s.AddField("done")
+			x.Done = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the LinkFolderProgress from JSON.
+func (x *LinkFolderProgress) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the SetSpaceBackfillRequest message to JSON.
 func (x *SetSpaceBackfillRequest) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -10477,6 +10760,100 @@ func (m *SetSpaceRosterResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	return len(dAtA) - i, nil
 }
 
+func (m *LinkFolderRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *LinkFolderRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *LinkFolderRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Folder) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Folder)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Path) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Path)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ObjectKey)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *LinkFolderProgress) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *LinkFolderProgress) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *LinkFolderProgress) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Done {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Done)
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.Bytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Bytes))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Files != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Files))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *SetSpaceBackfillRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -11675,6 +12052,32 @@ func (m *SetSpaceRosterResponse) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Changed)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.AwaitingGroup)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *LinkFolderRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ObjectKey)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Path)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Folder)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *LinkFolderProgress) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Files)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Bytes)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Done)
 	n += len(m.unknownFields)
 	return n
 }
@@ -12946,6 +13349,50 @@ func (x *SetSpaceRosterResponse) MarshalProtoText() string {
 }
 
 func (x *SetSpaceRosterResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *LinkFolderRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "LinkFolderRequest")
+	if x.ObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.ObjectKey)
+	}
+	if x.Path != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "path")
+		protobuf_go_lite.TextWriteString(&sb, x.Path)
+	}
+	if x.Folder != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "folder")
+		protobuf_go_lite.TextWriteString(&sb, x.Folder)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *LinkFolderRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *LinkFolderProgress) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "LinkFolderProgress")
+	if x.Files != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "files")
+		protobuf_go_lite.TextWriteUint(&sb, x.Files)
+	}
+	if x.Bytes != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "bytes")
+		protobuf_go_lite.TextWriteUint(&sb, x.Bytes)
+	}
+	if x.Done != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "done")
+		protobuf_go_lite.TextWriteBool(&sb, x.Done)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *LinkFolderProgress) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -16457,6 +16904,150 @@ func (m *SetSpaceRosterResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.AwaitingGroup = bool(v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *LinkFolderRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: LinkFolderRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: LinkFolderRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ObjectKey = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Path", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Path = v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Folder", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Folder = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *LinkFolderProgress) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: LinkFolderProgress: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: LinkFolderProgress: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Files", wireType)
+			}
+			m.Files = 0
+			m.Files, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Bytes", wireType)
+			}
+			m.Bytes = 0
+			m.Bytes, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Done", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Done = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

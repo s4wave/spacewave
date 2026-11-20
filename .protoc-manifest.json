@@ -2164,6 +2164,16 @@
             "db/block/store/bucket/config.proto"
           ]
         },
+        "github.com/s4wave/spacewave/db/block/store/filesegment": {
+          "hash": "6b8cc94187e90432042ccf637f210509098d365ef22b8ce6c15cfee4f9f94577",
+          "generatedFiles": [
+            "db/block/store/filesegment/filesegment.pb.go",
+            "db/block/store/filesegment/filesegment.pb.ts"
+          ],
+          "protoFiles": [
+            "db/block/store/filesegment/filesegment.proto"
+          ]
+        },
         "github.com/s4wave/spacewave/db/block/store/http": {
           "hash": "91d82e951181726e62df18f8103c740cb6c28adfc101a5dc4f7de5983aca0515",
           "generatedFiles": [
@@ -4616,7 +4626,7 @@
           ]
         },
         "github.com/s4wave/spacewave/sdk/space": {
-          "hash": "5d1bb7b66e93495cecfc6d1bcffda19b37fcce918f2604653d5646d254f13813",
+          "hash": "7f7122c126d16b7629d7654fae970d4e8d476f13c062b20b4029c6c66621a6b9",
           "generatedFiles": [
             "sdk/space/space.pb.go",
             "sdk/space/space.pb.ts",
