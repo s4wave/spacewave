@@ -398,6 +398,53 @@ func TestBranch(t *testing.T) {
 	e.waitJob(forge_job.State_JobState_COMPLETE)
 }
 
+// TestBranchNotTaken completes a run whose gate routed away from a join,
+// dropping the join's other input, and still pauses at a join whose missing
+// input's Step never ran.
+func TestBranchNotTaken(t *testing.T) {
+	for _, through := range []bool{false, true} {
+		// A source and a declining gate feed a join, the gate either directly
+		// or through a Step its approval would have started.
+		e := newEnv(t)
+		nodes := map[string]*s4wave_flowgraph.FlowgraphNode{
+			"gate": e.step(nil, [2]string{"approve", "decline"}, false, nil),
+			"join": e.step([]string{"approve", "data"}, [2]string{"done", "other"}, true, nil),
+			"src":  e.step(nil, [2]string{"out", "none"}, true, nil),
+		}
+		connections := map[string]*s4wave_flowgraph.FlowgraphConnection{
+			"approve": connect("gate", "approve", "join", "approve"),
+			"data":    connect("src", "out", "join", "data"),
+		}
+		if through {
+			nodes["mid"] = e.step([]string{"in"}, [2]string{"out", "none"}, true, nil)
+			connections["approve"] = connect("gate", "approve", "mid", "in")
+			connections["mid"] = connect("mid", "out", "join", "approve")
+		}
+		e.createGraph(nodes, connections)
+		e.startWorker()
+		e.startRun()
+		e.startController()
+
+		// The direct decline completes with nothing waiting; the indirect one
+		// pauses at the join with its input kept.
+		if !through {
+			run := e.waitRun(s4wave_flowgraph.FlowgraphRunState_FLOWGRAPH_RUN_STATE_COMPLETE)
+			requireTrace(t, run, "gate.decline", "src.out")
+			if arrivals := run.GetArrivals(); len(arrivals) != 0 {
+				t.Fatalf("arrivals = %v, want none", arrivals)
+			}
+			continue
+		}
+		run := e.waitRun(s4wave_flowgraph.FlowgraphRunState_FLOWGRAPH_RUN_STATE_PAUSED)
+		if run.GetPausedNode() != "join" || run.GetPauseReason() != "step is missing inputs" {
+			t.Fatalf("paused at %q: %q", run.GetPausedNode(), run.GetPauseReason())
+		}
+		if arrivals := run.GetArrivals(); len(arrivals) != 1 || arrivals[0].GetPort() != "data" {
+			t.Fatalf("arrivals = %v, want the join's data", arrivals)
+		}
+	}
+}
+
 // TestNoOutputFailsStep pauses at a Step that sets no output port and keeps
 // its input for a resume.
 func TestNoOutputFailsStep(t *testing.T) {

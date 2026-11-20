@@ -299,27 +299,35 @@ func (r *runner) ready(nodeID string, ports []string, keyed bool) ([]int, string
 		ports = []string{""}
 	}
 
-	// Collect the keys to try: the arrivals' keys for a keyed Step, otherwise
-	// one pass that matches any key.
+	// Index the Step's earliest arrival at each port, by key for a keyed Step
+	// and under one empty key otherwise, keeping the keys in arrival order.
 	var tries []string
-	if keyed {
-		for _, arrival := range r.run.GetArrivals() {
-			if arrival.GetNodeId() == nodeID && !slices.Contains(tries, arrival.GetKey()) {
-				tries = append(tries, arrival.GetKey())
-			}
+	earliest := make(map[string]map[string]int)
+	for i, arrival := range r.run.GetArrivals() {
+		if arrival.GetNodeId() != nodeID {
+			continue
 		}
-	} else {
-		tries = []string{""}
+		var key string
+		if keyed {
+			key = arrival.GetKey()
+		}
+		byPort := earliest[key]
+		if byPort == nil {
+			byPort = make(map[string]int)
+			earliest[key] = byPort
+			tries = append(tries, key)
+		}
+		if _, ok := byPort[arrival.GetPort()]; !ok {
+			byPort[arrival.GetPort()] = i
+		}
 	}
 
-	// Take the earliest arrival at each port.
+	// Take the first key with an arrival at every port.
 	for _, key := range tries {
 		taken := make([]int, 0, len(ports))
 		for _, port := range ports {
-			i := slices.IndexFunc(r.run.GetArrivals(), func(arrival *s4wave_flowgraph.FlowgraphArrival) bool {
-				return arrival.GetNodeId() == nodeID && arrival.GetPort() == port && (!keyed || arrival.GetKey() == key)
-			})
-			if i < 0 {
+			i, ok := earliest[key][port]
+			if !ok {
 				break
 			}
 			taken = append(taken, i)
@@ -333,12 +341,15 @@ func (r *runner) ready(nodeID string, ports []string, keyed bool) ([]int, string
 
 // consume removes the arrivals at the given indexes and returns them.
 func (r *runner) consume(taken []int) []*s4wave_flowgraph.FlowgraphArrival {
+	// Collect the taken arrivals, then remove them from the queue.
 	inputs := make([]*s4wave_flowgraph.FlowgraphArrival, 0, len(taken))
+	drop := make(map[*s4wave_flowgraph.FlowgraphArrival]bool, len(taken))
 	for _, i := range taken {
 		inputs = append(inputs, r.run.Arrivals[i])
+		drop[r.run.Arrivals[i]] = true
 	}
 	r.run.Arrivals = slices.DeleteFunc(r.run.Arrivals, func(arrival *s4wave_flowgraph.FlowgraphArrival) bool {
-		return slices.Contains(inputs, arrival)
+		return drop[arrival]
 	})
 	return inputs
 }
@@ -495,18 +506,83 @@ func arrivalInput(arrival *s4wave_flowgraph.FlowgraphArrival) *forge_target.Inpu
 }
 
 // settle completes a running run with nothing running or waiting, and pauses
-// one whose waiting inputs can no longer meet. A standing run does neither:
-// it is never COMPLETE, and an arrival waiting at a joined Step is the next
+// one whose waiting inputs can no longer meet. Inputs waiting at a Step that a
+// branch not taken left unable to run are dropped first, so a run whose
+// decision routed away from a join completes. A standing run does neither: it
+// is never COMPLETE, and an arrival waiting at a joined Step is the next
 // event's partner, not a stuck input.
 func (r *runner) settle() {
+	// Settle only a running run with nothing running, never a standing one.
 	if r.run.GetStanding() || r.run.GetState() != s4wave_flowgraph.FlowgraphRunState_FLOWGRAPH_RUN_STATE_RUNNING || len(r.running()) != 0 {
 		return
 	}
+
+	// Drop the inputs of each Step a branch not taken left unable to run.
+	filled := make(map[string]map[string]bool)
+	for _, arrival := range r.run.GetArrivals() {
+		id := arrival.GetNodeId()
+		if filled[id] == nil {
+			filled[id] = make(map[string]bool)
+		}
+		filled[id][arrival.GetPort()] = true
+	}
+	stranded := make(map[string]bool, len(filled))
+	for id, ports := range filled {
+		stranded[id] = r.stranded(id, ports)
+	}
+	r.run.Arrivals = slices.DeleteFunc(r.run.GetArrivals(), func(arrival *s4wave_flowgraph.FlowgraphArrival) bool {
+		return stranded[arrival.GetNodeId()]
+	})
+
+	// Pause on any other input that waits, else complete.
 	if arrivals := r.run.GetArrivals(); len(arrivals) != 0 {
 		r.pause(arrivals[0].GetNodeId(), "step is missing inputs")
 		return
 	}
 	r.run.State = s4wave_flowgraph.FlowgraphRunState_FLOWGRAPH_RUN_STATE_COMPLETE
+}
+
+// stranded reports whether a Step, whose waiting arrivals fill the ports in
+// filled, waits on an input port that a branch not taken will never fill:
+// every node feeding the port has activated, and none of its activations chose
+// the output that feeds it. A port missing for another reason, such as a
+// feeding node that never ran, leaves the Step waiting, so the run pauses
+// there.
+func (r *runner) stranded(nodeID string, filled map[string]bool) bool {
+	for _, port := range inputPorts(r.graph, nodeID) {
+		if !filled[port] && r.notTaken(nodeID, port) {
+			return true
+		}
+	}
+	return false
+}
+
+// notTaken reports whether every connection into a Step's input port comes
+// from a node whose activations all routed an output, none of them the
+// connection's. A failed activation routed nothing.
+func (r *runner) notTaken(nodeID, port string) bool {
+	for _, connection := range r.graph.GetConnections() {
+		if connection.GetInputNode() != nodeID || connection.GetInputPort() != port {
+			continue
+		}
+
+		// Require the feeding node to have run and routed elsewhere.
+		ran := false
+		for _, activation := range r.run.GetActivations() {
+			if activation.GetNodeId() != connection.GetOutputNode() {
+				continue
+			}
+			output := activation.GetOutput()
+			if !activation.GetDone() || output == "" || output == connection.GetOutputPort() {
+				return false
+			}
+			ran = true
+		}
+		if !ran {
+			return false
+		}
+	}
+	return true
 }
 
 // pause stops starting Steps. The first reason is kept.
@@ -547,12 +623,12 @@ func (r *runner) running() []string {
 func inputPorts(graph *s4wave_flowgraph.Flowgraph, nodeID string) []string {
 	var ports []string
 	for _, connection := range graph.GetConnections() {
-		if connection.GetInputNode() == nodeID && !slices.Contains(ports, connection.GetInputPort()) {
+		if connection.GetInputNode() == nodeID {
 			ports = append(ports, connection.GetInputPort())
 		}
 	}
 	slices.Sort(ports)
-	return ports
+	return slices.Compact(ports)
 }
 
 // readOutput reads a reserved output's blob through its storage reference.
