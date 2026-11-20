@@ -422,7 +422,7 @@ func (f *qemuGitea) output(task, name string) []byte {
 func (f *qemuGitea) requireGuestBindings(original, replacement string) {
 	// Require exactly the two durable bindings reported by the static init.
 	count := 0
-	for _, line := range strings.Split(original, "\n") {
+	for line := range strings.SplitSeq(original, "\n") {
 		if strings.HasPrefix(line, "SPACEWAVE_OS_BINDING role=") {
 			count++
 			if !strings.Contains(replacement, line) {
