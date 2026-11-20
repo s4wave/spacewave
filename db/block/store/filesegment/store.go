@@ -4,20 +4,29 @@ import (
 	"context"
 	"io"
 	"os"
+	"sync"
 	"sync/atomic"
 
 	"github.com/s4wave/spacewave/db/block"
+	block_store "github.com/s4wave/spacewave/db/block/store"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
-// Store is a read-only block source whose blocks are file ranges. It returns a
-// block only when the range re-encodes to the requested ref, so a changed file
-// reads as a miss and never as wrong data. It never writes or deletes.
+// Store is the FileSegmentStore: a read-only block source whose blocks are
+// file ranges recorded in a SegmentIndex. It returns a block only when the
+// range re-encodes to the requested ref, so a changed file reads as a miss and
+// never as wrong data. It never writes or deletes a block or a file; its write
+// methods return block_store.ErrReadOnly.
 //
-// Prototype: it embeds block.NopStoreOps for the write and root methods.
+// It reads nothing until SetTransformer gives it the Space's transform, which
+// the World holds and the session lock keeps from rest.
 type Store struct {
-	block.NopStoreOps
-	idx  *Index
-	xfrm block.Transformer
+	// idx is the SegmentIndex.
+	idx *Index
+	// xfrm holds the Space's transform, or nil before SetTransformer.
+	xfrm atomic.Pointer[transformer]
+	// bufs pools the read buffers; each holds a *[]byte.
+	bufs sync.Pool
 
 	// Hits counts reads served from a file.
 	Hits atomic.Int64
@@ -27,16 +36,93 @@ type Store struct {
 	HashMisses atomic.Int64
 }
 
-// NewStore constructs a Store over idx that encodes with xfrm, the Space's
-// block transform.
-func NewStore(idx *Index, xfrm block.Transformer) *Store {
-	return &Store{idx: idx, xfrm: xfrm}
+// transformer boxes a block.Transformer for an atomic pointer.
+type transformer struct {
+	// Transformer is the Space's transform.
+	block.Transformer
+}
+
+// NewStore constructs a Store over idx.
+func NewStore(idx *Index) *Store {
+	return &Store{idx: idx}
+}
+
+// GetIndex returns the SegmentIndex the store reads.
+func (s *Store) GetIndex() *Index {
+	return s.idx
+}
+
+// SetTransformer sets the Space's transform, with which every block of the
+// Space is encoded.
+func (s *Store) SetTransformer(xfrm block.Transformer) {
+	s.xfrm.Store(&transformer{Transformer: xfrm})
+}
+
+// GetHashType returns 0: the store takes no writes.
+func (s *Store) GetHashType() hash.HashType {
+	return 0
+}
+
+// GetSupportedFeatures reports no native features.
+func (s *Store) GetSupportedFeatures() block.StoreFeature {
+	return block.StoreFeature_STORE_FEATURE_UNKNOWN
+}
+
+// BeginReadOperation returns the store itself: reads hold no scope.
+func (s *Store) BeginReadOperation(context.Context) (block.StoreOps, func(), error) {
+	return s, func() {}, nil
+}
+
+// GetRoot reports that no name is held.
+func (s *Store) GetRoot(context.Context, string) (*block.BlockRef, error) {
+	return nil, nil
+}
+
+// ListRoots reports no roots.
+func (s *Store) ListRoots(context.Context, string, func(block.NamedRoot) error) error {
+	return nil
+}
+
+// SetRoots rejects the write.
+func (s *Store) SetRoots(context.Context, []*block.PutBatchEntry, []block.NamedRoot) error {
+	return block_store.ErrReadOnly
+}
+
+// PutBlock rejects the write.
+func (s *Store) PutBlock(context.Context, []byte, *block.PutOpts) (*block.BlockRef, bool, error) {
+	return nil, false, block_store.ErrReadOnly
+}
+
+// PutBlockBatch rejects the writes.
+func (s *Store) PutBlockBatch(context.Context, []*block.PutBatchEntry) ([]bool, error) {
+	return nil, block_store.ErrReadOnly
+}
+
+// RmBlock rejects the delete.
+func (s *Store) RmBlock(context.Context, *block.BlockRef) error {
+	return block_store.ErrReadOnly
+}
+
+// Sync has nothing to fence: the store accepted no writes.
+func (s *Store) Sync(context.Context) (bool, error) {
+	return false, nil
 }
 
 // GetBlock regenerates the block from the first indexed range that verifies.
 func (s *Store) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
-	for _, loc := range s.idx.Lookup(ref) {
-		data, ok, err := s.regenerate(ref, loc)
+	// Read nothing without the Space's transform.
+	xfrm := s.xfrm.Load()
+	if xfrm == nil {
+		return nil, false, nil
+	}
+
+	// Try each range until one verifies.
+	segs, err := s.idx.Lookup(ctx, ref)
+	if err != nil {
+		return nil, false, err
+	}
+	for _, seg := range segs {
+		data, ok, err := s.regenerate(xfrm, ref, seg)
 		if err != nil || ok {
 			return data, ok, err
 		}
@@ -44,8 +130,8 @@ func (s *Store) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool
 	return nil, false, nil
 }
 
-// GetStoredBlock returns the regenerated block. A file range is always a chunk
-// data block, a leaf, so its refs are known and empty.
+// GetStoredBlock returns the regenerated block. A file range is
+// always a chunk data block, a leaf, so its refs are known and empty.
 func (s *Store) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	data, ok, err := s.GetBlock(ctx, ref)
 	if err != nil || !ok {
@@ -57,18 +143,50 @@ func (s *Store) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block
 // GetBlockExists reports an indexed range whose file stat is unchanged. It
 // does not hash; a read still verifies.
 func (s *Store) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
-	for _, loc := range s.idx.Lookup(ref) {
-		if fi, err := os.Stat(loc.Path); err == nil && statMatches(fi, loc) {
+	// Report nothing the store could not read.
+	if s.xfrm.Load() == nil {
+		return false, nil
+	}
+
+	// Check the stat of each range.
+	segs, err := s.idx.Lookup(ctx, ref)
+	if err != nil {
+		return false, err
+	}
+	for _, seg := range segs {
+		if fi, err := os.Stat(seg.GetPath()); err == nil && statMatches(fi, seg) {
 			return true, nil
 		}
 	}
 	return false, nil
 }
 
-// regenerate reads loc, encodes it, and checks it against ref.
-func (s *Store) regenerate(ref *block.BlockRef, loc Location) ([]byte, bool, error) {
+// GetBlockExistsBatch checks each ref in turn.
+func (s *Store) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	out := make([]bool, len(refs))
+	for i, ref := range refs {
+		found, err := s.GetBlockExists(ctx, ref)
+		if err != nil {
+			return nil, err
+		}
+		out[i] = found
+	}
+	return out, nil
+}
+
+// StatBlock returns the encoded size of a block the store can read, or nil.
+func (s *Store) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
+	data, ok, err := s.GetBlock(ctx, ref)
+	if err != nil || !ok {
+		return nil, err
+	}
+	return &block.BlockStat{Ref: ref, Size: int64(len(data))}, nil
+}
+
+// regenerate reads seg, encodes it with xfrm, and checks it against ref.
+func (s *Store) regenerate(xfrm *transformer, ref *block.BlockRef, seg *Segment) ([]byte, bool, error) {
 	// A missing file is a miss.
-	f, err := os.Open(loc.Path)
+	f, err := os.Open(seg.GetPath())
 	if err != nil {
 		if os.IsNotExist(err) {
 			s.StatMisses.Add(1)
@@ -83,23 +201,29 @@ func (s *Store) regenerate(ref *block.BlockRef, loc Location) ([]byte, bool, err
 	if err != nil {
 		return nil, false, err
 	}
-	if !statMatches(fi, loc) {
+	if !statMatches(fi, seg) {
 		s.StatMisses.Add(1)
 		return nil, false, nil
 	}
 
-	// Read, encode and verify; a mismatch means the bytes changed under an
-	// unchanged stat.
-	buf := make([]byte, loc.Length)
-	if _, err := f.ReadAt(buf, loc.Offset); err != nil && err != io.EOF {
+	// Read the range into a pooled buffer, which the encode only reads unless
+	// the transform has no steps and returns it as the block.
+	bp := s.getBuf(seg.GetLength())
+	buf := *bp
+	if _, err := f.ReadAt(buf, seg.GetOffset()); err != nil && err != io.EOF {
+		s.bufs.Put(bp)
 		return nil, false, err
 	}
-	enc := buf
-	if s.xfrm != nil {
-		if enc, err = s.xfrm.EncodeBlock(buf); err != nil {
-			return nil, false, err
-		}
+	enc, err := xfrm.EncodeBlock(buf)
+	if err != nil {
+		s.bufs.Put(bp)
+		return nil, false, err
 	}
+	if len(enc) == 0 || &enc[0] != &buf[0] {
+		s.bufs.Put(bp)
+	}
+
+	// Verify; a mismatch means the bytes changed under an unchanged stat.
 	if ref.VerifyData(enc, false) != nil {
 		s.HashMisses.Add(1)
 		return nil, false, nil
@@ -108,8 +232,21 @@ func (s *Store) regenerate(ref *block.BlockRef, loc Location) ([]byte, bool, err
 	return enc, true, nil
 }
 
-func statMatches(fi os.FileInfo, loc Location) bool {
-	return fi.Size() == loc.Size && fi.ModTime().UnixNano() == loc.ModTime
+// getBuf returns a pooled buffer of length n.
+func (s *Store) getBuf(n int64) *[]byte {
+	bp, _ := s.bufs.Get().(*[]byte)
+	if bp == nil || int64(cap(*bp)) < n {
+		b := make([]byte, n)
+		return &b
+	}
+	*bp = (*bp)[:n]
+	return bp
 }
 
+// statMatches reports whether fi is the stat seg was linked under.
+func statMatches(fi os.FileInfo, seg *Segment) bool {
+	return fi.Size() == seg.GetSize() && fi.ModTime().UnixNano() == seg.GetModTime()
+}
+
+// _ is a type assertion
 var _ block.StoreOps = (*Store)(nil)

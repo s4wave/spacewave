@@ -1,0 +1,34 @@
+syntax = "proto3";
+package block.store.filesegment;
+
+import "github.com/s4wave/spacewave/db/block/block.proto";
+
+// Segment is a byte range of a file on this Device whose bytes, encoded with
+// the Space's transform, were a block when the file was linked.
+message Segment {
+  // Path is the file's absolute path on this Device.
+  string path = 1;
+  // Offset is the range's first byte in the file.
+  int64 offset = 2;
+  // Length is the range's length in bytes.
+  int64 length = 3;
+  // ModTime is the file's modification time when it was linked, in Unix
+  // nanoseconds.
+  int64 mod_time = 4;
+  // Size is the file's size when it was linked.
+  int64 size = 5;
+}
+
+// SegmentSet is the SegmentIndex value of one ref: the linked ranges that held
+// its block, at most one per path.
+message SegmentSet {
+  // Segments are the ranges, in the order they were linked.
+  repeated Segment segments = 1;
+}
+
+// PathRefs is the SegmentIndex value of one path: the refs its segments hold,
+// so a changed path drops its entries in one write.
+message PathRefs {
+  // Refs are the distinct refs of the path's segments.
+  repeated .block.BlockRef refs = 1;
+}
