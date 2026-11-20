@@ -3,58 +3,64 @@ package os_image
 import (
 	"testing"
 
+	"github.com/s4wave/spacewave/bldr/util/packedmsg"
 	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
-// TestManifestSignature verifies that a manifest names its signer, and that
-// rewriting the image or re-signing with another key changes what Verify
-// reports, so the boot executable's pinned-signer check sees the rewrite.
-func TestManifestSignature(t *testing.T) {
-	// Sign a manifest for one image root with the owner's key.
+// TestImageRootAuthorization verifies that an authorization carries its root
+// and signer through the card's packed text, and that only a pinned signer's
+// unaltered authorization verifies, so a rewritten image never boots.
+func TestImageRootAuthorization(t *testing.T) {
+	// Authorize one image root with the owner's key.
 	owner, ownerID := newKey(t)
-	m := &OSRootManifest{Image: imageRef(t, "image one")}
-	if err := m.Sign(owner); err != nil {
-		t.Fatal(err)
-	}
-	signer, err := m.Verify()
+	root := imageRoot(t, "image one")
+	signed, err := SignImageRoot(owner, root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if signer != ownerID {
-		t.Fatalf("signer %s, want owner %s", signer, ownerID)
-	}
 
-	// A decoded copy verifies, as on the card.
-	data, err := m.MarshalVT()
+	// The packed text on the card decodes to the same root and signer.
+	data, err := signed.MarshalVT()
 	if err != nil {
 		t.Fatal(err)
 	}
-	decoded := &OSRootManifest{}
-	if err := decoded.UnmarshalVT(data); err != nil {
+	unpacked, ok := packedmsg.DecodePackedMessage(packedmsg.EncodePackedMessage(data))
+	if !ok {
+		t.Fatal("packed authorization did not decode")
+	}
+	decoded, err := peer.UnmarshalSignedMsg(unpacked)
+	if err != nil {
 		t.Fatal(err)
 	}
-	if signer, err := decoded.Verify(); err != nil || signer != ownerID {
-		t.Fatalf("decoded manifest: signer %s, err %v", signer, err)
-	}
-
-	// Pointing the signed manifest at another image breaks the signature.
-	rewritten := m.CloneVT()
-	rewritten.Image = imageRef(t, "image two")
-	if _, err := rewritten.Verify(); err == nil {
-		t.Fatal("rewritten image verified under the owner's signature")
-	}
-
-	// Re-signing with another key verifies, but names that key.
-	other, otherID := newKey(t)
-	if err := rewritten.Sign(other); err != nil {
+	got, signer, err := VerifyImageRoot(decoded, []peer.ID{ownerID})
+	if err != nil {
 		t.Fatal(err)
 	}
-	if signer, err := rewritten.Verify(); err != nil || signer != otherID {
-		t.Fatalf("re-signed manifest: signer %s, err %v", signer, err)
+	if signer != ownerID || !got.EqualsRef(root) {
+		t.Fatalf("verified a root by %s, want the signed root by %s", signer, ownerID)
+	}
+
+	// Another peer's valid authorization is refused against the owner's pin.
+	other, _ := newKey(t)
+	foreign, err := SignImageRoot(other, root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := VerifyImageRoot(foreign, []peer.ID{ownerID}); err == nil {
+		t.Fatal("an unpinned signer's authorization verified")
+	}
+
+	// Pointing the owner's authorization at another root breaks it.
+	rewritten := signed.CloneVT()
+	rewritten.Data, err = imageRoot(t, "image two").MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := VerifyImageRoot(rewritten, []peer.ID{ownerID}); err == nil {
+		t.Fatal("a rewritten root verified under the owner's signature")
 	}
 }
 
@@ -71,11 +77,11 @@ func newKey(t *testing.T) (crypto.PrivKey, peer.ID) {
 	return key, p.GetPeerID()
 }
 
-// imageRef returns a root reference for content.
-func imageRef(t *testing.T, content string) *bucket.ObjectRef {
+// imageRoot returns a root block reference for content.
+func imageRoot(t *testing.T, content string) *block.BlockRef {
 	h, err := hash.Sum(hash.RecommendedHashType, []byte(content))
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &bucket.ObjectRef{BucketId: "os-image", RootRef: block.NewBlockRef(h)}
+	return block.NewBlockRef(h)
 }

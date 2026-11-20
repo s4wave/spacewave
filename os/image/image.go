@@ -1,65 +1,66 @@
-// Package os_image defines the signed manifest that names a Spacewave OS
-// image.
+// Package os_image authorizes a Spacewave OS image for boot.
+//
+// The Space owner signs the image's root block, which identifies the boot
+// set, profile and provenance beneath it. The bucket and transforms that locate
+// the root may change without changing what was authorized.
 package os_image
 
 import (
+	"slices"
+
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
-// manifestSignatureContext separates manifest signatures from every other
-// signature a Space owner's key makes.
-const manifestSignatureContext = "spacewave 2026-11-19 os root manifest v1"
+// ImageRootContext separates image authorizations from every other signature
+// a Space owner's key makes.
+const ImageRootContext = "spacewave/os 2026-11-19 image root authorization"
 
-// Sign signs the manifest with the producer's key, replacing any previous
-// signature.
-func (m *OSRootManifest) Sign(key crypto.PrivKey) error {
-	// A manifest names an image, so an empty one is never signed.
-	if m.GetImage().GetRootRef().GetEmpty() {
-		return errors.New("manifest names no image root")
+// SignImageRoot authorizes booting the image with this exact root.
+func SignImageRoot(key crypto.PrivKey, root *block.BlockRef) (*peer.SignedMsg, error) {
+	// Require a complete content-addressed root before signing.
+	if root.GetEmpty() {
+		return nil, errors.New("image authorization: missing image root")
+	}
+	if err := root.Validate(false); err != nil {
+		return nil, errors.Wrap(err, "image authorization: image root")
 	}
 
-	// Sign everything but the signature itself.
-	data, err := m.signedBody()
+	// Sign the root in the image context with the recommended hash.
+	data, err := root.MarshalVT()
 	if err != nil {
-		return err
+		return nil, err
 	}
-	sig, err := peer.NewSignature(manifestSignatureContext, key, hash.RecommendedHashType, data, true)
-	if err != nil {
-		return err
-	}
-	m.Signature = sig
-	return nil
+	return peer.NewSignedMsg(ImageRootContext, key, hash.RecommendedHashType, data)
 }
 
-// Verify checks the manifest's signature and returns its signer. The caller
-// decides whether to trust that signer, such as against a pinned set.
-func (m *OSRootManifest) Verify() (peer.ID, error) {
-	// Require a signature and an image to check it over.
-	if m.GetSignature() == nil {
-		return "", errors.New("manifest is unsigned")
-	}
-	if m.GetImage().GetRootRef().GetEmpty() {
-		return "", errors.New("manifest names no image root")
+// VerifyImageRoot returns the image root that a pinned signer authorized,
+// with that signer. A valid signature from any other peer authorizes nothing.
+func VerifyImageRoot(signed *peer.SignedMsg, pinned []peer.ID) (*block.BlockRef, peer.ID, error) {
+	// Require the caller's pins before trusting any signature.
+	if len(pinned) == 0 {
+		return nil, "", errors.New("image authorization: no pinned signers")
 	}
 
-	// Check the signature over everything but itself.
-	data, err := m.signedBody()
+	// Authenticate the signature before trusting its signer or payload.
+	_, signer, err := signed.ExtractAndVerify(ImageRootContext)
 	if err != nil {
-		return "", err
+		return nil, "", errors.Wrap(err, "image authorization: invalid signature")
 	}
-	signer, err := m.GetSignature().Verify(manifestSignatureContext, data)
-	if err != nil {
-		return "", errors.Wrap(err, "manifest signature")
+	if !slices.Contains(pinned, signer) {
+		return nil, "", errors.Errorf("image authorization: signer %s is not pinned", signer.String())
 	}
-	return signer, nil
-}
 
-// signedBody encodes the manifest with its signature cleared.
-func (m *OSRootManifest) signedBody() ([]byte, error) {
-	unsigned := m.CloneVT()
-	unsigned.Signature = nil
-	return unsigned.MarshalVT()
+	// Decode the authorized root.
+	root := &block.BlockRef{}
+	if err := root.UnmarshalVT(signed.GetData()); err != nil {
+		return nil, "", errors.Wrap(err, "image authorization: image root")
+	}
+	if err := root.Validate(false); err != nil {
+		return nil, "", errors.Wrap(err, "image authorization: image root")
+	}
+	return root, signer, nil
 }
