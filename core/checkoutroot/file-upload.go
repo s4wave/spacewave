@@ -4,7 +4,6 @@ package checkoutroot
 
 import (
 	"context"
-	"crypto/rand"
 	"errors"
 	"io"
 	"io/fs"
@@ -23,34 +22,14 @@ func publishFile(ctx context.Context, root *os.Root, directory string, start *un
 	if err != nil {
 		return err
 	}
+	if hiddenUploadName(name) {
+		return errors.New("upload name is reserved for staging")
+	}
 	dir, err := root.OpenRoot(filepath.FromSlash(directory))
 	if err != nil {
 		return err
 	}
 	defer dir.Close()
-
-	// Stage under a private name so cancellation cannot change the destination.
-	temp := ".spacewave-upload-" + rand.Text()
-	file, err := dir.OpenFile(temp, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		// Close first so the directory can remove the staging entry on Windows.
-		_ = file.Close()
-		if err := dir.Remove(temp); err != nil && !errors.Is(err, fs.ErrNotExist) {
-			rerr = errors.Join(rerr, err)
-		}
-	}()
-
-	// Read to the end of the RPC so a short or oversized upload never publishes.
-	n, err := io.Copy(file, src)
-	if err != nil {
-		return err
-	}
-	if n != start.GetTotalSize() {
-		return io.ErrUnexpectedEOF
-	}
 
 	// Apply the new mode or retain the permissions of a file being replaced.
 	mode := fs.FileMode(start.GetPermissions()).Perm()
@@ -60,14 +39,50 @@ func publishFile(ctx context.Context, root *os.Root, directory string, start *un
 	if info, err := dir.Lstat(name); err == nil && info.Mode().IsRegular() && !start.GetExclusive() {
 		mode = info.Mode().Perm()
 	}
-	if err := file.Chmod(mode); err != nil {
-		return err
-	}
 	ts := start.GetTimestamp().AsTime()
-	if err := dir.Chtimes(temp, ts, ts); err != nil {
+
+	// An exclusive upload can publish directly from an anonymous inode.
+	if start.GetExclusive() {
+		file, err := openAnonymousStage(dir)
+		if err != nil && !errors.Is(err, errors.ErrUnsupported) {
+			return err
+		}
+		if file != nil {
+			defer file.Close()
+			if err := writeStage(file, src, start.GetTotalSize(), mode); err != nil {
+				return err
+			}
+			err = publishAnonymousStage(ctx, dir, file, name, ts)
+			if !errors.Is(err, errors.ErrUnsupported) {
+				return publicationResult(err)
+			}
+
+			// Keep the complete stream locally if this mount cannot link it.
+			if _, err := file.Seek(0, io.SeekStart); err != nil {
+				return err
+			}
+			src = file
+		}
+	}
+
+	// Give the named fallback a recoverable lease before writing upload bytes.
+	stage, err := openNamedStage(dir)
+	if err != nil {
 		return err
 	}
-	if err := file.Close(); err != nil {
+	defer func() {
+		// Keep a committed file successful if the next sweep must finish cleanup.
+		if err := stage.discard(); rerr != nil {
+			rerr = errors.Join(rerr, err)
+		}
+	}()
+	if err := writeStage(stage.file, src, start.GetTotalSize(), mode); err != nil {
+		return err
+	}
+	if err := dir.Chtimes(stage.name, ts, ts); err != nil {
+		return err
+	}
+	if err := stage.file.Close(); err != nil {
 		return err
 	}
 
@@ -76,13 +91,30 @@ func publishFile(ctx context.Context, root *os.Root, directory string, start *un
 		return err
 	}
 	if start.GetExclusive() {
-		if err := renameExclusive(dir, temp, name); err != nil {
-			if errors.Is(err, fs.ErrExist) {
-				return unixfs_errors.ErrExist
-			}
-			return pkgerrors.Wrap(err, "publish upload without replacing the destination")
-		}
-		return nil
+		return publicationResult(renameExclusive(dir, stage.name, name))
 	}
-	return dir.Rename(temp, name)
+	return dir.Rename(stage.name, name)
+}
+
+// writeStage validates the whole stream before it can be published.
+func writeStage(file *os.File, src io.Reader, size int64, mode fs.FileMode) error {
+	// Read through the stream end and verify the declared size.
+	n, err := io.Copy(file, src)
+	if err != nil {
+		return err
+	}
+	if n != size {
+		return io.ErrUnexpectedEOF
+	}
+
+	// Apply the destination mode before making the file visible.
+	return file.Chmod(mode)
+}
+
+// publicationResult maps the filesystem's exclusive conflict to the RPC contract.
+func publicationResult(err error) error {
+	if errors.Is(err, fs.ErrExist) {
+		return unixfs_errors.ErrExist
+	}
+	return pkgerrors.Wrap(err, "publish upload without replacing the destination")
 }

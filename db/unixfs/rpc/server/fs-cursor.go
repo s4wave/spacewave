@@ -33,6 +33,8 @@ type FSCursorService struct {
 	upload FileUpload
 	// watch subscribes open directory cursors to host changes.
 	watch DirectoryWatch
+	// hidden hides backend-private names from listings and lookups.
+	hidden func(string) bool
 
 	// mtx guards below fields
 	// note: mtx is only ever locked for very short periods of time.
@@ -151,11 +153,13 @@ func NewFSCursorService(rootCursor unixfs.FSCursor) *FSCursorService {
 
 // NewFSCursorServiceWithDirectory serves a directory with native notifications.
 // A nil publisher serves a read-only root.
-func NewFSCursorServiceWithDirectory(rootCursor unixfs.FSCursor, upload FileUpload, watch DirectoryWatch) *FSCursorService {
+// hidden can exclude backend-private names from directory reads.
+func NewFSCursorServiceWithDirectory(rootCursor unixfs.FSCursor, upload FileUpload, watch DirectoryWatch, hidden func(string) bool) *FSCursorService {
 	// Bind the native operations to this connection's cursor tree.
 	service := newFSCursorService(rootCursor, upload == nil)
 	service.upload = upload
 	service.watch = watch
+	service.hidden = hidden
 	return service
 }
 
@@ -1220,6 +1224,12 @@ func (f *FSCursorService) OpsLookup(
 	ctx context.Context,
 	req *unixfs_rpc.OpsLookupRequest,
 ) (*unixfs_rpc.OpsLookupResponse, error) {
+	// A backend's staging names are absent from the served namespace.
+	if f.hidden != nil && f.hidden(req.GetName()) {
+		return &unixfs_rpc.OpsLookupResponse{UnixfsError: unixfs_errors.NewUnixFSError(unixfs_errors.ErrNotExist)}, nil
+	}
+
+	// Resolve visible names against the registered parent cursor.
 	_, retCursorID, err := f.resolveFSCursorLookup(
 		ctx,
 		req.GetCursorHandleId(),
@@ -1228,13 +1238,11 @@ func (f *FSCursorService) OpsLookup(
 		req.GetName(),
 	)
 
-	var resp unixfs_rpc.OpsLookupResponse
+	// Return either the filesystem refusal or the registered child handle.
 	if err != nil {
-		resp.UnixfsError = unixfs_errors.NewUnixFSError(err)
-	} else {
-		resp.CursorHandleId = retCursorID
+		return &unixfs_rpc.OpsLookupResponse{UnixfsError: unixfs_errors.NewUnixFSError(err)}, nil
 	}
-	return &resp, nil
+	return &unixfs_rpc.OpsLookupResponse{CursorHandleId: retCursorID}, nil
 }
 
 // OpsReaddirAll reads all directory entries in a stream.
@@ -1242,10 +1250,22 @@ func (f *FSCursorService) OpsReaddirAll(
 	req *unixfs_rpc.OpsReaddirAllRequest,
 	strm unixfs_rpc.SRPCFSCursorService_OpsReaddirAllStream,
 ) error {
+	// Skip visible entries when the backend has private names.
 	ctx := strm.Context()
+	skip := req.GetSkip()
+	var skipVisible uint64
+	if f.hidden != nil {
+		skipVisible, skip = skip, 0
+	}
+
+	// Stream visible entries without accumulating a filtered directory.
 	readErr := f.accessCursorOps(req.GetOpsHandleId(), func(ops unixfs.FSCursorOps) error {
-		return ops.ReaddirAll(ctx, req.GetSkip(), func(ent unixfs.FSCursorDirent) error {
-			if ent == nil {
+		return ops.ReaddirAll(ctx, skip, func(ent unixfs.FSCursorDirent) error {
+			if ent == nil || f.hidden != nil && f.hidden(ent.GetName()) {
+				return nil
+			}
+			if skipVisible != 0 {
+				skipVisible--
 				return nil
 			}
 			return strm.Send(&unixfs_rpc.OpsReaddirAllResponse{
@@ -1255,6 +1275,8 @@ func (f *FSCursorService) OpsReaddirAll(
 			})
 		})
 	})
+
+	// Complete the stream with either the read error or its end marker.
 	if readErr != nil {
 		return strm.Send(&unixfs_rpc.OpsReaddirAllResponse{
 			Body: &unixfs_rpc.OpsReaddirAllResponse_UnixfsError{

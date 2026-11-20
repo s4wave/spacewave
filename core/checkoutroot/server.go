@@ -61,6 +61,19 @@ func serve(
 	}
 	defer release()
 
+	// Collect marked upload stages in the background after the root is available.
+	if upload != nil {
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			sweepUploads(ctx, le, folder)
+		}()
+		defer func() {
+			cancel()
+			<-done
+		}()
+	}
+
 	// Serve snapshots for the lifetime of the root if native dispatch ends.
 	watcher.Run(ctx)
 	<-ctx.Done()
@@ -122,7 +135,7 @@ func (s *Server) serveStream(linkCtx context.Context, ms link.MountedStream) {
 
 	// Give this connection its own set of cursor and operation handles.
 	cursor := s.root.Clone()
-	service := unixfs_rpc_server.NewFSCursorServiceWithDirectory(cursor, s.upload, s.watcher.Watch)
+	service := unixfs_rpc_server.NewFSCursorServiceWithDirectory(cursor, s.upload, s.watcher.Watch, hiddenUploadName)
 	defer service.Release(true)
 	mux := srpc.NewMux()
 	if err := unixfs_rpc.SRPCRegisterFSCursorService(mux, service); err != nil {

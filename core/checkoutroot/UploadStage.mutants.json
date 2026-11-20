@@ -1,0 +1,12 @@
+[
+  {
+    "name": "the sweep ignores the ownership marker",
+    "replace": [["  /\\ marker /\\ ~held", "  /\\ ~held"]],
+    "expect": "UnownedPreserved"
+  },
+  {
+    "name": "the sweep ignores a held lease",
+    "replace": [["  /\\ marker /\\ ~held", "  /\\ marker"]],
+    "expect": "LeaseHasMarker"
+  }
+]
