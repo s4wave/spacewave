@@ -69,6 +69,13 @@ func RunConsole(ctx context.Context, shutdown <-chan struct{}, system, data, con
 	}
 	defer func() { retErr = errors.Join(retErr, os.Setenv("PATH", oldPath)) }()
 
+	// Verify the card's authorization against the pinned signers before
+	// opening the image, and serve only the root it names.
+	authorized, err := AuthorizedRoot(system, data)
+	if err != nil {
+		return err
+	}
+
 	// Verify every required image file/link before mounting or opening writable data.
 	le := logrus.NewEntry(logrus.New())
 	root, err := OpenRoot(ctx, le, system)
@@ -81,6 +88,9 @@ func RunConsole(ctx context.Context, shutdown <-chan struct{}, system, data, con
 			retErr = errors.Join(retErr, root.Close())
 		}
 	}()
+	if !root.ImageRoot().EqualsRef(authorized) {
+		return errors.New("image authorization: selected image root " + root.ImageRoot().MarshalString() + " is not the authorized root " + authorized.MarshalString())
+	}
 
 	// Complete the read-only image check before touching the writable filesystem.
 	if err := root.VerifyImage(ctx, file); err != nil {

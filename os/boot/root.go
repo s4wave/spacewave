@@ -144,6 +144,11 @@ func (r *Root) openHandle(ctx context.Context, le *logrus.Entry) error {
 	return nil
 }
 
+// ImageRoot returns the root block of the image this Root serves.
+func (r *Root) ImageRoot() *block.BlockRef {
+	return r.head.GetRootRef()
+}
+
 // Handle borrows the pinned UnixFS root for a mount. The caller must stop every
 // filesystem user and join the mount's server before closing Root.
 func (r *Root) Handle() *unixfs.FSHandle {

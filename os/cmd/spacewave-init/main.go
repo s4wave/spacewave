@@ -14,7 +14,9 @@ import (
 	"strconv"
 	"syscall"
 
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/os/boot"
+	os_image "github.com/s4wave/spacewave/os/image"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -183,7 +185,8 @@ func seedData(dir string) error {
 	return nil
 }
 
-// seedImage imports the bootstrap probe and static tools, then verifies a reopen.
+// seedImage imports the bootstrap probe and static tools, verifies a reopen,
+// then writes a card authorizing the seeded root.
 func seedImage(dir, busyboxPath, archivePath string) (retErr error) {
 	// Keep the seed input outside the image it will later execute.
 	path, err := os.Executable()
@@ -228,7 +231,17 @@ func seedImage(dir, busyboxPath, archivePath string) (retErr error) {
 	if _, err := file.Seek(0, 0); err != nil {
 		return err
 	}
-	return root.VerifyImage(context.Background(), file)
+	if err := root.VerifyImage(context.Background(), file); err != nil {
+		return err
+	}
+
+	// Authorize the seeded root with a throwaway key, so a rehearsal boot runs
+	// the same pin and check as an installed card signed by a Space owner.
+	_, key, _, err := peer.NewPeerWithGenerateED25519()
+	if err != nil {
+		return err
+	}
+	return os_image.WriteCard(dir, key, root.ImageRoot())
 }
 
 // finish reports a command failure and prevents a failed bootstrap continuing.

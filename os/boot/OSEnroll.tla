@@ -1,9 +1,10 @@
 ------------------------------ MODULE OSEnroll ------------------------------
 EXTENDS Naturals, TLC
 \* First boot of an installed card: pin the card's accepted signers, verify the
-\* selected OSRootManifest against the pinned set before serving the root, make
-\* the Device key, and redeem the card's bootstrap grant (a bearer Space invite
-\* that requires approval) until the Space admits the key or revokes the grant.
+\* image authorization (the owner's signed image root) against the pinned set
+\* before serving the root, make the Device key, and redeem the card's bootstrap
+\* grant (a bearer Space invite that requires approval) until the Space admits
+\* the key or revokes the grant.
 \* A power cut may end any boot; the key, the pinned signers and the installed
 \* grant are durable in the data Volume, everything else is lost.
 \* Once the signers are pinned, an attacker may rewrite the card's signers and

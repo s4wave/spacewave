@@ -163,7 +163,7 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 		t.Fatalf("rehearsal receipt=%v err=%v", value, err)
 	}
 	console := f.executionLog(rehearsed)
-	for _, line := range []string{"SPACEWAVE_OS_CONSOLE_READY pid=", "SPACEWAVE_OS_REHEARSAL_WROTE", "SPACEWAVE_OS_PASS", "KILL_TRIAL_PASS"} {
+	for _, line := range []string{"SPACEWAVE_OS_PINNED signers=", "SPACEWAVE_OS_AUTHORIZED signer=", "SPACEWAVE_OS_CONSOLE_READY pid=", "SPACEWAVE_OS_REHEARSAL_WROTE", "SPACEWAVE_OS_PASS", "KILL_TRIAL_PASS"} {
 		if !strings.Contains(console, line) {
 			t.Fatalf("rehearsal console lacks %q:\n%s", line, console)
 		}
