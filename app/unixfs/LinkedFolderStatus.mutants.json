@@ -1,0 +1,54 @@
+[
+  {
+    "name": "another Device offers Reset and billing",
+    "replace": [
+      [
+        "Shown(p) ==\n  IF p = \"linker\"",
+        "Shown(p) ==\n  IF p \\in People"
+      ],
+      [
+        "\\/ b = \"resetRoot\" /\\ p = \"linker\" /\\ online",
+        "\\/ b = \"resetRoot\" /\\ online"
+      ],
+      [
+        "\\/ b = \"manageBilling\" /\\ p = \"linker\" /\\ hold",
+        "\\/ b = \"manageBilling\" /\\ hold"
+      ]
+    ],
+    "expect": "LinkerOnly",
+    "config": "LinkedFolderStatusRaces-cloud.cfg"
+  },
+  {
+    "name": "a stopped cloud upload is labeled as the browser quota",
+    "replace": [
+      [
+        "[storage |-> \"Spacewave Cloud storage full\"",
+        "[storage |-> \"Storage full\""
+      ]
+    ],
+    "expect": "HoldNamed",
+    "config": "LinkedFolderStatusRaces-cloud.cfg"
+  },
+  {
+    "name": "indexing hides a stopped cloud upload",
+    "replace": [
+      [
+        "           [] hold # \"none\" -> HoldLabel[hold]\n           [] linked = \"indexing\" -> \"Indexing the folder\"",
+        "           [] linked = \"indexing\" -> \"Indexing the folder\"\n           [] hold # \"none\" -> HoldLabel[hold]"
+      ]
+    ],
+    "expect": "HoldNamed",
+    "config": "LinkedFolderStatusRaces-cloud.cfg"
+  },
+  {
+    "name": "a row says unavailable while a holder serves the file",
+    "replace": [
+      [
+        "    [] Serves(r, pub) -> \"Available from its holders\"\n",
+        ""
+      ]
+    ],
+    "expect": "HintTruthful",
+    "config": "LinkedFolderStatusRaces-local.cfg"
+  }
+]

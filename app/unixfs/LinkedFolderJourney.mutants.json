@@ -1,0 +1,35 @@
+[
+  {
+    "name": "a file is listed before its first index",
+    "replace": [
+      [
+        "Appear(r) == Active(r) /\\ file[r] = \"none\" /\\ pub > 0",
+        "Appear(r) == Active(r) /\\ file[r] = \"none\""
+      ]
+    ],
+    "expect": "NothingBeforePublish",
+    "config": "LinkedFolderJourney.cfg"
+  },
+  {
+    "name": "the full copy takes the version on disk, not the published one",
+    "replace": [
+      [
+        "/\\ (DeviceServes(pub) \\/ cver = pub)\n  /\\ copy' = pub",
+        "/\\ DeviceServes(disk)\n  /\\ copy' = disk"
+      ]
+    ],
+    "expect": "PresentIsPublished",
+    "config": "LinkedFolderJourney.cfg"
+  },
+  {
+    "name": "the upload queue sends an edit before it is indexed",
+    "replace": [
+      [
+        "Upload == CloudBacked /\\ hold = \"none\" /\\ cver # pub /\\ DeviceServes(pub)\n  /\\ cver' = pub",
+        "Upload == CloudBacked /\\ hold = \"none\" /\\ cver # disk /\\ DeviceServes(disk)\n  /\\ cver' = disk"
+      ]
+    ],
+    "expect": "CloudFromPublished",
+    "config": "LinkedFolderJourney.cfg"
+  }
+]

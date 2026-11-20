@@ -1,0 +1,28 @@
+[
+  {
+    "name": "the switch is offered while its write is saving",
+    "replace": [
+      [
+        "IF sw = \"saving\" THEN {}",
+        "IF FALSE THEN {}"
+      ]
+    ],
+    "expect": "EveryShownActionWorks",
+    "config": "KeepFullCopy.cfg"
+  },
+  {
+    "name": "a failed write shows the value it asked for",
+    "replace": [
+      [
+        "ELSE {IF keep THEN \"keepOff\" ELSE \"keepOn\"}",
+        "ELSE {IF (IF sw = \"failed\" THEN target ELSE keep) THEN \"keepOff\" ELSE \"keepOn\"}"
+      ],
+      [
+        "\\/ b = \"keepOn\" /\\ ~keep\n     \\/ b = \"keepOff\" /\\ keep",
+        "\\/ b = \"keepOn\" /\\ ~(IF sw = \"failed\" THEN target ELSE keep)\n     \\/ b = \"keepOff\" /\\ (IF sw = \"failed\" THEN target ELSE keep)"
+      ]
+    ],
+    "expect": "ShowsStored",
+    "config": "KeepFullCopy.cfg"
+  }
+]

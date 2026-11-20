@@ -1,0 +1,20 @@
+---
+title: "Keep a full copy: the switch and its write"
+---
+stateDiagram-v2
+  s0: Off
+  s1: Turning on
+  s2: On
+  s3: Save failed, Retry shown
+  s4: Turning off
+  [*] --> s0
+  s0 --> s1: presses the switch
+  s0 --> s2: another session changes it
+  s1 --> s3: the write fails
+  s1 --> s2: the write lands
+  s2 --> s0: another session changes it
+  s2 --> s4: presses the switch
+  s3 --> s1: presses the switch or presses Retry
+  s4 --> s0: the write lands
+  s4 --> s3: the write fails
+  s3 --> s4: presses the switch or presses Retry
