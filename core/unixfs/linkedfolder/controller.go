@@ -219,7 +219,9 @@ func (c *Controller) follow(ctx context.Context, link *unixfs_world.FolderLink, 
 	// Sync each batch of changes until the context ends.
 	for {
 		// Collect changes until the folder is quiet or the deadline passes.
-		changed := false
+		// A wake that names nothing in this folder, such as a hash miss in
+		// another folder on the same store, changes nothing and arms no timer.
+		var changed, due bool
 		select {
 		case <-ctx.Done():
 			return context.Cause(ctx)
@@ -256,7 +258,9 @@ func (c *Controller) follow(ctx context.Context, link *unixfs_world.FolderLink, 
 			}
 			changed = true
 		case <-quietC:
+			due = true
 		case <-deadlineC:
+			due = true
 		}
 		if changed {
 			if quiet == nil {
@@ -265,6 +269,9 @@ func (c *Controller) follow(ctx context.Context, link *unixfs_world.FolderLink, 
 			} else {
 				quiet.Reset(watchQuiet)
 			}
+			continue
+		}
+		if !due {
 			continue
 		}
 
