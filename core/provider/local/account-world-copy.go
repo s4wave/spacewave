@@ -28,9 +28,13 @@ const accountWorldRoot = "account-world"
 // when its serve reads found no copy in its local Volume store and read the
 // block from a file whose bytes it verified against the ref (the DEX
 // responder). The copy asks for linked answers only from the unrevoked
-// sessions of this account (readLinkedCopy), and a linked answer from any
-// other peer fails that peer's request, so the copy writes another peer's
-// data or leaves a hole, never a skip a member could cause.
+// sessions of this account and the Space's writers and owners
+// (linkedAnswerPeers), and a linked answer from any other peer fails that
+// peer's request, so the copy writes another peer's data or leaves a hole,
+// never a skip a reader could cause. A writer is trusted because it gains
+// nothing by a false answer: it can already overwrite or delete the files,
+// and the Device that links a folder is a writer that holds the chunks it
+// answers for.
 func copyWorldGraph(
 	ctx context.Context,
 	store, src block.StoreOps,

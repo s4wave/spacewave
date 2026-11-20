@@ -86,17 +86,17 @@ type linkedCopy struct {
 	// recheck trusts no completion proof: an earlier walk counted linked
 	// chunks as present, so its proofs may cover subtrees missing them.
 	recheck bool
-	// peers admits the peers whose linked answers the walk honours, the
-	// unrevoked sessions of this account when the walk began; nil when it
-	// honours none.
+	// peers admits the peers whose linked answers the walk honours: the
+	// unrevoked sessions of this account and the Space's writers and owners
+	// when the walk began; nil when it honours none.
 	peers func(peer.ID) bool
 }
 
-// readLinkedCopy reads, once per walk, how the walk treats linked chunks.
-// linkedProofs is the progress record's LinkedProofs. The account's sessions
-// are a snapshot: a session revoked during the walk is honoured until the
-// next walk.
-func (a *ProviderAccount) readLinkedCopy(ctx context.Context, linkedProofs bool) (linkedCopy, error) {
+// readLinkedCopy reads, once per walk, how the walk copying so treats linked
+// chunks. linkedProofs is the progress record's LinkedProofs. The account's
+// sessions and the Space's participants are a snapshot: a peer revoked or
+// demoted during the walk is honoured until the next walk.
+func (a *ProviderAccount) readLinkedCopy(ctx context.Context, so sobject.SharedObject, linkedProofs bool) (linkedCopy, error) {
 	// Keep a full copy when this Device's setting or the environment says so.
 	full := linkedFullCopy
 	if !full {
@@ -110,23 +110,36 @@ func (a *ProviderAccount) readLinkedCopy(ctx context.Context, linkedProofs bool)
 		return linkedCopy{full: true, recheck: linkedProofs}, nil
 	}
 
-	// Honour linked answers only from this account's own sessions: a member
-	// answering linked falsely would make this copy skip a block the member
-	// could then withhold. An account without settings has no other session.
+	// Read this account's sessions. An account without settings has no
+	// other session.
 	settings, err := a.readAccountSettings(ctx)
-	if errors.Is(err, sobject.ErrSharedObjectNotFound) {
-		return linkedCopy{}, nil
+	if err != nil && !errors.Is(err, sobject.ErrSharedObjectNotFound) {
+		return linkedCopy{}, err
 	}
+
+	// Read the Space's participants.
+	snapshot, err := so.GetSharedObjectState(ctx)
 	if err != nil {
 		return linkedCopy{}, err
 	}
-	return linkedCopy{peers: accountSessionPeers(settings)}, nil
+	config, err := snapshot.GetConfig(ctx)
+	if err != nil {
+		return linkedCopy{}, err
+	}
+	return linkedCopy{peers: linkedAnswerPeers(settings, config)}, nil
 }
 
-// accountSessionPeers admits the unrevoked sessions of settings.
-func accountSessionPeers(settings *account_settings.AccountSettings) func(peer.ID) bool {
+// linkedAnswerPeers admits the unrevoked sessions of settings, which may be
+// nil, and the participants of config that may write. A reader answering
+// linked falsely would make the copy skip a block the reader could then
+// withhold, losing data a writer could not have touched. A writer gains
+// nothing by it: it can already overwrite or delete the same files.
+func linkedAnswerPeers(settings *account_settings.AccountSettings, config *sobject.SharedObjectConfig) func(peer.ID) bool {
 	return func(id peer.ID) bool {
 		session := settings.FindAccountSession(id.String())
-		return session != nil && !session.GetRevoked()
+		if session != nil && !session.GetRevoked() {
+			return true
+		}
+		return sobject.CanWriteOps(config.GetParticipantRole(id.String()))
 	}
 }

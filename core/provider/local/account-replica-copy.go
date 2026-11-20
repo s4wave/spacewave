@@ -413,7 +413,7 @@ func (a *ProviderAccount) copyAndPersistAccountWorld(
 	}
 
 	// Read, once per walk, how the walk treats linked chunks.
-	mode, err := a.readLinkedCopy(ctx, progress.GetLinkedProofs())
+	mode, err := a.readLinkedCopy(ctx, so, progress.GetLinkedProofs())
 	if err != nil {
 		return err
 	}

@@ -66,9 +66,9 @@ func (failingStore) GetStoredBlock(context.Context, *block.BlockRef) (*block.Sto
 // TestLinkedAnswersSkipOnlyLinkedBlocks tries to make a copy skip a block that
 // no linked file holds. A copy skips a block only on a linked answer, so it
 // tries each way to get one: a block the responder holds in its Volume as well
-// as in a linked file, a linked answer to a data request, and a member that
-// answers every request linked. Only the block the account's own Device holds
-// only in a linked file may go unwritten.
+// as in a linked file, a linked answer to a data request, and a reader that
+// answers every request linked. Only the block the admitted Device holds only
+// in a linked file may go unwritten.
 func TestLinkedAnswersSkipOnlyLinkedBlocks(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
@@ -107,7 +107,7 @@ func TestLinkedAnswersSkipOnlyLinkedBlocks(t *testing.T) {
 
 	// copy reads the graph through the DEX from the given peers, honouring
 	// linked answers from the owner's Device only, as account replication
-	// does, and returns what the destination holds.
+	// honours them from writers only, and returns what the destination holds.
 	copyFrom := func(peers map[peer.ID]func(*DexMessage) *DexMessage) (block.StoreOps, error) {
 		c := newTestDexSolicitController()
 		for id, answer := range peers {
@@ -124,7 +124,7 @@ func TestLinkedAnswersSkipOnlyLinkedBlocks(t *testing.T) {
 	ownerAnswer := func(req *DexMessage) *DexMessage { return owner.buildResponse(ctx, req) }
 	liar := func(req *DexMessage) *DexMessage {
 		if req.GetLinkedOk() {
-			t.Errorf("member was asked for a linked answer to %s", req.GetRef().MarshalString())
+			t.Errorf("reader was asked for a linked answer to %s", req.GetRef().MarshalString())
 		}
 		return &DexMessage{RequestId: req.GetRequestId(), IsResponse: true, Found: true, Linked: true, RefsKnown: true}
 	}
@@ -136,9 +136,9 @@ func TestLinkedAnswersSkipOnlyLinkedBlocks(t *testing.T) {
 		return found
 	}
 
-	// With the owner's Device and a lying member connected, the copy writes
+	// With the owner's Device and a lying reader connected, the copy writes
 	// every block but the owner's linked leaf.
-	dst, err := copyFrom(map[peer.ID]func(*DexMessage) *DexMessage{"owner": ownerAnswer, "member": liar})
+	dst, err := copyFrom(map[peer.ID]func(*DexMessage) *DexMessage{"owner": ownerAnswer, "reader": liar})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,11 +146,11 @@ func TestLinkedAnswersSkipOnlyLinkedBlocks(t *testing.T) {
 		t.Fatalf("root=%v volume leaf=%v linked leaf=%v, want only the linked leaf skipped", holds(dst, root), holds(dst, volumeLeaf), holds(dst, linkedLeaf))
 	}
 
-	// With only the member, its linked answers fail its requests: the copy
+	// With only the reader, its linked answers fail its requests: the copy
 	// stops at the root, unwritten, and skips nothing.
-	dst, err = copyFrom(map[peer.ID]func(*DexMessage) *DexMessage{"member": liar})
+	dst, err = copyFrom(map[peer.ID]func(*DexMessage) *DexMessage{"reader": liar})
 	if !errors.Is(err, ErrUnaskedLinked) || holds(dst, root) {
-		t.Fatalf("copy from the member alone: err=%v root written=%v, want ErrUnaskedLinked and nothing written", err, holds(dst, root))
+		t.Fatalf("copy from the reader alone: err=%v root written=%v, want ErrUnaskedLinked and nothing written", err, holds(dst, root))
 	}
 }
 

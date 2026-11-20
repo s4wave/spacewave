@@ -11,12 +11,14 @@ import (
 
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/ulid"
+	account_settings "github.com/s4wave/spacewave/core/account/settings"
 	"github.com/s4wave/spacewave/core/bstore"
 	"github.com/s4wave/spacewave/core/sobject"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	"github.com/s4wave/spacewave/db/bucket"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
 type replicaDestination struct {
@@ -788,5 +790,34 @@ func TestWorldHolesProbeIgnoresCancelledRead(t *testing.T) {
 	}
 	if absent.has(ref) {
 		t.Fatal("cancelled read recorded the block as known absent")
+	}
+}
+
+// TestLinkedAnswerPeersAdmitsOnlyWriters tries to get a linked answer honoured
+// from a peer that could withhold a block it never had the power to remove: a
+// reader, a revoked session of the account and a stranger. Only the account's
+// live sessions and the Space's writers and owners are admitted, the linking
+// Device among the writers.
+func TestLinkedAnswerPeersAdmitsOnlyWriters(t *testing.T) {
+	id := func(name string) peer.ID { return peer.ID(name) }
+	settings := &account_settings.AccountSettings{Sessions: []*account_settings.AccountSession{
+		{PeerId: id("session").String()},
+		{PeerId: id("revoked").String(), Revoked: true},
+	}}
+	config := &sobject.SharedObjectConfig{Participants: []*sobject.SOParticipantConfig{
+		{PeerId: id("owner").String(), Role: sobject.SOParticipantRole_SOParticipantRole_OWNER},
+		{PeerId: id("device").String(), Role: sobject.SOParticipantRole_SOParticipantRole_WRITER},
+		{PeerId: id("reader").String(), Role: sobject.SOParticipantRole_SOParticipantRole_READER},
+		{PeerId: id("revoked").String(), Role: sobject.SOParticipantRole_SOParticipantRole_READER},
+	}}
+	for _, admits := range []func(peer.ID) bool{linkedAnswerPeers(settings, config), linkedAnswerPeers(nil, config)} {
+		for name, want := range map[string]bool{"owner": true, "device": true, "reader": false, "revoked": false, "stranger": false} {
+			if got := admits(id(name)); got != want {
+				t.Fatalf("%s admitted = %v, want %v", name, got, want)
+			}
+		}
+	}
+	if !linkedAnswerPeers(settings, config)(id("session")) || linkedAnswerPeers(nil, config)(id("session")) {
+		t.Fatal("want the live session admitted only through the account settings")
 	}
 }
