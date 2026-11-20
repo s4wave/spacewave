@@ -20,6 +20,7 @@ import (
 	forge_job "github.com/s4wave/spacewave/forge/job"
 	forge_value "github.com/s4wave/spacewave/forge/value"
 	forge_worker "github.com/s4wave/spacewave/forge/worker"
+	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 )
 
@@ -31,7 +32,7 @@ func TestWorldStateResourceTypeTraits(t *testing.T) {
 	tb, cleanup := setupWorldTestbed(ctx, t)
 	t.Cleanup(cleanup)
 
-	// Serve the three host types; the plugin type stays unknown.
+	// Serve the four host types; the plugin type stays unknown.
 	const pluginTypeID = "test/plugin"
 	rel, err := tb.Bus.AddController(ctx, blocktype_controller.NewController(func(_ context.Context, typeID string) (blocktype.BlockType, error) {
 		switch typeID {
@@ -41,6 +42,8 @@ func TestWorldStateResourceTypeTraits(t *testing.T) {
 			return blocktype.New[forge_worker.Worker](typeID), nil
 		case forge_job.JobTypeID:
 			return blocktype.New[forge_job.Job](typeID), nil
+		case s4wave_device.DeviceTypeID:
+			return blocktype.New[s4wave_device.Device](typeID), nil
 		}
 		return nil, nil
 	}), nil)
@@ -66,6 +69,8 @@ func TestWorldStateResourceTypeTraits(t *testing.T) {
 	create("settings", space_world.SpaceSettingsTypeID, &space_world.SpaceSettings{})
 	create("worker/a", forge_worker.WorkerTypeID, &forge_worker.Worker{Name: "Alpha"})
 	create("worker/b", forge_worker.WorkerTypeID, &forge_worker.Worker{})
+	create("devices/thumper", s4wave_device.DeviceTypeID, &s4wave_device.Device{Label: "thumper"})
+	create("devices/new", s4wave_device.DeviceTypeID, &s4wave_device.Device{})
 	create("plugin/a", pluginTypeID, &space_world.SpaceSettings{})
 	made := timestamppb.New(time.Unix(1_700_000_000, 0))
 	create("job/a", forge_job.JobTypeID, &forge_job.Job{JobState: forge_job.State_JobState_RUNNING, Timestamp: made})
@@ -100,6 +105,9 @@ func TestWorldStateResourceTypeTraits(t *testing.T) {
 	}
 	if got := list(forge_worker.WorkerTypeID, false).GetTitles(); got != nil {
 		t.Fatalf("titles without asking: %q", got)
+	}
+	if got := list(s4wave_device.DeviceTypeID, true).GetTitles(); !slices.Equal(got, []string{"thumper", ""}) {
+		t.Fatalf("device titles %q", got)
 	}
 	if got := list(pluginTypeID, true).GetTitles(); got != nil {
 		t.Fatalf("plugin titles %q", got)
