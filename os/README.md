@@ -164,9 +164,11 @@ The guest writes and syncs one file through the data Volume and powers off;
 an image with a resolv.conf also prints `SPACEWAVE_OS_RESOLVER_BOUND`, and an
 image with the daemon prints `SPACEWAVE_OS_DAEMON_LISTENING` once its socket
 appears. The rehearsal then runs the [kill trial](qemu/README.md#kill-trial) on the same
-disk. It writes its receipt only when the guest printed
-`SPACEWAVE_OS_BACKING_GROWN`, `SPACEWAVE_OS_DATA_CREATED` and
-`SPACEWAVE_OS_PASS`, and the kill trial kept every acknowledged record; a
+disk, and the [refusal trial](qemu/README.md#refusal-trial) on a copy whose
+card an unpinned signer authorized. It writes its receipt only when the guest
+printed `SPACEWAVE_OS_BACKING_GROWN`, `SPACEWAVE_OS_DATA_CREATED` and
+`SPACEWAVE_OS_PASS`, the kill trial kept every acknowledged record, and the
+copy refused to boot; a
 guest that panics or hangs fails, and its console is the Step's log. The
 rehearsal runs as a Docker Step in the `os/qemu` image with `/dev/kvm`. The
 Step's `input_mounts` check out the boot set, the image, the init and the

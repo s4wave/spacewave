@@ -95,3 +95,15 @@ all 32 records before a clean poweroff. It prints `KILL_TRIAL_PASS` and exits 0
 only if every check passes, and streams the guest's console to stdout.
 `rehearse.sh` runs it on the rehearsal's disk after the clean boot. A 1 GiB
 disk falls below the data Volume's disk reserve, so use 4 GiB.
+
+## Refusal trial
+
+`refusal_trial.py` checks that a boot refuses an image whose authorization no
+pinned signer made. `rehearse.sh` builds its disk from a fresh copy of the
+image, carded by a second throwaway key, with the first card's signer already
+pinned in the data directory, as a card rewritten after first boot would be.
+The guest must print `SPACEWAVE_OS_ERROR` naming the unpinned signer and never
+print `SPACEWAVE_OS_AUTHORIZED`, `SPACEWAVE_OS_FROZEN` or
+`SPACEWAVE_OS_DATA_CREATED`. A failed bootstrap pauses PID 1, so the driver
+stops QEMU once the error appears; it prints `REFUSAL_TRIAL_PASS` and exits 0
+only if every check passes.

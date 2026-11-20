@@ -2,9 +2,10 @@
 # rehearse.sh boots a boot set on a system root holding an image store in
 # QEMU. It succeeds only when the console guest grows its store to the disk,
 # creates its data Volume, reports ready, writes and syncs a file in that
-# Volume, and closes every store on poweroff, and when the kill trial then
-# keeps every acknowledged record across two SIGKILLs. Run it in the os/qemu
-# tool image with /dev/kvm, as the rehearsal Step does.
+# Volume, and closes every store on poweroff; when the kill trial then keeps
+# every acknowledged record across two SIGKILLs; and when a copy whose card an
+# unpinned signer authorized refuses to boot. Run it in the os/qemu tool image
+# with /dev/kvm, as the rehearsal Step does.
 # Usage: rehearse.sh IMAGES IMAGE INIT RECEIPT
 #   IMAGES holds bzImage and rootfs.cpio.lz4; IMAGE is the image store the
 #   install Step also writes; INIT is the static spacewave-init that writes a
@@ -73,4 +74,18 @@ fi
 timeout -k 30 "${REHEARSAL_TIMEOUT:-600}" python3 "$tools/kill_trial.py" \
     --accel "${ACCEL:-kvm}" --kernel "$images/bzImage" \
     --initramfs "$images/rootfs.cpio.lz4" --disk "$fixture/btrfs.img"
+# Pin the first card's signer on a fresh copy whose card a second throwaway
+# key signed, as a card rewritten after first boot would be; the boot must
+# refuse the image before opening it or its data.
+mkdir -m 700 "$fixture/refused" "$fixture/refused/data"
+cp -R "$image" "$fixture/refused/image"
+chmod -R u+w "$fixture/refused/image"
+GOMAXPROCS=2 "$fixture/init" rehearsal-card "$fixture/refused/image"
+install -m 600 "$fixture/root/image/signers" "$fixture/refused/data/pinned-signers"
+truncate -s 1G "$fixture/refused.img"
+mkfs.btrfs -q --shrink --rootdir "$fixture/refused" "$fixture/refused.img"
+truncate -s 4G "$fixture/refused.img"
+timeout -k 30 "${REHEARSAL_TIMEOUT:-600}" python3 "$tools/refusal_trial.py" \
+    --accel "${ACCEL:-kvm}" --kernel "$images/bzImage" \
+    --initramfs "$images/rootfs.cpio.lz4" --disk "$fixture/refused.img"
 mv "$fixture/stopped" "$receipt"

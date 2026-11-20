@@ -44,7 +44,12 @@ def note(message: str) -> None:
 class Console:
     """One booted console guest whose serial lines the driver waits on."""
 
-    def __init__(self, arguments: argparse.Namespace) -> None:
+    def __init__(self, arguments: argparse.Namespace, shell: bool = True) -> None:
+        """Boot the guest, and unless shell is False, wait for its shell.
+
+        A boot that stops before the shell, such as a refused one, passes
+        shell=False and waits on its own markers.
+        """
         # Start QEMU and stream its console to stdout and to the line list.
         command = qemu_command(
             arguments.accel, arguments.kernel, arguments.initramfs, arguments.disk
@@ -63,6 +68,8 @@ class Console:
         self.reader.start()
 
         # Wait for the shell, then turn echo off so typed text never matches.
+        if not shell:
+            return
         self.wait("SPACEWAVE_OS_CONSOLE_READY pid=", 240)
         self.send("stty -echo && echo SPACEWAVE_OS_INPUT_PRIVATE")
         self.wait(output("SPACEWAVE_OS_INPUT_PRIVATE"), 30)

@@ -130,7 +130,7 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 	})
 	f.storeTree("os/skiff", os.DirFS(filepath.Join(osDir, "skiff")))
 	tools := fstest.MapFS{}
-	for _, name := range []string{"rehearse.sh", "install.sh", "run_app.py", "kill_trial.py"} {
+	for _, name := range []string{"rehearse.sh", "install.sh", "run_app.py", "kill_trial.py", "refusal_trial.py"} {
 		data, err := os.ReadFile(filepath.Join(osDir, "qemu", name))
 		if err != nil {
 			t.Fatal(err)
