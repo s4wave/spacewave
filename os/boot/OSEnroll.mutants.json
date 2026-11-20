@@ -1,0 +1,52 @@
+[
+  {
+    "name": "the card carries the Device key",
+    "replace": [
+      [
+        "           /\\ key' = \"volume\"",
+        "           /\\ key' = \"card\""
+      ]
+    ],
+    "expect": "KeyNeverOnCard"
+  },
+  {
+    "name": "the Device key lives only in memory until enrollment",
+    "replace": [
+      [
+        "           /\\ key' = \"volume\"",
+        "           /\\ key' = \"memory\""
+      ]
+    ],
+    "expect": "AdmittedKeyHeld"
+  },
+  {
+    "name": "each boot trusts the card's signers instead of the pinned ones",
+    "replace": [
+      [
+        "          /\\ manifestSigner = pinned\n",
+        "          /\\ manifestSigner = cardSigner\n"
+      ]
+    ],
+    "expect": "ServesOwnerImage"
+  },
+  {
+    "name": "the root is served before its signature is checked",
+    "replace": [
+      [
+        "          /\\ manifestSigner = pinned\n",
+        ""
+      ]
+    ],
+    "expect": "ServesOwnerImage"
+  },
+  {
+    "name": "the Space refuses a second redemption by the key it admitted",
+    "replace": [
+      [
+        "                /\\ enroll' = \"granted\"",
+        "                /\\ enroll' = \"refused\""
+      ]
+    ],
+    "expect": "RefusedOnlyByRevoke"
+  }
+]

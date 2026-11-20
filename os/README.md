@@ -90,7 +90,10 @@ There is no automatic repair, shell restart or fallback to a new filesystem.
 `GuestConsole.tla` covers guest-only signals, one waiter, child/server/controller
 failure, containment, mount/server joins and store lifetime. `DataVolume.tla`
 covers interrupted buffered flush and storage publication; `Console/Console.tla`
-and its view carry the reader journey. Component tests and model checks do not
+and its view carry the reader journey. `OSEnroll.tla` covers an installed card's
+first boot: the signers pinned before any root is served, the Device key made in
+the Volume, and the bootstrap grant redeemed across power cuts until the Space
+admits the key or revokes the grant. Component tests and model checks do not
 establish mounted durability or actual terminal behavior. Real QEMU/PTY checks,
 80x24 and 160x48 captures, restart/crash acceptance and timings remain separate.
 
