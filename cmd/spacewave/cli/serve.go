@@ -58,6 +58,7 @@ func newServeCommand(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_pol
 	var launcher string
 	var runtimeTracePath string
 	var udpListen string
+	var udpPeers cli.StringSlice
 	var takeover bool
 	idleTimeout := defaultDaemonIdleTimeout
 	return &cli.Command{
@@ -98,6 +99,11 @@ func newServeCommand(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_pol
 				Usage:       "serve other sessions of the account over UDP on this host:port; disables idle shutdown unless --idle-timeout is set",
 				Destination: &udpListen,
 			},
+			&cli.StringSliceFlag{
+				Name:        "udp-peer",
+				Usage:       "admit links from this session peer ID on the --udp-listen socket, such as a Space member joining by invite (repeatable)",
+				Destination: &udpPeers,
+			},
 		}, append(append(frees.BuildFlags(), upgrade.BuildFlags()...), serveColdPackFlags()...)...),
 		Action: func(c *cli.Context) (retErr error) {
 			return runWithRuntimeTrace(runtimeTracePath, func() error {
@@ -110,6 +116,7 @@ func newServeCommand(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_pol
 					takeover,
 					idleTimeout,
 					udpListen,
+					udpPeers.Value(),
 					frees,
 				)
 			})
@@ -128,6 +135,7 @@ func runServeCommand(
 	takeover bool,
 	idleTimeout time.Duration,
 	udpListen string,
+	udpPeers []string,
 	frees *CollectorFrees,
 ) (retErr error) {
 	// Resolve the command target before any writable bus is requested.
@@ -467,7 +475,7 @@ func runServeCommand(
 	releaseStartupDemand()
 	if udpListen != "" {
 		go func() {
-			if err := serveUDPListener(serveCtx, le, readyClient, udpListen); err != nil {
+			if err := serveUDPListener(serveCtx, le, readyClient, udpListen, udpPeers); err != nil {
 				le.WithError(err).Error("UDP listener stopped")
 			}
 		}()

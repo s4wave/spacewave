@@ -12,8 +12,10 @@ import (
 
 // serveUDPListener listens for the daemon's only Session on addr and serves
 // the Resource service to other active sessions of its account until ctx
-// ends. A locked Session delays the listener until it unlocks.
-func serveUDPListener(ctx context.Context, le *logrus.Entry, client *sdkClient, addr string) error {
+// ends. The listener also admits the links of the session peer IDs in peers,
+// such as a Space member of another account, without granting them the
+// Resource service. A locked Session delays the listener until it unlocks.
+func serveUDPListener(ctx context.Context, le *logrus.Entry, client *sdkClient, addr string, peers []string) error {
 	// Select the one Session the listener speaks for.
 	sessions, err := client.root.ListSessions(ctx)
 	if err != nil {
@@ -28,9 +30,15 @@ func serveUDPListener(ctx context.Context, le *logrus.Entry, client *sdkClient, 
 	}
 	defer sess.Release()
 
-	// Hold the UDP transport and remote resource service open.
+	// Hold the UDP transport and remote resource service open. A named peer
+	// with no address is admitted when it dials in but is never dialed.
+	peerAddrs := make(map[string]string, len(peers))
+	for _, id := range peers {
+		peerAddrs[id] = ""
+	}
 	pt, err := sess.OpenPeerTransport(ctx, &s4wave_session.AccessPeerTransportRequest{
 		UdpListenAddr:  addr,
+		UdpPeerAddrs:   peerAddrs,
 		ServeResources: true,
 	})
 	if err != nil {
