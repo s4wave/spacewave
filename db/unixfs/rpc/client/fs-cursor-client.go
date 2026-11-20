@@ -201,6 +201,11 @@ func (c *FSCursorClient) ingestCursorLocked(cursorHandleID uint64) *remoteFSCurs
 	return retCursor
 }
 
+// Context ends when the cursor event stream closes or the client is released.
+func (c *FSCursorClient) Context() context.Context {
+	return c.ctx
+}
+
 // Release releases the filesystem cursor client.
 // All sub-cursors will be automatically canceled as well.
 func (c *FSCursorClient) Release() {

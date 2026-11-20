@@ -9,13 +9,19 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/starpc/srpc"
+	resource_testbed "github.com/s4wave/spacewave/core/resource/testbed"
 	"github.com/s4wave/spacewave/core/transport"
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	unixfs_rpc "github.com/s4wave/spacewave/db/unixfs/rpc"
+	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/protocol"
+	s4wave_device "github.com/s4wave/spacewave/sdk/device"
+	s4wave_unixfs "github.com/s4wave/spacewave/sdk/unixfs"
+	"github.com/sirupsen/logrus"
 )
 
 // checkCheckoutRootAccess reads and attempts a fully specified write to a host file.
@@ -86,5 +92,62 @@ func checkCheckoutRootAccess(t *testing.T, ctx context.Context, device peer.ID, 
 	data, err := os.ReadFile(filepath.Join(dir, "file.txt"))
 	if err != nil || string(data) != want {
 		t.Fatalf("host file = %q, error %v, want %q", data, err, want)
+	}
+}
+
+// checkCheckoutRootResource resolves a Device protocol as an ordinary FSHandle Resource.
+func checkCheckoutRootResource(t *testing.T, ctx context.Context, le *logrus.Entry, b bus.Bus, session peer.ID, engine world.Engine, capabilityID, dir string) {
+	// Serve the Device over the Resource RPC with a read-only World grant.
+	t.Helper()
+	device := s4wave_device.NewDeviceResource(le, b, session, engine, world.NewEngineWorldState(engine, false), testSelfKey)
+	resources, cleanup := resource_testbed.SetupResourceClientWithRoot(ctx, t, device.GetMux())
+	defer cleanup()
+	deviceRef := resources.AccessRootResource()
+	defer deviceRef.Release()
+	deviceClient, err := deviceRef.GetClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	deviceService := s4wave_device.NewSRPCDeviceResourceServiceClient(deviceClient)
+
+	// Select the live protocol by name and require a readable filesystem resource.
+	opened, err := deviceService.AccessCheckoutRoot(ctx, &s4wave_device.AccessCheckoutRootRequest{Name: "skiffos"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if opened.GetCapabilityId() != capabilityID || opened.GetWriteEnabled() || !opened.GetWriteAvailable() {
+		t.Fatalf("opened checkout root = %v", opened)
+	}
+	rootRef := resources.CreateResourceReference(opened.GetResourceId())
+	defer rootRef.Release()
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+	entry, err := root.LookupPath(ctx, &s4wave_unixfs.HandleLookupPathRequest{Path: "file.txt"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	fileRef := resources.CreateResourceReference(entry.GetResourceId())
+	defer fileRef.Release()
+	fileClient, err := fileRef.GetClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	file := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(fileClient)
+
+	// Read the host bytes from the child and require it to inherit read-only access.
+	want, err := os.ReadFile(filepath.Join(dir, "file.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	read, err := file.ReadAt(ctx, &s4wave_unixfs.HandleReadAtRequest{Length: int64(len(want))})
+	if err != nil || string(read.GetData()) != string(want) {
+		t.Fatalf("live resource data = %v, error %v, want %q", read, err, want)
+	}
+	_, err = file.WriteAt(ctx, &s4wave_unixfs.HandleWriteAtRequest{Data: []byte("bad")})
+	if err == nil || err.Error() != unixfs_errors.ErrReadOnly.Error() {
+		t.Fatalf("write through read-only handle = %v", err)
 	}
 }

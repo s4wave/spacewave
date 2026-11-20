@@ -75,7 +75,10 @@ func TestReconciler(t *testing.T) {
 	commit(t, ctx, engine, func(tx world.Tx) error {
 		for key, peerID := range map[string]string{testSelfKey: selfPeer, testOtherKey: otherPeer} {
 			obj, _, err := world.CreateWorldObject(ctx, tx, key, func(cursor *block.Cursor) error {
-				cursor.SetBlock(&s4wave_device.Device{PeerId: peerID, Label: key}, true)
+				cursor.SetBlock(&s4wave_device.Device{
+					PeerId: peerID, Label: key,
+					SetupState: s4wave_device.DeviceSetupState_DEVICE_SETUP_STATE_DEVICE_SESSION_READY,
+				}, true)
 				return nil
 			})
 			world.ReleaseObjectState(obj)
@@ -308,6 +311,11 @@ func TestReconciler(t *testing.T) {
 		checkCheckoutRootAccess(t, ctx, st.GetPeerID(), viewer, id, writableDir, true)
 		refused := openFrameControl(t, ctx, st.GetPeerID(), outsider, id).GetStream()
 		checkFrameControlClosed(t, refused)
+	})
+
+	// Access the same folder through a Device Resource using the viewer's Session.
+	t.Run("CheckoutRootResource", func(t *testing.T) {
+		checkCheckoutRootResource(t, ctx, le, viewerBus, viewer.GetPeerID(), engine, rootCap.GetId(), writableDir)
 	})
 
 	// Remove the node that keeps the skiffos root and require its capability to

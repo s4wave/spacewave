@@ -121,28 +121,41 @@ export function deviceCapabilityCanWriteCheckoutRoot(
   )
 }
 
+/** hasCheckoutRootLink reports whether the root names a Device protocol or a World object. */
+function hasCheckoutRootLink(
+  capability: DeviceCapability | undefined,
+): boolean {
+  const link = capability?.link
+  return (
+    !!link?.protocolId?.trim() ||
+    (!!link?.objectKey?.trim() && !!link?.typeId?.trim())
+  )
+}
+
+/** findReadableDeviceCheckoutRoot returns a selectable root linked to a filesystem. */
 export function findReadableDeviceCheckoutRoot(
   device: Device | null | undefined,
   name?: string,
 ): DeviceCapability | undefined {
   const capability = findSelectableDeviceCheckoutRoot(device, name)
-  if (!deviceCheckoutRootCanRead(capability?.checkoutRoot)) return undefined
-  const objectKey = capability?.link?.objectKey?.trim() ?? ''
-  const typeId = capability?.link?.typeId?.trim() ?? ''
-  if (!objectKey || !typeId) return undefined
-  return capability
+  if (
+    deviceCheckoutRootCanRead(capability?.checkoutRoot) &&
+    hasCheckoutRootLink(capability)
+  )
+    return capability
 }
 
+/** findWritableDeviceCheckoutRoot returns a selectable root whose policy allows writes. */
 export function findWritableDeviceCheckoutRoot(
   device: Device | null | undefined,
   name?: string,
 ): DeviceCapability | undefined {
   const capability = findSelectableDeviceCheckoutRoot(device, name)
-  if (!deviceCapabilityCanWriteCheckoutRoot(capability)) return undefined
-  const objectKey = capability?.link?.objectKey?.trim() ?? ''
-  const typeId = capability?.link?.typeId?.trim() ?? ''
-  if (!objectKey || !typeId) return undefined
-  return capability
+  if (
+    deviceCapabilityCanWriteCheckoutRoot(capability) &&
+    hasCheckoutRootLink(capability)
+  )
+    return capability
 }
 
 export function findSelectableDeviceForgeWorker(

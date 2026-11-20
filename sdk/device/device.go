@@ -250,40 +250,30 @@ func DeviceCapabilityCanWriteCheckoutRoot(cap *DeviceCapability) bool {
 		DeviceCapabilityPolicyAllowsWrite(cap)
 }
 
-// FindReadableCheckoutRoot returns a selectable checkout-root capability with a
-// linked filesystem object that can be opened through the Resource SDK.
+// FindReadableCheckoutRoot returns a selectable root linked to a filesystem.
 func (d *Device) FindReadableCheckoutRoot(name string) *DeviceCapability {
-	// Select a checkout-root capability that permits read access.
+	// Require read access and a reference to an openable filesystem.
 	cap := d.FindSelectableCheckoutRoot(name)
-	if cap == nil || !DeviceCheckoutRootCanRead(cap.GetCheckoutRoot()) {
+	if !DeviceCheckoutRootCanRead(cap.GetCheckoutRoot()) || !hasCheckoutRootLink(cap.GetLink()) {
 		return nil
 	}
-
-	// Require a typed filesystem object link for the checkout root.
-	link := cap.GetLink()
-	if strings.TrimSpace(link.GetObjectKey()) == "" || strings.TrimSpace(link.GetTypeId()) == "" {
-		return nil
-	}
-
 	return cap
 }
 
-// FindWritableCheckoutRoot returns a selectable checkout-root capability with a
-// linked filesystem object that may be opened for writes after approval.
+// FindWritableCheckoutRoot returns a selectable root whose policy allows writes.
 func (d *Device) FindWritableCheckoutRoot(name string) *DeviceCapability {
-	// Select a checkout-root capability that permits approved write access.
+	// Require write access and a reference to an openable filesystem.
 	cap := d.FindSelectableCheckoutRoot(name)
-	if cap == nil || !DeviceCapabilityCanWriteCheckoutRoot(cap) {
+	if !DeviceCapabilityCanWriteCheckoutRoot(cap) || !hasCheckoutRootLink(cap.GetLink()) {
 		return nil
 	}
-
-	// Require a typed filesystem object link for the checkout root.
-	link := cap.GetLink()
-	if strings.TrimSpace(link.GetObjectKey()) == "" || strings.TrimSpace(link.GetTypeId()) == "" {
-		return nil
-	}
-
 	return cap
+}
+
+// hasCheckoutRootLink reports whether link names a Device protocol or a World object.
+func hasCheckoutRootLink(link *DeviceCapabilityLink) bool {
+	return strings.TrimSpace(link.GetProtocolId()) != "" ||
+		(strings.TrimSpace(link.GetObjectKey()) != "" && strings.TrimSpace(link.GetTypeId()) != "")
 }
 
 // FindSelectableForgeWorker returns a selectable Forge Worker capability linked

@@ -13,6 +13,7 @@ import (
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
+	"github.com/s4wave/spacewave/net/protocol"
 	s4wave_unixfs_world "github.com/s4wave/spacewave/sdk/unixfs/world"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 	"github.com/sirupsen/logrus"
@@ -81,47 +82,25 @@ func (r *DeviceResource) ReportDeviceStatus(ctx context.Context, req *ReportDevi
 	return nil, errors.New("device status reports are daemon-owned and unavailable through typed object resources")
 }
 
-// AccessCheckoutRoot opens the selected checkout root's filesystem object as an
-// FSHandle resource. Write access requires explicit capability and approval
-// metadata before Device creates a writer-backed UnixFS cursor.
+// AccessCheckoutRoot publishes a filesystem handle for a World object or a live Device folder.
 func (r *DeviceResource) AccessCheckoutRoot(ctx context.Context, req *AccessCheckoutRootRequest) (*AccessCheckoutRootResponse, error) {
-	// Resolve the caller's Resource client context and requested access mode.
+	// Resolve the caller that owns the returned resource.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Select a write or read-only World state for the access request.
+	// For a write, select from the latest Device record when an Engine is available.
+	write := req.GetWrite()
 	writeApprovalRef := strings.TrimSpace(req.GetWriteApprovalRef())
-	var accessWS world.WorldState
-	if req.GetWrite() {
-		if writeApprovalRef == "" {
-			return nil, errors.New("checkout root write access requires approval ref")
-		}
-		accessWS, err = r.writeWorldState()
-	} else {
-		accessWS, err = r.readOnlyWorldState()
+	if write && writeApprovalRef == "" {
+		return nil, errors.New("checkout root write access requires approval ref")
 	}
-	if err != nil {
-		return nil, err
-	}
-
-	// Load the device object state from the selected World state.
 	stateWS := r.ws
-	if req.GetWrite() {
-		stateWS = accessWS
+	if write && r.engine != nil {
+		stateWS = world.NewEngineWorldState(r.engine, true)
 	}
-	objState, found, err := stateWS.GetObject(ctx, r.objKey)
-	defer world.ReleaseObjectState(objState)
-	if err != nil {
-		return nil, err
-	}
-	if !found {
-		return nil, world.ErrObjectNotFound
-	}
-
-	// Read the device object and find the requested checkout root capability.
-	state, err := readDeviceObject(ctx, objState)
+	state, err := world.LookupObjectBody[Device](ctx, stateWS, r.objKey)
 	if err != nil {
 		return nil, err
 	}
@@ -129,72 +108,91 @@ func (r *DeviceResource) AccessCheckoutRoot(ctx context.Context, req *AccessChec
 		return nil, errors.New("device is not selectable")
 	}
 
-	// Locate the requested checkout root capability and verify its link.
+	// Apply the Device's published selection and access mode before opening the link.
 	var capability *DeviceCapability
-	if req.GetWrite() {
+	if write {
 		capability = state.FindWritableCheckoutRoot(req.GetName())
 	} else {
 		capability = state.FindReadableCheckoutRoot(req.GetName())
 	}
 	if capability == nil {
-		if req.GetWrite() {
+		if write {
 			return nil, errors.New("checkout root is not writable")
 		}
 		return nil, errors.New("checkout root is not readable")
 	}
-	link := capability.GetLink()
-	if strings.TrimSpace(link.GetTypeId()) != s4wave_unixfs_world.UnixFSTypeID {
+
+	// Open the capability on the Device's Session or in the granted World.
+	capLink := capability.GetLink()
+	protocolID := protocol.ID(strings.TrimSpace(capLink.GetProtocolId()))
+	var resourceID uint32
+	switch {
+	case protocolID != "":
+		resourceID, err = r.openLiveCheckoutRoot(ctx, resourceCtx, state, protocolID, write)
+	case strings.TrimSpace(capLink.GetTypeId()) == s4wave_unixfs_world.UnixFSTypeID:
+		resourceID, err = r.openWorldCheckoutRoot(ctx, resourceCtx, stateWS, capLink.GetObjectKey(), write)
+	default:
 		return nil, errors.Errorf("checkout root %q is not a unixfs owner", capability.GetId())
 	}
-
-	// Open an FS cursor over the checkout root and publish it as a resource.
-	fsType, _, err := unixfs_world.LookupFsType(ctx, accessWS, link.GetObjectKey())
 	if err != nil {
 		return nil, err
 	}
-	var fsCursor *unixfs_world.FSCursor
-	if req.GetWrite() {
-		fsCursor, _ = unixfs_world.NewFSCursorWithWriter(ctx, r.le, accessWS, link.GetObjectKey(), fsType, "")
-	} else {
-		fsCursor = unixfs_world.NewFSCursor(r.le, accessWS, link.GetObjectKey(), fsType, nil, true)
-	}
-	fsh, err := unixfs.NewFSHandle(fsCursor)
-	if err != nil {
-		fsCursor.Release()
-		return nil, err
-	}
 
-	// Publish the FS handle as a Resource owned by the caller.
-	fsResource := resource_unixfs.NewFSHandleObjectResource(
-		r.le,
-		fsh,
-		fsCursor,
-		nil,
-		accessWS,
-		link.GetObjectKey(),
-		fsType,
-		nil,
-	)
-	resourceID, err := resourceCtx.AddResourceValue(fsResource.GetMux(), fsResource, func() {
-		fsh.Release()
-	})
-	if err != nil {
-		fsh.Release()
-		return nil, err
-	}
-
+	// Return the selected capability and the resource both link types share.
 	return &AccessCheckoutRootResponse{
 		ResourceId:       resourceID,
 		CapabilityId:     capability.GetId(),
-		ObjectKey:        link.GetObjectKey(),
-		TypeId:           link.GetTypeId(),
+		ObjectKey:        capLink.GetObjectKey(),
+		TypeId:           capLink.GetTypeId(),
 		CheckoutRoot:     capability.GetCheckoutRoot().CloneVT(),
 		WriteAvailable:   DeviceCapabilityCanWriteCheckoutRoot(capability),
-		WriteEnabled:     req.GetWrite(),
+		WriteEnabled:     write,
 		WriteApprovalRef: writeApprovalRef,
 	}, nil
 }
 
+// openWorldCheckoutRoot publishes a cursor attached to the linked World object.
+func (r *DeviceResource) openWorldCheckoutRoot(ctx context.Context, resourceCtx resource_server.ResourceClientContext, stateWS world.WorldState, key string, write bool) (uint32, error) {
+	// Open the World object with the requested access, preserving the World's write grant.
+	accessWS := stateWS
+	if write && accessWS.GetReadOnly() {
+		return 0, errors.New("write checkout root access requires an engine-backed Device resource")
+	}
+	if !write {
+		var err error
+		accessWS, err = r.readOnlyWorldState()
+		if err != nil {
+			return 0, err
+		}
+	}
+	fsType, _, err := unixfs_world.LookupFsType(ctx, accessWS, key)
+	if err != nil {
+		return 0, err
+	}
+
+	// Use the World cursor so the handle retains object-backed editing and watches.
+	var cursor *unixfs_world.FSCursor
+	if write {
+		cursor, _ = unixfs_world.NewFSCursorWithWriter(ctx, r.le, accessWS, key, fsType, "")
+	} else {
+		cursor = unixfs_world.NewFSCursor(r.le, accessWS, key, fsType, nil, true)
+	}
+	handle, err := unixfs.NewFSHandle(cursor)
+	if err != nil {
+		cursor.Release()
+		return 0, err
+	}
+
+	// Transfer the filesystem handle to the caller's resource tree.
+	res := resource_unixfs.NewFSHandleObjectResource(r.le, handle, cursor, nil, accessWS, key, fsType, nil)
+	id, err := resourceCtx.AddResourceValue(res.GetMux(), res, handle.Release)
+	if err != nil {
+		handle.Release()
+	}
+	return id, err
+}
+
+// readOnlyWorldState returns the granted World with writing disabled.
 func (r *DeviceResource) readOnlyWorldState() (world.WorldState, error) {
 	if r.engine != nil {
 		return world.NewEngineWorldState(r.engine, false), nil
@@ -205,17 +203,9 @@ func (r *DeviceResource) readOnlyWorldState() (world.WorldState, error) {
 	return nil, errors.New("read-only checkout root access requires an engine-backed Device resource")
 }
 
-func (r *DeviceResource) writeWorldState() (world.WorldState, error) {
-	if r.engine != nil {
-		return world.NewEngineWorldState(r.engine, true), nil
-	}
-	if !r.ws.GetReadOnly() {
-		return r.ws, nil
-	}
-	return nil, errors.New("write checkout root access requires an engine-backed Device resource")
-}
-
+// readDeviceObject decodes the Device state held at the object's root.
 func readDeviceObject(ctx context.Context, objState world.ObjectState) (*Device, error) {
+	// Decode the Device block; an empty object has the initial Device state.
 	state, err := s4wave_world.ReadWorldBlock[Device](ctx, objState)
 	if err != nil {
 		return nil, err
@@ -226,4 +216,5 @@ func readDeviceObject(ctx context.Context, objState world.ObjectState) (*Device,
 	return state, nil
 }
 
+// _ is a type assertion.
 var _ SRPCDeviceResourceServiceServer = (*DeviceResource)(nil)

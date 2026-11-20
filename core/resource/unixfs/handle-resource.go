@@ -37,6 +37,8 @@ func validateUploadDataFrame(data []byte) error {
 // FSHandleResource implements FSHandleResourceService for a single FSHandle.
 // Each instance wraps exactly one hydra/unixfs.FSHandle with 1:1 mapping.
 type FSHandleResource struct {
+	// readOnly restricts writes on a detached handle and all handles it opens.
+	readOnly bool
 	// le is the logger entry for object-backed handle construction; may be nil
 	// only when no object path is bound.
 	le     *logrus.Entry
@@ -73,7 +75,12 @@ type FSHandleResource struct {
 // The handle-only form never constructs an object-backed cursor, so no logger
 // entry is needed.
 func NewFSHandleResource(handle *unixfs.FSHandle) *FSHandleResource {
-	return newFSHandleResource(nil, handle, nil, nil, nil, nil, nil, "", 0, nil)
+	return newFSHandleResource(nil, handle, nil, nil, nil, nil, nil, "", 0, nil, false)
+}
+
+// NewReadOnlyFSHandleResource exposes a detached handle without mutation methods.
+func NewReadOnlyFSHandleResource(handle *unixfs.FSHandle) *FSHandleResource {
+	return newFSHandleResource(nil, handle, nil, nil, nil, nil, nil, "", 0, nil, true)
 }
 
 // NewFSHandleObjectResource creates a new FSHandleResource bound to a world
@@ -90,7 +97,7 @@ func NewFSHandleObjectResource(
 	fsType unixfs_world.FSType,
 	path []string,
 ) *FSHandleResource {
-	return newFSHandleResource(le, handle, bcast, nil, nil, cursor, ws, objKey, fsType, path)
+	return newFSHandleResource(le, handle, bcast, nil, nil, cursor, ws, objKey, fsType, path, false)
 }
 
 func newFSHandleResource(
@@ -104,6 +111,7 @@ func newFSHandleResource(
 	objKey string,
 	fsType unixfs_world.FSType,
 	path []string,
+	readOnly bool,
 ) *FSHandleResource {
 	// Initialize the notifications and publication barriers shared by child resources.
 	if bcast == nil {
@@ -119,6 +127,7 @@ func newFSHandleResource(
 	// Bind the filesystem handle and World path to the resource service.
 	r := &FSHandleResource{
 		le:        le,
+		readOnly:  readOnly,
 		handle:    handle,
 		bcast:     bcast,
 		writeMtx:  writeMtx,
@@ -185,6 +194,7 @@ func (r *FSHandleResource) newChildResource(childHandle *unixfs.FSHandle, childP
 		r.objKey,
 		r.fsType,
 		childPath,
+		r.readOnly,
 	)
 }
 
@@ -219,6 +229,11 @@ func (r *FSHandleResource) joinHandlePath(relPath string) []string {
 // mutation so the read-merge-publish in world.AccessObjectState cannot interleave
 // with another writer and lose an update. fn performs the world mutation.
 func (r *FSHandleResource) mutate(fn func() error) error {
+	// Enforce the access requested for this detached handle.
+	if r.readOnly {
+		return unixfs_errors.ErrReadOnly
+	}
+
 	// Hold the resource tree write barrier across the filesystem mutation.
 	r.writeMtx.Lock()
 	defer r.writeMtx.Unlock()
