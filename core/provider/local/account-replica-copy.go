@@ -83,6 +83,32 @@ func (a *ProviderAccount) runAccountReplicaCopy(
 
 	// Copy the newest published graph in latest, then each newer one.
 	latest := ccontainer.NewCContainer[*replicaHead](nil)
+
+	// Copy the newest head again after each change of the keep-full-copy
+	// setting: a fresh value for the same head wakes the copier.
+	setCtx, cancelSet := context.WithCancel(ctx)
+	setWatched := make(chan struct{})
+	go func() {
+		defer close(setWatched)
+		gen := a.linkedCopiesGen.GetValue()
+		for {
+			next, err := a.linkedCopiesGen.WaitValueChange(setCtx, gen, nil)
+			if err != nil {
+				return
+			}
+			gen = next
+			latest.SwapValue(func(cur *replicaHead) *replicaHead {
+				if cur == nil {
+					return nil
+				}
+				return &replicaHead{span: cur.span, head: cur.head}
+			})
+		}
+	}()
+	defer func() {
+		cancelSet()
+		<-setWatched
+	}()
 	copier := routine.NewRoutineContainerWithLogger(a.le.WithField("routine", "copy-world-head"), routine.WithRetry(providerBackoff))
 	copier.SetRoutine(func(ctx context.Context) error {
 		err := publishErr(ctx, a.copyAccountWorldHeads(ctx, so, state, local, latest, absent, exchange))
@@ -386,8 +412,15 @@ func (a *ProviderAccount) copyAndPersistAccountWorld(
 		return err
 	}
 
-	// Retain the head and republish when this head already completed.
-	if progress.GetComplete() && progress.GetHead().EqualVT(head) {
+	// Read, once per walk, how the walk treats linked chunks.
+	mode, err := a.readLinkedCopy(ctx, progress.GetLinkedProofs())
+	if err != nil {
+		return err
+	}
+
+	// Retain the head and republish when this head already completed, unless
+	// a full copy must fetch the linked chunks an earlier walk skipped.
+	if progress.GetComplete() && progress.GetHead().EqualVT(head) && !mode.recheck {
 		if err := holdAccountWorld(ctx, so.GetBlockStore(), head.GetRootRef()); err != nil {
 			return err
 		}
@@ -395,12 +428,27 @@ func (a *ProviderAccount) copyAndPersistAccountWorld(
 		return nil
 	}
 
-	// Copy the World and hold its root on success.
-	progress = &AccountReplicaCopyState{ObjectId: so.GetSharedObjectID(), Head: head.CloneVT()}
-	state.publishCopyProgress(progress)
-	err = a.copyAccountWorld(ctx, so, progress, absent, func() { state.publishCopyProgress(progress) })
+	// Mark the proofs before a walk that may count linked chunks as present,
+	// so a later full copy knows to trust none of them. The mark stays across
+	// heads, since the proofs do.
+	progress = &AccountReplicaCopyState{
+		ObjectId:     so.GetSharedObjectID(),
+		Head:         head.CloneVT(),
+		LinkedProofs: progress.GetLinkedProofs(),
+	}
+	if !mode.full && !progress.GetLinkedProofs() {
+		progress.LinkedProofs = true
+		if err := writeCopyProgress(ctx, local, progress); err != nil {
+			return err
+		}
+	}
 
-	// Record the outcome in the progress state.
+	// Copy the World and hold its root on success.
+	state.publishCopyProgress(progress)
+	err = a.copyAccountWorld(ctx, so, progress, absent, func() { state.publishCopyProgress(progress) }, mode)
+
+	// Record the outcome in the progress state. A full copy that completed
+	// rechecked every block, so no proof counts a linked chunk any more.
 	if ctx.Err() != nil {
 		return ctx.Err()
 	}
@@ -408,18 +456,14 @@ func (a *ProviderAccount) copyAndPersistAccountWorld(
 		progress.Error = err.Error()
 	} else {
 		progress.Complete = true
+		if mode.full {
+			progress.LinkedProofs = false
+		}
 	}
 
 	// The block fence precedes this transaction, so a crash cannot retain
 	// a completion claim whose data was still buffered.
-	openWrite := func(ctx context.Context) (kvtx.Tx, error) { return local.NewTransaction(ctx, true) }
-	persistErr := kvtx.RunTransaction(ctx, true, openWrite, func(ctx context.Context, tx kvtx.Tx) error {
-		data, err := progress.MarshalVT()
-		if err != nil {
-			return err
-		}
-		return tx.Set(ctx, []byte("account-replica-copy/progress"), data)
-	})
+	persistErr := writeCopyProgress(ctx, local, progress)
 	if persistErr != nil {
 		progress.Complete = false
 		progress.Error = persistErr.Error()
@@ -433,13 +477,33 @@ func (a *ProviderAccount) copyAndPersistAccountWorld(
 	return persistErr
 }
 
+// writeCopyProgress stores the progress record.
+func writeCopyProgress(ctx context.Context, local kvtx.Store, progress *AccountReplicaCopyState) error {
+	openWrite := func(ctx context.Context) (kvtx.Tx, error) { return local.NewTransaction(ctx, true) }
+	return kvtx.RunTransaction(ctx, true, openWrite, func(ctx context.Context, tx kvtx.Tx) error {
+		data, err := progress.MarshalVT()
+		if err != nil {
+			return err
+		}
+		return tx.Set(ctx, []byte("account-replica-copy/progress"), data)
+	})
+}
+
 // copyAccountWorld copies the World under the progress head and holds it
 // under the account World root, publishing progress while blocks copy. A
 // missing block does not stop the walk: the walk completes, keeps the proofs
 // of every complete subtree, and returns a worldHolesError without moving the
 // root. A block in absent is recorded as a hole without a read; the holes
-// this walk finds become absent's set.
-func (a *ProviderAccount) copyAccountWorld(ctx context.Context, so sobject.SharedObject, progress *AccountReplicaCopyState, absent *knownAbsent, changed func()) error {
+// this walk finds become absent's set. mode sets how the walk treats the
+// chunks a linked file serves (copyWorldGraph).
+func (a *ProviderAccount) copyAccountWorld(
+	ctx context.Context,
+	so sobject.SharedObject,
+	progress *AccountReplicaCopyState,
+	absent *knownAbsent,
+	changed func(),
+	mode linkedCopy,
+) error {
 	// Count the copied blocks, publishing progress at most every 250ms.
 	lastUpdate := time.Now()
 	visited := func(_ *block.BlockRef, data []byte) {
@@ -460,7 +524,7 @@ func (a *ProviderAccount) copyAccountWorld(ctx context.Context, so sobject.Share
 	src := &absentSource{StoreOps: store, absent: absent}
 
 	// Copy the World, then make its holes the known-absent set.
-	if err := copyWorldGraph(ctx, store, src, progress.GetHead().GetRootRef(), visited, missing); err != nil {
+	if err := copyWorldGraph(ctx, store, src, progress.GetHead().GetRootRef(), visited, missing, mode); err != nil {
 		return err
 	}
 	absent.replace(gen, holes.refs)

@@ -66,6 +66,9 @@ type ProviderAccount struct {
 	enrolling map[string]int
 	// soListCtr is the list of shared objects.
 	soListCtr *ccontainer.CContainer[*sobject.SharedObjectList]
+	// linkedCopiesGen counts the changes of the keep-full-copy setting, so
+	// each account replica copy copies its head again under the new one.
+	linkedCopiesGen ccontainer.CContainer[uint64]
 	// p2pSyncBcast guards p2pSync lifecycle and wakes status watchers.
 	p2pSyncBcast broadcast.Broadcast
 	// p2pSync holds current P2P sync startup or running state, nil when inactive.

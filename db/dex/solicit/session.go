@@ -290,6 +290,12 @@ func (s *peerSession) buildResponse(ctx context.Context, req *DexMessage) *DexMe
 	}
 	if local != nil {
 		resp.SetBlock(local)
+		// Answer linked, with the refs and no data, only when asked: the
+		// serve reads read the block from a linked file, after verifying the
+		// file's bytes against ref, so the file still holds it.
+		if local.GetLinked() && req.GetLinkedOk() {
+			resp.Linked, resp.Data = true, nil
+		}
 		return resp
 	}
 
@@ -548,19 +554,24 @@ func (s *peerSession) lookupLocalBlock(ctx context.Context, ref *block.BlockRef)
 	return storedBlockMessage(stored), nil
 }
 
-// storedBlockMessage builds the found response of a stored block.
+// storedBlockMessage builds the found response of a stored block, marked
+// Linked when a linked file served it.
 func storedBlockMessage(stored *block.StoredBlock) *DexMessage {
 	return &DexMessage{
 		Found:     true,
 		Data:      stored.Data,
 		Refs:      stored.Refs,
 		RefsKnown: stored.RefsKnown,
+		Linked:    stored.Linked,
 	}
 }
 
 // requestBlock sends a block request and waits for the response. Returns the
-// verified response, or nil when the peer does not have the block.
-func (s *peerSession) requestBlock(ctx context.Context, ref *block.BlockRef, hops uint32) (*DexMessage, error) {
+// verified response, or nil when the peer does not have the block. With
+// linkedOK the peer may answer linked, with the refs and no data, which is
+// returned unverified; a linked answer to a request without linkedOK is an
+// error, so an untrusted peer cannot stand in a linked answer for the data.
+func (s *peerSession) requestBlock(ctx context.Context, ref *block.BlockRef, hops uint32, linkedOK bool) (*DexMessage, error) {
 	// Reject block requests after the peer session closes.
 	if s.closed.Load() {
 		return nil, errSessionClosed
@@ -587,6 +598,7 @@ func (s *peerSession) requestBlock(ctx context.Context, ref *block.BlockRef, hop
 		RequestId:     id,
 		Ref:           ref,
 		RemainingHops: hops,
+		LinkedOk:      linkedOK,
 	}
 	if err := s.sendMsg(ctx, req); err != nil {
 		return nil, err
@@ -615,6 +627,18 @@ func (s *peerSession) requestBlock(ctx context.Context, ref *block.BlockRef, hop
 		}
 		if !resp.GetFound() {
 			return nil, nil
+		}
+
+		// Accept a linked answer only where it was asked for, with the refs
+		// a copy needs to settle the block.
+		if resp.GetLinked() {
+			if !linkedOK {
+				return nil, ErrUnaskedLinked
+			}
+			if !resp.GetRefsKnown() {
+				return nil, block.ErrRefsUnknown
+			}
+			return resp, nil
 		}
 
 		// Verify returned block data before reporting success.

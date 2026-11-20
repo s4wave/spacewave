@@ -206,7 +206,7 @@ func TestAccountReplicaCopyRetainsCompletedSubtrees(t *testing.T) {
 	}}
 	for i := range 2 {
 		progress := &AccountReplicaCopyState{Head: head}
-		if err := account.copyAccountWorld(ctx, destination, progress, &knownAbsent{}, func() {}); err != nil {
+		if err := account.copyAccountWorld(ctx, destination, progress, &knownAbsent{}, func() {}, linkedCopy{}); err != nil {
 			t.Fatal(err)
 		}
 		if i == 0 && progress.GetBlocks() == 0 {
@@ -248,7 +248,7 @@ func TestAccountReplicaCopyBatchesProofReads(t *testing.T) {
 		store: counted, readStore: so.GetBlockStore(),
 	}}
 	progress := &AccountReplicaCopyState{Head: head}
-	if err := account.copyAccountWorld(ctx, destination, progress, &knownAbsent{}, func() {}); err != nil {
+	if err := account.copyAccountWorld(ctx, destination, progress, &knownAbsent{}, func() {}, linkedCopy{}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -302,7 +302,7 @@ func TestAccountReplicaCopySkipsHeldSubtree(t *testing.T) {
 		store: block_store.NewStore("destination", dstSO.GetBlockStore()), readStore: source,
 	}}
 	progress := &AccountReplicaCopyState{Head: head}
-	if err := account.copyAccountWorld(ctx, destination, progress, &knownAbsent{}, func() {}); err != nil {
+	if err := account.copyAccountWorld(ctx, destination, progress, &knownAbsent{}, func() {}, linkedCopy{}); err != nil {
 		t.Fatal(err)
 	}
 	t.Logf("copied %d of %d blocks", progress.GetBlocks(), total)
@@ -429,7 +429,7 @@ func TestAccountReplicaCopyKeepsProofsAroundHoles(t *testing.T) {
 				t.Helper()
 				source.reads.Store(0)
 				progress := &AccountReplicaCopyState{ObjectId: so.GetSharedObjectID(), Head: head}
-				err := account.copyAccountWorld(ctx, destination, progress, absent, func() {})
+				err := account.copyAccountWorld(ctx, destination, progress, absent, func() {}, linkedCopy{})
 				var holes *worldHolesError
 				if !errors.As(err, &holes) || !errors.Is(err, block.ErrNotFound) {
 					t.Fatalf("copy returned %v, want the leaf as a hole", err)

@@ -36,4 +36,12 @@ message DexMessage {
   // handling it and sends no response. A cancel for a request that already
   // completed is ignored.
   bool cancel = 10;
+  // LinkedOk lets the responder answer linked instead of sending the data of
+  // a block that a linked file on its Device serves (request only). The
+  // requester sets it only toward a peer whose linked answer it trusts.
+  bool linked_ok = 11;
+  // Linked answers a request with linked_ok: a linked file on the
+  // responder's Device is its only copy there, so the response carries the
+  // refs and no data (response only). It is never set on a forwarded lookup.
+  bool linked = 12;
 }

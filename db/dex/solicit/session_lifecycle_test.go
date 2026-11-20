@@ -145,7 +145,7 @@ func TestPeerSessionCloseWakesPendingRequestsWithoutRunLoop(t *testing.T) {
 	// Start a pending block request on the stopped session.
 	requestDone := make(chan error, 1)
 	go func() {
-		_, err := sess.requestBlock(ctx, ref, 0)
+		_, err := sess.requestBlock(ctx, ref, 0, false)
 		requestDone <- err
 	}()
 
@@ -196,7 +196,7 @@ func TestPeerSessionRejectsMismatchedBlockData(t *testing.T) {
 	}()
 
 	// Verify corrupt block bytes fail verification without returning a response.
-	resp, err := sess.requestBlock(ctx, testDexBlockRef(t, "expected"), 0)
+	resp, err := sess.requestBlock(ctx, testDexBlockRef(t, "expected"), 0, false)
 	if err == nil {
 		t.Fatal("mismatched block data returned no error")
 	}

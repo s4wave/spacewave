@@ -1689,7 +1689,7 @@
           ]
         },
         "github.com/s4wave/spacewave/core/provider/local": {
-          "hash": "a524fe9918481a226191c242457f78a2b49de30c38ef07b61e118b5474861b2b",
+          "hash": "733a5dd455f716baed76e6035c348969abb3795293513bd29b798e6f354807b7",
           "generatedFiles": [
             "core/provider/local/local.pb.go",
             "core/provider/local/local.pb.ts",
@@ -2545,7 +2545,7 @@
           ]
         },
         "github.com/s4wave/spacewave/db/dex/solicit": {
-          "hash": "97e3674502cbabbfde90c0d358cdbf930aa628a271d6ba49d8bf8b50693faab6",
+          "hash": "b3a3c58fceb92e7d907517f22fa8d5b48b8689a7ceb26e23c30bad28ad864fff",
           "generatedFiles": [
             "db/dex/solicit/config.pb.go",
             "db/dex/solicit/config.pb.ts",

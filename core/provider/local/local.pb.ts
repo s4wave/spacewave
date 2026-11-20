@@ -176,6 +176,14 @@ export interface AccountReplicaCopyState {
    * Error describes why this head could not finish; a later attempt resumes from local blocks.
    */
   error?: string
+  /**
+   * LinkedProofs is set before a walk that counts an own Device's linked
+   * file chunks as present, and stays set across heads until a walk that
+   * keeps a full copy completes. While it is set, the Volume's completion
+   * proofs may cover subtrees missing those chunks, so a full-copy walk
+   * trusts none of them.
+   */
+  linkedProofs?: boolean
 }
 
 export const AccountReplicaCopyState: MessageType<AccountReplicaCopyState> =
@@ -188,6 +196,7 @@ export const AccountReplicaCopyState: MessageType<AccountReplicaCopyState> =
       [4, 'bytes', 4],
       [5, 'complete', 8],
       [6, 'error', 9],
+      [7, 'linked_proofs', 8],
     ],
   )
 

@@ -11,11 +11,13 @@ type StoredBlock struct {
 	// RefsKnown is false when the source held the bytes without their refs,
 	// so a leaf cannot be told from a block whose edges were lost.
 	RefsKnown bool
-	// Linked is set only by the linked files' copy tier (see the filesegment
-	// Store's GetCopyTier), which a copy chain reads after every Volume tier.
-	// No Volume tier holds a Linked block: a file on this Device is its only
-	// copy here, and a changed file reads as missing. The read path never
-	// sets it.
+	// Linked is set by the linked files' copy tier (see the filesegment
+	// Store's GetCopyTier), which a copy chain reads after every Volume tier,
+	// so a file on this Device is the block's only copy here, and a changed
+	// file reads as missing. A DEX Store sets it, with no Data, for a linked
+	// answer: a linked file is the block's only copy on the answering
+	// Device (see dex_solicit.WithLinkedAnswers). The read path never sets
+	// it, and a read-through fill never writes a Linked block.
 	Linked bool
 }
 

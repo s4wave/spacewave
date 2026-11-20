@@ -63,6 +63,18 @@ export interface DexMessage {
    * completed is ignored.
    */
   cancel?: boolean
+  /**
+   * LinkedOk lets the responder answer linked instead of sending the data of
+   * a block that a linked file on its Device serves (request only). The
+   * requester sets it only toward a peer whose linked answer it trusts.
+   */
+  linkedOk?: boolean
+  /**
+   * Linked answers a request with linked_ok: a linked file on the
+   * responder's Device is its only copy there, so the response carries the
+   * refs and no data (response only). It is never set on a forwarded lookup.
+   */
+  linked?: boolean
 }
 
 export const DexMessage: MessageType<DexMessage> =
@@ -79,5 +91,7 @@ export const DexMessage: MessageType<DexMessage> =
       [8, 'refs', 11, 1, BlockRef.codec],
       [9, 'refs_known', 8],
       [10, 'cancel', 8],
+      [11, 'linked_ok', 8],
+      [12, 'linked', 8],
     ],
   )

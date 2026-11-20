@@ -92,6 +92,12 @@ message AccountReplicaCopyState {
   bool complete = 5;
   // Error describes why this head could not finish; a later attempt resumes from local blocks.
   string error = 6;
+  // LinkedProofs is set before a walk that counts an own Device's linked
+  // file chunks as present, and stays set across heads until a walk that
+  // keeps a full copy completes. While it is set, the Volume's completion
+  // proofs may cover subtrees missing those chunks, so a full-copy walk
+  // trusts none of them.
+  bool linked_proofs = 7;
 }
 
 // SharedObjectOrigin records, beside a shared object, that a caller listed it

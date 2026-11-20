@@ -34,9 +34,10 @@ type GraphCopyOptions struct {
 	Forget bool
 	// CountLinked counts a block src serves from a linked file, one whose
 	// StoredBlock is Linked, as present: the copy writes nothing for it and
-	// releases its parents as if dst held it, so their subtrees complete. Only
-	// a copy within the Volume of the Device that linked the file sets it; a
-	// copy to another store needs the bytes.
+	// releases its parents as if dst held it, so their subtrees complete. A
+	// copy sets it within the Volume of the Device that linked the file, or
+	// to a Device that leaves the file's chunks on the Device of the same
+	// account that links it; any other copy needs the bytes.
 	CountLinked bool
 	// Missing handles a block src cannot serve now, because it does not hold
 	// it or no source served it (IsNotAvailable). Returning nil leaves a hole:
@@ -195,9 +196,11 @@ func (c *graphCopy) run(ctx context.Context, root *BlockRef) error {
 		// Invariant: a proof may count a block present on the strength of a
 		// linked file only when no Volume tier holds that block; a Volume
 		// copy is never skipped, dropped or deleted because a file serves it.
-		// Only the linked files' copy tier marks a block Linked, and a copy
-		// chain reads it after every Volume tier, so a Linked block is one no
-		// tier holds, and the copy writes and deletes nothing for it.
+		// A copy chain reads the linked files' copy tier, and the peers it
+		// lets answer linked, after every Volume tier, and a peer answers
+		// linked only for a block its own linked file serves, so a Linked
+		// block is one no tier of the chain holds, and the copy writes and
+		// deletes nothing for it.
 		if res.linked && c.opts.CountLinked {
 			if err := c.settle(ctx, res.node); err != nil {
 				return err

@@ -7,7 +7,28 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	"github.com/s4wave/spacewave/net/hash"
+	"github.com/s4wave/spacewave/net/peer"
 )
+
+// linkedAnswersKey is the context key of WithLinkedAnswers.
+type linkedAnswersKey struct{}
+
+// WithLinkedAnswers returns ctx under which a Store's GetStoredBlock lets each
+// peer that accept admits answer linked: a linked file on that peer's Device
+// is its only copy there, and the Store returns the block's refs, marked
+// Linked, with no data. Only a copy that may leave such a block on that
+// peer's Device sets it, and accept admits only peers trusted to keep the
+// block, since a linked answer makes the copy skip it. GetBlock and existence
+// checks always ask for the data.
+func WithLinkedAnswers(ctx context.Context, accept func(peer.ID) bool) context.Context {
+	return context.WithValue(ctx, linkedAnswersKey{}, accept)
+}
+
+// linkedAnswers returns the accept of WithLinkedAnswers, or nil.
+func linkedAnswers(ctx context.Context) func(peer.ID) bool {
+	accept, _ := ctx.Value(linkedAnswersKey{}).(func(peer.ID) bool)
+	return accept
+}
 
 // Store is a read-only block store view owned by a solicitation Controller.
 // Reads wait for the solicitation to settle and for at least one peer session,
@@ -58,7 +79,7 @@ func (*Store) Sync(context.Context) (bool, error) { return true, nil }
 
 // GetBlock fans the request out to the controller's peer sessions.
 func (s *Store) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
-	found, err := s.fetch(ctx, ref, true)
+	found, err := s.fetch(ctx, ref, true, nil)
 	if found == nil || err != nil {
 		return nil, false, err
 	}
@@ -67,10 +88,15 @@ func (s *Store) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool
 
 // GetStoredBlock fans the request out to the controller's peer sessions.
 // RefsKnown is unset when the answering peer held the block without its refs.
+// Under WithLinkedAnswers, a linked answer returns the refs, marked Linked,
+// with no data.
 func (s *Store) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
-	found, err := s.fetch(ctx, ref, true)
+	found, err := s.fetch(ctx, ref, true, linkedAnswers(ctx))
 	if found == nil || err != nil {
 		return nil, err
+	}
+	if found.GetLinked() {
+		return &block.StoredBlock{Refs: found.GetRefs(), RefsKnown: true, Linked: true}, nil
 	}
 	return &block.StoredBlock{
 		Data:      found.GetData(),
@@ -83,7 +109,8 @@ func (s *Store) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block
 // peer session when wantPeer is set and ctx allows waiting. Returns nil when
 // every peer answered that it does not have the block, and an error when the
 // exchange failed or no peer was there to ask, which wraps ErrNoPeerSession.
-func (s *Store) fetch(ctx context.Context, ref *block.BlockRef, wantPeer bool) (*DexMessage, error) {
+// linked admits the peers that may answer linked (peerBlockFanout).
+func (s *Store) fetch(ctx context.Context, ref *block.BlockRef, wantPeer bool, linked func(peer.ID) bool) (*DexMessage, error) {
 	// Settle the peer sessions, waiting for one only when ctx allows it.
 	peerWait := block.GetPeerWait(ctx)
 	skipWait := wantPeer && peerWait != nil
@@ -105,7 +132,7 @@ func (s *Store) fetch(ctx context.Context, ref *block.BlockRef, wantPeer bool) (
 	}
 
 	// Ask the settled peer sessions for the block.
-	found, err := s.controller.askPeers(ctx, sessions, ref, s.controller.cc.GetMaxForwardHops(), nil)
+	found, err := s.controller.askPeers(ctx, sessions, ref, s.controller.cc.GetMaxForwardHops(), nil, linked)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +150,7 @@ func (s *Store) fetch(ctx context.Context, ref *block.BlockRef, wantPeer bool) (
 // GetBlockExists checks whether any connected peer has the block. It does not
 // wait for a peer to connect.
 func (s *Store) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
-	found, err := s.fetch(ctx, ref, false)
+	found, err := s.fetch(ctx, ref, false, nil)
 	return found != nil, err
 }
 

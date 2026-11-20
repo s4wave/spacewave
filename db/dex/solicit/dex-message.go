@@ -1,6 +1,7 @@
 package dex_solicit
 
-// SetBlock copies a found block, with its refs, from a verified response.
+// SetBlock copies a found block, with its refs and data, from a verified
+// response. It does not copy Linked: a forwarded block is always sent as data.
 func (m *DexMessage) SetBlock(found *DexMessage) {
 	m.Found = true
 	m.Data = found.GetData()

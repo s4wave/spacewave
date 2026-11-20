@@ -159,12 +159,14 @@ func (p *placementState) linkedThen(peers block_store.StoreSource) block_store.S
 // withLinkedFiles returns local over the linked files, which fill nothing: a
 // linked file's block is served from the file, its only copy. A peer's serve
 // reads use it, so a member reads the owner's linked files; a copy reads the
-// files only after every Volume tier, see linkedThen.
+// files only after every Volume tier, see linkedThen. The files are read
+// through their copy tier, so a block they serve reads as Linked and the DEX
+// can answer a peer that asked for it linked, with no data.
 func (p *placementState) withLinkedFiles(local block.StoreOps) block.StoreOps {
 	if p.fileSegments == nil {
 		return local
 	}
-	return &fallbackReads{StoreOps: local, fallback: p.fileSegments}
+	return &fallbackReads{StoreOps: local, fallback: p.fileSegments.GetCopyTier()}
 }
 
 // serveReads builds the reads that answer a peer's request for a block: the

@@ -72,6 +72,10 @@ var ErrNoPeerSession = errors.New("no peer session")
 // failed.
 var ErrPeerError = errors.New("peer lookup failed")
 
+// ErrUnaskedLinked reports a peer that answered linked, with no data, to a
+// request that did not let it.
+var ErrUnaskedLinked = errors.New("peer answered linked to a data request")
+
 // errSessionClosed reports a request that failed because its peer session closed.
 var errSessionClosed = fmt.Errorf("%w: session closed", ErrNoPeerSession)
 
@@ -306,6 +310,7 @@ func (c *Controller) handleSolicitedStream(ctx context.Context, sms link_solicit
 	// Construct the session with cleanup bound to its identity.
 	var sess *peerSession
 	sess = newPeerSession(c, le, ms, func() {
+		// Drop the session, and log why it ended unless the controller did.
 		reason := sess.getEndErr()
 		last := c.removeSession(remotePeer, sess)
 		if ctx.Err() != nil {
@@ -358,6 +363,7 @@ func (c *Controller) startRecovery(ctx context.Context, remotePeer peer.ID, lowe
 	var prev *peerRecovery
 	var restored bool
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// A session that already returned needs no recovery.
 		if len(c.sessions[id]) != 0 {
 			restored = true
 			return
@@ -384,6 +390,7 @@ func (c *Controller) startRecovery(ctx context.Context, remotePeer peer.ID, lowe
 // runRecovery renews the offer to remotePeer until rctx ends. ctx is the
 // controller lifetime, which the renewed offers and their sessions share.
 func (c *Controller) runRecovery(ctx, rctx context.Context, remotePeer peer.ID, rec *peerRecovery, lower bool) {
+	// Wait out the grace period first, unless this side renews at once.
 	le := c.le.WithField("remote-peer", remotePeer.String())
 	var wait time.Duration
 	if !lower {
@@ -548,7 +555,7 @@ func (c *Controller) forwardToPeers(ctx context.Context, ref *block.BlockRef, ho
 	if err != nil {
 		return nil, err
 	}
-	return c.askPeers(ctx, sessions, ref, hops, exclude)
+	return c.askPeers(ctx, sessions, ref, hops, exclude, nil)
 }
 
 // askPeers runs a block fanout over sessions. A peer that replaces its link
@@ -558,9 +565,17 @@ func (c *Controller) forwardToPeers(ctx context.Context, ref *block.BlockRef, ho
 // keeps every peer's failure, so it asks again when any peer's session closed,
 // whatever the other peers answered and in whatever order. Only a session
 // close is retried: a fanout whose failures include no close returns at once,
-// as does a miss or ctx ending.
-func (c *Controller) askPeers(ctx context.Context, sessions []*peerSession, ref *block.BlockRef, hops uint32, exclude *peerSession) (*DexMessage, error) {
-	found, err := peerBlockFanout{sessions: sessions, ref: ref, hops: hops}.run(ctx)
+// as does a miss or ctx ending. linked, when set, admits the peers that may
+// answer linked (peerBlockFanout).
+func (c *Controller) askPeers(
+	ctx context.Context,
+	sessions []*peerSession,
+	ref *block.BlockRef,
+	hops uint32,
+	exclude *peerSession,
+	linked func(peer.ID) bool,
+) (*DexMessage, error) {
+	found, err := peerBlockFanout{sessions: sessions, ref: ref, hops: hops, linked: linked}.run(ctx)
 	for attempt := 0; attempt < maxSessionRetries && errors.Is(err, errSessionClosed) && ctx.Err() == nil; attempt++ {
 		waitCtx, waitCancel := context.WithTimeout(ctx, sessionReplaceWait)
 		next, waitErr := c.waitSessions(waitCtx, exclude, true)
@@ -569,7 +584,7 @@ func (c *Controller) askPeers(ctx context.Context, sessions []*peerSession, ref 
 			return nil, err
 		}
 		c.le.WithField("ref", ref.String()).WithField("attempt", attempt+1).Debug("dex block request retried after session close")
-		found, err = peerBlockFanout{sessions: next, ref: ref, hops: hops}.run(ctx)
+		found, err = peerBlockFanout{sessions: next, ref: ref, hops: hops, linked: linked}.run(ctx)
 	}
 	return found, err
 }
@@ -653,7 +668,7 @@ func (r *lookupResolver) Resolve(ctx context.Context, handler directive.Resolver
 	if err != nil {
 		return err
 	}
-	found, err := r.c.askPeers(ctx, sessions, r.ref, r.c.cc.GetMaxForwardHops(), nil)
+	found, err := r.c.askPeers(ctx, sessions, r.ref, r.c.cc.GetMaxForwardHops(), nil, nil)
 
 	// Emit the result, including a miss or a failed exchange.
 	switch {
@@ -674,6 +689,11 @@ type peerBlockFanout struct {
 	sessions []*peerSession
 	ref      *block.BlockRef
 	hops     uint32
+	// linked, when set, admits each peer that may answer linked, with the
+	// refs and no data. Every other peer is asked for the data, and its
+	// linked answer fails its request, so the fanout takes another peer's
+	// data or reports the block unavailable.
+	linked func(peer.ID) bool
 }
 
 // fanoutResult is one peer's answer to a fanout request.
@@ -701,7 +721,8 @@ func (f peerBlockFanout) run(ctx context.Context) (*DexMessage, error) {
 	results := make(chan fanoutResult, len(f.sessions))
 	for _, sess := range f.sessions {
 		go func() {
-			resp, err := sess.requestBlock(reqCtx, f.ref, f.hops)
+			linkedOK := f.linked != nil && f.linked(sess.ms.GetPeerID())
+			resp, err := sess.requestBlock(reqCtx, f.ref, f.hops, linkedOK)
 			if err != nil {
 				sess.le.WithError(err).Debug("dex block request failed")
 			}

@@ -252,7 +252,9 @@ func (s *StoreReadThrough) readLower(ctx context.Context, primary, lower block.S
 	if err != nil || stored == nil {
 		return nil, err
 	}
-	if s.fill != nil && primary != nil && stored.RefsKnown {
+	// A Linked block is never filled: a linked file's bytes stay out of the
+	// Volume, and a peer's linked answer carries no bytes at all.
+	if s.fill != nil && primary != nil && stored.RefsKnown && !stored.Linked {
 		_ = s.fill(context.WithoutCancel(ctx), primary, ref, stored)
 	}
 	return stored, nil
