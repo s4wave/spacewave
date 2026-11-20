@@ -16,17 +16,20 @@ if [ -z "$boot" ] || [ ! -f "$boot/init" ] || [ ! -f "$boot/make-initramfs.sh" ]
 	exit 1
 fi
 
-# Use the kernel tree's own archive tool, which every initrd kernel builds.
-tools=("$BUILD_DIR"/linux-*/usr/gen_init_cpio)
-if [ "${#tools[@]}" -ne 1 ] || [ ! -x "${tools[0]}" ]; then
-	echo "spacewave/os: expected one built gen_init_cpio, found: ${tools[*]}" >&2
+# Use the configured kernel tree's own archive tool, which every initrd kernel
+# builds. Name the tree by its version, since a workspace keeps the trees of
+# earlier kernel versions after an upgrade.
+version=$(sed -n 's/^BR2_LINUX_KERNEL_VERSION="\(.*\)"$/\1/p' "$BR2_CONFIG")
+tool=$BUILD_DIR/linux-$version/usr/gen_init_cpio
+if [ -z "$version" ] || [ ! -x "$tool" ]; then
+	echo "spacewave/os: no built gen_init_cpio for kernel \"$version\" at $tool" >&2
 	exit 1
 fi
 
 # Build beside the images, then rename over the board's initramfs.
 staged=$BINARIES_DIR/.spacewave-os.cpio.lz4
 rm -f "$staged"
-PATH=$HOST_DIR/bin:$PATH GEN_INIT_CPIO=${tools[0]} \
+PATH=$HOST_DIR/bin:$PATH GEN_INIT_CPIO=$tool \
 	sh "$boot/make-initramfs.sh" "$boot/init" "$staged"
 mv -f "$staged" "$BINARIES_DIR/rootfs.cpio.lz4"
 
