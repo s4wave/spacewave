@@ -9,6 +9,8 @@ import (
 )
 
 const (
+	// DeviceCapabilityKindCamera identifies a camera track served by a Device.
+	DeviceCapabilityKindCamera = "camera"
 	// DeviceCapabilityKindFilesystem identifies filesystem access exposed by a Device.
 	DeviceCapabilityKindFilesystem = "filesystem"
 	// DeviceCapabilityKindForgeWorker identifies Forge Worker execution exposed by a Device.
@@ -306,4 +308,5 @@ func (d *Device) FindSelectableForgeWorker() *DeviceCapability {
 	return nil
 }
 
+// _ is a type assertion.
 var _ block.Block = (*Device)(nil)

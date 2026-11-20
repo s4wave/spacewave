@@ -16,6 +16,8 @@ const (
 	LocalPortNodeTypeID = "local-port"
 	// CheckoutRootNodeTypeID selects a checkout root a Device advertises.
 	CheckoutRootNodeTypeID = "checkout-root"
+	// CameraNodeTypeID selects a camera track a Device serves.
+	CameraNodeTypeID = "camera"
 	// RemoteShellNodeTypeID selects the remote shell a Device serves.
 	RemoteShellNodeTypeID = "remote-shell"
 	// ForgeWorkerNodeTypeID selects the Forge Worker a Device hosts.

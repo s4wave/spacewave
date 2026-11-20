@@ -10,6 +10,7 @@ import (
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	"github.com/s4wave/spacewave/bldr/entrypoint/compose"
 	spacewave_cli "github.com/s4wave/spacewave/cmd/spacewave/cli"
+	"github.com/s4wave/spacewave/core/camera"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
 	launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher/controller"
@@ -43,9 +44,10 @@ func composeNative(composition *compose.Composition) {
 		upgrade.ConfigureVolume(id, conf)
 	}
 
-	// Every provider installs the remote shell and replica factories on each
-	// Session's bus.
+	// Every provider installs the camera, remote shell and replica factories
+	// on each Session's bus.
 	transportOptions := []transport.SessionTransportOption{transport.WithChildFactories(
+		func(b bus.Bus) controller.Factory { return camera.NewFactory(b) },
 		func(b bus.Bus) controller.Factory { return terminal_remoteshell.NewFactory(b) },
 		func(b bus.Bus) controller.Factory { return space_world_replica_controller.NewFactory(b) },
 	)}

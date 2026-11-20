@@ -3,7 +3,11 @@
 package device_flowgraph
 
 import (
+	"bytes"
 	"context"
+	"errors"
+	"image/jpeg"
+	"io"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -13,8 +17,11 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/bus/inmem"
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/directive"
 	directive_controller "github.com/aperturerobotics/controllerbus/directive/controller"
+	"github.com/s4wave/spacewave/core/camera"
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
+	"github.com/s4wave/spacewave/core/frametrack"
 	terminal_remoteshell "github.com/s4wave/spacewave/core/terminal/remoteshell"
 	"github.com/s4wave/spacewave/core/transport"
 	"github.com/s4wave/spacewave/db/block"
@@ -25,7 +32,11 @@ import (
 	forge_worker "github.com/s4wave/spacewave/forge/worker"
 	"github.com/s4wave/spacewave/identity"
 	"github.com/s4wave/spacewave/net/crypto"
+	"github.com/s4wave/spacewave/net/link"
 	"github.com/s4wave/spacewave/net/peer"
+	"github.com/s4wave/spacewave/net/protocol"
+	"github.com/s4wave/spacewave/net/stream"
+	"github.com/s4wave/spacewave/net/transport/inproc"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 	flowgraph_nodetype "github.com/s4wave/spacewave/sdk/flowgraph/nodetype"
@@ -33,9 +44,12 @@ import (
 )
 
 const (
+	// testFlowgraphKey is the fixture graph.
 	testFlowgraphKey = "flowgraph/main"
-	testSelfKey      = "device/self"
-	testOtherKey     = "device/other"
+	// testSelfKey is the Device the fixture reconciles.
+	testSelfKey = "device/self"
+	// testOtherKey is the Device that runs the other end of each connection.
+	testOtherKey = "device/other"
 )
 
 // TestReconciler runs a Reconciler for one Device against a World holding a
@@ -89,14 +103,29 @@ func TestReconciler(t *testing.T) {
 	}
 	defer release()
 
-	// Run the Device's Session transport, whose bus hosts the node controllers.
+	// Connect a viewer and an unrelated account to the same in-process network.
+	network := inproc.NewNetwork()
+	viewer := newPluginPortPeer(t, ctx, le, network)
+	outsider := newPluginPortPeer(t, ctx, le, network)
+
+	// Run the Device's Session transport and admit only the account viewer.
 	st, err := transport.NewSessionTransport(
 		le,
 		b,
 		selfKey,
 		"",
 		"",
-		transport.WithChildFactories(func(b bus.Bus) controller.Factory { return terminal_remoteshell.NewFactory(b) }),
+		transport.WithChildFactories(
+			func(b bus.Bus) controller.Factory { return terminal_remoteshell.NewFactory(b) },
+			func(b bus.Bus) controller.Factory { return camera.NewFactory(b) },
+		),
+		transport.WithInprocNetwork(network),
+		transport.WithPeerAuthorizer(func(_ context.Context, id peer.ID) error {
+			if id != viewer.GetPeerID() {
+				return errors.New("fixture peer belongs to another account")
+			}
+			return nil
+		}),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -276,7 +305,7 @@ func TestReconciler(t *testing.T) {
 		t.Fatal("removed checkout root node still has a capability")
 	}
 
-	// Allow the Remote Shell and place two: the Device runs one shell.
+	// Allow the Remote Shell and leave the Camera out of the policy.
 	if err := device_policy.WriteFile(stateRoot, &device_policy.DevicePolicy{
 		NodeTypeId: []string{s4wave_flowgraph.LocalPortNodeTypeID, s4wave_flowgraph.CheckoutRootNodeTypeID, s4wave_flowgraph.RemoteShellNodeTypeID},
 	}); err != nil {
@@ -290,25 +319,54 @@ func TestReconciler(t *testing.T) {
 			SetNodes: map[string]*s4wave_flowgraph.FlowgraphNode{
 				"shell-a": {TypeId: s4wave_flowgraph.RemoteShellNodeTypeID},
 				"shell-b": {TypeId: s4wave_flowgraph.RemoteShellNodeTypeID},
+				"camera":  {TypeId: s4wave_flowgraph.CameraNodeTypeID},
 			},
 			SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacements{
 				"shell-a": {Copies: []*s4wave_flowgraph.FlowgraphPlacement{devicePlacement(testSelfKey)}},
 				"shell-b": {Copies: []*s4wave_flowgraph.FlowgraphPlacement{devicePlacement(testSelfKey)}},
+				"camera":  {Copies: []*s4wave_flowgraph.FlowgraphPlacement{devicePlacement(testSelfKey)}},
 			},
 		})
 		return err
 	})
 	capabilities = waitCapabilities(t, ctx, engine, func(capabilities map[string]*s4wave_device.DeviceCapability) bool {
 		return capabilityState(capabilities, "shell-a") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE &&
-			capabilityState(capabilities, "shell-b") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_REJECTED
+			capabilityState(capabilities, "shell-b") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_REJECTED &&
+			capabilityState(capabilities, "camera") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_REJECTED
 	})
 	if kind := capabilities[capabilityID("shell-a")].GetKind(); kind != s4wave_device.DeviceCapabilityKindRemoteShell {
 		t.Fatalf("remote shell capability kind = %q, want %q", kind, s4wave_device.DeviceCapabilityKindRemoteShell)
 	}
 
-	// Allow the Forge Worker and create four Workers acting as this Device: two
-	// in a Cluster and one outside any, plus one in the Cluster that acts as
-	// another peer.
+	if detail := capabilities[capabilityID("camera")].GetDetail(); !strings.Contains(detail, `node type "camera" is not allowed by the Device policy`) {
+		t.Fatalf("rejected camera detail = %q", detail)
+	}
+
+	// Allow the placed Camera and use the Device capability to open it.
+	if err := device_policy.WriteFile(stateRoot, &device_policy.DevicePolicy{
+		NodeTypeId: []string{
+			s4wave_flowgraph.LocalPortNodeTypeID, s4wave_flowgraph.CheckoutRootNodeTypeID,
+			s4wave_flowgraph.RemoteShellNodeTypeID, s4wave_flowgraph.CameraNodeTypeID,
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := policy.Reload(); err != nil {
+		t.Fatal(err)
+	}
+	capabilities = waitCapabilities(t, ctx, engine, func(capabilities map[string]*s4wave_device.DeviceCapability) bool {
+		return capabilityState(capabilities, "camera") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE
+	})
+	cameraCap := capabilities[capabilityID("camera")]
+	controlProtocol := protocol.ID(cameraCap.GetLink().GetProtocolId())
+	if cameraCap.GetKind() != s4wave_device.DeviceCapabilityKindCamera || controlProtocol != camera.ControlProtocolID {
+		t.Fatalf("camera capability kind = %q, protocol = %q", cameraCap.GetKind(), controlProtocol)
+	}
+
+	// Exercise the control and group protocols over authenticated peer links.
+	control := checkCameraSubscription(t, ctx, st.GetPeerID(), viewer, outsider, controlProtocol)
+
+	// Revoke the camera policy while the admitted subscription is live.
 	if err := device_policy.WriteFile(stateRoot, &device_policy.DevicePolicy{
 		NodeTypeId: []string{s4wave_flowgraph.ForgeWorkerNodeTypeID},
 	}); err != nil {
@@ -317,6 +375,17 @@ func TestReconciler(t *testing.T) {
 	if err := policy.Reload(); err != nil {
 		t.Fatal(err)
 	}
+	waitCapabilities(t, ctx, engine, func(capabilities map[string]*s4wave_device.DeviceCapability) bool {
+		return capabilityState(capabilities, "camera") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_REJECTED
+	})
+	var extra [1]byte
+	if n, err := control.Read(extra[:]); n != 0 || !errors.Is(err, io.EOF) {
+		t.Fatalf("camera control stream after policy removal read %d bytes, error %v", n, err)
+	}
+
+	// Create four Workers for the Forge Worker nodes: two
+	// in a Cluster and one outside any, plus one in the Cluster that acts as
+	// another peer.
 	foreignKey, _ := newSessionPeer(t)
 	createWorkers(t, ctx, engine, "cluster/main", map[string]crypto.PubKey{
 		"worker/a":       selfKey.GetPublic(),
@@ -421,6 +490,147 @@ func TestReconciler(t *testing.T) {
 	if n := holds.Load(); n != 0 {
 		t.Fatalf("reconciler holds the daemon %d times after it stops, want 0", n)
 	}
+}
+
+// cameraGroupStreams receives group streams opened by the camera peer.
+type cameraGroupStreams chan link.MountedStream
+
+// HandleMountedStream queues one group for the test reader.
+func (groups cameraGroupStreams) HandleMountedStream(_ context.Context, ms link.MountedStream) error {
+	select {
+	case groups <- ms:
+		return nil
+	default:
+		return errors.New("camera group reader is behind")
+	}
+}
+
+// checkCameraSubscription checks account admission and reads two live JPEGs.
+// It leaves the admitted control stream open to test policy revocation.
+func checkCameraSubscription(
+	t *testing.T,
+	ctx context.Context,
+	devicePeer peer.ID,
+	viewer, outsider *transport.SessionTransport,
+	controlProtocol protocol.ID,
+) stream.Stream {
+	// Register the viewer's group handler for this camera peer.
+	t.Helper()
+	groups := make(cameraGroupStreams, 8)
+	remove, err := viewer.GetChildBus().AddHandler(directive.NewFuncHandler(
+		func(_ context.Context, di directive.Instance) ([]directive.Resolver, error) {
+			dir, ok := di.GetDirective().(link.HandleMountedStream)
+			if !ok || dir.HandleMountedStreamProtocolID() != frametrack.GroupProtocolID ||
+				dir.HandleMountedStreamRemotePeerID() != devicePeer {
+				return nil, nil
+			}
+			return directive.R(directive.NewValueResolver([]link.MountedStreamHandler{groups}), nil)
+		},
+	))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(remove)
+
+	// Read two complete keyframes and check the counter assigned to each group.
+	request := &frametrack.Subscription{SubscriptionId: "camera-viewer"}
+	control := openCameraControl(t, ctx, devicePeer, viewer, controlProtocol)
+	if err := frametrack.WriteSubscription(control, request); err != nil {
+		t.Fatal(err)
+	}
+	var sequence uint64
+	var captured time.Time
+	for range 2 {
+		// Wait for the next group from the camera's shared track.
+		var group link.MountedStream
+		select {
+		case group = <-groups:
+		case <-ctx.Done():
+			t.Fatal("no camera group arrived")
+		}
+
+		// Check that the Device sent the format and a complete JPEG together.
+		header, frame := readCameraGroup(t, ctx, group)
+		if header.GetSubscriptionId() != request.GetSubscriptionId() || header.GetGroupSequence() <= sequence {
+			t.Fatalf("camera group = %v after sequence %d", header, sequence)
+		}
+		if at := frame.GetCapturedAt().AsTime(); !at.After(captured) {
+			t.Fatalf("camera frame capture time %v did not advance after %v", at, captured)
+		}
+		sequence, captured = header.GetGroupSequence(), frame.GetCapturedAt().AsTime()
+	}
+
+	// A linked peer from another account gets EOF instead of a subscription.
+	refused := openCameraControl(t, ctx, devicePeer, outsider, controlProtocol)
+	// Refusal can close the stream before the request reaches the Device.
+	_ = frametrack.WriteSubscription(refused, request)
+	var extra [1]byte
+	if n, err := refused.Read(extra[:]); n != 0 || !errors.Is(err, io.EOF) {
+		t.Fatalf("camera control stream for the outsider read %d bytes, error %v", n, err)
+	}
+	return control
+}
+
+// openCameraControl holds the peer link and opens the named control protocol.
+func openCameraControl(
+	t *testing.T,
+	ctx context.Context,
+	devicePeer peer.ID,
+	viewer *transport.SessionTransport,
+	controlProtocol protocol.ID,
+) stream.Stream {
+	// Keep the real mounted stream and link until test cleanup.
+	t.Helper()
+	ms, release, err := link.OpenStreamWithPeerEx(
+		ctx, viewer.GetChildBus(), controlProtocol, viewer.GetPeerID(), devicePeer, 0, stream.OpenOpts{},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(release)
+	control := ms.GetStream()
+	t.Cleanup(func() { _ = control.Close() })
+
+	// Bound pending I/O by the test context's deadline.
+	deadline, _ := ctx.Deadline()
+	if err := control.SetDeadline(deadline); err != nil {
+		t.Fatal(err)
+	}
+	return control
+}
+
+// readCameraGroup reads and validates a one-frame JPEG group from the Device.
+func readCameraGroup(t *testing.T, ctx context.Context, group link.MountedStream) (*frametrack.GroupHeader, *frametrack.Frame) {
+	// Read the group header and keyframe within the test deadline.
+	t.Helper()
+	strm := group.GetStream()
+	defer strm.Close()
+	deadline, _ := ctx.Deadline()
+	if err := strm.SetReadDeadline(deadline); err != nil {
+		t.Fatal(err)
+	}
+	reader, err := frametrack.NewGroupReader(strm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	frame, err := reader.ReadFrame()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Check the wire metadata against the dimensions inside the JPEG.
+	header := reader.Header()
+	if header.GetCodec() != frametrack.Codec_CODEC_JPEG || header.GetWidth() != 640 || header.GetHeight() != 360 {
+		t.Fatalf("camera group format = %v", header)
+	}
+	decoded, err := jpeg.Decode(bytes.NewReader(frame.GetData()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bounds := decoded.Bounds(); bounds.Dx() != 640 || bounds.Dy() != 360 {
+		t.Fatalf("camera JPEG dimensions = %v", bounds.Size())
+	}
+	return header, frame
 }
 
 // newSessionPeer returns the private key and ID of a new peer.
