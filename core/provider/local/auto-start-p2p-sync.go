@@ -87,16 +87,11 @@ func (a *ProviderAccount) AutoStartP2PSyncIfNeeded(
 			if !soLinksWanted(state.GetConfig(), own, local.GetPeerID().String()) {
 				continue
 			}
-			// Retain every other grant holder: a participant's own dial does not
-			// keep the link past its hold-open. A grant peer that never connects,
-			// such as a participant's storage peer, waits in signaling at no cost.
+			// A Space with another grant holder is shared. Its hosting retains
+			// the links to its participants once its sync starts
+			// (reconcileSOHosting).
 			epoch := state.CurrentKeyEpoch()
 			shared := len(epoch.GetGrants()) > 1
-			for _, grant := range epoch.GetGrants() {
-				if grant.GetPeerId() != local.GetPeerID().String() {
-					spacePeers[grant.GetPeerId()] = struct{}{}
-				}
-			}
 			for _, invite := range state.GetInvites() {
 				// A targeted invite stays active while its named peer holds a
 				// grant, since that peer may redeem it again.

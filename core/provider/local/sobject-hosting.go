@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"slices"
+	"strings"
 	"sync/atomic"
 
 	"github.com/s4wave/spacewave/core/sobject"
@@ -62,7 +63,8 @@ var soHostingReconcileHook atomic.Pointer[func(ctx context.Context) error]
 // account keeps a link to each other owner, so a participant reaches the owner
 // account's current Session after the Session it joined through is replaced,
 // and to each block peer soLinkPeers names, so a member reads a linked folder
-// from the Device that links it while the owners are offline.
+// from the Device that links it while the owners are offline. A peer the
+// configuration stops naming loses its link at the next reconcile.
 func (a *ProviderAccount) reconcileSOHosting(ctx context.Context, soID string, so *SharedObject) error {
 	// The storage identity always signs; the session identity signs while its transport runs.
 	st := a.GetSessionTransport()
@@ -110,21 +112,56 @@ func (a *ProviderAccount) reconcileSOHosting(ctx context.Context, soID string, s
 	}
 
 	// Keep a link to every other owner and block peer while the storage
-	// identity serves so. A storage identity never connects and waits in
-	// signaling.
-	if !soLinksWanted(config, own, so.localPid.String()) {
-		return nil
+	// identity serves so, and release the links to peers that left or lost
+	// the role that made them block peers. A storage identity never connects
+	// and waits in signaling.
+	var links []peer.ID
+	if soLinksWanted(config, own, so.localPid.String()) {
+		for _, id := range soLinkPeers(config, owners, keys) {
+			remote, err := peer.IDB58Decode(id)
+			if err != nil {
+				return err
+			}
+			links = append(links, remote)
+		}
 	}
-	for _, id := range soLinkPeers(config, owners, keys) {
-		remote, err := peer.IDB58Decode(id)
-		if err != nil {
-			return err
-		}
-		if err := a.RetainP2PPeer(ctx, remote); err != nil {
-			a.le.WithError(err).WithField("so-id", soID).Debug("deferred retaining a shared object peer")
-		}
+	if err := a.setHeldP2PPeers(ctx, soLinkHolder(soID), links); err != nil {
+		a.le.WithError(err).WithField("so-id", soID).Debug("deferred retaining the shared object peers")
 	}
 	return nil
+}
+
+// soLinkHolderPrefix begins the name of each Space hosting's link holder.
+const soLinkHolderPrefix = "shared-object/"
+
+// soLinkHolder names the holder of the links the hosting of so keeps.
+func soLinkHolder(soID string) string {
+	return soLinkHolderPrefix + soID
+}
+
+// dropMissingSOLinkHolders releases the links of each Space hosting whose
+// Space left the list, such as one this account left or deleted. Its hosting
+// stopped with its sync, so no reconcile would release them.
+func (a *ProviderAccount) dropMissingSOLinkHolders(ctx context.Context, list *sobject.SharedObjectList) {
+	// Collect the holders of Spaces no longer listed.
+	listed := make(map[string]struct{}, len(list.GetSharedObjects()))
+	for _, entry := range list.GetSharedObjects() {
+		listed[soLinkHolder(entry.GetRef().GetProviderResourceRef().GetId())] = struct{}{}
+	}
+	var stale []string
+	a.p2pSyncBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		for holder := range a.p2pHeldPeers {
+			if _, ok := listed[holder]; !ok && strings.HasPrefix(holder, soLinkHolderPrefix) {
+				stale = append(stale, holder)
+			}
+		}
+	})
+
+	// Drop them; dropping retains nothing, so it cannot fail on a running
+	// generation.
+	for _, holder := range stale {
+		_ = a.setHeldP2PPeers(ctx, holder, nil)
+	}
 }
 
 // soLinkPeers returns the peers this account keeps links to for so, leaving

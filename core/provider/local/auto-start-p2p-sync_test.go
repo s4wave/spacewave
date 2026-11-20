@@ -191,8 +191,9 @@ func TestAutoStartP2PSyncIfNeededWithSharedSpace(t *testing.T) {
 // closes each link after the EstablishLink hold-open and the participant dials
 // again.
 func TestAutoStartP2PSyncIfNeededRetainsParticipants(t *testing.T) {
-	// Bound the whole test.
-	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	// Bound the whole test. A released link request is disposed after the
+	// link's hold-open of 10 s.
+	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
 	defer cancel()
 
 	// Create and mount an owned Space.
@@ -231,16 +232,17 @@ func TestAutoStartP2PSyncIfNeededRetainsParticipants(t *testing.T) {
 	defer acc.StopSessionTransport()
 	st := acc.GetSessionTransport()
 
-	// Record every link target the session transport is asked for.
-	linkTargets := make(chan string, 8)
+	// Record each link the session transport is asked for to the participant,
+	// and when that request is released.
+	linked, unlinked := make(chan struct{}, 8), make(chan struct{}, 8)
 	removeHandler, err := st.GetChildBus().AddHandler(directive.NewFuncHandler(
 		func(_ context.Context, di directive.Instance) ([]directive.Resolver, error) {
-			if establish, ok := di.GetDirective().(link.EstablishLinkWithPeer); ok {
-				select {
-				case linkTargets <- establish.EstablishLinkTargetPeerId().String():
-				default:
-				}
+			establish, ok := di.GetDirective().(link.EstablishLinkWithPeer)
+			if !ok || establish.EstablishLinkTargetPeerId() != participantID {
+				return nil, nil
 			}
+			di.AddDisposeCallback(func() { unlinked <- struct{}{} })
+			linked <- struct{}{}
 			return nil, nil
 		},
 	))
@@ -255,16 +257,22 @@ func TestAutoStartP2PSyncIfNeededRetainsParticipants(t *testing.T) {
 	}
 	defer acc.StopP2PSync()
 
-	// Wait for the participant among the requested link targets.
-	for {
-		select {
-		case target := <-linkTargets:
-			if target == participantID.String() {
-				return
-			}
-		case <-ctx.Done():
-			t.Fatalf("owner did not retain a link to participant %s", participantID)
-		}
+	// Wait for the link to the participant.
+	select {
+	case <-linked:
+	case <-ctx.Done():
+		t.Fatalf("owner did not retain a link to participant %s", participantID)
+	}
+
+	// Removing the participant must release its link, so the owner stops
+	// dialing a peer its admission now refuses.
+	if _, err := sobject.RemoveSOParticipant(ctx, host.GetSOHost(), participantID.String(), host.GetPrivKey(), nil); err != nil {
+		t.Fatalf("RemoveSOParticipant: %v", err)
+	}
+	select {
+	case <-unlinked:
+	case <-ctx.Done():
+		t.Fatalf("owner kept the link to removed participant %s", participantID)
 	}
 }
 

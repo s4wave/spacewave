@@ -180,7 +180,7 @@ func (a *ProviderAccount) knownP2PPeers(st *transport.SessionTransport) []peer.I
 
 	// Append the retained peers that are not linked.
 	a.p2pSyncBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		for _, id := range a.p2pPeerIDs {
+		for _, id := range a.p2pRetainedPeersLocked() {
 			add(id)
 		}
 	})

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"maps"
+	"slices"
 	"sync/atomic"
 	"time"
 
@@ -496,6 +497,91 @@ func (a *ProviderAccount) RetainP2PPeer(ctx context.Context, remotePeerID peer.I
 	return a.retainP2PPeerOnState(ctx, state, remotePeerID)
 }
 
+// setHeldP2PPeers makes peers the set of peers holder keeps links to. It
+// retains each peer as RetainP2PPeer does, across P2P sync state restarts, and
+// releases the link to each peer holder named before and no longer names,
+// unless RetainP2PPeer or another holder still names it. Empty peers drops the
+// holder.
+func (a *ProviderAccount) setHeldP2PPeers(ctx context.Context, holder string, peers []peer.ID) error {
+	// Replace the holder's set, releasing the links nobody names any more. The
+	// release runs under p2pSyncBcast, so a concurrent RetainP2PPeer either
+	// names the peer first or finds its link gone and retains it again.
+	var state *p2pSyncState
+	var released []directive.Reference
+	a.p2pSyncBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		// Store the holder's next set.
+		next := make(map[string]peer.ID, len(peers))
+		for _, id := range peers {
+			next[id.String()] = id
+		}
+		prev := a.p2pHeldPeers[holder]
+		if len(next) == 0 {
+			delete(a.p2pHeldPeers, holder)
+		} else {
+			if a.p2pHeldPeers == nil {
+				a.p2pHeldPeers = make(map[string]map[string]peer.ID)
+			}
+			a.p2pHeldPeers[holder] = next
+		}
+
+		// Release the link of each dropped peer that nobody else names.
+		state = a.p2pSync
+		for key := range prev {
+			if _, kept := next[key]; kept || a.p2pPeerNamedLocked(key) || state == nil {
+				continue
+			}
+			state.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+				if ref := state.peerRefs[key]; ref != nil {
+					released = append(released, ref)
+					delete(state.peerRefs, key)
+				}
+			})
+		}
+		bcast()
+	})
+	for _, ref := range released {
+		ref.Release()
+	}
+	if state == nil {
+		return errors.New("P2P sync is not running")
+	}
+
+	// Retain the peers on the running generation.
+	for _, id := range peers {
+		if err := a.retainP2PPeerOnState(ctx, state, id); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// p2pPeerNamedLocked reports whether RetainP2PPeer or a holder names the peer
+// with key. The caller must hold p2pSyncBcast.
+func (a *ProviderAccount) p2pPeerNamedLocked(key string) bool {
+	if _, ok := a.p2pPeerIDs[key]; ok {
+		return true
+	}
+	for _, held := range a.p2pHeldPeers {
+		if _, ok := held[key]; ok {
+			return true
+		}
+	}
+	return false
+}
+
+// p2pRetainedPeersLocked returns each peer RetainP2PPeer or a holder names,
+// once. The caller must hold p2pSyncBcast.
+func (a *ProviderAccount) p2pRetainedPeersLocked() []peer.ID {
+	all := maps.Clone(a.p2pPeerIDs)
+	for _, held := range a.p2pHeldPeers {
+		if all == nil {
+			all = make(map[string]peer.ID, len(held))
+		}
+		maps.Copy(all, held)
+	}
+	return slices.Collect(maps.Values(all))
+}
+
 // retainP2PPeerOnState retains one peer-link directive for the state lifetime.
 func (a *ProviderAccount) retainP2PPeerOnState(
 	ctx context.Context,
@@ -559,14 +645,12 @@ func (a *ProviderAccount) retainP2PPeerOnState(
 	return nil
 }
 
-// retainConfiguredP2PPeers retains every account peer on state.
+// retainConfiguredP2PPeers retains every peer RetainP2PPeer or a holder
+// names on state.
 func (a *ProviderAccount) retainConfiguredP2PPeers(state *p2pSyncState) error {
 	var peers []peer.ID
 	a.p2pSyncBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		peers = make([]peer.ID, 0, len(a.p2pPeerIDs))
-		for _, remotePeerID := range a.p2pPeerIDs {
-			peers = append(peers, remotePeerID)
-		}
+		peers = a.p2pRetainedPeersLocked()
 	})
 	for _, remotePeerID := range peers {
 		if err := a.retainP2PPeerOnState(state.ctx, state, remotePeerID); err != nil {
@@ -770,6 +854,7 @@ func (a *ProviderAccount) startP2PSyncControllers(
 	// Reconcile the shared objects against this generation's retained bus.
 	syncCtx := state.ctx
 	state.removeMissingObjects(soList)
+	a.dropMissingSOLinkHolders(syncCtx, soList)
 	if err := a.retainConfiguredP2PPeers(state); err != nil {
 		return errors.Wrap(err, "retain configured P2P peers")
 	}

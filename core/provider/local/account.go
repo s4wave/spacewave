@@ -82,6 +82,10 @@ type ProviderAccount struct {
 	serveStores sync.Map
 	// p2pPeerIDs are enrollment peers retained across P2P sync state restarts.
 	p2pPeerIDs map[string]peer.ID
+	// p2pHeldPeers are the peers each holder, such as one Space's hosting,
+	// keeps links to, by holder and then peer ID. A peer's link is released
+	// once neither p2pPeerIDs nor any holder names it. Guarded by p2pSyncBcast.
+	p2pHeldPeers map[string]map[string]peer.ID
 	// p2pPendingEnrollPeers are device peers recorded by SpaceLink approval that
 	// have not joined through their invite yet. The Device dials the owner via
 	// the invite, so auto-start must not dial these peers first. Memory-only:

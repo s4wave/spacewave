@@ -319,25 +319,25 @@ func (a *ProviderAccount) fetchAccountReplicaObject(ctx context.Context, state *
 	return errors.Wrap(lastErr, "fetch account object "+entry.GetRef().GetProviderResourceRef().GetId())
 }
 
-// releaseAccountReplicaPeer removes reconnect demand after membership revocation.
+// releaseAccountReplicaPeer removes reconnect demand after membership
+// revocation. The link stays while a holder, such as a Space that names the
+// peer as a participant, still names it.
 func (a *ProviderAccount) releaseAccountReplicaPeer(remote peer.ID) {
-	// Drop the reconnect demand for the peer.
-	var state *p2pSyncState
+	// Drop the reconnect demand and, unless a holder names the peer, its
+	// running link.
+	var release func()
 	a.p2pSyncBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		delete(a.p2pPeerIDs, remote.String())
-		state = a.p2pSync
-	})
-	if state == nil {
-		return
-	}
-
-	// Release the running link to the peer.
-	var release func()
-	state.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		if ref := state.peerRefs[remote.String()]; ref != nil {
-			release = ref.Release
-			delete(state.peerRefs, remote.String())
+		state := a.p2pSync
+		if state == nil || a.p2pPeerNamedLocked(remote.String()) {
+			return
 		}
+		state.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			if ref := state.peerRefs[remote.String()]; ref != nil {
+				release = ref.Release
+				delete(state.peerRefs, remote.String())
+			}
+		})
 	})
 	if release != nil {
 		release()
