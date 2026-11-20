@@ -1,5 +1,28 @@
-// Package block defines a common pattern for interacting with block reference
-// structures in Hydra and in memory.
+// Package block stores content-addressed blocks and edits graphs of them.
+//
+// A Block is a decoded value. Its BlockRef is the hash of the bytes a store
+// holds, taken after the Transformer encodes them, so a ref names exactly the
+// stored bytes and a reader checks what it fetched with BlockRef.VerifyData.
+// An empty block is never stored; a nil BlockRef stands for it. Stored blocks
+// are immutable, so any number of graphs share one.
+//
+// StoreOps is the storage contract. PutBlock may return before its write is
+// durable; Sync is the only durability barrier and covers every write issued
+// before it. Each put carries the block's outgoing refs, and the store keeps
+// them with the bytes, because a block is live only while a held named root
+// reaches it through those refs (RootOps). A writer never reports a block
+// dead: it moves or drops the roots, and the collector in package gc frees
+// what no root reaches. A logical operation reads through BeginReadOperation,
+// so the store keeps one consistent scope until its release.
+//
+// A Transaction edits a graph from one root. A Cursor follows a ref
+// (FollowRef) or a field (FollowSubBlock) and fetches a block only when the
+// caller reads it, so an untouched subtree costs no read. A change marks the
+// block and its ancestors dirty; Transaction.Write encodes the dirty blocks
+// from the leaves to the root, puts each under the ref it computed
+// (PutOpts.ForceBlockRef), and returns the new root, while unchanged subtrees
+// keep their refs. Until a root moves onto the result, the old root still
+// reaches only blocks it had, so a crash mid-write loses that edit alone.
 package block
 
 import (
