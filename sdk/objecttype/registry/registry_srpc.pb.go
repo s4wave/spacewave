@@ -296,6 +296,9 @@ type SRPCObjectTypeBodyServiceClient interface {
 
 	// MarshalBodiesJSON renders root block bodies of one ObjectType as JSON.
 	MarshalBodiesJSON(ctx context.Context, in *MarshalBodiesJSONRequest) (*MarshalBodiesJSONResponse, error)
+	// DeclareBodies reads what root block bodies of one ObjectType declare for
+	// listings, as the type's traits in its metadata promise.
+	DeclareBodies(ctx context.Context, in *DeclareBodiesRequest) (*DeclareBodiesResponse, error)
 }
 
 type srpcObjectTypeBodyServiceClient struct {
@@ -325,9 +328,21 @@ func (c *srpcObjectTypeBodyServiceClient) MarshalBodiesJSON(ctx context.Context,
 	return out, nil
 }
 
+func (c *srpcObjectTypeBodyServiceClient) DeclareBodies(ctx context.Context, in *DeclareBodiesRequest) (*DeclareBodiesResponse, error) {
+	out := new(DeclareBodiesResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "DeclareBodies", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 type SRPCObjectTypeBodyServiceServer interface {
 	// MarshalBodiesJSON renders root block bodies of one ObjectType as JSON.
 	MarshalBodiesJSON(context.Context, *MarshalBodiesJSONRequest) (*MarshalBodiesJSONResponse, error)
+	// DeclareBodies reads what root block bodies of one ObjectType declare for
+	// listings, as the type's traits in its metadata promise.
+	DeclareBodies(context.Context, *DeclareBodiesRequest) (*DeclareBodiesResponse, error)
 }
 
 const SRPCObjectTypeBodyServiceServiceID = "s4wave.objecttype.registry.ObjectTypeBodyService"
@@ -357,6 +372,7 @@ func (d *SRPCObjectTypeBodyServiceHandler) GetServiceID() string { return d.serv
 func (SRPCObjectTypeBodyServiceHandler) GetMethodIDs() []string {
 	return []string{
 		"MarshalBodiesJSON",
+		"DeclareBodies",
 	}
 }
 
@@ -371,6 +387,8 @@ func (d *SRPCObjectTypeBodyServiceHandler) InvokeMethod(
 	switch methodID {
 	case "MarshalBodiesJSON":
 		return true, d.InvokeMethod_MarshalBodiesJSON(d.impl, strm)
+	case "DeclareBodies":
+		return true, d.InvokeMethod_DeclareBodies(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -388,10 +406,30 @@ func (SRPCObjectTypeBodyServiceHandler) InvokeMethod_MarshalBodiesJSON(impl SRPC
 	return strm.MsgSend(out)
 }
 
+func (SRPCObjectTypeBodyServiceHandler) InvokeMethod_DeclareBodies(impl SRPCObjectTypeBodyServiceServer, strm srpc.Stream) error {
+	req := new(DeclareBodiesRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.DeclareBodies(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
 type SRPCObjectTypeBodyService_MarshalBodiesJSONStream interface {
 	srpc.Stream
 }
 
 type srpcObjectTypeBodyService_MarshalBodiesJSONStream struct {
+	srpc.Stream
+}
+
+type SRPCObjectTypeBodyService_DeclareBodiesStream interface {
+	srpc.Stream
+}
+
+type srpcObjectTypeBodyService_DeclareBodiesStream struct {
 	srpc.Stream
 }

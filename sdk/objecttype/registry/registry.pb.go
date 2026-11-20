@@ -12,6 +12,7 @@ import (
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	world "github.com/s4wave/spacewave/sdk/world"
 )
 
 // ObjectTypeVisibility controls where an ObjectType should appear.
@@ -149,6 +150,9 @@ type ObjectTypeMetadata struct {
 	Description string `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
 	// Ports declares the connection endpoints of the ObjectType's objects.
 	Ports []*ObjectTypePort `protobuf:"bytes,5,rep,name=ports,proto3" json:"ports,omitempty"`
+	// Traits declares what the ObjectType's bodies declare about their
+	// objects. The host asks DeclareBodies only for a type that declares any.
+	Traits *ObjectTypeTraits `protobuf:"bytes,6,opt,name=traits,proto3" json:"traits,omitempty"`
 }
 
 func (x *ObjectTypeMetadata) Reset() {
@@ -190,6 +194,60 @@ func (x *ObjectTypeMetadata) GetPorts() []*ObjectTypePort {
 		return x.Ports
 	}
 	return nil
+}
+
+func (x *ObjectTypeMetadata) GetTraits() *ObjectTypeTraits {
+	if x != nil {
+		return x.Traits
+	}
+	return nil
+}
+
+// ObjectTypeTraits is what an ObjectType's bodies declare about their objects.
+type ObjectTypeTraits struct {
+	unknownFields []byte
+	// Titled reports bodies that name their objects.
+	Titled bool `protobuf:"varint,1,opt,name=titled,proto3" json:"titled,omitempty"`
+	// Stateful reports bodies that name their objects' states.
+	Stateful bool `protobuf:"varint,2,opt,name=stateful,proto3" json:"stateful,omitempty"`
+	// Dated reports bodies that carry the time their objects were made.
+	Dated bool `protobuf:"varint,3,opt,name=dated,proto3" json:"dated,omitempty"`
+	// Measured reports bodies that carry summable quantities.
+	Measured bool `protobuf:"varint,4,opt,name=measured,proto3" json:"measured,omitempty"`
+}
+
+func (x *ObjectTypeTraits) Reset() {
+	*x = ObjectTypeTraits{}
+}
+
+func (*ObjectTypeTraits) ProtoMessage() {}
+
+func (x *ObjectTypeTraits) GetTitled() bool {
+	if x != nil {
+		return x.Titled
+	}
+	return false
+}
+
+func (x *ObjectTypeTraits) GetStateful() bool {
+	if x != nil {
+		return x.Stateful
+	}
+	return false
+}
+
+func (x *ObjectTypeTraits) GetDated() bool {
+	if x != nil {
+		return x.Dated
+	}
+	return false
+}
+
+func (x *ObjectTypeTraits) GetMeasured() bool {
+	if x != nil {
+		return x.Measured
+	}
+	return false
 }
 
 // ObjectTypeRegistration is a registered ObjectType.
@@ -466,6 +524,56 @@ func (x *MarshalBodiesJSONResponse) GetBodiesJson() []string {
 	return nil
 }
 
+// DeclareBodiesRequest is the request for DeclareBodies.
+type DeclareBodiesRequest struct {
+	unknownFields []byte
+	// TypeId is the ObjectType ID of every body.
+	TypeId string `protobuf:"bytes,1,opt,name=type_id,json=typeId,proto3" json:"typeId,omitempty"`
+	// Bodies are root block bodies as World stores them.
+	Bodies [][]byte `protobuf:"bytes,2,rep,name=bodies,proto3" json:"bodies,omitempty"`
+}
+
+func (x *DeclareBodiesRequest) Reset() {
+	*x = DeclareBodiesRequest{}
+}
+
+func (*DeclareBodiesRequest) ProtoMessage() {}
+
+func (x *DeclareBodiesRequest) GetTypeId() string {
+	if x != nil {
+		return x.TypeId
+	}
+	return ""
+}
+
+func (x *DeclareBodiesRequest) GetBodies() [][]byte {
+	if x != nil {
+		return x.Bodies
+	}
+	return nil
+}
+
+// DeclareBodiesResponse is the response for DeclareBodies.
+type DeclareBodiesResponse struct {
+	unknownFields []byte
+	// Declarations preserves the request body order. An empty declaration
+	// marks a body the plugin could not decode.
+	Declarations []*world.ObjectDeclaration `protobuf:"bytes,1,rep,name=declarations,proto3" json:"declarations,omitempty"`
+}
+
+func (x *DeclareBodiesResponse) Reset() {
+	*x = DeclareBodiesResponse{}
+}
+
+func (*DeclareBodiesResponse) ProtoMessage() {}
+
+func (x *DeclareBodiesResponse) GetDeclarations() []*world.ObjectDeclaration {
+	if x != nil {
+		return x.Declarations
+	}
+	return nil
+}
+
 func (m *ObjectTypePort) CloneVT() *ObjectTypePort {
 	if m == nil {
 		return (*ObjectTypePort)(nil)
@@ -494,6 +602,7 @@ func (m *ObjectTypeMetadata) CloneVT() *ObjectTypeMetadata {
 	r.Visibility = m.Visibility
 	r.Description = m.Description
 	r.Ports = protobuf_go_lite.CloneVTSlice(m.Ports)
+	r.Traits = protobuf_go_lite.CloneVTValue(m.Traits)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -501,6 +610,25 @@ func (m *ObjectTypeMetadata) CloneVT() *ObjectTypeMetadata {
 }
 
 func (m *ObjectTypeMetadata) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ObjectTypeTraits) CloneVT() *ObjectTypeTraits {
+	if m == nil {
+		return (*ObjectTypeTraits)(nil)
+	}
+	r := new(ObjectTypeTraits)
+	r.Titled = m.Titled
+	r.Stateful = m.Stateful
+	r.Dated = m.Dated
+	r.Measured = m.Measured
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ObjectTypeTraits) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -658,6 +786,39 @@ func (m *MarshalBodiesJSONResponse) CloneMessageVT() protobuf_go_lite.CloneMessa
 	return m.CloneVT()
 }
 
+func (m *DeclareBodiesRequest) CloneVT() *DeclareBodiesRequest {
+	if m == nil {
+		return (*DeclareBodiesRequest)(nil)
+	}
+	r := new(DeclareBodiesRequest)
+	r.TypeId = m.TypeId
+	r.Bodies = protobuf_go_lite.CloneBytesSlice(m.Bodies)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *DeclareBodiesRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *DeclareBodiesResponse) CloneVT() *DeclareBodiesResponse {
+	if m == nil {
+		return (*DeclareBodiesResponse)(nil)
+	}
+	r := new(DeclareBodiesResponse)
+	r.Declarations = protobuf_go_lite.CloneVTSlice(m.Declarations)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *DeclareBodiesResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (this *ObjectTypePort) EqualVT(that *ObjectTypePort) bool {
 	if this == that {
 		return true
@@ -705,11 +866,43 @@ func (this *ObjectTypeMetadata) EqualVT(that *ObjectTypeMetadata) bool {
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.Ports, that.Ports, func() *ObjectTypePort { return &ObjectTypePort{} }) {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.Traits, that.Traits) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *ObjectTypeMetadata) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*ObjectTypeMetadata)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ObjectTypeTraits) EqualVT(that *ObjectTypeTraits) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Titled != that.Titled {
+		return false
+	}
+	if this.Stateful != that.Stateful {
+		return false
+	}
+	if this.Dated != that.Dated {
+		return false
+	}
+	if this.Measured != that.Measured {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ObjectTypeTraits) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ObjectTypeTraits)
 	if !ok {
 		return false
 	}
@@ -926,6 +1119,49 @@ func (this *MarshalBodiesJSONResponse) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *DeclareBodiesRequest) EqualVT(that *DeclareBodiesRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.TypeId != that.TypeId {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytesSlice(this.Bodies, that.Bodies) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *DeclareBodiesRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*DeclareBodiesRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *DeclareBodiesResponse) EqualVT(that *DeclareBodiesResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Declarations, that.Declarations, func() *world.ObjectDeclaration { return &world.ObjectDeclaration{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *DeclareBodiesResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*DeclareBodiesResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 // MarshalProtoJSON marshals the ObjectTypeVisibility to JSON.
 func (x ObjectTypeVisibility) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteEnum(int32(x), ObjectTypeVisibility_name)
@@ -1103,6 +1339,11 @@ func (x *ObjectTypeMetadata) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if x.Traits != nil || s.HasField("traits") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("traits")
+		x.Traits.MarshalProtoJSON(s.WithField("traits"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1150,12 +1391,85 @@ func (x *ObjectTypeMetadata) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.Ports = append(x.Ports, v)
 			})
+		case "traits":
+			if s.ReadNil() {
+				x.Traits = nil
+				return
+			}
+			x.Traits = &ObjectTypeTraits{}
+			x.Traits.UnmarshalProtoJSON(s.WithField("traits", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the ObjectTypeMetadata from JSON.
 func (x *ObjectTypeMetadata) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ObjectTypeTraits message to JSON.
+func (x *ObjectTypeTraits) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Titled || s.HasField("titled") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("titled")
+		s.WriteBool(x.Titled)
+	}
+	if x.Stateful || s.HasField("stateful") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("stateful")
+		s.WriteBool(x.Stateful)
+	}
+	if x.Dated || s.HasField("dated") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("dated")
+		s.WriteBool(x.Dated)
+	}
+	if x.Measured || s.HasField("measured") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("measured")
+		s.WriteBool(x.Measured)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ObjectTypeTraits to JSON.
+func (x *ObjectTypeTraits) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ObjectTypeTraits message from JSON.
+func (x *ObjectTypeTraits) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "titled":
+			s.AddField("titled")
+			x.Titled = s.ReadBool()
+		case "stateful":
+			s.AddField("stateful")
+			x.Stateful = s.ReadBool()
+		case "dated":
+			s.AddField("dated")
+			x.Dated = s.ReadBool()
+		case "measured":
+			s.AddField("measured")
+			x.Measured = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ObjectTypeTraits from JSON.
+func (x *ObjectTypeTraits) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1658,6 +1972,123 @@ func (x *MarshalBodiesJSONResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the DeclareBodiesRequest message to JSON.
+func (x *DeclareBodiesRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.TypeId != "" || s.HasField("typeId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("typeId")
+		s.WriteString(x.TypeId)
+	}
+	if len(x.Bodies) > 0 || s.HasField("bodies") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("bodies")
+		s.WriteBytesArray(x.Bodies)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the DeclareBodiesRequest to JSON.
+func (x *DeclareBodiesRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DeclareBodiesRequest message from JSON.
+func (x *DeclareBodiesRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "type_id", "typeId":
+			s.AddField("type_id")
+			x.TypeId = s.ReadString()
+		case "bodies":
+			s.AddField("bodies")
+			if s.ReadNil() {
+				x.Bodies = nil
+				return
+			}
+			x.Bodies = s.ReadBytesArray()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the DeclareBodiesRequest from JSON.
+func (x *DeclareBodiesRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the DeclareBodiesResponse message to JSON.
+func (x *DeclareBodiesResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Declarations) > 0 || s.HasField("declarations") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("declarations")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Declarations {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("declarations"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the DeclareBodiesResponse to JSON.
+func (x *DeclareBodiesResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DeclareBodiesResponse message from JSON.
+func (x *DeclareBodiesResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "declarations":
+			s.AddField("declarations")
+			if s.ReadNil() {
+				x.Declarations = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Declarations = append(x.Declarations, nil)
+					return
+				}
+				v := &world.ObjectDeclaration{}
+				v.UnmarshalProtoJSON(s.WithField("declarations", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Declarations = append(x.Declarations, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the DeclareBodiesResponse from JSON.
+func (x *DeclareBodiesResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *ObjectTypePort) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1734,6 +2165,16 @@ func (m *ObjectTypeMetadata) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Traits != nil {
+		size, err := m.Traits.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x32
+	}
 	if len(m.Ports) > 0 {
 		for iNdEx := len(m.Ports) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.Ports[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -1765,6 +2206,58 @@ func (m *ObjectTypeMetadata) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.DisplayName)
 		i--
 		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ObjectTypeTraits) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ObjectTypeTraits) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ObjectTypeTraits) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Measured {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Measured)
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.Dated {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Dated)
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.Stateful {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Stateful)
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Titled {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Titled)
+		i--
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -2175,6 +2668,94 @@ func (m *MarshalBodiesJSONResponse) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	return len(dAtA) - i, nil
 }
 
+func (m *DeclareBodiesRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DeclareBodiesRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *DeclareBodiesRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Bodies) > 0 {
+		for iNdEx := len(m.Bodies) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Bodies[iNdEx])
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.TypeId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.TypeId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *DeclareBodiesResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DeclareBodiesResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *DeclareBodiesResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Declarations) > 0 {
+		for iNdEx := len(m.Declarations) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Declarations[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *ObjectTypePort) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2202,6 +2783,24 @@ func (m *ObjectTypeMetadata) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	if m.Traits != nil {
+		l = m.Traits.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ObjectTypeTraits) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Titled)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Stateful)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Dated)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Measured)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2324,6 +2923,32 @@ func (m *MarshalBodiesJSONResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *DeclareBodiesRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.TypeId)
+	n += protobuf_go_lite.SizeBytesSlice(1, m.Bodies)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *DeclareBodiesResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	for _, e := range m.Declarations {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (x ObjectTypeVisibility) MarshalProtoText() string {
 	return x.String()
 }
@@ -2385,10 +3010,40 @@ func (x *ObjectTypeMetadata) MarshalProtoText() string {
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
+	if x.Traits != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "traits")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Traits)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *ObjectTypeMetadata) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ObjectTypeTraits) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ObjectTypeTraits")
+	if x.Titled != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "titled")
+		protobuf_go_lite.TextWriteBool(&sb, x.Titled)
+	}
+	if x.Stateful != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "stateful")
+		protobuf_go_lite.TextWriteBool(&sb, x.Stateful)
+	}
+	if x.Dated != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "dated")
+		protobuf_go_lite.TextWriteBool(&sb, x.Dated)
+	}
+	if x.Measured != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "measured")
+		protobuf_go_lite.TextWriteBool(&sb, x.Measured)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ObjectTypeTraits) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -2578,6 +3233,50 @@ func (x *MarshalBodiesJSONResponse) String() string {
 	return x.MarshalProtoText()
 }
 
+func (x *DeclareBodiesRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "DeclareBodiesRequest")
+	if x.TypeId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "type_id")
+		protobuf_go_lite.TextWriteString(&sb, x.TypeId)
+	}
+	if len(x.Bodies) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "bodies")
+		for i, v := range x.Bodies {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteBytes(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *DeclareBodiesRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *DeclareBodiesResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "DeclareBodiesResponse")
+	if len(x.Declarations) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "declarations")
+		for i, v := range x.Declarations {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &world.ObjectDeclaration{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *DeclareBodiesResponse) String() string {
+	return x.MarshalProtoText()
+}
+
 func (m *ObjectTypePort) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2726,6 +3425,104 @@ func (m *ObjectTypeMetadata) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Traits", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Traits == nil {
+				m.Traits = &ObjectTypeTraits{}
+			}
+			if err := m.Traits.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ObjectTypeTraits) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ObjectTypeTraits: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ObjectTypeTraits: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Titled", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Titled = bool(v)
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Stateful", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Stateful = bool(v)
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Dated", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Dated = bool(v)
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Measured", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Measured = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -3311,6 +4108,125 @@ func (m *MarshalBodiesJSONResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.BodiesJson = append(m.BodiesJson, v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *DeclareBodiesRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DeclareBodiesRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DeclareBodiesRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TypeId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.TypeId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Bodies", wireType)
+			}
+			var v []byte
+			v, iNdEx, err = protobuf_go_lite.DecodeBytes(dAtA, iNdEx, true)
+			if err != nil {
+				return err
+			}
+			m.Bodies = append(m.Bodies, v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *DeclareBodiesResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DeclareBodiesResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DeclareBodiesResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Declarations", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Declarations = append(m.Declarations, &world.ObjectDeclaration{})
+			if err := m.Declarations[len(m.Declarations)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

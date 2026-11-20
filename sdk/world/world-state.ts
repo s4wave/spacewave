@@ -42,8 +42,8 @@ export interface ListObjectsWithTypePage {
   startAfter?: string
   // limit bounds the page; zero lets the server choose.
   limit?: number
-  // titles asks for each object's title beside its key.
-  titles?: boolean
+  // declared asks for each object's title and state beside its key.
+  declared?: boolean
 }
 
 // maxObjectBodiesRevisionRetries bounds restarts when writes land between body pages.
@@ -236,8 +236,8 @@ export interface IWorldState {
 
   /**
    * listObjectsWithTypePage returns one page of the type's keys after
-   * startAfter, with each object's title when titles is set and the type
-   * declares titles. An empty title means the client shows the key.
+   * startAfter, with each object's title and state when declared is set and
+   * the type declares them. An empty title means the client shows the key.
    */
   listObjectsWithTypePage(
     typeID: string,
@@ -283,10 +283,15 @@ export interface IWorldState {
     abortSignal?: AbortSignal,
   ): Promise<ListObjectsResponse>
 
-  /** getObjectMetadataBatch returns the type and parent of each key, in request order. */
+  /**
+   * getObjectMetadataBatch returns the type and parent of each key, in request
+   * order, and its title, state and time when declared is set and its type
+   * declares them.
+   */
   getObjectMetadataBatch(
     objectKeys: string[],
     abortSignal?: AbortSignal,
+    declared?: boolean,
   ): Promise<ObjectMetadata[]>
 
   /** getObjectBodies reads object root bodies from one World revision, in request order. */
@@ -743,7 +748,7 @@ export class WorldStateResource extends Resource implements IWorldState {
     }
   }
 
-  /** listObjectsWithTypePage returns one page of the type's keys and titles. */
+  /** listObjectsWithTypePage returns one page of the type's keys, titles and states. */
   public async listObjectsWithTypePage(
     typeID: string,
     page: ListObjectsWithTypePage,
@@ -791,13 +796,14 @@ export class WorldStateResource extends Resource implements IWorldState {
     return this.service.ListObjects(request, abortSignal)
   }
 
-  /** getObjectMetadataBatch returns the type and parent of each key, in request order. */
+  /** getObjectMetadataBatch returns the type, parent and declarations of each key, in request order. */
   public async getObjectMetadataBatch(
     objectKeys: string[],
     abortSignal?: AbortSignal,
+    declared = false,
   ): Promise<ObjectMetadata[]> {
     const response = await this.service.GetObjectMetadataBatch(
-      { objectKeys },
+      { objectKeys, declared },
       abortSignal,
     )
     return response.metadata ?? []

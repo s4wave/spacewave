@@ -20,6 +20,7 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	world_types "github.com/s4wave/spacewave/db/world/types"
+	forge_job "github.com/s4wave/spacewave/forge/job"
 	s4wave_objecttype_registry "github.com/s4wave/spacewave/sdk/objecttype/registry"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
@@ -612,8 +613,11 @@ func TestWorldStateRendersBodiesJSONThroughHostAndPlugin(t *testing.T) {
 		t.Fatal(err)
 	}
 	bodies := s4wave_objecttype_registry.NewBodyHandler(func(_ context.Context, typeID string) (blocktype.BlockType, error) {
-		if typeID == "plugin/type" {
+		switch typeID {
+		case "plugin/type":
 			return blocktype.New[s4wave_world.ObjectMetadata](typeID), nil
+		case "plugin/job":
+			return blocktype.New[forge_job.Job](typeID), nil
 		}
 		return nil, nil
 	})
@@ -640,6 +644,12 @@ func TestWorldStateRendersBodiesJSONThroughHostAndPlugin(t *testing.T) {
 		RegistrationId: 1,
 		PluginId:       "test-plugin",
 	}}
+	registry.registrations[2] = &objectTypeRegistration{registration: &s4wave_objecttype_registry.ObjectTypeRegistration{
+		TypeId:         "plugin/job",
+		RegistrationId: 2,
+		PluginId:       "test-plugin",
+		Metadata:       s4wave_objecttype_registry.BlockTypeMetadata(blocktype.New[forge_job.Job]("plugin/job")),
+	}}
 	rel, err = tb.Bus.AddController(ctx, NewBridgeController(le, tb.Bus, registry), nil)
 	if err != nil {
 		t.Fatal(err)
@@ -654,6 +664,7 @@ func TestWorldStateRendersBodiesJSONThroughHostAndPlugin(t *testing.T) {
 		{key: "obj/host", typeID: "host/type", body: &s4wave_world.EngineInfo{EngineId: "engine-1"}},
 		{key: "obj/plugin", typeID: "plugin/type", body: &s4wave_world.ObjectMetadata{ObjectKey: "inner-key"}},
 		{key: "obj/other", typeID: "other/type", body: &s4wave_world.EngineInfo{EngineId: "hidden"}},
+		{key: "obj/job", typeID: "plugin/job", body: &forge_job.Job{JobState: forge_job.State_JobState_RUNNING}},
 	} {
 		state, _, err := world.CreateWorldObject(ctx, tb.WorldState, obj.key, func(bcs *block.Cursor) error {
 			bcs.SetBlock(obj.body, true)
@@ -704,6 +715,27 @@ func TestWorldStateRendersBodiesJSONThroughHostAndPlugin(t *testing.T) {
 		t.Fatalf("missing body = %+v", b)
 	}
 
+	// The plugin declares its job's state, as its registered traits promise,
+	// and a plugin type without traits declares nothing.
+	declared := func() map[string]*s4wave_world.ObjectDeclaration {
+		resp, err := service.GetObjectMetadataBatch(ctx, &s4wave_world.GetObjectMetadataBatchRequest{ObjectKeys: []string{"obj/job", "obj/plugin"}, Declared: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		out := make(map[string]*s4wave_world.ObjectDeclaration)
+		for _, md := range resp.GetMetadata() {
+			out[md.GetObjectKey()] = md.GetDeclaration()
+		}
+		return out
+	}
+	ds := declared()
+	if got := ds["obj/job"].GetState(); got != "running" {
+		t.Fatalf("plugin job state = %q", got)
+	}
+	if d := ds["obj/plugin"]; d != nil {
+		t.Fatalf("plugin type without traits declared %+v", d)
+	}
+
 	// A plugin without the body service leaves its bodies without JSON.
 	pluginLoader.SetClient(newTestObjectTypePluginClient(t, &testReconnectObjectTypeHandler{}))
 	got = read()
@@ -712,5 +744,8 @@ func TestWorldStateRendersBodiesJSONThroughHostAndPlugin(t *testing.T) {
 	}
 	if b := got["obj/host"]; !strings.Contains(b.GetBodyJson(), `"engine-1"`) {
 		t.Fatalf("host body beside a plugin without body service = %+v", b)
+	}
+	if got := declared()["obj/job"].GetState(); got != "" {
+		t.Fatalf("plugin job state without body service = %q", got)
 	}
 }

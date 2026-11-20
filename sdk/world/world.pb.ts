@@ -9,6 +9,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { SOParticipantConfig } from '../../core/sobject/sobject.pb.js'
 import { ObjectRef } from '../../db/bucket/bucket.pb.js'
 import { Quad } from '../../db/block/quad/quad.pb.js'
+import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 /**
  * GraphEdgeBucketDirection indicates which edge directions to list.
@@ -1796,10 +1797,10 @@ export interface ListObjectsWithTypeRequest {
    */
   limit?: number
   /**
-   * Titles requests the title of each returned object, as its type's body
-   * declares it.
+   * Declared requests the title and state of each returned object, as its
+   * type's body declares them.
    */
-  titles?: boolean
+  declared?: boolean
 }
 
 export const ListObjectsWithTypeRequest: MessageType<ListObjectsWithTypeRequest> =
@@ -1809,7 +1810,7 @@ export const ListObjectsWithTypeRequest: MessageType<ListObjectsWithTypeRequest>
       [1, 'type_id', 9],
       [2, 'start_after', 9],
       [3, 'limit', 13],
-      [4, 'titles', 8],
+      [4, 'declared', 8],
     ],
   )
 
@@ -1832,10 +1833,16 @@ export interface ListObjectsWithTypeResponse {
   more?: boolean
   /**
    * Titles holds the title of each object key, in the same order, when the
-   * request asked for titles and the type declares them. An empty title
-   * means the client shows the key.
+   * request asked for declarations and the type declares titles. An empty
+   * title means the client shows the key.
    */
   titles?: string[]
+  /**
+   * States holds the state of each object key, in the same order, when the
+   * request asked for declarations and the type declares states. An empty
+   * state shows none.
+   */
+  states?: string[]
 }
 
 export const ListObjectsWithTypeResponse: MessageType<ListObjectsWithTypeResponse> =
@@ -1845,6 +1852,7 @@ export const ListObjectsWithTypeResponse: MessageType<ListObjectsWithTypeRespons
       [1, 'object_keys', 9, 1],
       [2, 'more', 8],
       [3, 'titles', 9, 1],
+      [4, 'states', 9, 1],
     ],
   )
 
@@ -2001,6 +2009,11 @@ export interface SearchObjectsWithTypeResponse {
    * titles. An empty title means the client shows the key.
    */
   titles?: string[]
+  /**
+   * States holds each match's state in the same order when the type declares
+   * states. An empty state shows none.
+   */
+  states?: string[]
 }
 
 export const SearchObjectsWithTypeResponse: MessageType<SearchObjectsWithTypeResponse> =
@@ -2009,6 +2022,7 @@ export const SearchObjectsWithTypeResponse: MessageType<SearchObjectsWithTypeRes
     () => [
       [1, 'object_keys', 9, 1],
       [2, 'titles', 9, 1],
+      [3, 'states', 9, 1],
     ],
   )
 
@@ -2103,6 +2117,11 @@ export interface ObjectMetadata {
    * ParentObjectKey is the parent object key, if present.
    */
   parentObjectKey?: string
+  /**
+   * Declaration is what the object's body declares about it, when the request
+   * asked for declarations and its type declares anything.
+   */
+  declaration?: ObjectDeclaration
 }
 
 export const ObjectMetadata: MessageType<ObjectMetadata> =
@@ -2112,6 +2131,76 @@ export const ObjectMetadata: MessageType<ObjectMetadata> =
       [1, 'object_key', 9],
       [2, 'type_id', 9],
       [3, 'parent_object_key', 9],
+      [4, 'declaration', 11, 0, ObjectDeclaration.codec],
+    ],
+  )
+
+/**
+ * ObjectDeclaration is what an object's body declares about the object for
+ * listings. The type's owner decodes the body: the host for its own types,
+ * the registering plugin for a plugin type.
+ *
+ * @generated from message s4wave.world.ObjectDeclaration
+ */
+export interface ObjectDeclaration {
+  /**
+   * Title names the object. An empty title means the client shows the key.
+   */
+  title?: string
+  /**
+   * State names the object's state in lower case, such as running or failed.
+   * Empty shows no state.
+   */
+  state?: string
+  /**
+   * Time is when the object was made. Unset shows no age.
+   */
+  time?: Date
+  /**
+   * Measures are the object's summable quantities, such as a receipt's cost
+   * and tokens. A browser sums them by name over a family of objects.
+   */
+  measures?: ObjectMeasure[]
+}
+
+export const ObjectDeclaration: MessageType<ObjectDeclaration> =
+  /* @__PURE__ */ createMessageType<ObjectDeclaration>(
+    's4wave.world.ObjectDeclaration',
+    () => [
+      [1, 'title', 9],
+      [2, 'state', 9],
+      [3, 'time', 11, 0, Timestamp.codec],
+      [4, 'measures', 11, 1, ObjectMeasure.codec],
+    ],
+  )
+
+/**
+ * ObjectMeasure is one summable quantity of an object.
+ *
+ * @generated from message s4wave.world.ObjectMeasure
+ */
+export interface ObjectMeasure {
+  /**
+   * Name identifies the quantity across objects, such as "cost" or "tokens".
+   */
+  name?: string
+  /**
+   * Unit is how the sum reads, such as "usd"; empty counts the named things.
+   */
+  unit?: string
+  /**
+   * Value is the object's amount.
+   */
+  value?: number
+}
+
+export const ObjectMeasure: MessageType<ObjectMeasure> =
+  /* @__PURE__ */ createMessageType<ObjectMeasure>(
+    's4wave.world.ObjectMeasure',
+    () => [
+      [1, 'name', 9],
+      [2, 'unit', 9],
+      [3, 'value', 1],
     ],
   )
 
@@ -2126,12 +2215,20 @@ export interface GetObjectMetadataBatchRequest {
    * ObjectKeys is the list of object keys to inspect.
    */
   objectKeys?: string[]
+  /**
+   * Declared requests the title, state and time of each object whose type
+   * declares them.
+   */
+  declared?: boolean
 }
 
 export const GetObjectMetadataBatchRequest: MessageType<GetObjectMetadataBatchRequest> =
   /* @__PURE__ */ createMessageType<GetObjectMetadataBatchRequest>(
     's4wave.world.GetObjectMetadataBatchRequest',
-    () => [[1, 'object_keys', 9, 1]],
+    () => [
+      [1, 'object_keys', 9, 1],
+      [2, 'declared', 8],
+    ],
   )
 
 /**

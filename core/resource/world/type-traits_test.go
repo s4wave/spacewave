@@ -6,7 +6,9 @@ import (
 	"context"
 	"slices"
 	"testing"
+	"time"
 
+	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/starpc/srpc"
 	resource_world "github.com/s4wave/spacewave/core/resource/world"
 	space_world "github.com/s4wave/spacewave/core/space/world"
@@ -15,18 +17,21 @@ import (
 	blocktype_controller "github.com/s4wave/spacewave/db/blocktype/controller"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
+	forge_job "github.com/s4wave/spacewave/forge/job"
+	forge_value "github.com/s4wave/spacewave/forge/value"
 	forge_worker "github.com/s4wave/spacewave/forge/worker"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 )
 
 // TestWorldStateResourceTypeTraits checks that the type count listing marks
-// internal types and that a typed listing returns the titles a type declares.
+// internal types and that typed listings return the titles, states and times
+// a type declares.
 func TestWorldStateResourceTypeTraits(t *testing.T) {
 	ctx := t.Context()
 	tb, cleanup := setupWorldTestbed(ctx, t)
 	t.Cleanup(cleanup)
 
-	// Serve the two host types; the plugin type stays unknown.
+	// Serve the three host types; the plugin type stays unknown.
 	const pluginTypeID = "test/plugin"
 	rel, err := tb.Bus.AddController(ctx, blocktype_controller.NewController(func(_ context.Context, typeID string) (blocktype.BlockType, error) {
 		switch typeID {
@@ -34,6 +39,8 @@ func TestWorldStateResourceTypeTraits(t *testing.T) {
 			return blocktype.New[space_world.SpaceSettings](typeID), nil
 		case forge_worker.WorkerTypeID:
 			return blocktype.New[forge_worker.Worker](typeID), nil
+		case forge_job.JobTypeID:
+			return blocktype.New[forge_job.Job](typeID), nil
 		}
 		return nil, nil
 	}), nil)
@@ -60,6 +67,9 @@ func TestWorldStateResourceTypeTraits(t *testing.T) {
 	create("worker/a", forge_worker.WorkerTypeID, &forge_worker.Worker{Name: "Alpha"})
 	create("worker/b", forge_worker.WorkerTypeID, &forge_worker.Worker{})
 	create("plugin/a", pluginTypeID, &space_world.SpaceSettings{})
+	made := timestamppb.New(time.Unix(1_700_000_000, 0))
+	create("job/a", forge_job.JobTypeID, &forge_job.Job{JobState: forge_job.State_JobState_RUNNING, Timestamp: made})
+	create("job/b", forge_job.JobTypeID, &forge_job.Job{JobState: forge_job.State_JobState_COMPLETE, Result: &forge_value.Result{Success: true}})
 
 	resource := resource_world.NewWorldStateResource(nil, tb.Bus, tb.WorldState, nil)
 	client := s4wave_world.NewSRPCWorldStateResourceServiceClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(resource.GetMux()))))
@@ -78,8 +88,8 @@ func TestWorldStateResourceTypeTraits(t *testing.T) {
 	}
 
 	// Workers carry their names; an unnamed worker shows its key.
-	list := func(typeID string, titles bool) *s4wave_world.ListObjectsWithTypeResponse {
-		resp, err := client.ListObjectsWithType(ctx, &s4wave_world.ListObjectsWithTypeRequest{TypeId: typeID, Limit: 10, Titles: titles})
+	list := func(typeID string, declared bool) *s4wave_world.ListObjectsWithTypeResponse {
+		resp, err := client.ListObjectsWithType(ctx, &s4wave_world.ListObjectsWithTypeRequest{TypeId: typeID, Limit: 10, Declared: declared})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -93,5 +103,21 @@ func TestWorldStateResourceTypeTraits(t *testing.T) {
 	}
 	if got := list(pluginTypeID, true).GetTitles(); got != nil {
 		t.Fatalf("plugin titles %q", got)
+	}
+
+	// Jobs declare states and times but no titles; workers declare no states.
+	if got := list(forge_job.JobTypeID, true); got.GetTitles() != nil || !slices.Equal(got.GetStates(), []string{"running", "passed"}) {
+		t.Fatalf("job titles %q states %q", got.GetTitles(), got.GetStates())
+	}
+	if got := list(forge_worker.WorkerTypeID, true).GetStates(); got != nil {
+		t.Fatalf("worker states %q", got)
+	}
+	md, err := client.GetObjectMetadataBatch(ctx, &s4wave_world.GetObjectMetadataBatchRequest{ObjectKeys: []string{"job/a", "worker/a"}, Declared: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	job, worker := md.GetMetadata()[0], md.GetMetadata()[1]
+	if job.GetDeclaration().GetState() != "running" || !job.GetDeclaration().GetTime().AsTime().Equal(made.AsTime()) || worker.GetDeclaration().GetTitle() != "Alpha" || worker.GetDeclaration().GetState() != "" || worker.GetDeclaration().GetTime() != nil {
+		t.Fatalf("metadata %v", md.GetMetadata())
 	}
 }

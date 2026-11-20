@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/db/world"
+	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 	"github.com/sirupsen/logrus"
 )
 
@@ -52,6 +53,14 @@ type BodyMarshaler interface {
 	// MarshalBodiesJSON renders root block bodies as JSON, preserving order.
 	// An empty string marks a body the owner could not render.
 	MarshalBodiesJSON(ctx context.Context, bodies [][]byte) ([]string, error)
+}
+
+// BodyDeclarer is an ObjectType whose owner reads what its object bodies
+// declare for listings, such as a plugin type the host cannot decode.
+type BodyDeclarer interface {
+	// DeclareBodies reads root block bodies' declarations, preserving order.
+	// An empty declaration marks a body the owner could not decode.
+	DeclareBodies(ctx context.Context, bodies [][]byte) ([]*s4wave_world.ObjectDeclaration, error)
 }
 
 // objectType implements ObjectType using generics.

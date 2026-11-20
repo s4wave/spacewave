@@ -4306,7 +4306,7 @@
           ]
         },
         "github.com/s4wave/spacewave/sdk/objecttype/registry": {
-          "hash": "87b13839e0eb4fa23720215269a3fca0d7dec6a515c1784f109523e52a67234a",
+          "hash": "bfcc38ac326f8beffcdbb2c07c807394cea5797b11d127db78b9c40da801829c",
           "generatedFiles": [
             "sdk/objecttype/registry/registry.pb.go",
             "sdk/objecttype/registry/registry.pb.ts",
@@ -4774,7 +4774,7 @@
           ]
         },
         "github.com/s4wave/spacewave/sdk/world": {
-          "hash": "86bbe11cde5c2ff044dc023b88aff1fdaad32d14241d2e9ff1907934ddd70c8f",
+          "hash": "1e7ae515253376225ca642e3d86761e2fc845f540bd016cab035f9cf855976b2",
           "generatedFiles": [
             "sdk/world/world.pb.go",
             "sdk/world/world.pb.ts",

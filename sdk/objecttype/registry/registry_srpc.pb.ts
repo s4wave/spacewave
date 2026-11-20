@@ -3,6 +3,8 @@
 /* eslint-disable */
 
 import {
+  DeclareBodiesRequest,
+  DeclareBodiesResponse,
   InvokeObjectTypeRequest,
   InvokeObjectTypeResponse,
   MarshalBodiesJSONRequest,
@@ -232,6 +234,18 @@ export const ObjectTypeBodyServiceDefinition = {
       O: MarshalBodiesJSONResponse,
       kind: MethodKind.Unary,
     },
+    /**
+     * DeclareBodies reads what root block bodies of one ObjectType declare for
+     * listings, as the type's traits in its metadata promise.
+     *
+     * @generated from rpc s4wave.objecttype.registry.ObjectTypeBodyService.DeclareBodies
+     */
+    DeclareBodies: {
+      name: 'DeclareBodies',
+      I: DeclareBodiesRequest,
+      O: DeclareBodiesResponse,
+      kind: MethodKind.Unary,
+    },
   },
 } as const
 
@@ -252,6 +266,17 @@ export interface ObjectTypeBodyService {
     request: MarshalBodiesJSONRequest,
     abortSignal?: AbortSignal,
   ): Promise<MarshalBodiesJSONResponse>
+
+  /**
+   * DeclareBodies reads what root block bodies of one ObjectType declare for
+   * listings, as the type's traits in its metadata promise.
+   *
+   * @generated from rpc s4wave.objecttype.registry.ObjectTypeBodyService.DeclareBodies
+   */
+  DeclareBodies(
+    request: DeclareBodiesRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<DeclareBodiesResponse>
 }
 
 /**
@@ -272,6 +297,18 @@ export interface ObjectTypeBodyServiceHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): Promise<MarshalBodiesJSONResponse>
+
+  /**
+   * DeclareBodies reads what root block bodies of one ObjectType declare for
+   * listings, as the type's traits in its metadata promise.
+   *
+   * @generated from rpc s4wave.objecttype.registry.ObjectTypeBodyService.DeclareBodies
+   */
+  DeclareBodies(
+    request: DeclareBodiesRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<DeclareBodiesResponse>
 }
 
 export const ObjectTypeBodyServiceServiceName =
@@ -284,6 +321,7 @@ export class ObjectTypeBodyServiceClient implements ObjectTypeBodyService {
     this.service = opts?.service || ObjectTypeBodyServiceServiceName
     this.rpc = rpc
     this.MarshalBodiesJSON = this.MarshalBodiesJSON.bind(this)
+    this.DeclareBodies = this.DeclareBodies.bind(this)
   }
   /**
    * MarshalBodiesJSON renders root block bodies of one ObjectType as JSON.
@@ -302,5 +340,25 @@ export class ObjectTypeBodyServiceClient implements ObjectTypeBodyService {
       abortSignal || undefined,
     )
     return MarshalBodiesJSONResponse.fromBinary(result)
+  }
+
+  /**
+   * DeclareBodies reads what root block bodies of one ObjectType declare for
+   * listings, as the type's traits in its metadata promise.
+   *
+   * @generated from rpc s4wave.objecttype.registry.ObjectTypeBodyService.DeclareBodies
+   */
+  async DeclareBodies(
+    request: DeclareBodiesRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<DeclareBodiesResponse> {
+    const requestMsg = DeclareBodiesRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      ObjectTypeBodyServiceDefinition.methods.DeclareBodies.name,
+      DeclareBodiesRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return DeclareBodiesResponse.fromBinary(result)
   }
 }

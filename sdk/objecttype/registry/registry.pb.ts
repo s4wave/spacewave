@@ -5,6 +5,7 @@
 import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ObjectDeclaration } from '../../world/world.pb.js'
 
 /**
  * ObjectTypeVisibility controls where an ObjectType should appear.
@@ -130,6 +131,11 @@ export interface ObjectTypeMetadata {
    * Ports declares the connection endpoints of the ObjectType's objects.
    */
   ports?: ObjectTypePort[]
+  /**
+   * Traits declares what the ObjectType's bodies declare about their
+   * objects. The host asks DeclareBodies only for a type that declares any.
+   */
+  traits?: ObjectTypeTraits
 }
 
 export const ObjectTypeMetadata: MessageType<ObjectTypeMetadata> =
@@ -141,6 +147,42 @@ export const ObjectTypeMetadata: MessageType<ObjectTypeMetadata> =
       [3, 'visibility', 14, 0, ObjectTypeVisibility_Enum],
       [4, 'description', 9],
       [5, 'ports', 11, 1, ObjectTypePort.codec],
+      [6, 'traits', 11, 0, ObjectTypeTraits.codec],
+    ],
+  )
+
+/**
+ * ObjectTypeTraits is what an ObjectType's bodies declare about their objects.
+ *
+ * @generated from message s4wave.objecttype.registry.ObjectTypeTraits
+ */
+export interface ObjectTypeTraits {
+  /**
+   * Titled reports bodies that name their objects.
+   */
+  titled?: boolean
+  /**
+   * Stateful reports bodies that name their objects' states.
+   */
+  stateful?: boolean
+  /**
+   * Dated reports bodies that carry the time their objects were made.
+   */
+  dated?: boolean
+  /**
+   * Measured reports bodies that carry summable quantities.
+   */
+  measured?: boolean
+}
+
+export const ObjectTypeTraits: MessageType<ObjectTypeTraits> =
+  /* @__PURE__ */ createMessageType<ObjectTypeTraits>(
+    's4wave.objecttype.registry.ObjectTypeTraits',
+    () => [
+      [1, 'titled', 8],
+      [2, 'stateful', 8],
+      [3, 'dated', 8],
+      [4, 'measured', 8],
     ],
   )
 
@@ -368,4 +410,48 @@ export const MarshalBodiesJSONResponse: MessageType<MarshalBodiesJSONResponse> =
   /* @__PURE__ */ createMessageType<MarshalBodiesJSONResponse>(
     's4wave.objecttype.registry.MarshalBodiesJSONResponse',
     () => [[1, 'bodies_json', 9, 1]],
+  )
+
+/**
+ * DeclareBodiesRequest is the request for DeclareBodies.
+ *
+ * @generated from message s4wave.objecttype.registry.DeclareBodiesRequest
+ */
+export interface DeclareBodiesRequest {
+  /**
+   * TypeId is the ObjectType ID of every body.
+   */
+  typeId?: string
+  /**
+   * Bodies are root block bodies as World stores them.
+   */
+  bodies?: Uint8Array[]
+}
+
+export const DeclareBodiesRequest: MessageType<DeclareBodiesRequest> =
+  /* @__PURE__ */ createMessageType<DeclareBodiesRequest>(
+    's4wave.objecttype.registry.DeclareBodiesRequest',
+    () => [
+      [1, 'type_id', 9],
+      [2, 'bodies', 12, 1],
+    ],
+  )
+
+/**
+ * DeclareBodiesResponse is the response for DeclareBodies.
+ *
+ * @generated from message s4wave.objecttype.registry.DeclareBodiesResponse
+ */
+export interface DeclareBodiesResponse {
+  /**
+   * Declarations preserves the request body order. An empty declaration
+   * marks a body the plugin could not decode.
+   */
+  declarations?: ObjectDeclaration[]
+}
+
+export const DeclareBodiesResponse: MessageType<DeclareBodiesResponse> =
+  /* @__PURE__ */ createMessageType<DeclareBodiesResponse>(
+    's4wave.objecttype.registry.DeclareBodiesResponse',
+    () => [[1, 'declarations', 11, 1, ObjectDeclaration.codec]],
   )

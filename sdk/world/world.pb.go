@@ -7,11 +7,13 @@ package s4wave_world
 import (
 	fmt "fmt"
 	io "io"
+	math "math"
 	slices "slices"
 	strconv "strconv"
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	sobject "github.com/s4wave/spacewave/core/sobject"
 	block "github.com/s4wave/spacewave/db/block"
 	quad "github.com/s4wave/spacewave/db/block/quad"
@@ -2076,9 +2078,9 @@ type ListObjectsWithTypeRequest struct {
 	// Limit bounds the number of returned keys and must be non-zero.
 	// The server may return a shorter page and set more.
 	Limit uint32 `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
-	// Titles requests the title of each returned object, as its type's body
-	// declares it.
-	Titles bool `protobuf:"varint,4,opt,name=titles,proto3" json:"titles,omitempty"`
+	// Declared requests the title and state of each returned object, as its
+	// type's body declares them.
+	Declared bool `protobuf:"varint,4,opt,name=declared,proto3" json:"declared,omitempty"`
 }
 
 func (x *ListObjectsWithTypeRequest) Reset() {
@@ -2108,9 +2110,9 @@ func (x *ListObjectsWithTypeRequest) GetLimit() uint32 {
 	return 0
 }
 
-func (x *ListObjectsWithTypeRequest) GetTitles() bool {
+func (x *ListObjectsWithTypeRequest) GetDeclared() bool {
 	if x != nil {
-		return x.Titles
+		return x.Declared
 	}
 	return false
 }
@@ -2126,9 +2128,13 @@ type ListObjectsWithTypeResponse struct {
 	// Pass that key as start_after to read the next page.
 	More bool `protobuf:"varint,2,opt,name=more,proto3" json:"more,omitempty"`
 	// Titles holds the title of each object key, in the same order, when the
-	// request asked for titles and the type declares them. An empty title
-	// means the client shows the key.
+	// request asked for declarations and the type declares titles. An empty
+	// title means the client shows the key.
 	Titles []string `protobuf:"bytes,3,rep,name=titles,proto3" json:"titles,omitempty"`
+	// States holds the state of each object key, in the same order, when the
+	// request asked for declarations and the type declares states. An empty
+	// state shows none.
+	States []string `protobuf:"bytes,4,rep,name=states,proto3" json:"states,omitempty"`
 }
 
 func (x *ListObjectsWithTypeResponse) Reset() {
@@ -2154,6 +2160,13 @@ func (x *ListObjectsWithTypeResponse) GetMore() bool {
 func (x *ListObjectsWithTypeResponse) GetTitles() []string {
 	if x != nil {
 		return x.Titles
+	}
+	return nil
+}
+
+func (x *ListObjectsWithTypeResponse) GetStates() []string {
+	if x != nil {
+		return x.States
 	}
 	return nil
 }
@@ -2322,6 +2335,9 @@ type SearchObjectsWithTypeResponse struct {
 	// Titles holds each match's title in the same order when the type declares
 	// titles. An empty title means the client shows the key.
 	Titles []string `protobuf:"bytes,2,rep,name=titles,proto3" json:"titles,omitempty"`
+	// States holds each match's state in the same order when the type declares
+	// states. An empty state shows none.
+	States []string `protobuf:"bytes,3,rep,name=states,proto3" json:"states,omitempty"`
 }
 
 func (x *SearchObjectsWithTypeResponse) Reset() {
@@ -2340,6 +2356,13 @@ func (x *SearchObjectsWithTypeResponse) GetObjectKeys() []string {
 func (x *SearchObjectsWithTypeResponse) GetTitles() []string {
 	if x != nil {
 		return x.Titles
+	}
+	return nil
+}
+
+func (x *SearchObjectsWithTypeResponse) GetStates() []string {
+	if x != nil {
+		return x.States
 	}
 	return nil
 }
@@ -2442,6 +2465,9 @@ type ObjectMetadata struct {
 	TypeId string `protobuf:"bytes,2,opt,name=type_id,json=typeId,proto3" json:"typeId,omitempty"`
 	// ParentObjectKey is the parent object key, if present.
 	ParentObjectKey string `protobuf:"bytes,3,opt,name=parent_object_key,json=parentObjectKey,proto3" json:"parentObjectKey,omitempty"`
+	// Declaration is what the object's body declares about it, when the request
+	// asked for declarations and its type declares anything.
+	Declaration *ObjectDeclaration `protobuf:"bytes,4,opt,name=declaration,proto3" json:"declaration,omitempty"`
 }
 
 func (x *ObjectMetadata) Reset() {
@@ -2471,12 +2497,111 @@ func (x *ObjectMetadata) GetParentObjectKey() string {
 	return ""
 }
 
+func (x *ObjectMetadata) GetDeclaration() *ObjectDeclaration {
+	if x != nil {
+		return x.Declaration
+	}
+	return nil
+}
+
+// ObjectDeclaration is what an object's body declares about the object for
+// listings. The type's owner decodes the body: the host for its own types,
+// the registering plugin for a plugin type.
+type ObjectDeclaration struct {
+	unknownFields []byte
+	// Title names the object. An empty title means the client shows the key.
+	Title string `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
+	// State names the object's state in lower case, such as running or failed.
+	// Empty shows no state.
+	State string `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
+	// Time is when the object was made. Unset shows no age.
+	Time *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=time,proto3" json:"time,omitempty"`
+	// Measures are the object's summable quantities, such as a receipt's cost
+	// and tokens. A browser sums them by name over a family of objects.
+	Measures []*ObjectMeasure `protobuf:"bytes,4,rep,name=measures,proto3" json:"measures,omitempty"`
+}
+
+func (x *ObjectDeclaration) Reset() {
+	*x = ObjectDeclaration{}
+}
+
+func (*ObjectDeclaration) ProtoMessage() {}
+
+func (x *ObjectDeclaration) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *ObjectDeclaration) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+func (x *ObjectDeclaration) GetTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Time
+	}
+	return nil
+}
+
+func (x *ObjectDeclaration) GetMeasures() []*ObjectMeasure {
+	if x != nil {
+		return x.Measures
+	}
+	return nil
+}
+
+// ObjectMeasure is one summable quantity of an object.
+type ObjectMeasure struct {
+	unknownFields []byte
+	// Name identifies the quantity across objects, such as "cost" or "tokens".
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// Unit is how the sum reads, such as "usd"; empty counts the named things.
+	Unit string `protobuf:"bytes,2,opt,name=unit,proto3" json:"unit,omitempty"`
+	// Value is the object's amount.
+	Value float64 `protobuf:"fixed64,3,opt,name=value,proto3" json:"value,omitempty"`
+}
+
+func (x *ObjectMeasure) Reset() {
+	*x = ObjectMeasure{}
+}
+
+func (*ObjectMeasure) ProtoMessage() {}
+
+func (x *ObjectMeasure) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *ObjectMeasure) GetUnit() string {
+	if x != nil {
+		return x.Unit
+	}
+	return ""
+}
+
+func (x *ObjectMeasure) GetValue() float64 {
+	if x != nil {
+		return x.Value
+	}
+	return 0
+}
+
 // GetObjectMetadataBatchRequest is the request type for
 // GetObjectMetadataBatch.
 type GetObjectMetadataBatchRequest struct {
 	unknownFields []byte
 	// ObjectKeys is the list of object keys to inspect.
 	ObjectKeys []string `protobuf:"bytes,1,rep,name=object_keys,json=objectKeys,proto3" json:"objectKeys,omitempty"`
+	// Declared requests the title, state and time of each object whose type
+	// declares them.
+	Declared bool `protobuf:"varint,2,opt,name=declared,proto3" json:"declared,omitempty"`
 }
 
 func (x *GetObjectMetadataBatchRequest) Reset() {
@@ -2490,6 +2615,13 @@ func (x *GetObjectMetadataBatchRequest) GetObjectKeys() []string {
 		return x.ObjectKeys
 	}
 	return nil
+}
+
+func (x *GetObjectMetadataBatchRequest) GetDeclared() bool {
+	if x != nil {
+		return x.Declared
+	}
+	return false
 }
 
 // GetObjectMetadataBatchResponse is the response type for
@@ -5427,7 +5559,7 @@ func (m *ListObjectsWithTypeRequest) CloneVT() *ListObjectsWithTypeRequest {
 	r.TypeId = m.TypeId
 	r.StartAfter = m.StartAfter
 	r.Limit = m.Limit
-	r.Titles = m.Titles
+	r.Declared = m.Declared
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -5446,6 +5578,7 @@ func (m *ListObjectsWithTypeResponse) CloneVT() *ListObjectsWithTypeResponse {
 	r.More = m.More
 	r.ObjectKeys = protobuf_go_lite.CloneSlice(m.ObjectKeys)
 	r.Titles = protobuf_go_lite.CloneSlice(m.Titles)
+	r.States = protobuf_go_lite.CloneSlice(m.States)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -5562,6 +5695,7 @@ func (m *SearchObjectsWithTypeResponse) CloneVT() *SearchObjectsWithTypeResponse
 	r := new(SearchObjectsWithTypeResponse)
 	r.ObjectKeys = protobuf_go_lite.CloneSlice(m.ObjectKeys)
 	r.Titles = protobuf_go_lite.CloneSlice(m.Titles)
+	r.States = protobuf_go_lite.CloneSlice(m.States)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -5631,6 +5765,7 @@ func (m *ObjectMetadata) CloneVT() *ObjectMetadata {
 	r.ObjectKey = m.ObjectKey
 	r.TypeId = m.TypeId
 	r.ParentObjectKey = m.ParentObjectKey
+	r.Declaration = protobuf_go_lite.CloneVTValue(m.Declaration)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -5641,11 +5776,49 @@ func (m *ObjectMetadata) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *ObjectDeclaration) CloneVT() *ObjectDeclaration {
+	if m == nil {
+		return (*ObjectDeclaration)(nil)
+	}
+	r := new(ObjectDeclaration)
+	r.Title = m.Title
+	r.State = m.State
+	r.Time = protobuf_go_lite.CloneVTValue(m.Time)
+	r.Measures = protobuf_go_lite.CloneVTSlice(m.Measures)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ObjectDeclaration) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ObjectMeasure) CloneVT() *ObjectMeasure {
+	if m == nil {
+		return (*ObjectMeasure)(nil)
+	}
+	r := new(ObjectMeasure)
+	r.Name = m.Name
+	r.Unit = m.Unit
+	r.Value = m.Value
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ObjectMeasure) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *GetObjectMetadataBatchRequest) CloneVT() *GetObjectMetadataBatchRequest {
 	if m == nil {
 		return (*GetObjectMetadataBatchRequest)(nil)
 	}
 	r := new(GetObjectMetadataBatchRequest)
+	r.Declared = m.Declared
 	r.ObjectKeys = protobuf_go_lite.CloneSlice(m.ObjectKeys)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -8316,7 +8489,7 @@ func (this *ListObjectsWithTypeRequest) EqualVT(that *ListObjectsWithTypeRequest
 	if this.Limit != that.Limit {
 		return false
 	}
-	if this.Titles != that.Titles {
+	if this.Declared != that.Declared {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -8343,6 +8516,9 @@ func (this *ListObjectsWithTypeResponse) EqualVT(that *ListObjectsWithTypeRespon
 		return false
 	}
 	if !protobuf_go_lite.EqualSlice(this.Titles, that.Titles) {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.States, that.States) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -8497,6 +8673,9 @@ func (this *SearchObjectsWithTypeResponse) EqualVT(that *SearchObjectsWithTypeRe
 	if !protobuf_go_lite.EqualSlice(this.Titles, that.Titles) {
 		return false
 	}
+	if !protobuf_go_lite.EqualSlice(this.States, that.States) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -8592,11 +8771,69 @@ func (this *ObjectMetadata) EqualVT(that *ObjectMetadata) bool {
 	if this.ParentObjectKey != that.ParentObjectKey {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.Declaration, that.Declaration) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *ObjectMetadata) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*ObjectMetadata)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ObjectDeclaration) EqualVT(that *ObjectDeclaration) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Title != that.Title {
+		return false
+	}
+	if this.State != that.State {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Time, that.Time) {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Measures, that.Measures, func() *ObjectMeasure { return &ObjectMeasure{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ObjectDeclaration) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ObjectDeclaration)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ObjectMeasure) EqualVT(that *ObjectMeasure) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Name != that.Name {
+		return false
+	}
+	if this.Unit != that.Unit {
+		return false
+	}
+	if this.Value != that.Value {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ObjectMeasure) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ObjectMeasure)
 	if !ok {
 		return false
 	}
@@ -8610,6 +8847,9 @@ func (this *GetObjectMetadataBatchRequest) EqualVT(that *GetObjectMetadataBatchR
 		return false
 	}
 	if !protobuf_go_lite.EqualSlice(this.ObjectKeys, that.ObjectKeys) {
+		return false
+	}
+	if this.Declared != that.Declared {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -13709,10 +13949,10 @@ func (x *ListObjectsWithTypeRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("limit")
 		s.WriteUint32(x.Limit)
 	}
-	if x.Titles || s.HasField("titles") {
+	if x.Declared || s.HasField("declared") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("titles")
-		s.WriteBool(x.Titles)
+		s.WriteObjectField("declared")
+		s.WriteBool(x.Declared)
 	}
 	s.WriteObjectEnd()
 }
@@ -13740,9 +13980,9 @@ func (x *ListObjectsWithTypeRequest) UnmarshalProtoJSON(s *json.UnmarshalState) 
 		case "limit":
 			s.AddField("limit")
 			x.Limit = s.ReadUint32()
-		case "titles":
-			s.AddField("titles")
-			x.Titles = s.ReadBool()
+		case "declared":
+			s.AddField("declared")
+			x.Declared = s.ReadBool()
 		}
 	})
 }
@@ -13774,6 +14014,11 @@ func (x *ListObjectsWithTypeResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("titles")
 		s.WriteStringArray(x.Titles)
+	}
+	if len(x.States) > 0 || s.HasField("states") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("states")
+		s.WriteStringArray(x.States)
 	}
 	s.WriteObjectEnd()
 }
@@ -13809,6 +14054,13 @@ func (x *ListObjectsWithTypeResponse) UnmarshalProtoJSON(s *json.UnmarshalState)
 				return
 			}
 			x.Titles = s.ReadStringArray()
+		case "states":
+			s.AddField("states")
+			if s.ReadNil() {
+				x.States = nil
+				return
+			}
+			x.States = s.ReadStringArray()
 		}
 	})
 }
@@ -14146,6 +14398,11 @@ func (x *SearchObjectsWithTypeResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("titles")
 		s.WriteStringArray(x.Titles)
 	}
+	if len(x.States) > 0 || s.HasField("states") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("states")
+		s.WriteStringArray(x.States)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -14177,6 +14434,13 @@ func (x *SearchObjectsWithTypeResponse) UnmarshalProtoJSON(s *json.UnmarshalStat
 				return
 			}
 			x.Titles = s.ReadStringArray()
+		case "states":
+			s.AddField("states")
+			if s.ReadNil() {
+				x.States = nil
+				return
+			}
+			x.States = s.ReadStringArray()
 		}
 	})
 }
@@ -14388,6 +14652,11 @@ func (x *ObjectMetadata) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("parentObjectKey")
 		s.WriteString(x.ParentObjectKey)
 	}
+	if x.Declaration != nil || s.HasField("declaration") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("declaration")
+		x.Declaration.MarshalProtoJSON(s.WithField("declaration"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -14414,12 +14683,168 @@ func (x *ObjectMetadata) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "parent_object_key", "parentObjectKey":
 			s.AddField("parent_object_key")
 			x.ParentObjectKey = s.ReadString()
+		case "declaration":
+			if s.ReadNil() {
+				x.Declaration = nil
+				return
+			}
+			x.Declaration = &ObjectDeclaration{}
+			x.Declaration.UnmarshalProtoJSON(s.WithField("declaration", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the ObjectMetadata from JSON.
 func (x *ObjectMetadata) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ObjectDeclaration message to JSON.
+func (x *ObjectDeclaration) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Title != "" || s.HasField("title") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("title")
+		s.WriteString(x.Title)
+	}
+	if x.State != "" || s.HasField("state") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("state")
+		s.WriteString(x.State)
+	}
+	if x.Time != nil || s.HasField("time") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("time")
+		x.Time.MarshalProtoJSON(s.WithField("time"))
+	}
+	if len(x.Measures) > 0 || s.HasField("measures") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("measures")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Measures {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("measures"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ObjectDeclaration to JSON.
+func (x *ObjectDeclaration) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ObjectDeclaration message from JSON.
+func (x *ObjectDeclaration) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "title":
+			s.AddField("title")
+			x.Title = s.ReadString()
+		case "state":
+			s.AddField("state")
+			x.State = s.ReadString()
+		case "time":
+			if s.ReadNil() {
+				x.Time = nil
+				return
+			}
+			x.Time = &timestamppb.Timestamp{}
+			x.Time.UnmarshalProtoJSON(s.WithField("time", true))
+		case "measures":
+			s.AddField("measures")
+			if s.ReadNil() {
+				x.Measures = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Measures = append(x.Measures, nil)
+					return
+				}
+				v := &ObjectMeasure{}
+				v.UnmarshalProtoJSON(s.WithField("measures", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Measures = append(x.Measures, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ObjectDeclaration from JSON.
+func (x *ObjectDeclaration) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ObjectMeasure message to JSON.
+func (x *ObjectMeasure) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Name != "" || s.HasField("name") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("name")
+		s.WriteString(x.Name)
+	}
+	if x.Unit != "" || s.HasField("unit") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("unit")
+		s.WriteString(x.Unit)
+	}
+	if x.Value != 0 || s.HasField("value") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("value")
+		s.WriteFloat64(x.Value)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ObjectMeasure to JSON.
+func (x *ObjectMeasure) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ObjectMeasure message from JSON.
+func (x *ObjectMeasure) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "name":
+			s.AddField("name")
+			x.Name = s.ReadString()
+		case "unit":
+			s.AddField("unit")
+			x.Unit = s.ReadString()
+		case "value":
+			s.AddField("value")
+			x.Value = s.ReadFloat64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ObjectMeasure from JSON.
+func (x *ObjectMeasure) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -14435,6 +14860,11 @@ func (x *GetObjectMetadataBatchRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("objectKeys")
 		s.WriteStringArray(x.ObjectKeys)
+	}
+	if x.Declared || s.HasField("declared") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("declared")
+		s.WriteBool(x.Declared)
 	}
 	s.WriteObjectEnd()
 }
@@ -14460,6 +14890,9 @@ func (x *GetObjectMetadataBatchRequest) UnmarshalProtoJSON(s *json.UnmarshalStat
 				return
 			}
 			x.ObjectKeys = s.ReadStringArray()
+		case "declared":
+			s.AddField("declared")
+			x.Declared = s.ReadBool()
 		}
 	})
 }
@@ -20482,8 +20915,8 @@ func (m *ListObjectsWithTypeRequest) MarshalToSizedBufferVT(dAtA []byte) (int, e
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
-	if m.Titles {
-		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Titles)
+	if m.Declared {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Declared)
 		i--
 		dAtA[i] = 0x20
 	}
@@ -20533,6 +20966,13 @@ func (m *ListObjectsWithTypeResponse) MarshalToSizedBufferVT(dAtA []byte) (int, 
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.States) > 0 {
+		for iNdEx := len(m.States) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.States[iNdEx])
+			i--
+			dAtA[i] = 0x22
+		}
 	}
 	if len(m.Titles) > 0 {
 		for iNdEx := len(m.Titles) - 1; iNdEx >= 0; iNdEx-- {
@@ -20836,6 +21276,13 @@ func (m *SearchObjectsWithTypeResponse) MarshalToSizedBufferVT(dAtA []byte) (int
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.States) > 0 {
+		for iNdEx := len(m.States) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.States[iNdEx])
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
 	if len(m.Titles) > 0 {
 		for iNdEx := len(m.Titles) - 1; iNdEx >= 0; iNdEx-- {
 			i = protobuf_go_lite.EncodeString(dAtA, i, m.Titles[iNdEx])
@@ -21022,6 +21469,16 @@ func (m *ObjectMetadata) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Declaration != nil {
+		size, err := m.Declaration.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	}
 	if len(m.ParentObjectKey) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.ParentObjectKey)
 		i--
@@ -21034,6 +21491,117 @@ func (m *ObjectMetadata) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	if len(m.ObjectKey) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.ObjectKey)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ObjectDeclaration) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ObjectDeclaration) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ObjectDeclaration) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Measures) > 0 {
+		for iNdEx := len(m.Measures) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Measures[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
+	if m.Time != nil {
+		size, err := m.Time.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.State) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.State)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Title) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Title)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ObjectMeasure) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ObjectMeasure) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ObjectMeasure) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Value != 0 {
+		i = protobuf_go_lite.EncodeFixed64(dAtA, i, uint64(math.Float64bits(float64(m.Value))))
+		i--
+		dAtA[i] = 0x19
+	}
+	if len(m.Unit) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Unit)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Name) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Name)
 		i--
 		dAtA[i] = 0xa
 	}
@@ -21068,6 +21636,11 @@ func (m *GetObjectMetadataBatchRequest) MarshalToSizedBufferVT(dAtA []byte) (int
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Declared {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Declared)
+		i--
+		dAtA[i] = 0x10
 	}
 	if len(m.ObjectKeys) > 0 {
 		for iNdEx := len(m.ObjectKeys) - 1; iNdEx >= 0; iNdEx-- {
@@ -24709,7 +25282,7 @@ func (m *ListObjectsWithTypeRequest) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.TypeId)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.StartAfter)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Limit)
-	n += protobuf_go_lite.SizeBoolNonZero(1, m.Titles)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Declared)
 	n += len(m.unknownFields)
 	return n
 }
@@ -24723,6 +25296,7 @@ func (m *ListObjectsWithTypeResponse) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringSlice(1, m.ObjectKeys)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.More)
 	n += protobuf_go_lite.SizeStringSlice(1, m.Titles)
+	n += protobuf_go_lite.SizeStringSlice(1, m.States)
 	n += len(m.unknownFields)
 	return n
 }
@@ -24810,6 +25384,7 @@ func (m *SearchObjectsWithTypeResponse) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeStringSlice(1, m.ObjectKeys)
 	n += protobuf_go_lite.SizeStringSlice(1, m.Titles)
+	n += protobuf_go_lite.SizeStringSlice(1, m.States)
 	n += len(m.unknownFields)
 	return n
 }
@@ -24865,6 +25440,43 @@ func (m *ObjectMetadata) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ObjectKey)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.TypeId)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ParentObjectKey)
+	if m.Declaration != nil {
+		l = m.Declaration.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ObjectDeclaration) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Title)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.State)
+	if m.Time != nil {
+		l = m.Time.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	for _, e := range m.Measures {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ObjectMeasure) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Name)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Unit)
+	n += protobuf_go_lite.SizeFixed64NonZero(1, m.Value)
 	n += len(m.unknownFields)
 	return n
 }
@@ -24876,6 +25488,7 @@ func (m *GetObjectMetadataBatchRequest) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeStringSlice(1, m.ObjectKeys)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Declared)
 	n += len(m.unknownFields)
 	return n
 }
@@ -27038,9 +27651,9 @@ func (x *ListObjectsWithTypeRequest) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "limit")
 		protobuf_go_lite.TextWriteUint(&sb, x.Limit)
 	}
-	if x.Titles != false {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "titles")
-		protobuf_go_lite.TextWriteBool(&sb, x.Titles)
+	if x.Declared != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "declared")
+		protobuf_go_lite.TextWriteBool(&sb, x.Declared)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -27067,6 +27680,14 @@ func (x *ListObjectsWithTypeResponse) MarshalProtoText() string {
 	if len(x.Titles) > 0 {
 		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "titles")
 		for i, v := range x.Titles {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if len(x.States) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "states")
+		for i, v := range x.States {
 			protobuf_go_lite.TextWriteListSeparator(&sb, i)
 			protobuf_go_lite.TextWriteString(&sb, v)
 		}
@@ -27210,6 +27831,14 @@ func (x *SearchObjectsWithTypeResponse) MarshalProtoText() string {
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
+	if len(x.States) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "states")
+		for i, v := range x.States {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -27298,10 +27927,70 @@ func (x *ObjectMetadata) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "parent_object_key")
 		protobuf_go_lite.TextWriteString(&sb, x.ParentObjectKey)
 	}
+	if x.Declaration != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "declaration")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Declaration)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *ObjectMetadata) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ObjectDeclaration) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ObjectDeclaration")
+	if x.Title != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "title")
+		protobuf_go_lite.TextWriteString(&sb, x.Title)
+	}
+	if x.State != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "state")
+		protobuf_go_lite.TextWriteString(&sb, x.State)
+	}
+	if x.Time != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "time")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Time)
+	}
+	if len(x.Measures) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "measures")
+		for i, v := range x.Measures {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &ObjectMeasure{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ObjectDeclaration) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ObjectMeasure) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ObjectMeasure")
+	if x.Name != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "name")
+		protobuf_go_lite.TextWriteString(&sb, x.Name)
+	}
+	if x.Unit != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "unit")
+		protobuf_go_lite.TextWriteString(&sb, x.Unit)
+	}
+	if x.Value != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "value")
+		protobuf_go_lite.TextWriteFloat64(&sb, x.Value)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ObjectMeasure) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -27315,6 +28004,10 @@ func (x *GetObjectMetadataBatchRequest) MarshalProtoText() string {
 			protobuf_go_lite.TextWriteString(&sb, v)
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.Declared != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "declared")
+		protobuf_go_lite.TextWriteBool(&sb, x.Declared)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -32610,14 +33303,14 @@ func (m *ListObjectsWithTypeRequest) UnmarshalVT(dAtA []byte) error {
 			}
 		case 4:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Titles", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Declared", wireType)
 			}
 			var v bool
 			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.Titles = bool(v)
+			m.Declared = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -32691,6 +33384,16 @@ func (m *ListObjectsWithTypeResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Titles = append(m.Titles, v)
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field States", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.States = append(m.States, v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -33105,6 +33808,16 @@ func (m *SearchObjectsWithTypeResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Titles = append(m.Titles, v)
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field States", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.States = append(m.States, v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -33374,6 +34087,187 @@ func (m *ObjectMetadata) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ParentObjectKey = v
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Declaration", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Declaration == nil {
+				m.Declaration = &ObjectDeclaration{}
+			}
+			if err := m.Declaration.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ObjectDeclaration) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ObjectDeclaration: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ObjectDeclaration: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Title", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Title = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field State", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.State = v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Time", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Time == nil {
+				m.Time = &timestamppb.Timestamp{}
+			}
+			if err := m.Time.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Measures", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Measures = append(m.Measures, &ObjectMeasure{})
+			if err := m.Measures[len(m.Measures)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ObjectMeasure) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ObjectMeasure: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ObjectMeasure: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Name = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Unit", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Unit = v
+		case 3:
+			if wireType != 1 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Value", wireType)
+			}
+			var v uint64
+			var _v64 uint64
+			_v64, iNdEx, err = protobuf_go_lite.DecodeFixed64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			v = uint64(_v64)
+			m.Value = float64(math.Float64frombits(v))
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -33427,6 +34321,16 @@ func (m *GetObjectMetadataBatchRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ObjectKeys = append(m.ObjectKeys, v)
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Declared", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Declared = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

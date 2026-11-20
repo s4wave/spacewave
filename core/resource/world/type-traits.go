@@ -6,30 +6,42 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/s4wave/spacewave/db/blocktype"
 	"github.com/s4wave/spacewave/db/world"
+	s4wave_objecttype_registry "github.com/s4wave/spacewave/sdk/objecttype/registry"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
+	"github.com/s4wave/spacewave/sdk/world/objecttype"
 )
 
-// typeTraits is what a World type's body declares about its objects.
+// declareFunc reads what root bodies of one type declare, in body order.
+type declareFunc func(ctx context.Context, bodies [][]byte) ([]*s4wave_world.ObjectDeclaration, error)
+
+// typeTraits is what a World type's bodies declare about their objects.
 type typeTraits struct {
-	// bt constructs the type's body; nil when the host does not know the type.
-	bt blocktype.BlockType
+	// traits are the type's declared traits; nil when nobody declares any.
+	traits *s4wave_objecttype_registry.ObjectTypeTraits
 	// internal reports a type of bookkeeping objects browsers hide.
 	internal bool
-	// titled reports a body that names its object.
-	titled bool
+	// declare reads bodies' declarations; nil when traits declare nothing.
+	declare declareFunc
 }
 
-// lookupTypeTraits resolves typeID through the host block type lookup. A type
-// the host does not know, such as one a plugin owns, declares nothing, so its
-// objects list by key and it is not internal.
+// declares reports a type whose bodies declare anything a listing shows.
+func (t typeTraits) declares() bool {
+	return t.declare != nil && t.traits.Declares()
+}
+
+// lookupTypeTraits resolves typeID's traits. A host block type declares them
+// through the World trait interfaces and the host decodes its bodies; a type a
+// plugin registered declares them in its registration metadata and the plugin
+// decodes its bodies. A type nobody knows declares nothing, so its objects
+// list by key and it is not internal.
 func lookupTypeTraits(ctx context.Context, b bus.Bus, typeID string) (typeTraits, error) {
 	// A Resource mounted without a bus knows no types.
 	if b == nil {
 		return typeTraits{}, nil
 	}
 
-	// Resolve the block type; a block type is a stateless constructor, so it
-	// outlives the directive reference.
+	// Decode in the host when its block types include typeID. A block type is
+	// a stateless constructor, so it outlives the directive reference.
 	btv, _, ref, err := bus.ExecOneOffTyped[blocktype.LookupBlockTypeValue](ctx, b, blocktype.NewLookupBlockType(typeID), bus.ReturnWhenIdle(), nil)
 	if err != nil {
 		return typeTraits{}, err
@@ -37,16 +49,56 @@ func lookupTypeTraits(ctx context.Context, b bus.Bus, typeID string) (typeTraits
 	if ref != nil {
 		ref.Release()
 	}
-	if btv == nil {
-		return typeTraits{}, nil
+	if btv != nil {
+		bt := btv.GetValue()
+		return newTypeTraits(s4wave_objecttype_registry.BlockTypeMetadata(bt), func(_ context.Context, bodies [][]byte) ([]*s4wave_world.ObjectDeclaration, error) {
+			return s4wave_world.DeclareBodies(bt, bodies), nil
+		}), nil
 	}
 
-	// Read the declarations off a zero body.
-	bt := btv.GetValue()
-	blk := bt.Constructor()
-	_, internal := blk.(world.InternalBlock)
-	_, titled := blk.(world.TitledBlock)
-	return typeTraits{bt: bt, internal: internal, titled: titled}, nil
+	// Otherwise read the registering plugin's metadata from the registry.
+	md, err := s4wave_objecttype_registry.ExLookupObjectTypeMetadata(ctx, b, typeID)
+	if err != nil || md == nil {
+		return typeTraits{}, err
+	}
+	return newTypeTraits(md, func(ctx context.Context, bodies [][]byte) ([]*s4wave_world.ObjectDeclaration, error) {
+		return declarePluginBodies(ctx, b, typeID, bodies)
+	}), nil
+}
+
+// newTypeTraits builds the traits md declares, read through declare.
+func newTypeTraits(md *s4wave_objecttype_registry.ObjectTypeMetadata, declare declareFunc) typeTraits {
+	return typeTraits{
+		traits:   md.GetTraits(),
+		internal: md.GetVisibility() == s4wave_objecttype_registry.ObjectTypeVisibility_OBJECT_TYPE_VISIBILITY_INTERNAL,
+		declare:  declare,
+	}
+}
+
+// declarePluginBodies asks the plugin that registered typeID what bodies
+// declare. A plugin that is gone or fails declares nothing, so one failing
+// plugin leaves only its own objects listed by key.
+func declarePluginBodies(ctx context.Context, b bus.Bus, typeID string, bodies [][]byte) ([]*s4wave_world.ObjectDeclaration, error) {
+	// Find the registered type; a plugin that is gone is not registered.
+	ot, otRef, err := objecttype.ExLookupObjectType(ctx, b, typeID)
+	if err != nil {
+		return nil, err
+	}
+	if otRef != nil {
+		defer otRef.Release()
+	}
+
+	// Ask its owner, treating a failure as nothing declared.
+	if d, ok := ot.(objecttype.BodyDeclarer); ok {
+		out, err := d.DeclareBodies(ctx, bodies)
+		if err == nil {
+			return out, nil
+		}
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+	}
+	return s4wave_objecttype_registry.EmptyDeclarations(len(bodies)), nil
 }
 
 // typeTraitCache resolves each type once for one call or watch.
@@ -111,14 +163,15 @@ func watchTypeCountEntries(ctx context.Context, b bus.Bus, ws world.WorldState, 
 	})
 }
 
-// objectTitles returns the title of each key, read from its body, when the
-// type declares titles, and nil otherwise. A missing, withheld or undecodable
-// body has an empty title, so the client shows its key.
-func objectTitles(ctx context.Context, ws world.WorldState, tr typeTraits, keys []string) ([]string, error) {
-	if !tr.titled || len(keys) == 0 {
+// objectDeclarations returns what each key's body declares, in key order, when
+// the type declares anything, and nil otherwise. It reads each budgeted page
+// of bodies once and hands the page to the type's owner in one call. A
+// missing or withheld body declares nothing, so the client shows its key.
+func objectDeclarations(ctx context.Context, ws world.WorldState, tr typeTraits, keys []string) ([]*s4wave_world.ObjectDeclaration, error) {
+	if !tr.declares() || len(keys) == 0 {
 		return nil, nil
 	}
-	titles := make([]string, 0, len(keys))
+	out := make([]*s4wave_world.ObjectDeclaration, 0, len(keys))
 	for start := 0; start < len(keys); {
 		// Read one budgeted page of bodies.
 		bodies, consumed, _, err := ws.GetObjectBodiesBatchPage(ctx, keys[start:], objectBodiesBatchBudget)
@@ -126,21 +179,56 @@ func objectTitles(ctx context.Context, ws world.WorldState, tr typeTraits, keys 
 			return nil, err
 		}
 
-		// Decode each body and take its title.
-		for _, body := range bodies {
-			var title string
+		// Declare the page's present bodies in one call.
+		var raw [][]byte
+		var at []int
+		for i, body := range bodies {
 			if body.Exists && len(body.Body) != 0 {
-				blk := tr.bt.Constructor()
-				if blk.UnmarshalVT(body.Body) == nil {
-					title = world.BlockTitle(blk)
+				raw = append(raw, body.Body)
+				at = append(at, i)
+			}
+		}
+		page := s4wave_objecttype_registry.EmptyDeclarations(len(bodies))
+		if len(raw) != 0 {
+			ds, err := tr.declare(ctx, raw)
+			if err != nil {
+				return nil, err
+			}
+			for k, i := range at {
+				if k < len(ds) && ds[k] != nil {
+					page[i] = ds[k]
 				}
 			}
-			titles = append(titles, title)
 		}
+		out = append(out, page...)
 		if consumed == 0 {
 			break
 		}
 		start += int(consumed)
 	}
-	return titles, nil
+	return out, nil
+}
+
+// declarationTitles returns the titles of ds when the type declares titles.
+func declarationTitles(tr typeTraits, ds []*s4wave_world.ObjectDeclaration) []string {
+	if !tr.traits.GetTitled() || ds == nil {
+		return nil
+	}
+	out := make([]string, len(ds))
+	for i, d := range ds {
+		out[i] = d.GetTitle()
+	}
+	return out
+}
+
+// declarationStates returns the states of ds when the type declares states.
+func declarationStates(tr typeTraits, ds []*s4wave_world.ObjectDeclaration) []string {
+	if !tr.traits.GetStateful() || ds == nil {
+		return nil
+	}
+	out := make([]string, len(ds))
+	for i, d := range ds {
+		out[i] = d.GetState()
+	}
+	return out
 }

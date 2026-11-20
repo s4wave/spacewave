@@ -1,6 +1,8 @@
 syntax = "proto3";
 package s4wave.objecttype.registry;
 
+import "github.com/s4wave/spacewave/sdk/world/world.proto";
+
 service ObjectTypeRegistryResourceService {
   rpc RegisterObjectType(RegisterObjectTypeRequest)
     returns (RegisterObjectTypeResponse);
@@ -20,6 +22,9 @@ service ObjectTypeBodyService {
   // MarshalBodiesJSON renders root block bodies of one ObjectType as JSON.
   rpc MarshalBodiesJSON(MarshalBodiesJSONRequest)
     returns (MarshalBodiesJSONResponse);
+  // DeclareBodies reads what root block bodies of one ObjectType declare for
+  // listings, as the type's traits in its metadata promise.
+  rpc DeclareBodies(DeclareBodiesRequest) returns (DeclareBodiesResponse);
 }
 
 // ObjectTypeVisibility controls where an ObjectType should appear.
@@ -66,6 +71,21 @@ message ObjectTypeMetadata {
   string description = 4;
   // Ports declares the connection endpoints of the ObjectType's objects.
   repeated ObjectTypePort ports = 5;
+  // Traits declares what the ObjectType's bodies declare about their
+  // objects. The host asks DeclareBodies only for a type that declares any.
+  ObjectTypeTraits traits = 6;
+}
+
+// ObjectTypeTraits is what an ObjectType's bodies declare about their objects.
+message ObjectTypeTraits {
+  // Titled reports bodies that name their objects.
+  bool titled = 1;
+  // Stateful reports bodies that name their objects' states.
+  bool stateful = 2;
+  // Dated reports bodies that carry the time their objects were made.
+  bool dated = 3;
+  // Measured reports bodies that carry summable quantities.
+  bool measured = 4;
 }
 
 // ObjectTypeRegistration is a registered ObjectType.
@@ -144,4 +164,19 @@ message MarshalBodiesJSONResponse {
   // BodiesJson preserves the request body order. An empty string marks a
   // body the plugin could not render.
   repeated string bodies_json = 1;
+}
+
+// DeclareBodiesRequest is the request for DeclareBodies.
+message DeclareBodiesRequest {
+  // TypeId is the ObjectType ID of every body.
+  string type_id = 1;
+  // Bodies are root block bodies as World stores them.
+  repeated bytes bodies = 2;
+}
+
+// DeclareBodiesResponse is the response for DeclareBodies.
+message DeclareBodiesResponse {
+  // Declarations preserves the request body order. An empty declaration
+  // marks a body the plugin could not decode.
+  repeated s4wave.world.ObjectDeclaration declarations = 1;
 }

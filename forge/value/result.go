@@ -100,5 +100,20 @@ func (r *Result) Equals(ot *Result) bool {
 	return r.EqualVT(ot)
 }
 
+// Outcome names a complete result for listings: passed, failed or canceled,
+// or complete when the result is empty.
+func (r *Result) Outcome() string {
+	switch {
+	case r.IsEmpty():
+		return "complete"
+	case r.GetCanceled():
+		return "canceled"
+	case r.IsSuccessful():
+		return "passed"
+	default:
+		return "failed"
+	}
+}
+
 // _ is a type assertion
 var _ block.Block = (*Result)(nil)

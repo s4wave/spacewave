@@ -702,16 +702,17 @@ func (r *WorldStateResource) ListObjectsWithType(ctx context.Context, req *s4wav
 	}
 	resp := &s4wave_world.ListObjectsWithTypeResponse{ObjectKeys: objKeys, More: more}
 
-	// Read the page's titles when asked and the type declares them.
-	if req.GetTitles() && len(objKeys) != 0 {
+	// Read what the page's bodies declare when asked and the type declares it.
+	if req.GetDeclared() && len(objKeys) != 0 {
 		tr, err := lookupTypeTraits(ctx, r.b, req.GetTypeId())
 		if err != nil {
 			return nil, err
 		}
-		resp.Titles, err = objectTitles(ctx, r.ws, tr, objKeys)
+		ds, err := objectDeclarations(ctx, r.ws, tr, objKeys)
 		if err != nil {
 			return nil, err
 		}
+		resp.Titles, resp.States = declarationTitles(tr, ds), declarationStates(tr, ds)
 	}
 	return resp, nil
 }
@@ -785,7 +786,56 @@ func (r *WorldStateResource) GetObjectMetadataBatch(ctx context.Context, req *s4
 		return nil, err
 	}
 
-	return &s4wave_world.GetObjectMetadataBatchResponse{Metadata: objectMetadataToProto(metadata)}, nil
+	// Convert the metadata to its wire form.
+	out := objectMetadataToProto(metadata)
+
+	// Read the declarations when asked, one batch per declaring type.
+	if req.GetDeclared() {
+		if err := setObjectMetadataDeclarations(ctx, r.b, r.ws, out); err != nil {
+			return nil, err
+		}
+	}
+	return &s4wave_world.GetObjectMetadataBatchResponse{Metadata: out}, nil
+}
+
+// setObjectMetadataDeclarations fills the declaration of each entry whose type
+// declares anything, reading each type's bodies in one budgeted batch.
+func setObjectMetadataDeclarations(ctx context.Context, b bus.Bus, ws world.WorldState, mds []*s4wave_world.ObjectMetadata) error {
+	// Group the entries by type, keeping request order within each type.
+	byType := make(map[string][]*s4wave_world.ObjectMetadata)
+	var order []string
+	for _, md := range mds {
+		typeID := md.GetTypeId()
+		if typeID == "" {
+			continue
+		}
+		if _, ok := byType[typeID]; !ok {
+			order = append(order, typeID)
+		}
+		byType[typeID] = append(byType[typeID], md)
+	}
+
+	// Read each declaring type's bodies in one batch.
+	traits := newTypeTraitCache(b)
+	for _, typeID := range order {
+		tr, err := traits.get(ctx, typeID)
+		if err != nil {
+			return err
+		}
+		group := byType[typeID]
+		keys := make([]string, len(group))
+		for i, md := range group {
+			keys[i] = md.GetObjectKey()
+		}
+		ds, err := objectDeclarations(ctx, ws, tr, keys)
+		if err != nil {
+			return err
+		}
+		for i, d := range ds {
+			group[i].Declaration = d
+		}
+	}
+	return nil
 }
 
 // objectMetadataToProto encodes object metadata for the Resource client.

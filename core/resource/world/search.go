@@ -45,28 +45,32 @@ func searchObjectsWithType(
 	page := &s4wave_world.SearchObjectsWithTypeResponse{}
 	var startAfter string
 	for {
-		// Read one index step and its titles.
+		// Read one index step and what its bodies declare.
 		keys, more, err := ws.ListObjectsWithType(ctx, typeID, startAfter, pageSize)
 		if err != nil {
 			return err
 		}
-		titles, err := objectTitles(ctx, ws, tr, keys)
+		ds, err := objectDeclarations(ctx, ws, tr, keys)
 		if err != nil {
 			return err
 		}
 
 		// Collect the step's matches, sending the page when it fills.
 		for i, key := range keys {
-			var title string
-			if titles != nil {
-				title = titles[i]
+			var d *s4wave_world.ObjectDeclaration
+			if ds != nil {
+				d = ds[i]
 			}
+			title := d.GetTitle()
 			if !strings.Contains(strings.ToLower(key), query) && !strings.Contains(strings.ToLower(title), query) {
 				continue
 			}
 			page.ObjectKeys = append(page.ObjectKeys, key)
-			if titles != nil {
+			if tr.traits.GetTitled() {
 				page.Titles = append(page.Titles, title)
+			}
+			if tr.traits.GetStateful() {
+				page.States = append(page.States, d.GetState())
 			}
 			if len(page.ObjectKeys) == int(pageSize) {
 				if err := send(page); err != nil {

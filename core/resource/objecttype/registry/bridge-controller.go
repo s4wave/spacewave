@@ -222,36 +222,75 @@ type bridgeObjectType struct {
 
 // MarshalBodiesJSON asks the handler's ObjectTypeBodyService to render
 // bodies. A handler that does not serve it leaves every body without JSON.
-// Each call opens and releases one Resource client generation.
 func (t *bridgeObjectType) MarshalBodiesJSON(ctx context.Context, bodies [][]byte) ([]string, error) {
+	// Render the bodies on the handler's body service.
+	var out []string
+	err := t.withBodyService(ctx, func(svc s4wave_objecttype_registry.SRPCObjectTypeBodyServiceClient) error {
+		resp, err := svc.MarshalBodiesJSON(ctx, &s4wave_objecttype_registry.MarshalBodiesJSONRequest{
+			TypeId: t.GetObjectTypeID(),
+			Bodies: bodies,
+		})
+		out = resp.GetBodiesJson()
+		return err
+	})
+	if isUnimplemented(err) {
+		return make([]string, len(bodies)), nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if len(out) != len(bodies) {
+		return nil, errors.Errorf("object type %s rendered %d of %d bodies", t.GetObjectTypeID(), len(out), len(bodies))
+	}
+	return out, nil
+}
+
+// DeclareBodies asks the handler's ObjectTypeBodyService what bodies declare.
+// A handler that does not serve it leaves every declaration empty.
+func (t *bridgeObjectType) DeclareBodies(ctx context.Context, bodies [][]byte) ([]*sdk_world.ObjectDeclaration, error) {
+	// Declare the bodies on the handler's body service.
+	var out []*sdk_world.ObjectDeclaration
+	err := t.withBodyService(ctx, func(svc s4wave_objecttype_registry.SRPCObjectTypeBodyServiceClient) error {
+		resp, err := svc.DeclareBodies(ctx, &s4wave_objecttype_registry.DeclareBodiesRequest{
+			TypeId: t.GetObjectTypeID(),
+			Bodies: bodies,
+		})
+		out = resp.GetDeclarations()
+		return err
+	})
+	if isUnimplemented(err) {
+		return s4wave_objecttype_registry.EmptyDeclarations(len(bodies)), nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if len(out) != len(bodies) {
+		return nil, errors.Errorf("object type %s declared %d of %d bodies", t.GetObjectTypeID(), len(out), len(bodies))
+	}
+	return out, nil
+}
+
+// withBodyService calls fn with the handler root's ObjectTypeBodyService on a
+// fresh Resource client generation, released when fn returns.
+func (t *bridgeObjectType) withBodyService(ctx context.Context, fn func(s4wave_objecttype_registry.SRPCObjectTypeBodyServiceClient) error) error {
 	// Reach the handler root on a fresh Resource client generation.
 	client, release, _, err := t.r.openResources(ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer release()
 	rootRef := client.AccessRootResource()
 	defer rootRef.Release()
 	rootClient, err := rootRef.GetClient()
 	if err != nil {
-		return nil, err
+		return err
 	}
+	return fn(s4wave_objecttype_registry.NewSRPCObjectTypeBodyServiceClient(rootClient))
+}
 
-	// Render the bodies, treating a handler without the service as no JSON.
-	resp, err := s4wave_objecttype_registry.NewSRPCObjectTypeBodyServiceClient(rootClient).MarshalBodiesJSON(ctx, &s4wave_objecttype_registry.MarshalBodiesJSONRequest{
-		TypeId: t.GetObjectTypeID(),
-		Bodies: bodies,
-	})
-	if err != nil {
-		if err.Error() == srpc.ErrUnimplemented.Error() {
-			return make([]string, len(bodies)), nil
-		}
-		return nil, err
-	}
-	if len(resp.GetBodiesJson()) != len(bodies) {
-		return nil, errors.Errorf("object type %s rendered %d of %d bodies", t.GetObjectTypeID(), len(resp.GetBodiesJson()), len(bodies))
-	}
-	return resp.GetBodiesJson(), nil
+// isUnimplemented reports a handler that does not serve the called RPC.
+func isUnimplemented(err error) bool {
+	return err != nil && err.Error() == srpc.ErrUnimplemented.Error()
 }
 
 // openAttachedResources opens a Resource client generation on a

@@ -429,13 +429,15 @@ export class EngineWorldState implements IWorldState {
     })
   }
 
-  // getObjectMetadataBatch returns the type and parent of each key, in request order.
+  // getObjectMetadataBatch returns the type, parent and declarations of each
+  // key, in request order.
   public async getObjectMetadataBatch(
     objectKeys: string[],
     abortSignal?: AbortSignal,
+    declared = false,
   ): Promise<ObjectMetadata[]> {
     return this.performRead(abortSignal, async (tx) => {
-      return await tx.getObjectMetadataBatch(objectKeys, abortSignal)
+      return await tx.getObjectMetadataBatch(objectKeys, abortSignal, declared)
     })
   }
 
