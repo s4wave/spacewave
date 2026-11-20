@@ -35,6 +35,11 @@ export interface Segment {
    * Size is the file's size when it was linked.
    */
   size?: bigint
+  /**
+   * BlockSize is the length of the range's encoded block, which a stat of the
+   * block reports without reading the file.
+   */
+  blockSize?: bigint
 }
 
 export const Segment: MessageType<Segment> =
@@ -46,6 +51,7 @@ export const Segment: MessageType<Segment> =
       [3, 'length', 3],
       [4, 'mod_time', 3],
       [5, 'size', 3],
+      [6, 'block_size', 3],
     ],
   )
 

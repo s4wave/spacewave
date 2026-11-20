@@ -36,9 +36,10 @@ type chunkAppender struct {
 	holdLast bool
 	// held is the latest chunk when holdLast is set.
 	held *heldChunk
-	// sink, when set, receives each addressed chunk in place of the
-	// transaction's staging store; xfrm and hashType address the chunk.
-	sink     func(*Chunk) error
+	// sink, when set, receives each addressed chunk and the length of its
+	// encoded block in place of the transaction's staging store; xfrm and
+	// hashType address the chunk.
+	sink     func(*Chunk, int) error
 	xfrm     block.Transformer
 	hashType hash.HashType
 }
@@ -221,7 +222,7 @@ func (a *chunkAppender) put(chk *pendingChunk) error {
 		}
 		c := &Chunk{DataRef: block.NewBlockRef(h), Size: chk.size, Start: chk.start}
 		a.ci.Chunks = append(a.ci.Chunks, c)
-		return a.sink(c)
+		return a.sink(c, len(chk.data))
 	}
 
 	// Stage the chunk as a content block, a leaf, and count it as written.

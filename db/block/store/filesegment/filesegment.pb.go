@@ -30,6 +30,9 @@ type Segment struct {
 	ModTime int64 `protobuf:"varint,4,opt,name=mod_time,json=modTime,proto3" json:"modTime,omitempty"`
 	// Size is the file's size when it was linked.
 	Size int64 `protobuf:"varint,5,opt,name=size,proto3" json:"size,omitempty"`
+	// BlockSize is the length of the range's encoded block, which a stat of the
+	// block reports without reading the file.
+	BlockSize int64 `protobuf:"varint,6,opt,name=block_size,json=blockSize,proto3" json:"blockSize,omitempty"`
 }
 
 func (x *Segment) Reset() {
@@ -73,6 +76,13 @@ func (x *Segment) GetSize() int64 {
 	return 0
 }
 
+func (x *Segment) GetBlockSize() int64 {
+	if x != nil {
+		return x.BlockSize
+	}
+	return 0
+}
+
 // PathRefs is the SegmentIndex value of one path: the refs its segments hold,
 // so a changed path drops its entries in one write.
 type PathRefs struct {
@@ -104,6 +114,7 @@ func (m *Segment) CloneVT() *Segment {
 	r.Length = m.Length
 	r.ModTime = m.ModTime
 	r.Size = m.Size
+	r.BlockSize = m.BlockSize
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -149,6 +160,9 @@ func (this *Segment) EqualVT(that *Segment) bool {
 		return false
 	}
 	if this.Size != that.Size {
+		return false
+	}
+	if this.BlockSize != that.BlockSize {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -215,6 +229,11 @@ func (x *Segment) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("size")
 		s.WriteInt64(x.Size)
 	}
+	if x.BlockSize != 0 || s.HasField("blockSize") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("blockSize")
+		s.WriteInt64(x.BlockSize)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -247,6 +266,9 @@ func (x *Segment) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "size":
 			s.AddField("size")
 			x.Size = s.ReadInt64()
+		case "block_size", "blockSize":
+			s.AddField("block_size")
+			x.BlockSize = s.ReadInt64()
 		}
 	})
 }
@@ -348,6 +370,11 @@ func (m *Segment) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.BlockSize != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.BlockSize))
+		i--
+		dAtA[i] = 0x30
+	}
 	if m.Size != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Size))
 		i--
@@ -431,6 +458,7 @@ func (m *Segment) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Length)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ModTime)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Size)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.BlockSize)
 	n += len(m.unknownFields)
 	return n
 }
@@ -471,6 +499,10 @@ func (x *Segment) MarshalProtoText() string {
 	if x.Size != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "size")
 		protobuf_go_lite.TextWriteInt(&sb, x.Size)
+	}
+	if x.BlockSize != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "block_size")
+		protobuf_go_lite.TextWriteInt(&sb, x.BlockSize)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -564,6 +596,15 @@ func (m *Segment) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Size = 0
 			m.Size, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BlockSize", wireType)
+			}
+			m.BlockSize = 0
+			m.BlockSize, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

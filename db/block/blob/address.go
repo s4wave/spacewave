@@ -13,7 +13,7 @@ import (
 // AddressChunks cuts rdr into chunks and addresses each one: it encodes the
 // chunk with xfrm and hashes the result with hashType, the ref a transaction
 // with that transformer would store it under. It passes each chunk to fn in
-// order and stores nothing. The returned index equals the one BuildBlob writes
+// order, with the length of its encoded block, and stores nothing. The returned index equals the one BuildBlob writes
 // for the same bytes and chunker arguments, so a caller can write the Blob and
 // keep the chunk bytes elsewhere, such as in the file they came from.
 func AddressChunks(
@@ -22,7 +22,7 @@ func AddressChunks(
 	chunkerArgs *ChunkerArgs,
 	xfrm block.Transformer,
 	hashType hash.HashType,
-	fn func(*Chunk) error,
+	fn func(c *Chunk, blockSize int) error,
 ) (*ChunkIndex, uint64, error) {
 	// Run the appender with a sink in place of a transaction.
 	if hashType == 0 {

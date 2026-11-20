@@ -2165,7 +2165,7 @@
           ]
         },
         "github.com/s4wave/spacewave/db/block/store/filesegment": {
-          "hash": "9e61f3ee3ca41a2d5dd97674eec4708c6478b933c90326873b92dcdfbc1c0f90",
+          "hash": "71dced1c1f83906819cac16b245cb5b62436578b8414722af50445c4044ea3d4",
           "generatedFiles": [
             "db/block/store/filesegment/filesegment.pb.go",
             "db/block/store/filesegment/filesegment.pb.ts"

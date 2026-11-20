@@ -222,8 +222,16 @@ func TestRelinkReplacesPath(t *testing.T) {
 		}
 	}
 	for _, c := range after.GetChunkIndex().GetChunks() {
-		if _, ok, err := fss.GetBlock(ctx, c.GetDataRef()); !ok || err != nil {
+		data, ok, err := fss.GetBlock(ctx, c.GetDataRef())
+		if !ok || err != nil {
 			t.Fatalf("new range not served: ok=%v err=%v", ok, err)
+		}
+
+		// A stat reports the encoded size without reading the file.
+		hits := fss.Hits.Load()
+		stat, err := fss.StatBlock(ctx, c.GetDataRef())
+		if err != nil || stat == nil || stat.Size != int64(len(data)) || fss.Hits.Load() != hits {
+			t.Fatalf("stat = %v, %v, want size %d and no read", stat, err, len(data))
 		}
 	}
 

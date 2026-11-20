@@ -39,14 +39,15 @@ func LinkFile(
 	// Address the chunks, keeping each range.
 	var refs []*block.BlockRef
 	var segs []*Segment
-	ci, total, err := blob.AddressChunks(ctx, f, args, xfrm, hashType, func(c *blob.Chunk) error {
+	ci, total, err := blob.AddressChunks(ctx, f, args, xfrm, hashType, func(c *blob.Chunk, blockSize int) error {
 		refs = append(refs, c.GetDataRef())
 		segs = append(segs, &Segment{
-			Path:    path,
-			Offset:  int64(c.GetStart()), //nolint:gosec // a chunk lies within the file, whose size is an int64.
-			Length:  int64(c.GetSize()),  //nolint:gosec // as above.
-			ModTime: modTime,
-			Size:    size,
+			Path:      path,
+			Offset:    int64(c.GetStart()), //nolint:gosec // a chunk lies within the file, whose size is an int64.
+			Length:    int64(c.GetSize()),  //nolint:gosec // as above.
+			ModTime:   modTime,
+			Size:      size,
+			BlockSize: int64(blockSize),
 		})
 		return nil
 	})

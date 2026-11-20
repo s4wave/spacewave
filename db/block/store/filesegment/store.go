@@ -143,22 +143,29 @@ func (s *Store) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block
 // GetBlockExists reports an indexed range whose file stat is unchanged. It
 // does not hash; a read still verifies.
 func (s *Store) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
+	seg, err := s.statSegment(ctx, ref)
+	return seg != nil, err
+}
+
+// statSegment returns the first indexed range of ref whose file stat is
+// unchanged, or nil. It reads no file contents.
+func (s *Store) statSegment(ctx context.Context, ref *block.BlockRef) (*Segment, error) {
 	// Report nothing the store could not read.
 	if s.xfrm.Load() == nil {
-		return false, nil
+		return nil, nil
 	}
 
 	// Check the stat of each range.
 	segs, err := s.idx.Lookup(ctx, ref)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 	for _, seg := range segs {
 		if fi, err := os.Stat(seg.GetPath()); err == nil && statMatches(fi, seg) {
-			return true, nil
+			return seg, nil
 		}
 	}
-	return false, nil
+	return nil, nil
 }
 
 // GetBlockExistsBatch checks each ref in turn.
@@ -174,13 +181,15 @@ func (s *Store) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef)
 	return out, nil
 }
 
-// StatBlock returns the encoded size of a block the store can read, or nil.
+// StatBlock returns the encoded size recorded for a range whose file stat is
+// unchanged, or nil. Like GetBlockExists it reads, encodes and hashes nothing;
+// a read still verifies.
 func (s *Store) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
-	data, ok, err := s.GetBlock(ctx, ref)
-	if err != nil || !ok {
+	seg, err := s.statSegment(ctx, ref)
+	if err != nil || seg == nil {
 		return nil, err
 	}
-	return &block.BlockStat{Ref: ref, Size: int64(len(data))}, nil
+	return &block.BlockStat{Ref: ref, Size: seg.GetBlockSize()}, nil
 }
 
 // GetCopyTier returns the store as the file tier of a copy chain, whose stored

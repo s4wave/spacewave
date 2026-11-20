@@ -18,6 +18,9 @@ message Segment {
   int64 mod_time = 4;
   // Size is the file's size when it was linked.
   int64 size = 5;
+  // BlockSize is the length of the range's encoded block, which a stat of the
+  // block reports without reading the file.
+  int64 block_size = 6;
 }
 
 // PathRefs is the SegmentIndex value of one path: the refs its segments hold,
