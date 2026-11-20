@@ -45,6 +45,7 @@ func newWorldReplay(t *testing.T) (*spaceReplay, *InnerState) {
 		le:       logrus.NewEntry(log),
 		opts:     AdapterOptions{Bus: tb.Bus, StepFactorySet: tb.StepFactorySet},
 		bucketID: tb.BucketId,
+		so:       &bucketObject{store: &bucketStore{StoreOps: cursor.GetBucket()}},
 		pages:    block.NewPendingStore(cursor.GetBucket(), 1<<20),
 		decoded:  block.NewDecodedBlockCache(),
 	}
