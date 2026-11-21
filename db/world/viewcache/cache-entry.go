@@ -28,6 +28,8 @@ type revisionEntry struct {
 	blocks *block.RefHold
 	// wake is the earliest time the value asked to rerun at, if any.
 	wake time.Time
+	// took is how long computing value took. Set before done closes.
+	took time.Duration
 	err  error
 	// stale is set before done closes when a change the cache passed while
 	// the value computed touched its reads: the value then holds only at

@@ -175,7 +175,7 @@ func (c *Cache) recompute(ctx context.Context, name string, through uint64, comp
 	entry := &revisionEntry{name: name, done: make(chan struct{}), at: through, reads: world.NewReadSet(), blocks: block.NewRefHold()}
 	child, finish := world.WithViewReads(block.WithRefHold(ctx, entry.blocks), entry.reads)
 	child, parts := c.withParts(context.WithValue(child, computingKey{}, true))
-	entry.value, entry.err = c.observe(name, "shared", func() (any, error) {
+	c.run(entry, "shared", func() (any, error) {
 		return compute(child, entry.reads.Track(tx))
 	})
 	entry.wake = finish()

@@ -14,8 +14,9 @@ import (
 // while the World leaves its reads untouched. A view evaluation in ctx depends
 // on everything the value read, whether or not this call computed it. A
 // reader behind the cache shares the value at the newest revision. A reader
-// ahead of it never waits for the catch-up: it computes the value in its own
-// snapshot, shared with the readers at the same revision. A
+// ahead of it computes the value in its own snapshot, shared with the readers
+// at the same revision, unless the cache keeps a value under name that the
+// catch-up reaches sooner than computing it took. A
 // computation abandoned with its caller's context is claimed again by a
 // waiter; another failure is retried without the cache. A part read while
 // computing another value, from a snapshot the cache has moved past, is
@@ -33,7 +34,13 @@ func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compu
 	// no read waits on. An empty cache moves to the reader's revision at once.
 	if seqno > c.seqno.Load() && !c.jump(seqno) {
 		c.catchUp(seqno)
-		return c.computeApart(ctx, tx, seqno, name, compute)
+		reached, err := c.awaitKept(ctx, name, seqno)
+		if err != nil {
+			return nil, err
+		}
+		if !reached {
+			return c.computeApart(ctx, tx, seqno, name, compute)
+		}
 	}
 
 	for {
@@ -97,7 +104,7 @@ func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compu
 		// Compute in a child evaluation, then share its reads with this caller.
 		child, finish := world.WithViewReads(block.WithRefHold(ctx, entry.blocks), entry.reads)
 		child, parts := c.withParts(context.WithValue(child, computingKey{}, true))
-		entry.value, entry.err = c.observe(name, path, func() (any, error) {
+		c.run(entry, path, func() (any, error) {
 			return compute(child, entry.reads.Track(tx))
 		})
 		entry.wake = finish()
@@ -148,12 +155,16 @@ func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compu
 func (c *Cache) computeApart(ctx context.Context, tx world.WorldState, seqno uint64, name string, compute func(context.Context, world.WorldState) (any, error)) (any, error) {
 	key := apartKey{name: name, seqno: seqno}
 	for {
-		// Wait on the computation another caller claimed, or claim it. A
+		// Wait on the computation another caller claimed, or share the
+		// one finished at seqno that waits for the catch-up, or claim it. A
 		// caller inside the claimed computation, reading the value from
 		// itself through its parts, computes it alone instead of waiting
 		// on itself.
 		c.mtx.Lock()
 		entry := c.apart[key]
+		if kept := c.ahead[name]; entry == nil && kept != nil && kept.at == seqno {
+			entry = kept
+		}
 		if entry != nil && ctx.Value(apartClaimKey{entry}) == nil {
 			c.mtx.Unlock()
 			select {
@@ -192,7 +203,7 @@ func (c *Cache) computeApart(ctx context.Context, tx world.WorldState, seqno uin
 		if seqno > c.seqno.Load() {
 			path = "ahead"
 		}
-		entry.value, entry.err = c.observe(name, path, func() (any, error) {
+		c.run(entry, path, func() (any, error) {
 			return compute(child, entry.reads.Track(tx))
 		})
 		entry.wake = finish()
@@ -220,6 +231,47 @@ func (c *Cache) computeApart(ctx context.Context, tx world.WorldState, seqno uin
 		c.addViewReads(ctx, entry)
 		return entry.value, nil
 	}
+}
+
+// awaitKept waits for the catch-up to reach seqno when the cache keeps a
+// finished value under name, for at most as long as that value took to
+// compute: past that, computing it in the reader's snapshot costs less than
+// waiting. It reports whether the cache reached seqno. A reader of a value the
+// cache does not keep, such as each first view after a restart, never waits.
+func (c *Cache) awaitKept(ctx context.Context, name string, seqno uint64) (bool, error) {
+	// Budget the wait by the kept value's compute time.
+	c.mtx.Lock()
+	entry := c.entries[name]
+	kept := entry != nil && entry.finished && entry.err == nil
+	c.mtx.Unlock()
+	if !kept {
+		return false, nil
+	}
+	timer := time.NewTimer(entry.took)
+	defer timer.Stop()
+
+	// Wait for the cache to reach seqno, sampling the move channel first.
+	for {
+		moved := c.changed()
+		if seqno <= c.seqno.Load() {
+			return true, nil
+		}
+		select {
+		case <-moved:
+		case <-timer.C:
+			return false, nil
+		case <-ctx.Done():
+			return false, ctx.Err()
+		}
+	}
+}
+
+// run computes entry's value with compute, counted under path as observe
+// counts it, and records how long it took.
+func (c *Cache) run(entry *revisionEntry, path string, compute func() (any, error)) {
+	started := time.Now()
+	entry.value, entry.err = c.observe(entry.name, path, compute)
+	entry.took = time.Since(started)
 }
 
 // keepApartLocked keeps entry, a finished value computed at a revision other
