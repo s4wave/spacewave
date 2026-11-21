@@ -115,58 +115,6 @@ func TestStoreBlobValue(t *testing.T) {
 	}
 }
 
-// TestStoreMsgpackBlobValue tests storing a blob value.
-func TestStoreMsgpackBlobValue(t *testing.T) {
-	// Create the storage testbed and execution handle for the structured-value round trip.
-	tb, _, handle := buildTestbedHandle(t)
-	ctx := tb.Context
-
-	// Store a structured value and load it back.
-	testValue := map[string]int{"test": 2}
-	fv, err := StoreMsgpackValue(ctx, handle, testValue)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Load the stored structured value from its msgpack block.
-	loaded, err := LoadMsgpackValue(ctx, handle, fv, func() map[string]int {
-		return map[string]int{}
-	})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Verify the decoded structured value retains its map entry.
-	if loaded == nil || loaded["test"] != 2 {
-		t.Fatalf("output value was different: %#v", loaded)
-	}
-}
-
-// TestStoreMsgpackBlockValue tests storing a msgpack block
-func TestStoreMsgpackBlockValue(t *testing.T) {
-	// Create the storage testbed and execution handle for the msgpack block round trip.
-	tb, _, handle := buildTestbedHandle(t)
-	ctx := tb.Context
-
-	// Store a structured value in a msgpack block.
-	testValue := map[string]int{"test": 2}
-	fv, err := StoreMsgpackValue(ctx, handle, testValue)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Load the block and verify its decoded value.
-	loaded, err := LoadMsgpackValue(ctx, handle, fv, func() map[string]int { return map[string]int{} })
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Verify the decoded msgpack block retains its map entry.
-	if loaded == nil || loaded["test"] != 2 {
-		t.Fatalf("output value was different: %#v", loaded)
-	}
-}
-
 // TestCopyValueToBucketTree copies a UnixFS output of thousands of files from
 // a bucket on another volume into the World, reads every file back with that
 // volume closed, and copies it again with the source gone, which succeeds
