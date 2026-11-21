@@ -5,12 +5,17 @@
 \* Admitted replayable bodies remain obligations after their caller returns.
 \* A body whose read only a peer serves leaves its batch and fetches with the
 \* writer released; the writes of its actor wait for it, others go on.
+\* A body error that read an earlier write's uncommitted change in its batch
+\* is withheld until that change commits.
 EXTENDS Naturals
 CONSTANTS EarlyApply, HoldSQL, DiscardOnRetry
 \* The guards the deferred fetch relies on; the mutants clear them.
 FetchReleasesWriter == TRUE
 ActorGuard == TRUE
 RoundGuard == TRUE
+\* The queue withholds a body error that read its batch's changes; the
+\* mutant answers it at once.
+WithholdBatchReads == TRUE
 \* The fetches one write may run before it reads from peers under the lock.
 MaxRounds == 2
 Writes == {1, 2}
@@ -22,7 +27,8 @@ Init == s = [pc |-> [i \in Writes |-> "queued"],
              sql |-> [i \in Writes |-> FALSE],
              rounds |-> [i \in Writes |-> 0],
              lock |-> 0, durable |-> {}, answered |-> {}, read |-> {},
-             badRead |-> FALSE, failed |-> FALSE, cancelled |-> {}]
+             badRead |-> FALSE, failed |-> FALSE, cancelled |-> {},
+             errorRead |-> FALSE, badError |-> FALSE]
 \* Enumerate the caller kinds and whether each body uses SQL independently.
 Start ==
   /\ \A i \in Writes : s.pc[i] = "queued"
@@ -49,6 +55,7 @@ Defer(i) ==
   /\ s.pc[i] = "body" /\ i \notin s.answered
   /\ RoundGuard => s.rounds[i] < MaxRounds
   /\ s' = [s EXCEPT !.pc[i] = "fetching", !.rounds[i] = @ + 1,
+                    !.badError = @ \/ (i = 1 /\ s.errorRead),
                     !.lock = IF s.lock = i /\ FetchReleasesWriter THEN 0 ELSE @]
 Fetched(i) ==
   /\ s.pc[i] = "fetching"
@@ -60,7 +67,8 @@ Admit(i) ==
 \* A full publisher or busy state owner returns without admitting anything.
 RetryPreparation(i) ==
   /\ s.pc[i] = "body"
-  /\ s' = [s EXCEPT !.pc[i] = "preparing", !.lock = IF DiscardOnRetry THEN 0 ELSE @]
+  /\ s' = [s EXCEPT !.pc[i] = "preparing", !.lock = IF DiscardOnRetry THEN 0 ELSE @,
+                    !.badError = @ \/ (i = 1 /\ s.errorRead)]
 Prepared(i) ==
   /\ s.pc[i] = "preparing"
   /\ s' = [s EXCEPT !.pc[i] = "ready"]
@@ -80,8 +88,17 @@ Settle(i) ==
 AnswerDurable(i) ==
   /\ s.pc[i] = "durable" /\ i \notin s.answered
   /\ s' = [s EXCEPT !.answered = @ \cup {i}]
+\* Write 2 runs in write 1's batch after write 1 changed it, and fails on
+\* write 1's uncommitted change. Discarding the candidate before admission
+\* (Defer, RetryPreparation) then leaves an answer from a World that never
+\* was. The queue withholds the error and runs write 2 again in a later
+\* batch, an ordinary Body.
+AnswerBatchError ==
+  /\ ~WithholdBatchReads
+  /\ s.pc[2] = "ready" /\ s.pc[1] = "body" /\ 2 \notin s.answered
+  /\ s' = [s EXCEPT !.pc[2] = "error", !.answered = @ \cup {2}, !.errorRead = TRUE]
 ReadOwn(i) ==
-  /\ i \in s.answered /\ s.kind[i] = "apply" /\ i \notin s.read
+  /\ i \in s.answered /\ s.kind[i] = "apply" /\ i \notin s.read /\ s.pc[i] # "error"
   /\ s' = [s EXCEPT !.read = @ \cup {i},
                     !.badRead = @ \/ i \notin s.durable]
 \* A failed publication reinstalls the durable head. Pending apply callers
@@ -98,12 +115,15 @@ Cancel(i) ==
   /\ s.pc[i] \in {"ready", "preparing", "fetching", "waiting", "durable"}
   /\ s' = [s EXCEPT !.cancelled = @ \cup {i},
        !.pc[i] = IF @ \in {"ready", "preparing"} THEN "cancelled" ELSE @]
-Next == Start \/ Drop \/ (\E i \in Writes : Body(i) \/ Defer(i) \/ Fetched(i) \/ Admit(i) \/ RetryPreparation(i) \/ Prepared(i) \/ CommitSQL(i)
+Next == Start \/ Drop \/ AnswerBatchError
+        \/ (\E i \in Writes : Body(i) \/ Defer(i) \/ Fetched(i) \/ Admit(i) \/ RetryPreparation(i) \/ Prepared(i) \/ CommitSQL(i)
         \/ AnswerEarly(i) \/ Settle(i) \/ AnswerDurable(i) \/ ReadOwn(i) \/ Cancel(i))
         \/ UNCHANGED s
 Spec == Init /\ [][Next]_s
 NoWaitUnderSQLWriter == \A i \in Writes : s.pc[i] \in {"waiting", "preparing"} => s.lock # i
 ReadYourWrites == ~s.badRead
+\* No answered body error read a candidate that was discarded unadmitted.
+BodyErrorsReadCommitted == ~s.badError
 \* A fetching write holds neither the SQL writer nor the engine's writer.
 NoFetchUnderWriter == \A i \in Writes : s.pc[i] = "fetching" => s.lock # i
 \* No write runs while an earlier write of its actor fetches, and no write

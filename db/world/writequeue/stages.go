@@ -67,7 +67,7 @@ type StageTotals struct {
 type commitParts struct {
 	mtx       sync.Mutex
 	times     map[string]time.Duration
-	pages     uint64
+	pages     int
 	pageBytes uint64
 }
 
@@ -109,12 +109,15 @@ func CommitTimeRecorder(ctx context.Context) func(part string, d time.Duration) 
 // RecordCommitPages adds the World pages a publication of the batch admitted
 // under ctx stored, and their length. Outside an admission it does nothing.
 func RecordCommitPages(ctx context.Context, pages int, bytes uint64) {
+	// Find the batch's commit parts.
 	p, _ := ctx.Value(commitPartsKey{}).(*commitParts)
 	if p == nil {
 		return
 	}
+
+	// Add the pages to its count.
 	p.mtx.Lock()
-	p.pages += uint64(pages)
+	p.pages += pages
 	p.pageBytes += bytes
 	p.mtx.Unlock()
 }

@@ -84,6 +84,13 @@ func (t *Tx) GetSeqno(ctx context.Context) (uint64, error) {
 	return t.state.GetSeqno(ctx)
 }
 
+// GetRootRef returns the reference of the World root block the transaction
+// reads. A write transaction's root reference names its base World until its
+// first write.
+func (t *Tx) GetRootRef() *block.BlockRef {
+	return t.state.GetRootRef()
+}
+
 // GetObjectBodiesBatchPage returns one budgeted page from the transaction state.
 func (t *Tx) GetObjectBodiesBatchPage(ctx context.Context, keys []string, byteBudget int) ([]*world.ObjectBody, uint32, error) {
 	unlock, err := t.rmtx.Lock(ctx, false)

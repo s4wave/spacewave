@@ -17,8 +17,11 @@ var ErrRehearsalCommit = errors.New("a rehearsal transaction cannot commit")
 // outside the writer lock.
 type RehearsalEngine interface {
 	// NewRehearsalTransaction opens a write fork of the newest World that
-	// never commits. Always call Discard when done.
-	NewRehearsalTransaction(ctx context.Context) (world.Tx, error)
+	// never commits, and reports whether that World was durable when the
+	// fork opened. An outcome read from a fork whose World was not durable
+	// may rest on a write the engine later drops, so only a durable fork
+	// answers for the World. Always call Discard when done.
+	NewRehearsalTransaction(ctx context.Context) (world.Tx, bool, error)
 }
 
 // NewRehearsalTransaction opens a write fork of the newest World without the
@@ -28,23 +31,29 @@ type RehearsalEngine interface {
 // drops them. Commit reads the pages the locked commit of the writes would
 // read, applies the graph writes and the change log to the fork, then
 // discards it and returns ErrRehearsalCommit.
-func (e *soEngine) NewRehearsalTransaction(ctx context.Context) (world.Tx, error) {
+//
+// The fork's World was durable when the durable head holds the fork's root
+// after the fork opened. The durable head installs a World only after its
+// publication succeeds and never takes it back, and the root names the
+// World's content and seqno, so an equal root is the same durable World.
+func (e *soEngine) NewRehearsalTransaction(ctx context.Context) (world.Tx, bool, error) {
 	// Fork the newest World with buffered writes.
 	if e.admitted == nil {
-		return nil, errors.New("the world engine is not ready")
+		return nil, false, errors.New("the world engine is not ready")
 	}
 	btx, err := e.admitted.ForkBlockTransaction(ctx, true)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
+	durable := btx.GetRootRef().EqualsRef(e.bengine.GetRootRef().GetRootRef())
 
 	// Record the operations applied to the fork.
 	ws, err := world_block_tx.NewWorldState(ctx, btx, true)
 	if err != nil {
 		btx.Discard()
-		return nil, err
+		return nil, false, err
 	}
-	return &rehearsalTx{WorldState: ws, btx: btx, eng: e}, nil
+	return &rehearsalTx{WorldState: ws, btx: btx, eng: e}, durable, nil
 }
 
 // rehearsalTx is a write fork that never commits.

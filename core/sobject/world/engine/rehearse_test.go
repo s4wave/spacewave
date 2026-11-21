@@ -31,11 +31,14 @@ func TestRehearsalSkipsWriterLock(t *testing.T) {
 		if !ok {
 			t.Fatal("the World engine does not rehearse")
 		}
-		tx, err := re.NewRehearsalTransaction(ctx)
+		tx, durable, err := re.NewRehearsalTransaction(ctx)
 		if err != nil {
 			return err
 		}
 		defer tx.Discard()
+		if !durable {
+			t.Fatal("a fork of the durable World reported it not durable")
+		}
 
 		// It reads the committed object and writes a new one.
 		if !hasObject(t, ctx, tx, "rehearse/base") {
@@ -98,4 +101,27 @@ func hasObject(t *testing.T, ctx context.Context, tx world.Tx, key string) bool 
 	}
 	world.ReleaseObjectState(obj)
 	return found
+}
+
+// rehearsalDurable forks w's newest World as a rehearsal and reports whether
+// the engine called it durable and whether it holds key.
+func rehearsalDurable(t *testing.T, w *localWorld, key string) (durable, found bool) {
+	t.Helper()
+	err := world.AccessEngine(t.Context(), w.eng, func(ctx context.Context, eng world.Engine) error {
+		re, ok := eng.(sobject_world_engine.RehearsalEngine)
+		if !ok {
+			t.Fatal("the World engine does not rehearse")
+		}
+		tx, isDurable, err := re.NewRehearsalTransaction(ctx)
+		if err != nil {
+			return err
+		}
+		defer tx.Discard()
+		durable, found = isDurable, hasObject(t, ctx, tx, key)
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return durable, found
 }

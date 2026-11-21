@@ -38,5 +38,15 @@
       ]
     ],
     "expect": "BoundedFetches"
+  },
+  {
+    "name": "a body error that read its batch's uncommitted change answers at once",
+    "replace": [
+      [
+        "WithholdBatchReads == TRUE",
+        "WithholdBatchReads == FALSE"
+      ]
+    ],
+    "expect": "BodyErrorsReadCommitted"
   }
 ]

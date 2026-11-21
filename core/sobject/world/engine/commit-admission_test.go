@@ -22,6 +22,7 @@ import (
 // checks that CommitAdmit returns at admission, that readers keep the durable
 // World while the next write reads the admitted one and is admitted after it,
 // and that WaitDurable and each Commit return once the publication is durable.
+// A rehearsal fork reports its World durable only once it is.
 func TestCommitForksFromAdmittedWorld(t *testing.T) {
 	// Start a World and note its durable and admitted positions.
 	w, so := startGatedWorld(t, t.TempDir(), nil)
@@ -48,6 +49,11 @@ func TestCommitForksFromAdmittedWorld(t *testing.T) {
 		t.Fatalf("durable seqno %d before the publication, want %d", seqno, durable)
 	}
 
+	// A rehearsal forks the admitted World and reports it not durable.
+	if durable, found := rehearsalDurable(t, w, "admit/1"); durable || !found {
+		t.Errorf("rehearsal over the held publication: durable %v, sees the write %v", durable, found)
+	}
+
 	// The second write forks from the first's admitted World.
 	tx := w.newWrite(t, "admit/2")
 	if found := worldHas(t, tx, "admit/1"); !found {
@@ -70,6 +76,9 @@ func TestCommitForksFromAdmittedWorld(t *testing.T) {
 	}
 	if err := <-second; err != nil {
 		t.Fatalf("second Commit: %v", err)
+	}
+	if durable, found := rehearsalDurable(t, w, "admit/2"); !durable || !found {
+		t.Fatalf("rehearsal after both publications: durable %v, sees the write %v", durable, found)
 	}
 	read = newRead(t, w)
 	defer read.Discard()

@@ -44,7 +44,9 @@ var ErrNestedWrite = errors.New("World write started inside another World write"
 // batches. The engine holds its writer lock from a write's fork until it
 // admits the commit, so the writes that arrive while one batch runs share the
 // next batch's fork, commit and install. Bodies run one at a time, in arrival
-// order, each seeing the writes before it.
+// order, each seeing the writes before it. A write's error answers its writer
+// only when the write read no uncommitted change of an earlier write in its
+// batch; otherwise the write runs again once those changes commit, see run.
 //
 // The queue is a pipeline of one stage. The drain goroutine forks a batch,
 // runs its bodies and has the engine admit its commit, then forks the next

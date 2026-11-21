@@ -61,7 +61,11 @@ func (q *Queue) dropLocked(c *committingBatch, err error) {
 	var writes []*queuedWrite
 	for _, w := range c.writes {
 		if w.acked {
-			w = &queuedWrite{ctx: context.WithoutCancel(w.ctx), name: w.name, queued: w.queued, actor: w.actor, checks: w.checks, body: w.replay, replay: w.replay, arrival: w.arrival, answered: true, refusals: w.refusals, done: make(chan struct{})}
+			w = &queuedWrite{
+				ctx: context.WithoutCancel(w.ctx), name: w.name, queued: w.queued, actor: w.actor, checks: w.checks,
+				body: w.replay, replay: w.replay, arrival: w.arrival, answered: true, refusals: w.refusals,
+				done: make(chan struct{}),
+			}
 		} else if w.ended() {
 			continue
 		}
@@ -160,44 +164,100 @@ func (q *Queue) drain() {
 
 		// Run the bodies. A failed write leaves the rest to run again in a
 		// fresh fork, since its partial changes are in the transaction.
-		failed, carried, parked, err := q.run(ctx, tx, batch)
-		if parked >= 0 && err == nil {
+		ran, err := q.run(ctx, tx, batch)
+		if ran.parked >= 0 && err == nil {
 			// Fetch the blocks a body deferred with the lock released.
 			tx.Discard()
-			w := batch[parked]
-			q.park(w, slices.Delete(batch, parked, parked+1))
+			w := batch[ran.parked]
+			q.park(w, slices.Delete(batch, ran.parked, ran.parked+1))
 			continue
 		}
-		if err != nil || failed >= 0 {
+		if err != nil {
 			tx.Discard()
-			if err != nil {
-				q.refused(batch, err)
-			} else {
-				q.requeue(slices.Delete(batch, failed, failed+1))
+			q.refused(batch, err)
+			continue
+		}
+		if ran.failed >= 0 {
+			// Drop the failed write's partial changes. A failure that read
+			// the changes before it runs again once they commit: the next
+			// batch carries only them.
+			tx.Discard()
+			if !batch[ran.failed].ended() {
+				limitPrefix(batch[:ran.failed])
 			}
+			q.requeue(batch)
 			continue
 		}
 
-		// Queue the writes past the body budget again, then commit the rest.
-		q.requeue(batch[carried:])
-		preparation = q.commit(ctx, tx, batch[:carried])
+		// Queue the withheld writes and those past the body budget again,
+		// then commit the rest.
+		q.requeue(append(ran.withheld, batch[ran.carried:]...))
+		committed := batch[:ran.carried]
+		if len(ran.withheld) != 0 {
+			withheld := make(map[*queuedWrite]bool, len(ran.withheld))
+			for _, w := range ran.withheld {
+				withheld[w] = true
+			}
+			committed = slices.DeleteFunc(committed, func(w *queuedWrite) bool { return withheld[w] })
+		}
+		preparation = q.commit(ctx, tx, committed)
 	}
 }
 
+// limitPrefix has the next batch carry only prefix's waiting writes, the
+// writes before a failure that read their changes, so they commit before the
+// failed write runs again.
+func limitPrefix(prefix []*queuedWrite) {
+	prefix = slices.DeleteFunc(slices.Clone(prefix), (*queuedWrite).ended)
+	if len(prefix) != 0 && (prefix[0].limit == 0 || len(prefix) < prefix[0].limit) {
+		prefix[0].limit = len(prefix)
+	}
+}
+
+// batchRun is how run left a batch.
+type batchRun struct {
+	// carried counts the writes from the batch's head the transaction carries.
+	carried int
+	// failed is the index of a write that failed after changing the
+	// transaction, or -1.
+	failed int
+	// parked is the index of a write whose body deferred a peer read, or -1.
+	parked int
+	// withheld are the carried writes that failed cleanly after reading
+	// changes of earlier writes in the batch; they run again in a later
+	// batch.
+	withheld []*queuedWrite
+}
+
 // run applies batch's writes to tx, under each write's own context, stopping
-// at the body budget. It returns the index of a write that failed after
-// changing the transaction, after finishing it, or -1 with the number of
-// writes the transaction carried. A write that ends cleanly, see endsClean,
-// is finished in place and carried as ended. A write whose body deferred a
-// peer read returns its index as parked, unfinished, whatever its body
-// returned, since a body may have taken the failed read for an absent block.
-// An error refuses the batch.
-func (q *Queue) run(ctx context.Context, tx Transaction, batch []*queuedWrite) (int, int, int, error) {
+// at the body budget.
+//
+// A write's error is an outcome only of the World its body read. A write
+// that read only the fork's base, with no change of an earlier write in the
+// batch, has the outcome of the World the batch forked, and finishes in
+// place. A write that read such changes may have read a World that never
+// commits, since the batch may be discarded or refused, so its error is
+// withheld and the write runs again after those changes commit: a clean
+// failure, see endsClean, joins withheld, and a write that failed after
+// changing the transaction returns as failed, unfinished. A write that
+// failed after changing a transaction holding only its own changes returns
+// as failed, finished.
+//
+// A write whose body deferred a peer read returns its index as parked,
+// unfinished, whatever its body returned, since a body may have taken the
+// failed read for an absent block. An error refuses the batch.
+func (q *Queue) run(ctx context.Context, tx Transaction, batch []*queuedWrite) (batchRun, error) {
+	// Note the fork's base, which a write reads alone until a body changes it.
+	ran := batchRun{carried: len(batch), failed: -1, parked: -1}
 	started := time.Now()
+	base, err := tx.GetSeqno(ctx)
+	if err != nil {
+		return ran, err
+	}
 	for i, w := range batch {
 		before, err := tx.GetSeqno(ctx)
 		if err != nil {
-			return -1, 0, -1, err
+			return ran, err
 		}
 		var spans bodySpans
 		appliedBefore, bodyStarted := q.applied(w.ctx), time.Now()
@@ -214,26 +274,34 @@ func (q *Queue) run(ctx context.Context, tx Transaction, batch []*queuedWrite) (
 			}).Warn("slow World write body; the writer lock is held while it runs")
 		}
 		if errors.Is(err, coord.ErrStaleGeneration) {
-			return -1, 0, -1, err
+			return ran, err
 		}
 		if w.deferring && w.peerReads.Pending() {
-			return -1, 0, i, nil
+			ran.parked = i
+			return ran, nil
 		}
 		if err != nil {
 			// A write that left the transaction as it was ends alone, so the
 			// writes before it do not run again under the writer lock.
 			clean, cerr := q.endsClean(ctx, tx, before, checked, err)
 			if cerr != nil {
-				return -1, 0, -1, cerr
+				return ran, cerr
 			}
-			w.finish(err)
+			switch {
+			case before == base:
+				w.finish(err)
+			case clean:
+				ran.withheld = append(ran.withheld, w)
+			}
 			if !clean {
-				return i, 0, -1, nil
+				ran.failed = i
+				return ran, nil
 			}
 		}
 		if time.Since(started) >= q.bodyBudget {
-			return -1, i + 1, -1, nil
+			ran.carried = i + 1
+			return ran, nil
 		}
 	}
-	return -1, len(batch), -1, nil
+	return ran, nil
 }
