@@ -52,8 +52,9 @@ type Cache struct {
 	// faceted holds the indexed values that read a part by facet, whose
 	// parts a catch-up may replace.
 	faceted map[*revisionEntry]struct{}
-	// previous holds, by name, the last value a catch-up dropped among those
-	// a reader asked for through recent, until a finished value replaces it.
+	// previous holds, by name, the last built value of each name a reader
+	// asked for through recent that the cache no longer holds current, until
+	// a finished value replaces it.
 	previous map[string]previousValue
 	// behind holds, by name and revision, the computations claimed of values
 	// read at a revision the cache passed, until each ends.

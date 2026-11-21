@@ -208,8 +208,62 @@ func (c *Cache) Recent(ctx context.Context, seqno, floor uint64, name string, co
 		}
 	}
 
-	// Answer the dropped value at the newest revision it holds at.
-	if !dropped || previous.through < floor || previous.entry.expired() {
+	// Answer the dropped value at the newest revision it holds at. A name
+	// with none is marked wanted, so a build a change passes is kept for the
+	// readers after this one.
+	if !dropped {
+		c.mtx.Lock()
+		if _, ok := c.previous[name]; !ok {
+			if c.previous == nil {
+				c.previous = make(map[string]previousValue)
+			}
+			c.previous[name] = previousValue{through: seqno}
+		}
+		c.mtx.Unlock()
+		return nil, 0, false
+	}
+	return c.previousAt(ctx, name, previous, floor, compute)
+}
+
+// WithFloor returns ctx whose Get calls accept the last built value of a name
+// read through Recent at revision floor or later, as Recent answers it, in
+// place of waiting on another build when a change passed the one they waited
+// on. A reader that must see its own write passes that write's revision.
+func WithFloor(ctx context.Context, floor uint64) context.Context {
+	return context.WithValue(ctx, floorKey{}, floor)
+}
+
+// floorKey carries the floor WithFloor set.
+type floorKey struct{}
+
+// lastBuilt returns the name's last built value, and the revision it holds
+// at, for a reader outside a computation whose ctx carries a floor the value
+// meets, and refreshes it as Recent does.
+func (c *Cache) lastBuilt(ctx context.Context, name string, compute func(context.Context, world.WorldState) (any, error)) (any, uint64, bool) {
+	// Only a reader that set a floor, outside a computation, accepts it.
+	floor, ok := ctx.Value(floorKey{}).(uint64)
+	if !ok || computing(ctx) {
+		return nil, 0, false
+	}
+
+	// Answer the value kept under the name.
+	c.mtx.Lock()
+	previous := c.previous[name]
+	c.mtx.Unlock()
+	return c.previousAt(ctx, name, previous, floor, compute)
+}
+
+// previousAt answers previous, the name's last built value, when it holds at
+// floor or later and has not expired, and computes the name again in the
+// background so its readers soon find a current one.
+func (c *Cache) previousAt(
+	ctx context.Context,
+	name string,
+	previous previousValue,
+	floor uint64,
+	compute func(context.Context, world.WorldState) (any, error),
+) (any, uint64, bool) {
+	if previous.entry == nil || previous.through < floor || previous.entry.expired() {
 		return nil, 0, false
 	}
 	c.refresh(name, compute)

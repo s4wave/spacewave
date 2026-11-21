@@ -9,10 +9,13 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 )
 
-// previousValue is a value a catch-up dropped, with the newest revision it is
-// known to hold at: the revision the cache stood at when that catch-up
-// started, not the one whose change dropped it. It holds at every revision
-// from entry.at through through.
+// previousValue is the last built value of a name readers want through
+// Recent, with the newest revision it is known to hold at: a value a catch-up
+// dropped, through the revision the cache stood at when that catch-up started,
+// or a build a change passed while it computed, through the revision it was
+// built at. It holds at every revision from entry.at through through. A nil
+// entry marks a name Recent was asked for before any value was built, through
+// the revision it was asked at.
 type previousValue struct {
 	entry   *revisionEntry
 	through uint64
@@ -258,6 +261,20 @@ func (c *Cache) dropChangedLocked(entry *revisionEntry, changes *world.ChangeSet
 	c.countDrop(entry.name, cause)
 }
 
+// keepBuiltLocked keeps entry, a value a change passed while it computed, as
+// its name's previous value when readers want the name through Recent and it
+// is newer than the value kept: it holds at entry.at, so those readers take
+// it there while a refresh builds the next, instead of the build being thrown
+// away and every reader waiting on another. The caller holds mtx.
+func (c *Cache) keepBuiltLocked(entry *revisionEntry) {
+	previous, wanted := c.previous[entry.name]
+	if !wanted || (previous.entry != nil && previous.through >= entry.at) {
+		return
+	}
+	c.previous[entry.name] = previousValue{entry: entry.detached(), through: entry.at}
+	c.movedLocked()
+}
+
 // prunePreviousLocked forgets the previous values held only through a
 // revision before oldest, the oldest the history reaches, so a name no reader
 // asks for again does not keep its value. The caller holds mtx.
@@ -326,6 +343,9 @@ func (c *Cache) indexLocked(entry *revisionEntry) {
 		c.faceted[entry] = struct{}{}
 	}
 	if _, ok := c.previous[entry.name]; ok {
+		// Readers want the name through Recent, so a catch-up that drops
+		// the value keeps it for them.
+		entry.recent = true
 		delete(c.previous, entry.name)
 		c.movedLocked()
 	}
