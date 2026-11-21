@@ -1,6 +1,6 @@
 module github.com/s4wave/spacewave
 
-go 1.27.3
+go 1.27.4
 
 tool github.com/s4wave/goscript/cmd/goscript
 
@@ -59,7 +59,7 @@ require (
 	github.com/fclairamb/ftpserverlib v0.32.7
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v6 v6.0.0-beta.1.0.20261118131511-ef69bf247300 // main
-	github.com/go-git/go-git/v6 v6.0.0-beta.1.0.20261119064520-75f3ca83333c // main
+	github.com/go-git/go-git/v6 v6.0.0-beta.1.0.20261120123602-b135e8d10903 // main
 	github.com/go-sql-driver/mysql v1.10.1
 	github.com/goccy/go-json v0.12.0
 	github.com/gomodule/redigo v2.0.0+incompatible
