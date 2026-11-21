@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	bldr_project_validate "github.com/s4wave/spacewave/bldr/project/validate"
 	space_exec "github.com/s4wave/spacewave/core/forge/exec"
+	_ "github.com/s4wave/spacewave/core/space/world/optypes/git"
 	git_block "github.com/s4wave/spacewave/db/git/block"
 	git_world "github.com/s4wave/spacewave/db/git/world"
 	"github.com/s4wave/spacewave/db/unixfs"

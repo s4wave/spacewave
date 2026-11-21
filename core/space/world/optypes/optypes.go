@@ -10,7 +10,6 @@ import (
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
 	"github.com/s4wave/spacewave/db/block/byteslice"
 	"github.com/s4wave/spacewave/db/blocktype"
-	git_block "github.com/s4wave/spacewave/db/git/block"
 	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
 	"github.com/s4wave/spacewave/db/world"
@@ -34,6 +33,8 @@ import (
 //
 // buildTypes adds the types whose packages differ between builds. Plugins
 // resolve the operations and block types they own, such as SQL, themselves.
+// A native program that hosts Git objects adds their types by importing
+// core/space/world/optypes/git; one that does not links no Git code.
 var schema = world.NewSchema(
 	space_world_ops.Types,
 	s4wave_kv_world.WorldTypes,
@@ -52,7 +53,7 @@ var schema = world.NewSchema(
 	bldr_manifest.ManifestTypes,
 	s4wave_canvas.StorageTypes,
 	kvtx_block.KvtxTypes,
-	git_block.GitTypes,
+	gitBlockTypes,
 	[]typeid.Type{
 		// The Python resource package publishes the Secret message, and no
 		// Python package ships typeid.proto, so Secret declares its ID here.
@@ -63,6 +64,19 @@ var schema = world.NewSchema(
 	},
 	buildTypes,
 )
+
+// Register adds types to the Space schema. Call it only from a package
+// init function: lookups read the schema without a lock.
+//
+// Register panics if a type ID is already declared.
+func Register(lists ...[]typeid.Type) {
+	for id, ctor := range world.NewSchema(lists...) {
+		if _, ok := schema[id]; ok {
+			panic("optypes: type id declared twice: " + id)
+		}
+		schema[id] = ctor
+	}
+}
 
 // LookupWorldOp looks up the available world operation types.
 func LookupWorldOp(ctx context.Context, opTypeID string) (world.Operation, error) {

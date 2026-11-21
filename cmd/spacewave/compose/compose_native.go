@@ -18,6 +18,7 @@ import (
 	resource_root_controller "github.com/s4wave/spacewave/core/resource/root/controller"
 	sobject_replica_controller "github.com/s4wave/spacewave/core/sobject/replica/controller"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
+	_ "github.com/s4wave/spacewave/core/space/world/optypes/git"
 	terminal_remoteshell "github.com/s4wave/spacewave/core/terminal/remoteshell"
 	"github.com/s4wave/spacewave/core/transport"
 )
