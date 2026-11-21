@@ -6,8 +6,10 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -225,7 +227,7 @@ func TestFetchRootPointer(t *testing.T) {
 	defer hs.Close()
 
 	// Fetch the CDN root pointer from the test server.
-	got, err := FetchRootPointer(ctx, hs.Client(), hs.URL, testSpaceID)
+	got, err := NewRootPointerFetcher(hs.Client(), hs.URL, testSpaceID).Fetch(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -249,7 +251,7 @@ func TestFetchRootPointerMismatchRejected(t *testing.T) {
 	defer hs.Close()
 
 	// Verify the CDN fetch rejects the mismatched Space ID.
-	_, err := FetchRootPointer(ctx, hs.Client(), hs.URL, testSpaceID)
+	_, err := NewRootPointerFetcher(hs.Client(), hs.URL, testSpaceID).Fetch(ctx)
 	if err == nil {
 		t.Fatal("expected space id mismatch error")
 	}
@@ -263,7 +265,7 @@ func TestFetchRootPointerAbsent(t *testing.T) {
 	defer hs.Close()
 
 	// Fetch the absent CDN pointer without a transport error.
-	got, err := FetchRootPointer(ctx, hs.Client(), hs.URL, testSpaceID)
+	got, err := NewRootPointerFetcher(hs.Client(), hs.URL, testSpaceID).Fetch(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -271,6 +273,65 @@ func TestFetchRootPointerAbsent(t *testing.T) {
 	// Verify the absent pointer represents an empty Space.
 	if got != nil {
 		t.Fatalf("expected nil pointer for empty space, got %+v", got)
+	}
+}
+
+// TestRootPointerFetcherRevalidates fetches an unchanged pointer as a 304
+// reusing the last decode, then picks up a changed pointer under its new ETag.
+func TestRootPointerFetcherRevalidates(t *testing.T) {
+	// Serve the pointer under an ETag and answer a matching If-None-Match with
+	// 304, as the origin's http.ServeContent does.
+	ctx := context.Background()
+	var mtx sync.Mutex
+	body, etag := encodePointer(t, &cdn.CdnRootPointer{SpaceId: testSpaceID}), `"v1"`
+	var sent []int
+	hs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mtx.Lock()
+		defer mtx.Unlock()
+		w.Header().Set("ETag", etag)
+		if r.Header.Get("If-None-Match") == etag {
+			sent = append(sent, http.StatusNotModified)
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
+		sent = append(sent, http.StatusOK)
+		_, _ = w.Write(body)
+	}))
+	defer hs.Close()
+	fetcher := NewRootPointerFetcher(hs.Client(), hs.URL, testSpaceID)
+
+	// Fetch twice: the full body first, then a 304 that reuses it.
+	first, err := fetcher.Fetch(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := fetcher.Fetch(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !second.EqualVT(first) || second == first {
+		t.Fatalf("revalidated pointer should equal a fresh copy of the first: %v %v", first, second)
+	}
+
+	// Publish a new pointer and verify the next fetch returns it in full.
+	changed := &cdn.CdnRootPointer{
+		SpaceId: testSpaceID,
+		Packs:   []*packfile.PackfileEntry{{Id: "01kcdnpack0000000000000002", BlockCount: 1}},
+	}
+	mtx.Lock()
+	body, etag = encodePointer(t, changed), `"v2"`
+	mtx.Unlock()
+	third, err := fetcher.Fetch(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !third.EqualVT(changed) {
+		t.Fatalf("expected changed pointer, got %v", third)
+	}
+	mtx.Lock()
+	defer mtx.Unlock()
+	if want := []int{http.StatusOK, http.StatusNotModified, http.StatusOK}; !slices.Equal(sent, want) {
+		t.Fatalf("responses %v, want %v", sent, want)
 	}
 }
 

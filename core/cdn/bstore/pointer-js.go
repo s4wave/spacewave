@@ -18,11 +18,14 @@ type httpRootPointerResponse struct {
 	resp *http.Response
 }
 
-func fetchRootPointerResponse(ctx context.Context, httpCli *http.Client, url string) (rootPointerResponse, error) {
+func fetchRootPointerResponse(ctx context.Context, httpCli *http.Client, url, etag string) (rootPointerResponse, error) {
 	if httpCli != nil {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 		if err != nil {
 			return nil, err
+		}
+		if etag != "" {
+			req.Header.Set("If-None-Match", etag)
 		}
 		resp, err := httpCli.Do(req)
 		if err != nil {
@@ -33,6 +36,7 @@ func fetchRootPointerResponse(ctx context.Context, httpCli *http.Client, url str
 
 	resp, err := fetch.Fetch(url, &fetch.Opts{
 		Method: http.MethodGet,
+		Header: rootPointerFetchHeader(etag),
 		Signal: ctx,
 	})
 	if err != nil {
@@ -43,6 +47,18 @@ func fetchRootPointerResponse(ctx context.Context, httpCli *http.Client, url str
 
 func (r jsRootPointerResponse) StatusCode() int {
 	return r.resp.StatusCode
+}
+
+func (r jsRootPointerResponse) ETag() string {
+	return r.resp.Header.Get("ETag")
+}
+
+// rootPointerFetchHeader returns the request header that revalidates etag.
+func rootPointerFetchHeader(etag string) fetch.Header {
+	if etag == "" {
+		return nil
+	}
+	return fetch.Header{"If-None-Match": {etag}}
 }
 
 func (r jsRootPointerResponse) Body() io.Reader {
@@ -58,6 +74,10 @@ func (r jsRootPointerResponse) Close() {
 
 func (r httpRootPointerResponse) StatusCode() int {
 	return r.resp.StatusCode
+}
+
+func (r httpRootPointerResponse) ETag() string {
+	return r.resp.Header.Get("ETag")
 }
 
 func (r httpRootPointerResponse) Body() io.Reader {
