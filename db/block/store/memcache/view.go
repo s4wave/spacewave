@@ -43,8 +43,8 @@ func (v *view) PutBlockBatch(context.Context, []*block.PutBatchEntry) ([]bool, e
 }
 
 // GetBlock serves the block the cache holds.
-func (v *view) GetBlock(_ context.Context, ref *block.BlockRef) ([]byte, bool, error) {
-	stored := v.cache.get(ref)
+func (v *view) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	stored := v.get(ctx, ref)
 	if stored == nil {
 		return nil, false, nil
 	}
@@ -53,8 +53,22 @@ func (v *view) GetBlock(_ context.Context, ref *block.BlockRef) ([]byte, bool, e
 
 // GetStoredBlock serves the block the cache holds, with the refs it was read
 // with.
-func (v *view) GetStoredBlock(_ context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
-	return v.cache.get(ref), nil
+func (v *view) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	return v.get(ctx, ref), nil
+}
+
+// get returns the block the cache holds, or nil. A hit is marked a durable
+// read, so its decoded block enters the shared decoded-block pool: every entry
+// is a copy of a block the durable store below served. The removal generation
+// is taken before the lookup, so a removal reported while it runs keeps the
+// block out of the pool.
+func (v *view) get(ctx context.Context, ref *block.BlockRef) *block.StoredBlock {
+	gen := block.DurableReadGeneration()
+	stored := v.cache.get(ref)
+	if stored != nil {
+		block.MarkDurableRead(ctx, ref, gen)
+	}
+	return stored
 }
 
 // GetBlockExists reports the block absent, as the view's doc states.
