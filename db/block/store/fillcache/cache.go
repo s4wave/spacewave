@@ -76,6 +76,12 @@ type Cache struct {
 	queue *fillQueue
 	// evicting is set while the cache is deleting rows down to its target.
 	evicting bool
+	// reads holds the table keys of the hits awaiting their read stamp.
+	reads map[string]struct{}
+	// stamping is set while the writer stamps hits it took from reads.
+	stamping bool
+	// seq is the read sequence of the next stamp; only the writer uses it.
+	seq int64
 	// counts are the counters Counts reports.
 	counts counters
 }
@@ -102,6 +108,7 @@ func Open(ctx context.Context, le *logrus.Entry, path string, opts Options) (*Ca
 		store:  store,
 		blocks: block_store_kvtx.NewKVTxBlock(keys, store, 0, true),
 		exited: make(chan struct{}),
+		reads:  make(map[string]struct{}),
 	}
 	c.view = &view{StoreOps: block.NewReadOnlyStore(c.blocks), cache: c}
 
@@ -111,6 +118,18 @@ func Open(ctx context.Context, le *logrus.Entry, path string, opts Options) (*Ca
 		limit = DefaultLimitBytes
 	}
 	c.evict = newEvicter(store.GetDB(), cacheTable, keys, limit, &c.counts.evicted)
+
+	// Continue the read sequence the file holds.
+	if err := createReads(ctx, store.GetDB()); err != nil {
+		_ = store.Close()
+		return nil, err
+	}
+	last, err := lastReadSeq(ctx, store.GetDB())
+	if err != nil {
+		_ = store.Close()
+		return nil, err
+	}
+	c.seq = last + 1
 
 	// Bound the fills awaiting their write.
 	queueBytes := opts.QueueBytes
@@ -176,10 +195,11 @@ func (c *Cache) enqueue(entry *block.PutBatchEntry) {
 	}
 }
 
-// Wait waits until no fill is queued or being written and no eviction runs.
+// Wait waits until no fill is queued or being written, no hit awaits its read
+// stamp and no eviction runs.
 func (c *Cache) Wait(ctx context.Context) error {
 	return c.bcast.Wait(ctx, func(func(), func() <-chan struct{}) (bool, error) {
-		return c.queue.idle() && !c.evicting, nil
+		return c.queue.idle() && len(c.reads) == 0 && !c.stamping && !c.evicting, nil
 	})
 }
 
@@ -195,8 +215,9 @@ func (c *Cache) Close() error {
 	return c.store.Close()
 }
 
-// run writes the queued entries in batches and evicts while the cache is over
-// its bound, until ctx ends.
+// run writes the queued entries in batches, stamps the rows they wrote and the
+// rows hits read, and evicts while the cache is over its bound, until ctx
+// ends.
 func (c *Cache) run(ctx context.Context) error {
 	defer close(c.exited)
 
@@ -204,20 +225,27 @@ func (c *Cache) run(ctx context.Context) error {
 	// flush of its own.
 	wctx := kvtx.WithBackgroundWriteContext(kvtx.WithOrderedCommitContext(ctx))
 	for {
-		// Wait for entries to write or an eviction to go on.
+		// Wait for entries to write, hits to stamp or an eviction to go on.
 		var batch []*block.PutBatchEntry
+		var hits map[string]struct{}
 		var evicting bool
 		err := c.bcast.Wait(ctx, func(func(), func() <-chan struct{}) (bool, error) {
 			batch, evicting = c.queue.take(), c.evicting
-			return len(batch) != 0 || evicting, nil
+			if len(c.reads) != 0 {
+				hits, c.reads = c.reads, make(map[string]struct{})
+				c.stamping = true
+			}
+			return len(batch) != 0 || len(hits) != 0 || evicting, nil
 		})
 		if err != nil {
 			return nil
 		}
 
 		// Write the entries.
+		written := batch
 		if len(batch) != 0 {
 			if _, err := c.blocks.PutBlockBatch(wctx, batch); err != nil {
+				written = nil
 				c.counts.writeFailed.Add(uint64(len(batch)))
 				if ctx.Err() == nil {
 					c.warn.warn(err, "the block fill cache failed a write, dropping its fills")
@@ -225,6 +253,15 @@ func (c *Cache) run(ctx context.Context) error {
 			} else {
 				c.counts.written.Add(uint64(len(batch)))
 			}
+		}
+
+		// Stamp the written rows and the hits with the next read sequence. A
+		// failed stamp leaves rows looking older than they are.
+		if len(written) != 0 || len(hits) != 0 {
+			if err := c.stamp(ctx, c.seq, written, hits); err != nil && ctx.Err() == nil {
+				c.warn.warn(err, "the block fill cache failed to stamp its reads")
+			}
+			c.seq++
 		}
 
 		// Delete a run of rows while the cache is over its bound.
@@ -236,6 +273,7 @@ func (c *Cache) run(ctx context.Context) error {
 		// Release the batch's blocks and publish the eviction state.
 		c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			c.queue.done(batch)
+			c.stamping = false
 			c.evicting = evicting
 			broadcast()
 		})

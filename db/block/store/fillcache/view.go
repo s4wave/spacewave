@@ -30,7 +30,8 @@ func (v *view) BeginReadOperation(context.Context) (block.StoreOps, func(), erro
 // A hit is marked a durable read, so its decoded block enters the shared
 // decoded-block pool: every row is a verified copy of a block the packs hold.
 // The removal generation is taken before the read, so a removal reported
-// while it runs keeps the block out of the pool.
+// while it runs keeps the block out of the pool. A hit also queues its row's
+// read stamp, so eviction keeps it over rows read longer ago.
 func (v *view) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	// Serve the block when the cache holds it intact.
 	gen := block.DurableReadGeneration()
@@ -38,6 +39,7 @@ func (v *view) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool,
 	if err == nil {
 		if found {
 			v.cache.counts.hits.Add(1)
+			v.cache.touch(ref)
 			block.MarkDurableRead(ctx, ref, gen)
 		} else {
 			v.cache.counts.misses.Add(1)
