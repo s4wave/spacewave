@@ -5,6 +5,7 @@ import (
 	"errors"
 	"maps"
 	"strconv"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"testing/synctest"
@@ -47,6 +48,19 @@ func seed(t *testing.T, engine world.Engine, key string) {
 	}
 }
 
+// reach brings cache to tx's revision, as the World's change watch does in the
+// background.
+func reach(t *testing.T, cache *Cache, tx world.WorldState) {
+	t.Helper()
+	seqno, err := tx.GetSeqno(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := cache.Advance(t.Context(), seqno); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestRevisionCache(t *testing.T) {
 	// compute counts its calls and reads a; read opens a snapshot.
 	store, engine := readsStore(t)
@@ -82,14 +96,17 @@ func TestRevisionCache(t *testing.T) {
 		t.Fatal("a revision's value was computed", calls, "times")
 	}
 
-	// An unrelated write keeps it; a write to a replaces it, for older readers
-	// too.
+	// Once the cache reaches a revision, an unrelated write keeps it; a write
+	// to a replaces it, for older readers too.
 	seed(t, engine, "b")
-	if got, _ := cache.Get(ctx, read(), "v", compute(6)); got != 5 || calls != 1 {
+	newer := read()
+	reach(t, cache, newer)
+	if got, _ := cache.Get(ctx, newer, "v", compute(6)); got != 5 || calls != 1 {
 		t.Fatal("an unrelated revision recomputed the value", got, calls)
 	}
 	seed(t, engine, "a")
 	current := read()
+	reach(t, cache, current)
 	if got, _ := cache.Get(ctx, current, "v", compute(7)); got != 7 {
 		t.Fatal("a change to what the value read kept the old value", got)
 	}
@@ -190,13 +207,15 @@ func TestRevisionCacheIndexedParts(t *testing.T) {
 		return cache.Get(ctx, tx, "part", part)
 	}
 
-	// get reads the value name at the newest revision.
+	// get reads the value name at the newest revision, once the cache has
+	// reached it.
 	get := func(name string, compute func(context.Context, world.WorldState) (any, error)) any {
 		tx, err := store.engine.NewTransaction(ctx, false)
 		if err != nil {
 			t.Fatal(err)
 		}
 		defer tx.Discard()
+		reach(t, cache, tx)
 		got, err := cache.Get(ctx, tx, name, compute)
 		if err != nil {
 			t.Fatal(err)
@@ -221,98 +240,97 @@ func TestRevisionCacheIndexedParts(t *testing.T) {
 	}
 }
 
-// TestRevisionCacheComputingAcrossRevisions computes a value while the World
-// moves on: a reader at the newer revision shares it when the changes left its
-// reads alone, and computes its own when they touched them.
-func TestRevisionCacheComputingAcrossRevisions(t *testing.T) {
-	// compute reads a, holding until release closes.
+// stalledWatch is a World whose change watch reports nothing until release
+// closes, as a change watch waiting on cold block reads does.
+type stalledWatch struct {
+	world.Engine
+	release chan struct{}
+}
+
+// WatchChanges waits for release, then forwards the World's changes.
+func (s *stalledWatch) WatchChanges(ctx context.Context, afterSeqno uint64, touches world.ChangeFilter, cb func(uint64, *world.ChangeSet) error) error {
+	select {
+	case <-s.release:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+	return world.WatchTouchingChanges(ctx, s.Engine, afterSeqno, touches, cb)
+}
+
+// TestRevisionCacheAheadOfCatchUp reads at revisions the cache has not reached
+// while its catch-up waits on a stalled change watch: the reader computes in
+// its own snapshot at once instead of waiting on the watch, and once the watch
+// reports, a later reader shares the kept value only where the changes since
+// left it alone.
+func TestRevisionCacheAheadOfCatchUp(t *testing.T) {
+	// Feed the cache from a World whose change watch is stalled.
 	store, engine := readsStore(t)
 	ctx := t.Context()
-	cache := &Cache{engine: engine}
-	read := func() world.Tx {
+	release := make(chan struct{})
+	var once sync.Once
+	unstall := func() { once.Do(func() { close(release) }) }
+	t.Cleanup(unstall)
+	cache := &Cache{engine: &stalledWatch{Engine: engine, release: release}}
+	read := func() (world.Tx, uint64) {
 		tx, err := store.engine.NewTransaction(ctx, false)
 		if err != nil {
 			t.Fatal(err)
 		}
 		t.Cleanup(tx.Discard)
-		return tx
-	}
-	var calls atomic.Int32
-	held := func(started, release chan struct{}) func(context.Context, world.WorldState) (any, error) {
-		return func(ctx context.Context, tx world.WorldState) (any, error) {
-			n := calls.Add(1)
-			if _, err := tx.HasObject(ctx, "a"); err != nil {
-				return nil, err
-			}
-			if started != nil {
-				close(started)
-				<-release
-			}
-			return n, nil
-		}
-	}
-
-	for _, touch := range []bool{false, true} {
-		// Start a computation at the current revision and hold it.
-		name := "v" + strconv.FormatBool(touch)
-		calls.Store(0)
-		started, release := make(chan struct{}), make(chan struct{})
-		first := make(chan any, 1)
-		old := read()
-		go func() {
-			value, err := cache.Get(ctx, old, name, held(started, release))
-			if err != nil {
-				t.Error(err)
-			}
-			first <- value
-		}()
-		<-started
-
-		// Move the World on, touching a or not, and read at the new
-		// revision while the first computation still runs.
-		key := "unrelated-" + name
-		if touch {
-			key = "a"
-		}
-		seed(t, engine, key)
-		second := make(chan any, 1)
-		newer := read()
-		go func() {
-			value, err := cache.Get(ctx, newer, name, held(nil, nil))
-			if err != nil {
-				t.Error(err)
-			}
-			second <- value
-		}()
-
-		// Once the newer reader moved the cache past the first computation,
-		// release it: the newer reader shares it only when a was left alone.
-		seqno, err := newer.GetSeqno(ctx)
+		seqno, err := tx.GetSeqno(ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
-		for deadline := time.Now().Add(5 * time.Second); ; time.Sleep(time.Millisecond) {
-			cache.mtx.Lock()
-			caught := cache.seqno.Load() >= seqno
-			cache.mtx.Unlock()
-			if caught {
-				break
-			}
-			if time.Now().After(deadline) {
-				t.Fatal("the newer reader never moved the cache")
-			}
+		return tx, seqno
+	}
+	var calls atomic.Int32
+	compute := func(ctx context.Context, tx world.WorldState) (any, error) {
+		n := calls.Add(1)
+		if _, err := tx.HasObject(ctx, "a"); err != nil {
+			return nil, err
 		}
-		close(release)
-		if got := <-first; got != int32(1) {
-			t.Fatal("the first reader got", got)
+		return n, nil
+	}
+	get := func(tx world.Tx) any {
+		value, err := cache.Get(ctx, tx, "v", compute)
+		if err != nil {
+			t.Fatal(err)
 		}
-		got := <-second
-		if want := int32(1); !touch && (got != want || calls.Load() != 1) {
-			t.Fatal("an untouched value was not shared:", got, calls.Load())
+		return value
+	}
+
+	// Keep a value at the first revision; the empty cache jumps there.
+	first, firstSeqno := read()
+	if got := get(first); got != int32(1) || cache.Seqno() != firstSeqno {
+		t.Fatal("the first value", got, cache.Seqno(), firstSeqno)
+	}
+
+	// A reader past an unrelated change computes in its own snapshot while
+	// the watch is stalled, and its value is not kept above the cache.
+	seed(t, engine, "unrelated")
+	ahead, aheadSeqno := read()
+	if got := get(ahead); got != int32(2) || cache.Seqno() != firstSeqno {
+		t.Fatal("the reader ahead waited or shared:", got, cache.Seqno(), firstSeqno)
+	}
+
+	// Once the watch reports, the cache passes the reader's revision and
+	// shares the first value, which the unrelated change left alone.
+	unstall()
+	for deadline := time.Now().Add(5 * time.Second); cache.Seqno() < aheadSeqno; time.Sleep(time.Millisecond) {
+		if time.Now().After(deadline) {
+			t.Fatal("the catch-up never reached the reader's revision")
 		}
-		if touch && (got != int32(2) || calls.Load() != 2) {
-			t.Fatal("a touched value was shared at the newer revision:", got, calls.Load())
-		}
+	}
+	if got := get(ahead); got != int32(1) || calls.Load() != 2 {
+		t.Fatal("the untouched value was not shared:", got, calls.Load())
+	}
+
+	// A change to what the value read is never answered with the old value,
+	// whether the reader computes ahead or after the catch-up.
+	seed(t, engine, "a")
+	touched, _ := read()
+	if got := get(touched); got == int32(1) {
+		t.Fatal("a value the change touched was served at the newer revision")
 	}
 }
 
@@ -339,13 +357,11 @@ func TestRevisionCachePartBehindHead(t *testing.T) {
 		return tx
 	}
 
-	// While the outer value computes before c, c is written and a newer
-	// reader moves the cache past the outer snapshot.
+	// While the outer value computes before c, c is written and the cache
+	// moves past the outer snapshot.
 	got, err := cache.Get(ctx, read(), "outer", func(ctx context.Context, tx world.WorldState) (any, error) {
 		seed(t, engine, "c")
-		if _, err := cache.Get(ctx, read(), "newer", func(context.Context, world.WorldState) (any, error) { return 0, nil }); err != nil {
-			return nil, err
-		}
+		reach(t, cache, read())
 		return cache.Get(ctx, tx, "part", part)
 	})
 	if err != nil || got != false {
@@ -371,9 +387,7 @@ func TestRevisionCachePartBehindHead(t *testing.T) {
 	}
 	if _, err := cache.Get(ctx, read(), "outer-2", func(ctx context.Context, tx world.WorldState) (any, error) {
 		seed(t, engine, "e")
-		if _, err := cache.Get(ctx, read(), "newer-2", func(context.Context, world.WorldState) (any, error) { return 0, nil }); err != nil {
-			return nil, err
-		}
+		reach(t, cache, read())
 		return cache.Get(ctx, tx, "other", other)
 	}); err != nil {
 		t.Fatal(err)
@@ -469,6 +483,7 @@ func TestRevisionCacheParts(t *testing.T) {
 			t.Fatal(err)
 		}
 		defer tx.Discard()
+		reach(t, cache, tx)
 		compute := part
 		if name == "composite" {
 			compute = composite
@@ -550,6 +565,7 @@ func TestRevisionCacheParts(t *testing.T) {
 			t.Fatal(err)
 		}
 		defer tx.Discard()
+		reach(t, facetCache, tx)
 		x, err := facetCache.Get(ctx, tx, "reader:x", reader("x"))
 		if err != nil {
 			t.Fatal(err)
@@ -608,7 +624,8 @@ func TestRevisionCacheFacetHolder(t *testing.T) {
 		return cache.Get(ctx, tx, "reader", reader)
 	}
 
-	// get reads the value name at the newest revision.
+	// get reads the value name at the newest revision, once the cache has
+	// reached it.
 	get := func(name string, compute func(context.Context, world.WorldState) (any, error)) any {
 		t.Helper()
 		tx, err := store.engine.NewTransaction(ctx, false)
@@ -817,8 +834,8 @@ func TestRevisionCacheBehindShared(t *testing.T) {
 	if calls.Load() != 1 {
 		t.Fatal("the part was computed", calls.Load(), "times")
 	}
-	if len(cache.behind) != 0 {
-		t.Fatal("claims leaked:", len(cache.behind))
+	if len(cache.apart) != 0 {
+		t.Fatal("claims leaked:", len(cache.apart))
 	}
 }
 
@@ -946,8 +963,8 @@ func TestRevisionCacheBehindError(t *testing.T) {
 	if got := calls.Load(); got > n {
 		t.Fatal("the failing part was computed", got, "times for", n, "callers")
 	}
-	if len(cache.behind) != 0 {
-		t.Fatal("claims leaked:", len(cache.behind))
+	if len(cache.apart) != 0 {
+		t.Fatal("claims leaked:", len(cache.apart))
 	}
 
 	// The failure is not kept: a later call computes again.
