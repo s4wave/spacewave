@@ -70,6 +70,8 @@ type SessionTransport struct {
 	signalingURL string
 	// signingEnvPfx is the request-signing environment prefix.
 	signingEnvPfx string
+	// clock corrects signed requests to the signaling server's clock.
+	clock serverClock
 	// bridgeFilter optionally excludes directives from the parent bridge.
 	bridgeFilter bus_bridge.FilterFn
 	// childFactories build the factories the creator adds to the child bus.

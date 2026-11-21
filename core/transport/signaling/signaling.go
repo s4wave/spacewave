@@ -28,6 +28,10 @@ import (
 // server's clock.
 const clockSkew = 5 * time.Minute
 
+// errTimeOutOfRange reports a request signed more than clockSkew from the
+// server's clock, as a device whose clock is set wrong signs.
+var errTimeOutOfRange = errors.New("request time is out of range")
+
 // ticketLifetime is how long a ticket waits for its socket.
 const ticketLifetime = 30 * time.Second
 
@@ -105,7 +109,7 @@ func (s *Signaling) ServeTicket(w http.ResponseWriter, r *http.Request) {
 	}
 	pid, err := VerifyRequest(r, time.Now(), s.signingEnv)
 	if err != nil {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		refuseSigned(w, err)
 		return
 	}
 	if !s.admits(r.Context(), pid) {
@@ -174,7 +178,7 @@ func (s *Signaling) ServePeer(w http.ResponseWriter, r *http.Request) {
 	// Accept only a socket the peer's key signed.
 	pid, err := VerifyRequest(r, time.Now(), s.signingEnv)
 	if err != nil {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		refuseSigned(w, err)
 		return
 	}
 	conn, err := websocket.Accept(w, r, nil)
@@ -199,6 +203,17 @@ func (s *Signaling) ServePeer(w http.ResponseWriter, r *http.Request) {
 	<-conn.CloseRead(r.Context()).Done()
 }
 
+// refuseSigned answers a signed request that failed verification. A request
+// signed at a time out of range says so, since its signer's clock is wrong
+// rather than its key; its Date header gives the signer the server's time.
+func refuseSigned(w http.ResponseWriter, err error) {
+	if errors.Is(err, errTimeOutOfRange) {
+		http.Error(w, "Request time is out of range", http.StatusForbidden)
+		return
+	}
+	http.Error(w, "Forbidden", http.StatusForbidden)
+}
+
 // VerifyRequest returns the peer whose key signed r at a time near now, in
 // the request signing form peers use for the configured service.
 func VerifyRequest(r *http.Request, now time.Time, signingEnv string) (peer.ID, error) {
@@ -216,7 +231,7 @@ func VerifyRequest(r *http.Request, now time.Time, signingEnv string) (peer.ID, 
 		return "", err
 	}
 	if skew := now.Sub(time.UnixMilli(timestamp)); skew > clockSkew || skew < -clockSkew {
-		return "", errors.New("request time is out of range")
+		return "", errTimeOutOfRange
 	}
 
 	// Bind the signature to this request's method, path and body.

@@ -15,15 +15,20 @@ import (
 )
 
 // SignHTTPRequest signs an HTTP request using the Spacewave SigningPayload
-// proto binary + Ed25519 wire format.
+// proto binary + Ed25519 wire format, at the local clock's time.
 func SignHTTPRequest(req *http.Request, body []byte, priv bifrost_crypto.PrivKey, pid peer.ID, envPfx string) error {
+	return signHTTPRequestAt(req, body, priv, pid, envPfx, time.Now())
+}
+
+// signHTTPRequestAt signs req as SignHTTPRequest does, claiming the time now.
+func signHTTPRequestAt(req *http.Request, body []byte, priv bifrost_crypto.PrivKey, pid peer.ID, envPfx string, now time.Time) error {
 	// Prepare the request environment, body digest, and signing timestamp.
 	if envPfx == "" {
 		envPfx = "spacewave"
 	}
 	h := sha256.Sum256(body)
 	bodyHashHex := hex.EncodeToString(h[:])
-	timestampMs := time.Now().UnixMilli()
+	timestampMs := now.UnixMilli()
 
 	// Encode the request metadata in the canonical signing payload.
 	payload := &api.SigningPayload{

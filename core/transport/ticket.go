@@ -14,20 +14,26 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 )
 
+// errSignalTicketUnauthorized matches a ticket refusal the peer gives up on.
 var errSignalTicketUnauthorized = errors.New("signal ticket unauthorized")
 
+// signalTicketHTTPError is a ticket request the server answered without a
+// ticket.
 type signalTicketHTTPError struct {
 	statusCode int
 }
 
+// Error names the refusal's HTTP status.
 func (e *signalTicketHTTPError) Error() string {
 	return "signal ticket: HTTP " + strconv.Itoa(e.statusCode)
 }
 
+// StatusCode returns the refusal's HTTP status.
 func (e *signalTicketHTTPError) StatusCode() int {
 	return e.statusCode
 }
 
+// Is matches errSignalTicketUnauthorized for a 401 refusal.
 func (e *signalTicketHTTPError) Is(target error) bool {
 	return e.statusCode == http.StatusUnauthorized && target == errSignalTicketUnauthorized
 }
@@ -64,36 +70,38 @@ func signalWebSocketURL(baseURL, ticket string) (string, error) {
 }
 
 // acquireSignalTicket POSTs to /signal/ticket with entity-signed headers
-// and returns a JWT token for WebSocket authentication.
+// and returns a JWT token for WebSocket authentication. It signs at clock's
+// time and learns the server's time from each answer; a request refused while
+// the clocks disagreed is signed again once, at the server's time.
 func acquireSignalTicket(
 	ctx context.Context,
 	baseURL string,
 	priv bifrost_crypto.PrivKey,
 	pid peer.ID,
 	envPfx string,
+	clock *serverClock,
 ) (string, error) {
 	// Construct the binary signal ticket request at the configured endpoint.
 	ticketURL, err := signalURL(baseURL, "/api/signal/ticket")
 	if err != nil {
 		return "", err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, ticketURL.String(), nil)
+	resp, err := postSignalTicket(ctx, ticketURL.String(), priv, pid, envPfx, clock)
 	if err != nil {
 		return "", err
 	}
-	req.Header.Set("Accept", "application/octet-stream")
-
-	// Authenticate the ticket request with the session peer signature.
-	if err := SignHTTPRequest(req, nil, priv, pid, envPfx); err != nil {
-		return "", errors.Wrap(err, "sign signal ticket request")
-	}
-
-	// Send the ticket request and retain its response body until decoded.
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return "", errors.Wrap(err, "post signal ticket")
-	}
 	defer resp.Body.Close()
+
+	// A refusal that corrected the clock is signed again at the server's time.
+	if resp.StatusCode == http.StatusForbidden && clock.observe(resp) {
+		resp.Body.Close()
+		resp, err = postSignalTicket(ctx, ticketURL.String(), priv, pid, envPfx, clock)
+		if err != nil {
+			return "", err
+		}
+		defer resp.Body.Close()
+	}
+	clock.observe(resp)
 
 	// Require a successful HTTP response before decoding the signal ticket.
 	if resp.StatusCode != http.StatusOK {
@@ -114,4 +122,31 @@ func acquireSignalTicket(
 	}
 
 	return result.GetToken(), nil
+}
+
+// postSignalTicket sends one ticket request signed at clock's time.
+func postSignalTicket(
+	ctx context.Context,
+	ticketURL string,
+	priv bifrost_crypto.PrivKey,
+	pid peer.ID,
+	envPfx string,
+	clock *serverClock,
+) (*http.Response, error) {
+	// Build the request for a binary ticket.
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, ticketURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Accept", "application/octet-stream")
+
+	// Authenticate the ticket request with the session peer signature.
+	if err := signHTTPRequestAt(req, nil, priv, pid, envPfx, clock.now()); err != nil {
+		return nil, errors.Wrap(err, "sign signal ticket request")
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, errors.Wrap(err, "post signal ticket")
+	}
+	return resp, nil
 }
