@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"database/sql"
+	"sync/atomic"
 	"time"
 
 	"github.com/pkg/errors"
@@ -43,17 +44,21 @@ type evicter struct {
 	// chunk is the block bytes one step deletes: evictChunkBytes, or a tenth of
 	// the limit when that is smaller, so a step never empties a small cache.
 	chunk int64
+	// evicted counts the rows the steps deleted.
+	evicted *atomic.Uint64
 }
 
-// newEvicter builds an evicter for the table with the byte bound.
-func newEvicter(db *sql.DB, table string, keys *store_kvkey.KVKey, limit int64) *evicter {
+// newEvicter builds an evicter for the table with the byte bound, counting the
+// rows it deletes in evicted.
+func newEvicter(db *sql.DB, table string, keys *store_kvkey.KVKey, limit int64, evicted *atomic.Uint64) *evicter {
 	return &evicter{
-		db:     db,
-		table:  table,
-		keys:   keys,
-		limit:  limit,
-		target: limit / 100 * evictLowWater,
-		chunk:  min(evictChunkBytes, limit/10),
+		db:      db,
+		table:   table,
+		keys:    keys,
+		limit:   limit,
+		target:  limit / 100 * evictLowWater,
+		chunk:   min(evictChunkBytes, limit/10),
+		evicted: evicted,
 	}
 }
 
@@ -107,9 +112,15 @@ func (e *evicter) step(ctx context.Context) error {
 		}
 	}
 
-	// Delete the run in one statement.
-	_, err = e.db.ExecContext(ctx, "DELETE FROM "+e.table+" WHERE key >= ? AND key <= ?", first, last) //nolint:gosec // the table name is the cache's constant.
-	return err
+	// Delete the run in one statement and count its rows.
+	res, err := e.db.ExecContext(ctx, "DELETE FROM "+e.table+" WHERE key >= ? AND key <= ?", first, last) //nolint:gosec // the table name is the cache's constant.
+	if err != nil {
+		return err
+	}
+	if n, err := res.RowsAffected(); err == nil && n > 0 {
+		e.evicted.Add(uint64(n))
+	}
+	return nil
 }
 
 // run returns the first and last key of the rows from start whose values sum

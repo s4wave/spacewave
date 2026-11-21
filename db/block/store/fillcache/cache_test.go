@@ -119,6 +119,9 @@ func TestCacheFillsServesRecreatesAndEvicts(t *testing.T) {
 	}
 	fills(0)
 	cached(0)
+	if got, want := c.Counts(), (Counts{Hits: 1, Misses: 1, Queued: 1, Written: 1}); got != want {
+		t.Fatalf("counts after a fill and a hit = %+v, want %+v", got, want)
+	}
 
 	// A block that fails its hash reads from the durable store and is removed,
 	// then cached again by the read that follows.
@@ -177,6 +180,9 @@ func TestCacheFillsServesRecreatesAndEvicts(t *testing.T) {
 	}
 	if rows == 0 || rows >= len(refs) {
 		t.Fatalf("cache holds %d of %d blocks after eviction", rows, len(refs))
+	}
+	if counts := c.Counts(); counts.Evicted == 0 || counts.Written < counts.Evicted+uint64(rows) {
+		t.Fatalf("counts after eviction = %+v with %d rows left", counts, rows)
 	}
 	for i := range refs {
 		read(i)

@@ -76,6 +76,8 @@ type Cache struct {
 	queue *fillQueue
 	// evicting is set while the cache is deleting rows down to its target.
 	evicting bool
+	// counts are the counters Counts reports.
+	counts counters
 }
 
 // Open opens the cache at path, creating it when missing and recreating it when
@@ -102,11 +104,15 @@ func Open(ctx context.Context, le *logrus.Entry, path string, opts Options) (*Ca
 		exited: make(chan struct{}),
 	}
 	c.view = &view{StoreOps: block.NewReadOnlyStore(c.blocks), cache: c}
+
+	// Bound the cache's rows, counting the ones eviction deletes.
 	limit := opts.LimitBytes
 	if limit <= 0 {
 		limit = DefaultLimitBytes
 	}
-	c.evict = newEvicter(store.GetDB(), cacheTable, keys, limit)
+	c.evict = newEvicter(store.GetDB(), cacheTable, keys, limit, &c.counts.evicted)
+
+	// Bound the fills awaiting their write.
 	queueBytes := opts.QueueBytes
 	if queueBytes <= 0 {
 		queueBytes = DefaultQueueBytes
@@ -160,10 +166,12 @@ func (c *Cache) enqueue(entry *block.PutBatchEntry) {
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		var queued bool
 		if queued, full = c.queue.push(entry); queued {
+			c.counts.queued.Add(1)
 			broadcast()
 		}
 	})
 	if full {
+		c.counts.dropped.Add(1)
 		c.warn.warn(errors.New("the fill queue is full"), "the block fill cache dropped fills")
 	}
 }
@@ -209,8 +217,13 @@ func (c *Cache) run(ctx context.Context) error {
 
 		// Write the entries.
 		if len(batch) != 0 {
-			if _, err := c.blocks.PutBlockBatch(wctx, batch); err != nil && ctx.Err() == nil {
-				c.warn.warn(err, "the block fill cache failed a write, dropping its fills")
+			if _, err := c.blocks.PutBlockBatch(wctx, batch); err != nil {
+				c.counts.writeFailed.Add(uint64(len(batch)))
+				if ctx.Err() == nil {
+					c.warn.warn(err, "the block fill cache failed a write, dropping its fills")
+				}
+			} else {
+				c.counts.written.Add(uint64(len(batch)))
 			}
 		}
 
