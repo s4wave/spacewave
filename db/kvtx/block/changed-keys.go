@@ -10,10 +10,14 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	iavl "github.com/s4wave/spacewave/db/kvtx/block/iavl"
 	okra "github.com/s4wave/spacewave/db/kvtx/block/okra"
+	"golang.org/x/sync/errgroup"
 )
 
 // changedKeysMaxVisits bounds the tree nodes an unrestricted comparison visits.
 const changedKeysMaxVisits = 100000
+
+// changedKeysLoadConcurrency bounds the tree nodes a comparison loads at once.
+const changedKeysLoadConcurrency = 16
 
 // KeyRange is the half-open key range from Start up to End. A nil End is
 // unbounded.
@@ -149,10 +153,7 @@ func changedKeys(
 		}
 
 		// Load the frontier nodes needed for the next comparison.
-		if err := a.load(ctx); err != nil {
-			return false, err
-		}
-		if err := b.load(ctx); err != nil {
+		if err := loadDiffTreeNodes(ctx, []*diffTreeNode{a, b}); err != nil {
 			return false, err
 		}
 
@@ -180,12 +181,19 @@ func changedKeys(
 			continue
 		}
 
-		// Expand the taller frontier until both sides expose comparable leaves.
+		// Expand the taller frontier until both sides expose comparable
+		// leaves, loading ahead the children the walk will visit.
 		if a != nil && !a.leaf && (b == nil || b.leaf || a.height >= b.height) {
+			if err := loadDiffTreeNodes(ctx, childrenToVisit(left, right, ranges)); err != nil {
+				return false, err
+			}
 			left = append(left[:len(left)-1], a.children...)
 			continue
 		}
 		if b != nil && !b.leaf {
+			if err := loadDiffTreeNodes(ctx, childrenToVisit(right, left, ranges)); err != nil {
+				return false, err
+			}
 			right = append(right[:len(right)-1], b.children...)
 			continue
 		}
@@ -264,6 +272,88 @@ func mayHoldKeyIn(frontier []*diffTreeNode, ranges []KeyRange) bool {
 		return true
 	}
 	return bytes.Compare(ranges[i].Start, frontier[len(frontier)-2].lower) < 0
+}
+
+// childrenToVisit returns the unloaded children of the loaded inner node on top
+// of frontier that the walk will load: those that may hold a key in ranges and
+// whose subtree is not a node, or a loaded node's child, on other, the other
+// frontier. The walk skips such a shared subtree unread. A child shared deeper
+// than that loads unneeded; one sharing only a deeper subtree loads as the walk
+// needs it anyway. The scan of other stops at the first node starting after
+// the node ends, so it covers only the nodes overlapping the node's keys.
+func childrenToVisit(frontier, other []*diffTreeNode, ranges []KeyRange) []*diffTreeNode {
+	// Find where the node ends: at the lower bound of the node below it.
+	n := frontier[len(frontier)-1]
+	var end []byte
+	if len(frontier) > 1 {
+		end = frontier[len(frontier)-2].lower
+	}
+
+	// Name the subtrees of the other frontier that overlap the node.
+	shared := make(map[string]struct{})
+	addShared := func(node *diffTreeNode) {
+		if node.cursor != nil && node.kind == n.kind {
+			shared[string(node.cursor.GetRef().GetHash().GetHash())] = struct{}{}
+		}
+	}
+	for _, node := range slices.Backward(other) {
+		if end != nil && bytes.Compare(node.lower, end) >= 0 {
+			break
+		}
+		addShared(node)
+		for _, child := range node.children {
+			addShared(child)
+		}
+	}
+
+	// Select the children the walk reaches. Children are in stack order, so
+	// each one ends where the one before it starts, and the first ends where
+	// the node does.
+	var visit []*diffTreeNode
+	for _, child := range n.children {
+		childEnd := end
+		end = child.lower
+		if child.loaded {
+			continue
+		}
+		if _, ok := shared[string(child.cursor.GetRef().GetHash().GetHash())]; ok {
+			continue
+		}
+		if ranges != nil && !spanHoldsKeyIn(child.lower, childEnd, ranges) {
+			continue
+		}
+		visit = append(visit, child)
+	}
+	return visit
+}
+
+// spanHoldsKeyIn reports whether the span from lower up to end, unbounded for
+// a nil end, overlaps the sorted, disjoint ranges.
+func spanHoldsKeyIn(lower, end []byte, ranges []KeyRange) bool {
+	i := sort.Search(len(ranges), func(i int) bool {
+		return ranges[i].End == nil || bytes.Compare(ranges[i].End, lower) > 0
+	})
+	return i != len(ranges) && (end == nil || bytes.Compare(ranges[i].Start, end) < 0)
+}
+
+// loadDiffTreeNodes loads nodes, at most changedKeysLoadConcurrency at once.
+// Each load writes only its own node. Returns the first failure.
+func loadDiffTreeNodes(ctx context.Context, nodes []*diffTreeNode) error {
+	// Load the nodes still unloaded; a single one loads on the caller's
+	// goroutine.
+	nodes = slices.DeleteFunc(nodes, func(n *diffTreeNode) bool { return n == nil || n.loaded })
+	if len(nodes) <= 1 {
+		for _, n := range nodes {
+			return n.load(ctx)
+		}
+		return nil
+	}
+	eg, ctx := errgroup.WithContext(ctx)
+	eg.SetLimit(changedKeysLoadConcurrency)
+	for _, n := range nodes {
+		eg.Go(func() error { return n.load(ctx) })
+	}
+	return eg.Wait()
 }
 
 // diffTreeNode is a lazy ordered frontier; children are stored right-to-left for a stack.
