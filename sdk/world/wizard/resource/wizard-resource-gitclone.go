@@ -9,6 +9,7 @@ import (
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 	s4wave_git "github.com/s4wave/spacewave/core/git"
+	_ "github.com/s4wave/spacewave/core/space/world/optypes/git"
 	"github.com/s4wave/spacewave/db/bucket"
 	git_world "github.com/s4wave/spacewave/db/git/world"
 	"github.com/s4wave/spacewave/db/world"

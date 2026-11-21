@@ -8,7 +8,6 @@ import (
 	forge_dashboard "github.com/s4wave/spacewave/core/forge/dashboard"
 	forge_job_ops "github.com/s4wave/spacewave/core/forge/job"
 	forge_task_ops "github.com/s4wave/spacewave/core/forge/task"
-	s4wave_git "github.com/s4wave/spacewave/core/git"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
 	git_world "github.com/s4wave/spacewave/db/git/world"
 	"github.com/s4wave/spacewave/db/world"
@@ -57,33 +56,6 @@ func TestBuildSpaceLookupOpResolvesBuiltInWithoutBus(t *testing.T) {
 	}
 	if _, ok := op.(*space_world_ops.InitUnixFSOp); !ok {
 		t.Fatalf("expected InitUnixFSOp, got %T", op)
-	}
-
-	// Resolve and type-check the built-in Git initializer.
-	op, err = lookupOp(context.Background(), git_world.GitInitOpTypeID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, ok := op.(*git_world.GitInitOp); !ok {
-		t.Fatalf("expected GitInitOp, got %T", op)
-	}
-
-	// Resolve and type-check the built-in Git worktree operation.
-	op, err = lookupOp(context.Background(), git_world.GitCreateWorktreeOpTypeID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, ok := op.(*git_world.GitCreateWorktreeOp); !ok {
-		t.Fatalf("expected GitCreateWorktreeOp, got %T", op)
-	}
-
-	// Resolve and type-check the Git repository wizard.
-	op, err = lookupOp(context.Background(), s4wave_git.CreateGitRepoWizardOpTypeID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, ok := op.(*s4wave_git.CreateGitRepoWizardOp); !ok {
-		t.Fatalf("expected CreateGitRepoWizardOp, got %T", op)
 	}
 
 	// Resolve and type-check the wizard object operation.

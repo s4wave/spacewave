@@ -21,6 +21,7 @@ import (
 	core_git "github.com/s4wave/spacewave/core/git"
 	resource_testbed "github.com/s4wave/spacewave/core/resource/testbed"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
+	_ "github.com/s4wave/spacewave/core/space/world/optypes/git"
 	"github.com/s4wave/spacewave/db/bucket"
 	git_block "github.com/s4wave/spacewave/db/git/block"
 	git_world "github.com/s4wave/spacewave/db/git/world"

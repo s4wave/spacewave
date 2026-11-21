@@ -24,6 +24,7 @@ import (
 	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
 	resource_root_controller "github.com/s4wave/spacewave/core/resource/root/controller"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
+	_ "github.com/s4wave/spacewave/core/space/world/optypes/git"
 	space_world_replica_controller "github.com/s4wave/spacewave/core/space/world/replica/controller"
 	terminal_remoteshell "github.com/s4wave/spacewave/core/terminal/remoteshell"
 	"github.com/s4wave/spacewave/core/transport"

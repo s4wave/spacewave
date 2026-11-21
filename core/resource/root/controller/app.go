@@ -39,6 +39,7 @@ import (
 	space_world_engine "github.com/s4wave/spacewave/core/space/world/engine"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
+	_ "github.com/s4wave/spacewave/core/space/world/optypes/git"
 	"github.com/s4wave/spacewave/db/bucket"
 	db_core "github.com/s4wave/spacewave/db/core"
 	node_controller "github.com/s4wave/spacewave/db/node/controller"
