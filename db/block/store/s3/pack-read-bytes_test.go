@@ -34,6 +34,13 @@ func TestReadCountsDownloadBytes(t *testing.T) {
 	if want := uint64(len("w block 0")); extent.ExtentBytes < want {
 		t.Fatalf("extent read counted %d bytes, want at least %d", extent.ExtentBytes, want)
 	}
+	var timed uint64
+	for _, n := range extent.ExtentLatency.Counts {
+		timed += n
+	}
+	if timed != 1 {
+		t.Fatalf("extent read timed %d reads, want 1", timed)
+	}
 
 	// With extent reads off, the pack readers download windows.
 	SetIndexExtentReads(false)

@@ -647,6 +647,48 @@ type ReadCounts struct {
 	// WindowFetches and TailFetches count the range reads behind WindowBytes
 	// and TailBytes.
 	WindowFetches, TailFetches uint64
+	// WindowLatency, TailLatency and ExtentLatency time the bucket range
+	// reads behind WindowBytes, TailBytes and ExtentBytes, failed ones
+	// included.
+	WindowLatency, TailLatency, ExtentLatency RangeLatency
+}
+
+// RangeLatencyBuckets are the upper bounds, in seconds, of a RangeLatency's
+// buckets.
+var RangeLatencyBuckets = [...]float64{0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10}
+
+// RangeLatency is a histogram of bucket range read times.
+type RangeLatency struct {
+	// Counts counts the reads in each bucket: Counts[i] those slower than
+	// the bound before RangeLatencyBuckets[i] and at most it, and the last
+	// those slower than every bound.
+	Counts [len(RangeLatencyBuckets) + 1]uint64
+	// Seconds is the reads' total time.
+	Seconds float64
+}
+
+// rangeLatency is the running count of a RangeLatency.
+type rangeLatency struct {
+	counts [len(RangeLatencyBuckets) + 1]atomic.Uint64
+	nanos  atomic.Uint64
+}
+
+// observe counts one read that started at start.
+func (l *rangeLatency) observe(start time.Time) {
+	d := time.Since(start)
+	i, _ := slices.BinarySearch(RangeLatencyBuckets[:], d.Seconds())
+	l.counts[i].Add(1)
+	l.nanos.Add(uint64(max(d, 0))) //nolint:gosec // d is not negative.
+}
+
+// snapshot returns the histogram's counts so far.
+func (l *rangeLatency) snapshot() RangeLatency {
+	var out RangeLatency
+	for i := range l.counts {
+		out.Counts[i] = l.counts[i].Load()
+	}
+	out.Seconds = time.Duration(l.nanos.Load()).Seconds() //nolint:gosec // the sum stays far below the overflow.
+	return out
 }
 
 // readMode names what a bucket download was for, in ReadCounts' byte counts.
@@ -676,6 +718,8 @@ type readCounters struct {
 	bytes [readModes]atomic.Uint64
 	// fetches counts the pack readers' range reads by read mode.
 	fetches [readModes]atomic.Uint64
+	// latency times the range reads of the window, tail and extent modes.
+	latency [readModes]rangeLatency
 }
 
 // downloaded counts n bytes downloaded from the bucket for mode.
@@ -696,6 +740,9 @@ func (s *PackStore) ReadCounts() ReadCounts {
 		TailBytes:     s.reads.bytes[readTail].Load(),
 		WindowFetches: s.reads.fetches[readWindow].Load(),
 		TailFetches:   s.reads.fetches[readTail].Load(),
+		WindowLatency: s.reads.latency[readWindow].snapshot(),
+		TailLatency:   s.reads.latency[readTail].snapshot(),
+		ExtentLatency: s.reads.latency[readExtent].snapshot(),
 		ExtentBytes:   s.reads.bytes[readExtent].Load(),
 		IndexBytes:    s.reads.bytes[readIndex].Load(),
 		WholeBytes:    s.reads.bytes[readWhole].Load(),
@@ -786,7 +833,9 @@ func (s *PackStore) readExtent(ctx context.Context, ref *block.BlockRef) *block.
 		}
 
 		// Read the extent.
+		start := time.Now()
 		data, err := s.client.GetObjectRange(ctx, s.bucket, s.prefix+packDir+id, off, size)
+		s.reads.latency[readExtent].observe(start)
 		s.reads.downloaded(readExtent, len(data))
 		if err != nil {
 			return nil, err
@@ -1320,11 +1369,16 @@ func (t *rangeTransport) FetchIndex(ctx context.Context, off int64, length int) 
 
 // fetch reads bytes [off, off+length) of the object, counted as mode.
 func (t *rangeTransport) fetch(ctx context.Context, mode readMode, off int64, length int) ([]byte, error) {
+	// Skip an empty range.
 	if length <= 0 {
 		return nil, nil
 	}
+
+	// Read the range, counting and timing it.
+	start := time.Now()
 	data, err := t.client.GetObjectRange(ctx, t.bucket, t.key, off, length)
 	if t.reads != nil {
+		t.reads.latency[mode].observe(start)
 		t.reads.fetches[mode].Add(1)
 		t.reads.downloaded(mode, len(data))
 	}
