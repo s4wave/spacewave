@@ -260,8 +260,8 @@ func (s *stalledWatch) WatchChanges(ctx context.Context, afterSeqno uint64, touc
 // TestRevisionCacheAheadOfCatchUp reads at revisions the cache has not reached
 // while its catch-up waits on a stalled change watch: the reader computes in
 // its own snapshot at once instead of waiting on the watch, and once the watch
-// reports, a later reader shares the kept value only where the changes since
-// left it alone.
+// reports, a later reader shares the kept value, or the value computed ahead
+// when none was kept, only where the changes since left it alone.
 func TestRevisionCacheAheadOfCatchUp(t *testing.T) {
 	// Feed the cache from a World whose change watch is stalled.
 	store, engine := readsStore(t)
@@ -298,6 +298,18 @@ func TestRevisionCacheAheadOfCatchUp(t *testing.T) {
 		}
 		return value
 	}
+	var fresh atomic.Int32
+	getFresh := func(tx world.Tx) any {
+		value, err := cache.Get(ctx, tx, "fresh", func(ctx context.Context, tx world.WorldState) (any, error) {
+			n := fresh.Add(1)
+			_, err := tx.HasObject(ctx, "a")
+			return n, err
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return value
+	}
 
 	// Keep a value at the first revision; the empty cache jumps there.
 	first, firstSeqno := read()
@@ -312,6 +324,9 @@ func TestRevisionCacheAheadOfCatchUp(t *testing.T) {
 	if got := get(ahead); got != int32(2) || cache.Seqno() != firstSeqno {
 		t.Fatal("the reader ahead waited or shared:", got, cache.Seqno(), firstSeqno)
 	}
+	if got := getFresh(ahead); got != int32(1) || cache.Seqno() != firstSeqno {
+		t.Fatal("the fresh value ahead waited:", got, cache.Seqno(), firstSeqno)
+	}
 
 	// Once the watch reports, the cache passes the reader's revision and
 	// shares the first value, which the unrelated change left alone.
@@ -325,12 +340,21 @@ func TestRevisionCacheAheadOfCatchUp(t *testing.T) {
 		t.Fatal("the untouched value was not shared:", got, calls.Load())
 	}
 
+	// The value computed ahead under a name the cache kept nothing for is
+	// kept once the catch-up reaches its revision.
+	if got := getFresh(ahead); got != int32(1) || fresh.Load() != 1 {
+		t.Fatal("the value computed ahead was not adopted:", got, fresh.Load())
+	}
+
 	// A change to what the value read is never answered with the old value,
 	// whether the reader computes ahead or after the catch-up.
 	seed(t, engine, "a")
 	touched, _ := read()
 	if got := get(touched); got == int32(1) {
 		t.Fatal("a value the change touched was served at the newer revision")
+	}
+	if got := getFresh(touched); got == int32(1) {
+		t.Fatal("an adopted value the change touched was served at the newer revision")
 	}
 }
 

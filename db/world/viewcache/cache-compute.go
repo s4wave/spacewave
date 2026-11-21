@@ -136,11 +136,10 @@ func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compu
 // computeApart computes the named value in tx, at seqno, a revision other than
 // the cache's: one the catch-up has not reached, or one it has passed while it
 // keeps another value under name that does not hold at seqno. It keeps the
-// value for later readers once the cache stands at or past seqno, no value is
-// kept under name and the changes since seqno left its reads alone; a value
-// at a revision the cache has not reached is never kept, since the cache
-// cannot say it holds at the cache's revision. The callers reading name at
-// seqno share one computation: a reconnect wave opening snapshots ahead of
+// value for later readers when no value is kept under name and the changes
+// since seqno left its reads alone; a value ahead of the cache waits in ahead
+// until the catch-up reaches seqno and can check that. The callers reading
+// name at seqno share one computation: a reconnect wave opening snapshots ahead of
 // the cache, or a burst of writes moving the head past many outer values
 // computing at once, would otherwise have each compute the same value.
 // A computation abandoned with its caller's context is claimed again by a
@@ -203,13 +202,13 @@ func (c *Cache) computeApart(ctx context.Context, tx world.WorldState, seqno uin
 		}
 
 		// End the claim, and keep the value when it holds at the cache's
-		// revision.
+		// revision, or hold it until the catch-up reaches its own.
 		c.mtx.Lock()
 		if claimed && c.apart[key] == entry {
 			delete(c.apart, key)
 		}
-		if entry.err == nil && seqno <= c.seqno.Load() && c.entries[name] == nil && c.heldSinceLocked(entry, seqno) {
-			c.keepLocked(entry)
+		if entry.err == nil {
+			c.keepApartLocked(entry)
 		}
 		close(entry.done)
 		c.mtx.Unlock()
@@ -220,6 +219,42 @@ func (c *Cache) computeApart(ctx context.Context, tx world.WorldState, seqno uin
 		// Publish the completed dependency set to this caller.
 		c.addViewReads(ctx, entry)
 		return entry.value, nil
+	}
+}
+
+// keepApartLocked keeps entry, a finished value computed at a revision other
+// than the cache's, when no value is kept under its name and the changes the
+// cache passed since its revision left it alone. A value past the cache's
+// revision replaces an older one waiting in ahead, until adoptAheadLocked
+// checks it. The caller holds mtx.
+func (c *Cache) keepApartLocked(entry *revisionEntry) {
+	// Hold a value ahead of the cache until the catch-up reaches it.
+	if entry.at > c.seqno.Load() {
+		if old := c.ahead[entry.name]; old == nil || old.at < entry.at {
+			if c.ahead == nil {
+				c.ahead = make(map[string]*revisionEntry)
+			}
+			c.ahead[entry.name] = entry
+		}
+		return
+	}
+
+	// Keep a value the changes since its revision left alone.
+	if c.entries[entry.name] == nil && c.heldSinceLocked(entry, entry.at) {
+		c.keepLocked(entry)
+	}
+}
+
+// adoptAheadLocked checks each value waiting in ahead that the cache has
+// reached, keeping it as keepApartLocked does. The caller holds mtx, and calls
+// it after each move of seqno.
+func (c *Cache) adoptAheadLocked() {
+	seqno := c.seqno.Load()
+	for name, entry := range c.ahead {
+		if entry.at <= seqno {
+			delete(c.ahead, name)
+			c.keepApartLocked(entry)
+		}
 	}
 }
 

@@ -58,6 +58,9 @@ type Cache struct {
 	// apart holds, by name and revision, the computations claimed of values
 	// read at a revision other than seqno, until each ends.
 	apart map[apartKey]*revisionEntry
+	// ahead holds, by name, the newest finished value computed at a revision
+	// past seqno, until the cache reaches that revision and keeps or drops it.
+	ahead map[string]*revisionEntry
 	// refreshing holds the names a background refresh computes again.
 	refreshing map[string]struct{}
 	// moved is closed, and cleared, when anything recent would answer
