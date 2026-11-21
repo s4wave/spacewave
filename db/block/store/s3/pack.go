@@ -577,6 +577,8 @@ type readCounters struct {
 	bytes [readModes]atomic.Uint64
 	// fetches counts the pack readers' range reads by read mode.
 	fetches [readModes]atomic.Uint64
+	// latency times the range reads of the window, tail and extent modes.
+	latency [readModes]rangeLatency
 }
 
 // downloaded counts n bytes downloaded from the bucket for mode.
@@ -600,6 +602,9 @@ func (s *PackStore) ReadCounts() ReadCounts {
 		TailBytes:     s.reads.bytes[readTail].Load(),
 		WindowFetches: s.reads.fetches[readWindow].Load(),
 		TailFetches:   s.reads.fetches[readTail].Load(),
+		WindowLatency: s.reads.latency[readWindow].snapshot(),
+		TailLatency:   s.reads.latency[readTail].snapshot(),
+		ExtentLatency: s.reads.latency[readExtent].snapshot(),
 		ExtentBytes:   s.reads.bytes[readExtent].Load(),
 		IndexBytes:    s.reads.bytes[readIndex].Load(),
 		WholeBytes:    s.reads.bytes[readWhole].Load(),
@@ -693,7 +698,9 @@ func (s *PackStore) readExtent(ctx context.Context, ref *block.BlockRef) (*block
 		}
 
 		// Read the extent; a missing pack means the row named the wrong one.
+		start := time.Now()
 		data, err := s.client.GetObjectRange(ctx, s.bucket, s.prefix+packDir+id, off, size)
+		s.reads.latency[readExtent].observe(start)
 		s.reads.downloaded(readExtent, len(data))
 		if errors.Is(err, ErrNotFound) {
 			return nil, nil
@@ -1244,11 +1251,16 @@ func (t *rangeTransport) FetchIndex(ctx context.Context, off int64, length int) 
 
 // fetch reads bytes [off, off+length) of the object, counted as mode.
 func (t *rangeTransport) fetch(ctx context.Context, mode readMode, off int64, length int) ([]byte, error) {
+	// Skip an empty range.
 	if length <= 0 {
 		return nil, nil
 	}
+
+	// Read the range, counting and timing it.
+	start := time.Now()
 	data, err := t.client.GetObjectRange(ctx, t.bucket, t.key, off, length)
 	if t.reads != nil {
+		t.reads.latency[mode].observe(start)
 		t.reads.fetches[mode].Add(1)
 		t.reads.downloaded(mode, len(data))
 	}
