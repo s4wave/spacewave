@@ -17,14 +17,6 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 )
 
-// The Git types join the schema only in a program that imports
-// core/space/world/optypes/git, which this package cannot import. Register the
-// Git operations here so the golden table covers them as it does in such a
-// program.
-func init() {
-	Register(git_world.GitTypes)
-}
-
 // payloadRefsGolden records, for each payload operation type the static table
 // resolves, a fixture operation and the payload roots GetPayloadRefs names for
 // it under PayloadRefsVersion. Each fixture sets every block reference the
