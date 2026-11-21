@@ -82,7 +82,6 @@ func (c *Cache) Advance(ctx context.Context, seqno uint64) error {
 			}
 			if through > c.seqno.Load() {
 				c.seqno.Store(through)
-				c.adoptAheadLocked()
 				c.movedLocked()
 			}
 		}
@@ -113,7 +112,6 @@ func (c *Cache) jumpLocked(seqno uint64) bool {
 	// Move to seqno and forget the changes before it.
 	c.seqno.Store(seqno)
 	c.history = nil
-	c.adoptAheadLocked()
 	c.movedLocked()
 	return true
 }
