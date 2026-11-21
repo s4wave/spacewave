@@ -12,6 +12,7 @@ import (
 	forge_execution "github.com/s4wave/spacewave/forge/execution"
 	forge_job "github.com/s4wave/spacewave/forge/job"
 	forge_allocation "github.com/s4wave/spacewave/forge/lib/git/allocation"
+	forge_allocation_mount "github.com/s4wave/spacewave/forge/lib/git/allocation/mount"
 	forge_pass "github.com/s4wave/spacewave/forge/pass"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	"github.com/sirupsen/logrus"
@@ -160,7 +161,7 @@ func TestJobWorkspaceSurvivesExecutions(t *testing.T) {
 	if err != nil || retained.GetCleanupState() != "released" {
 		t.Fatalf("release did not persist: %+v, %v", retained, err)
 	}
-	if _, _, err := forge_allocation.ResolveMount(ctx, ws, allocationKey); err == nil {
+	if _, _, err := forge_allocation_mount.Resolve(ctx, ws, allocationKey); err == nil {
 		t.Fatal("settled allocation grants a mount")
 	}
 }
