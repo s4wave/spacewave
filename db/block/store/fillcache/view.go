@@ -31,8 +31,14 @@ func (v *view) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool,
 	// Serve the block when the cache holds it intact.
 	data, found, err := v.StoreOps.GetBlock(ctx, ref)
 	if err == nil {
+		if found {
+			v.cache.counts.hits.Add(1)
+		} else {
+			v.cache.counts.misses.Add(1)
+		}
 		return data, found, nil
 	}
+	v.cache.counts.misses.Add(1)
 
 	// Leave a canceled read to the caller.
 	if ctx.Err() != nil {
