@@ -47,10 +47,8 @@ type SuppliedOptions struct {
 type SuppliedBlockStore struct {
 	// store serves every block read.
 	store block_store.Store
-	// cli fetches the root pointer.
-	cli *http.Client
-	// rootBaseURL is the origin serving root.packedmsg.
-	rootBaseURL string
+	// root fetches and revalidates the root pointer.
+	root *RootPointerFetcher
 	// spaceID is the CDN Space ULID.
 	spaceID string
 	// pointerTTL is the age at which a read re-fetches the pointer.
@@ -91,11 +89,10 @@ func NewSuppliedBlockStore(opts SuppliedOptions) (*SuppliedBlockStore, error) {
 		ttl = DefaultPointerTTL
 	}
 	return &SuppliedBlockStore{
-		store:       opts.Store,
-		cli:         cli,
-		rootBaseURL: RootPointerBaseURL(opts.CdnBaseURL, opts.RootPointerBaseURL),
-		spaceID:     opts.SpaceID,
-		pointerTTL:  ttl,
+		store:      opts.Store,
+		root:       NewRootPointerFetcher(cli, RootPointerBaseURL(opts.CdnBaseURL, opts.RootPointerBaseURL), opts.SpaceID),
+		spaceID:    opts.SpaceID,
+		pointerTTL: ttl,
 	}, nil
 }
 
@@ -132,7 +129,7 @@ func (s *SuppliedBlockStore) Pointer() *cdn.CdnRootPointer {
 // Returns the new pointer (nil if the CDN Space is empty).
 func (s *SuppliedBlockStore) Refresh(ctx context.Context) (*cdn.CdnRootPointer, error) {
 	// Fetch the root pointer from the CDN.
-	ptr, err := FetchRootPointer(ctx, s.cli, s.rootBaseURL, s.spaceID)
+	ptr, err := s.root.Fetch(ctx)
 	if err != nil {
 		return nil, err
 	}

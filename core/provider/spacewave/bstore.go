@@ -689,10 +689,8 @@ func (t *bstoreTracker) publicBaseURL(ctx context.Context) string {
 
 // publicReadRemote owns a CDN manifest and its decoded-cache invalidation.
 type publicReadRemote struct {
-	// cli and addressing identify the anonymous CDN source.
-	cli           *http.Client
-	cdnBaseURL    string
-	spaceID       string
+	// root fetches and revalidates the anonymous CDN root pointer.
+	root          *cdn_bstore.RootPointerFetcher
 	lower         *packfile_store.PackfileStore
 	decodedBlocks *block.DecodedBlockCache
 
@@ -710,9 +708,7 @@ func newPublicReadRemote(
 	decodedBlocks *block.DecodedBlockCache,
 ) *publicReadRemote {
 	remote := &publicReadRemote{
-		cli:           cli,
-		cdnBaseURL:    cdnBaseURL,
-		spaceID:       spaceID,
+		root:          cdn_bstore.NewRootPointerFetcher(cli, cdnBaseURL, spaceID),
 		decodedBlocks: decodedBlocks,
 	}
 	remote.lower = packfile_store.NewPackfileStore(
@@ -725,7 +721,7 @@ func newPublicReadRemote(
 // Refresh fetches the anonymous CDN root pointer and updates the lower store.
 func (r *publicReadRemote) Refresh(ctx context.Context) error {
 	// Fetch the published root pointer.
-	ptr, err := cdn_bstore.FetchRootPointer(ctx, r.cli, r.cdnBaseURL, r.spaceID)
+	ptr, err := r.root.Fetch(ctx)
 	if err != nil {
 		return err
 	}

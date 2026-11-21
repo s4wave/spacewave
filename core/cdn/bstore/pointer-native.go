@@ -15,11 +15,14 @@ type nativeRootPointerResponse struct {
 	resp *http.Response
 }
 
-func fetchRootPointerResponse(ctx context.Context, httpCli *http.Client, url string) (rootPointerResponse, error) {
+func fetchRootPointerResponse(ctx context.Context, httpCli *http.Client, url, etag string) (rootPointerResponse, error) {
 	// Build and send the root pointer request over the native HTTP client.
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "building root pointer request")
+	}
+	if etag != "" {
+		req.Header.Set("If-None-Match", etag)
 	}
 	resp, err := httpCli.Do(req)
 	if err != nil {
@@ -30,6 +33,10 @@ func fetchRootPointerResponse(ctx context.Context, httpCli *http.Client, url str
 
 func (r nativeRootPointerResponse) StatusCode() int {
 	return r.resp.StatusCode
+}
+
+func (r nativeRootPointerResponse) ETag() string {
+	return r.resp.Header.Get("ETag")
 }
 
 func (r nativeRootPointerResponse) Body() io.Reader {

@@ -21,7 +21,7 @@ import (
 // refreshed lazily when the TTL expires or Invalidate is called.
 type CdnBlockStore struct {
 	opts     Options
-	cli      *http.Client
+	root     *RootPointerFetcher
 	opener   packfile_store.Opener
 	memCache *memIndexCache
 	pfs      *packfile_store.PackfileStore
@@ -77,7 +77,7 @@ func NewCdnBlockStore(opts Options) (*CdnBlockStore, error) {
 	// Assemble the CDN block store.
 	return &CdnBlockStore{
 		opts:          opts,
-		cli:           cli,
+		root:          NewRootPointerFetcher(cli, RootPointerBaseURL(opts.CdnBaseURL, opts.RootPointerBaseURL), opts.SpaceID),
 		opener:        opener,
 		memCache:      memCache,
 		pfs:           pfs,
@@ -465,7 +465,7 @@ func (s *CdnBlockStore) loadPointer(ctx context.Context) (*cdn.CdnRootPointer, e
 		// stored pointer only serves later outages, so failing to store it
 		// leaves this read unaffected.
 		prev := s.Pointer()
-		ptr, err := FetchRootPointer(ctx, s.cli, RootPointerBaseURL(s.opts.CdnBaseURL, s.opts.RootPointerBaseURL), s.opts.SpaceID)
+		ptr, err := s.root.Fetch(ctx)
 		if err == nil {
 			if _, published := s.setPointer(ctx, ptr); !published {
 				ptr = nil
