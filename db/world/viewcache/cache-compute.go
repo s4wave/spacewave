@@ -13,9 +13,7 @@ import (
 // Get returns the named value at tx's revision, computing it at most once
 // while the World leaves its reads untouched. A view evaluation in ctx depends
 // on everything the value read, whether or not this call computed it. A
-// reader behind the cache shares the value at the newest revision. A reader
-// ahead of it never waits for the catch-up: it computes the value in its own
-// snapshot, shared with the readers at the same revision. A
+// reader behind the cache shares the value at the newest revision. A
 // computation abandoned with its caller's context is claimed again by a
 // waiter; another failure is retried without the cache. A part read while
 // computing another value, from a snapshot the cache has moved past, is
@@ -28,12 +26,8 @@ func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compu
 	if err != nil {
 		return nil, err
 	}
-	// A reader ahead of the cache computes in its own snapshot rather than
-	// wait for the catch-up, which waits on the World's change watch: upkeep
-	// no read waits on. An empty cache moves to the reader's revision at once.
-	if seqno > c.seqno.Load() && !c.jump(seqno) {
-		c.catchUp(seqno)
-		return c.computeApart(ctx, tx, seqno, name, compute)
+	if err := c.Advance(ctx, seqno); err != nil {
+		return nil, err
 	}
 
 	for {
@@ -86,7 +80,7 @@ func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compu
 			}
 			if entry != nil {
 				c.mtx.Unlock()
-				return c.computeApart(ctx, tx, seqno, name, compute)
+				return c.computeBehind(ctx, tx, seqno, name, compute)
 			}
 			path = "stale"
 		}
@@ -133,29 +127,25 @@ func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compu
 	}
 }
 
-// computeApart computes the named value in tx, at seqno, a revision other than
-// the cache's: one the catch-up has not reached, or one it has passed while it
-// keeps another value under name that does not hold at seqno. It keeps the
-// value for later readers once the cache stands at or past seqno, no value is
-// kept under name and the changes since seqno left its reads alone; a value
-// at a revision the cache has not reached is never kept, since the cache
-// cannot say it holds at the cache's revision. The callers reading name at
-// seqno share one computation: a reconnect wave opening snapshots ahead of
-// the cache, or a burst of writes moving the head past many outer values
-// computing at once, would otherwise have each compute the same value.
+// computeBehind computes the named value in tx, at seqno, a revision the cache
+// has passed while it keeps another value under name that does not hold at
+// seqno, and keeps it for later readers when that value is gone and the
+// changes since seqno left its reads alone. The callers reading name at seqno
+// share one computation: a burst of writes moving the head past many outer
+// values computing at once would otherwise have each compute the same part.
 // A computation abandoned with its caller's context is claimed again by a
 // waiter; another failure is retried alone by each waiter, in its own
 // snapshot, as Get retries one, and is not kept.
-func (c *Cache) computeApart(ctx context.Context, tx world.WorldState, seqno uint64, name string, compute func(context.Context, world.WorldState) (any, error)) (any, error) {
-	key := apartKey{name: name, seqno: seqno}
+func (c *Cache) computeBehind(ctx context.Context, tx world.WorldState, seqno uint64, name string, compute func(context.Context, world.WorldState) (any, error)) (any, error) {
+	key := behindKey{name: name, seqno: seqno}
 	for {
 		// Wait on the computation another caller claimed, or claim it. A
 		// caller inside the claimed computation, reading the value from
 		// itself through its parts, computes it alone instead of waiting
 		// on itself.
 		c.mtx.Lock()
-		entry := c.apart[key]
-		if entry != nil && ctx.Value(apartClaimKey{entry}) == nil {
+		entry := c.behind[key]
+		if entry != nil && ctx.Value(behindClaimKey{entry}) == nil {
 			c.mtx.Unlock()
 			select {
 			case <-entry.done:
@@ -177,23 +167,19 @@ func (c *Cache) computeApart(ctx context.Context, tx world.WorldState, seqno uin
 			return entry.value, nil
 		}
 		entry = &revisionEntry{name: name, done: make(chan struct{}), at: seqno, reads: world.NewReadSet(), blocks: block.NewRefHold()}
-		claimed := c.apart[key] == nil
+		claimed := c.behind[key] == nil
 		if claimed {
-			if c.apart == nil {
-				c.apart = make(map[apartKey]*revisionEntry)
+			if c.behind == nil {
+				c.behind = make(map[behindKey]*revisionEntry)
 			}
-			c.apart[key] = entry
+			c.behind[key] = entry
 		}
 		c.mtx.Unlock()
 
 		// Compute in a child evaluation, then share its reads with this caller.
 		child, finish := world.WithViewReads(block.WithRefHold(ctx, entry.blocks), entry.reads)
-		child, parts := c.withParts(context.WithValue(child, apartClaimKey{entry}, true))
-		path := "stale"
-		if seqno > c.seqno.Load() {
-			path = "ahead"
-		}
-		entry.value, entry.err = c.observe(name, path, func() (any, error) {
+		child, parts := c.withParts(context.WithValue(child, behindClaimKey{entry}, true))
+		entry.value, entry.err = c.observe(name, "stale", func() (any, error) {
 			return compute(child, entry.reads.Track(tx))
 		})
 		entry.wake = finish()
@@ -202,13 +188,13 @@ func (c *Cache) computeApart(ctx context.Context, tx world.WorldState, seqno uin
 			entry.finished = true
 		}
 
-		// End the claim, and keep the value when it holds at the cache's
-		// revision.
+		// End the claim, and keep the value when it still holds at the
+		// cache's revision.
 		c.mtx.Lock()
-		if claimed && c.apart[key] == entry {
-			delete(c.apart, key)
+		if claimed && c.behind[key] == entry {
+			delete(c.behind, key)
 		}
-		if entry.err == nil && seqno <= c.seqno.Load() && c.entries[name] == nil && c.heldSinceLocked(entry, seqno) {
+		if entry.err == nil && c.entries[name] == nil && c.heldSinceLocked(entry, seqno) {
 			c.keepLocked(entry)
 		}
 		close(entry.done)
@@ -223,16 +209,15 @@ func (c *Cache) computeApart(ctx context.Context, tx world.WorldState, seqno uin
 	}
 }
 
-// apartKey names the computation of a value at a revision other than the
-// cache's.
-type apartKey struct {
+// behindKey names the computation of a value at a revision the cache passed.
+type behindKey struct {
 	name  string
 	seqno uint64
 }
 
-// apartClaimKey marks a context computing the claimed value entry apart from
-// the cache's revision.
-type apartClaimKey struct{ entry *revisionEntry }
+// behindClaimKey marks a context computing the claimed value entry behind the
+// cache.
+type behindClaimKey struct{ entry *revisionEntry }
 
 // heldSinceLocked reports whether the changes the cache passed after seqno
 // left entry alone. It reports false when the history no longer reaches back
@@ -254,8 +239,7 @@ func (c *Cache) heldSinceLocked(entry *revisionEntry, seqno uint64) bool {
 
 // observe runs compute, counting it under name's family and path: "shared"
 // for a value the cache keeps, "stale" for a part computed in a snapshot the
-// cache moved past, "ahead" for a value computed in a snapshot the cache has
-// not reached, and "retry" for a failed value retried alone.
+// cache moved past, and "retry" for a failed value retried alone.
 func (c *Cache) observe(name, path string, compute func() (any, error)) (any, error) {
 	// Report the completed computation only when an observer is configured.
 	if c.observer == nil {

@@ -41,7 +41,12 @@ func (c *Cache) Advance(ctx context.Context, seqno uint64) error {
 			c.mtx.Unlock()
 			return nil
 		}
-		if c.jumpLocked(seqno) {
+		if len(c.entries) == 0 {
+			// The jump reads no changes, so no older value can be checked
+			// across it.
+			c.seqno.Store(seqno)
+			c.history = nil
+			c.movedLocked()
 			c.mtx.Unlock()
 			return nil
 		}
@@ -90,30 +95,6 @@ func (c *Cache) Advance(ctx context.Context, seqno uint64) error {
 			return err
 		}
 	}
-}
-
-// jump moves an empty cache to seqno, and reports whether the cache stands at
-// or past seqno.
-func (c *Cache) jump(seqno uint64) bool {
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
-	return seqno <= c.seqno.Load() || c.jumpLocked(seqno)
-}
-
-// jumpLocked moves the cache to seqno, a newer revision, when it keeps no
-// value a change could drop, and reports whether it moved. The jump reads no
-// changes, so no older value can be checked across it. The caller holds mtx.
-func (c *Cache) jumpLocked(seqno uint64) bool {
-	// A kept value pins the cache to the revisions it can check.
-	if len(c.entries) != 0 {
-		return false
-	}
-
-	// Move to seqno and forget the changes before it.
-	c.seqno.Store(seqno)
-	c.history = nil
-	c.movedLocked()
-	return true
 }
 
 // refreshFacets computes again each facet part the changes touched, which
