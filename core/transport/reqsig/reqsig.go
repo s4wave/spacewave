@@ -26,6 +26,10 @@ const ClockSkew = 5 * time.Minute
 // ErrInvalidSignature reports a request whose signature does not cover it.
 var ErrInvalidSignature = errors.New("invalid request signature")
 
+// ErrTimeOutOfRange reports a request signed more than ClockSkew from the
+// server's clock, as a device whose clock is set wrong signs.
+var ErrTimeOutOfRange = errors.New("request time is out of range")
+
 // Verify returns the peer whose key signed r with body at a time near now,
 // for the signing environment env. The caller reads the body, so it chooses
 // the size limit; the signature covers r.URL.Path as the server sees it, so
@@ -45,7 +49,7 @@ func Verify(r *http.Request, body []byte, env string, now time.Time) (peer.ID, e
 		return "", err
 	}
 	if skew := now.Sub(time.UnixMilli(timestamp)); skew > ClockSkew || skew < -ClockSkew {
-		return "", errors.New("request time is out of range")
+		return "", ErrTimeOutOfRange
 	}
 
 	// Hash the body, and hold a claimed hash to it.

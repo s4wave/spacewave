@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
 	"io"
 	"net/http"
 	"sync"
@@ -98,7 +99,7 @@ func (s *Signaling) ServeTicket(w http.ResponseWriter, r *http.Request) {
 	}
 	pid, err := VerifyRequest(r, time.Now(), s.signingEnv)
 	if err != nil {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		refuseSigned(w, err)
 		return
 	}
 	if !s.admits(r.Context(), pid) {
@@ -167,7 +168,7 @@ func (s *Signaling) ServePeer(w http.ResponseWriter, r *http.Request) {
 	// Accept only a socket the peer's key signed.
 	pid, err := VerifyRequest(r, time.Now(), s.signingEnv)
 	if err != nil {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		refuseSigned(w, err)
 		return
 	}
 	conn, err := websocket.Accept(w, r, nil)
@@ -190,6 +191,17 @@ func (s *Signaling) ServePeer(w http.ResponseWriter, r *http.Request) {
 
 	// Answer the peer's pings until either side closes.
 	<-conn.CloseRead(r.Context()).Done()
+}
+
+// refuseSigned answers a signed request that failed verification. A request
+// signed at a time out of range says so, since its signer's clock is wrong
+// rather than its key; its Date header gives the signer the server's time.
+func refuseSigned(w http.ResponseWriter, err error) {
+	if errors.Is(err, reqsig.ErrTimeOutOfRange) {
+		http.Error(w, "Request time is out of range", http.StatusForbidden)
+		return
+	}
+	http.Error(w, "Forbidden", http.StatusForbidden)
 }
 
 // VerifyRequest returns the peer whose key signed r at a time near now, in

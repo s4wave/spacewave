@@ -46,7 +46,7 @@ func (t *SessionTransport) startWebRTCControllers(
 	// transport.
 	le.Debug("connecting to signaling")
 	sigCtrl := newWSSignalingCtrl(le, b, func(ctx context.Context) (string, error) {
-		ticket, err := acquireSignalTicket(ctx, t.signalingURL, t.sessionKey, t.peerID, t.signingEnvPfx)
+		ticket, err := acquireSignalTicket(ctx, t.signalingURL, t.sessionKey, t.peerID, t.signingEnvPfx, &t.clock)
 		if errors.Is(err, errSignalTicketUnauthorized) {
 			t.fail(err)
 		}

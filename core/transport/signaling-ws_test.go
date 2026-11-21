@@ -117,7 +117,7 @@ func TestWSSignalingControllerRefreshesTicketAfterConnectionExpires(t *testing.T
 		pid:        pid,
 		retryDelay: time.Millisecond,
 		url: func(ctx context.Context) (string, error) {
-			ticket, err := acquireSignalTicket(ctx, server.URL, priv, pid, "")
+			ticket, err := acquireSignalTicket(ctx, server.URL, priv, pid, "", &serverClock{})
 			if err != nil {
 				return "", err
 			}
