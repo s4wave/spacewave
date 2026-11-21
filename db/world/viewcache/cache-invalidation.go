@@ -342,12 +342,13 @@ func (c *Cache) indexLocked(entry *revisionEntry) {
 	if len(entry.facets) != 0 {
 		c.faceted[entry] = struct{}{}
 	}
-	if _, ok := c.previous[entry.name]; ok {
-		// Readers want the name through Recent, so a catch-up that drops
-		// the value keeps it for them.
-		entry.recent = true
+	if previous, ok := c.previous[entry.name]; ok {
+		// The new value replaces the kept one, which watchers saw, or the
+		// mark that readers want the name, which they did not.
 		delete(c.previous, entry.name)
-		c.movedLocked()
+		if previous.entry != nil {
+			c.movedLocked()
+		}
 	}
 }
 
