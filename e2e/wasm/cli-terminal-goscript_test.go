@@ -13,7 +13,7 @@ import (
 
 	playwright "github.com/mxschmitt/playwright-go"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
-	trace_service "github.com/s4wave/spacewave/core/trace/service"
+	trace_service_inject "github.com/s4wave/spacewave/core/trace/service/inject"
 	"github.com/sirupsen/logrus"
 )
 
@@ -156,7 +156,7 @@ func cliTerminalGoScriptHarness(t testing.TB) *Harness {
 		WithConfigMutator(configureCliTerminalGoScriptStartup),
 	}
 	if E2EWasmTraceServiceEnabled(E2EWasmCompilerGoScript) {
-		opts = append(opts, WithConfigMutator(trace_service.InjectTraceConfig))
+		opts = append(opts, WithConfigMutator(trace_service_inject.InjectTraceConfig))
 	}
 
 	// Boot the harness and release it with the test.

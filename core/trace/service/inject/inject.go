@@ -1,11 +1,13 @@
 //go:build !js
 
-package trace_service
+// Package trace_service_inject adds the trace service to plugin builds.
+package trace_service_inject
 
 import (
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	bldr_plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
+	trace_service "github.com/s4wave/spacewave/core/trace/service"
 )
 
 // InjectTraceConfig adds the trace service controller to all Go compiler
@@ -30,7 +32,7 @@ func InjectTraceConfig(projectConfig *bldr_project.ProjectConfig) error {
 			goConf.ConfigSet = make(map[string]*configset_proto.ControllerConfig)
 		}
 		goConf.ConfigSet["trace-service"] = &configset_proto.ControllerConfig{
-			Id:     ConfigID,
+			Id:     trace_service.ConfigID,
 			Config: []byte("{}"),
 		}
 

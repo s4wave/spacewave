@@ -1,6 +1,6 @@
 //go:build !skip_e2e && !js
 
-package trace_service
+package trace_service_inject
 
 import (
 	"context"
@@ -60,7 +60,7 @@ func setupPluginClients(
 	if err != nil {
 		t.Fatal(err)
 	}
-	repoRoot := filepath.Join(wd, "../../..")
+	repoRoot := filepath.Join(wd, "../../../..")
 	workDir := t.TempDir()
 	distDir := filepath.Join(workDir, "src")
 	pluginStateDir := filepath.Join(workDir, "plugin", "state")
