@@ -232,10 +232,10 @@ func TestCacheFillsBlocksWithUnknownRefs(t *testing.T) {
 func TestCacheEvictionKeepsWhatAStartRead(t *testing.T) {
 	// Put blocks in the durable store.
 	path := filepath.Join(t.TempDir(), "blocks.db")
-	const limit = 512 << 10
+	const limit = 1 << 20
 	src := newPacks()
 	var refs []*block.BlockRef
-	for i := range 40 {
+	for i := range 100 {
 		ref, _, err := src.PutBlock(t.Context(), bytes.Repeat([]byte{byte(i)}, 16<<10), &block.PutOpts{})
 		if err != nil {
 			t.Fatal(err)
@@ -256,7 +256,7 @@ func TestCacheEvictionKeepsWhatAStartRead(t *testing.T) {
 	}
 
 	// Fill the first blocks, short of the bound, and restart.
-	const filled, started = 12, 6
+	const filled, started = 45, 25
 	c := openTest(t, path, limit)
 	for i := range filled {
 		read(c, i)
