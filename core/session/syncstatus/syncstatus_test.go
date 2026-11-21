@@ -1,4 +1,4 @@
-package resource_session
+package session_syncstatus
 
 import (
 	"context"
@@ -9,7 +9,6 @@ import (
 	"github.com/s4wave/spacewave/core/pairing"
 
 	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	resource_state "github.com/s4wave/spacewave/bldr/resource/state"
 	"github.com/s4wave/spacewave/core/provider"
@@ -20,52 +19,6 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 )
-
-type testWatchSyncStatusStream struct {
-	srpc.Stream
-	ctx  context.Context
-	msgs chan *s4wave_session.WatchSyncStatusResponse
-}
-
-func newTestWatchSyncStatusStream(ctx context.Context) *testWatchSyncStatusStream {
-	return &testWatchSyncStatusStream{
-		ctx:  ctx,
-		msgs: make(chan *s4wave_session.WatchSyncStatusResponse, 4),
-	}
-}
-
-func (m *testWatchSyncStatusStream) Context() context.Context {
-	return m.ctx
-}
-
-func (m *testWatchSyncStatusStream) Send(resp *s4wave_session.WatchSyncStatusResponse) error {
-	select {
-	case m.msgs <- resp:
-		return nil
-	case <-m.ctx.Done():
-		return m.ctx.Err()
-	}
-}
-
-func (m *testWatchSyncStatusStream) SendAndClose(resp *s4wave_session.WatchSyncStatusResponse) error {
-	return m.Send(resp)
-}
-
-func (m *testWatchSyncStatusStream) MsgRecv(_ srpc.Message) error {
-	return nil
-}
-
-func (m *testWatchSyncStatusStream) MsgSend(_ srpc.Message) error {
-	return nil
-}
-
-func (m *testWatchSyncStatusStream) CloseSend() error {
-	return nil
-}
-
-func (m *testWatchSyncStatusStream) Close() error {
-	return nil
-}
 
 type testSyncStatusSession struct {
 	acc provider.ProviderAccount
@@ -168,17 +121,17 @@ func TestWatchSyncStatusInitialSnapshots(t *testing.T) {
 
 			// Watch sync status for this account.
 			ctx, cancel := context.WithCancel(context.Background())
-			strm := newTestWatchSyncStatusStream(ctx)
-			res := &SessionResource{
-				session: &testSyncStatusSession{acc: test.acc},
-			}
+			msgs := make(chan *s4wave_session.WatchSyncStatusResponse, 4)
 			errCh := make(chan error, 1)
 			go func() {
-				errCh <- res.WatchSyncStatus(&s4wave_session.WatchSyncStatusRequest{}, strm)
+				errCh <- Watch(ctx, &testSyncStatusSession{acc: test.acc}, func(resp *s4wave_session.WatchSyncStatusResponse) error {
+					msgs <- resp
+					return nil
+				})
 			}()
 
 			// Require a synced, idle snapshot with no transfer rate.
-			resp := recvSyncStatusResponse(t, strm.msgs)
+			resp := recvSyncStatusResponse(t, msgs)
 			if resp.GetState() != s4wave_session.SyncStatusState_SyncStatusState_SYNCED {
 				t.Fatalf("state = %v, want synced", resp.GetState())
 			}
@@ -202,7 +155,7 @@ func TestWatchSyncStatusInitialSnapshots(t *testing.T) {
 			// Cancel the watch and expect the stream to end.
 			cancel()
 			if err := <-errCh; err != context.Canceled {
-				t.Fatalf("WatchSyncStatus() = %v, want context canceled", err)
+				t.Fatalf("Watch() = %v, want context canceled", err)
 			}
 		})
 	}
@@ -214,12 +167,10 @@ func TestBuildLocalSyncStatusSnapshotWaitsForP2P(t *testing.T) {
 
 	// Build a local sync snapshot with no pairing engine.
 	acc := &provider_local.ProviderAccount{}
-	res := &SessionResource{
-		session: &testSyncStatusSession{acc: acc},
-	}
+	sess := &testSyncStatusSession{acc: acc}
 
 	// Wait on pairing, transport, P2P, copy, and transfer sources.
-	_, waitChs := res.buildLocalSyncStatusSnapshot(acc, nil, time.Now())
+	_, waitChs := buildLocalSyncStatusSnapshot(sess, acc, nil, time.Now())
 	if len(waitChs) != 5 {
 		t.Fatalf("wait channel count = %d, want 5", len(waitChs))
 	}
@@ -647,7 +598,4 @@ func testWaitChannels(count int, sourceIdx int) ([]<-chan struct{}, func()) {
 }
 
 // _ is a type assertion
-var (
-	_ s4wave_session.SRPCSessionResourceService_WatchSyncStatusStream = (*testWatchSyncStatusStream)(nil)
-	_ session.Session                                                 = (*testSyncStatusSession)(nil)
-)
+var _ session.Session = (*testSyncStatusSession)(nil)
