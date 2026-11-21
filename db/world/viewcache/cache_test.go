@@ -225,7 +225,7 @@ func TestRevisionCacheIndexedParts(t *testing.T) {
 // moves on: a reader at the newer revision shares it when the changes left its
 // reads alone, and computes its own when they touched them.
 func TestRevisionCacheComputingAcrossRevisions(t *testing.T) {
-	// compute reads a, holding until release closes.
+	// compute reads readKey, holding until release closes.
 	store, engine := readsStore(t)
 	ctx := t.Context()
 	cache := &Cache{engine: engine}
@@ -238,10 +238,12 @@ func TestRevisionCacheComputingAcrossRevisions(t *testing.T) {
 		return tx
 	}
 	var calls atomic.Int32
+	readKey := "a"
 	held := func(started, release chan struct{}) func(context.Context, world.WorldState) (any, error) {
+		key := readKey
 		return func(ctx context.Context, tx world.WorldState) (any, error) {
 			n := calls.Add(1)
-			if _, err := tx.HasObject(ctx, "a"); err != nil {
+			if _, err := tx.HasObject(ctx, key); err != nil {
 				return nil, err
 			}
 			if started != nil {
@@ -252,13 +254,27 @@ func TestRevisionCacheComputingAcrossRevisions(t *testing.T) {
 		}
 	}
 
-	for _, touch := range []bool{false, true} {
+	// A wanted name is one a reader asked for through Recent first: the
+	// build a change passes is then its last built value, which a newer
+	// reader accepting its revision takes instead of building another.
+	for _, tc := range []struct{ touch, wanted bool }{{false, false}, {true, false}, {true, true}} {
 		// Start a computation at the current revision and hold it.
-		name := "v" + strconv.FormatBool(touch)
+		touch := tc.touch
+		name := "v" + strconv.FormatBool(touch) + strconv.FormatBool(tc.wanted)
+		readKey = "a-" + name
 		calls.Store(0)
 		started, release := make(chan struct{}), make(chan struct{})
 		first := make(chan any, 1)
 		old := read()
+		oldSeqno, err := old.GetSeqno(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if tc.wanted {
+			if _, _, ok := cache.Recent(ctx, oldSeqno, 0, name, held(nil, nil)); ok {
+				t.Fatal("recent answered a name never built")
+			}
+		}
 		go func() {
 			value, err := cache.Get(ctx, old, name, held(started, release))
 			if err != nil {
@@ -272,13 +288,13 @@ func TestRevisionCacheComputingAcrossRevisions(t *testing.T) {
 		// revision while the first computation still runs.
 		key := "unrelated-" + name
 		if touch {
-			key = "a"
+			key = readKey
 		}
 		seed(t, engine, key)
 		second := make(chan any, 1)
 		newer := read()
 		go func() {
-			value, err := cache.Get(ctx, newer, name, held(nil, nil))
+			value, err := cache.Get(WithFloor(ctx, oldSeqno), newer, name, held(nil, nil))
 			if err != nil {
 				t.Error(err)
 			}
@@ -310,8 +326,24 @@ func TestRevisionCacheComputingAcrossRevisions(t *testing.T) {
 		if want := int32(1); !touch && (got != want || calls.Load() != 1) {
 			t.Fatal("an untouched value was not shared:", got, calls.Load())
 		}
-		if touch && (got != int32(2) || calls.Load() != 2) {
+		if touch && !tc.wanted && (got != int32(2) || calls.Load() != 2) {
 			t.Fatal("a touched value was shared at the newer revision:", got, calls.Load())
+		}
+		if !tc.wanted {
+			continue
+		}
+		if got != int32(1) {
+			t.Fatal("the newer reader built again instead of taking the last built value:", got)
+		}
+
+		// A reader whose floor the last built value misses, such as one
+		// that must see its own write, still reads a current value.
+		value, err := cache.Get(WithFloor(ctx, seqno), newer, name, held(nil, nil))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if value == int32(1) {
+			t.Fatal("a reader above the last built value's revision got it")
 		}
 	}
 }

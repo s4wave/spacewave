@@ -20,7 +20,9 @@ import (
 // computed in that snapshot: the outer value is already shared, and opening
 // the newest revision for each part costs more than reading it. A value
 // computed at a revision the cache passed is kept for later readers when the
-// changes since left its reads alone.
+// changes since left its reads alone. A reader whose ctx carries a floor
+// (WithFloor) takes the name's last built value at or past the floor instead
+// of waiting on a build that a change passed, as Recent answers it.
 func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compute func(context.Context, world.WorldState) (any, error)) (any, error) {
 	seqno, err := tx.GetSeqno(ctx)
 	if err != nil {
@@ -59,6 +61,11 @@ func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compu
 				})
 			}
 			if entry.stale && seqno != entry.at {
+				// A reader that accepts the last built value takes it
+				// rather than wait on another build.
+				if value, _, ok := c.lastBuilt(ctx, name, compute); ok {
+					return value, nil
+				}
 				continue
 			}
 			if entry.expired() {
@@ -115,6 +122,7 @@ func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compu
 			if c.entries[name] == entry {
 				delete(c.entries, name)
 			}
+			c.keepBuiltLocked(entry)
 			c.countDrop(name, "computing")
 		}
 		entry.finished = true
@@ -136,7 +144,13 @@ func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compu
 // A computation abandoned with its caller's context is claimed again by a
 // waiter; another failure is retried alone by each waiter, in its own
 // snapshot, as Get retries one, and is not kept.
-func (c *Cache) computeBehind(ctx context.Context, tx world.WorldState, seqno uint64, name string, compute func(context.Context, world.WorldState) (any, error)) (any, error) {
+func (c *Cache) computeBehind(
+	ctx context.Context,
+	tx world.WorldState,
+	seqno uint64,
+	name string,
+	compute func(context.Context, world.WorldState) (any, error),
+) (any, error) {
 	key := behindKey{name: name, seqno: seqno}
 	for {
 		// Wait on the computation another caller claimed, or claim it. A
