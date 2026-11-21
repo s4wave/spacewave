@@ -15,8 +15,8 @@ import (
 	"github.com/s4wave/spacewave/core/resource/desktop/statusprojector/activitypolicy"
 	"github.com/s4wave/spacewave/core/resource/desktop/statusprojector/projection"
 	"github.com/s4wave/spacewave/core/resource/desktop/statusprojector/spacepolicy"
-	resource_session "github.com/s4wave/spacewave/core/resource/session"
 	"github.com/s4wave/spacewave/core/session"
+	session_syncstatus "github.com/s4wave/spacewave/core/session/syncstatus"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/core/space"
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
@@ -208,7 +208,7 @@ func snapshotSessionRuntimeProjection(
 	waitChs = append(waitChs, spaceWaitChs...)
 
 	// Read the session sync snapshot and its change notifications.
-	syncStatus, syncWaitChs := resource_session.BuildSyncStatusSnapshot(sess, time.Now())
+	syncStatus, syncWaitChs := session_syncstatus.Snapshot(sess, time.Now())
 	proj.sync = syncStatus
 	waitChs = append(waitChs, syncWaitChs...)
 	return proj, waitChs, releases, nil
