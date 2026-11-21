@@ -27,12 +27,19 @@ func (v *view) BeginReadOperation(context.Context) (block.StoreOps, func(), erro
 
 // GetBlock reads the block from the cache. A failure of the cache, or a block
 // that fails its hash, reads as a miss.
+//
+// A hit is marked a durable read, so its decoded block enters the shared
+// decoded-block pool: every row is a verified copy of a block the packs hold.
+// The removal generation is taken before the read, so a removal reported
+// while it runs keeps the block out of the pool.
 func (v *view) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	// Serve the block when the cache holds it intact.
+	gen := block.DurableReadGeneration()
 	data, found, err := v.StoreOps.GetBlock(ctx, ref)
 	if err == nil {
 		if found {
 			v.cache.counts.hits.Add(1)
+			block.MarkDurableRead(ctx, ref, gen)
 		} else {
 			v.cache.counts.misses.Add(1)
 		}
