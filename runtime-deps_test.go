@@ -139,10 +139,6 @@ var runtimeModules = []string{
 	"github.com/jlaffaye/ftp",
 	"github.com/kr/fs",
 	"github.com/pkg/sftp",
-
-	// MessagePack values in Forge targets.
-	"github.com/vmihailenco/msgpack/v5",
-	"github.com/vmihailenco/tagparser/v2",
 }
 
 // TestRuntimeRootsLinkOnlyRuntimeModules checks that the Windows build of the

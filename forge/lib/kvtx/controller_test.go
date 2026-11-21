@@ -12,6 +12,7 @@ import (
 	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	target_json "github.com/s4wave/spacewave/forge/target/json"
+	forge_target_msgpack "github.com/s4wave/spacewave/forge/target/msgpack"
 	"github.com/s4wave/spacewave/forge/testbed"
 	forge_value "github.com/s4wave/spacewave/forge/value"
 
@@ -191,7 +192,7 @@ func TestKvtx(t *testing.T) {
 	if stv.IsEmpty() {
 		t.Fatal("expected setTestValue3 output to be set but was empty")
 	}
-	didExist, err := forge_target.LoadMsgpackValue[bool](ctx, h, stv, nil)
+	didExist, err := forge_target_msgpack.LoadValue[bool](ctx, h, stv, nil)
 	if err == nil && !didExist {
 		err = errors.New("expected did exist to be true but got false")
 	}

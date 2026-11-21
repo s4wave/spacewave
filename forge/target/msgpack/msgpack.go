@@ -1,33 +1,35 @@
-package forge_target
+// Package forge_target_msgpack stores and loads Forge values as MessagePack
+// blocks. It is apart from forge/target so that a program which handles
+// targets without MessagePack values links no MessagePack code.
+package forge_target_msgpack
 
 import (
 	"context"
 
 	"github.com/s4wave/spacewave/db/block"
 	block_msgpack "github.com/s4wave/spacewave/db/block/msgpack"
+	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_value "github.com/s4wave/spacewave/forge/value"
 )
 
-// StoreMsgpackValue stores the given data as a Msgpack block.
-// The data is all stored in a single block.
-func StoreMsgpackValue(
+// StoreValue stores the given data as one MessagePack block.
+func StoreValue(
 	ctx context.Context,
-	handle ExecControllerHandle,
+	handle forge_target.ExecControllerHandle,
 	value any,
 ) (*forge_value.Value, error) {
-	return AccessValue(ctx, handle, nil, func(bcs *block.Cursor) error {
+	return forge_target.AccessValue(ctx, handle, nil, func(bcs *block.Cursor) error {
 		err := block_msgpack.ObjectToBlock(bcs, value)
 		return err
 	})
 }
 
-// LoadMsgpackValue loads the data from a msgpack block.
-// use interface{} type to unmarshal dynamic types.
-// if ctor is nil, uses the empty value of T.
-// returns the empty value returned from ctor if value is empty.
-func LoadMsgpackValue[T any](
+// LoadValue loads the data from a MessagePack block. Use T any to unmarshal
+// dynamic types. An empty value loads as ctor's result, or the zero T when
+// ctor is nil.
+func LoadValue[T any](
 	ctx context.Context,
-	handle ExecControllerHandle,
+	handle forge_target.ExecControllerHandle,
 	value *forge_value.Value,
 	ctor func() T,
 ) (T, error) {
@@ -42,7 +44,7 @@ func LoadMsgpackValue[T any](
 
 	// Decode the stored msgpack value through its block cursor.
 	var outObj T
-	_, err := AccessValue(ctx, handle, value, func(bcs *block.Cursor) error {
+	_, err := forge_target.AccessValue(ctx, handle, value, func(bcs *block.Cursor) error {
 		outBlk, berr := block_msgpack.UnmarshalMsgpackBlock(ctx, bcs, ctor)
 		if berr != nil {
 			return berr

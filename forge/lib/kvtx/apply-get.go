@@ -5,6 +5,7 @@ import (
 
 	"github.com/s4wave/spacewave/db/kvtx"
 	forge_target "github.com/s4wave/spacewave/forge/target"
+	forge_target_msgpack "github.com/s4wave/spacewave/forge/target/msgpack"
 	forge_value "github.com/s4wave/spacewave/forge/value"
 )
 
@@ -47,7 +48,7 @@ func ApplyOpGetExists(
 	}
 	// set the output if necessary
 	if len(outputName) != 0 {
-		outVal, err := forge_target.StoreMsgpackValue(ctx, handle, doesExist)
+		outVal, err := forge_target_msgpack.StoreValue(ctx, handle, doesExist)
 		if err != nil {
 			return err
 		}
