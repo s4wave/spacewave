@@ -22,7 +22,7 @@ import (
 	bldr_plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	space "github.com/s4wave/spacewave/core/space"
-	trace_service "github.com/s4wave/spacewave/core/trace/service"
+	trace_service_inject "github.com/s4wave/spacewave/core/trace/service/inject"
 	e2e_wasm_session "github.com/s4wave/spacewave/e2e/wasm/session"
 	forge_job "github.com/s4wave/spacewave/forge/job"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
@@ -156,7 +156,7 @@ func bootSharedHarness() (*Harness, error) {
 	// startup override, which rebuilds the launcher and core manifests, cannot
 	// drop it from the final config.
 	if E2EWasmTraceServiceEnabled(compiler) {
-		opts = append(opts, WithConfigMutator(trace_service.InjectTraceConfig))
+		opts = append(opts, WithConfigMutator(trace_service_inject.InjectTraceConfig))
 	} else {
 		le.WithField("compiler", compiler).Info("trace service injection disabled for this e2e/wasm compiler mode")
 	}

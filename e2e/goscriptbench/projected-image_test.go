@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/util/gitroot"
-	trace_service "github.com/s4wave/spacewave/core/trace/service"
+	trace_service_inject "github.com/s4wave/spacewave/core/trace/service/inject"
 	wasm "github.com/s4wave/spacewave/e2e/wasm"
 	"github.com/sirupsen/logrus"
 )
@@ -453,7 +453,7 @@ func newProjectedImageHarness(t *testing.T, engine string, trace bool) *wasm.Har
 	options := []wasm.Option{wasm.WithBrowserName(engine)}
 	if trace {
 		t.Setenv(wasm.E2EWasmGoScriptRuntimeTraceEnv, "true")
-		options = append(options, wasm.WithConfigMutator(trace_service.InjectTraceConfig))
+		options = append(options, wasm.WithConfigMutator(trace_service_inject.InjectTraceConfig))
 	}
 
 	// Launch the selected browser and return the harness.
