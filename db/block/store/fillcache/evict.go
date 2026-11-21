@@ -16,7 +16,8 @@ import (
 // a fill queued behind the step waits for a bounded write.
 const evictChunkBytes = 4 << 20
 
-// evictChunkRows bounds the rows one eviction step scans.
+// evictChunkRows bounds the rows one eviction step scans for unstamped rows,
+// and the rows it reads in sequence order.
 const evictChunkRows = 4096
 
 // evictPause is the time between two eviction steps when no fill waits, which
@@ -28,8 +29,10 @@ const evictPause = 100 * time.Millisecond
 const evictLowWater = 90
 
 // evicter keeps the live bytes of the cache's table under a bound by deleting
-// runs of rows. Block keys are hashes, so a run of adjacent keys is a uniform
-// sample of the cache and the run's pages free whole.
+// the rows read longest ago, as readsTable orders them. Each step first deletes
+// the unstamped rows among a run of adjacent keys from a random key, which
+// block hashes make a uniform sample, and then the rows with the smallest read
+// sequence, until it has deleted a chunk.
 type evicter struct {
 	// db is the cache's database.
 	db *sql.DB
@@ -75,7 +78,8 @@ func (e *evicter) used(ctx context.Context) (int64, error) {
 
 // next decides whether the cache is evicting after the step it takes now.
 // Outside an eviction it starts one when the cache is over its limit; during
-// one it deletes a run of rows and goes on until the cache is under its target.
+// one it deletes a chunk of rows and goes on until the cache is under its
+// target.
 func (e *evicter) next(ctx context.Context, evicting bool) (bool, error) {
 	// Measure the cache and decide whether it needs a step.
 	used, err := e.used(ctx)
@@ -86,72 +90,145 @@ func (e *evicter) next(ctx context.Context, evicting bool) (bool, error) {
 		return false, nil
 	}
 
-	// Delete a run of rows.
+	// Delete a chunk of rows.
 	if err := e.step(ctx); err != nil {
 		return true, errors.Wrap(err, "evict from the fill cache")
 	}
 	return true, nil
 }
 
-// step deletes about a chunk of adjacent rows, starting at the first
-// row at or after a random key and wrapping to the first row.
+// step deletes about a chunk of rows: the unstamped rows of a sampled run,
+// then the rows read longest ago.
 func (e *evicter) step(ctx context.Context) error {
-	// Find the run from a random start, or from the start of the table.
+	// Take the unstamped rows of a run from a random key.
 	start, err := e.randomKey()
 	if err != nil {
 		return err
 	}
-	first, last, err := e.run(ctx, start)
+	keys, size, err := e.unstamped(ctx, start)
 	if err != nil {
 		return err
 	}
-	if first == nil {
-		first, last, err = e.run(ctx, []byte{0})
-		if err != nil || first == nil {
+
+	// Fill the chunk with the rows read longest ago.
+	if size < e.chunk {
+		oldest, err := e.oldest(ctx, e.chunk-size)
+		if err != nil {
+			return err
+		}
+		keys = append(keys, oldest...)
+	}
+	return e.delete(ctx, keys)
+}
+
+// unstamped returns the keys and summed size of the rows with no read stamp
+// among the evictChunkRows rows at or after start, up to a chunk.
+func (e *evicter) unstamped(ctx context.Context, start []byte) ([][]byte, int64, error) {
+	run := "SELECT key, length(value) AS size FROM " + e.table + " WHERE key >= ? ORDER BY key LIMIT ?"
+	rows, err := e.db.QueryContext(ctx,
+		"SELECT c.key, c.size FROM ("+run+") c "+ //nolint:gosec // the table names are the cache's constants.
+			"WHERE NOT EXISTS (SELECT 1 FROM "+readsTable+" r WHERE r.key = c.key)",
+		start, evictChunkRows,
+	)
+	if err != nil {
+		return nil, 0, err
+	}
+	return e.collect(rows, e.chunk)
+}
+
+// oldest returns the keys and summed size of the rows read longest ago, up to
+// need bytes. A stamp whose row is gone counts no bytes and is returned for
+// deletion.
+func (e *evicter) oldest(ctx context.Context, need int64) ([][]byte, error) {
+	rows, err := e.db.QueryContext(ctx,
+		"SELECT r.key, COALESCE(length(c.value), 0) FROM "+readsTable+" r "+ //nolint:gosec // the table names are the cache's constants.
+			"LEFT JOIN "+e.table+" c ON c.key = r.key ORDER BY r.seq LIMIT ?",
+		evictChunkRows,
+	)
+	if err != nil {
+		return nil, err
+	}
+	keys, _, err := e.collect(rows, need)
+	return keys, err
+}
+
+// collect reads key and size rows until their sizes reach limit, and closes
+// rows.
+func (e *evicter) collect(rows *sql.Rows, limit int64) ([][]byte, int64, error) {
+	// Read rows until their sizes reach the limit.
+	defer rows.Close()
+	var keys [][]byte
+	var size int64
+	for size < limit && rows.Next() {
+		var key []byte
+		var n int64
+		if err := rows.Scan(&key, &n); err != nil {
+			return nil, 0, err
+		}
+		keys = append(keys, key)
+		size += n
+	}
+	return keys, size, errors.Wrap(rows.Err(), "scan the fill cache")
+}
+
+// delete deletes the rows and read stamps of keys in one transaction and
+// counts the rows.
+func (e *evicter) delete(ctx context.Context, keys [][]byte) error {
+	// Skip an empty chunk.
+	if len(keys) == 0 {
+		return nil
+	}
+
+	// Begin the transaction.
+	tx, err := e.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	// Prepare the row and stamp deletes.
+	delRow, err := tx.PrepareContext(ctx, "DELETE FROM "+e.table+" WHERE key = ?") //nolint:gosec // the table name is the cache's constant.
+	if err != nil {
+		return err
+	}
+	defer delRow.Close()
+	delStamp, err := tx.PrepareContext(ctx, "DELETE FROM "+readsTable+" WHERE key = ?") //nolint:gosec // the table name is the cache's constant.
+	if err != nil {
+		return err
+	}
+	defer delStamp.Close()
+
+	// Delete each key's row and stamp, counting the rows.
+	var n int64
+	for _, key := range keys {
+		res, err := delRow.ExecContext(ctx, key)
+		if err != nil {
+			return err
+		}
+		if m, err := res.RowsAffected(); err == nil {
+			n += m
+		}
+		if _, err := delStamp.ExecContext(ctx, key); err != nil {
 			return err
 		}
 	}
 
-	// Delete the run in one statement and count its rows.
-	res, err := e.db.ExecContext(ctx, "DELETE FROM "+e.table+" WHERE key >= ? AND key <= ?", first, last) //nolint:gosec // table is the cache's own table name, never input.
-	if err != nil {
+	// Commit and count the deleted rows.
+	if err := tx.Commit(); err != nil {
 		return err
 	}
-	if n, err := res.RowsAffected(); err == nil && n > 0 {
-		e.evicted.Add(uint64(n))
-	}
+	e.evicted.Add(uint64(n))
 	return nil
 }
 
-// run returns the first and last key of the rows from start whose values sum
-// to about the chunk. It returns nil keys when no row is at or after
-// start.
-func (e *evicter) run(ctx context.Context, start []byte) (first, last []byte, err error) {
-	// Scan the rows from start in key order.
-	rows, err := e.db.QueryContext(ctx,
-		"SELECT key, length(value) FROM "+e.table+" WHERE key >= ? ORDER BY key LIMIT ?", //nolint:gosec // table is the cache's own table name, never input.
-		start, evictChunkRows,
-	)
+// blockKey returns the table key of the block ref, as the block store builds
+// it.
+func (e *evicter) blockKey(ref *block.BlockRef) ([]byte, error) {
+	rm, err := ref.MarshalKey()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	defer rows.Close()
-
-	// Extend the run until it holds enough bytes.
-	var size int64
-	for rows.Next() && size < e.chunk {
-		var key []byte
-		var n int64
-		if err := rows.Scan(&key, &n); err != nil {
-			return nil, nil, err
-		}
-		if first == nil {
-			first = key
-		}
-		last = key
-		size += n
-	}
-	return first, last, errors.Wrap(rows.Err(), "scan the fill cache")
+	return e.keys.GetBlockKey(rm), nil
 }
 
 // randomKey returns a block key with a random digest, built the way the cache
@@ -166,11 +243,5 @@ func (e *evicter) randomKey() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	// Encode the reference as the block store does.
-	rm, err := ref.MarshalKey()
-	if err != nil {
-		return nil, err
-	}
-	return e.keys.GetBlockKey(rm), nil
+	return e.blockKey(ref)
 }

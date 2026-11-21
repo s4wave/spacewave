@@ -183,3 +183,74 @@ func TestCacheFillsServesRecreatesAndEvicts(t *testing.T) {
 		read(i)
 	}
 }
+
+// TestCacheEvictionKeepsWhatAStartRead fills a cache, restarts it, reads part
+// of it again as a start does, then fills new blocks until an eviction cycle
+// runs: the cycle deletes the rows not read since the restart and keeps every
+// block the start read.
+func TestCacheEvictionKeepsWhatAStartRead(t *testing.T) {
+	// Put blocks in the durable store.
+	path := filepath.Join(t.TempDir(), "blocks.db")
+	const limit = 1 << 20
+	src := newPacks()
+	var refs []*block.BlockRef
+	for i := range 100 {
+		ref, _, err := src.PutBlock(t.Context(), bytes.Repeat([]byte{byte(i)}, 16<<10), &block.PutOpts{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		refs = append(refs, ref)
+	}
+
+	// read reads block i through c and reports whether the cache served it.
+	read := func(c *Cache, i int) bool {
+		t.Helper()
+		before := src.reads.Load()
+		data, found, err := c.Reads(func() block.StoreOps { return src })().GetBlock(t.Context(), refs[i])
+		if err != nil || !found || len(data) != 16<<10 {
+			t.Fatalf("read %d = %d bytes, %v, %v", i, len(data), found, err)
+		}
+		wait(t, c)
+		return src.reads.Load() == before
+	}
+
+	// Fill the first blocks, short of the bound, and restart.
+	const filled, started = 45, 25
+	c := openTest(t, path, limit)
+	for i := range filled {
+		read(c, i)
+	}
+	if n := c.Counts().Evicted; n != 0 {
+		t.Fatalf("filling %d blocks evicted %d rows; the test needs them under the bound", filled, n)
+	}
+	if err := c.Close(); err != nil {
+		t.Fatal(err)
+	}
+	c = openTest(t, path, limit)
+
+	// The start reads the first blocks, which the cache serves.
+	for i := range started {
+		if !read(c, i) {
+			t.Fatalf("block %d was not cached after the restart", i)
+		}
+	}
+
+	// New fills run an eviction cycle, which takes only rows the start did
+	// not read.
+	next := filled
+	for c.Counts().Evicted < 4 {
+		if next == len(refs) {
+			t.Fatalf("no eviction after %d fills", next-filled)
+		}
+		read(c, next)
+		next++
+	}
+	if n := c.Counts().Evicted; n > filled-started {
+		t.Fatalf("one cycle evicted %d rows, more than the %d the start did not read", n, filled-started)
+	}
+	for i := range started {
+		if !read(c, i) {
+			t.Fatalf("block %d, read by the start, was evicted", i)
+		}
+	}
+}
