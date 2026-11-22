@@ -12,6 +12,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/aperturerobotics/util/broadcast"
@@ -29,6 +30,9 @@ import (
 // DefaultLimitBytes is the size bound of a cache whose Options set none.
 const DefaultLimitBytes = 20 << 30
 
+// DefaultStartWindow is the start window of a cache whose Options set none.
+const DefaultStartWindow = 10 * time.Minute
+
 // DefaultQueueBytes bounds the block bytes awaiting their write when Options
 // set no bound.
 const DefaultQueueBytes = 128 << 20
@@ -42,6 +46,10 @@ type Options struct {
 	// dropped, and the next read of the block queues it again. Zero uses
 	// DefaultQueueBytes.
 	QueueBytes int64
+	// StartWindow is how long after Open the rows a start stamps count as its
+	// working set, which eviction spares once the window closes. Zero uses
+	// DefaultStartWindow.
+	StartWindow time.Duration
 }
 
 // Cache is a SQLite file of copies of blocks that a durable store holds.
@@ -53,6 +61,13 @@ type Options struct {
 //
 // One goroutine writes the file, in batched transactions, so fills never queue
 // behind each other for SQLite's write lock and a read never waits for a write.
+//
+// The start window opens at Open. While it is open, eviction spares the range
+// the previous start stored. When it closes, the writer replaces that range
+// with the sequences this start stamped, from the first of Open to the last
+// stamped by then. A process that exits inside its window, or stamps nothing
+// in it, leaves the previous range in place, so the next start still finds the
+// last completed start's blocks.
 type Cache struct {
 	// le is the entry for the cache's log lines.
 	le *logrus.Entry
@@ -82,6 +97,17 @@ type Cache struct {
 	stamping bool
 	// seq is the read sequence of the next stamp; only the writer uses it.
 	seq int64
+	// startSeq is the first read sequence of this start's window.
+	startSeq int64
+	// window closes the start window when it fires.
+	window *time.Timer
+	// windowOnce closes the start window once.
+	windowOnce sync.Once
+	// windowDue is set, under bcast, when the start window has closed and the
+	// writer has yet to store its range.
+	windowDue bool
+	// windowDone closes when the writer has handled the closed start window.
+	windowDone chan struct{}
 	// counts are the counters Counts reports.
 	counts counters
 }
@@ -103,12 +129,13 @@ func Open(ctx context.Context, le *logrus.Entry, path string, opts Options) (*Ca
 	// Build the cache over the database.
 	keys := store_kvkey.NewDefaultKVKey()
 	c := &Cache{
-		le:     le,
-		warn:   rateLog{le: le},
-		store:  store,
-		blocks: block_store_kvtx.NewKVTxBlock(keys, store, 0, true),
-		exited: make(chan struct{}),
-		reads:  make(map[string]struct{}),
+		le:         le,
+		warn:       rateLog{le: le},
+		store:      store,
+		blocks:     block_store_kvtx.NewKVTxBlock(keys, store, 0, true),
+		exited:     make(chan struct{}),
+		reads:      make(map[string]struct{}),
+		windowDone: make(chan struct{}),
 	}
 	c.view = &view{StoreOps: block.NewReadOnlyStore(c.blocks), cache: c}
 
@@ -130,6 +157,15 @@ func Open(ctx context.Context, le *logrus.Entry, path string, opts Options) (*Ca
 		return nil, err
 	}
 	c.seq = last + 1
+	c.startSeq = c.seq
+
+	// Spare the previous start's range until this start's window closes.
+	if lo, hi, ok, err := startRange(ctx, store.GetDB()); err != nil {
+		_ = store.Close()
+		return nil, err
+	} else if ok {
+		c.evict.protect(lo, hi)
+	}
 
 	// Bound the fills awaiting their write.
 	queueBytes := opts.QueueBytes
@@ -144,7 +180,44 @@ func Open(ctx context.Context, le *logrus.Entry, path string, opts Options) (*Ca
 	rc := routine.NewRoutineContainer()
 	rc.SetRoutine(c.run)
 	rc.SetContext(runCtx, false)
+
+	// Close the start window when it ends.
+	window := opts.StartWindow
+	if window <= 0 {
+		window = DefaultStartWindow
+	}
+	c.window = time.AfterFunc(window, c.closeWindow)
 	return c, nil
+}
+
+// closeWindow marks the start window closed and wakes the writer to store its
+// range.
+func (c *Cache) closeWindow() {
+	c.windowOnce.Do(func() {
+		c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			c.windowDue = true
+			broadcast()
+		})
+	})
+}
+
+// storeWindow replaces the protected range with this start's, the sequences
+// from startSeq through the last stamped, and spares it from now on. A window
+// that stamped nothing keeps the previous range. Only the writer calls it.
+func (c *Cache) storeWindow(ctx context.Context) error {
+	// Take this start's range, keeping the previous one when it is empty.
+	defer close(c.windowDone)
+	lo, hi := c.startSeq, c.seq-1
+	if hi < lo {
+		return nil
+	}
+
+	// Store the range, then spare it.
+	if err := storeStartRange(ctx, c.store.GetDB(), lo, hi); err != nil {
+		return err
+	}
+	c.evict.protect(lo, hi)
+	return nil
 }
 
 // Reads returns a source that reads the cache, then the durable store lower,
@@ -196,10 +269,10 @@ func (c *Cache) enqueue(entry *block.PutBatchEntry) {
 }
 
 // Wait waits until no fill is queued or being written, no hit awaits its read
-// stamp and no eviction runs.
+// stamp, no closed start window awaits its range and no eviction runs.
 func (c *Cache) Wait(ctx context.Context) error {
 	return c.bcast.Wait(ctx, func(func(), func() <-chan struct{}) (bool, error) {
-		return c.queue.idle() && len(c.reads) == 0 && !c.stamping && !c.evicting, nil
+		return c.queue.idle() && len(c.reads) == 0 && !c.stamping && !c.windowDue && !c.evicting, nil
 	})
 }
 
@@ -210,14 +283,15 @@ func (c *Cache) Size(ctx context.Context) (int64, error) {
 
 // Close stops the writer, drops the fills still queued and closes the file.
 func (c *Cache) Close() error {
+	c.window.Stop()
 	c.cancel()
 	<-c.exited
 	return c.store.Close()
 }
 
 // run writes the queued entries in batches, stamps the rows they wrote and the
-// rows hits read, and evicts while the cache is over its bound, until ctx
-// ends.
+// rows hits read, stores the start range when the window closes, and evicts
+// while the cache is over its bound, until ctx ends.
 func (c *Cache) run(ctx context.Context) error {
 	defer close(c.exited)
 
@@ -228,14 +302,14 @@ func (c *Cache) run(ctx context.Context) error {
 		// Wait for entries to write, hits to stamp or an eviction to go on.
 		var batch []*block.PutBatchEntry
 		var hits map[string]struct{}
-		var evicting bool
+		var evicting, windowDue bool
 		err := c.bcast.Wait(ctx, func(func(), func() <-chan struct{}) (bool, error) {
-			batch, evicting = c.queue.take(), c.evicting
+			batch, evicting, windowDue = c.queue.take(), c.evicting, c.windowDue
 			if len(c.reads) != 0 {
 				hits, c.reads = c.reads, make(map[string]struct{})
 				c.stamping = true
 			}
-			return len(batch) != 0 || len(hits) != 0 || evicting, nil
+			return len(batch) != 0 || len(hits) != 0 || evicting || windowDue, nil
 		})
 		if err != nil {
 			return nil
@@ -264,6 +338,14 @@ func (c *Cache) run(ctx context.Context) error {
 			c.seq++
 		}
 
+		// Store the start range once the window has closed, after the stamps
+		// of the hits taken with it.
+		if windowDue {
+			if err := c.storeWindow(ctx); err != nil && ctx.Err() == nil {
+				c.warn.warn(err, "the block fill cache failed to store its start range")
+			}
+		}
+
 		// Delete a run of rows while the cache is over its bound.
 		evicting, err = c.evict.next(ctx, evicting)
 		if err != nil && ctx.Err() == nil {
@@ -272,8 +354,11 @@ func (c *Cache) run(ctx context.Context) error {
 
 		// Release the batch's blocks and publish the eviction state.
 		c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			// Clear what this turn handled, keeping a window that closed
+			// since the turn began, and wake the waiters.
 			c.queue.done(batch)
 			c.stamping = false
+			c.windowDue = c.windowDue && !windowDue
 			c.evicting = evicting
 			broadcast()
 		})

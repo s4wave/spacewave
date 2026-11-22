@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"database/sql"
+	"math"
 	"sync/atomic"
 	"time"
 
@@ -29,10 +30,13 @@ const evictPause = 100 * time.Millisecond
 const evictLowWater = 90
 
 // evicter keeps the live bytes of the cache's table under a bound by deleting
-// the rows read longest ago, as readsTable orders them. Each step first deletes
-// the unstamped rows among a run of adjacent keys from a random key, which
-// block hashes make a uniform sample, and then the rows with the smallest read
-// sequence, until it has deleted a chunk.
+// the rows read longest ago, as readsTable orders them, sparing the protected
+// start range until nothing else is left. Each step first deletes the
+// unstamped rows among a run of adjacent keys from a random key, which block
+// hashes make a uniform sample, then the rows with the smallest read sequence
+// below the range, then those above it, and only when both are exhausted the
+// oldest inside it, until it has deleted a chunk. A range that fills the bound
+// therefore still yields rows, and eviction never stalls.
 type evicter struct {
 	// db is the cache's database.
 	db *sql.DB
@@ -49,6 +53,19 @@ type evicter struct {
 	chunk int64
 	// evicted counts the rows the steps deleted.
 	evicted *atomic.Uint64
+	// lo and hi bound the protected start range, inclusive. With no range
+	// both are math.MaxInt64, so every stamp falls below it. Only the writer
+	// uses them.
+	lo, hi int64
+}
+
+// seqRange is a range of read sequences that one eviction query reads in
+// sequence order, through the index on the reads table's sequence.
+type seqRange struct {
+	// where is the condition on r.seq.
+	where string
+	// args are the condition's arguments.
+	args []any
 }
 
 // newEvicter builds an evicter for the table with the byte bound, counting the
@@ -62,6 +79,23 @@ func newEvicter(db *sql.DB, table string, keys *store_kvkey.KVKey, limit int64, 
 		target:  limit / 100 * evictLowWater,
 		chunk:   min(evictChunkBytes, limit/10),
 		evicted: evicted,
+		lo:      math.MaxInt64,
+		hi:      math.MaxInt64,
+	}
+}
+
+// protect sets the protected start range to lo through hi inclusive.
+func (e *evicter) protect(lo, hi int64) {
+	e.lo, e.hi = lo, hi
+}
+
+// order returns the stamped ranges in the order a step deletes from them:
+// below the protected range, above it, then inside it.
+func (e *evicter) order() []seqRange {
+	return []seqRange{
+		{where: "r.seq < ?", args: []any{e.lo}},
+		{where: "r.seq > ?", args: []any{e.hi}},
+		{where: "r.seq BETWEEN ? AND ?", args: []any{e.lo, e.hi}},
 	}
 }
 
@@ -98,7 +132,8 @@ func (e *evicter) next(ctx context.Context, evicting bool) (bool, error) {
 }
 
 // step deletes about a chunk of rows: the unstamped rows of a sampled run,
-// then the rows read longest ago.
+// then the rows read longest ago, in the ranges order gives. A step moves to
+// the next range only when the one before is exhausted.
 func (e *evicter) step(ctx context.Context) error {
 	// Take the unstamped rows of a run from a random key.
 	start, err := e.randomKey()
@@ -110,13 +145,20 @@ func (e *evicter) step(ctx context.Context) error {
 		return err
 	}
 
-	// Fill the chunk with the rows read longest ago.
-	if size < e.chunk {
-		oldest, err := e.oldest(ctx, e.chunk-size)
+	// Fill the chunk with the rows read longest ago, range by range.
+	for _, r := range e.order() {
+		if size >= e.chunk {
+			break
+		}
+		oldest, n, more, err := e.oldest(ctx, r, e.chunk-size)
 		if err != nil {
 			return err
 		}
 		keys = append(keys, oldest...)
+		size += n
+		if more {
+			break
+		}
 	}
 	return e.delete(ctx, keys)
 }
@@ -124,6 +166,7 @@ func (e *evicter) step(ctx context.Context) error {
 // unstamped returns the keys and summed size of the rows with no read stamp
 // among the evictChunkRows rows at or after start, up to a chunk.
 func (e *evicter) unstamped(ctx context.Context, start []byte) ([][]byte, int64, error) {
+	// Query the run's rows that have no stamp.
 	run := "SELECT key, length(value) AS size FROM " + e.table + " WHERE key >= ? ORDER BY key LIMIT ?"
 	rows, err := e.db.QueryContext(ctx,
 		"SELECT c.key, c.size FROM ("+run+") c "+ //nolint:gosec // the table names are the cache's constants.
@@ -133,28 +176,35 @@ func (e *evicter) unstamped(ctx context.Context, start []byte) ([][]byte, int64,
 	if err != nil {
 		return nil, 0, err
 	}
-	return e.collect(rows, e.chunk)
+
+	// Read them up to a chunk.
+	keys, size, _, err := e.collect(rows, e.chunk)
+	return keys, size, err
 }
 
-// oldest returns the keys and summed size of the rows read longest ago, up to
-// need bytes. A stamp whose row is gone counts no bytes and is returned for
-// deletion.
-func (e *evicter) oldest(ctx context.Context, need int64) ([][]byte, error) {
+// oldest returns the keys and summed size of the rows in r read longest ago,
+// up to need bytes, and whether r may hold more: it read evictChunkRows rows
+// or reached need. A stamp whose row is gone counts no bytes and is returned
+// for deletion.
+func (e *evicter) oldest(ctx context.Context, r seqRange, need int64) ([][]byte, int64, bool, error) {
+	// Query the range's stamps in sequence order with their rows' sizes.
 	rows, err := e.db.QueryContext(ctx,
-		"SELECT r.key, COALESCE(length(c.value), 0) FROM "+readsTable+" r "+ //nolint:gosec // the table names are the cache's constants.
-			"LEFT JOIN "+e.table+" c ON c.key = r.key ORDER BY r.seq LIMIT ?",
-		evictChunkRows,
+		"SELECT r.key, COALESCE(length(c.value), 0) FROM "+readsTable+" r "+ //nolint:gosec // the table names and conditions are the cache's constants.
+			"LEFT JOIN "+e.table+" c ON c.key = r.key WHERE "+r.where+" ORDER BY r.seq LIMIT ?",
+		append(r.args, evictChunkRows)...,
 	)
 	if err != nil {
-		return nil, err
+		return nil, 0, false, err
 	}
-	keys, _, err := e.collect(rows, need)
-	return keys, err
+
+	// Read them up to need, noting whether the range may hold more.
+	keys, size, n, err := e.collect(rows, need)
+	return keys, size, size >= need || n == evictChunkRows, err
 }
 
-// collect reads key and size rows until their sizes reach limit, and closes
-// rows.
-func (e *evicter) collect(rows *sql.Rows, limit int64) ([][]byte, int64, error) {
+// collect reads key and size rows until their sizes reach limit, closes rows,
+// and returns the keys, their summed size and how many rows it read.
+func (e *evicter) collect(rows *sql.Rows, limit int64) ([][]byte, int64, int, error) {
 	// Read rows until their sizes reach the limit.
 	defer rows.Close()
 	var keys [][]byte
@@ -163,12 +213,12 @@ func (e *evicter) collect(rows *sql.Rows, limit int64) ([][]byte, int64, error) 
 		var key []byte
 		var n int64
 		if err := rows.Scan(&key, &n); err != nil {
-			return nil, 0, err
+			return nil, 0, 0, err
 		}
 		keys = append(keys, key)
 		size += n
 	}
-	return keys, size, errors.Wrap(rows.Err(), "scan the fill cache")
+	return keys, size, len(keys), errors.Wrap(rows.Err(), "scan the fill cache")
 }
 
 // delete deletes the rows and read stamps of keys in one transaction and
