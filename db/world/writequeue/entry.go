@@ -65,8 +65,9 @@ type queuedWrite struct {
 	// peerReads holds the blocks the body deferred to a peer fetch and those
 	// fetched, across the write's attempts; see park.
 	peerReads *block.PeerReads
-	// peerWait is set once a fetch missed: the write reads from peers under
-	// the writer lock from then on.
+	// peerWait is set once a fetch found a block absent from every peer: the
+	// write reads from peers under the writer lock from then on. A fetch that
+	// failed leaves it clear; see fetch.
 	peerWait bool
 	// deferring reports whether the current attempt's body runs under
 	// peerReads. Only such an attempt parks: one that read from peers under

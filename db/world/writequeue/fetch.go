@@ -56,9 +56,15 @@ func (q *Queue) park(w *queuedWrite, rest []*queuedWrite) {
 }
 
 // fetch reads the blocks w deferred, with no lock held, and queues w again.
-// A block no peer served leaves w to read from peers under the lock, as it
-// would have before, so the write's result is the read's.
+// A block every peer asked lacks leaves w to read from peers under the lock,
+// as it would have before, so the write's result is the read's. A fetch that
+// failed, such as a storage backend that throttled it past its retries, says
+// nothing of the block, so w defers it again on its next attempt and fetches
+// it in a later round; reading it under the lock would wait out the same
+// failure with every write queued behind it. peerFetchRounds still bounds the
+// rounds, so a fetch that keeps failing ends in a read under the lock.
 func (q *Queue) fetch(w *queuedWrite) {
+	// Fetch the deferred blocks; only an absent block ends the deferral.
 	started := time.Now()
 	ok, err := w.peerReads.Fetch(block.WithReadClass(w.ctx, block.ReadUrgent))
 	le := logrus.WithFields(logrus.Fields{
@@ -67,13 +73,17 @@ func (q *Queue) fetch(w *queuedWrite) {
 		"round":   w.peerReads.Rounds(),
 		"elapsed": time.Since(started).Round(time.Millisecond).String(),
 	})
-	if !ok {
-		le.WithError(err).Warn("World write's peer fetch missed; it reads from peers under the writer lock")
-		w.peerWait = true
-	} else {
+	switch {
+	case ok:
 		le.Info("World write fetched blocks from peers outside the writer lock")
+	case err != nil:
+		le.WithError(err).Warn("World write's peer fetch failed; it fetches again outside the writer lock")
+	default:
+		le.Warn("World write's peer fetch missed; it reads from peers under the writer lock")
+		w.peerWait = true
 	}
 
+	// Release the actor's later writes and queue w again.
 	q.mtx.Lock()
 	defer q.mtx.Unlock()
 	if w.actor != 0 {

@@ -218,6 +218,63 @@ func TestQueuePeerFetchRounds(t *testing.T) {
 	}
 }
 
+// TestQueuePeerFetchFailed checks that a write whose fetch failed defers the
+// block again and fetches it outside the writer lock, while a write whose
+// fetch found the block absent reads it under the lock on its next attempt.
+func TestQueuePeerFetchFailed(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		// fail answers the first fetch.
+		fail     func() (*block.StoredBlock, error)
+		deferred int
+	}{
+		{"failed", func() (*block.StoredBlock, error) { return nil, errors.New("slow down") }, 2},
+		{"absent", func() (*block.StoredBlock, error) { return nil, nil }, 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := t.Context()
+			tb, err := testbed.Default(ctx, testbed.WithChangelog())
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer tb.Release()
+			q := New(tb.Engine, Options{})
+
+			data := []byte("a block only a peer holds")
+			ref, err := block.BuildBlockRef(data, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var fetches, deferred int
+			_, err = q.Write(ctx, 1, nil, func(ctx context.Context, tx world.Tx) error {
+				if reads := block.GetPeerReads(ctx); reads != nil {
+					if reads.Lookup(ref) != nil {
+						object, err := tx.CreateObject(ctx, "fetched", nil)
+						world.ReleaseObjectState(object)
+						return err
+					}
+					deferred++
+					reads.Defer(ref, func(context.Context) (*block.StoredBlock, error) {
+						if fetches++; fetches == 1 {
+							return tc.fail()
+						}
+						return &block.StoredBlock{Data: data, RefsKnown: true}, nil
+					})
+				}
+				object, err := tx.CreateObject(ctx, "under-lock", nil)
+				world.ReleaseObjectState(object)
+				return err
+			}, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if deferred != tc.deferred {
+				t.Fatalf("deferred the block %d times, want %d", deferred, tc.deferred)
+			}
+		})
+	}
+}
+
 // TestQueueStageTotals checks that a committed write's stage times are
 // counted under its operation and sum to no more than its time in the queue.
 func TestQueueStageTotals(t *testing.T) {
