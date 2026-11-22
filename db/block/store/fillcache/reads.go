@@ -13,24 +13,81 @@ import (
 //
 // The sequence grows by one for each batch the writer stamps and resumes from
 // the table's largest value when the file opens, so the order holds across
-// restarts: the blocks a start reads are newer than every row it did not read.
-// A row with no entry was never stamped, as rows written before the table
-// existed or whose stamp failed, and eviction takes it before any stamped row.
-// An entry whose row is gone, as after a removal, is deleted by the eviction
-// that reaches it.
+// restarts. A row with no entry was never stamped, as rows written before the
+// table existed or whose stamp failed, and eviction takes it before any stamped
+// row. An entry whose row is gone, as after a removal, is deleted by the
+// eviction that reaches it.
+//
+// Invariant: rows stamped in the latest completed start window, the range
+// metaTable holds, are evicted only after every other row. A start's blocks
+// move to the decoded-block pool after their first hit, and pool hits never
+// reach the cache, so by sequence alone they would soon look the oldest.
 const readsTable = "fill_reads"
+
+// metaTable holds the cache's named integers: the protected start range, from
+// metaStartLo to metaStartHi inclusive.
+const metaTable = "fill_meta"
+
+// metaStartLo and metaStartHi name the bounds of the protected start range.
+const (
+	metaStartLo = "start_lo"
+	metaStartHi = "start_hi"
+)
 
 // pendingReadsMax bounds the hits awaiting their stamp. A hit past it goes
 // unstamped, which only lets its row look older than it is.
 const pendingReadsMax = 1 << 16
 
-// createReads creates the reads table and its sequence index when missing.
+// createReads creates the reads table, its sequence index and the meta table
+// when missing.
 func createReads(ctx context.Context, db *sql.DB) error {
 	_, err := db.ExecContext(ctx,
 		"CREATE TABLE IF NOT EXISTS "+readsTable+" (key BLOB PRIMARY KEY NOT NULL, seq INTEGER NOT NULL) WITHOUT ROWID;"+
-			"CREATE INDEX IF NOT EXISTS "+readsTable+"_seq ON "+readsTable+" (seq)",
+			"CREATE INDEX IF NOT EXISTS "+readsTable+"_seq ON "+readsTable+" (seq);"+
+			"CREATE TABLE IF NOT EXISTS "+metaTable+" (name TEXT PRIMARY KEY NOT NULL, value INTEGER NOT NULL) WITHOUT ROWID",
 	)
 	return errors.Wrap(err, "create the fill cache reads table")
+}
+
+// startRange returns the protected start range the file holds, and false when
+// it holds none.
+func startRange(ctx context.Context, db *sql.DB) (lo, hi int64, ok bool, err error) {
+	var n int
+	err = db.QueryRowContext(ctx,
+		"SELECT COUNT(*), COALESCE(MAX(CASE name WHEN ? THEN value END), 0), COALESCE(MAX(CASE name WHEN ? THEN value END), 0) "+
+			"FROM "+metaTable+" WHERE name IN (?, ?)", //nolint:gosec // the table name is the cache's constant.
+		metaStartLo, metaStartHi, metaStartLo, metaStartHi,
+	).Scan(&n, &lo, &hi)
+	if err != nil {
+		return 0, 0, false, errors.Wrap(err, "read the fill cache start range")
+	}
+	return lo, hi, n == 2 && lo <= hi, nil
+}
+
+// storeStartRange replaces the protected start range in one transaction.
+func storeStartRange(ctx context.Context, db *sql.DB, lo, hi int64) error {
+	// Begin the transaction.
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	// Upsert both bounds and commit.
+	stmt, err := tx.PrepareContext(ctx,
+		"INSERT INTO "+metaTable+" (name, value) VALUES (?, ?) "+ //nolint:gosec // the table name is the cache's constant.
+			"ON CONFLICT (name) DO UPDATE SET value = excluded.value",
+	)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+	for name, value := range map[string]int64{metaStartLo: lo, metaStartHi: hi} {
+		if _, err := stmt.ExecContext(ctx, name, value); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
 }
 
 // lastReadSeq returns the largest read sequence the file holds, or zero.
