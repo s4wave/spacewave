@@ -235,8 +235,8 @@ func NewPackStore(le *logrus.Entry, client ObjectStore, bucket, prefix string, o
 		maxPackBytes:    cmp.Or(max(opts.MaxPackBytes, 0), writer.DefaultMaxPackBytes),
 	}
 
-	// Open the local index, which also keeps each pack's index tail, so a
-	// restart does not read the tails again.
+	// Open the local index, which also keeps the index tail of each pack a
+	// reader loaded, so a restart does not read those tails again.
 	var tails packfile_store.IndexCache
 	if opts.Index != nil {
 		s.index = newPackIndex(opts.Index)
