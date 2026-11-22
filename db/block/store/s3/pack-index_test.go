@@ -92,10 +92,27 @@ func TestPackStoreIndex(t *testing.T) {
 	waitFor(t, "cold start indexes the packs", func() bool { return len(store.index.pendingIDs()) == 0 })
 
 	// The indexer writes each block's extent into its row, though only one
-	// pack was read, and stores no tail.
+	// pack was read, and stores only the tail that read loaded from the
+	// bucket.
 	waitFor(t, "the indexer writes the extents", func() bool { return extentRows(t, kv) == 60 })
-	if n := rowCount(t, kv, indexTailPrefix); n != 0 {
-		t.Fatalf("index holds %d tails, want none", n)
+	waitFor(t, "the read's tail is stored", func() bool { return rowCount(t, kv, indexTailPrefix) == 1 })
+	waitFor(t, "the tail drain is idle", func() bool { return tailsIdle(store) })
+	if n := rowCount(t, kv, indexTailPrefix); n != 1 {
+		t.Fatalf("index holds %d tails, want the read pack's alone", n)
+	}
+
+	// After a restart, the read pack's reader loads its tail from the row,
+	// not the bucket.
+	store.Close()
+	store, _ = open()
+	SetIndexExtentReads(false)
+	_, found, err := store.GetBlock(ctx, refs[0])
+	SetIndexExtentReads(true)
+	if err != nil || !found {
+		t.Fatalf("read after restart = %v, %v", found, err)
+	}
+	if st := store.packs.SnapshotStats(); st.IndexCacheHits != 1 || st.RemoteIndexLoads != 0 {
+		t.Fatalf("restart read %d cached tails and %d remote, want 1 and 0", st.IndexCacheHits, st.RemoteIndexLoads)
 	}
 
 	// A lookup finds the pack through the index, without a bloom filter.
@@ -304,7 +321,7 @@ func TestPackStoreIndex(t *testing.T) {
 	waitFor(t, "the tail drain is idle", func() bool {
 		store.index.mtx.RLock()
 		defer store.index.mtx.RUnlock()
-		return len(store.index.tails.pending) == 0
+		return len(store.index.tails.pending) == 0 && len(store.index.tails.stored) == 0
 	})
 	extents := extentRows(t, kv)
 	own := []byte("written by the indexed store")

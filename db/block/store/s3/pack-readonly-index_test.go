@@ -34,7 +34,7 @@ func TestReadOnlyIndexWritesNothing(t *testing.T) {
 	if err := s.index.Set(ctx, "a", []byte("tail")); err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := s.index.queuedTail("a"); ok {
+	if _, ok := s.index.queuedTailData("a"); ok {
 		t.Fatal("read-only index queued a tail for its write")
 	}
 	if err := s.index.remove(ctx, []string{"a"}); err != nil {

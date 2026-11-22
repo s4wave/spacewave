@@ -804,7 +804,7 @@ func (x *packIndex) remove(ctx context.Context, ids []string) error {
 // cache.
 func (x *packIndex) Get(ctx context.Context, packID string) ([]byte, bool, error) {
 	// Serve a tail still awaiting its write.
-	if data, ok := x.queuedTail(packID); ok {
+	if data, ok := x.queuedTailData(packID); ok {
 		return data, true, nil
 	}
 
@@ -821,26 +821,30 @@ func (x *packIndex) Get(ctx context.Context, packID string) ([]byte, bool, error
 	return bytes.Clone(data), true, nil
 }
 
-// Set takes the index tail of a pack, as the packfile store's index cache. It
-// queues the tail for a background drain that writes each listed block's
+// Set takes the index tail a pack reader read from the bucket, as the
+// packfile store's index cache, and returns at once. A background drain
+// stores it in the pack's t/ row while tail rows are on (SetIndexTailRows),
+// so the pack's later loads read the row, and writes each listed block's
 // extent into its h row, so the block's next read needs neither the tail nor
-// the pack's entry, and returns at once. Until the drain takes it, Get serves
-// it; the tail itself is not stored.
+// the pack's entry. Until the row is written, Get serves the queued tail.
 func (x *packIndex) Set(ctx context.Context, packID string, data []byte) error {
 	if x.readOnly {
 		return nil
 	}
-	x.queueTail(packID, bytes.Clone(data))
+	x.queueTail(packID, bytes.Clone(data), true)
 	return nil
 }
 
-// cacheTail stores the index tail of a pack that its writer or the indexer
-// already holds, so the pack's first reader skips the remote tail read. The
-// row is a cache: a failed write only leaves that read in place. A pack
-// removed meanwhile may keep the row; pack ids are never reused, so no reader
-// finds it.
+// cacheTail queues the index tail of a pack that its writer or the indexer
+// already holds for the h row upgrade, so the pack's blocks read by extent
+// without the tail. The tail is not stored: most such packs are never read
+// through their readers, and storing each doubled the index. A failed or
+// dropped upgrade only leaves the remote tail read in place.
 func (x *packIndex) cacheTail(ctx context.Context, packID string, tail []byte) {
-	_ = x.Set(ctx, packID, tail)
+	if x.readOnly {
+		return
+	}
+	x.queueTail(packID, bytes.Clone(tail), false)
 }
 
 // Locate returns the pack that holds a block key. A row that names a removed
