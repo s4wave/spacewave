@@ -1,0 +1,27 @@
+[
+  {
+    "name": "A failed replacement retires the predecessor it restored",
+    "replace": [["retireP == P # 0 /\\ cur = g /\\ ~restore", "retireP == P # 0 /\\ cur = g"]],
+    "expect": "KeepsPredecessor"
+  },
+  {
+    "name": "A successor's hold does not count as an owner",
+    "replace": [["Owners(g, cl, lw) == cl[g] + Holds(g, lw)", "Owners(g, cl, lw) == cl[g]"]],
+    "expect": "ReadsServed"
+  },
+  {
+    "name": "Running keeps its lower source",
+    "replace": [["lw == [lower EXCEPT ![g] = 0]\n                      orphan == L # 0 /\\ Owners(L, callers, lw) = 0\n                      ph == [phase EXCEPT ![g] = \"running\"]", "lw == lower\n                      orphan == L # 0 /\\ Owners(L, callers, lw) = 0\n                      ph == [phase EXCEPT ![g] = \"running\"]"]],
+    "expect": "RunningHasNoLower"
+  },
+  {
+    "name": "A canceled startup waits for its own success",
+    "replace": [["Canceled(g) == /\\ runner[g] = \"start\" /\\ phase[g] = \"stopping\"", "Canceled(g) == /\\ runner[g] = \"start\" /\\ phase[g] = \"stopping\" /\\ phase[g] = \"starting\""]],
+    "expect": "deadlock"
+  },
+  {
+    "name": "The last owner leaves without stopping",
+    "replace": [["IF Owners(g, callers', lower) = 0 /\\ phase[g] \\in Live", "IF FALSE"]],
+    "expect": "LiveHasOwner"
+  }
+]

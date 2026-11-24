@@ -14,7 +14,7 @@ import (
 func TestGetP2PStoreWithoutLocks(t *testing.T) {
 	// Install a started generation with one store and a starting successor.
 	var store block.StoreOps = &struct{ block.StoreOps }{}
-	prior := &p2pSyncState{started: true, stores: map[string]block.StoreOps{"b": store}}
+	prior := &p2pSyncState{phase: p2pSyncRunning, stores: map[string]block.StoreOps{"b": store}}
 	next := &p2pSyncState{lowerSource: prior}
 	account := &ProviderAccount{}
 	account.p2pSyncBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -43,10 +43,9 @@ func TestGetP2PStoreWithoutLocks(t *testing.T) {
 	}
 
 	// Once the successor starts, it stops serving the predecessor's stores.
-	next.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		next.started = true
-		next.publishStoreViewLocked()
-	})
+	if _, running := next.finishStart(nil); !running {
+		t.Fatal("successor did not enter Running")
+	}
 	if s := account.getP2PStore("b"); s != nil {
 		t.Fatalf("started successor served %v, want nil", s)
 	}

@@ -40,7 +40,7 @@ func TestPeerReadsWaitAcrossRestart(t *testing.T) {
 			t.Fatal(err)
 		}
 		lifecycle := func(store block.StoreOps) *p2pSyncState {
-			state := &p2pSyncState{started: true, stores: map[string]block.StoreOps{"b": store}}
+			state := &p2pSyncState{phase: p2pSyncRunning, stores: map[string]block.StoreOps{"b": store}}
 			account.p2pSyncBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
 				state.publishStoreViewLocked()
 				account.setP2PSyncLocked(state)

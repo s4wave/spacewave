@@ -332,12 +332,9 @@ func (a *ProviderAccount) releaseAccountReplicaPeer(remote peer.ID) {
 		if state == nil || a.p2pPeerNamedLocked(remote.String()) {
 			return
 		}
-		state.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-			if ref := state.peerRefs[remote.String()]; ref != nil {
-				release = ref.Release
-				delete(state.peerRefs, remote.String())
-			}
-		})
+		if ref := state.takePeerRef(remote.String()); ref != nil {
+			release = ref.Release
+		}
 	})
 	if release != nil {
 		release()

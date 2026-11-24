@@ -16,12 +16,9 @@ func (a *ProviderAccount) GetAccountTransferSnapshot() (dex_solicit.TransferSnap
 	a.p2pSyncBcast.HoldLock(func(_ func(), getWait func() <-chan struct{}) {
 		waits = append(waits, getWait())
 		if state := a.p2pSync; state != nil {
-			state.bcast.HoldLock(func(_ func(), getWait func() <-chan struct{}) {
-				waits = append(waits, getWait())
-				for _, ctrl := range state.exchanges {
-					controllers = append(controllers, ctrl)
-				}
-			})
+			var wait <-chan struct{}
+			controllers, wait = state.getExchangesWithWait()
+			waits = append(waits, wait)
 		}
 	})
 

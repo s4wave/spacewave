@@ -129,9 +129,7 @@ func TestMountedBlockStoreReadUsesPriorSourceDuringReplacement(t *testing.T) {
 		ctx:              priorCtx,
 		cancel:           priorCancel,
 		sessionTransport: first,
-		startComplete:    true,
-		started:          true,
-		startupExited:    true,
+		phase:            p2pSyncRunning,
 		owners:           2,
 		stores:           map[string]block.StoreOps{bucketID: priorStore},
 	}
@@ -140,6 +138,11 @@ func TestMountedBlockStoreReadUsesPriorSourceDuringReplacement(t *testing.T) {
 		acc.setP2PSyncLocked(prior)
 		bcast()
 	})
+	// Stand in for the prior generation's run goroutine.
+	go func() {
+		<-priorCtx.Done()
+		acc.finishP2PSyncState(prior)
+	}()
 
 	// Replace the session transport while the prior source is still mounted.
 	if err := acc.CreateSessionTransport(ctx, sess.GetPrivKey(), ""); err != nil {
@@ -197,11 +200,9 @@ func TestMountedBlockStoreReadUsesPriorSourceDuringReplacement(t *testing.T) {
 		t.Fatal("replacement controller load did not start")
 	}
 	acc.releaseP2PSyncState(prior)
-	prior.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		if prior.stopping {
-			t.Fatal("prior P2P source stopped while replacement was starting")
-		}
-	})
+	if prior.getPhase() >= p2pSyncStopping {
+		t.Fatal("prior P2P source stopped while replacement was starting")
+	}
 
 	// Require the mounted store to return the prior source's block.
 	got, found, err := mounted.GetBlock(ctx, blockRef)
@@ -219,35 +220,13 @@ func TestMountedBlockStoreReadUsesPriorSourceDuringReplacement(t *testing.T) {
 		current = acc.p2pSync
 	})
 	current.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		if current.lowerSource != nil || current.lowerSourceHeld {
+		if current.phase != p2pSyncRunning || current.lowerSource != nil {
 			t.Fatal("replacement retained its lower P2P source after startup")
 		}
 	})
-	for {
-		var (
-			clean  bool
-			waitCh <-chan struct{}
-		)
-		prior.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			clean = prior.cleanupDone
-			if !clean {
-				waitCh = getWaitCh()
-			}
-		})
-		if clean {
-			break
-		}
-		select {
-		case <-waitCh:
-		case <-ctx.Done():
-			t.Fatalf("displaced prior P2P source cleanup: %v", ctx.Err())
-		}
+	if err := prior.waitPhase(ctx, p2pSyncStopped); err != nil {
+		t.Fatalf("displaced prior P2P source cleanup: %v", err)
 	}
-	prior.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		if !prior.stopping {
-			t.Fatal("displaced prior P2P source remained active")
-		}
-	})
 }
 
 func TestLocalBlockStoreMissRoutesToSessionChildDEX(t *testing.T) {
