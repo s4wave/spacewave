@@ -9,6 +9,7 @@ import (
 	"html"
 	"io"
 	"maps"
+	"math/rand/v2"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -390,28 +391,39 @@ func visitElements(doc, name string, fn func(content string) error) error {
 	}
 }
 
-// retryDelays are the waits before each retry of a request that failed in
-// transit or with a transient status. Every request the client sends is
-// idempotent: object writes are content addressed.
+// retryDelays bound the waits before each retry of a request that failed in
+// transit or with a transient status. Each wait is drawn uniformly from zero
+// to its bound, so requests that a throttled bucket failed together come back
+// spread out rather than in step; the mean waits are 250 ms, 1 s and 3 s.
+// Every request the client sends is idempotent: object writes are content
+// addressed.
 var retryDelays = []time.Duration{
-	250 * time.Millisecond,
-	time.Second,
-	3 * time.Second,
+	500 * time.Millisecond,
+	2 * time.Second,
+	6 * time.Second,
 }
+
+// maxRetryAfter caps the wait a response's Retry-After header can ask for, so
+// a long or malformed value cannot hold a read for minutes.
+const maxRetryAfter = 30 * time.Second
 
 // do builds, signs, and sends an S3 request, retrying transient failures. An
 // empty key addresses the bucket. query, data, and header may be nil.
 func (c *Client) do(ctx context.Context, method, bucket, key string, query url.Values, data []byte, header http.Header) (*http.Response, error) {
 	for attempt := 0; ; attempt++ {
+		// Send the request, returning anything but a transient failure.
 		resp, err := c.send(ctx, method, bucket, key, query, data, header)
 		if attempt == len(retryDelays) || ctx.Err() != nil || !isTransient(resp, err) {
 			return resp, err
 		}
+
+		// Wait out the response's Retry-After plus a jittered delay.
+		delay := jitter(retryDelays[attempt])
 		if resp != nil {
+			delay += retryAfter(resp.Header.Get("Retry-After"), time.Now())
 			httpclient.DrainAndCloseResponseBody(resp)
 		}
-
-		timer := time.NewTimer(retryDelays[attempt])
+		timer := time.NewTimer(delay)
 		select {
 		case <-ctx.Done():
 			timer.Stop()
@@ -419,6 +431,33 @@ func (c *Client) do(ctx context.Context, method, bucket, key string, query url.V
 		case <-timer.C:
 		}
 	}
+}
+
+// jitter returns a wait drawn uniformly from [0, bound).
+func jitter(bound time.Duration) time.Duration {
+	if bound <= 0 {
+		return 0
+	}
+	return rand.N(bound) //nolint:gosec // jitter needs spread, not secrecy.
+}
+
+// retryAfter returns the wait a Retry-After header value asks for, given as
+// seconds or as an HTTP date, capped at maxRetryAfter. An empty, malformed or
+// past value asks for none.
+func retryAfter(value string, now time.Time) time.Duration {
+	// Read the value as seconds, then as a date.
+	if value == "" {
+		return 0
+	}
+	var wait time.Duration
+	if secs, err := strconv.ParseInt(value, 10, 64); err == nil {
+		wait = time.Duration(min(max(secs, 0), int64(maxRetryAfter/time.Second))) * time.Second
+	} else if at, err := http.ParseTime(value); err == nil {
+		wait = at.Sub(now)
+	}
+
+	// Keep the wait within zero and the cap.
+	return min(max(wait, 0), maxRetryAfter)
 }
 
 // send builds, signs, and sends one attempt of an S3 request.

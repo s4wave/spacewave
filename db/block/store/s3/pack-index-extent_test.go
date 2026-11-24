@@ -5,9 +5,12 @@ package block_store_s3
 import (
 	"bytes"
 	"context"
+	"errors"
+	"net/http"
 	"strconv"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -311,6 +314,43 @@ func TestWrongExtentReadsBlock(t *testing.T) {
 	data, found, err := s.GetBlock(ctx, refs[0])
 	if err != nil || !found || string(data) != "w block 0" {
 		t.Fatalf("read = %q, %v, %v", data, found, err)
+	}
+}
+
+// TestThrottledExtentReadReturnsError fails a read whose extent the bucket
+// throttles, without falling back to the pack readers, whose window and tail
+// reads would add load to the throttled bucket.
+func TestThrottledExtentReadReturnsError(t *testing.T) {
+	// Index three blocks, and retry at once so the test does not wait.
+	ctx := t.Context()
+	bucket, client := newFakeBucket(t, nil)
+	kv := hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]())
+	s := newIndexedStore(t, client, kv)
+	refs := adoptBlocks(ctx, t, s, "t", 3)
+	delays := retryDelays
+	retryDelays = make([]time.Duration, len(delays))
+	t.Cleanup(func() { retryDelays = delays })
+
+	// Throttle the bucket and read a block.
+	bucket.mtx.Lock()
+	bucket.throttle = true
+	bucket.mtx.Unlock()
+	_, found, err := s.GetBlock(ctx, refs[0])
+	bucket.mtx.Lock()
+	throttled := bucket.throttled
+	bucket.mtx.Unlock()
+
+	// The read fails with the throttle, after the extent read's own retries
+	// alone.
+	var serr *StatusError
+	if !errors.As(err, &serr) || serr.StatusCode != http.StatusServiceUnavailable || found {
+		t.Fatalf("throttled read = %v, %v; want a 503 StatusError", found, err)
+	}
+	if want := len(retryDelays) + 1; throttled != want {
+		t.Fatalf("throttled read sent %d requests, want the extent read's %d", throttled, want)
+	}
+	if rc := s.ReadCounts(); rc.ExtentFetches != 1 || rc.WindowFetches != 0 || rc.TailFetches != 0 {
+		t.Fatalf("fetches = %d extent, %d window, %d tail; want 1, 0, 0", rc.ExtentFetches, rc.WindowFetches, rc.TailFetches)
 	}
 }
 
