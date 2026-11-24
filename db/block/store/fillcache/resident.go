@@ -81,42 +81,47 @@ func (c *Cache) SaveResident(ctx context.Context, scope string, refKeys iter.Seq
 
 // MissingResident reads scope's resident list and calls fn with each slice of
 // the listed refs the cache does not hold, sorted by key and without
-// duplicates, at most residentSlice at a time. fn may keep the slice. A
-// missing list calls fn with nothing, and a damaged one ends at the damage.
-// A failure to check the cache yields the slice whole, as a miss would.
-func (c *Cache) MissingResident(ctx context.Context, scope string, fn func([]*block.BlockRef) error) error {
+// duplicates, at most residentSlice at a time, and returns the number of refs
+// the list named, each counted once per slice it appears in. fn may keep the slice. A missing list calls fn with nothing,
+// and a damaged one ends at the damage. A failure to check the cache yields
+// the slice whole, as a miss would.
+func (c *Cache) MissingResident(ctx context.Context, scope string, fn func([]*block.BlockRef) error) (int, error) {
 	// Open the list, reading a missing or foreign file as empty.
 	f, err := os.Open(c.residentPath(scope))
 	if errors.Is(err, os.ErrNotExist) {
-		return nil
+		return 0, nil
 	}
 	if err != nil {
-		return errors.Wrap(err, "open the resident list")
+		return 0, errors.Wrap(err, "open the resident list")
 	}
 	defer f.Close()
 	r := bufio.NewReaderSize(f, 1<<20)
 	magic := make([]byte, len(residentMagic))
 	if _, err := io.ReadFull(r, magic); err != nil || string(magic) != residentMagic {
-		return nil
+		return 0, nil
 	}
 
 	// Read the list a slice at a time, passing on the refs the cache lacks.
+	var listed int
 	for {
 		keys, done := readResidentKeys(r, residentSlice)
-		if refs := c.missing(ctx, keys); len(refs) != 0 {
+		refs, n := c.missing(ctx, keys)
+		listed += n
+		if len(refs) != 0 {
 			if err := fn(refs); err != nil {
-				return err
+				return listed, err
 			}
 		}
 		if done || ctx.Err() != nil {
-			return context.Cause(ctx)
+			return listed, context.Cause(ctx)
 		}
 	}
 }
 
 // missing decodes keys into refs, sorted and without duplicates, and returns
-// those the cache does not hold, checked in one transaction.
-func (c *Cache) missing(ctx context.Context, keys [][]byte) []*block.BlockRef {
+// those the cache does not hold, checked in one transaction, with the number
+// of refs decoded.
+func (c *Cache) missing(ctx context.Context, keys [][]byte) ([]*block.BlockRef, int) {
 	// Decode the keys in key order, dropping duplicates and keys that are not
 	// refs.
 	slices.SortFunc(keys, bytes.Compare)
@@ -132,7 +137,7 @@ func (c *Cache) missing(ctx context.Context, keys [][]byte) []*block.BlockRef {
 	// Keep the refs the cache lacks.
 	held, err := c.blocks.GetBlockExistsBatch(ctx, refs)
 	if err != nil || len(held) != len(refs) {
-		return refs
+		return refs, len(refs)
 	}
 	missing := refs[:0]
 	for i, ref := range refs {
@@ -140,7 +145,7 @@ func (c *Cache) missing(ctx context.Context, keys [][]byte) []*block.BlockRef {
 			missing = append(missing, ref)
 		}
 	}
-	return missing
+	return missing, len(refs)
 }
 
 // readResidentKeys reads up to n keys from r, and reports done at the end of

@@ -30,9 +30,11 @@ func TestCacheResidentListYieldsWhatTheCacheLacks(t *testing.T) {
 	}
 
 	// Read the list back: only the two blocks the cache lacks, once each.
+	var listed int
 	missing := func(scope string) []*block.BlockRef {
 		var got []*block.BlockRef
-		err := c.MissingResident(t.Context(), scope, func(refs []*block.BlockRef) error {
+		var err error
+		listed, err = c.MissingResident(t.Context(), scope, func(refs []*block.BlockRef) error {
 			got = append(got, refs...)
 			return nil
 		})
@@ -42,8 +44,8 @@ func TestCacheResidentListYieldsWhatTheCacheLacks(t *testing.T) {
 		return got
 	}
 	got := missing("store/a")
-	if len(got) != 2 || !slices.ContainsFunc(got, refs[2].EqualsRef) || !slices.ContainsFunc(got, refs[3].EqualsRef) {
-		t.Fatalf("missing = %v, want refs 2 and 3", got)
+	if listed != 4 || len(got) != 2 || !slices.ContainsFunc(got, refs[2].EqualsRef) || !slices.ContainsFunc(got, refs[3].EqualsRef) {
+		t.Fatalf("listed %d, missing %v, want 4 listed and refs 2 and 3 missing", listed, got)
 	}
 
 	// Another scope has no list, and a damaged list ends at its damage.

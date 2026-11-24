@@ -753,6 +753,14 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		defer eviction.ClearContext()
 	}
 
+	// Keep the list of blocks the decoded cache holds, and read the last
+	// mount's list into the fill cache. Its stop saves the list before the
+	// decoded cache closes. A primary SQL backend reads through no fill cache.
+	if sqlStore == nil {
+		stopResident := t.startResident(ctx, le, placement, decodedBlocks)
+		defer stopResident()
+	}
+
 	// Serve the handle to block store directives, so their reads of evicted
 	// blocks read through to the backend.
 	bstoreCtrl := newLocalBlockStoreController(le, blockStoreLocalID, bstoreHandle)
