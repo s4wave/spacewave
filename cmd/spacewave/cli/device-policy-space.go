@@ -71,19 +71,23 @@ func (a *devicePolicySpaceArgs) RunAdd(c *cli.Context) error {
 		return err
 	}
 	return runDevicePolicyMutation(c, a.statePath, func(client *sdkClient, policy *device_policy.DevicePolicy) error {
-		// Resolve the named Space in the session.
+		// Resolve the named Space in the session and list it.
 		spaceID, err := resolveSessionSpace(c, client, sessionIdx, a.space)
 		if err != nil {
 			return err
 		}
-
-		// Swap the Space's entry for one naming this session.
-		policy.ServedSpace = slices.DeleteFunc(policy.ServedSpace, func(entry *device_policy.ServedSpace) bool {
-			return entry.GetSpaceId() == spaceID
-		})
-		policy.ServedSpace = append(policy.ServedSpace, &device_policy.ServedSpace{SpaceId: spaceID, SessionIndex: sessionIdx})
+		setServedSpace(policy, spaceID, sessionIdx)
 		return nil
 	})
+}
+
+// setServedSpace lists spaceID as served through the session sessionIdx,
+// replacing any entry the Space already has.
+func setServedSpace(policy *device_policy.DevicePolicy, spaceID string, sessionIdx uint32) {
+	policy.ServedSpace = slices.DeleteFunc(policy.ServedSpace, func(entry *device_policy.ServedSpace) bool {
+		return entry.GetSpaceId() == spaceID
+	})
+	policy.ServedSpace = append(policy.ServedSpace, &device_policy.ServedSpace{SpaceId: spaceID, SessionIndex: sessionIdx})
 }
 
 // RunRemove drops the Space from the served list. Its Reconciler stops, and

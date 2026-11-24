@@ -11,6 +11,7 @@ import (
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
+	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	"github.com/s4wave/spacewave/core/sobject"
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
@@ -172,7 +173,28 @@ func newSpaceJoinCommand(statePath *string, sessionIdx *uint) *cli.Command {
 				return errors.New("the space owner rejected the join")
 			case s4wave_session.JoinSpaceViaInviteResult_JoinSpaceViaInviteResult_OWNER_MUST_BE_ONLINE:
 				return errors.New("the space owner must be online to accept this invite")
-			case s4wave_session.JoinSpaceViaInviteResult_JoinSpaceViaInviteResult_PENDING_OWNER_APPROVAL:
+			}
+
+			// Serve a Space this member may write, so this Device's object
+			// appears there for the Space's graph to place nodes on. The
+			// Reconciler writes it once the Space mounts, after any approval.
+			spaceID := resp.GetSharedObjectId()
+			if spaceID == "" {
+				spaceID = invite.GetSharedObjectId()
+			}
+			if sobject.CanWriteOps(invite.GetRole()) && spaceID != "" {
+				policyPath, err := resolveStatePathFromContext(c, *statePath)
+				if err != nil {
+					return err
+				}
+				if err := mutateDevicePolicy(ctx, client, policyPath, func(_ *sdkClient, policy *device_policy.DevicePolicy) error {
+					setServedSpace(policy, spaceID, sessionIndex32(*sessionIdx))
+					return nil
+				}); err != nil {
+					return errors.Wrap(err, "serve joined space")
+				}
+			}
+			if resp.GetResult() == s4wave_session.JoinSpaceViaInviteResult_JoinSpaceViaInviteResult_PENDING_OWNER_APPROVAL {
 				os.Stdout.WriteString("join submitted; waiting for the space owner to approve\n")
 				if c.Bool("backfill") {
 					os.Stdout.WriteString("after approval, run: spacewave space backfill <space-id> on\n")
