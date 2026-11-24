@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
-	"slices"
 
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -63,9 +62,9 @@ func (a *ProviderAccount) ReadStoredSharedObject(ctx context.Context, id string)
 		out.Entry, out.Origin = entry, origin
 
 		// Read the stored state in the same transaction.
-		data, found, err := tx.Get(ctx, SobjectObjectStoreHostStateKey(id))
+		data, found, err := readSOStateData(ctx, tx, id)
 		if found {
-			out.State = slices.Clone(data)
+			out.State = data
 		}
 		return err
 	})

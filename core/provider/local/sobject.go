@@ -143,12 +143,12 @@ func (m mountTransactions) NewTransaction(ctx context.Context, write bool) (kvtx
 // Writes also require stored state, including before a delete retires the mount.
 type mountStore struct {
 	mountTransactions
-	// hostKey is the object's stored state key.
-	hostKey []byte
+	// stateKey is the token key of the object's state in the selected layout.
+	stateKey []byte
 }
 
 // NewTransaction refuses an ended mount. Writes also fail with
-// ErrSharedObjectNotFound when the host state key is gone; the writer holds
+// ErrSharedObjectNotFound when the state's token key is gone; the writer holds
 // from open to commit or discard, so no delete can commit after that check.
 func (m mountStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	// Validate the mount after pinning the snapshot or taking the writer.
@@ -158,7 +158,7 @@ func (m mountStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, er
 	}
 
 	// Refuse a delete that has committed but has not yet retired the mount.
-	found, err := tx.Exists(ctx, m.hostKey)
+	found, err := tx.Exists(ctx, m.stateKey)
 	if err == nil && !found {
 		err = sobject.ErrSharedObjectNotFound
 	}
@@ -689,7 +689,7 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 		blkStore:     blkStore,
 		soHost:       soHost,
 		lsoHost:      lsoHost,
-		objStore:     mountStore{mountTransactions: mountTxs, hostKey: SobjectObjectStoreHostStateKey(sharedObjectID)},
+		objStore:     mountStore{mountTransactions: mountTxs, stateKey: soStateKeys(sharedObjectID)[0]},
 		objStoreID:   objectStoreID,
 		localPriv:    localPriv,
 		localPid:     localPeerID,
@@ -972,16 +972,17 @@ func (a *ProviderAccount) RefreshSharedObjectList(context.Context) error {
 	return nil
 }
 
-// loadSharedObjectState validates the object's stored state. An object the
-// account lists with no stored state, such as one listed before create stored
+// loadSharedObjectState validates the object's stored state, first
+// converting a state stored in the other layout to the selected one
+// (stateLayoutLog). An object the account lists with no stored state, such as one listed before create stored
 // a genesis, gets a genesis in a transaction that rereads the list. An
 // unlisted object with none was deleted or never created and returns
 // ErrSharedObjectNotFound. Under DeleteStateEnv's old behavior any object with
 // no stored state gets a genesis.
 func (t *sobjectTracker) loadSharedObjectState(ctx context.Context, store mountTransactions, sharedObjectID string) error {
 	// Validate the stored state, or learn whether the object is listed.
-	key := SobjectObjectStoreHostStateKey(sharedObjectID)
-	var found, listed bool
+	selected, other := soStateLayouts(sharedObjectID)
+	var found, convert, listed bool
 	err := kvtx.RunTransaction(ctx, false,
 		func(ctx context.Context) (kvtx.Tx, error) {
 			return store.NewTransaction(ctx, false)
@@ -992,17 +993,17 @@ func (t *sobjectTracker) loadSharedObjectState(ctx context.Context, store mountT
 				return err
 			}
 
-			// Read the stored state; with none, read whether it is listed.
-			data, ok, err := tx.Get(ctx, key)
+			// Read the stored state; with none, read whether it is stored
+			// in the other layout, then whether it is listed.
+			state, _, ok, err := selected.load(ctx, tx)
 			if err != nil {
 				return err
 			}
 			if found = ok; found {
-				val := &sobject.SOState{}
-				if err := val.UnmarshalVT(data); err != nil {
-					return err
-				}
-				return val.Validate(sharedObjectID)
+				return state.Validate(sharedObjectID)
+			}
+			if convert, err = tx.Exists(ctx, other.tokenKey()); err != nil || convert {
+				return err
 			}
 			listed, err = storedListsSharedObject(ctx, tx, sharedObjectID)
 			return err
@@ -1010,6 +1011,25 @@ func (t *sobjectTracker) loadSharedObjectState(ctx context.Context, store mountT
 	)
 	if err != nil || found {
 		return err
+	}
+
+	// Convert a state stored in the other layout and validate the result in
+	// the same transaction. No mount of this process writes the other
+	// layout, so only a delete can race the conversion; it then finds
+	// nothing, and the mount's load finds no state.
+	if convert {
+		return kvtx.RunTransaction(ctx, true,
+			func(ctx context.Context) (kvtx.Tx, error) {
+				return store.ObjectStore.NewTransaction(ctx, true)
+			},
+			func(ctx context.Context, tx kvtx.Tx) error {
+				state, err := convertSOState(ctx, tx, sharedObjectID)
+				if err != nil || state == nil {
+					return err
+				}
+				return state.Validate(sharedObjectID)
+			},
+		)
 	}
 	if !listed && !deleteStateOff {
 		return sobject.ErrSharedObjectNotFound
@@ -1131,16 +1151,11 @@ func (a *ProviderAccount) genesisSOStateWriter(ctx context.Context, id string) (
 	if err != nil {
 		return nil, err
 	}
-	data, err := state.MarshalVT()
-	if err != nil {
-		return nil, err
-	}
 
 	// Store it with its history unless state is already stored.
-	key := SobjectObjectStoreHostStateKey(id)
 	return func(ctx context.Context, tx kvtx.Tx) error {
 		// Keep state already stored; refuse keys an earlier lifetime left.
-		found, err := tx.Exists(ctx, key)
+		found, err := soStateStored(ctx, tx, id)
 		if err != nil || found {
 			return err
 		}
@@ -1152,7 +1167,7 @@ func (a *ProviderAccount) genesisSOStateWriter(ctx context.Context, id string) (
 		if err := WriteSOConfigHistory(ctx, tx, id, genesis.GetConfig(), state.GetConfig(), []*sobject.SOConfigChange{genesis}); err != nil {
 			return err
 		}
-		return tx.Set(ctx, key, data)
+		return replaceSOState(ctx, tx, id, state)
 	}, nil
 }
 

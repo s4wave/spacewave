@@ -307,7 +307,7 @@ func (a *ProviderAccount) readReleaseMark(ctx context.Context, id string) (block
 		blockStoreID, found = string(data), true
 
 		// Read whether id holds stored state.
-		stored, err = tx.Exists(ctx, SobjectObjectStoreHostStateKey(id))
+		stored, err = soStateStored(ctx, tx, id)
 		return err
 	})
 	return blockStoreID, found, stored, err
@@ -370,12 +370,12 @@ func (a *ProviderAccount) DeleteSharedObject(ctx context.Context, id string) err
 //     optimistic mode, which takes the writer at commit, applies only to a
 //     transaction RunOptimisticTransaction opens; none here does. One
 //     before is removed with the prefix. One after finds no stored state and
-//     fails: state writes check the host key in their transaction, and a
+//     fails: state writes check the state key in their transaction, and a
 //     mount's other writes check it after taking the writer. The live mount
 //     is retired after the commit, still under mtx and before a same-id
 //     create can proceed. A mount after the delete returns gets the refusal
 //     rather than the ended handle. A write checking under the writer after
-//     a same-id create sees the ended mount even though the host key exists.
+//     a same-id create sees the ended mount even though the state key exists.
 //   - A mount can open a read snapshot only while live. The restart clears
 //     the host's published state and ends the mount before a same-id create
 //     can proceed. Local state and host history check the mount again after
@@ -530,13 +530,13 @@ func (a *ProviderAccount) withClearedSOKeys(ctx context.Context, id string, clea
 // clearStaleSOKeys deletes the keys under id's prefix while id holds no
 // stored state, for a path that gives a listed or enrolling id its first
 // state. Such keys come from a clear a crash interrupted or a write that
-// failed partway; a delete that kept state kept the host key too. Each batch
-// checks the host state key in its deleting transaction, so state another
+// failed partway; a delete that kept state kept its state key too. Each batch
+// checks the state keys in its deleting transaction, so state another
 // writer stores is never deleted. It does not take mtx: a mount's state load
 // runs it, and bindPairingSettings mounts while holding mtx.
 func (a *ProviderAccount) clearStaleSOKeys(ctx context.Context, id string) error {
 	return a.clearSOKeys(ctx, id, false, func(ctx context.Context, tx kvtx.Tx) (bool, error) {
-		return tx.Exists(ctx, SobjectObjectStoreHostStateKey(id))
+		return soStateStored(ctx, tx, id)
 	})
 }
 
@@ -597,7 +597,7 @@ func (a *ProviderAccount) checkAbandonedLocked(id string) error {
 }
 
 // clearSOKeys deletes the keys under id's prefix in write transactions of at
-// most deleteBatchSize keys, plus the host state key, which the first batch
+// most deleteBatchSize keys, plus the state keys, which the first batch
 // deletes so no mount writes to the id meanwhile. Each batch first asks keep
 // within its transaction, and stops if it reports the keys owned or fails.
 // With locked set each batch holds mtx, one bounded hold per batch. A read
@@ -627,13 +627,15 @@ func (a *ProviderAccount) clearSOKeys(ctx context.Context, id string, locked boo
 			return err
 		}
 
-		// Delete the host state key, then the batch.
+		// Delete the state's token keys, then the batch.
 		keys, err = scanKeysAfter(ctx, tx, prefix, nil)
 		if err != nil || len(keys) == 0 {
 			return err
 		}
-		if err := tx.Delete(ctx, SobjectObjectStoreHostStateKey(id)); err != nil {
-			return err
+		for _, key := range soStateKeys(id) {
+			if err := tx.Delete(ctx, key); err != nil {
+				return err
+			}
 		}
 		for _, key := range keys {
 			if err := tx.Delete(ctx, key); err != nil {

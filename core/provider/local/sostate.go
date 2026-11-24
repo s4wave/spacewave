@@ -52,7 +52,8 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 	reads := mountTransactions{ObjectStore: objStore, ctx: rctx}
 	soRc := keyed.NewKeyedRefCount(
 		func(sharedObjectID string) (keyed.Routine, *soStateEntry) {
-			ent := newSOStateEntry(SobjectObjectStoreHostStateKey(sharedObjectID))
+			layout, _ := soStateLayouts(sharedObjectID)
+			ent := newSOStateEntry(layout)
 			return func(ctx context.Context) error {
 				return ent.execute(ctx, reads, runs, sharedObjectID)
 			}, ent
@@ -89,18 +90,18 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 		return err
 	}
 
-	// settle settles a write of data that failed with err, and returns nil
+	// settle settles a write of token that failed with err, and returns nil
 	// when it committed anyway, err when it did not, or ErrStateWriteUnknown
 	// when storage cannot show which. ended reports that the transaction
 	// body finished, so the failure came at or after the commit; any earlier
 	// failure stored nothing. A failed compare read another writer's state
 	// as stored. A failure at the commit may have stored the write, so read
-	// what storage holds now: data means the write committed, and the state
-	// under it or none means it did not. Any other state may follow this
+	// the token key now: token means the write committed, and the state's
+	// token under it or none means it did not. Any other state may follow this
 	// write, so its outcome is unknown. The mount reloads whenever storage
 	// holds, or may hold, another state than the one it last wrote. The
 	// caller holds ent.writeMtx.
-	settle := func(sharedObjectID string, ent *soStateEntry, data []byte, ended bool, err error) error {
+	settle := func(sharedObjectID string, ent *soStateEntry, token []byte, ended bool, err error) error {
 		// A failure before the commit stored nothing.
 		if errors.Is(err, ErrStateChanged) {
 			runs.Reload()
@@ -124,7 +125,7 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 				},
 				func(ctx context.Context, tx kvtx.Tx) error {
 					var err error
-					stored, found, err = tx.Get(ctx, ent.key)
+					stored, found, err = tx.Get(ctx, ent.layout.tokenKey())
 					return err
 				},
 			)
@@ -135,9 +136,9 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 		case rerr != nil:
 			runs.Reload()
 			return errors.Join(sobject.ErrStateWriteUnknown, err)
-		case found && bytes.Equal(stored, data):
+		case found && bytes.Equal(stored, token):
 			return nil
-		case !found || bytes.Equal(stored, ent.data):
+		case !found || bytes.Equal(stored, ent.token):
 			return err
 		default:
 			// Another state may be a successor another mount wrote over
@@ -177,14 +178,13 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 		return sobject.NewSOStateLock(
 			initialState,
 			func(ctx context.Context, state *sobject.SOState, changes ...*sobject.SOConfigChange) error {
-				// Serialize an independent state snapshot.
+				// Store an independent state snapshot as its delta from the
+				// committed state, which no writer modifies.
 				ctx, task := trace.NewTask(ctx, "alpha/local-so/write-so-state")
 				defer task.End()
 				state = state.Clone()
-				data, err := state.MarshalVT()
-				if err != nil {
-					return err
-				}
+				committed := ent.stateCtr.GetValue()
+				var token []byte
 
 				// Hold off a restarted run's load from the mount check until
 				// this transaction ends. The write takes the gate inside its
@@ -199,7 +199,7 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 				// boundary. ended marks an attempt whose body finished, so
 				// only its commit can have failed.
 				var ended bool
-				err = kvtx.RunTransaction(ctx, true,
+				err := kvtx.RunTransaction(ctx, true,
 					func(ctx context.Context) (kvtx.Tx, error) {
 						if relWrites != nil {
 							relWrites()
@@ -227,7 +227,7 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 						if hook := testHookStateWriting.Load(); hook != nil {
 							(*hook)(sharedObjectID)
 						}
-						stored, found, err := tx.Get(ctx, ent.key)
+						stored, found, err := tx.Get(ctx, ent.layout.tokenKey())
 						if err != nil {
 							return err
 						}
@@ -236,12 +236,12 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 						}
 
 						// A replaced object stays replaced. The write builds on the
-						// state this entry holds, so it commits only over those
-						// bytes. A replace commits between the mount's last write
+						// state this entry holds, so it commits only over its
+						// token. A replace commits between the mount's last write
 						// and its restart; a write in that window finds the new
 						// state and fails rather than writing the old lineage back,
 						// and the mount reloads what storage holds.
-						if !bytes.Equal(stored, ent.data) {
+						if !bytes.Equal(stored, ent.token) {
 							return ErrStateChanged
 						}
 
@@ -264,7 +264,8 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 						if err := writeReadCheckpoint(ctx, tx, sharedObjectID, localPeer, initialState, state); err != nil {
 							return err
 						}
-						if err := tx.Set(ctx, ent.key, data); err != nil {
+						token, err = ent.layout.write(ctx, tx, ent.token, committed, state)
+						if err != nil {
 							return err
 						}
 						ended = true
@@ -278,13 +279,13 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 					err = (*hook)(sharedObjectID)
 				}
 				if err != nil {
-					if err := settle(sharedObjectID, ent, data, ended, err); err != nil {
+					if err := settle(sharedObjectID, ent, token, ended, err); err != nil {
 						return err
 					}
 				}
 
 				// Make the committed snapshot visible only after the write commits.
-				ent.commit(state, data)
+				ent.commit(state, token)
 				return nil
 			},
 			func() {

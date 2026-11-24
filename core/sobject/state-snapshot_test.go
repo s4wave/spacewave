@@ -21,8 +21,9 @@ func TestSOStateClone(t *testing.T) {
 	}
 	before := state.CloneVT()
 	next := state.Clone()
-	if !next.EqualVT(before) || next.Ops[0] != state.Ops[0] || next.Ops[1] != state.Ops[1] {
-		t.Fatal("copy changed state or copied immutable operations")
+	if !next.EqualVT(before) || next.Ops[0] != state.Ops[0] || next.Ops[1] != state.Ops[1] ||
+		next.Sequence[0] != state.Sequence[0] || next.ControlMessages[0] != state.ControlMessages[0] {
+		t.Fatal("copy changed state or copied immutable signed records")
 	}
 
 	// Mutating the state copy never changes an earlier snapshot.
@@ -30,13 +31,13 @@ func TestSOStateClone(t *testing.T) {
 	next.Checkpoint.Inner[0]++
 	next.KeyEpochs[0].Epoch++
 	next.Invites[0].Uses++
-	next.Sequence[0].Inner[0]++
-	next.ControlMessages[0].Inner[0]++
 	next.unknownFields[1]++
 
-	// Replace operation membership without editing any shared operation.
+	// Replace record membership without editing any shared record.
 	next.Ops = slices.Delete(next.Ops, 0, 1)
 	next.Ops = append(next.Ops, &SOOperation{Inner: []byte("third")})
+	next.Sequence[0] = &SOSequence{Inner: []byte("other sequence")}
+	next.ControlMessages = nil
 	if !state.EqualVT(before) {
 		t.Fatal("editing the copy changed the original state")
 	}

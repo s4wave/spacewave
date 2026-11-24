@@ -327,10 +327,9 @@ func TestMountReloadsAfterAmbiguousCommit(t *testing.T) {
 	writeTestStateData(ctx, t, so, []byte("fake-c"))
 
 	// A commit error after another writer stored an earlier state reloads.
-	key := SobjectObjectStoreHostStateKey("ambiguous")
 	testHookStateCommitted.Store(new(func(id string) error {
 		err := a.runSoObjectStoreTx(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
-			return tx.Set(ctx, key, other.State)
+			return storeTestStateData(ctx, tx, "ambiguous", other.State)
 		})
 		if err != nil {
 			return err
@@ -412,11 +411,11 @@ func TestMountReloadsAfterAmbiguousCommit(t *testing.T) {
 		var err error
 		commitOnce.Do(func() {
 			err = a.runSoObjectStoreTx(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
-				data, _, err := tx.Get(ctx, key)
+				data, _, err := readSOStateData(ctx, tx, "ambiguous")
 				if err != nil {
 					return err
 				}
-				return tx.Set(ctx, key, append(bytes.Clone(data), 0x98, 0x06, 0x01))
+				return storeTestStateData(ctx, tx, "ambiguous", append(data, 0x98, 0x06, 0x01))
 			})
 			if err == nil {
 				err = errAmbiguous
@@ -471,9 +470,8 @@ func TestMountReloadsAfterStoreChange(t *testing.T) {
 	writeTestStateData(ctx, t, so, []byte("fake-b"))
 
 	// Store the earlier state behind the mount, and count the runs after it.
-	key := SobjectObjectStoreHostStateKey("behind")
 	err = a.runSoObjectStoreTx(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
-		return tx.Set(ctx, key, first.State)
+		return storeTestStateData(ctx, tx, "behind", first.State)
 	})
 	if err != nil {
 		t.Fatal(err)

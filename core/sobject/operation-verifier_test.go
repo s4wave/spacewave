@@ -230,8 +230,9 @@ func TestSOOperationVerifierSequence(t *testing.T) {
 
 	// A held position whose signature changed is verified again and dropped,
 	// which ends the sequence below it.
+	// The copy shares signed records, so the forgery replaces one.
 	forged := next.Clone()
-	forged.Sequence[0].Signature.SigData = slices.Clone(forged.Sequence[0].GetSignature().GetSigData())
+	forged.Sequence[0] = forged.Sequence[0].CloneVT()
 	forged.Sequence[0].Signature.SigData[0] ^= 0xff
 	if got := build(forged); len(got) != 8 {
 		t.Fatalf("verifier holds %d positions after a forged signature; want 8", len(got))

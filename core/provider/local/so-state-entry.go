@@ -14,25 +14,26 @@ import (
 
 // soStateEntry is the mounted state of one shared object: what storage holds.
 type soStateEntry struct {
-	// key addresses the serialized SOState in the object store.
-	key []byte
+	// layout stores the state: the selected layout, which the mount's state
+	// load converted the stored state to.
+	layout soStateLayout
 	// stateProm completes after loading the persisted state, once stateCtr
 	// holds it.
 	stateProm *promise.PromiseContainer[*sobject.SOState]
 	// stateCtr publishes the committed state.
 	stateCtr *ccontainer.CContainer[*sobject.SOState]
-	// data is the stored encoding of the state in stateCtr, which the next
-	// write requires storage still to hold. It is set before stateProm
-	// completes, and then only under writeMtx.
-	data []byte
+	// token is the bytes of the layout's token key that store the state in
+	// stateCtr, which the next write requires storage still to hold. It is
+	// set before stateProm completes, and then only under writeMtx.
+	token []byte
 	// writeMtx serializes the state writes while the entry is retained.
 	writeMtx csync.Mutex
 }
 
-// newSOStateEntry constructs the entry of the state at key.
-func newSOStateEntry(key []byte) *soStateEntry {
+// newSOStateEntry constructs the entry of the state stored in layout.
+func newSOStateEntry(layout soStateLayout) *soStateEntry {
 	return &soStateEntry{
-		key:       key,
+		layout:    layout,
 		stateProm: promise.NewPromiseContainer[*sobject.SOState](),
 		stateCtr:  ccontainer.NewCContainer[*sobject.SOState](nil),
 	}
@@ -42,7 +43,7 @@ func newSOStateEntry(key []byte) *soStateEntry {
 // the entry until ctx ends.
 func (e *soStateEntry) execute(ctx context.Context, objStore object.ObjectStore, runs *SOStateRuns, sharedObjectID string) error {
 	// Load the stored state after the open writes of this object.
-	data, found, err := e.load(ctx, objStore, runs)
+	val, token, found, err := e.load(ctx, objStore, runs)
 	if err != nil {
 		return err
 	}
@@ -51,16 +52,12 @@ func (e *soStateEntry) execute(ctx context.Context, objStore object.ObjectStore,
 	}
 
 	// Validate the persisted state before exposing it to consumers.
-	val := &sobject.SOState{}
-	if err := val.UnmarshalVT(data); err != nil {
-		return err
-	}
 	if err := val.Validate(sharedObjectID); err != nil {
 		return err
 	}
 
 	// Publish it to waiters and watches, and hold the entry.
-	e.data = data
+	e.token = token
 	e.stateCtr.SetValue(val)
 	e.stateProm.SetResult(val, nil)
 	<-ctx.Done()
@@ -75,11 +72,11 @@ func (e *soStateEntry) execute(ctx context.Context, objStore object.ObjectStore,
 // under it. A write of the old run that takes the gate later finds its mount
 // ended and writes nothing, and the new run's writes wait for this load. The
 // read holds no lock, so it orders after no write transaction.
-func (e *soStateEntry) load(ctx context.Context, objStore object.ObjectStore, runs *SOStateRuns) (data []byte, found bool, err error) {
+func (e *soStateEntry) load(ctx context.Context, objStore object.ObjectStore, runs *SOStateRuns) (state *sobject.SOState, token []byte, found bool, err error) {
 	// Wait for the writes of this object past their mount check.
 	release, err := runs.Writes.Lock(ctx, true)
 	if err != nil {
-		return nil, false, err
+		return nil, nil, false, err
 	}
 	release()
 
@@ -90,17 +87,16 @@ func (e *soStateEntry) load(ctx context.Context, objStore object.ObjectStore, ru
 		},
 		func(ctx context.Context, tx kvtx.Tx) error {
 			var err error
-			data, found, err = tx.Get(ctx, e.key)
+			state, token, found, err = e.layout.load(ctx, tx)
 			return err
 		},
 	)
-	return data, found, err
+	return state, token, found, err
 }
 
-// commit publishes state, written to storage as data. The caller holds
-// writeMtx.
-func (e *soStateEntry) commit(state *sobject.SOState, data []byte) {
-	e.data = data
+// commit publishes state, stored under token. The caller holds writeMtx.
+func (e *soStateEntry) commit(state *sobject.SOState, token []byte) {
+	e.token = token
 	e.stateCtr.SetValue(state)
 	e.stateProm.SetResult(state, nil)
 }

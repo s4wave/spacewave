@@ -188,7 +188,7 @@ func TestPeerImportRetainsAuthority(t *testing.T) {
 	}
 
 	// The stored state matches the invitation.
-	stateData, found, err := read.Get(ctx, SobjectObjectStoreHostStateKey(testSharedObjectID))
+	stateData, found, err := readSOStateData(ctx, read, testSharedObjectID)
 	if err != nil || !found {
 		t.Fatalf("invitation state missing: %v", err)
 	}

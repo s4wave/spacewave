@@ -253,10 +253,11 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 	}
 
 	// Load the verified cache; a failed read starts the host cold.
-	verifiedCache, err := t.a.loadVerifiedSOStateCache(ctx, sharedObjectID)
+	verifiedCache, written, err := t.a.loadVerifiedSOStateCacheFrom(ctx, sharedObjectID)
 	if err != nil {
 		le.WithError(err).Warn("failed to load verified SO state cache")
 	}
+	cacheWriter := &verifiedSOCacheWriter{a: t.a, soID: sharedObjectID, written: written}
 
 	// Create the host over the verified cache and its retained history.
 	host := newCloudSOHost(
@@ -269,9 +270,7 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 		sessionPeerID,
 		t.a.sfs,
 		verifiedCache,
-		func(ctx context.Context, cache *api.VerifiedSOStateCache, changes []*sobject.SOConfigChange) error {
-			return t.a.writeVerifiedSOStateCache(ctx, sharedObjectID, cache, changes)
-		},
+		cacheWriter.write,
 		func(ctx context.Context, hash []byte) (*sobject.SOConfigChange, error) {
 			return t.a.readVerifiedSOHistoryEntry(ctx, sharedObjectID, hash)
 		},

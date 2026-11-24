@@ -1959,6 +1959,16 @@
             "core/sobject/invite/invite.proto"
           ]
         },
+        "github.com/s4wave/spacewave/core/sobject/statestore": {
+          "hash": "b0baf913df4016b91591675f92fc112b60c22f7ad4f704b52d20867a99d014e1",
+          "generatedFiles": [
+            "core/sobject/statestore/statestore.pb.go",
+            "core/sobject/statestore/statestore.pb.ts"
+          ],
+          "protoFiles": [
+            "core/sobject/statestore/statestore.proto"
+          ]
+        },
         "github.com/s4wave/spacewave/core/sobject/sync": {
           "hash": "025407a7f0f84d5aa795b68f26f322399854f08f0970dd6873e0799f250788e7",
           "generatedFiles": [

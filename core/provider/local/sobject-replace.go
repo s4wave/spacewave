@@ -82,7 +82,7 @@ func (a *ProviderAccount) ReplaceSharedObjectState(ctx context.Context, le *logr
 		if err != nil {
 			return err
 		}
-		stored, found, err := tx.Get(ctx, SobjectObjectStoreHostStateKey(id))
+		stored, found, err := readSOStateData(ctx, tx, id)
 		if err != nil {
 			return err
 		}
@@ -105,7 +105,7 @@ func (a *ProviderAccount) ReplaceSharedObjectState(ctx context.Context, le *logr
 		if err := WriteSOConfigHistory(ctx, tx, id, genesis.GetConfig(), state.GetConfig(), []*sobject.SOConfigChange{genesis}); err != nil {
 			return err
 		}
-		return tx.Set(ctx, SobjectObjectStoreHostStateKey(id), data)
+		return replaceSOState(ctx, tx, id, state)
 	})
 	if errors.Is(err, ErrStateChanged) || errors.Is(err, sobject.ErrSharedObjectNotFound) {
 		return err
@@ -126,7 +126,7 @@ func (a *ProviderAccount) ReplaceSharedObjectState(ctx context.Context, le *logr
 		var found bool
 		rerr := a.runSoObjectStoreTx(ctx, false, func(ctx context.Context, tx kvtx.Tx) error {
 			var err error
-			stored, found, err = tx.Get(ctx, SobjectObjectStoreHostStateKey(id))
+			stored, found, err = readSOStateData(ctx, tx, id)
 			return err
 		})
 		switch {
