@@ -567,6 +567,9 @@ type readCounters struct {
 	bucket atomic.Uint64
 	// packs counts the reads through the pack readers.
 	packs atomic.Uint64
+	// batchBlocks counts the blocks ReadBatch read, and batchReads the range
+	// reads it made for them.
+	batchBlocks, batchReads atomic.Uint64
 }
 
 // ReadCounts returns the store's block reads by where their bytes came from.
@@ -576,6 +579,8 @@ func (s *PackStore) ReadCounts() ReadCounts {
 		CacheRejected: s.reads.cacheRejected.Load(),
 		Bucket:        s.reads.bucket.Load(),
 		Packs:         s.reads.packs.Load(),
+		BatchBlocks:   s.reads.batchBlocks.Load(),
+		BatchReads:    s.reads.batchReads.Load(),
 	}
 }
 

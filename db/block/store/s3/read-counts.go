@@ -13,4 +13,9 @@ type ReadCounts struct {
 	// Packs counts the blocks read through the pack readers, from the bucket
 	// or the readers' own memory.
 	Packs uint64
+	// BatchBlocks counts the blocks ReadBatch read from the bucket.
+	BatchBlocks uint64
+	// BatchReads counts the range reads ReadBatch made for them, so
+	// BatchBlocks/BatchReads is the blocks one read carried.
+	BatchReads uint64
 }
