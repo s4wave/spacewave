@@ -76,6 +76,9 @@ type Cache struct {
 	bcast broadcast.Broadcast
 	// queue holds the entries awaiting their write.
 	queue *fillQueue
+	// warmBytes is the bytes WarmResident queues before it waits for the
+	// writer: an eighth of the queue's bound.
+	warmBytes int64
 	// evicting is set while the cache is deleting rows down to its target.
 	evicting bool
 	// reads holds the table keys of the hits awaiting their read stamp.
@@ -162,6 +165,7 @@ func Open(ctx context.Context, le *logrus.Entry, path string, opts Options) (*Ca
 		queueBytes = DefaultQueueBytes
 	}
 	c.queue = newFillQueue(queueBytes)
+	c.warmBytes = queueBytes / 8
 
 	// Run the writer until Close.
 	runCtx, cancel := context.WithCancel(ctx)

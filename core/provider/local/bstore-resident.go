@@ -19,11 +19,6 @@ const residentSaveInterval = 5 * time.Minute
 // residentSaveWait bounds the save at unmount, which delays the unmount.
 const residentSaveWait = 10 * time.Second
 
-// residentWaitBytes is the bytes the warm-up queues into the fill cache before
-// it waits for the cache to write them. It keeps the warm-up far below the
-// cache's queue bound, so a foreground fill queued beside it is never dropped.
-const residentWaitBytes = 16 << 20
-
 // residentWarmup turns the resident list's save and warm-up on; see
 // SetResidentWarmup.
 var residentWarmup atomic.Bool
@@ -44,13 +39,9 @@ func SetResidentWarmup(on bool) {
 type residentCache interface {
 	// SaveResident replaces scope's list with refKeys.
 	SaveResident(ctx context.Context, scope string, refKeys iter.Seq[string]) error
-	// MissingResident calls fn with the listed refs the cache lacks, and
-	// returns the number the list named.
-	MissingResident(ctx context.Context, scope string, fn func([]*block.BlockRef) error) (int, error)
-	// Fill queues a block to be copied into the cache.
-	Fill(ctx context.Context, primary block.StoreOps, ref *block.BlockRef, stored *block.StoredBlock) error
-	// Wait waits until the cache wrote what was queued.
-	Wait(ctx context.Context) error
+	// WarmResident reads the listed refs the cache lacks with read into the
+	// cache.
+	WarmResident(ctx context.Context, scope string, read block_store_fillcache.ReadBatch) (block_store_fillcache.WarmCounts, error)
 }
 
 // batchReader is a backend store that reads a batch of blocks with few
@@ -120,9 +111,8 @@ func (t *bstoreTracker) startResident(ctx context.Context, le *logrus.Entry, p *
 }
 
 // warmResident reads the blocks the last mount's list names and the cache
-// lacks from the backend into the cache, once the backend opens. It reads a
-// batch at a time and waits for the cache after every residentWaitBytes, and
-// stops at the first failed batch: the blocks it did not read read on demand.
+// lacks from the backend into the cache, once the backend opens, when the
+// backend reads batches. The blocks it does not read read on demand.
 func (t *bstoreTracker) warmResident(ctx context.Context, le *logrus.Entry, p *placementState, cache residentCache) {
 	// Wait for the backend to open, and warm only from one that reads batches.
 	store, err := t.waitBackend(ctx, p)
@@ -134,35 +124,18 @@ func (t *bstoreTracker) warmResident(ctx context.Context, le *logrus.Entry, p *p
 		return
 	}
 
-	// Read each slice of missing refs into the cache.
+	// Read the list into the cache and log what it did.
 	start := time.Now()
-	var missing, fetched int
-	var queued int64
-	listed, err := cache.MissingResident(ctx, t.id, func(refs []*block.BlockRef) error {
-		missing += len(refs)
-		return batch.ReadBatch(ctx, refs, func(ref *block.BlockRef, stored *block.StoredBlock) error {
-			// Queue the block, and let the cache write each 16 MiB queued.
-			if err := cache.Fill(ctx, nil, ref, stored); err != nil {
-				return err
-			}
-			fetched++
-			queued += int64(len(stored.Data))
-			if queued < residentWaitBytes {
-				return nil
-			}
-			queued = 0
-			return cache.Wait(ctx)
-		})
-	})
-	le = le.WithField("listed", listed).
-		WithField("held", listed-missing).
-		WithField("fetched", fetched).
+	counts, err := cache.WarmResident(ctx, t.id, batch.ReadBatch)
+	le = le.WithField("listed", counts.Listed).
+		WithField("held", counts.Listed-counts.Missing).
+		WithField("fetched", counts.Fetched).
 		WithField("dur", time.Since(start).Round(time.Millisecond).String())
 	if err != nil && ctx.Err() == nil {
 		le.WithError(err).Warn("resident warm-up stopped")
 		return
 	}
-	if listed != 0 {
+	if counts.Listed != 0 {
 		le.Info("resident warm-up done")
 	}
 }
