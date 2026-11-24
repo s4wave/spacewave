@@ -54,6 +54,7 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/os/boot"
 	os_image "github.com/s4wave/spacewave/os/image"
+	os_image_build "github.com/s4wave/spacewave/os/image/build"
 	os_image_sign "github.com/s4wave/spacewave/os/image/sign"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
@@ -354,7 +355,8 @@ func runGit(t *testing.T, dir string, args ...string) string {
 // TestSpacewaveOSRehearsal builds the QEMU board with the spacewave/os package
 // from a Flowgraph Step whose boot input is a World object, checks that the
 // boot set's initramfs holds spacewave-init alone, and rehearses it: an image
-// Step seeds the image store, and a Docker Step boots the boot set in QEMU on
+// Step writes the image into the Space under its transform and exports its
+// store, which must name that same tree, and a Docker Step boots the boot set in QEMU on
 // that store and passes only when the guest grows its disk, creates and
 // writes its data Volume, and stops cleanly. The test then signs the image's
 // root as the Space owner and installs it: the install Step writes the disk
@@ -417,12 +419,16 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 	conf.InputEnv = map[string]string{"boot": "SPACEWAVE_OS_BOOT"}
 	build := f.stepNode(forge_lib_skiffos.ControllerID, conf, forge_lib_skiffos.OutputImages, true)
 	build.Step.Target.Inputs = []*forge_target.Input{worldObjectInput("boot", "os/boot"), worldObjectInput("configs", "os/skiff")}
-	seed := f.imageNode(image, dockerPath)
+	// The image Step writes the image into the Space from os/boot's init and
+	// the busybox the tool image's Step copies out.
+	busybox := f.busyboxNode(image, dockerPath)
+	seed := f.imageNode()
 	rehearse := f.rehearsalNode(image, dockerPath)
 	rehearse.Ports = append(rehearse.Ports, inputPort(forge_lib_skiffos.OutputImages), inputPort(osImage))
 	sign := f.signNode(os_image_sign.InputImage)
-	nodes := map[string]*s4wave_flowgraph.FlowgraphNode{"build": build, "image": seed, "rehearse": rehearse, "sign": sign}
+	nodes := map[string]*s4wave_flowgraph.FlowgraphNode{"build": build, "busybox": busybox, "image": seed, "rehearse": rehearse, "sign": sign}
 	conns := map[string]*s4wave_flowgraph.FlowgraphConnection{
+		"busybox":      {OutputNode: "busybox", OutputPort: os_image_build.InputBusybox, InputNode: "image", InputPort: os_image_build.InputBusybox},
 		"boot-set":     {OutputNode: "build", OutputPort: forge_lib_skiffos.OutputImages, InputNode: "rehearse", InputPort: forge_lib_skiffos.OutputImages},
 		"image":        {OutputNode: "image", OutputPort: osImage, InputNode: "rehearse", InputPort: osImage},
 		"signed-image": {OutputNode: "image", OutputPort: osImage, InputNode: "sign", InputPort: os_image_sign.InputImage},
@@ -500,13 +506,24 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 		}
 	}
 
-	// The sign Step authorizes the rehearsed image's root as the Worker, the
-	// Space owner's Device, with a key it asks for and never holds.
-	imageTree := f.taskTree(f.waitTask("flowgraph-run/spacewave-os", "image", true), osImage)
-	root := f.imageRoot(imageTree)
+	// The image Step's store names the tree it wrote into the Space, which
+	// holds the image's files, read through the Space's own transform.
+	imageTask := f.waitTask("flowgraph-run/spacewave-os", "image", true)
+	imageTree := f.taskTree(imageTask, osImage)
+	built := f.readImage(imageTree)
+	root := built.GetRootRef()
+	if system := f.taskTree(imageTask, os_image_build.OutputSystem); !system.EqualsRef(root) {
+		t.Fatalf("image store names %s, not the Space's tree %s", root.MarshalString(), system.MarshalString())
+	}
+	if got := f.readTreeFile(root, "workload"); !bytes.Equal(got, initBytes) {
+		t.Fatalf("the Space's image tree holds a %d byte workload, want %d", len(got), len(initBytes))
+	}
+
+	// The sign Step authorizes the rehearsed image as the Worker, the Space
+	// owner's Device, with a key it asks for and never holds.
 	authorization := f.taskTree(f.waitTask("flowgraph-run/spacewave-os", "sign", true), os_image_sign.OutputAuthorization)
-	if authorized, signer := f.imageAuthorization(authorization); !authorized.EqualsRef(root) || signer != f.workerPeerID {
-		t.Fatalf("authorized %s by %s, want the image root %s by the Worker %s", authorized.MarshalString(), signer, root.MarshalString(), f.workerPeerID)
+	if authorized, signer := f.imageAuthorization(authorization); !authorized.EqualVT(built) || signer != f.workerPeerID {
+		t.Fatalf("authorized %s by %s, want the image root %s by the Worker %s", authorized.GetRootRef().MarshalString(), signer, root.MarshalString(), f.workerPeerID)
 	}
 
 	// Keep the rehearsed boot set, image and authorization as World objects,
@@ -537,7 +554,7 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	f.storeAuthorization("os/authorization-stranger", stranger, root)
+	f.storeAuthorization("os/authorization-stranger", stranger, built)
 	refused, failure := f.install("stranger", image, dockerPath, "os/authorization-stranger")
 	if failure == "" {
 		t.Fatal("install accepted an authorization from an unpinned key")
@@ -583,7 +600,7 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 
 // osImage names the image Step's output, the image store, and the input
 // that reads it.
-const osImage = "image"
+const osImage = os_image_build.OutputImage
 
 // dockerConfig returns a Docker Step config for the os/qemu tool image that
 // mounts the named inputs, runs command and writes output under /outputs.
@@ -597,13 +614,24 @@ func dockerConfig(image, dockerPath, output string, inputMounts map[string]strin
 	}
 }
 
-// imageNode returns a Step that seeds an image store with os/boot's init and
-// the tool image's static busybox.
-func (f *flowgraphFixture) imageNode(image, dockerPath string) *s4wave_flowgraph.FlowgraphNode {
-	conf := dockerConfig(image, dockerPath, osImage, map[string]string{"boot": "/boot-input"},
-		"/boot-input/init", "seed", "/outputs/"+osImage, "/bin/busybox")
-	node := f.stepNode(forge_lib_docker.ControllerID, conf, osImage, false)
-	node.Step.Target.Inputs = []*forge_target.Input{worldObjectInput("boot", "os/boot")}
+// busyboxNode returns a Step that outputs the tool image's static busybox as
+// a tree for the image Step.
+func (f *flowgraphFixture) busyboxNode(image, dockerPath string) *s4wave_flowgraph.FlowgraphNode {
+	out := "/outputs/" + os_image_build.InputBusybox
+	conf := dockerConfig(image, dockerPath, os_image_build.InputBusybox, nil,
+		"sh", "-c", "mkdir "+out+" && cp /bin/busybox "+out+"/busybox")
+	return f.stepNode(forge_lib_docker.ControllerID, conf, os_image_build.InputBusybox, false)
+}
+
+// imageNode returns a Step that writes an image into the Space from
+// os/boot's init and its busybox input, and outputs the tree and its store.
+func (f *flowgraphFixture) imageNode() *s4wave_flowgraph.FlowgraphNode {
+	node := f.stepNode(os_image_build.ControllerID, &os_image_build.Config{}, osImage, false)
+	node.Step.Target.Inputs = []*forge_target.Input{worldObjectInput(os_image_build.InputBoot, "os/boot")}
+	node.Step.Target.Outputs = append(node.Step.Target.Outputs, &forge_target.Output{
+		Name: os_image_build.OutputSystem, OutputType: forge_target.OutputType_OutputType_EXEC, ExecOutput: os_image_build.OutputSystem,
+	})
+	node.Ports = append(node.Ports, inputPort(os_image_build.InputBusybox))
 	return node
 }
 
@@ -640,8 +668,8 @@ func (f *flowgraphFixture) install(name, image, dockerPath, authorization string
 	return f.waitDone(run, "install")
 }
 
-// imageRoot returns the selected root of the image store in the tree at root.
-func (f *flowgraphFixture) imageRoot(tree *block.BlockRef) *block.BlockRef {
+// readImage returns the built image of the image store in the tree at root.
+func (f *flowgraphFixture) readImage(tree *block.BlockRef) *bucket.ObjectRef {
 	// Copy the store file out of the tree, streaming it.
 	dir := f.t.TempDir()
 	f.openTree(tree, func(bfs billy.Filesystem) error {
@@ -658,12 +686,12 @@ func (f *flowgraphFixture) imageRoot(tree *block.BlockRef) *block.BlockRef {
 		return errors.Join(err, dst.Close())
 	})
 
-	// Read its selected root as the boot and the sign Step do.
-	root, err := boot.ReadImageRoot(f.ctx, dir)
+	// Read its built image as the sign Step does.
+	image, err := boot.ReadImage(f.ctx, dir)
 	if err != nil {
 		f.t.Fatal(err)
 	}
-	return root
+	return image
 }
 
 // signNode returns a Step that signs its image input's root once its
@@ -676,9 +704,9 @@ func (f *flowgraphFixture) signNode(connected ...string) *s4wave_flowgraph.Flowg
 	return node
 }
 
-// imageAuthorization returns the image root the authorization tree at root
+// imageAuthorization returns the image the authorization tree at root
 // authorizes and its signer, verified as a machine pinning the Worker does.
-func (f *flowgraphFixture) imageAuthorization(root *block.BlockRef) (*block.BlockRef, peer.ID) {
+func (f *flowgraphFixture) imageAuthorization(root *block.BlockRef) (*bucket.ObjectRef, peer.ID) {
 	dir := f.t.TempDir()
 	path := filepath.Join(dir, os_image.AuthorizationFile)
 	if err := os.WriteFile(path, f.readTreeFile(root, os_image.AuthorizationFile), 0o600); err != nil {
@@ -688,7 +716,7 @@ func (f *flowgraphFixture) imageAuthorization(root *block.BlockRef) (*block.Bloc
 	if err != nil {
 		f.t.Fatal(err)
 	}
-	authorized, signer, err := os_image.VerifyImageRoot(signed, []peer.ID{f.workerPeerID})
+	authorized, signer, err := os_image.VerifyImage(signed, []peer.ID{f.workerPeerID})
 	if err != nil {
 		f.t.Fatal(err)
 	}
@@ -715,9 +743,9 @@ func (f *flowgraphFixture) storeCard(key string, owner crypto.PrivKey) {
 	})
 }
 
-// storeAuthorization stores signer's authorization of the image root.
-func (f *flowgraphFixture) storeAuthorization(key string, signer crypto.PrivKey, root *block.BlockRef) {
-	signed, err := os_image.SignImageRoot(signer, root)
+// storeAuthorization stores signer's authorization of image.
+func (f *flowgraphFixture) storeAuthorization(key string, signer crypto.PrivKey, image *bucket.ObjectRef) {
+	signed, err := os_image.SignImage(signer, image)
 	if err != nil {
 		f.t.Fatal(err)
 	}
@@ -865,6 +893,7 @@ func newSkiffOSProof(t *testing.T) *skiffOSProof {
 	h.tb.StaticResolver.AddFactory(forge_lib_skiffos_audit.NewFactory())
 	h.tb.StaticResolver.AddFactory(forge_lib_skiffos_update.NewFactory())
 	h.tb.StaticResolver.AddFactory(forge_lib_util_presence.NewFactory(h.tb.Bus))
+	h.tb.StaticResolver.AddFactory(os_image_build.NewFactory())
 	h.tb.StaticResolver.AddFactory(os_image_sign.NewFactory(h.tb.Bus))
 	admission := h.newAdmission("skiffos-proof")
 	h.tb.StaticResolver.AddFactory(forge_lib_docker.NewWorkerFactory(h.tb.Bus, admission))

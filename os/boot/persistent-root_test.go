@@ -17,10 +17,10 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
-	"github.com/s4wave/spacewave/db/bucket"
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	unixfs_iofs "github.com/s4wave/spacewave/db/unixfs/iofs"
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
+	os_image "github.com/s4wave/spacewave/os/image"
 	"github.com/sirupsen/logrus"
 )
 
@@ -47,17 +47,30 @@ func TestPersistentRootReopen(t *testing.T) {
 	if err := archive.Close(); err != nil {
 		t.Fatal(err)
 	}
-	if err := SeedRoot(ctx, le, dir, bytes.NewBufferString("retained executable"), iotest.DataErrReader(bytes.NewReader(tools)), assets); err != nil {
+	transform, err := os_image.NewTransform()
+	if err != nil {
 		t.Fatal(err)
 	}
-	if err := SeedRoot(ctx, le, dir, bytes.NewBufferString("replacement"), bytes.NewReader(tools), nil); !os.IsExist(err) {
+	if err := SeedRoot(ctx, le, dir, transform, bytes.NewBufferString("retained executable"), iotest.DataErrReader(bytes.NewReader(tools)), assets); err != nil {
+		t.Fatal(err)
+	}
+	if err := SeedRoot(ctx, le, dir, transform, bytes.NewBufferString("replacement"), bytes.NewReader(tools), nil); !os.IsExist(err) {
 		t.Fatalf("reseed returned %v", err)
 	}
 
-	// Keep independent identity and physical-byte evidence for subsequent reopens.
+	// Keep the built image and physical-byte evidence for subsequent reopens.
 	before := hashImageFile(t, path)
-	var id string
-	var head *bucket.ObjectRef
+	head, err := ReadImage(ctx, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !head.GetTransformConf().EqualVT(transform) {
+		t.Fatal("seed stored another transform")
+	}
+	built, err := imageBlock(head)
+	if err != nil {
+		t.Fatal(err)
+	}
 	var descendant *block.BlockRef
 	var toolDescendant *block.BlockRef
 
@@ -70,12 +83,6 @@ func TestPersistentRootReopen(t *testing.T) {
 		if err != nil {
 			cancel()
 			t.Fatal(err)
-		}
-		if id == "" {
-			id, head = r.volumeID, r.head.Clone()
-		}
-		if r.volumeID != id || !r.head.EqualsRef(head) {
-			t.Fatal("reopen changed Volume identity or committed root")
 		}
 		file, err := r.Handle().Lookup(ctx, "payload")
 		if err != nil {
@@ -146,6 +153,9 @@ func TestPersistentRootReopen(t *testing.T) {
 		if hashImageFile(t, path) != before {
 			t.Fatal("read-only reopen or cancellation changed the store")
 		}
+		if image, err := ReadImage(ctx, dir); err != nil || !image.EqualVT(head) {
+			t.Fatalf("reopen changed the built image: %v", err)
+		}
 	}
 	t.Log("CANCELLATION_LIFETIME_OK readers survived cancellation until explicit close; store preserved")
 
@@ -154,7 +164,7 @@ func TestPersistentRootReopen(t *testing.T) {
 	t.Run("failed-tool-input", func(t *testing.T) {
 		// An importer error must leave an unselected store that cannot be reseeded.
 		partial := filepath.Join(t.TempDir(), "partial")
-		err := SeedRoot(ctx, le, partial, bytes.NewBufferString("probe"), iotest.TimeoutReader(bytes.NewReader(tools)), nil)
+		err := SeedRoot(ctx, le, partial, transform, bytes.NewBufferString("probe"), iotest.TimeoutReader(bytes.NewReader(tools)), nil)
 		if !errors.Is(err, iotest.ErrTimeout) {
 			t.Fatalf("failed tool input returned %v", err)
 		}
@@ -170,7 +180,7 @@ func TestPersistentRootReopen(t *testing.T) {
 		if err == nil || hashImageFile(t, path) != before {
 			t.Fatalf("partial-tool refusal changed storage: %v", err)
 		}
-		if err := SeedRoot(ctx, le, partial, bytes.NewBufferString("probe"), bytes.NewReader(tools), nil); !os.IsExist(err) {
+		if err := SeedRoot(ctx, le, partial, transform, bytes.NewBufferString("probe"), bytes.NewReader(tools), nil); !os.IsExist(err) {
 			t.Fatalf("partial-tool reseed returned %v", err)
 		}
 	})
@@ -189,16 +199,16 @@ func TestPersistentRootReopen(t *testing.T) {
 	}()
 
 	// Refuse installing an absent root through the real atomic root operation.
-	missing, err := block.BuildBlockRef([]byte("absent World root"), nil)
+	missing, err := block.BuildBlockRef([]byte("absent image block"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = vol.SetBucketRoots(ctx, imageBucket, nil, []block.NamedRoot{{Name: builtImageRoot, Previous: head.GetRootRef(), Ref: missing}})
+	err = vol.SetBucketRoots(ctx, imageBucket, nil, []block.NamedRoot{{Name: builtImageRoot, Previous: built.Ref, Ref: missing}})
 	if !errors.Is(err, block.ErrNotFound) {
 		t.Fatalf("incomplete publication returned %v", err)
 	}
 	got, err := vol.GetBucketRoot(ctx, imageBucket, builtImageRoot)
-	if err != nil || !got.EqualsRef(head.GetRootRef()) {
+	if err != nil || !got.EqualsRef(built.Ref) {
 		t.Fatalf("incomplete publication changed the head: %v", err)
 	}
 
@@ -209,7 +219,7 @@ func TestPersistentRootReopen(t *testing.T) {
 	}
 	vol = nil
 
-	// Missing top-level roots are refused before constructing a World reader.
+	// A missing image block is refused before constructing a reader.
 	before = hashImageFile(t, path)
 	opened, err := openBuiltRoot(ctx, le, dir)
 	if opened != nil {
@@ -221,7 +231,7 @@ func TestPersistentRootReopen(t *testing.T) {
 	}
 	t.Log("INCOMPLETE_ROOT_REJECTED original publication retained; poisoned store preserved")
 
-	// Restore only the disposable head, then physically remove the recorded
+	// Restore only the disposable name, then physically remove the recorded
 	// payload descendant while leaving the selected root and retention intact.
 	vol, err = volume_s4db.NewVolume(ctx, le, &volume_s4db.Config{Path: path, NoGenerateKey: true, NoWriteKey: true})
 	if err != nil {
@@ -229,7 +239,7 @@ func TestPersistentRootReopen(t *testing.T) {
 	}
 
 	// Restore only the selected root before deleting payload data.
-	setFixtureBootRoot(t, vol, imageBucket, builtImageRoot, &block_gc.RootEntry{Ref: block_gc.BlockKey(head.GetRootRef())})
+	setFixtureBootRoot(t, vol, imageBucket, builtImageRoot, &block_gc.RootEntry{Ref: block_gc.BlockKey(built.Ref)})
 
 	// Bypass graph retention only on disposable data to simulate a lost descendant.
 	if err := vol.Store.RmBlock(ctx, descendant); err != nil {
@@ -246,9 +256,6 @@ func TestPersistentRootReopen(t *testing.T) {
 	r, err := openBuiltRoot(ctx, le, dir)
 	if err != nil {
 		t.Fatalf("descendant adversary also damaged the top-level root: %v", err)
-	}
-	if !r.head.EqualsRef(head) || r.volumeID != id {
-		t.Fatal("descendant adversary changed selection or identity")
 	}
 
 	// Refuse the missing bytes through the same verifier used before every mount.

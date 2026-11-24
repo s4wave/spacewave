@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/bldr/util/packedmsg"
 	"github.com/s4wave/spacewave/core/sobject"
-	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
@@ -38,18 +38,19 @@ func WriteAuthorization(path string, signed *peer.SignedMsg) error {
 
 // InstallCard writes an installable card into dir: the Space's accepted
 // signers and its bootstrap grant. It writes nothing unless a listed signer
-// authorized exactly root and the grant can enroll a key made on the
-// machine, so a card that could never boot or enroll is refused at install
+// authorized exactly image, its root and its transform, and the grant can
+// enroll a key made on the machine, so a card that could never boot or enroll is refused at install
 // rather than at first boot. The caller then publishes the authorization into
 // the image store, last, so a card cut short at install authorizes nothing.
-func InstallCard(dir string, signers []peer.ID, signed *peer.SignedMsg, grant *sobject.SOInviteMessage, root *block.BlockRef, now time.Time) error {
+func InstallCard(dir string, signers []peer.ID, signed *peer.SignedMsg, grant *sobject.SOInviteMessage, image *bucket.ObjectRef, now time.Time) error {
 	// Verify the authorization against the signers the card will pin.
-	authorized, _, err := VerifyImageRoot(signed, signers)
+	authorized, _, err := VerifyImage(signed, signers)
 	if err != nil {
 		return err
 	}
-	if !authorized.EqualsRef(root) {
-		return errors.Errorf("image authorization: authorizes root %s, not the image's root %s", authorized.MarshalString(), root.MarshalString())
+	if !authorized.EqualVT(image) {
+		return errors.Errorf("image authorization: authorizes root %s, not the image's root %s",
+			authorized.GetRootRef().MarshalString(), image.GetRootRef().MarshalString())
 	}
 
 	// Refuse a grant no Device key can redeem: forged, bound to one peer, or expired.

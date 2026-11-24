@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/s4db"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
@@ -17,8 +18,8 @@ import (
 )
 
 // The image store's revision roots, as OSRevision.tla models them. A revision
-// slot names its authorization block: the signed image root, stored with that
-// root as its one child, so one named root holds the revision's whole block
+// slot names its authorization block: the signed image reference, stored with
+// the image's root as its one child, so one named root holds the revision's whole block
 // graph and a single publish moves a revision with its authorization.
 const (
 	// acceptedRoot names the revision the Device falls back to.
@@ -27,7 +28,7 @@ const (
 	trialRoot = "trial"
 	// attemptedRoot names the trial's authorization once a boot has tried it.
 	attemptedRoot = "attempted"
-	// rolledBackRoot names a record of the image root of the last trial that
+	// rolledBackRoot names a record of the root block of the last trial that
 	// failed. The record has no children, so it keeps none of that revision.
 	rolledBackRoot = "rolled-back"
 )
@@ -38,13 +39,13 @@ const (
 var stageReads = block.DefaultGraphCopyReads
 
 // revision is one revision slot: its authorization block and, once verified
-// against the pinned signers, the image root it authorizes.
+// against the pinned signers, the image it authorizes.
 type revision struct {
 	// auth is the slot's authorization block, or nil when the slot is free.
 	auth *block.BlockRef
-	// root is the authorized image root, set only when err is nil.
-	root *block.BlockRef
-	// signer is the pinned signer that authorized root.
+	// image is the authorized image, set only when err is nil.
+	image *bucket.ObjectRef
+	// signer is the pinned signer that authorized image.
 	signer peer.ID
 	// err is why the slot's authorization does not verify.
 	err error
@@ -62,8 +63,9 @@ type revisions struct {
 // Selection is the revision a boot serves, with the slots it read, so a trial
 // is accepted only from the state this boot selected.
 type Selection struct {
-	// Root is the image root to serve.
-	Root *block.BlockRef
+	// Image is the image to serve. In an accepting child it carries only its
+	// root, which the child reports.
+	Image *bucket.ObjectRef
 	// accepted is the accepted slot's authorization block.
 	accepted *block.BlockRef
 	// trial is the trial's authorization block while this boot tries it.
@@ -79,9 +81,10 @@ func (s *Selection) OnTrial() bool {
 // AcceptArgs returns the init arguments that accept this trial in the image
 // store in dir from another process. The serving process holds the store's
 // read-only handle, and s4db keeps one handle per file in a process, so the
-// console runs the accept as a child.
+// console runs the accept as a child. The arguments carry the image's root and
+// never its transform, whose key would show in the process list.
 func (s *Selection) AcceptArgs(dir string) []string {
-	return []string{"accept-trial", dir, s.Root.MarshalString(), s.accepted.MarshalString(), s.trial.MarshalString()}
+	return []string{"accept-trial", dir, s.Image.GetRootRef().MarshalString(), s.accepted.MarshalString(), s.trial.MarshalString()}
 }
 
 // RunAcceptTrial accepts the trial that the four arguments after accept-trial
@@ -89,8 +92,8 @@ func (s *Selection) AcceptArgs(dir string) []string {
 // the accepted and trial authorizations the boot selected.
 func RunAcceptTrial(args []string) error {
 	// Decode the selection; an absent accepted slot is an empty argument.
-	sel := &Selection{}
-	for i, ref := range []**block.BlockRef{&sel.Root, &sel.accepted, &sel.trial} {
+	sel := &Selection{Image: &bucket.ObjectRef{}}
+	for i, ref := range []**block.BlockRef{&sel.Image.RootRef, &sel.accepted, &sel.trial} {
 		var err error
 		if *ref, err = block.UnmarshalBlockRefB58(args[i+1]); err != nil {
 			return err
@@ -127,9 +130,10 @@ func SelectRevision(ctx context.Context, le *logrus.Entry, dir string, pinned []
 		if err != nil {
 			return nil, err
 		}
-		println("SPACEWAVE_OS_TRIAL root=" + trial.root.MarshalString())
-		println("SPACEWAVE_OS_AUTHORIZED signer=" + trial.signer.String() + " root=" + trial.root.MarshalString())
-		return &Selection{Root: trial.root, accepted: revs.accepted.auth, trial: trial.auth}, nil
+		root := trial.image.GetRootRef().MarshalString()
+		println("SPACEWAVE_OS_TRIAL root=" + root)
+		println("SPACEWAVE_OS_AUTHORIZED signer=" + trial.signer.String() + " root=" + root)
+		return &Selection{Image: trial.image, accepted: revs.accepted.auth, trial: trial.auth}, nil
 	}
 
 	// Drop a trial already tried or not authorized, recording its root.
@@ -147,8 +151,8 @@ func SelectRevision(ctx context.Context, le *logrus.Entry, dir string, pinned []
 	if accepted.err != nil {
 		return nil, accepted.err
 	}
-	println("SPACEWAVE_OS_AUTHORIZED signer=" + accepted.signer.String() + " root=" + accepted.root.MarshalString())
-	return &Selection{Root: accepted.root, accepted: accepted.auth}, nil
+	println("SPACEWAVE_OS_AUTHORIZED signer=" + accepted.signer.String() + " root=" + accepted.image.GetRootRef().MarshalString())
+	return &Selection{Image: accepted.image, accepted: accepted.auth}, nil
 }
 
 // AcceptTrial makes the trial sel serves the accepted revision, in one publish
@@ -167,17 +171,21 @@ func AcceptTrial(ctx context.Context, le *logrus.Entry, dir string, sel *Selecti
 	if err != nil {
 		return err
 	}
-	println("SPACEWAVE_OS_ACCEPTED root=" + sel.Root.MarshalString())
+	println("SPACEWAVE_OS_ACCEPTED root=" + sel.Image.GetRootRef().MarshalString())
 	return nil
 }
 
 // AuthorizeImage makes the image a seed built the accepted revision, with
 // signed as its authorization, in one publish that also frees the built
 // image's name. The caller verifies signed against the signers its card
-// pins; root must be the root signed names and the store's built root.
-func AuthorizeImage(ctx context.Context, le *logrus.Entry, dir string, signed *peer.SignedMsg, root *block.BlockRef) error {
-	// Build the authorization block that will hold the built root.
-	auth, err := authorizationBlock(signed, root)
+// pins; image must be the image signed names and the store's built image.
+func AuthorizeImage(ctx context.Context, le *logrus.Entry, dir string, signed *peer.SignedMsg, image *bucket.ObjectRef) error {
+	// Build the authorization block that will hold the built image.
+	auth, err := authorizationBlock(signed, image)
+	if err != nil {
+		return err
+	}
+	built, err := imageBlock(image)
 	if err != nil {
 		return err
 	}
@@ -185,7 +193,7 @@ func AuthorizeImage(ctx context.Context, le *logrus.Entry, dir string, signed *p
 	// Install it as the accepted revision only while no revision is accepted.
 	return setRevisionRoots(ctx, le, dir, []*block.PutBatchEntry{auth}, []block.NamedRoot{
 		{Name: acceptedRoot, Ref: auth.Ref},
-		{Name: builtImageRoot, Previous: root},
+		{Name: builtImageRoot, Previous: built.Ref},
 	})
 }
 
@@ -194,9 +202,9 @@ func AuthorizeImage(ctx context.Context, le *logrus.Entry, dir string, signed *p
 // Space's bucket, into the image store in dir and publishes it as the trial,
 // with its authorization, in one commit. It refuses while another trial is
 // pending. It returns the number of blocks it copied.
-func StageRevision(ctx context.Context, le *logrus.Entry, dir string, src block.StoreOps, signed *peer.SignedMsg, root *block.BlockRef) (_ int, retErr error) {
+func StageRevision(ctx context.Context, le *logrus.Entry, dir string, src block.StoreOps, signed *peer.SignedMsg, image *bucket.ObjectRef) (_ int, retErr error) {
 	// Build the authorization before copying, so a bad one copies nothing.
-	auth, err := authorizationBlock(signed, root)
+	auth, err := authorizationBlock(signed, image)
 	if err != nil {
 		return 0, err
 	}
@@ -207,7 +215,7 @@ func StageRevision(ctx context.Context, le *logrus.Entry, dir string, src block.
 	defer func() { retErr = errors.Join(retErr, vol.Close()) }()
 
 	// Copy the blocks the store lacks, then publish the trial.
-	copied, err := copyRevision(ctx, vol, src, root)
+	copied, err := copyRevision(ctx, vol, src, image.GetRootRef())
 	if err != nil {
 		return copied, err
 	}
@@ -215,7 +223,7 @@ func StageRevision(ctx context.Context, le *logrus.Entry, dir string, src block.
 	if err != nil {
 		return copied, err
 	}
-	println("SPACEWAVE_OS_STAGED root=" + root.MarshalString())
+	println("SPACEWAVE_OS_STAGED root=" + image.GetRootRef().MarshalString())
 	return copied, nil
 }
 
@@ -241,8 +249,8 @@ func copyRevision(ctx context.Context, vol *volume_s4db.Volume, src block.StoreO
 }
 
 // OpenImageStore opens the image store in dir read-only, as a staging's
-// source, and returns it with the root its seed built. Close releases it.
-func OpenImageStore(ctx context.Context, le *logrus.Entry, dir string) (_ *volume_s4db.Volume, _ *block.BlockRef, retErr error) {
+// source, and returns it with the image its seed built. Close releases it.
+func OpenImageStore(ctx context.Context, le *logrus.Entry, dir string) (_ *volume_s4db.Volume, _ *bucket.ObjectRef, retErr error) {
 	// Open the store without its writer lock; it refuses a store that needs
 	// a conversion or a format upgrade.
 	vol, err := volume_s4db.NewVolume(ctx, le, &volume_s4db.Config{
@@ -254,15 +262,19 @@ func OpenImageStore(ctx context.Context, le *logrus.Entry, dir string) (_ *volum
 		return nil, nil, err
 	}
 
-	// Read the root the seed built.
-	root, err := vol.GetBucketRoot(ctx, imageBucket, builtImageRoot)
-	if err == nil && root == nil {
+	// Read the image the seed built.
+	built, err := vol.GetBucketRoot(ctx, imageBucket, builtImageRoot)
+	if err == nil && built == nil {
 		err = errors.New("boot root " + builtImageRoot + " absent; store preserved")
+	}
+	var image *bucket.ObjectRef
+	if err == nil {
+		image, err = readImageBlock(ctx, vol, built)
 	}
 	if err != nil {
 		return nil, nil, errors.Join(err, vol.Close())
 	}
-	return vol, root, nil
+	return vol, image, nil
 }
 
 // rollBack drops the pending trial and records its root as rolled back, in
@@ -284,7 +296,7 @@ func rollBack(ctx context.Context, le *logrus.Entry, dir string, revs *revisions
 	// Record the root the trial named, verified or not, so the node that
 	// staged it does not stage it again.
 	var entries []*block.PutBatchEntry
-	root := trial.root
+	root := trial.image.GetRootRef()
 	if root == nil {
 		root = claimedRoot(ctx, dir, trial.auth)
 	}
@@ -349,30 +361,31 @@ func readRevisions(ctx context.Context, dir string, pinned []peer.ID) (_ *revisi
 	store := store_kvtx.NewKVTx(store_kvkey.NewDefaultKVKey(), db, nil)
 	for _, slot := range []*revision{&revs.accepted, &revs.trial} {
 		if slot.auth != nil {
-			slot.root, slot.signer, slot.err = verifyRevision(ctx, store, slot.auth, pinned)
+			slot.image, slot.signer, slot.err = verifyRevision(ctx, store, slot.auth, pinned)
 		}
 	}
 	return revs, nil
 }
 
 // verifyRevision reads the authorization block auth from store and returns
-// the image root a pinned signer authorized, once the store holds that root.
-func verifyRevision(ctx context.Context, store blockReader, auth *block.BlockRef, pinned []peer.ID) (*block.BlockRef, peer.ID, error) {
+// the image a pinned signer authorized, once the store holds its root.
+func verifyRevision(ctx context.Context, store blockReader, auth *block.BlockRef, pinned []peer.ID) (*bucket.ObjectRef, peer.ID, error) {
 	// Decode and verify the authorization.
 	signed, err := readAuthorization(ctx, store, auth)
 	if err != nil {
 		return nil, "", err
 	}
-	root, signer, err := os_image.VerifyImageRoot(signed, pinned)
+	image, signer, err := os_image.VerifyImage(signed, pinned)
 	if err != nil {
 		return nil, "", err
 	}
 
 	// The slot's root must be stored, as its authorization block's child.
+	root := image.GetRootRef()
 	if _, found, err := store.GetBlock(ctx, root); err != nil || !found {
 		return nil, "", errors.Join(errors.New("revision root "+root.MarshalString()+" missing; store preserved"), err)
 	}
-	return root, signer, nil
+	return image, signer, nil
 }
 
 // claimedRoot returns the image root the authorization block auth names,
@@ -390,12 +403,12 @@ func claimedRoot(ctx context.Context, dir string, auth *block.BlockRef) (root *b
 		return nil
 	}
 
-	// Decode the signed body as the root it claims.
-	root = &block.BlockRef{}
-	if root.UnmarshalVT(signed.GetData()) != nil || root.Validate(false) != nil {
+	// Decode the signed body as the image it claims.
+	image := &bucket.ObjectRef{}
+	if image.UnmarshalVT(signed.GetData()) != nil || image.GetRootRef().Validate(false) != nil {
 		return nil
 	}
-	return root
+	return image.GetRootRef()
 }
 
 // readAuthorization reads and decodes the authorization block auth.
@@ -410,14 +423,15 @@ func readAuthorization(ctx context.Context, store blockReader, auth *block.Block
 	return peer.UnmarshalSignedMsg(data)
 }
 
-// authorizationBlock returns the block that stores signed with root as its
-// one child, after checking that signed names root.
-func authorizationBlock(signed *peer.SignedMsg, root *block.BlockRef) (*block.PutBatchEntry, error) {
-	// Refuse an authorization of another root.
-	want, err := os_image.MarshalImageRoot(root)
+// authorizationBlock returns the block that stores signed with image's root
+// as its one child, after checking that signed names image.
+func authorizationBlock(signed *peer.SignedMsg, image *bucket.ObjectRef) (*block.PutBatchEntry, error) {
+	// Refuse an authorization of another image.
+	want, err := os_image.MarshalImage(image)
 	if err != nil {
 		return nil, err
 	}
+	root := image.GetRootRef()
 	if string(signed.GetData()) != string(want) {
 		return nil, errors.New("image authorization: does not name root " + root.MarshalString())
 	}

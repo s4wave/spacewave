@@ -27,26 +27,31 @@ init=$3
 receipt=$4
 tools=$(cd "$(dirname "$0")" && pwd)
 
-# Authorize a copy of the image with a throwaway signer and leave the data
-# Volume absent, so the boot pins, verifies and creates it as an install does.
+# Copy the image and leave the data Volume absent, so the boot pins, verifies
+# and creates it as an install does.
 fixture=$(mktemp -d)
 trap 'rm -rf "$fixture"' EXIT
 install -m 755 "$init" "$fixture/init"
 mkdir -m 700 "$fixture/root"
 cp -R "$image" "$fixture/root/image"
 chmod -R u+w "$fixture/root/image"
-GOMAXPROCS=2 "$fixture/init" rehearsal-card "$fixture/root/image" "$fixture/key"
 
-# Seed two revisions for the guest to stage, each signed by the same key: good,
-# which differs from the image by one file, and broken, whose workload is an
-# init one byte longer than the boot set's, so its image check fails.
+# Seed two revisions for the guest to stage under the image's transform, as a
+# Space builds each revision under its own: good, which differs from the image
+# by one file, and broken, whose workload is an init one byte longer than the
+# boot set's, so its image check fails. Seeding reads the built image, which
+# the card's authorization below makes the accepted revision.
 mkdir -p "$fixture/revision/etc" "$fixture/root/staging/good" "$fixture/root/staging/broken"
 echo good > "$fixture/revision/etc/spacewave-revision"
 tar -C "$fixture/revision" -cf "$fixture/revision.tar" etc/spacewave-revision
-GOMAXPROCS=2 "$fixture/init" seed "$fixture/root/staging/good/image" /bin/busybox "$fixture/revision.tar"
+GOMAXPROCS=2 "$fixture/init" seed-revision "$fixture/root/image" "$fixture/root/staging/good/image" /bin/busybox "$fixture/revision.tar"
 cp "$fixture/init" "$fixture/broken-init"
 printf x >> "$fixture/broken-init"
-GOMAXPROCS=2 "$fixture/broken-init" seed "$fixture/root/staging/broken/image" /bin/busybox "$fixture/revision.tar"
+GOMAXPROCS=2 "$fixture/broken-init" seed-revision "$fixture/root/image" "$fixture/root/staging/broken/image" /bin/busybox "$fixture/revision.tar"
+
+# Authorize the image with a throwaway signer, and sign both revisions with
+# the same key.
+GOMAXPROCS=2 "$fixture/init" rehearsal-card "$fixture/root/image" "$fixture/key"
 for revision in good broken; do
     GOMAXPROCS=2 "$fixture/init" rehearsal-sign "$fixture/root/staging/$revision/image" "$fixture/key" \
         "$fixture/root/staging/$revision/authorization"

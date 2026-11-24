@@ -4,18 +4,17 @@ package boot
 
 import (
 	"bytes"
+	"errors"
 	"testing"
 	"time"
 
-	"github.com/s4wave/spacewave/db/unixfs"
-	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
-	"github.com/s4wave/spacewave/db/world"
+	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	"github.com/sirupsen/logrus"
 )
 
-// TestRootPinsRevision tries to change the served image through its live World.
-func TestRootPinsRevision(t *testing.T) {
-	// Build a frozen image with a small input instead of an executable.
+// TestRootReadOnly tries to change the served image through its own handle.
+func TestRootReadOnly(t *testing.T) {
+	// Build an in-memory image with a small input instead of an executable.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 	r, err := NewRoot(ctx, le, bytes.NewBufferString("original"))
@@ -28,36 +27,20 @@ func TestRootPinsRevision(t *testing.T) {
 		}
 	})
 
-	// Advance the live World through its ordinary writer after pinning.
-	ws := world.NewEngineWorldState(r.engine, true)
-	fsc, _ := unixfs_world.NewFSCursorWithWriterContext(ctx, le, ws, rootKey, unixfs_world.FSType_FSType_FS_NODE, r.volume.GetPeerID())
-	writable, err := unixfs.NewFSHandle(fsc)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer writable.Release()
-
-	// Commit a replacement through the live writer without changing the snapshot.
-	file, err := writable.Lookup(ctx, "workload")
+	// A write through the served tree is refused, when written or at the
+	// latest when synced, since the handle buffers small writes.
+	file, err := r.Handle().Lookup(ctx, "workload")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer file.Release()
-	if err := file.WriteAt(ctx, 0, []byte("modified"), time.Now()); err != nil {
-		t.Fatal(err)
-	}
-	if err := file.Sync(ctx); err != nil {
-		t.Fatal(err)
+	writeErr := file.WriteAt(ctx, 0, []byte("modified"), time.Now())
+	if err := errors.Join(writeErr, file.Sync(ctx)); !errors.Is(err, unixfs_errors.ErrReadOnly) {
+		t.Fatalf("write to the served image returned %v", err)
 	}
 
-	// The snapshot must still read the original bytes after live publication.
-	frozen, err := r.handle.Lookup(ctx, "workload")
-	if err != nil {
+	// The image still holds the original bytes.
+	if err := r.VerifyImage(ctx, bytes.NewBufferString("original")); err != nil {
 		t.Fatal(err)
-	}
-	defer frozen.Release()
-	data := make([]byte, 8)
-	if n, err := frozen.ReadAt(ctx, 0, data); err != nil || n != 8 || string(data) != "original" {
-		t.Fatalf("frozen read = %q, %d, %v", data, n, err)
 	}
 }

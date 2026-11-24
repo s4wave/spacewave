@@ -102,7 +102,7 @@ func RunConsole(ctx context.Context, requests <-chan os.Signal, system, data, co
 	}
 
 	// Verify every required image file/link before mounting or opening writable data.
-	root, err := OpenRoot(ctx, le, system, sel.Root)
+	root, err := OpenRoot(ctx, le, system, sel.Image)
 	if err != nil {
 		return PowerOff, err
 	}

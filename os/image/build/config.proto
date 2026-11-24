@@ -1,0 +1,22 @@
+syntax = "proto3";
+package os.image.build;
+
+// Config builds a Spacewave OS image in the Space as a Forge Step.
+//
+// The Step writes the image's UnixFS tree into the Space under the Space
+// World's own block transform, so its blocks are encrypted as every other
+// block of the Space and a Device stages them with the walk that copies only
+// the blocks it lacks. It also exports the same blocks, unchanged, into an
+// image store that the rehearsal and install Steps read, and names the tree
+// there as the built image, the image the sign Step authorizes.
+//
+// Inputs:
+//  - boot: a tree whose init file is the static spacewave-init executable,
+//    which becomes the image's workload.
+//  - busybox: a tree whose busybox file is a static BusyBox, the image's
+//    tools.
+//
+// Outputs:
+//  - system: the image's UnixFS tree in the Space.
+//  - image: the image store, a tree holding image.s4wave.
+message Config {}

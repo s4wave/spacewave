@@ -12,6 +12,8 @@ import (
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
+	block_transform "github.com/s4wave/spacewave/db/block/transform"
+	"github.com/s4wave/spacewave/db/bucket"
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
@@ -21,11 +23,13 @@ import (
 
 // graphSource is an image store of its own that serves revisions to a
 // staging. After limit reads it fails, as a source cut off mid-copy does; a
-// negative limit never fails.
+// negative limit never fails. Its revisions share one transform, as a Space's
+// do.
 type graphSource struct {
 	*volume_s4db.Volume
-	limit int64
-	reads atomic.Int64
+	transform *block_transform.Config
+	limit     int64
+	reads     atomic.Int64
 }
 
 // newGraphSource opens an empty source store, closed when the test ends.
@@ -35,7 +39,11 @@ func newGraphSource(t *testing.T, le *logrus.Entry) *graphSource {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = vol.Close() })
-	return &graphSource{Volume: vol, limit: -1}
+	transform, err := os_image.NewTransform()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return &graphSource{Volume: vol, transform: transform, limit: -1}
 }
 
 // GetStoredBlock serves a stored block until the source's read limit.
@@ -61,24 +69,41 @@ func (s *graphSource) add(t *testing.T, data string, children ...*block.BlockRef
 
 // revisionGraph adds a revision named name to src: a root over fanout
 // subtrees of depth leaves each, sharing the leaf "shared" with every other
-// revision. It returns the root and the number of blocks only it holds.
-func revisionGraph(t *testing.T, src *graphSource, name string, fanout int) (*block.BlockRef, int) {
+// revision. It returns the revision's image and the number of blocks only it
+// holds.
+func revisionGraph(t *testing.T, src *graphSource, name string, fanout int) (*bucket.ObjectRef, int) {
 	shared := src.add(t, "shared leaf")
 	var children []*block.BlockRef
 	for i := range fanout {
 		leaf := src.add(t, name+" leaf "+strconv.Itoa(i))
 		children = append(children, src.add(t, name+" dir "+strconv.Itoa(i), leaf, shared))
 	}
-	return src.add(t, name+" root", children...), 2*fanout + 1
+	root := src.add(t, name+" root", children...)
+	return &bucket.ObjectRef{RootRef: root, TransformConf: src.transform}, 2*fanout + 1
 }
 
-// signRoot signs root with key.
-func signRoot(t *testing.T, key crypto.PrivKey, root *block.BlockRef) *peer.SignedMsg {
-	signed, err := os_image.SignImageRoot(key, root)
+// signImage signs image with key.
+func signImage(t *testing.T, key crypto.PrivKey, image *bucket.ObjectRef) *peer.SignedMsg {
+	signed, err := os_image.SignImage(key, image)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return signed
+}
+
+// seedRevision copies image from src into vol and names it the built image,
+// as a seed leaves it.
+func seedRevision(t *testing.T, vol *volume_s4db.Volume, src *graphSource, image *bucket.ObjectRef) {
+	if _, err := copyRevision(t.Context(), vol, src, image.GetRootRef()); err != nil {
+		t.Fatal(err)
+	}
+	built, err := imageBlock(image)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := publishBuiltImage(t.Context(), vol, built); err != nil {
+		t.Fatal(err)
+	}
 }
 
 // newSigner returns a fresh signing key and its peer ID.
@@ -109,26 +134,23 @@ func TestRevisionLifecycle(t *testing.T) {
 	le := logrus.NewEntry(logrus.New())
 	dir := t.TempDir()
 	src := newGraphSource(t, le)
-	rootA, _ := revisionGraph(t, src, "A", 2)
+	imageA, _ := revisionGraph(t, src, "A", 2)
 	vol, err := volume_s4db.NewVolume(ctx, le, &volume_s4db.Config{Path: filepath.Join(dir, "image.s4wave")})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := copyRevision(ctx, vol, src, rootA); err != nil {
-		t.Fatal(err)
-	}
-	err = vol.SetBucketRoots(ctx, imageBucket, nil, []block.NamedRoot{{Name: builtImageRoot, Ref: rootA}})
-	if err := errors.Join(err, vol.Close()); err != nil {
+	seedRevision(t, vol, src, imageA)
+	if err := vol.Close(); err != nil {
 		t.Fatal(err)
 	}
 
 	// Install A with the owner's authorization; a second install is refused.
 	key, owner := newSigner(t)
 	pinned := []peer.ID{owner}
-	if err := AuthorizeImage(ctx, le, dir, signRoot(t, key, rootA), rootA); err != nil {
+	if err := AuthorizeImage(ctx, le, dir, signImage(t, key, imageA), imageA); err != nil {
 		t.Fatal(err)
 	}
-	if err := AuthorizeImage(ctx, le, dir, signRoot(t, key, rootA), rootA); !errors.Is(err, block.ErrRootMoved) {
+	if err := AuthorizeImage(ctx, le, dir, signImage(t, key, imageA), imageA); !errors.Is(err, block.ErrRootMoved) {
 		t.Fatalf("second install returned %v", err)
 	}
 
@@ -138,7 +160,7 @@ func TestRevisionLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if sel.OnTrial() || !sel.Root.EqualsRef(rootA) {
+	if sel.OnTrial() || !sel.Image.EqualVT(imageA) {
 		t.Fatal("ordinary boot did not serve the accepted revision")
 	}
 	if hashStore(t, dir) != before {
@@ -146,8 +168,8 @@ func TestRevisionLifecycle(t *testing.T) {
 	}
 
 	// Stage C, a revision that never reaches health; only its own blocks copy.
-	rootC, ownC := revisionGraph(t, src, "C", 3)
-	copied, err := StageRevision(ctx, le, dir, src, signRoot(t, key, rootC), rootC)
+	imageC, ownC := revisionGraph(t, src, "C", 3)
+	copied, err := StageRevision(ctx, le, dir, src, signImage(t, key, imageC), imageC)
 	if err != nil || copied != ownC {
 		t.Fatalf("staging copied %d blocks, want %d: %v", copied, ownC, err)
 	}
@@ -157,14 +179,14 @@ func TestRevisionLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !sel.OnTrial() || !sel.Root.EqualsRef(rootC) {
+	if !sel.OnTrial() || !sel.Image.EqualVT(imageC) {
 		t.Fatal("first boot after staging did not try the trial")
 	}
 	sel, err = SelectRevision(ctx, le, dir, pinned)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if sel.OnTrial() || !sel.Root.EqualsRef(rootA) {
+	if sel.OnTrial() || !sel.Image.EqualVT(imageA) {
 		t.Fatal("second boot did not roll back to the accepted revision")
 	}
 	revs, err := readRevisions(ctx, dir, pinned)
@@ -179,21 +201,21 @@ func TestRevisionLifecycle(t *testing.T) {
 	// one subtree: the cut keeps it, and the retry copies the rest.
 	stageReads = 1
 	t.Cleanup(func() { stageReads = block.DefaultGraphCopyReads })
-	rootB, ownB := revisionGraph(t, src, "B", 4)
+	imageB, ownB := revisionGraph(t, src, "B", 4)
 	src.limit = 4
 	src.reads.Store(0)
-	cut, err := StageRevision(ctx, le, dir, src, signRoot(t, key, rootB), rootB)
+	cut, err := StageRevision(ctx, le, dir, src, signImage(t, key, imageB), imageB)
 	if err == nil || cut == 0 {
 		t.Fatalf("cut staging copied %d blocks: %v", cut, err)
 	}
 	src.limit = -1
-	rest, err := StageRevision(ctx, le, dir, src, signRoot(t, key, rootB), rootB)
+	rest, err := StageRevision(ctx, le, dir, src, signImage(t, key, imageB), imageB)
 	if err != nil || cut+rest != ownB {
 		t.Fatalf("resumed staging copied %d+%d blocks, want %d: %v", cut, rest, ownB, err)
 	}
 
 	// A second staging while B is pending copies nothing and is refused.
-	again, err := StageRevision(ctx, le, dir, src, signRoot(t, key, rootB), rootB)
+	again, err := StageRevision(ctx, le, dir, src, signImage(t, key, imageB), imageB)
 	if again != 0 || !errors.Is(err, block.ErrRootMoved) {
 		t.Fatalf("staging over a pending trial copied %d blocks: %v", again, err)
 	}
@@ -201,7 +223,7 @@ func TestRevisionLifecycle(t *testing.T) {
 	// B is tried and accepted through the console's child arguments; a
 	// selection read before the accept is stale.
 	sel, err = SelectRevision(ctx, le, dir, pinned)
-	if err != nil || !sel.OnTrial() || !sel.Root.EqualsRef(rootB) {
+	if err != nil || !sel.OnTrial() || !sel.Image.EqualVT(imageB) {
 		t.Fatalf("boot did not try B: %v", err)
 	}
 	if err := RunAcceptTrial(sel.AcceptArgs(dir)[1:]); err != nil {
@@ -211,49 +233,47 @@ func TestRevisionLifecycle(t *testing.T) {
 		t.Fatalf("stale accept returned %v", err)
 	}
 	sel, err = SelectRevision(ctx, le, dir, pinned)
-	if err != nil || sel.OnTrial() || !sel.Root.EqualsRef(rootB) {
+	if err != nil || sel.OnTrial() || !sel.Image.EqualVT(imageB) {
 		t.Fatalf("boot after accept did not serve B: %v", err)
 	}
 
 	// D, signed by a key the Device never pinned, rolls back unserved.
 	otherKey, _ := newSigner(t)
-	rootD, _ := revisionGraph(t, src, "D", 1)
-	if _, err := StageRevision(ctx, le, dir, src, signRoot(t, otherKey, rootD), rootD); err != nil {
+	imageD, _ := revisionGraph(t, src, "D", 1)
+	if _, err := StageRevision(ctx, le, dir, src, signImage(t, otherKey, imageD), imageD); err != nil {
 		t.Fatal(err)
 	}
 	sel, err = SelectRevision(ctx, le, dir, pinned)
-	if err != nil || sel.OnTrial() || !sel.Root.EqualsRef(rootB) {
+	if err != nil || sel.OnTrial() || !sel.Image.EqualVT(imageB) {
 		t.Fatalf("unpinned trial was not rolled back to B: %v", err)
 	}
 
 	// Stage E from another image store that shares A's blocks: only E's own
 	// blocks copy, and a reader of that store sees no change.
 	srcDir := t.TempDir()
-	rootE, ownE := revisionGraph(t, src, "E", 2)
+	imageE, ownE := revisionGraph(t, src, "E", 2)
 	vol, err = volume_s4db.NewVolume(ctx, le, &volume_s4db.Config{Path: filepath.Join(srcDir, "image.s4wave")})
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, root := range []*block.BlockRef{rootA, rootE} {
-		if _, err := copyRevision(ctx, vol, src, root); err != nil {
-			t.Fatal(err)
-		}
+	if _, err := copyRevision(ctx, vol, src, imageA.GetRootRef()); err != nil {
+		t.Fatal(err)
 	}
-	err = vol.SetBucketRoots(ctx, imageBucket, nil, []block.NamedRoot{{Name: builtImageRoot, Ref: rootE}})
-	if err := errors.Join(err, vol.Close()); err != nil {
+	seedRevision(t, vol, src, imageE)
+	if err := vol.Close(); err != nil {
 		t.Fatal(err)
 	}
 	image, built, err := OpenImageStore(ctx, le, srcDir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	copied, err = StageRevision(ctx, le, dir, image, signRoot(t, key, rootE), built)
-	if err := errors.Join(err, image.Close()); err != nil || copied != ownE || !built.EqualsRef(rootE) {
+	copied, err = StageRevision(ctx, le, dir, image, signImage(t, key, imageE), built)
+	if err := errors.Join(err, image.Close()); err != nil || copied != ownE || !built.EqualVT(imageE) {
 		t.Fatalf("staging from an image store copied %d blocks, want %d: %v", copied, ownE, err)
 	}
 
 	// An authorization of another root is refused before copying.
-	if _, err := StageRevision(ctx, le, dir, src, signRoot(t, key, rootA), rootD); err == nil || !strings.Contains(err.Error(), "does not name root") {
+	if _, err := StageRevision(ctx, le, dir, src, signImage(t, key, imageA), imageD); err == nil || !strings.Contains(err.Error(), "does not name root") {
 		t.Fatalf("mismatched authorization returned %v", err)
 	}
 }

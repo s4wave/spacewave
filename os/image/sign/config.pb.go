@@ -13,14 +13,15 @@ import (
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
 
-// Config signs a rehearsed OS image root as the Worker's peer.
+// Config signs a rehearsed OS image as the Worker's peer.
 //
 // Place the Step on the Space owner's Device, whose peer the image's cards
 // pin. The Step asks the holder of that peer's key to sign, through the
 // SignWithPeer directive, so the key never reaches the Step. It signs the
-// selected root of its image input's store only when the rehearsal's receipt
-// names that root, so a receipt for another image signs nothing; the
-// rehearsed input also holds the Step until the rehearsal passes.
+// built image of its image input's store, its root and transform, only when
+// the rehearsal's receipt names that root, so a receipt for another image
+// signs nothing; the rehearsed input also holds the Step until the rehearsal
+// passes.
 //
 // Inputs:
 //   - image: the image store, a tree holding image.s4wave.
@@ -29,7 +30,7 @@ import (
 //
 // Outputs:
 //   - authorization: a tree holding the authorization file, the packedmsg
-//     peer.SignedMsg that os/image VerifyImageRoot checks and install reads
+//     peer.SignedMsg that os/image VerifyImage checks and install reads
 //     from an image card.
 type Config struct {
 	unknownFields []byte

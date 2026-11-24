@@ -3,7 +3,6 @@
 package boot
 
 import (
-	"bytes"
 	"context"
 	"crypto/sha256"
 	"errors"
@@ -15,16 +14,6 @@ import (
 
 	"golang.org/x/sys/unix"
 )
-
-// newPayload provides distinct pages so faults must fetch more than one block.
-func newPayload() *bytes.Reader {
-	// Mix page and byte offsets across a bounded deterministic input.
-	data := make([]byte, 3<<20)
-	for i := range data {
-		data[i] = byte(i*31 + i/4096)
-	}
-	return bytes.NewReader(data)
-}
 
 // RunWorkload executes in a separate process chrooted to the FUSE root. Lazy
 // page faults are safe here because this runtime does not serve the filesystem.

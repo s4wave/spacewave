@@ -18,7 +18,7 @@ check:
 	go vet -p 4 $(PKGS)
 
 test:
-	go test -p 4 -timeout=45s -run '^(TestRootPinsRevision|TestPersistentRootReopen|TestDataVolumeReopen)$$' ./os/boot
+	go test -p 4 -timeout=45s -run '^(TestRootReadOnly|TestPersistentRootReopen|TestRevisionLifecycle|TestDataVolumeReopen)$$' ./os/boot
 
 model:
 	bun node_modules/.bin/aptre-tla os/boot

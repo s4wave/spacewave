@@ -76,9 +76,9 @@ sessions, and reaps adopted orphans to `ECHILD`. A single Wait4 authority starts
 after every mounting helper has joined; it never races `exec.Cmd.Wait`. The
 shell starts through an independent bootstrap exec before chroot/exec into
 FUSE, preserving the one-processor self-deadlock guard. PID1 then unmounts nested
-kernel/data/system mounts, joins both FUSE servers, explicitly releases both
-World cursors and their cached children, then closes each World and physical
-store, unmounts `/store`, and powers off. A failed ordinary
+kernel/data/system mounts, joins both FUSE servers, explicitly releases the
+image's block filesystem and the data World cursor with their cached children,
+then closes the data World and each physical store, unmounts `/store`, and powers off. A failed ordinary
 unmount remains an error even if detached cleanup succeeds. If reaping cannot
 prove all users stopped, stores stay open and bootstrap stays in recovery.
 
@@ -160,9 +160,10 @@ read that one tree, so the root a Space owner signs is the root the rehearsal
 booted and the install writes.
 
 A boot set is offered only after a rehearsal boots it. `os/qemu/rehearse.sh`
-copies the image store into a fresh system root, authorizes it with a
-throwaway signer (`spacewave-init rehearsal-card`), seeds two more revisions
-signed by the same key under `staging/`, and writes the root at its
+copies the image store into a fresh system root, seeds two more revisions
+under `staging/` from its built image, authorizes the image with a throwaway
+signer (`spacewave-init rehearsal-card`), signs both revisions with the same
+key, and writes the root at its
 content's size (`mkfs.btrfs --shrink`) onto a 4 GiB disk. It leaves the data
 Volume absent, as an install does. It boots the boot set on that disk with
 `run_app.py --dhcp`, on QEMU's user network with `ip=dhcp`; first boot grows
@@ -189,11 +190,11 @@ scripts read-only.
 
 The image store holds each revision with its own authorization, under the
 named roots `OSRevision.tla` models (`os/boot/revision.go`). A revision root
-names an authorization block: the signed image root, stored with that root as
-its one child, so one named root holds the revision's whole block graph and one
+names an authorization block: the signed image reference, stored with the
+image's root as its one child, so one named root holds the revision's whole block graph and one
 publish moves a revision with its authorization. `accepted` is the revision the
 Device falls back to; `trial` is a staged revision to boot once; `attempted`
-holds the trial once a boot has tried it; `rolled-back` records the image root
+holds the trial once a boot has tried it; `rolled-back` records the root block
 of the last trial that failed, in a block with no children, so it keeps none of
 that revision. Each move is one `SetBucketRoots` commit whose `Previous` values
 make it a compare-and-swap.
@@ -240,8 +241,8 @@ set's `bzImage` and `rootfs.cpio.lz4`. A QEMU guest boots the kernel directly,
 so the boot set is the VM's boot adapter and stays outside the disk.
 
 The `os/image/sign` Step authorizes a rehearsed image. It takes the image
-store and the rehearsal's receipt, reads the store's selected root with
-`boot.ReadImageRoot`, refuses it unless the receipt names the same root, and
+store and the rehearsal's receipt, reads the store's built image with
+`boot.ReadImage`, refuses it unless the receipt names the same root, and
 asks the holder of its Worker's key to sign it
 through the `SignWithPeer` directive. On a Device the running Session answers,
 and the Space runtime's bridge forwards the request only for that Session's
@@ -250,8 +251,11 @@ install mounts. Place the Step on the Space owner's Device, whose peer the
 cards pin.
 
 `TestSpacewaveOSRehearsal` in `sdk/forge/world` builds the QEMU board with the
-package and checks that the stored initramfs holds the init alone. An image
-Step seeds the image, and connections carry the boot set and the image to the
+package and checks that the stored initramfs holds the init alone. The
+`os/image/build` Step writes the image from the init and a static BusyBox,
+which a Docker Step copies out of the tool image, as a UnixFS tree in the Space
+under the Space's own transform, and exports the same blocks into an image
+store; the test checks that the store names that tree. Connections carry the boot set and the image to the
 rehearsal Step, which must pass, and the image and the receipt to the sign
 Step. The test installs the Step's authorization with a card naming the
 Worker; the install must succeed, and fail with `is not pinned` for another
@@ -268,7 +272,7 @@ maps, so the Worker owns what the container wrote.
 
 Linux boots one static executable as PID1 from an independent initramfs. The
 executable opens a retained s4db image read-only on a Btrfs virtual disk and serves
-its selected immutable World transaction through `db/unixfs/fuse`.
+its selected UnixFS tree through `db/unixfs/fuse`.
 It first starts an independent bootstrap copy of itself, which chroots and execs
 `/workload`. The child hashes a lazy shared 3 MiB mmap and requires five mutations
 to return `EROFS`. It exits before FUSE unmount, server join, snapshot release,
@@ -288,10 +292,10 @@ time. From the repository root on the Linux build host:
 make -f os/Makefile OUT=/path/to/artifacts GOSTYLE=/path/to/gostyle build check test model
 ```
 
-`test` runs `TestRootPinsRevision`, `TestPersistentRootReopen` and
-`TestDataVolumeReopen`. The retained-image case seeds real storage, verifies two
-closes/reopens with identical Volume ID, root and
-bytes, cancels the opening context while real readers remain live, and checks
+`test` runs `TestRootReadOnly`, `TestPersistentRootReopen`,
+`TestRevisionLifecycle` and `TestDataVolumeReopen`. The read-only case refuses a
+write through the served tree. The retained-image case seeds real storage,
+verifies two closes/reopens with an identical image, transform and bytes, cancels the opening context while real readers remain live, and checks
 storage stays usable until explicit close. It attempts an atomic publication with
 an absent root and checks the earlier head survives. It then poisons the disposable
 head and separately removes an actually read payload descendant while leaving the
@@ -345,18 +349,34 @@ same launcher command for a clean restart. Never open one disk in two guests
 at once. Use `NATIVE_BENCH=1` only when testing the prepared private comparison
 directory. The frozen system rejects writes; keep application files in `/data`.
 
-`seed DIR STATIC-BUSYBOX` creates an absent directory and refuses an existing one,
-including a partial seed. The library entry is
-`boot.SeedRoot(ctx, logger, dir, executableReader, busyboxReader)`; both readers
-belong to the caller. It streams this executable, the payload and BusyBox through
-ordinary durable World commits, fences the engine, then publishes one generated
-`world_block_engine.HeadState` through the tracked bucket's
-`block.AtomicPublisher.PublishAtomic`. The `world-head` ObjectStore key uses the
-controller's existing encoding and retained-root name. The atomic publication
-also retains the built root as the named root `image`, so later unrelated head
-changes cannot reclaim it, until a card's authorization moves it to `accepted`.
-The publication waits for durability and releases its receipt pin. There is no
-parallel manifest, JSON schema or boot-time fixture regeneration.
+## Image format
+
+An image is a UnixFS tree of blocks stored under a block transform, and a
+`bucket.ObjectRef` names it: the tree's root block and the transform, inline
+(`os/image`). The root hashes the encrypted blocks and the transform decrypts
+them, so the owner's signature over that reference fixes both the content and
+the key that reads it, and the authorization a Device boots from carries the
+key. A Space builds each image under its World's own transform, so its blocks
+copy unchanged from the Space's bucket to a Device's image store, and two
+revisions built under one transform share every block they have in common.
+Never print a signed image reference whole; every console line names the root
+block alone, and the accept child receives only the root on its command line.
+The store names the image a seed built through `image`, a block holding the
+marshaled reference with the tree's root as its one child, until a card's
+authorization moves it to `accepted`.
+
+`seed DIR STATIC-BUSYBOX [ASSETS.tar]` creates an absent directory and refuses
+an existing one, including a partial seed, then writes the image under a fresh
+transform. `seed-revision IMAGE DIR STATIC-BUSYBOX [ASSETS.tar]` writes it
+under the transform of the image a seed built in IMAGE, as a Space writes a
+later revision, so IMAGE must still name its built image, not yet authorized. The library entry is `boot.SeedRoot(ctx, logger, dir,
+transform, executable, busybox, archive)`; every reader belongs to the caller.
+It streams this executable, the payload, BusyBox and the archive through
+`boot.WriteImage`, which writes the tree through any transformed bucket
+cursor, then names the result as `image` in one commit. `boot.ExportImage`
+writes the same store from a tree already in a Space's bucket by copying its
+blocks unchanged. There is no parallel manifest, JSON schema or boot-time
+fixture regeneration.
 
 Every newly retained image requires `/workload`, `/payload` and `/bin/busybox`
 as regular files with mode 0755. `/bin` has mode 0755 and holds relative symlinks
@@ -383,14 +403,13 @@ Missing files, unknown key layouts, missing heads/roots and missing retention ar
 refused without migration or reset. Before serving, it compares the complete probe
 and payload against independent bootstrap inputs, checks every required node and
 link, and streams all BusyBox content against its immutable file length. The
-selected content-addressed World fixes tool bytes without another manifest or a
-runtime dependency on a bootstrap BusyBox. The ordinary bare `store_kvtx` and World
-cursor compose an immutable transaction without a writable Volume, controller or
-tracked reader-pin writes. This isolated experiment has no writer or collector;
+selected content-addressed tree fixes tool bytes without another manifest or a
+runtime dependency on a bootstrap BusyBox. The ordinary bare `store_kvtx` and a
+read-only UnixFS block filesystem serve the tree without a writable Volume,
+controller or tracked reader-pin writes. This isolated experiment has no writer or collector;
 the existing durable selected root protects its descendants. Caller cancellation
 contains the child but leaves readers and storage alive through ordered cleanup.
-A server exit disconnects FUSE and cancels the child before that cleanup. Each boot prints the retained Volume ID, exact World
-reference, byte counts and SHA-256 hashes. The script compares these with the
+A server exit disconnects FUSE and cancels the child before that cleanup. Each boot prints the image's root block, byte counts and SHA-256 hashes. The script compares these with the
 seed's independent close/reopen readback, rather than accepting an equivalent
 new fixture.
 

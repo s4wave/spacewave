@@ -7,25 +7,28 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
+	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/s4db"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
+	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
+	os_image "github.com/s4wave/spacewave/os/image"
 )
 
 const (
 	// imageBucket scopes the image store's blocks and durable roots.
 	imageBucket = "os-image"
-	// builtImageRoot holds the image a seed built until a card authorizes it
-	// as the accepted revision.
+	// builtImageRoot names the image a seed built, through the block
+	// imageBlock writes, until a card authorizes it as the accepted revision.
 	builtImageRoot = "image"
 )
 
-// ReadImageRoot returns the root of the image a seed built in dir, the root an
-// image authorization signs, reading the store without changing a byte. It
-// builds on every platform, so a host that signs or installs an image reads
-// the same root a booting machine serves.
-func ReadImageRoot(ctx context.Context, dir string) (_ *block.BlockRef, retErr error) {
-	// Open the store read-only and read the built root.
+// ReadImage returns the image a seed built in dir, the image an authorization
+// signs, reading the store without changing a byte. It builds on every
+// platform, so a host that signs or installs an image reads the same image a
+// booting machine serves.
+func ReadImage(ctx context.Context, dir string) (_ *bucket.ObjectRef, retErr error) {
+	// Open the store read-only and read the built image.
 	db, err := s4db.Open(filepath.Join(dir, "image.s4wave"), s4db.Options{ReadOnly: true})
 	if err != nil {
 		return nil, err
@@ -34,7 +37,31 @@ func ReadImageRoot(ctx context.Context, dir string) (_ *block.BlockRef, retErr e
 	if err := checkImageFormat(ctx, db); err != nil {
 		return nil, err
 	}
-	return readBootRoot(ctx, db, imageBucket, builtImageRoot)
+	built, err := readBootRoot(ctx, db, imageBucket, builtImageRoot)
+	if err != nil {
+		return nil, err
+	}
+	return readImageBlock(ctx, store_kvtx.NewKVTx(store_kvkey.NewDefaultKVKey(), db, nil), built)
+}
+
+// readImageBlock reads and decodes the block that names an image, as
+// imageBlock wrote it.
+func readImageBlock(ctx context.Context, store blockReader, ref *block.BlockRef) (*bucket.ObjectRef, error) {
+	// Read the block, refusing a store that lacks it.
+	data, found, err := store.GetBlock(ctx, ref)
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return nil, errors.New("image block " + ref.MarshalString() + " missing; store preserved")
+	}
+
+	// Decode the image and check that it names one.
+	image := &bucket.ObjectRef{}
+	if err := image.UnmarshalVT(data); err != nil {
+		return nil, err
+	}
+	return image, os_image.ValidateImage(image)
 }
 
 // readBootRoot reads a named root that must be held, in one immutable

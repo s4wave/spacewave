@@ -16,6 +16,7 @@ import (
 	"syscall"
 	"time"
 
+	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/os/boot"
@@ -175,7 +176,14 @@ var storeCommands = map[string]storeCommand{
 		if len(args) == 3 {
 			archive = args[2]
 		}
-		return seedImage(args[0], args[1], archive)
+		return seedImage("", args[0], args[1], archive)
+	}},
+	"seed-revision": {"IMAGE-DIRECTORY ABSENT-DIRECTORY STATIC-BUSYBOX [ASSETS.tar]", 3, 4, func(args []string) error {
+		archive := ""
+		if len(args) == 4 {
+			archive = args[3]
+		}
+		return seedImage(args[0], args[1], args[2], archive)
 	}},
 	"rehearsal-card": {"IMAGE-DIRECTORY KEY", 2, 2, func(args []string) error {
 		return rehearsalCard(args[0], args[1])
@@ -233,9 +241,19 @@ func seedData(dir string) error {
 	return nil
 }
 
-// seedImage imports the bootstrap probe and static tools and verifies a
-// reopen. The image carries no card: a rehearsal or an install writes one.
-func seedImage(dir, busyboxPath, archivePath string) (retErr error) {
+// seedImage imports the bootstrap probe and static tools into a new image
+// store in dir and verifies a reopen. The image is written under the
+// transform of the image in base, so a later revision of it shares its
+// unchanged blocks, or under a fresh one when base is empty. It carries no
+// card: a rehearsal or an install writes one.
+func seedImage(base, dir, busyboxPath, archivePath string) (retErr error) {
+	// Choose the transform before creating anything.
+	ctx := context.Background()
+	transform, err := seedTransform(ctx, base)
+	if err != nil {
+		return err
+	}
+
 	// Keep the seed input outside the image it will later execute.
 	path, err := os.Executable()
 	if err != nil {
@@ -266,16 +284,16 @@ func seedImage(dir, busyboxPath, archivePath string) (retErr error) {
 		assets = archive
 	}
 	le := logrus.NewEntry(logrus.New())
-	if err := boot.SeedRoot(context.Background(), le, dir, file, busybox, assets); err != nil {
+	if err := boot.SeedRoot(ctx, le, dir, transform, file, busybox, assets); err != nil {
 		return err
 	}
 
-	// Reopen rather than verify the seed's in-memory snapshot.
-	built, err := boot.ReadImageRoot(context.Background(), dir)
+	// Reopen rather than verify what the seed wrote.
+	built, err := boot.ReadImage(ctx, dir)
 	if err != nil {
 		return err
 	}
-	root, err := boot.OpenRoot(context.Background(), le, dir, built)
+	root, err := boot.OpenRoot(ctx, le, dir, built)
 	if err != nil {
 		return err
 	}
@@ -283,7 +301,20 @@ func seedImage(dir, busyboxPath, archivePath string) (retErr error) {
 	if _, err := file.Seek(0, 0); err != nil {
 		return err
 	}
-	return root.VerifyImage(context.Background(), file)
+	return root.VerifyImage(ctx, file)
+}
+
+// seedTransform returns the transform of the image a seed built in base, or a
+// fresh one when base is empty.
+func seedTransform(ctx context.Context, base string) (*block_transform.Config, error) {
+	if base == "" {
+		return os_image.NewTransform()
+	}
+	image, err := boot.ReadImage(ctx, base)
+	if err != nil {
+		return nil, err
+	}
+	return image.GetTransformConf(), nil
 }
 
 // rehearsalCard authorizes the image in dir with the throwaway key in
@@ -291,9 +322,9 @@ func seedImage(dir, busyboxPath, archivePath string) (retErr error) {
 // check as an installed card signed by the Space owner, and later rehearsal
 // revisions can be signed by the same key.
 func rehearsalCard(dir, keyPath string) error {
-	// Sign the built root with a key no other image trusts.
+	// Sign the built image with a key no other image trusts.
 	ctx := context.Background()
-	root, err := boot.ReadImageRoot(ctx, dir)
+	image, err := boot.ReadImage(ctx, dir)
 	if err != nil {
 		return err
 	}
@@ -301,7 +332,7 @@ func rehearsalCard(dir, keyPath string) error {
 	if err != nil {
 		return err
 	}
-	signed, err := os_image.SignImageRoot(key, root)
+	signed, err := os_image.SignImage(key, image)
 	if err != nil {
 		return err
 	}
@@ -314,14 +345,14 @@ func rehearsalCard(dir, keyPath string) error {
 	if err := os_image.WriteSigners(filepath.Join(dir, os_image.CardSigners), []peer.ID{signer}); err != nil {
 		return err
 	}
-	return boot.AuthorizeImage(ctx, logrus.NewEntry(logrus.New()), dir, signed, root)
+	return boot.AuthorizeImage(ctx, logrus.NewEntry(logrus.New()), dir, signed, image)
 }
 
 // rehearsalSign writes to authPath the rehearsal key's authorization of the
-// root the image in dir was built with, as the sign Step writes the owner's.
+// image a seed built in dir, as the sign Step writes the owner's.
 func rehearsalSign(dir, keyPath, authPath string) error {
-	// Read the built root and the existing rehearsal key.
-	root, err := boot.ReadImageRoot(context.Background(), dir)
+	// Read the built image and the existing rehearsal key.
+	image, err := boot.ReadImage(context.Background(), dir)
 	if err != nil {
 		return err
 	}
@@ -334,8 +365,8 @@ func rehearsalSign(dir, keyPath, authPath string) error {
 		return err
 	}
 
-	// Sign the root and write the authorization.
-	signed, err := os_image.SignImageRoot(key, root)
+	// Sign the image and write the authorization.
+	signed, err := os_image.SignImage(key, image)
 	if err != nil {
 		return err
 	}
@@ -370,27 +401,27 @@ func rehearsalKey(path string) (crypto.PrivKey, error) {
 // dir as its trial, with the authorization in authPath, copying only the
 // blocks dir lacks. The next boot tries it once.
 func stageImage(dir, source, authPath string) (retErr error) {
-	// Read the authorization and open the source at its built root.
+	// Read the authorization and open the source at its built image.
 	signed, err := os_image.ReadAuthorization(authPath)
 	if err != nil {
 		return err
 	}
 	ctx, le := context.Background(), logrus.NewEntry(logrus.New())
-	src, root, err := boot.OpenImageStore(ctx, le, source)
+	src, image, err := boot.OpenImageStore(ctx, le, source)
 	if err != nil {
 		return err
 	}
 	defer func() { retErr = errors.Join(retErr, src.Close()) }()
 
 	// Copy what the store lacks and publish the trial.
-	copied, err := boot.StageRevision(ctx, le, dir, src, signed, root)
+	copied, err := boot.StageRevision(ctx, le, dir, src, signed, image)
 	println("SPACEWAVE_OS_STAGE_COPIED blocks=" + strconv.Itoa(copied))
 	return err
 }
 
 // installCard writes the installable card for the image in dir, the Space's
 // signers and its bootstrap grant, then publishes the owner's authorization,
-// which must name the image's built root, as the accepted revision.
+// which must name the store's built image, as the accepted revision.
 func installCard(dir, signersPath, authorizationPath, grantPath string) error {
 	// Read the card inputs and the root they must authorize.
 	signers, err := os_image.ReadSigners(signersPath)
@@ -406,21 +437,21 @@ func installCard(dir, signersPath, authorizationPath, grantPath string) error {
 		return err
 	}
 
-	// Read the built root the authorization must name.
+	// Read the built image the authorization must name.
 	ctx := context.Background()
-	root, err := boot.ReadImageRoot(ctx, dir)
+	image, err := boot.ReadImage(ctx, dir)
 	if err != nil {
 		return err
 	}
 
 	// Verify and write the card, then authorize the image last.
-	if err := os_image.InstallCard(dir, signers, signed, grant, root, time.Now()); err != nil {
+	if err := os_image.InstallCard(dir, signers, signed, grant, image, time.Now()); err != nil {
 		return err
 	}
-	if err := boot.AuthorizeImage(ctx, logrus.NewEntry(logrus.New()), dir, signed, root); err != nil {
+	if err := boot.AuthorizeImage(ctx, logrus.NewEntry(logrus.New()), dir, signed, image); err != nil {
 		return err
 	}
-	println("SPACEWAVE_OS_CARD_INSTALLED root=" + root.MarshalString() + " space=" + grant.GetSharedObjectId())
+	println("SPACEWAVE_OS_CARD_INSTALLED root=" + image.GetRootRef().MarshalString() + " space=" + grant.GetSharedObjectId())
 	return nil
 }
 

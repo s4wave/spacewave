@@ -1,4 +1,4 @@
-// Package os_image_sign signs a rehearsed OS image root as a Forge Step.
+// Package os_image_sign signs a rehearsed OS image as a Forge Step.
 package os_image_sign
 
 import (
@@ -28,7 +28,7 @@ var Version = controller.MustParseVersion("0.0.1")
 const ControllerID = "os/image/sign"
 
 // InputImage names the input holding the image store, a tree with
-// image.s4wave, whose built root the Step signs.
+// image.s4wave, whose built image the Step signs.
 const InputImage = "image"
 
 // InputRehearsed names the input holding the rehearsal's receipt, a tree whose
@@ -39,7 +39,7 @@ const InputRehearsed = "rehearsed"
 // the os_image.AuthorizationFile that install publishes into the image store.
 const OutputAuthorization = "authorization"
 
-// Controller signs one image root with the Worker peer's key.
+// Controller signs one image with the Worker peer's key.
 type Controller struct {
 	// le is the log entry
 	le *logrus.Entry
@@ -73,7 +73,7 @@ func (c *Controller) InitForgeExecController(
 	return c.conf.Validate()
 }
 
-// Execute signs the selected root of the image input's store as the peer the
+// Execute signs the built image of the image input's store as the peer the
 // Execution runs as, and outputs the authorization as the tree install
 // mounts. The key stays with its holder; only the signature crosses the bus.
 func (c *Controller) Execute(ctx context.Context) error {
@@ -87,12 +87,13 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
-	// Read the store's selected root, the root the booting machine opens, and
-	// refuse it unless the rehearsal booted that root.
-	root, err := boot.ReadImageRoot(ctx, filepath.Join(dir, InputImage))
+	// Read the store's built image, the image the booting machine opens, and
+	// refuse it unless the rehearsal booted its root.
+	image, err := boot.ReadImage(ctx, filepath.Join(dir, InputImage))
 	if err != nil {
 		return errors.Wrapf(err, "input %q", InputImage)
 	}
+	root := image.GetRootRef()
 	booted, err := readRehearsedRoot(filepath.Join(dir, InputRehearsed))
 	if err != nil {
 		return errors.Wrapf(err, "input %q", InputRehearsed)
@@ -100,7 +101,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	if !booted.EqualsRef(root) {
 		return errors.Errorf("rehearsal booted %s, not the image's root %s", booted.MarshalString(), root.MarshalString())
 	}
-	data, err := os_image.MarshalImageRoot(root)
+	data, err := os_image.MarshalImage(image)
 	if err != nil {
 		return err
 	}
@@ -108,16 +109,16 @@ func (c *Controller) Execute(ctx context.Context) error {
 	// Ask the key's holder to sign, and check the answer as a booting machine
 	// pinning this peer would.
 	signer := c.handle.GetPeerId()
-	signed, err := peer.ExSignWithPeer(ctx, c.b, signer, os_image.ImageRootContext, data)
+	signed, err := peer.ExSignWithPeer(ctx, c.b, signer, os_image.ImageContext, data)
 	if err != nil {
-		return errors.Wrap(err, "sign image root")
+		return errors.Wrap(err, "sign image")
 	}
-	authorized, _, err := os_image.VerifyImageRoot(signed, []peer.ID{signer})
+	authorized, _, err := os_image.VerifyImage(signed, []peer.ID{signer})
 	if err != nil {
 		return err
 	}
-	if !authorized.EqualsRef(root) {
-		return errors.Errorf("signer authorized %s, not %s", authorized.MarshalString(), root.MarshalString())
+	if !authorized.EqualVT(image) {
+		return errors.Errorf("signer authorized %s, not %s", authorized.GetRootRef().MarshalString(), root.MarshalString())
 	}
 
 	// Store the authorization file as the output tree.

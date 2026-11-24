@@ -11,18 +11,22 @@ import (
 	forge_skiffos_update "github.com/s4wave/spacewave/forge/lib/skiffos/update"
 	forge_util "github.com/s4wave/spacewave/forge/lib/util"
 	forge_v86 "github.com/s4wave/spacewave/forge/lib/v86"
+	os_image_build "github.com/s4wave/spacewave/os/image/build"
 	os_image_sign "github.com/s4wave/spacewave/os/image/sign"
 )
 
 // AddFactories adds factories to an existing static resolver.
 func AddFactories(b bus.Bus, sr *static.Resolver) {
-	// Register every library controller with the resolver.
+	// Register the general library controllers.
 	forge_kvtx.AddFactories(b, sr)
 	forge_git.AddFactories(b, sr)
 	forge_util.AddFactories(b, sr)
 	forge_v86.AddFactories(b, sr)
+
+	// Register the SkiffOS and Spacewave OS build controllers.
 	forge_skiffos.AddFactories(sr)
 	forge_skiffos_audit.AddFactories(sr)
 	forge_skiffos_update.AddFactories(sr)
+	os_image_build.AddFactories(sr)
 	os_image_sign.AddFactories(b, sr)
 }
