@@ -58,6 +58,8 @@ type Cache struct {
 	le *logrus.Entry
 	// warn limits the log lines about failures.
 	warn rateLog
+	// path is the database file; resident lists sit beside it.
+	path string
 	// store is the SQLite database.
 	store store_kvtx_sqlite.Store
 	// blocks is the block store over the database.
@@ -115,6 +117,7 @@ func Open(ctx context.Context, le *logrus.Entry, path string, opts Options) (*Ca
 	keys := store_kvkey.NewDefaultKVKey()
 	c := &Cache{
 		le:         le,
+		path:       path,
 		warn:       rateLog{le: le},
 		store:      store,
 		blocks:     block_store_kvtx.NewKVTxBlock(keys, store, 0),
