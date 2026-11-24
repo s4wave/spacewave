@@ -29,6 +29,12 @@ export interface DevicePolicy {
    * launcher and no additional child models.
    */
   launchApproval?: LaunchApproval[]
+  /**
+   * ServedSpace lists the Spaces besides the setup Space whose Flowgraph nodes
+   * this Device runs. A Space a session merely lists places nothing here until
+   * the operator adds it.
+   */
+  servedSpace?: ServedSpace[]
 }
 
 export const DevicePolicy: MessageType<DevicePolicy> =
@@ -38,6 +44,34 @@ export const DevicePolicy: MessageType<DevicePolicy> =
       [1, 'revision', 4],
       [2, 'node_type_id', 9, 1],
       [3, 'launch_approval', 11, 1, LaunchApproval.codec],
+      [4, 'served_space', 11, 1, ServedSpace.codec],
+    ],
+  )
+
+/**
+ * ServedSpace is the operator's choice to run one Space's Flowgraph nodes on
+ * this Device.
+ *
+ * @generated from message s4wave.device.policy.ServedSpace
+ */
+export interface ServedSpace {
+  /**
+   * SpaceId is the shared object ID of the served Space.
+   */
+  spaceId?: string
+  /**
+   * SessionIndex is the daemon's index of the session the Space is reached
+   * through. That session's peer is this Device's peer in the Space.
+   */
+  sessionIndex?: number
+}
+
+export const ServedSpace: MessageType<ServedSpace> =
+  /* @__PURE__ */ createMessageType<ServedSpace>(
+    's4wave.device.policy.ServedSpace',
+    () => [
+      [1, 'space_id', 9],
+      [2, 'session_index', 13],
     ],
   )
 
