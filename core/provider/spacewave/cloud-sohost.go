@@ -329,23 +329,26 @@ func (h *cloudSOHost) pullState(ctx context.Context, reason SeedReason) error {
 	h.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		since = h.lastSeqno
 	})
-	stateData, err := h.client.GetSOState(ctx, h.soID, since, reason)
+	msg, err := h.fetchSOState(ctx, since, reason)
 	if err != nil {
 		return err
 	}
 
-	// Decode a snapshot, retrying without a cursor when the server returned a delta.
-	state, lastSeqno, configChain, err := decodeSOStateResponse(stateData)
-	if errors.Is(err, errSOStateDeltaResponse) && since > 0 {
-		h.le.WithField("since", since).Debug("received delta from state pull, retrying full snapshot")
-		stateData, err = h.client.GetSOState(ctx, h.soID, 0, SeedReasonGapRecovery)
-		if err != nil {
+	// Apply a delta above the held cursor as an inline update does, and
+	// fetch the full snapshot only when it cannot apply.
+	if msg.GetDelta() != nil && since > 0 {
+		err := h.handleStateDelta(ctx, msg)
+		if err == nil {
+			return nil
+		}
+		h.le.WithError(err).WithField("since", since).Debug("could not apply delta from state pull, fetching full snapshot")
+		if msg, err = h.fetchSOState(ctx, 0, SeedReasonGapRecovery); err != nil {
 			return err
 		}
-		state, lastSeqno, configChain, err = decodeSOStateResponse(stateData)
 	}
-	if err != nil {
-		return err
+	state, lastSeqno, configChain := msg.GetSnapshot(), msg.GetSeqno(), msg.GetConfigChain()
+	if state == nil {
+		return errors.New("missing snapshot in SOStateMessage")
 	}
 
 	// Reject rollback before synchronizing the response's embedded authority.
@@ -432,24 +435,43 @@ func (h *cloudSOHost) noteInitialStateRejection(err error) {
 //
 // Returns an error if the response carries a delta instead of a snapshot.
 func DecodeSOStateSnapshot(data []byte) (*sobject.SOState, error) {
-	state, _, _, err := decodeSOStateResponse(data)
+	state, _, err := decodeSOStateSnapshot(data)
 	return state, err
 }
 
-// decodeSOStateResponse decodes an SOStateMessage snapshot or delta marker.
-func decodeSOStateResponse(data []byte) (*sobject.SOState, uint64, *sobject.SOConfigChainResponse, error) {
-	// Decode the message, then return its snapshot or report its delta.
+// decodeSOStateSnapshot decodes a full-snapshot SOStateMessage response and
+// the config chain it embeds.
+func decodeSOStateSnapshot(data []byte) (*sobject.SOState, *sobject.SOConfigChainResponse, error) {
+	msg, err := decodeSOStateMessage(data)
+	if err != nil {
+		return nil, nil, err
+	}
+	if msg.GetSnapshot() == nil {
+		return nil, nil, errSOStateDeltaResponse
+	}
+	return msg.GetSnapshot(), msg.GetConfigChain(), nil
+}
+
+// fetchSOState pulls the state above since and decodes the response.
+func (h *cloudSOHost) fetchSOState(ctx context.Context, since uint64, reason SeedReason) (*api.SOStateMessage, error) {
+	data, err := h.client.GetSOState(ctx, h.soID, since, reason)
+	if err != nil {
+		return nil, err
+	}
+	return decodeSOStateMessage(data)
+}
+
+// decodeSOStateMessage decodes an SOStateMessage that carries a snapshot or
+// a delta.
+func decodeSOStateMessage(data []byte) (*api.SOStateMessage, error) {
 	msg := &api.SOStateMessage{}
 	if err := msg.UnmarshalVT(data); err != nil {
-		return nil, 0, nil, errors.Wrap(err, "unmarshal SOStateMessage")
+		return nil, errors.Wrap(err, "unmarshal SOStateMessage")
 	}
-	if snap := msg.GetSnapshot(); snap != nil {
-		return snap, msg.GetSeqno(), msg.GetConfigChain(), nil
+	if msg.GetSnapshot() == nil && msg.GetDelta() == nil {
+		return nil, errors.New("missing snapshot or delta in SOStateMessage")
 	}
-	if msg.GetDelta() != nil {
-		return nil, 0, nil, errSOStateDeltaResponse
-	}
-	return nil, 0, nil, errors.New("missing snapshot or delta in SOStateMessage")
+	return msg, nil
 }
 
 // syncEmbeddedConfigChain verifies a response's embedded chain through the shared fetch coordinator.

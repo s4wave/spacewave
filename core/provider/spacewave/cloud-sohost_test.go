@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/util/ccontainer"
+	ulid "github.com/aperturerobotics/util/ulid"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/sobject"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
@@ -367,11 +368,18 @@ func TestCloudSOHostUsesInlineConfigChainWhenPulledStateHashChanges(t *testing.T
 		},
 	})
 
-	// Serve the state and fail any separate chain request.
-	var configChainRequests int
+	// Serve the state, or the delta above the held cursor once one is set,
+	// and fail any separate chain request.
+	var configChainRequests, fullRequests int
+	var deltaData []byte
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api/sobject/" + soID + "/state":
+			if deltaData != nil && r.URL.Query().Get("since") == "1" {
+				_, _ = w.Write(deltaData)
+				return
+			}
+			fullRequests++
 			_, _ = w.Write(stateData)
 		case "/api/sobject/" + soID + "/config-chain":
 			configChainRequests++
@@ -416,6 +424,31 @@ func TestCloudSOHostUsesInlineConfigChainWhenPulledStateHashChanges(t *testing.T
 	}
 	if !bytes.Equal(cfg.GetConfigChainHash(), previousConfig.GetConfigChainHash()) {
 		t.Fatalf("previous config hash = %x, want %x", cfg.GetConfigChainHash(), previousConfig.GetConfigChainHash())
+	}
+
+	// A pull from the held cursor applies the op the delta carries, with no
+	// second request for the full state.
+	held := host.stateCtr.GetValue()
+	set, err := held.OperationSet(soID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	op, err := sobject.BuildSOOperation(soID, ownerPriv, []byte("above the cursor"), held.NextOperationLink(set, ownerPID.String()), ulid.NewULID())
+	if err != nil {
+		t.Fatal(err)
+	}
+	deltaData = mustMarshalVT(t, &api.SOStateMessage{Seqno: 2, Content: &api.SOStateMessage_Delta{Delta: &api.SOStateDelta{
+		Since:   1,
+		Entries: []*api.SOStateDeltaEntry{{Seqno: 2, ChangeType: "op", ChangeData: mustMarshalVT(t, op)}},
+	}}})
+	if err := host.pullState(context.Background(), SeedReasonColdSeed); err != nil {
+		t.Fatalf("pull delta: %v", err)
+	}
+	if fullRequests != 1 {
+		t.Fatalf("a pull from the cursor fetched the full state; %d full requests", fullRequests)
+	}
+	if ops := host.stateCtr.GetValue().GetOps(); len(ops) != len(held.GetOps())+1 {
+		t.Fatalf("held %d ops after the delta, want %d", len(ops), len(held.GetOps())+1)
 	}
 }
 

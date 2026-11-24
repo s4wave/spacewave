@@ -104,7 +104,7 @@ func (c *SessionClient) loadStandaloneInitState(
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "get so state")
 	}
-	state, _, chain, err := decodeSOStateResponse(stateData)
+	state, chain, err := decodeSOStateSnapshot(stateData)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "decode so state")
 	}
