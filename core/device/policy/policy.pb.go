@@ -28,6 +28,10 @@ type DevicePolicy struct {
 	// launch for that Space's work. A Space with no entry gets only the isolated
 	// launcher and no additional child models.
 	LaunchApproval []*LaunchApproval `protobuf:"bytes,3,rep,name=launch_approval,json=launchApproval,proto3" json:"launchApproval,omitempty"`
+	// ServedSpace lists the Spaces besides the setup Space whose Flowgraph nodes
+	// this Device runs. A Space a session merely lists places nothing here until
+	// the operator adds it.
+	ServedSpace []*ServedSpace `protobuf:"bytes,4,rep,name=served_space,json=servedSpace,proto3" json:"servedSpace,omitempty"`
 }
 
 func (x *DevicePolicy) Reset() {
@@ -55,6 +59,44 @@ func (x *DevicePolicy) GetLaunchApproval() []*LaunchApproval {
 		return x.LaunchApproval
 	}
 	return nil
+}
+
+func (x *DevicePolicy) GetServedSpace() []*ServedSpace {
+	if x != nil {
+		return x.ServedSpace
+	}
+	return nil
+}
+
+// ServedSpace is the operator's choice to run one Space's Flowgraph nodes on
+// this Device.
+type ServedSpace struct {
+	unknownFields []byte
+	// SpaceId is the shared object ID of the served Space.
+	SpaceId string `protobuf:"bytes,1,opt,name=space_id,json=spaceId,proto3" json:"spaceId,omitempty"`
+	// SessionIndex is the daemon's index of the session the Space is reached
+	// through. That session's peer is this Device's peer in the Space.
+	SessionIndex uint32 `protobuf:"varint,2,opt,name=session_index,json=sessionIndex,proto3" json:"sessionIndex,omitempty"`
+}
+
+func (x *ServedSpace) Reset() {
+	*x = ServedSpace{}
+}
+
+func (*ServedSpace) ProtoMessage() {}
+
+func (x *ServedSpace) GetSpaceId() string {
+	if x != nil {
+		return x.SpaceId
+	}
+	return ""
+}
+
+func (x *ServedSpace) GetSessionIndex() uint32 {
+	if x != nil {
+		return x.SessionIndex
+	}
+	return 0
 }
 
 // LaunchApproval is the local operator's grant of execution profiles to one
@@ -150,6 +192,7 @@ func (m *DevicePolicy) CloneVT() *DevicePolicy {
 	r.Revision = m.Revision
 	r.NodeTypeId = protobuf_go_lite.CloneSlice(m.NodeTypeId)
 	r.LaunchApproval = protobuf_go_lite.CloneVTSlice(m.LaunchApproval)
+	r.ServedSpace = protobuf_go_lite.CloneVTSlice(m.ServedSpace)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -157,6 +200,23 @@ func (m *DevicePolicy) CloneVT() *DevicePolicy {
 }
 
 func (m *DevicePolicy) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ServedSpace) CloneVT() *ServedSpace {
+	if m == nil {
+		return (*ServedSpace)(nil)
+	}
+	r := new(ServedSpace)
+	r.SpaceId = m.SpaceId
+	r.SessionIndex = m.SessionIndex
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ServedSpace) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -239,11 +299,37 @@ func (this *DevicePolicy) EqualVT(that *DevicePolicy) bool {
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.LaunchApproval, that.LaunchApproval, func() *LaunchApproval { return &LaunchApproval{} }) {
 		return false
 	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.ServedSpace, that.ServedSpace, func() *ServedSpace { return &ServedSpace{} }) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *DevicePolicy) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*DevicePolicy)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ServedSpace) EqualVT(that *ServedSpace) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.SpaceId != that.SpaceId {
+		return false
+	}
+	if this.SessionIndex != that.SessionIndex {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ServedSpace) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ServedSpace)
 	if !ok {
 		return false
 	}
@@ -359,6 +445,17 @@ func (x *DevicePolicy) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if len(x.ServedSpace) > 0 || s.HasField("servedSpace") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("servedSpace")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.ServedSpace {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("servedSpace"))
+		}
+		s.WriteArrayEnd()
+	}
 	s.WriteObjectEnd()
 }
 
@@ -404,12 +501,80 @@ func (x *DevicePolicy) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.LaunchApproval = append(x.LaunchApproval, v)
 			})
+		case "served_space", "servedSpace":
+			s.AddField("served_space")
+			if s.ReadNil() {
+				x.ServedSpace = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.ServedSpace = append(x.ServedSpace, nil)
+					return
+				}
+				v := &ServedSpace{}
+				v.UnmarshalProtoJSON(s.WithField("served_space", false))
+				if s.Err() != nil {
+					return
+				}
+				x.ServedSpace = append(x.ServedSpace, v)
+			})
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the DevicePolicy from JSON.
 func (x *DevicePolicy) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ServedSpace message to JSON.
+func (x *ServedSpace) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.SpaceId != "" || s.HasField("spaceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("spaceId")
+		s.WriteString(x.SpaceId)
+	}
+	if x.SessionIndex != 0 || s.HasField("sessionIndex") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sessionIndex")
+		s.WriteUint32(x.SessionIndex)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ServedSpace to JSON.
+func (x *ServedSpace) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ServedSpace message from JSON.
+func (x *ServedSpace) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "space_id", "spaceId":
+			s.AddField("space_id")
+			x.SpaceId = s.ReadString()
+		case "session_index", "sessionIndex":
+			s.AddField("session_index")
+			x.SessionIndex = s.ReadUint32()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ServedSpace from JSON.
+func (x *ServedSpace) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -606,6 +771,18 @@ func (m *DevicePolicy) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.ServedSpace) > 0 {
+		for iNdEx := len(m.ServedSpace) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.ServedSpace[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
 	if len(m.LaunchApproval) > 0 {
 		for iNdEx := len(m.LaunchApproval) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.LaunchApproval[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -629,6 +806,48 @@ func (m *DevicePolicy) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Revision))
 		i--
 		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ServedSpace) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ServedSpace) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ServedSpace) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.SessionIndex != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.SessionIndex))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.SpaceId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SpaceId)
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -797,6 +1016,22 @@ func (m *DevicePolicy) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	for _, e := range m.ServedSpace {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ServedSpace) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SpaceId)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.SessionIndex)
 	n += len(m.unknownFields)
 	return n
 }
@@ -872,10 +1107,40 @@ func (x *DevicePolicy) MarshalProtoText() string {
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
+	if len(x.ServedSpace) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "served_space")
+		for i, v := range x.ServedSpace {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &ServedSpace{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *DevicePolicy) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ServedSpace) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ServedSpace")
+	if x.SpaceId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "space_id")
+		protobuf_go_lite.TextWriteString(&sb, x.SpaceId)
+	}
+	if x.SessionIndex != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "session_index")
+		protobuf_go_lite.TextWriteUint(&sb, x.SessionIndex)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ServedSpace) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -995,6 +1260,81 @@ func (m *DevicePolicy) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ServedSpace", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ServedSpace = append(m.ServedSpace, &ServedSpace{})
+			if err := m.ServedSpace[len(m.ServedSpace)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ServedSpace) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ServedSpace: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ServedSpace: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SpaceId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SpaceId = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SessionIndex", wireType)
+			}
+			m.SessionIndex = 0
+			m.SessionIndex, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

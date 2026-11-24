@@ -6,16 +6,21 @@ import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 
 /**
- * WatchForgeWorkerRequest subscribes to the local Device's Forge Worker declaration.
+ * WatchForgeWorkerRequest subscribes to the local Device's Forge Worker declaration in one World.
  *
  * @generated from message bldr.plugin.host.WatchForgeWorkerRequest
  */
-export interface WatchForgeWorkerRequest {}
+export interface WatchForgeWorkerRequest {
+  /**
+   * EngineId is the World engine ID of the Space whose declaration to follow.
+   */
+  engineId?: string
+}
 
 export const WatchForgeWorkerRequest: MessageType<WatchForgeWorkerRequest> =
   /* @__PURE__ */ createMessageType<WatchForgeWorkerRequest>(
     'bldr.plugin.host.WatchForgeWorkerRequest',
-    () => [],
+    () => [[1, 'engine_id', 9]],
   )
 
 /**

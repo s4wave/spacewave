@@ -24,8 +24,10 @@ service PluginHostResourceService {
   rpc WatchForgeWorker(WatchForgeWorkerRequest) returns (stream WatchForgeWorkerResponse);
 }
 
-// WatchForgeWorkerRequest subscribes to the local Device's Forge Worker declaration.
+// WatchForgeWorkerRequest subscribes to the local Device's Forge Worker declaration in one World.
 message WatchForgeWorkerRequest {
+  // EngineId is the World engine ID of the Space whose declaration to follow.
+  string engine_id = 1;
 }
 
 // WatchForgeWorkerResponse carries one complete declaration revision and its Device identity.

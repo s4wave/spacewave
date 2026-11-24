@@ -17,6 +17,20 @@ message DevicePolicy {
   // launch for that Space's work. A Space with no entry gets only the isolated
   // launcher and no additional child models.
   repeated LaunchApproval launch_approval = 3;
+  // ServedSpace lists the Spaces besides the setup Space whose Flowgraph nodes
+  // this Device runs. A Space a session merely lists places nothing here until
+  // the operator adds it.
+  repeated ServedSpace served_space = 4;
+}
+
+// ServedSpace is the operator's choice to run one Space's Flowgraph nodes on
+// this Device.
+message ServedSpace {
+  // SpaceId is the shared object ID of the served Space.
+  string space_id = 1;
+  // SessionIndex is the daemon's index of the session the Space is reached
+  // through. That session's peer is this Device's peer in the Space.
+  uint32 session_index = 2;
 }
 
 // LaunchApproval is the local operator's grant of execution profiles to one
