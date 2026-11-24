@@ -38,16 +38,66 @@ message SOSyncMessage {
   }
 }
 
-// SOSyncSnapshot is a full SOState snapshot exchanged after mutual
-// authentication. The receiver merges its checkpoint, key epochs and
-// operations into the state it holds.
+// SOSyncSnapshot is the advertised SOState exchanged after mutual
+// authentication, less the records the request said the receiver holds. The
+// receiver puts each held record back, checks the result against the
+// advertised digest, and merges its checkpoint, key epochs and operations into
+// the state it holds.
 message SOSyncSnapshot {
-  // SoState is the full SOState proto bytes (MarshalVT).
+  // SoState is the SOState proto bytes (MarshalVT) without the held records.
   bytes so_state = 1;
   // Revision binds this snapshot to the requested, pinned advertisement.
   uint64 revision = 2;
   // BaseHash is the trusted checkpoint named by the request.
   bytes base_hash = 3;
+  // Restore puts back the held records omitted from so_state.
+  SOSyncRestore restore = 4;
+}
+
+// SOSyncHeld names the records of a receiver's state by record hash: SHA-256
+// of the record's encoding.
+message SOSyncHeld {
+  // Config is the record hash of the config.
+  bytes config = 1;
+  // Checkpoint is the record hash of the checkpoint.
+  bytes checkpoint = 2;
+  // KeyEpochs are the record hashes of the key epochs, in state order.
+  repeated bytes key_epochs = 3;
+  // Ops are the record hashes of the operations, in state order.
+  repeated bytes ops = 4;
+  // Sequence are the record hashes of the positions, in state order.
+  repeated bytes sequence = 5;
+  // ControlMessages are the record hashes of the control messages, in state
+  // order.
+  repeated bytes control_messages = 6;
+}
+
+// SOSyncRestore says where the held records a snapshot omits go back.
+message SOSyncRestore {
+  // Config puts back the held config.
+  bool config = 1;
+  // Checkpoint puts back the held checkpoint.
+  bool checkpoint = 2;
+  // KeyEpochs puts back held key epochs.
+  repeated SOSyncHeldRun key_epochs = 3;
+  // Ops puts back held operations.
+  repeated SOSyncHeldRun ops = 4;
+  // Sequence puts back held positions.
+  repeated SOSyncHeldRun sequence = 5;
+  // ControlMessages puts back held control messages.
+  repeated SOSyncHeldRun control_messages = 6;
+}
+
+// SOSyncHeldRun places count consecutive held records, starting at offer in
+// the request's list, at count consecutive indexes of the advertised list,
+// starting at index. Runs of one list are ordered and do not overlap.
+message SOSyncHeldRun {
+  // Index is the first index in the advertised list.
+  uint32 index = 1;
+  // Offer is the first position in the request's list.
+  uint32 offer = 2;
+  // Count is the number of records the run places.
+  uint32 count = 3;
 }
 
 // SOSyncAck releases a pinned advertisement.
@@ -103,6 +153,9 @@ message SOSyncHistoryRequest {
   // FloorSeqno is the config sequence of the receiver's held checkpoint. A
   // sender that does not hold base_hash sends its branch above it instead.
   uint64 floor_seqno = 3;
+  // Held names the records the receiver holds, which the snapshot omits.
+  // It is empty when the names would not fit in one frame.
+  SOSyncHeld held = 4;
 }
 
 // SOSyncBranch precedes the history pages when the sender does not hold the

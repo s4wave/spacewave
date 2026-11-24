@@ -1970,7 +1970,7 @@
           ]
         },
         "github.com/s4wave/spacewave/core/sobject/sync": {
-          "hash": "025407a7f0f84d5aa795b68f26f322399854f08f0970dd6873e0799f250788e7",
+          "hash": "1130bd9d986ee20eb18d39f918d71c12182f29b9cbaa8ba307a36616d3f0f32e",
           "generatedFiles": [
             "core/sobject/sync/sync.pb.go",
             "core/sobject/sync/sync.pb.ts"

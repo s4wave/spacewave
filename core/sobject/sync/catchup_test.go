@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -441,5 +442,132 @@ func testConcurrentOwnerBranchesMerge(t *testing.T, count, padding int) {
 	}
 	if padding != 0 && merge.SizeVT() <= 1024*1024 {
 		t.Fatalf("merge record is %d bytes, want over 1 MiB", merge.SizeVT())
+	}
+}
+
+// TestCatchupSendsOnlyMissingRecords catches a peer up from one op behind at
+// two state sizes over real paired streams, and checks that the snapshot
+// carries the missing op and not the state: its bytes stay flat between 32
+// and 320 held ops. A peer whose ops a newer checkpoint covers converges to
+// the same head, and a forged restore neither invents nor swaps a record.
+func TestCatchupSendsOnlyMissingRecords(t *testing.T) {
+	// catchUp seeds both peers with n ops, writes behind more on the sender
+	// after any checkpoint, syncs the receiver, and returns the snapshot and
+	// the target's full encoding size.
+	payload := strings.Repeat("p", 200)
+	catchUp := func(n, behind int, checkpoint bool) (*SOSyncSnapshot, int) {
+		t.Helper()
+		ctx, cancel := context.WithTimeout(t.Context(), time.Minute)
+		defer cancel()
+		const soID = "held-record-catchup"
+		owner, reader := mustKeyPair(t), mustKeyPair(t)
+		initial := authenticationState(t, soID, owner, reader)
+		for i := range n {
+			writeSyncOp(t, soID, initial, owner, payload+strconv.Itoa(i))
+		}
+		local := newAuthenticationPeer(t, soID, owner, initial)
+		remote := newAuthenticationPeer(t, soID, reader, initial)
+		if err := local.soHost.UpdateSOState(ctx, func(state *sobject.SOState) error {
+			if checkpoint {
+				advanceSnapshotCheckpoint(t, soID, state, owner)
+			}
+			for i := range behind {
+				writeSyncOp(t, soID, state, owner, payload+"behind"+strconv.Itoa(i))
+			}
+			return nil
+		}); err != nil {
+			t.Fatal(err)
+		}
+		target, err := local.soHost.GetHostState(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		states, release, err := remote.soHost.GetSOStateCtr(ctx, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer release()
+
+		// Sync until the receiver holds the target, then find the snapshot
+		// the sender wrote.
+		left, right := net.Pipe()
+		defer left.Close()
+		defer right.Close()
+		observed := &authenticationStream{Conn: left, messages: make(chan *SOSyncMessage, 64)}
+		remoteDone := make(chan error, 1)
+		go func() { _ = local.runStream(ctx, gateLogger(), observed, "transport-a", "transport-b") }()
+		go func() { remoteDone <- remote.runStream(ctx, gateLogger(), right, "transport-b", "transport-a") }()
+		if _, err := states.WaitValueWithValidator(ctx, func(state *sobject.SOState) (bool, error) {
+			return state.EqualVT(target), nil
+		}, remoteDone); err != nil {
+			t.Fatal(err)
+		}
+		var snapshot *SOSyncSnapshot
+		for len(observed.messages) != 0 {
+			if sent := (<-observed.messages).GetSnapshot(); sent != nil {
+				snapshot = sent
+			}
+		}
+		if snapshot == nil {
+			t.Fatal("the sender wrote no snapshot")
+		}
+		full := target.Clone()
+		full.Invites = nil
+		return snapshot, full.SizeVT()
+	}
+
+	// One op behind sends that op, a run on each side of it and the small
+	// fields, at both sizes.
+	small, smallFull := catchUp(32, 1, false)
+	large, largeFull := catchUp(320, 1, false)
+	t.Logf("one op behind: snapshot %d of %d bytes at 32 ops, %d of %d at 320", small.SizeVT(), smallFull, large.SizeVT(), largeFull)
+	sent := &sobject.SOState{}
+	if err := sent.UnmarshalVT(large.GetSoState()); err != nil {
+		t.Fatal(err)
+	}
+	if len(sent.GetOps()) != 1 || sent.GetConfig() != nil || sent.GetCheckpoint() != nil {
+		t.Fatalf("the snapshot carries %d ops, config %v, checkpoint %v; want the missing op alone", len(sent.GetOps()), sent.GetConfig() != nil, sent.GetCheckpoint() != nil)
+	}
+	if large.SizeVT() > small.SizeVT()+64 {
+		t.Fatalf("snapshot grew from %d to %d bytes with the held state", small.SizeVT(), large.SizeVT())
+	}
+
+	// A receiver whose ops the new checkpoint covers receives the
+	// checkpoint and the new op, and converges.
+	covered, _ := catchUp(32, 1, true)
+	if covered.GetRestore().GetCheckpoint() || len(covered.GetRestore().GetOps()) != 0 {
+		t.Fatal("the sender restored a record the receiver lacks")
+	}
+
+	// A forged restore fails: a run past the held list, one overlapping the
+	// last, an empty one, or the right count from the wrong held op.
+	held := []*sobject.SOOperation{{Inner: []byte("a")}, {Inner: []byte("b")}}
+	delivered := []*sobject.SOOperation{{Inner: []byte("c")}}
+	for _, runs := range [][]*SOSyncHeldRun{
+		{{Index: 0, Offer: 1, Count: 2}},
+		{{Index: 0, Offer: 0, Count: 1}, {Index: 0, Offer: 1, Count: 1}},
+		{{Index: 0, Offer: 0, Count: 0}},
+		{{Index: 3, Offer: 0, Count: 1}},
+	} {
+		if _, err := restoreHeld(delivered, runs, held); !errors.Is(err, errHeldRecord) {
+			t.Fatalf("forged runs %v: want errHeldRecord, got %v", runs, err)
+		}
+	}
+	records := []*sobject.SOOperation{held[0], delivered[0], held[1]}
+	offer, err := recordHashes(held)
+	if err != nil {
+		t.Fatal(err)
+	}
+	kept, runs, err := omitHeld(records, offer)
+	if err != nil || len(kept) != 1 || len(runs) != 2 {
+		t.Fatalf("omitHeld kept %d in %d runs: %v", len(kept), len(runs), err)
+	}
+	runs[1].Offer = 0
+	swapped, err := restoreHeld(kept, runs, held)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if slices.Equal(swapped, records) {
+		t.Fatal("a swapped held op rebuilt the advertised list")
 	}
 }

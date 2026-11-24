@@ -52,15 +52,17 @@ export const SOSyncMessage: MessageType<SOSyncMessage> =
   )
 
 /**
- * SOSyncSnapshot is a full SOState snapshot exchanged after mutual
- * authentication. The receiver merges its checkpoint, key epochs and
- * operations into the state it holds.
+ * SOSyncSnapshot is the advertised SOState exchanged after mutual
+ * authentication, less the records the request said the receiver holds. The
+ * receiver puts each held record back, checks the result against the
+ * advertised digest, and merges its checkpoint, key epochs and operations into
+ * the state it holds.
  *
  * @generated from message sobject.sync.SOSyncSnapshot
  */
 export interface SOSyncSnapshot {
   /**
-   * SoState is the full SOState proto bytes (MarshalVT).
+   * SoState is the SOState proto bytes (MarshalVT) without the held records.
    */
   soState?: Uint8Array
   /**
@@ -71,6 +73,10 @@ export interface SOSyncSnapshot {
    * BaseHash is the trusted checkpoint named by the request.
    */
   baseHash?: Uint8Array
+  /**
+   * Restore puts back the held records omitted from so_state.
+   */
+  restore?: SOSyncRestore
 }
 
 export const SOSyncSnapshot: MessageType<SOSyncSnapshot> =
@@ -80,6 +86,131 @@ export const SOSyncSnapshot: MessageType<SOSyncSnapshot> =
       [1, 'so_state', 12],
       [2, 'revision', 4],
       [3, 'base_hash', 12],
+      [4, 'restore', 11, 0, SOSyncRestore.codec],
+    ],
+  )
+
+/**
+ * SOSyncHeld names the records of a receiver's state by record hash: SHA-256
+ * of the record's encoding.
+ *
+ * @generated from message sobject.sync.SOSyncHeld
+ */
+export interface SOSyncHeld {
+  /**
+   * Config is the record hash of the config.
+   */
+  config?: Uint8Array
+  /**
+   * Checkpoint is the record hash of the checkpoint.
+   */
+  checkpoint?: Uint8Array
+  /**
+   * KeyEpochs are the record hashes of the key epochs, in state order.
+   */
+  keyEpochs?: Uint8Array[]
+  /**
+   * Ops are the record hashes of the operations, in state order.
+   */
+  ops?: Uint8Array[]
+  /**
+   * Sequence are the record hashes of the positions, in state order.
+   */
+  sequence?: Uint8Array[]
+  /**
+   * ControlMessages are the record hashes of the control messages, in state
+   * order.
+   */
+  controlMessages?: Uint8Array[]
+}
+
+export const SOSyncHeld: MessageType<SOSyncHeld> =
+  /* @__PURE__ */ createMessageType<SOSyncHeld>(
+    'sobject.sync.SOSyncHeld',
+    () => [
+      [1, 'config', 12],
+      [2, 'checkpoint', 12],
+      [3, 'key_epochs', 12, 1],
+      [4, 'ops', 12, 1],
+      [5, 'sequence', 12, 1],
+      [6, 'control_messages', 12, 1],
+    ],
+  )
+
+/**
+ * SOSyncRestore says where the held records a snapshot omits go back.
+ *
+ * @generated from message sobject.sync.SOSyncRestore
+ */
+export interface SOSyncRestore {
+  /**
+   * Config puts back the held config.
+   */
+  config?: boolean
+  /**
+   * Checkpoint puts back the held checkpoint.
+   */
+  checkpoint?: boolean
+  /**
+   * KeyEpochs puts back held key epochs.
+   */
+  keyEpochs?: SOSyncHeldRun[]
+  /**
+   * Ops puts back held operations.
+   */
+  ops?: SOSyncHeldRun[]
+  /**
+   * Sequence puts back held positions.
+   */
+  sequence?: SOSyncHeldRun[]
+  /**
+   * ControlMessages puts back held control messages.
+   */
+  controlMessages?: SOSyncHeldRun[]
+}
+
+export const SOSyncRestore: MessageType<SOSyncRestore> =
+  /* @__PURE__ */ createMessageType<SOSyncRestore>(
+    'sobject.sync.SOSyncRestore',
+    () => [
+      [1, 'config', 8],
+      [2, 'checkpoint', 8],
+      [3, 'key_epochs', 11, 1, SOSyncHeldRun.codec],
+      [4, 'ops', 11, 1, SOSyncHeldRun.codec],
+      [5, 'sequence', 11, 1, SOSyncHeldRun.codec],
+      [6, 'control_messages', 11, 1, SOSyncHeldRun.codec],
+    ],
+  )
+
+/**
+ * SOSyncHeldRun places count consecutive held records, starting at offer in
+ * the request's list, at count consecutive indexes of the advertised list,
+ * starting at index. Runs of one list are ordered and do not overlap.
+ *
+ * @generated from message sobject.sync.SOSyncHeldRun
+ */
+export interface SOSyncHeldRun {
+  /**
+   * Index is the first index in the advertised list.
+   */
+  index?: number
+  /**
+   * Offer is the first position in the request's list.
+   */
+  offer?: number
+  /**
+   * Count is the number of records the run places.
+   */
+  count?: number
+}
+
+export const SOSyncHeldRun: MessageType<SOSyncHeldRun> =
+  /* @__PURE__ */ createMessageType<SOSyncHeldRun>(
+    'sobject.sync.SOSyncHeldRun',
+    () => [
+      [1, 'index', 13],
+      [2, 'offer', 13],
+      [3, 'count', 13],
     ],
   )
 
@@ -230,6 +361,11 @@ export interface SOSyncHistoryRequest {
    * sender that does not hold base_hash sends its branch above it instead.
    */
   floorSeqno?: bigint
+  /**
+   * Held names the records the receiver holds, which the snapshot omits.
+   * It is empty when the names would not fit in one frame.
+   */
+  held?: SOSyncHeld
 }
 
 export const SOSyncHistoryRequest: MessageType<SOSyncHistoryRequest> =
@@ -239,6 +375,7 @@ export const SOSyncHistoryRequest: MessageType<SOSyncHistoryRequest> =
       [1, 'revision', 4],
       [2, 'base_hash', 12],
       [3, 'floor_seqno', 4],
+      [4, 'held', 11, 0, SOSyncHeld.codec],
     ],
   )
 

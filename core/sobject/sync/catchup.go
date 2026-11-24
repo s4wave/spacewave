@@ -45,6 +45,9 @@ type syncReceive struct {
 	size int
 	// deadline includes history transfer, snapshot validation and persistence.
 	deadline time.Time
+	// held is the state whose records the request offered, pinned at head
+	// receipt, or nil when it offered none.
+	held *sobject.SOState
 }
 
 // syncResponse holds one bounded response while the writer drains its frames.
@@ -370,12 +373,19 @@ func (x *syncExchange) receive(ctx context.Context, le *logrus.Entry, current *s
 		}
 
 		// Pin the head and request the config history behind it. The floor
-		// bounds the branch a diverged peer sends instead.
+		// bounds the branch a diverged peer sends instead. The request offers
+		// the records current holds, so the snapshot omits them.
 		base := bytes.Clone(config.GetConfigChainHash())
-		x.receiving = &syncReceive{head: head, base: base, cursor: base, deadline: time.Now().Add(catchupTimeout)}
-		x.control = &SOSyncMessage{Body: &SOSyncMessage_HistoryRequest{HistoryRequest: &SOSyncHistoryRequest{
-			Revision: head.GetRevision(), BaseHash: base, FloorSeqno: x.sync.soHost.CheckpointFloor(ctx, current),
-		}}}
+		request := &SOSyncHistoryRequest{Revision: head.GetRevision(), BaseHash: base, FloorSeqno: x.sync.soHost.CheckpointFloor(ctx, current)}
+		if err := offerHeld(current, request); err != nil {
+			return err
+		}
+		var held *sobject.SOState
+		if request.Held != nil {
+			held = current
+		}
+		x.receiving = &syncReceive{head: head, base: base, cursor: base, deadline: time.Now().Add(catchupTimeout), held: held}
+		x.control = &SOSyncMessage{Body: &SOSyncMessage_HistoryRequest{HistoryRequest: request}}
 	case *SOSyncMessage_HistoryRequest:
 		request := body.HistoryRequest
 		if x.advertised == nil || request.GetRevision() != x.revision || x.requested || len(request.GetBaseHash()) == 0 || len(request.GetBaseHash()) > maxConfigHashSize {
@@ -515,16 +525,20 @@ func (s *SOSync) prepareResponse(ctx context.Context, state *sobject.SOState, re
 		}
 	}
 
-	// Invitations are local capabilities; peers do not import them.
+	// Invitations are local capabilities; peers do not import them. The
+	// records the receiver holds stay behind, named by index.
+	snapshot := &SOSyncSnapshot{Revision: request.GetRevision(), BaseHash: bytes.Clone(request.GetBaseHash())}
 	state = state.Clone()
 	state.Invites = nil
-	data, err := state.MarshalVT()
+	if err := omitRequestHeld(state, request, snapshot); err != nil {
+		return nil, err
+	}
+	snapshot.SoState, err = state.MarshalVT()
 	if err != nil {
 		return nil, err
 	}
 
-	// Serialize the snapshot and reject one that exceeds the frame budget.
-	snapshot := &SOSyncSnapshot{SoState: data, Revision: request.GetRevision(), BaseHash: bytes.Clone(request.GetBaseHash())}
+	// Reject a snapshot that exceeds the frame budget.
 	if size := (&SOSyncMessage{Body: &SOSyncMessage_Snapshot{Snapshot: snapshot}}).SizeVT(); size > maxMessageSize {
 		return nil, errors.Wrapf(sobject.ErrStateTooLarge, "%d bytes", size)
 	}
@@ -608,18 +622,27 @@ func (s *SOSync) acceptResponse(ctx context.Context, receiving *syncReceive, sna
 	if snapshot.GetRevision() != receiving.head.GetRevision() || !bytes.Equal(snapshot.GetBaseHash(), receiving.base) || !bytes.Equal(receiving.cursor, receiving.head.GetConfigHash()) {
 		return errors.New("snapshot does not complete requested history")
 	}
-	digest := sha256.Sum256(snapshot.GetSoState())
-	if !bytes.Equal(digest[:], receiving.head.GetStateHash()) {
-		return errors.New("snapshot differs from advertised content digest")
-	}
 
 	// Decline a response the local state already surpassed.
 	if s.responseObsolete(ctx, receiving.head) {
 		return nil
 	}
+
+	// Put back the held records and check the rebuilt state against the
+	// advertised digest, which covers its encoding.
 	state := &sobject.SOState{}
 	if err := state.UnmarshalVT(snapshot.GetSoState()); err != nil {
 		return err
+	}
+	if err := restoreRequestHeld(state, receiving.held, snapshot); err != nil {
+		return err
+	}
+	data, err := state.MarshalVT()
+	if err != nil {
+		return err
+	}
+	if digest := sha256.Sum256(data); !bytes.Equal(digest[:], receiving.head.GetStateHash()) {
+		return errors.New("snapshot differs from advertised content digest")
 	}
 
 	// Verify the snapshot matches the pinned advertisement, then import it or
@@ -627,7 +650,6 @@ func (s *SOSync) acceptResponse(ctx context.Context, receiving *syncReceive, sna
 	if state.GetConfig().GetConfigChainSeqno() != receiving.head.GetConfigSeqno() || !bytes.Equal(state.GetConfig().GetConfigChainHash(), receiving.head.GetConfigHash()) {
 		return errors.New("snapshot differs from pinned advertisement")
 	}
-	var err error
 	if receiving.branch != nil {
 		err = s.soHost.MergePeerBranch(ctx, state, receiving.branch, receiving.changes, s.localObjectKey, s.validateSnapshotAccess)
 	} else {
