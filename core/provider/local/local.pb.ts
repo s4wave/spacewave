@@ -133,6 +133,14 @@ export interface Config {
    * config overrides both fields.
    */
   packDivertStoreIds?: string[]
+  /**
+   * CheckpointCountOnly has this device checkpoint the Spaces it checkpoints
+   * only once 32 operations are stable, with no deadline. It suits a backend
+   * that writes steadily with no person waiting on its pages, since a
+   * deadline would store a World every few operations. Unset, a quiet Space
+   * checkpoints 2 seconds after its first stable operation.
+   */
+  checkpointCountOnly?: boolean
 }
 
 export const Config: MessageType<Config> =
@@ -144,6 +152,7 @@ export const Config: MessageType<Config> =
     [5, 'signaling_env_prefix', 9],
     [6, 'pack_dir', 9],
     [7, 'pack_divert_store_ids', 9, 1],
+    [8, 'checkpoint_count_only', 8],
   ])
 
 /**

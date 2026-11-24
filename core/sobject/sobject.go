@@ -232,18 +232,6 @@ func (c *SharedObjectConfig) Checkpointer() string {
 	return ""
 }
 
-// Leader returns the owner that both orders and checkpoints the operations,
-// or empty when no owner does both. The leader checkpoints each ordered batch,
-// so the other participants install its checkpoints instead of replaying the
-// operations. Group control decides checkpoints by vote and has no leader.
-func (c *SharedObjectConfig) Leader() string {
-	checkpointer := c.Checkpointer()
-	if checkpointer == "" || c.IsGroupControl() || c.GetSequencer().GetPeerId() != checkpointer {
-		return ""
-	}
-	return checkpointer
-}
-
 // NewSOOperationLocalID constructs a new randomized local ID for a op.
 func NewSOOperationLocalID() string {
 	return ulid.NewULID()

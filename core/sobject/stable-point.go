@@ -4,6 +4,7 @@ import (
 	"maps"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/net/crypto"
@@ -16,6 +17,12 @@ const AcknowledgmentLag = 64
 // MinCheckpointOperations is the number of stable operations an owner waits
 // for before it signs a checkpoint below them.
 const MinCheckpointOperations = 32
+
+// CheckpointDeadline is how long the checkpointer of a Space a person edits
+// lets its first stable operation above the checkpoint wait before it
+// checkpoints below MinCheckpointOperations, so a quiet Space still stores its
+// pages.
+const CheckpointDeadline = 2 * time.Second
 
 // RosterDropBytes is the encoded size of the operations above the checkpoint
 // at which the checkpointer drops the roster members that lag behind it. It is

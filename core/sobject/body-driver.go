@@ -36,9 +36,8 @@ type bodyPosition struct {
 // BodyDriver replays the agreed order of a SharedObject's operations into its
 // Body. For each state it installs the checkpoint the state holds when it
 // moved, keeps the operations the body applied that the order still places
-// first, and applies the rest in order. A device that follows the leader
-// installs each checkpoint and applies nothing. An error from the body stops
-// the step at that operation, and the next step starts there.
+// first, and applies the rest in order, on every member alike. An error from
+// the body stops the step at that operation, and the next step starts there.
 //
 // The driver serializes every call into the body under mtx, which also
 // guards its fields.
@@ -80,6 +79,12 @@ type BodyDriver struct {
 	// retryAt is when the driver steps again after the last failure or wait
 	// with no wake.
 	retryAt time.Time
+	// stableSince is when a step first found a stable operation above the
+	// installed checkpoint, or zero before one.
+	stableSince time.Time
+	// checkpointAt is when the last step's checkpoint deadline passes, or zero
+	// when that step armed none.
+	checkpointAt time.Time
 	// shown is the report last sent to report.
 	shown *BodyReport
 	// storing reports that a checkpoint's store and signature run in the
@@ -104,11 +109,12 @@ func NewBodyDriver(le *logrus.Entry, so SharedObject, body Body, report func(*Bo
 // SetCheckpointer has the driver sign, through host as privKey, the
 // checkpoints this device owes: as the checkpointer of an owner-controlled
 // Space, a checkpoint over the stable prefix once MinCheckpointOperations
-// operations are stable, or once one is when it also orders them. The body's
-// Root holds the state each one carries. sfs builds the key epoch transforms
-// that encrypt it. Call it before Execute.
-func (d *BodyDriver) SetCheckpointer(host *SOHost, privKey crypto.PrivKey, sfs *block_transform.StepFactorySet) {
-	d.checkpointer = &bodyCheckpointer{host: host, privKey: privKey, sfs: sfs}
+// operations are stable, or once the first stable one has waited deadline. A
+// zero deadline checkpoints at MinCheckpointOperations only. The body's Root
+// holds the state each one carries. sfs builds the key epoch transforms that
+// encrypt it. Call it before Execute.
+func (d *BodyDriver) SetCheckpointer(host *SOHost, privKey crypto.PrivKey, sfs *block_transform.StepFactorySet, deadline time.Duration) {
+	d.checkpointer = &bodyCheckpointer{host: host, privKey: privKey, sfs: sfs, deadline: deadline}
 }
 
 // Execute steps the body to each state of so until ctx ends. After an error
@@ -121,9 +127,9 @@ func (d *BodyDriver) Execute(ctx context.Context) error {
 	}
 	defer rel()
 
-	// Each step's outcome arms at most one wake: the body's wait channel or the
-	// retry deadline. The next step's outcome stops it first, so a stale timer
-	// never steps a later state.
+	// Each step's outcome arms at most one wake: the checkpoint deadline, the
+	// body's wait channel or the retry deadline. The next step's outcome stops
+	// it first, so a stale timer never steps a later state.
 	stopWake := func() {}
 	defer func() { stopWake() }()
 
@@ -146,6 +152,7 @@ func (d *BodyDriver) Execute(ctx context.Context) error {
 		var wait *BodyWait
 		switch {
 		case err == nil:
+			stopWake = d.wakeAtCheckpoint()
 		case ctx.Err() != nil:
 			return context.Canceled
 		case errors.As(err, &wait) && wait.Wake != nil:
@@ -166,6 +173,24 @@ func (d *BodyDriver) wakeAtRetry() func() {
 	d.mtx.Lock()
 	at := d.retryAt
 	d.mtx.Unlock()
+	return d.wakeAt(at)
+}
+
+// wakeAtCheckpoint steps the driver again when the checkpoint deadline the
+// last step armed passes, until the returned stop is called.
+func (d *BodyDriver) wakeAtCheckpoint() func() {
+	// Read the deadline under the lock checkpoint holds.
+	d.mtx.Lock()
+	at := d.checkpointAt
+	d.mtx.Unlock()
+	if at.IsZero() {
+		return func() {}
+	}
+	return d.wakeAt(at)
+}
+
+// wakeAt steps the driver again at at, until the returned stop is called.
+func (d *BodyDriver) wakeAt(at time.Time) func() {
 	timer := time.AfterFunc(time.Until(at), func() {
 		select {
 		case d.wake <- errBodyRetry:
@@ -193,8 +218,8 @@ func (d *BodyDriver) wakeOn(ctx context.Context, ch <-chan struct{}) func() {
 }
 
 // Step brings the body to the order of snap: it has the body hold what snap's
-// operations read, installs snap's checkpoint when it moved, then applies every operation above it the body has not
-// applied in this order. It returns the first error, with the body at the
+// operations read, installs snap's checkpoint when it moved, then applies every
+// operation above it the body has not applied in this order. It returns the first error, with the body at the
 // operations before it; a *BodyWait comes back unwrapped, for Execute to step
 // again when it ends.
 func (d *BodyDriver) Step(ctx context.Context, snap SharedObjectStateSnapshot) error {
@@ -204,6 +229,7 @@ func (d *BodyDriver) Step(ctx context.Context, snap SharedObjectStateSnapshot) e
 
 	// Read the order, show the opening before the first step applies
 	// anything, then step.
+	d.checkpointAt = time.Time{}
 	ev, err := ReadOrder(ctx, snap)
 	if err == nil {
 		if d.shown == nil {
@@ -264,15 +290,7 @@ func (d *BodyDriver) step(ctx context.Context, ev *OrderEvent) error {
 		if err := d.install(ctx, ev); err != nil {
 			return err
 		}
-	}
-
-	// A device that follows the leader shows the leader's checkpoint alone.
-	follows, err := d.follows(ctx, ev)
-	if err != nil {
-		return err
-	}
-	if follows {
-		return d.follow(ctx, ev)
+		d.stableSince = time.Time{}
 	}
 
 	// Keep the applied operations the order still places first and the
@@ -311,14 +329,10 @@ func (d *BodyDriver) checkpoint(ctx context.Context, ev *OrderEvent) error {
 		return err
 	}
 
-	// Wait for enough stable operations the body applied. The leader
-	// checkpoints every ordered batch, since the others install its
-	// checkpoints instead of replaying.
-	minStable := MinCheckpointOperations
-	if ev.Config.Leader() == self {
-		minStable = 1
-	}
-	if ev.Stable < minStable || len(d.positions) < ev.Stable {
+	// Wait for enough stable operations, or for the first one to wait out
+	// the deadline, and for the body to apply them. Every member replays the
+	// operations above the checkpoint, so none waits on it.
+	if !d.checkpointDue(c, ev) || len(d.positions) < ev.Stable {
 		return nil
 	}
 	data, store, err := d.body.Root(ctx, ev.Stable)
@@ -344,6 +358,35 @@ func (d *BodyDriver) checkpoint(ctx context.Context, ev *OrderEvent) error {
 	height := ev.Checkpoint.GetHeight()
 	go d.storeCheckpoint(ctx, c, store, prefix, refused, data, height)
 	return nil
+}
+
+// checkpointDue reports whether c owes a checkpoint over ev's stable prefix:
+// MinCheckpointOperations operations are stable, or the first stable one has
+// waited c's deadline. Before the deadline it arms the step's wake for it.
+func (d *BodyDriver) checkpointDue(c *bodyCheckpointer, ev *OrderEvent) bool {
+	// Nothing is stable above the checkpoint.
+	if ev.Stable == 0 {
+		d.stableSince = time.Time{}
+		return false
+	}
+	if ev.Stable >= MinCheckpointOperations {
+		return true
+	}
+
+	// Count from the first step that found a stable operation.
+	if c.deadline == 0 {
+		return false
+	}
+	now := time.Now()
+	if d.stableSince.IsZero() {
+		d.stableSince = now
+	}
+	at := d.stableSince.Add(c.deadline)
+	if now.Before(at) {
+		d.checkpointAt = at
+		return false
+	}
+	return true
 }
 
 // storeCheckpoint stores the body's state for the checkpoint over prefix,
@@ -505,22 +548,6 @@ func (d *BodyDriver) install(ctx context.Context, ev *OrderEvent) error {
 	return nil
 }
 
-// follow drops the operations the body applied above the checkpoint, so it
-// shows the checkpoint the leader published.
-func (d *BodyDriver) follow(ctx context.Context, ev *OrderEvent) error {
-	// Nothing to drop once following.
-	if len(d.positions) == 0 {
-		return nil
-	}
-
-	// Reset the body to the checkpoint.
-	if _, err := d.body.Install(ctx, ev, -1, d.set); err != nil {
-		return err
-	}
-	d.positions = nil
-	return nil
-}
-
 // apply applies the operation at index i of ev's order.
 func (d *BodyDriver) apply(ctx context.Context, ev *OrderEvent, i int) error {
 	// Prepare the operation as every member does.
@@ -545,35 +572,6 @@ func (d *BodyDriver) apply(ctx context.Context, ev *OrderEvent, i int) error {
 		d.applied[string(h)] = struct{}{}
 	}
 	return nil
-}
-
-// follows reports whether this device follows the leader of ev: it installs
-// each checkpoint the leader publishes instead of replaying the operations
-// above it. An owner replays, since it may checkpoint or judge checkpoints. So
-// does a device with its own edits above the checkpoint, so it shows them
-// until a checkpoint covers them.
-func (d *BodyDriver) follows(ctx context.Context, ev *OrderEvent) (bool, error) {
-	// Follow only a leader, and only as a participant that does not own. An
-	// owner handing over follows: it no longer checkpoints or judges.
-	if ev.Config.Leader() == "" {
-		return false, nil
-	}
-	own, err := ev.Snapshot.GetOwnership(ctx)
-	if err != nil {
-		return false, err
-	}
-	self := d.so.GetPeerID().String()
-	if own.Owns(self) {
-		return false, nil
-	}
-
-	// Replay while an edit of this device is above the checkpoint.
-	for _, h := range ev.Order {
-		if inner := ev.Set.Get(h); inner.GetPeerId() == self && !inner.IsAcknowledgment() {
-			return false, nil
-		}
-	}
-	return true, nil
 }
 
 // publishReport sends what the health shows of the replay of ev when it

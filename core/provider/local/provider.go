@@ -4,6 +4,7 @@ import (
 	"context"
 	"slices"
 	"sync/atomic"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/util/backoff"
@@ -14,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 	provider "github.com/s4wave/spacewave/core/provider"
 	"github.com/s4wave/spacewave/core/session"
+	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/core/transport"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
@@ -40,6 +42,9 @@ type Provider struct {
 	// packs is the packahead config from the provider Config, read as each
 	// block store mounts. An account's SetPackahead overrides it.
 	packs atomic.Pointer[PackaheadConfig]
+	// checkpointDeadline is the deadline of the checkpoints this device
+	// signs, as BodyDriver.SetCheckpointer describes. Set before any mount.
+	checkpointDeadline time.Duration
 	// info is the provider info
 	info *provider.ProviderInfo
 	// sfs is the step factory set for block transforms
@@ -123,6 +128,7 @@ func NewProvider(
 		sfs:                sfs,
 		localNetwork:       newLocalSessionNetwork(),
 		transportOptions:   slices.Clone(transportOptions),
+		checkpointDeadline: sobject.CheckpointDeadline,
 	}
 	p.linkedCloudAccountLoader = defaultLinkedCloudAccountLoader
 	p.accountRc = keyed.NewKeyedRefCountWithLogger(
@@ -143,6 +149,16 @@ func (p *Provider) SetPackDir(dir string, divert []string) {
 		return
 	}
 	p.packs.Store(&PackaheadConfig{Dir: dir, DivertStoreIDs: slices.Clone(divert)})
+}
+
+// SetCheckpointCountOnly has the SharedObjects mounted after it checkpoint
+// only at sobject.MinCheckpointOperations stable operations, with no
+// deadline, as Config.CheckpointCountOnly describes.
+func (p *Provider) SetCheckpointCountOnly(countOnly bool) {
+	p.checkpointDeadline = sobject.CheckpointDeadline
+	if countOnly {
+		p.checkpointDeadline = 0
+	}
 }
 
 // getLocalProviderFeatures returns the slice of provider features implemented by the local provider.

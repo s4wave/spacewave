@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"slices"
+	"time"
 
 	"github.com/pkg/errors"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
@@ -23,6 +24,10 @@ type bodyCheckpointer struct {
 	privKey crypto.PrivKey
 	// sfs builds the key epoch transforms.
 	sfs *block_transform.StepFactorySet
+	// deadline is how long the first stable operation above the checkpoint
+	// waits before a checkpoint below MinCheckpointOperations, or zero to
+	// checkpoint at MinCheckpointOperations only.
+	deadline time.Duration
 }
 
 // adopt signs the checkpoint covering prefix with the body state data after

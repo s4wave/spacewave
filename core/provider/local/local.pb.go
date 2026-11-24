@@ -136,6 +136,12 @@ type Config struct {
 	// reading and uploading the packs its log holds. An account's own packahead
 	// config overrides both fields.
 	PackDivertStoreIds []string `protobuf:"bytes,7,rep,name=pack_divert_store_ids,json=packDivertStoreIds,proto3" json:"packDivertStoreIds,omitempty"`
+	// CheckpointCountOnly has this device checkpoint the Spaces it checkpoints
+	// only once 32 operations are stable, with no deadline. It suits a backend
+	// that writes steadily with no person waiting on its pages, since a
+	// deadline would store a World every few operations. Unset, a quiet Space
+	// checkpoints 2 seconds after its first stable operation.
+	CheckpointCountOnly bool `protobuf:"varint,8,opt,name=checkpoint_count_only,json=checkpointCountOnly,proto3" json:"checkpointCountOnly,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -191,6 +197,13 @@ func (x *Config) GetPackDivertStoreIds() []string {
 		return x.PackDivertStoreIds
 	}
 	return nil
+}
+
+func (x *Config) GetCheckpointCountOnly() bool {
+	if x != nil {
+		return x.CheckpointCountOnly
+	}
+	return false
 }
 
 // AccountReplicaCopyState records local durability for one accepted World head.
@@ -389,6 +402,7 @@ func (m *Config) CloneVT() *Config {
 	r.SignalingUrl = m.SignalingUrl
 	r.SignalingEnvPrefix = m.SignalingEnvPrefix
 	r.PackDir = m.PackDir
+	r.CheckpointCountOnly = m.CheckpointCountOnly
 	r.PackDivertStoreIds = protobuf_go_lite.CloneSlice(m.PackDivertStoreIds)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -535,6 +549,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualSlice(this.PackDivertStoreIds, that.PackDivertStoreIds) {
+		return false
+	}
+	if this.CheckpointCountOnly != that.CheckpointCountOnly {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -812,6 +829,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("packDivertStoreIds")
 		s.WriteStringArray(x.PackDivertStoreIds)
 	}
+	if x.CheckpointCountOnly || s.HasField("checkpointCountOnly") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("checkpointCountOnly")
+		s.WriteBool(x.CheckpointCountOnly)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -854,6 +876,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				return
 			}
 			x.PackDivertStoreIds = s.ReadStringArray()
+		case "checkpoint_count_only", "checkpointCountOnly":
+			s.AddField("checkpoint_count_only")
+			x.CheckpointCountOnly = s.ReadBool()
 		}
 	})
 }
@@ -1183,6 +1208,11 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.CheckpointCountOnly {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.CheckpointCountOnly)
+		i--
+		dAtA[i] = 0x40
+	}
 	if len(m.PackDivertStoreIds) > 0 {
 		for iNdEx := len(m.PackDivertStoreIds) - 1; iNdEx >= 0; iNdEx-- {
 			i = protobuf_go_lite.EncodeString(dAtA, i, m.PackDivertStoreIds[iNdEx])
@@ -1399,6 +1429,7 @@ func (m *Config) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SignalingEnvPrefix)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PackDir)
 	n += protobuf_go_lite.SizeStringSlice(1, m.PackDivertStoreIds)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.CheckpointCountOnly)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1525,6 +1556,10 @@ func (x *Config) MarshalProtoText() string {
 			protobuf_go_lite.TextWriteString(&sb, v)
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.CheckpointCountOnly != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "checkpoint_count_only")
+		protobuf_go_lite.TextWriteBool(&sb, x.CheckpointCountOnly)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1881,6 +1916,16 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.PackDivertStoreIds = append(m.PackDivertStoreIds, v)
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CheckpointCountOnly", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.CheckpointCountOnly = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

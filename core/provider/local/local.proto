@@ -76,6 +76,12 @@ message Config {
   // reading and uploading the packs its log holds. An account's own packahead
   // config overrides both fields.
   repeated string pack_divert_store_ids = 7;
+  // CheckpointCountOnly has this device checkpoint the Spaces it checkpoints
+  // only once 32 operations are stable, with no deadline. It suits a backend
+  // that writes steadily with no person waiting on its pages, since a
+  // deadline would store a World every few operations. Unset, a quiet Space
+  // checkpoints 2 seconds after its first stable operation.
+  bool checkpoint_count_only = 8;
 }
 
 // AccountReplicaCopyState records local durability for one accepted World head.

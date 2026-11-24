@@ -57,7 +57,8 @@ func seedPairingWorldPayload(ctx context.Context, t *testing.T, tb *testbed.Test
 		t.Fatal(err)
 	}
 
-	// Appoint the actual storage owner to checkpoint the source edit immediately.
+	// Appoint the actual storage owner to sequence the source edit, so its
+	// checkpoint deadline covers the edit.
 	if checkpoint {
 		if _, err := so.(*SharedObject).SetSequencer(ctx, so.GetPeerID().String()); err != nil {
 			t.Fatal(err)

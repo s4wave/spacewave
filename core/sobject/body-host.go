@@ -2,6 +2,7 @@ package sobject
 
 import (
 	"context"
+	"time"
 
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/routine"
@@ -28,6 +29,8 @@ type BodyHost struct {
 	privKey crypto.PrivKey
 	// sfs builds the key epoch transforms when host is set.
 	sfs *block_transform.StepFactorySet
+	// deadline is the checkpointer's deadline when host is set.
+	deadline time.Duration
 	// rc runs the driver of the current body.
 	rc *routine.StateRoutineContainer[Body]
 	// bcast guards body and wakes the attaches waiting for its release.
@@ -49,9 +52,10 @@ func NewBodyHost(le *logrus.Entry, so SharedObject, report func(*BodyReport)) *B
 }
 
 // SetSigner has the host checkpoint and vote as the participant privKey,
-// through host. Call it before SetContext.
-func (h *BodyHost) SetSigner(host *SOHost, privKey crypto.PrivKey, sfs *block_transform.StepFactorySet) {
-	h.host, h.privKey, h.sfs = host, privKey, sfs
+// through host, checkpointing with the deadline BodyDriver.SetCheckpointer
+// describes. Call it before SetContext.
+func (h *BodyHost) SetSigner(host *SOHost, privKey crypto.PrivKey, sfs *block_transform.StepFactorySet, deadline time.Duration) {
+	h.host, h.privKey, h.sfs, h.deadline = host, privKey, sfs, deadline
 }
 
 // SetContext runs the body's driver under ctx, until the next SetContext or
@@ -137,7 +141,7 @@ func (h *BodyHost) execute(ctx context.Context, body Body) error {
 	if h.host == nil {
 		return d.Execute(ctx)
 	}
-	d.SetCheckpointer(h.host, h.privKey, h.sfs)
+	d.SetCheckpointer(h.host, h.privKey, h.sfs, h.deadline)
 
 	// Vote in the group's decisions beside it, and join both before returning.
 	control, err := newControl(h.le, h.host, h.privKey, d)

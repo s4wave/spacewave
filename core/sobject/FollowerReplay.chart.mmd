@@ -1,0 +1,35 @@
+---
+title: "A follower replays the operations above the checkpoint"
+---
+stateDiagram-v2
+  s0: Leader writing, follower shows every operation
+  s1: Leader stopped, follower shows every operation
+  s2: Leader writing, follower restarting
+  s3: Leader writing, follower replaying above the checkpoint
+  s4: Leader stopped, follower restarting
+  s5: Leader stopped, follower replaying above the checkpoint
+  s6: Leader writing, follower behind the checkpoint
+  s7: Leader stopped, follower behind the checkpoint
+  [*] --> s0
+  s0 --> s1: the leader stops
+  s0 --> s2: the follower restarts
+  s0 --> s3: the leader orders an operation
+  s1 --> s4: the follower restarts
+  s2 --> s4: the leader stops
+  s2 --> s0: the follower reloads the checkpoint
+  s3 --> s5: the leader stops
+  s3 --> s0: the follower applies the next operation
+  s3 --> s2: the follower restarts
+  s4 --> s1: the follower reloads the checkpoint
+  s5 --> s1: the follower applies the next operation
+  s5 --> s4: the follower restarts
+  s2 --> s3: the follower reloads the checkpoint
+  s3 --> s6: the leader stores a checkpoint
+  s4 --> s5: the follower reloads the checkpoint
+  s6 --> s7: the leader stops
+  s6 --> s0: the follower installs the checkpoint
+  s6 --> s2: the follower restarts
+  s7 --> s1: the follower installs the checkpoint
+  s7 --> s4: the follower restarts
+  s6 --> s3: the follower installs the checkpoint
+  s7 --> s5: the follower installs the checkpoint

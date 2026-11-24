@@ -91,6 +91,7 @@ func (t *Factory) Construct(
 				t.transportOptions...,
 			)
 			prov.SetPackDir(cc.GetPackDir(), cc.GetPackDivertStoreIds())
+			prov.SetCheckpointCountOnly(cc.GetCheckpointCountOnly())
 			return prov, nil
 		},
 	), nil

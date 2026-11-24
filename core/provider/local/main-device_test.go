@@ -8,7 +8,6 @@ import (
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
 	space_world "github.com/s4wave/spacewave/core/space/world"
-	"github.com/s4wave/spacewave/db/block"
 )
 
 // TestMainDeviceOffline has the owner's device order a local Space as its main
@@ -40,8 +39,9 @@ func TestMainDeviceOffline(t *testing.T) {
 	ownerObject := mounted.(*provider_local.SharedObject)
 	memberObject, memberRef := joinWriter(ctx, t, ownerAccount, ownerSession, ownerObject, memberAccount, memberSession)
 
-	// The owner's device becomes the main device, places every edit so far
-	// and checkpoints the World holding them, which the writer installs.
+	// The owner's device becomes the main device and places every edit so
+	// far. The writer holds every position and replays them to the owner's
+	// World.
 	owner := &offlineMember{t: t, name: "owner", tb: tb, account: ownerAccount, object: ownerObject, ref: ref}
 	member := &offlineMember{t: t, name: "member", tb: tb, account: memberAccount, object: memberObject, ref: memberRef}
 	for _, m := range []*offlineMember{owner, member} {
@@ -52,7 +52,8 @@ func TestMainDeviceOffline(t *testing.T) {
 		t.Fatal(err)
 	}
 	member.waitSequencer(ctx, ownerObject.GetPeerID().String())
-	member.waitCheckpoint(ctx, owner.root(ctx))
+	member.waitPlaced(ctx)
+	member.waitRoot(ctx, owner.root(ctx))
 
 	// The main device goes offline. The writer's edit applies at once and
 	// waits to be put in order.
@@ -61,23 +62,22 @@ func TestMainDeviceOffline(t *testing.T) {
 	member.requireObjects(ctx, "while-main-offline")
 	member.waitUnordered(ctx, 1)
 
-	// The main device returns and places the edit, then checkpoints the World
-	// holding it, which the writer installs.
+	// The main device returns and places the edit, and the writer replays the
+	// order to the owner's World.
 	if err := ownerAccount.StartPersistentP2PSync(ctx, ownerAccount.GetSessionTransport()); err != nil {
 		t.Fatal(err)
 	}
 	member.waitUnordered(ctx, 0)
 	owner.requireObjects(ctx, "while-main-offline")
-	ownerRoot := owner.root(ctx)
-	member.waitCheckpoint(ctx, ownerRoot)
-	member.waitRoot(ctx, ownerRoot)
+	member.waitRoot(ctx, owner.root(ctx))
 }
 
-// TestFollowerInstallsLeaderCheckpoint has the owner's device lead a Space: it
-// orders and checkpoints every edit. A writer with no edits of its own installs
-// each checkpoint as its World, so after every owner edit the writer holds the
-// World the checkpoint publishes, with no operation left above it to replay.
-func TestFollowerInstallsLeaderCheckpoint(t *testing.T) {
+// TestFollowerReplaysAboveCheckpoint has the owner's device lead a Space: it
+// orders every edit and checkpoints only once enough are stable. A writer with
+// no edits of its own replays each edit above the checkpoint to the owner's
+// World. With the leader stopped before any checkpoint, a restarted writer
+// still shows every edit.
+func TestFollowerReplaysAboveCheckpoint(t *testing.T) {
 	// Full peer sync runs natively under one deadline.
 	skipFullP2PSyncUnderGoScript(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
@@ -114,24 +114,32 @@ func TestFollowerInstallsLeaderCheckpoint(t *testing.T) {
 	}
 	member.waitSequencer(ctx, ownerObject.GetPeerID().String())
 
-	// Each owner edit reaches the writer as a checkpoint it installs.
+	// Each owner edit reaches the writer as an operation it replays.
 	var keys []string
 	for _, key := range []string{"first", "second", "third"} {
 		owner.create(ctx, key)
 		keys = append(keys, key)
-		root := owner.root(ctx)
-		member.waitCheckpoint(ctx, root)
-		member.waitRoot(ctx, root)
+		member.waitRoot(ctx, owner.root(ctx))
 		member.requireObjects(ctx, keys...)
 	}
+	root := owner.root(ctx)
+
+	// The leader stops before any checkpoint covers the edits, and the
+	// writer restarts: it replays them again from its state.
+	ownerAccount.StopP2PSync()
+	owner.stop()
+	if h := member.checkpointHeight(ctx); h != 0 {
+		t.Fatalf("the leader checkpointed %d edits at height %d", len(keys), h)
+	}
+	member.stop()
+	member.start(ctx)
+	member.waitRoot(ctx, root)
+	member.requireObjects(ctx, keys...)
 }
 
-// waitCheckpoint waits until the state the World engine replays holds a
-// checkpoint of the World root with no edit above it. The durable state can
-// lead the admitted state, so a durable checkpoint does not yet reach the
-// engine.
-func (m *offlineMember) waitCheckpoint(ctx context.Context, root *block.BlockRef) {
-	// Watch the admitted state.
+// checkpointHeight returns the height of the checkpoint the state holds.
+func (m *offlineMember) checkpointHeight(ctx context.Context) uint64 {
+	// Read the readable state.
 	t := m.t
 	t.Helper()
 	states, release, err := m.object.AccessSharedObjectState(ctx, nil)
@@ -139,38 +147,44 @@ func (m *offlineMember) waitCheckpoint(ctx context.Context, root *block.BlockRef
 		t.Fatal(err)
 	}
 	defer release()
+	snapshot, err := states.WaitValueWithValidator(ctx, func(snapshot sobject.SharedObjectStateSnapshot) (bool, error) {
+		return snapshot != nil, nil
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	// Decode each checkpoint's World and look for edits above it.
+	// Read its checkpoint.
+	checkpoint, err := snapshot.GetCheckpoint(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return checkpoint.GetHeight()
+}
+
+// waitPlaced waits until the appointed sequencer has placed every edit the
+// member holds. It reads the state, since the health may still show a count
+// from before the sequencer was appointed.
+func (m *offlineMember) waitPlaced(ctx context.Context) {
+	// Watch the readable state.
+	t := m.t
+	t.Helper()
+	states, release, err := m.object.AccessSharedObjectState(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
 	if _, err := states.WaitValueWithValidator(ctx, func(snapshot sobject.SharedObjectStateSnapshot) (bool, error) {
-		// Read the checkpoint's World root.
 		if snapshot == nil {
 			return false, nil
 		}
-		checkpoint, err := snapshot.GetCheckpoint(ctx)
+		ev, err := sobject.ReadOrder(ctx, snapshot)
 		if err != nil {
 			return false, err
 		}
-		head := &space_world.InnerState{}
-		if err := head.UnmarshalVT(checkpoint.GetStateData()); err != nil {
-			return false, err
-		}
-		if !head.GetHeadRef().GetRootRef().EqualVT(root) {
-			return false, nil
-		}
-
-		// Require that only acknowledgments remain above it.
-		set, err := snapshot.GetOperationSet(ctx)
-		if err != nil {
-			return false, err
-		}
-		for _, h := range set.Order() {
-			if !set.Get(h).IsAcknowledgment() {
-				return false, nil
-			}
-		}
-		return true, nil
+		return ev.Config.GetSequencer() != nil && ev.Set.Unordered() == 0, nil
 	}, nil); err != nil {
-		t.Fatalf("%s did not see a checkpoint of World %v: %v", m.name, root, err)
+		t.Fatalf("%s did not receive every position: %v", m.name, err)
 	}
 }
 
@@ -211,9 +225,11 @@ func (m *offlineMember) waitUnordered(ctx context.Context, n uint32) {
 		t.Fatal(err)
 	}
 	defer release()
+	var last uint32
 	if _, err := healths.WaitValueWithValidator(ctx, func(health *sobject.SharedObjectHealth) (bool, error) {
-		return health.GetUnorderedCount() == n, nil
+		last = health.GetUnorderedCount()
+		return last == n, nil
 	}, nil); err != nil {
-		t.Fatalf("%s health did not reach %d unordered operations: %v", m.name, n, err)
+		t.Fatalf("%s health did not reach %d unordered operations from %d: %v", m.name, n, last, err)
 	}
 }

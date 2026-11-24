@@ -383,7 +383,8 @@ func TestBodyDriverDropsOperationsACutRemoves(t *testing.T) {
 // over the stable prefix once MinCheckpointOperations operations are stable,
 // with the state the body's Root holds, once the store Root returns finished
 // in the background while the driver applied a later operation, and that the
-// next step installs it keeping nothing to apply again.
+// next step installs it keeping nothing to apply again. With a deadline it
+// checkpoints a lone stable operation once that waited the deadline.
 func TestBodyDriverCheckpoints(t *testing.T) {
 	// Host a Space whose only writer is the owner.
 	peers := createMockPeers(t, 1)
@@ -394,7 +395,7 @@ func TestBodyDriverCheckpoints(t *testing.T) {
 	so := &testDriverSharedObject{peerID: peers[0].GetPeerID()}
 	le := logrus.New().WithField("test", t.Name())
 	d := NewBodyDriver(le, so, body, nil)
-	d.SetCheckpointer(g.host, keys[0], testStepFactorySet())
+	d.SetCheckpointer(g.host, keys[0], testStepFactorySet(), 0)
 
 	// Below the threshold the driver signs nothing.
 	held := g.ctr.GetValue().Clone()
@@ -453,6 +454,29 @@ func TestBodyDriverCheckpoints(t *testing.T) {
 	}
 	if len(body.applies) != 0 || body.base != strings.Repeat("x", MinCheckpointOperations-1)+"y" {
 		t.Fatalf("applies %v base %q after the checkpoint", body.applies, body.base)
+	}
+
+	// With a deadline, the step that finds the later operation stable signs
+	// nothing yet and arms its wake for the deadline. Once the operation has
+	// waited the deadline, the next step checkpoints it alone.
+	d.checkpointer.deadline = time.Hour
+	if err := d.Step(t.Context(), testHandle(t, g.ctr.GetValue(), keys[0])); err != nil {
+		t.Fatal(err)
+	}
+	if h := mustHeight(t, g.ctr.GetValue()); h != 1 || d.checkpointAt.IsZero() {
+		t.Fatalf("height %d and deadline %v before the deadline", h, d.checkpointAt)
+	}
+	d.stableSince = time.Now().Add(-time.Hour)
+	if err := d.Step(t.Context(), testHandle(t, g.ctr.GetValue(), keys[0])); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := g.ctr.WaitValueWithValidator(t.Context(), func(state *SOState) (bool, error) {
+		return mustHeight(t, state) == 2, nil
+	}, nil); err != nil {
+		t.Fatal(err)
+	}
+	if n := len(g.ctr.GetValue().GetOps()); n != 0 {
+		t.Fatalf("the deadline checkpoint left %d operations", n)
 	}
 }
 
