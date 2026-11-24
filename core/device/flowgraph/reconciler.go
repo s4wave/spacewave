@@ -38,6 +38,8 @@ type Reconciler struct {
 	engine world.Engine
 	// engineID is the ID of engine on the bus.
 	engineID string
+	// spaceID is the shared object ID of the Space holding the Device.
+	spaceID string
 	// policy supplies the allowed node types.
 	policy *device_policy.PolicyStore
 	// forgeWorker receives the declaration of the accepted forge-worker node.
@@ -74,13 +76,14 @@ type Reconciler struct {
 }
 
 // NewReconciler constructs a Reconciler for the Device at deviceKey with the
-// given peer ID. engineID is the ID of engine on the bus. It calls hold while
+// given peer ID. engineID is the ID of engine on the bus, and spaceID is the
+// shared object ID of the Space engine holds. It calls hold while
 // a node runs and calls the release it returns once none do.
 func NewReconciler(
 	le *logrus.Entry,
 	b bus.Bus,
 	engine world.Engine,
-	engineID string,
+	engineID, spaceID string,
 	policy *device_policy.PolicyStore,
 	forgeWorker *ForgeWorkerWatch,
 	deviceKey, peerID string,
@@ -96,6 +99,7 @@ func NewReconciler(
 		b:           b,
 		engine:      engine,
 		engineID:    engineID,
+		spaceID:     spaceID,
 		policy:      policy,
 		forgeWorker: forgeWorker,
 		deviceKey:   deviceKey,
@@ -298,19 +302,22 @@ func (r *Reconciler) compilePlaced(ctx context.Context, reads *world.ReadSet) (m
 	}
 	defer tx.Discard()
 	ws := reads.Track(tx)
-	placed, err := readPlacedNodes(ctx, ws, r.engineID, r.deviceKey, r.peerID)
+	placed, err := readPlacedNodes(ctx, ws, r.engineID, r.spaceID, r.deviceKey, r.peerID)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// Look up the types of the allowed nodes.
+	// Look up the types of the allowed nodes, and give each node the Space's
+	// launch approval from the same policy snapshot.
 	pass := &compilePass{
 		policy:  r.policy.Snapshot(),
 		entries: make(map[string]config.Config),
 		claims:  make(map[string]string),
 	}
+	approval := pass.policy.LaunchApprovalFor(r.spaceID)
 	wanted := make(map[string]struct{})
 	for _, node := range placed {
+		node.LaunchApproval = approval
 		if pass.policy.PermitsNodeType(node.Node.GetTypeId()) {
 			wanted[node.Node.GetTypeId()] = struct{}{}
 		}

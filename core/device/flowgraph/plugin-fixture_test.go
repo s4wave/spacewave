@@ -5,6 +5,7 @@ package device_flowgraph
 import (
 	"context"
 	"errors"
+	"fmt"
 	"slices"
 	"strings"
 	"testing"
@@ -140,7 +141,7 @@ func TestPluginNodeFixture(t *testing.T) {
 
 	// Reconcile the Device against the standing node type lookup.
 	result := make(chan error, 1)
-	r := NewReconciler(le, b, tb.Engine, tb.EngineID, policy, NewForgeWorkerWatch(), testSelfKey, peerID, func() func() { return func() {} })
+	r := NewReconciler(le, b, tb.Engine, tb.EngineID, testSpaceID, policy, NewForgeWorkerWatch(), testSelfKey, peerID, func() func() { return func() {} })
 	go func() { result <- r.Run(ctx) }()
 	defer func() {
 		cancel()
@@ -556,11 +557,19 @@ func (pluginRunNodeType) GetConfigIDs() []string {
 }
 
 // Compile carries the value parameter as the config's bytes. It requires the
-// World engine ID, which a plugin node's controller needs to read the World.
+// World engine ID, which a plugin node's controller needs to read the World,
+// and the Space and its launch approval, which the reconciler carries across
+// the plugin boundary.
 func (pluginRunNodeType) Compile(_ context.Context, node *s4wave_flowgraph.PlacedFlowgraphNode) (map[string]config.Config, error) {
+	// Require the placement context the reconciler sends.
 	if node.EngineID == "" {
 		return nil, errors.New("compile request carries no World engine ID")
 	}
+	if node.SpaceID != testSpaceID || node.LaunchApproval.GetSpaceId() != testSpaceID {
+		return nil, fmt.Errorf("compile request carries Space %q with approval %v", node.SpaceID, node.LaunchApproval)
+	}
+
+	// Decode the run config from the value parameter.
 	conf := space_exec.NewSpaceExecConfig(pluginRunConfigID)
 	if err := conf.UnmarshalVT([]byte(node.Node.GetParameters()["value"])); err != nil {
 		return nil, err

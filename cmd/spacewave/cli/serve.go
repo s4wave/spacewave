@@ -54,7 +54,13 @@ func serveSocketPath(c *cli.Context, statePath string) string {
 // newServeCommand builds the serve command that starts the daemon
 // with a resource service socket listener. Its flags set frees and the format
 // upgrade decision, which the bus's storage reads as each Volume opens.
-func newServeCommand(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_policy.Broker, frees *CollectorFrees, upgrade *FormatUpgrade) *cli.Command {
+func newServeCommand(
+	getBus func() cli_entrypoint.CliBus,
+	yieldBroker *yield_policy.Broker,
+	frees *CollectorFrees,
+	upgrade *FormatUpgrade,
+	devicePolicy *device_policy.PolicyStore,
+) *cli.Command {
 	// Keep serve flags scoped to this command's startup and idle policy.
 	var startupPipeID string
 	var launcher string
@@ -130,6 +136,7 @@ func newServeCommand(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_pol
 					udpPeers.Value(),
 					deviceGrant,
 					frees,
+					devicePolicy,
 				)
 			})
 		},
@@ -150,6 +157,7 @@ func runServeCommand(
 	udpPeers []string,
 	deviceGrant string,
 	frees *CollectorFrees,
+	devicePolicy *device_policy.PolicyStore,
 ) (retErr error) {
 	// A service manager's SIGTERM, or an interrupt, stops serve from outside:
 	// clients drain and the bus releases the state lease, at any point from
@@ -229,6 +237,11 @@ func runServeCommand(
 			}
 		}
 	}()
+
+	// Load the Device policy before the bus starts a plugin that asks it.
+	if err := devicePolicy.Load(resolved); err != nil {
+		return err
+	}
 
 	// Register the cold configuration before the bus starts the local provider.
 	releaseColdPacks, err := configureServeColdPacks(c)
@@ -351,11 +364,6 @@ func runServeCommand(
 	}
 
 	// Tie background projections and remote services to the serving lifetime.
-	devicePolicy, err := device_policy.NewPolicyStore(resolved)
-	if err != nil {
-		return err
-	}
-
 	// Find the native plugin host root when no native core plugin host owns it.
 	if nativeHostRoot == nil {
 		var hostRef directive.Reference

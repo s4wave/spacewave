@@ -113,7 +113,7 @@ func TestRequirementReplicas(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		r := NewReconciler(le, b, raceEngine, tb.EngineID, policy, NewForgeWorkerWatch(), devices[i], peers[i], func() func() { return func() {} })
+		r := NewReconciler(le, b, raceEngine, tb.EngineID, testSpaceID, policy, NewForgeWorkerWatch(), devices[i], peers[i], func() func() { return func() {} })
 		r.now, r.atFunc = clock.Now, clock.AtFunc
 		reconcilers[i] = r
 

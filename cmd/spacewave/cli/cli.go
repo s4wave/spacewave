@@ -9,6 +9,7 @@ import (
 
 	"github.com/aperturerobotics/cli"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
+	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
 	hydra_cli "github.com/s4wave/spacewave/db/cli"
 	hydra_cliutil "github.com/s4wave/spacewave/db/cli/util"
@@ -23,8 +24,16 @@ import (
 // collector frees switch serve's flags set, shared with the host storage; nil
 // keeps frees off. Upgrade is the format upgrade decision serve's and the
 // debug commands' flags set, shared with the host storage; nil refuses
-// upgrades unless a flag opts in.
-func NewCliCommands(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_policy.Broker, frees *CollectorFrees, upgrade *FormatUpgrade) []*cli.Command {
+// upgrades unless a flag opts in. DevicePolicy is the Device policy store
+// serve loads before it starts the bus, shared with the root resource; nil
+// gives serve a store of its own.
+func NewCliCommands(
+	getBus func() cli_entrypoint.CliBus,
+	yieldBroker *yield_policy.Broker,
+	frees *CollectorFrees,
+	upgrade *FormatUpgrade,
+	devicePolicy *device_policy.PolicyStore,
+) []*cli.Command {
 	// Default to a private yield broker when none is provided.
 	if yieldBroker == nil {
 		yieldBroker = yield_policy.NewBroker()
@@ -37,6 +46,9 @@ func NewCliCommands(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_poli
 	if upgrade == nil {
 		upgrade = NewFormatUpgrade(nil)
 	}
+	if devicePolicy == nil {
+		devicePolicy = &device_policy.PolicyStore{}
+	}
 
 	// Assemble the command tree in display order.
 	commands := []*cli.Command{
@@ -44,7 +56,7 @@ func NewCliCommands(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_poli
 		newLoginCommand(getBus),
 		newLogoutCommand(getBus),
 		newWhoamiCommand(getBus),
-		newServeCommand(getBus, yieldBroker, frees, upgrade),
+		newServeCommand(getBus, yieldBroker, frees, upgrade, devicePolicy),
 		newStopCommand(getBus),
 		newStatusCommand(getBus),
 		newWebCommand(getBus),

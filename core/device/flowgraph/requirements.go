@@ -142,7 +142,7 @@ func (r *Reconciler) claimNode(ctx context.Context, reads *world.ReadSet, graphK
 		if !r.claimable(node, r.policy.Snapshot(), device.EffectiveLabels(r.deviceKey), copies) {
 			return nil
 		}
-		placed, err := readPlacedNodes(ctx, ws, r.engineID, r.deviceKey, r.peerID)
+		placed, err := readPlacedNodes(ctx, ws, r.engineID, r.spaceID, r.deviceKey, r.peerID)
 		if err != nil || !hostsWorker(placed, declaration.GetWorkerObjectKey()) {
 			return err
 		}
@@ -251,7 +251,7 @@ func (r *Reconciler) releaseRemovedPlacements(ctx context.Context, reads *world.
 	}
 
 	// Share one placement read across all of this Device's live grants.
-	placed, err := readPlacedNodes(ctx, ws, r.engineID, r.deviceKey, r.peerID)
+	placed, err := readPlacedNodes(ctx, ws, r.engineID, r.spaceID, r.deviceKey, r.peerID)
 	if err != nil {
 		return err
 	}
@@ -351,7 +351,7 @@ func (r *Reconciler) placementLive(ctx context.Context, ws world.WorldState, res
 
 	// A Device without its Worker node returns claimed nodes to unplaced.
 	if placed == nil {
-		placed, err = readPlacedNodes(ctx, ws, r.engineID, r.deviceKey, r.peerID)
+		placed, err = readPlacedNodes(ctx, ws, r.engineID, r.spaceID, r.deviceKey, r.peerID)
 		if err != nil {
 			return false, err
 		}

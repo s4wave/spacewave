@@ -4,9 +4,11 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	provider "github.com/s4wave/spacewave/core/provider"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
+	space "github.com/s4wave/spacewave/core/space"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/s4wave/spacewave/net/crypto"
@@ -16,12 +18,30 @@ import (
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 )
 
+// checkSecretCaller refuses a plugin outside the host set unless this Space
+// loaded it. The core root's plugin caller filter admits a Secret call from a
+// plugin the Device grants in the Space its binding names, but cannot see
+// which Space a Resource serves; this check binds the grant to this one.
+func (r *SpaceResource) checkSecretCaller(ctx context.Context) error {
+	caller := bldr_plugin.PluginCallerFromContext(ctx)
+	if caller == nil || caller.GetHostSet() {
+		return nil
+	}
+	if caller.GetBindingKey() != space.SpaceEngineId(r.space.GetSharedObjectRef()) {
+		return errors.Errorf("plugin %q is not bound to this Space", caller.GetPluginId())
+	}
+	return nil
+}
+
 // CreateSecret creates a Secret object and grants an optional reader key.
 func (r *SpaceResource) CreateSecret(
 	ctx context.Context,
 	req *s4wave_space.CreateSecretRequest,
 ) (*s4wave_space.CreateSecretResponse, error) {
-	// Validate the Secret identity, kind, and mounted provider reference.
+	// Validate the caller, Secret identity, kind, and mounted provider reference.
+	if err := r.checkSecretCaller(ctx); err != nil {
+		return nil, err
+	}
 	if req.GetObjectKey() == "" {
 		return nil, errors.New("object_key cannot be empty")
 	}
@@ -114,7 +134,10 @@ func (r *SpaceResource) ReadSecretPayload(
 	ctx context.Context,
 	req *s4wave_space.ReadSecretPayloadRequest,
 ) (*s4wave_space.ReadSecretPayloadResponse, error) {
-	// Require the Secret identity and mounted Session authority.
+	// Require the caller, the Secret identity and mounted Session authority.
+	if err := r.checkSecretCaller(ctx); err != nil {
+		return nil, err
+	}
 	if req.GetObjectKey() == "" {
 		return nil, errors.New("object_key cannot be empty")
 	}
@@ -159,7 +182,10 @@ func (r *SpaceResource) ReadSecretPayload(
 
 // WriteSecretPayload replaces a Secret payload under the mounted session writer grant.
 func (r *SpaceResource) WriteSecretPayload(ctx context.Context, req *s4wave_space.WriteSecretPayloadRequest) (*s4wave_space.WriteSecretPayloadResponse, error) {
-	// Read the existing Secret identity from the parent World.
+	// Check the caller, then read the existing Secret identity from the parent World.
+	if err := r.checkSecretCaller(ctx); err != nil {
+		return nil, err
+	}
 	if req.GetObjectKey() == "" {
 		return nil, errors.New("object_key cannot be empty")
 	}
