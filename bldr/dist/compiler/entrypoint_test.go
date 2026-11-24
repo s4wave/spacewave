@@ -35,6 +35,7 @@ func TestFormatDistEntrypointNativeCLI(t *testing.T) {
 		"var cliCommands = []cli_entrypoint.BuildCommandsFunc{app_cli.NewCliCommands}",
 		"composition := project_compose.Compose()",
 		"composition.Commands = append(composition.Commands, cliCommands...)",
+		"composition.Distribution = true",
 		"dist_entrypoint.Main(DistMeta, LogLevel, AssetsFS, composition)",
 		"var LogLevel = logrus.DebugLevel",
 	} {
@@ -56,7 +57,7 @@ func TestFormatDistEntrypointWeb(t *testing.T) {
 		"example.com/app/compose",
 	)
 
-	for _, leak := range []string{"cli_entrypoint", "cliCommands", "native_runner"} {
+	for _, leak := range []string{"cli_entrypoint", "cliCommands", "native_runner", "composition.Distribution"} {
 		if strings.Contains(src, leak) {
 			t.Fatalf("native %s leaked into browser entrypoint:\n%s", leak, src)
 		}
