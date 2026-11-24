@@ -2,12 +2,15 @@ package provider_local_test
 
 import (
 	"context"
+	"strconv"
 	"testing"
 	"time"
 
+	"github.com/s4wave/spacewave/core/provider"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
 	space_world "github.com/s4wave/spacewave/core/space/world"
+	world_block "github.com/s4wave/spacewave/db/world/block"
 )
 
 // TestMainDeviceOffline has the owner's device order a local Space as its main
@@ -135,6 +138,139 @@ func TestFollowerReplaysAboveCheckpoint(t *testing.T) {
 	member.start(ctx)
 	member.waitRoot(ctx, root)
 	member.requireObjects(ctx, keys...)
+}
+
+// TestCheckpointCadence writes edits on a Space its owner orders, checkpointing
+// at the count only and with the deadline. It checks that a World is stored at
+// most once per MinCheckpointOperations edits plus the deadline's last one,
+// that a lone edit is checkpointed at the deadline, and logs the page bytes
+// per edit by tree and the restart time with the edits above the checkpoint.
+func TestCheckpointCadence(t *testing.T) {
+	t.Run("count-only", func(t *testing.T) { checkpointCadence(t, true) })
+	t.Run("deadline", func(t *testing.T) { checkpointCadence(t, false) })
+}
+
+// checkpointCadence runs TestCheckpointCadence in one checkpoint mode.
+func checkpointCadence(t *testing.T, countOnly bool) {
+	ctx, cancel := context.WithTimeout(t.Context(), 120*time.Second)
+	defer cancel()
+
+	// Start a daemon whose provider checkpoints in the mode.
+	tb, _, account, _, release := setupProviderAndSession(ctx, t)
+	t.Cleanup(release)
+	prov, provRef, err := provider.ExLookupProvider(ctx, tb.Bus, "local", false, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	prov.(*provider_local.Provider).SetCheckpointCountOnly(countOnly)
+	provRef.Release()
+	tb.StaticResolver.AddFactory(space_world.NewEngineFactory(tb.Bus, space_world.OpTypes{}))
+
+	// The owner creates the Space and orders its operations.
+	ref, err := account.CreateSharedObject(ctx, "cadence-space", &sobject.SharedObjectMeta{BodyType: "space"}, "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	mounted, releaseObject, err := account.MountSharedObject(ctx, ref, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(releaseObject)
+	object := mounted.(*provider_local.SharedObject)
+	owner := &offlineMember{t: t, name: "owner", tb: tb, account: account, object: object, ref: ref}
+	owner.start(ctx)
+	t.Cleanup(owner.stop)
+	if _, err := object.SetSequencer(ctx, object.GetPeerID().String()); err != nil {
+		t.Fatal(err)
+	}
+	owner.waitSequencer(ctx, object.GetPeerID().String())
+
+	// Write the edits, and wait for the order to settle: every edit above the
+	// checkpoint stable, none at the deadline, fewer than the count at the
+	// count.
+	const edits = 4 * sobject.MinCheckpointOperations
+	above := 1
+	if countOnly {
+		above = sobject.MinCheckpointOperations
+	}
+	before := world_block.StoredPages.Snapshot()
+	for i := range edits {
+		owner.create(ctx, "edit-"+strconv.Itoa(i))
+	}
+	owner.waitPlaced(ctx)
+	checkpoints, left := owner.waitSettled(ctx, above)
+
+	// Count the stored Worlds and the page bytes by tree.
+	byTree := make(map[world_block.PageTree]int64)
+	var worlds, total int64
+	for key, n := range world_block.StoredPages.Snapshot() {
+		n.Pages -= before[key].Pages
+		n.Bytes -= before[key].Bytes
+		byTree[key.Tree] += n.Bytes
+		total += n.Bytes
+		if key.Tree == world_block.PageTreeRoot {
+			worlds += int64(n.Pages)
+		}
+	}
+	t.Logf("%d edits: %d checkpoints, %d edits above, %d Worlds stored, %d page bytes per edit (object %d, graph %d, changelog %d, root %d)",
+		edits, checkpoints, left, worlds, total/edits,
+		byTree[world_block.PageTreeObject]/edits, byTree[world_block.PageTreeGraph]/edits,
+		byTree[world_block.PageTreeChangeLog]/edits, byTree[world_block.PageTreeRoot]/edits)
+	limit := uint64(edits / sobject.MinCheckpointOperations)
+	if !countOnly {
+		limit++
+	}
+	if checkpoints > limit {
+		t.Fatalf("%d checkpoints for %d edits, want at most %d", checkpoints, edits, limit)
+	}
+
+	// A lone edit is checkpointed at the deadline.
+	if !countOnly {
+		start := time.Now()
+		owner.create(ctx, "lone")
+		owner.waitPlaced(ctx)
+		owner.waitSettled(ctx, 1)
+		t.Logf("lone edit checkpointed after %v", time.Since(start).Round(time.Millisecond))
+	}
+
+	// Restart with the edits above the checkpoint, and time the World's
+	// return.
+	root := owner.root(ctx)
+	owner.stop()
+	start := time.Now()
+	owner.start(ctx)
+	owner.waitRoot(ctx, root)
+	t.Logf("restart with %d edits above the checkpoint showed the World after %v", left, time.Since(start).Round(time.Millisecond))
+}
+
+// waitSettled waits until every operation above the state's checkpoint is
+// stable and fewer than above of them remain, so no checkpoint is owed. It
+// returns the checkpoint's height, which counts the checkpoints, and the
+// operations above it.
+func (m *offlineMember) waitSettled(ctx context.Context, above int) (uint64, int) {
+	// Watch the readable state.
+	t := m.t
+	t.Helper()
+	states, release, err := m.object.AccessSharedObjectState(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+	var ev *sobject.OrderEvent
+	if _, err := states.WaitValueWithValidator(ctx, func(snapshot sobject.SharedObjectStateSnapshot) (bool, error) {
+		if snapshot == nil {
+			return false, nil
+		}
+		var err error
+		ev, err = sobject.ReadOrder(ctx, snapshot)
+		if err != nil {
+			return false, err
+		}
+		return ev.Stable == len(ev.Order) && ev.Stable < above, nil
+	}, nil); err != nil {
+		t.Fatalf("%s: order did not settle below %d: %v", m.name, above, err)
+	}
+	return ev.Checkpoint.GetHeight(), ev.Stable
 }
 
 // checkpointHeight returns the height of the checkpoint the state holds.
