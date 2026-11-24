@@ -26,12 +26,13 @@ import (
 )
 
 // addBindingTestForgeWorkerHost publishes the native host Root with a bound
-// Forge Worker source on the daemon bus, as the native daemon does.
+// Forge Worker source on the daemon bus, as the native daemon does. The source
+// declares workerKey in the testbed's World.
 func addBindingTestForgeWorkerHost(t *testing.T, ctx context.Context, tb *testbed.Testbed, workerKey string) {
 	// Bind one declaration to a fresh host Root.
 	t.Helper()
 	watch := device_flowgraph.NewForgeWorkerWatch()
-	watch.Set("devices/self", &s4wave_device.ForgeWorkerDeclaration{
+	watch.Set(tb.EngineID, "devices/self", &s4wave_device.ForgeWorkerDeclaration{
 		WorkerObjectKey: workerKey, MilliCpu: 1000, MemoryBytes: 1 << 30, Backends: []string{"docker"},
 	})
 	hostRoot := plugin_host_root.NewRoot()

@@ -121,7 +121,7 @@ func (r *Reconciler) Run(ctx context.Context) error {
 	defer r.types.Release()
 	defer r.applier.Release()
 	defer r.setHeld(false)
-	defer r.forgeWorker.Set(r.deviceKey, nil)
+	defer r.forgeWorker.Set(r.engineID, r.deviceKey, nil)
 
 	// Follow the Device Session's transport, which hosts the node controllers.
 	sessionPeerID, err := peer.IDB58Decode(r.peerID)
@@ -282,7 +282,7 @@ func (r *Reconciler) reconcile(ctx context.Context, reads *world.ReadSet) error 
 		return err
 	}
 	r.setHeld(len(entries) != 0)
-	r.forgeWorker.Set(r.deviceKey, acceptedForgeWorker(reports))
+	r.forgeWorker.Set(r.engineID, r.deviceKey, acceptedForgeWorker(reports))
 
 	// Publish the observed node states before claiming eligible standing work.
 	if err := r.project(ctx, reads, reports); err != nil {
@@ -524,10 +524,11 @@ func (r *Reconciler) compile(
 		report.shown = shown
 	}
 
-	// Name each entry for its Flowgraph, node and entry, so nodes of different
-	// Flowgraphs never collide.
+	// Name each entry for its Space, Flowgraph, node and entry, so nodes of
+	// different Flowgraphs, and the Reconcilers of different Spaces sharing
+	// this bus, never collide.
 	for name, conf := range compiled {
-		key := node.FlowgraphKey + "/" + node.NodeID + "/" + name
+		key := r.spaceID + "/" + node.FlowgraphKey + "/" + node.NodeID + "/" + name
 		pass.entries[key] = conf
 		report.keys = append(report.keys, key)
 	}

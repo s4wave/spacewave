@@ -79,7 +79,7 @@ func forgeWorkerFactory(
 		engineID:  engineID,
 		admission: NewWorkerAdmission(engine, objectKey, sessionPeerID, rand.Text(), forge_lib_docker.NewStopper(forge_lib_docker.NewExecDockerRunner())),
 		openDeclarationWatch: func(ctx context.Context, b bus.Bus) (workerDeclarationStream, error) {
-			return openWorkerDeclarationWatch(ctx, b)
+			return openWorkerDeclarationWatch(ctx, b, engineID)
 		},
 	}
 	mux := resource_server.NewResourceMux(func(mux srpc.Mux) error {

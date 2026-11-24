@@ -227,10 +227,10 @@ func (r *PluginHostRoot) GetPluginInfo(
 	}, nil
 }
 
-// WatchForgeWorker forwards the current Forge Worker declaration and every
-// subsequent revision.
+// WatchForgeWorker forwards the current Forge Worker declaration of the
+// requested World and every subsequent revision.
 func (r *PluginHostRoot) WatchForgeWorker(
-	_ *sdk_plugin_host.WatchForgeWorkerRequest,
+	req *sdk_plugin_host.WatchForgeWorkerRequest,
 	stream sdk_plugin_host.SRPCPluginHostResourceService_WatchForgeWorkerStream,
 ) error {
 	// Only the core plugin may watch the Forge Worker declaration.
@@ -247,7 +247,7 @@ func (r *PluginHostRoot) WatchForgeWorker(
 	// Stream every revision to the caller.
 	var last uint64
 	for {
-		declaration, deviceKey, revision, err := source.WaitForgeWorker(stream.Context(), last)
+		declaration, deviceKey, revision, err := source.WaitForgeWorker(stream.Context(), req.GetEngineId(), last)
 		if err != nil {
 			return err
 		}

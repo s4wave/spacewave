@@ -44,6 +44,14 @@ func (p *DevicePolicy) PermitsSecretPlugin(spaceID, pluginID string) bool {
 	return false
 }
 
+// ServesSpace reports whether the policy lists spaceID among the Spaces whose
+// Flowgraph nodes this Device runs.
+func (p *DevicePolicy) ServesSpace(spaceID string) bool {
+	return slices.ContainsFunc(p.GetServedSpace(), func(served *ServedSpace) bool {
+		return served.GetSpaceId() == spaceID
+	})
+}
+
 // FilePath returns the Device policy file path under stateRoot.
 func FilePath(stateRoot string) string {
 	return filepath.Join(stateRoot, StateDir, StateFile)
@@ -119,6 +127,21 @@ func Validate(policy *DevicePolicy) error {
 			return errors.New("device policy launch approval space id is required")
 		}
 		return errors.Errorf("duplicate device policy launch approval for space %q", value)
+	}
+
+	// Reject served Spaces without a Space or session, or repeated for one Space.
+	spaceIDs = spaceIDs[:0]
+	for _, served := range policy.GetServedSpace() {
+		if served.GetSessionIndex() == 0 {
+			return errors.Errorf("device policy served space %q has no session index", served.GetSpaceId())
+		}
+		spaceIDs = append(spaceIDs, served.GetSpaceId())
+	}
+	if value, ok := firstInvalid(spaceIDs); ok {
+		if value == "" {
+			return errors.New("device policy served space id is required")
+		}
+		return errors.Errorf("duplicate device policy served space %q", value)
 	}
 
 	// Reject an approval naming an empty or repeated child model or Secret plugin.

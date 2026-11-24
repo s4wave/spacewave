@@ -20,6 +20,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/s4wave/spacewave/core/camera"
 	"github.com/s4wave/spacewave/core/checkoutroot"
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
@@ -505,7 +506,7 @@ func TestReconciler(t *testing.T) {
 	if detail := capabilities[capabilityID("fw-foreign")].GetDetail(); !strings.Contains(detail, "do not include Device peer "+strconv.Quote(selfPeer)) {
 		t.Fatalf("foreign Forge Worker detail %q does not state the peer rule", detail)
 	}
-	if data, _, _, err := forgeWorker.WaitForgeWorker(ctx, 0); err != nil || len(data) != 0 {
+	if data, _, _, err := forgeWorker.WaitForgeWorker(ctx, tb.EngineID, 0); err != nil || len(data) != 0 {
 		t.Fatalf("rejected Forge Worker reached the plugin: declaration %x, error %v", data, err)
 	}
 
@@ -535,7 +536,7 @@ func TestReconciler(t *testing.T) {
 	if kind := capabilities[capabilityID("fw-a")].GetKind(); kind != s4wave_device.DeviceCapabilityKindForgeWorker {
 		t.Fatalf("Forge Worker capability kind = %q, want %q", kind, s4wave_device.DeviceCapabilityKindForgeWorker)
 	}
-	expectDeclaration(t, ctx, forgeWorker, forgeWorkerDeclaration("worker/a"))
+	expectDeclaration(t, ctx, forgeWorker, tb.EngineID, forgeWorkerDeclaration("worker/a"))
 
 	// Remove the first node and require the second to take over.
 	commit(t, ctx, engine, func(tx world.Tx) error {
@@ -544,7 +545,7 @@ func TestReconciler(t *testing.T) {
 		})
 		return err
 	})
-	expectDeclaration(t, ctx, forgeWorker, forgeWorkerDeclaration("worker/b"))
+	expectDeclaration(t, ctx, forgeWorker, tb.EngineID, forgeWorkerDeclaration("worker/b"))
 
 	// Remove the second node and require the plugin to lose the declaration.
 	commit(t, ctx, engine, func(tx world.Tx) error {
@@ -553,7 +554,7 @@ func TestReconciler(t *testing.T) {
 		})
 		return err
 	})
-	expectDeclaration(t, ctx, forgeWorker, nil)
+	expectDeclaration(t, ctx, forgeWorker, tb.EngineID, nil)
 
 	// Place a Forge Worker again, stop the Reconciler, and require it to
 	// withdraw the declaration and release the daemon.
@@ -564,17 +565,225 @@ func TestReconciler(t *testing.T) {
 		})
 		return err
 	})
-	expectDeclaration(t, ctx, forgeWorker, forgeWorkerDeclaration("worker/a"))
+	expectDeclaration(t, ctx, forgeWorker, tb.EngineID, forgeWorkerDeclaration("worker/a"))
 	stop()
 	if err := <-runErr; err != nil {
 		t.Fatal(err)
 	}
-	if data, _, _, err := forgeWorker.WaitForgeWorker(ctx, 0); err != nil || len(data) != 0 {
+	if data, _, _, err := forgeWorker.WaitForgeWorker(ctx, tb.EngineID, 0); err != nil || len(data) != 0 {
 		t.Fatalf("stopped Reconciler left declaration %x, error %v", data, err)
 	}
 	if n := holds.Load(); n != 0 {
 		t.Fatalf("reconciler holds the daemon %d times after it stops, want 0", n)
 	}
+}
+
+// TestReconcilersPerSpace runs one Device's Reconcilers in 2 and in 20 Spaces
+// on one bus, each Space placing the same Flowgraph node on the Device. Every
+// Space must run its node, and a placement change in one Space must open
+// transactions in that Space's World alone, as many at both sizes.
+func TestReconcilersPerSpace(t *testing.T) {
+	small := reconcileChangeInOneSpace(t, 2)
+	large := reconcileChangeInOneSpace(t, 20)
+	t.Logf("a change in one Space opened %d transactions there with 2 Spaces, %d with 20", small, large)
+	if large > 2*small {
+		t.Fatalf("a change in one of 20 Spaces opened %d transactions there, %d in one of 2", large, small)
+	}
+}
+
+// countingEngine counts the transactions a Reconciler opens on a World and
+// shows when it watches for the next revision.
+type countingEngine struct {
+	// Engine is the counted World.
+	world.Engine
+	// txs counts the transactions opened since the last reset.
+	txs atomic.Int32
+
+	// bcast guards watching and wakes waitIdle after each change.
+	bcast broadcast.Broadcast
+	// watching is one more than the seqno a running WatchChanges watches
+	// after, or zero while none runs.
+	watching uint64
+}
+
+// NewTransaction counts and opens a transaction.
+func (e *countingEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, error) {
+	e.txs.Add(1)
+	return e.Engine.NewTransaction(ctx, write)
+}
+
+// WatchChanges watches the World's change feed, showing the watch to waitIdle.
+func (e *countingEngine) WatchChanges(ctx context.Context, afterSeqno uint64, touches world.ChangeFilter, cb func(uint64, *world.ChangeSet) error) error {
+	e.setWatching(afterSeqno + 1)
+	defer e.setWatching(0)
+	return e.Engine.WatchChanges(ctx, afterSeqno, touches, cb)
+}
+
+// setWatching records the watch and wakes waitIdle.
+func (e *countingEngine) setWatching(value uint64) {
+	e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		e.watching = value
+		broadcast()
+	})
+}
+
+// waitIdle waits until the Reconciler watches for a revision after the
+// current one, which it does only after a pass that wrote nothing.
+func (e *countingEngine) waitIdle(t *testing.T, ctx context.Context) {
+	t.Helper()
+	for {
+		var watching uint64
+		var waitCh <-chan struct{}
+		e.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			watching, waitCh = e.watching, getWaitCh()
+		})
+		seqno, err := e.GetSeqno(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if watching > seqno {
+			return
+		}
+		select {
+		case <-ctx.Done():
+			t.Fatalf("reconciler never went idle: %v", ctx.Err())
+		case <-waitCh:
+		}
+	}
+}
+
+// reconcileChangeInOneSpace runs one Device's Reconcilers in n Spaces, waits
+// for each to run its TCP Port, removes the placement in the first Space and
+// returns the transactions the first Space's World opened until its Device
+// dropped the node. It fails the test if any other Space's World opened one.
+func reconcileChangeInOneSpace(t *testing.T, n int) int32 {
+	// Bound the run, since a missed change would wait forever.
+	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
+	defer cancel()
+	le := logrus.NewEntry(logrus.New())
+
+	// Allow the TCP Port.
+	stateRoot := t.TempDir()
+	if err := device_policy.WriteFile(stateRoot, &device_policy.DevicePolicy{NodeTypeId: []string{s4wave_flowgraph.TCPPortNodeTypeID}}); err != nil {
+		t.Fatal(err)
+	}
+	policy, err := device_policy.NewPolicyStore(stateRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Seed n Worlds, each holding this Device, another Device, and a
+	// Flowgraph that connects the same TCP Port node on this Device to a Local
+	// Port on the other, so this Device runs the forwarding end.
+	selfKey, selfPeer := newSessionPeer(t)
+	otherPeer := newPeerID(t)
+	engines := make([]*countingEngine, n)
+	var b bus.Bus
+	for i := range engines {
+		tb := world_testbed.MustDefault(t, ctx)
+		if b == nil {
+			b = tb.Bus
+		}
+		engines[i] = &countingEngine{Engine: tb.Engine}
+		commit(t, ctx, tb.Engine, func(tx world.Tx) error {
+			for key, peerID := range map[string]string{testSelfKey: selfPeer, testOtherKey: otherPeer} {
+				obj, _, err := world.CreateWorldObject(ctx, tx, key, func(cursor *block.Cursor) error {
+					cursor.SetBlock(&s4wave_device.Device{PeerId: peerID, Label: key}, true)
+					return nil
+				})
+				world.ReleaseObjectState(obj)
+				if err != nil {
+					return err
+				}
+				if err := world_types.SetObjectType(ctx, tx, key, s4wave_device.DeviceTypeID); err != nil {
+					return err
+				}
+			}
+			if _, _, err := tx.ApplyWorldOp(ctx, &s4wave_flowgraph.CreateFlowgraphOp{ObjectKey: testFlowgraphKey, Name: "main"}, ""); err != nil {
+				return err
+			}
+			_, err := s4wave_flowgraph.UpdateFlowgraph(ctx, tx, testFlowgraphKey, &s4wave_flowgraph.UpdateFlowgraphRequest{
+				SetNodes: map[string]*s4wave_flowgraph.FlowgraphNode{
+					"tcp-self":    portNode(s4wave_flowgraph.TCPPortNodeTypeID, "127.0.0.1:8080", s4wave_flowgraph.FlowgraphPortDirection_FLOWGRAPH_PORT_DIRECTION_OUTPUT),
+					"local-other": portNode(s4wave_flowgraph.LocalPortNodeTypeID, "127.0.0.1:0", s4wave_flowgraph.FlowgraphPortDirection_FLOWGRAPH_PORT_DIRECTION_INPUT),
+				},
+				SetConnections: map[string]*s4wave_flowgraph.FlowgraphConnection{
+					"out": {OutputNode: "tcp-self", OutputPort: "stream", InputNode: "local-other", InputPort: "stream"},
+				},
+				SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacements{
+					"tcp-self":    {Copies: []*s4wave_flowgraph.FlowgraphPlacement{devicePlacement(testSelfKey)}},
+					"local-other": {Copies: []*s4wave_flowgraph.FlowgraphPlacement{devicePlacement(testOtherKey)}},
+				},
+			})
+			return err
+		})
+	}
+
+	// Serve the node types and this Device's Session on the shared bus.
+	releaseTypes, err := b.AddController(ctx, flowgraph_nodetype.NewController(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseTypes()
+	st, err := transport.NewSessionTransport(le, b, selfKey, "", "", transport.WithInprocNetwork(inproc.NewNetwork()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sessionCtx, stopSession := context.WithCancel(ctx)
+	defer stopSession()
+	go func() { _ = st.Execute(sessionCtx) }()
+	if err := st.AwaitReady(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	// Run one Reconciler per Space, sharing the bus, policy and declaration.
+	forgeWorker := NewForgeWorkerWatch()
+	runCtx, stop := context.WithCancel(ctx)
+	var running sync.WaitGroup
+	defer func() {
+		stop()
+		running.Wait()
+	}()
+	for i, engine := range engines {
+		spaceID := "space-" + strconv.Itoa(i)
+		r := NewReconciler(le, b, engine, "engine/"+spaceID, spaceID, policy, forgeWorker, testSelfKey, selfPeer, func() func() { return func() {} })
+		running.Go(func() {
+			if err := r.Run(runCtx); err != nil {
+				t.Errorf("reconciler of %s: %v", spaceID, err)
+			}
+		})
+	}
+
+	// Require every Space to run its node.
+	for _, engine := range engines {
+		waitCapabilities(t, ctx, engine.Engine, func(capabilities map[string]*s4wave_device.DeviceCapability) bool {
+			return capabilityState(capabilities, "tcp-self") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE
+		})
+	}
+
+	// Remove the placement in the first Space once every Reconciler is idle,
+	// and count the transactions each World opens until its Device drops the
+	// node and every Reconciler is idle again.
+	for _, engine := range engines {
+		engine.waitIdle(t, ctx)
+		engine.txs.Store(0)
+	}
+	commit(t, ctx, engines[0].Engine, func(tx world.Tx) error {
+		_, err := s4wave_flowgraph.UpdateFlowgraph(ctx, tx, testFlowgraphKey, &s4wave_flowgraph.UpdateFlowgraphRequest{RemovePlacementNodeIds: []string{"tcp-self"}})
+		return err
+	})
+	waitCapabilities(t, ctx, engines[0].Engine, func(capabilities map[string]*s4wave_device.DeviceCapability) bool {
+		return len(capabilities) == 0
+	})
+	for _, engine := range engines {
+		engine.waitIdle(t, ctx)
+	}
+	for i, engine := range engines[1:] {
+		if txs := engine.txs.Load(); txs != 0 {
+			t.Fatalf("a change in Space 0 of %d opened %d transactions in Space %d", n, txs, i+1)
+		}
+	}
+	return engines[0].txs.Load()
 }
 
 // checkCameraSubscription checks account admission and plays two live JPEGs
@@ -832,13 +1041,13 @@ func createWorkers(t *testing.T, ctx context.Context, engine world.Engine, clust
 	})
 }
 
-// expectDeclaration waits until the watch declares want, or no Worker when want
-// is nil, and fails the test if ctx ends first.
-func expectDeclaration(t *testing.T, ctx context.Context, watch *ForgeWorkerWatch, want *s4wave_device.ForgeWorkerDeclaration) {
+// expectDeclaration waits until the watch declares want in World engineID, or
+// no Worker when want is nil, and fails the test if ctx ends first.
+func expectDeclaration(t *testing.T, ctx context.Context, watch *ForgeWorkerWatch, engineID string, want *s4wave_device.ForgeWorkerDeclaration) {
 	t.Helper()
 	var last uint64
 	for {
-		data, _, revision, err := watch.WaitForgeWorker(ctx, last)
+		data, _, revision, err := watch.WaitForgeWorker(ctx, engineID, last)
 		if err != nil {
 			t.Fatalf("watch never declared %v: %v", want, err)
 		}
