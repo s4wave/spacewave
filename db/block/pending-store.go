@@ -348,6 +348,24 @@ func (s *PendingStore) lookup(ref *BlockRef) *PutBatchEntry {
 	return s.kept[pendingKey(ref)]
 }
 
+// Unflushed returns the data length of ref's kept block, and true when it is
+// kept and no open Flush stored it, so the next Flush or SetRoots that reaches
+// it stores it. A stage that stored it at put time does not keep it.
+func (s *PendingStore) Unflushed(ref *BlockRef) (int, bool) {
+	// Look the ref up among the kept blocks no open Flush stored.
+	if ref.GetEmpty() {
+		return 0, false
+	}
+	key := pendingKey(ref)
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	e := s.kept[key]
+	if e == nil || s.flushed[key] != 0 {
+		return 0, false
+	}
+	return len(e.Data), true
+}
+
 // GetBlock serves a kept block, or reads the inner store. A kept block's
 // decoded form may enter the shared pool: Sweep reports each block it forgets.
 func (s *PendingStore) GetBlock(ctx context.Context, ref *BlockRef) ([]byte, bool, error) {

@@ -97,6 +97,8 @@ type Adapter struct {
 	// pages keeps the World pages in front of so's block store. The serving
 	// engine and the replay engine read and write through it.
 	pages *block.PendingStore
+	// storedPages reads the kept World pages it counts as they are stored.
+	storedPages storedPages
 	// queue queues admitted operations, in admission order.
 	queue *opQueue
 	// backfill keeps a local copy of the World while this device chose it.
@@ -785,6 +787,7 @@ func (a *Adapter) Root(ctx context.Context, n int) ([]byte, func(context.Context
 		// Hold it beside every World returned since the last install,
 		// unless an install already made it the replay base, which holds
 		// it.
+		a.countStoredPages(ctx, root)
 		release, err := a.lockRoots(ctx, root)
 		if err != nil {
 			return err
@@ -1117,7 +1120,9 @@ func (a *Adapter) runTrimNewest(ctx context.Context, plan *trimPlan) {
 func (a *Adapter) runTrim(ctx context.Context, p *trimPlan) error {
 	// Take the root lock, keeping what the plan does not release.
 	keep := func(root *block.BlockRef) bool { return !p.releases(root) }
-	release, err := a.lockRoots(ctx, slices.Concat(p.memory, p.candidates, []*block.BlockRef{p.base})...)
+	reach := slices.Concat(p.memory, p.candidates, []*block.BlockRef{p.base})
+	a.countStoredPages(ctx, reach...)
+	release, err := a.lockRoots(ctx, reach...)
 	if err != nil {
 		return err
 	}
@@ -1310,6 +1315,7 @@ func (a *Adapter) holdAdmitted(ctx context.Context, adm *spaceAdmission, stored 
 	if (!stored && !adm.candidate.Staged && !a.pages.Full()) || adm.candidate.Root.GetEmpty() {
 		return nil
 	}
+	a.countStoredPages(ctx, adm.candidate.Root)
 	release, err := a.lockRoots(ctx)
 	if err != nil {
 		return err
@@ -2025,7 +2031,8 @@ func (a *Adapter) newCursor(ctx context.Context, store block.StoreOps, head *buc
 		return nil, err
 	}
 
-	// Give the linked files the Space's transform.
+	// Give the linked files and the stored page count the Space's transform.
+	a.storedPages.set(cursor.GetTransformer())
 	if files := a.so.GetBlockStore().GetFileSegments(); files != nil {
 		files.SetTransformer(cursor.GetTransformer())
 	}
