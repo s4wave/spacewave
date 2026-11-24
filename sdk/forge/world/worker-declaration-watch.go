@@ -12,13 +12,15 @@ import (
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 )
 
-// workerDeclarationWatch follows the Forge Worker declaration bound to the
-// native host Root.
+// workerDeclarationWatch follows one World's Forge Worker declaration bound to
+// the native host Root.
 type workerDeclarationWatch struct {
 	// ctx ends pending waits when the watch closes.
 	ctx context.Context
 	// source supplies the current and changed declarations.
 	source plugin_host_root.ForgeWorkerSource
+	// engineID is the World engine ID whose declaration the watch follows.
+	engineID string
 	// last is the revision of the most recently received declaration.
 	last uint64
 	// release cancels ctx and releases the Root reference.
@@ -27,8 +29,8 @@ type workerDeclarationWatch struct {
 
 // openWorkerDeclarationWatch looks up the native host Root, which the Space
 // runtime bridges into its generation, and waits for the daemon to bind its
-// Forge Worker source.
-func openWorkerDeclarationWatch(ctx context.Context, b bus.Bus) (*workerDeclarationWatch, error) {
+// Forge Worker source. The watch follows the declaration of World engineID.
+func openWorkerDeclarationWatch(ctx context.Context, b bus.Bus, engineID string) (*workerDeclarationWatch, error) {
 	// Find the Root that owns this process's daemon declaration.
 	ctx, cancel := context.WithCancel(ctx)
 	root, _, rootRef, err := plugin_host_root.ExLookupRootByPlatform(
@@ -46,7 +48,7 @@ func openWorkerDeclarationWatch(ctx context.Context, b bus.Bus) (*workerDeclarat
 		cancel()
 		return nil, err
 	}
-	return &workerDeclarationWatch{ctx: ctx, source: source, release: func() {
+	return &workerDeclarationWatch{ctx: ctx, source: source, engineID: engineID, release: func() {
 		cancel()
 		rootRef.Release()
 	}}, nil
@@ -56,7 +58,7 @@ func openWorkerDeclarationWatch(ctx context.Context, b bus.Bus) (*workerDeclarat
 // identity. The declaration is nil while the Device declares no Worker.
 func (w *workerDeclarationWatch) Recv() (*s4wave_device.ForgeWorkerDeclaration, string, error) {
 	// Wait for a revision other than the last one received.
-	data, deviceKey, revision, err := w.source.WaitForgeWorker(w.ctx, w.last)
+	data, deviceKey, revision, err := w.source.WaitForgeWorker(w.ctx, w.engineID, w.last)
 	if err != nil {
 		return nil, "", err
 	}

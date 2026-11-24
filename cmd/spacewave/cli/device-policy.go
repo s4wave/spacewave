@@ -16,6 +16,7 @@ func newDevicePolicyCommand() *cli.Command {
 		Subcommands: []*cli.Command{
 			newDevicePolicyNodeTypeCommand(),
 			newDevicePolicyLaunchCommand(),
+			newDevicePolicySpaceCommand(),
 		},
 	}
 }

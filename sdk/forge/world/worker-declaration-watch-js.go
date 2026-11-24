@@ -23,7 +23,7 @@ type workerDeclarationWatch struct {
 }
 
 // openWorkerDeclarationWatch returns a watch with no declaration source.
-func openWorkerDeclarationWatch(ctx context.Context, _ bus.Bus) (*workerDeclarationWatch, error) {
+func openWorkerDeclarationWatch(ctx context.Context, _ bus.Bus, _ string) (*workerDeclarationWatch, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	return &workerDeclarationWatch{ctx: ctx, release: cancel}, nil
 }

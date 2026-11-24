@@ -13,7 +13,7 @@ import (
 type testForgeWorkerSource struct{ changes chan []byte }
 
 // WaitForgeWorker emits the initial revision and awaits the next one.
-func (s *testForgeWorkerSource) WaitForgeWorker(ctx context.Context, last uint64) ([]byte, string, uint64, error) {
+func (s *testForgeWorkerSource) WaitForgeWorker(ctx context.Context, _ string, last uint64) ([]byte, string, uint64, error) {
 	if last == 0 {
 		return []byte{1}, "devices/self", 1, nil
 	}
