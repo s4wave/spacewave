@@ -8,6 +8,9 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 /**
  * DevicePolicy is the daemon-local policy that controls Device capabilities.
  *
+ * It lives in the Device's state root and is edited only through that
+ * Device's CLI, so no Space writer can grant itself a capability here.
+ *
  * @generated from message s4wave.device.policy.DevicePolicy
  */
 export interface DevicePolicy {
@@ -20,6 +23,12 @@ export interface DevicePolicy {
    * A node whose type is absent from the list is rejected.
    */
   nodeTypeId?: string[]
+  /**
+   * LaunchApproval lists, per Space, the execution profiles this Device may
+   * launch for that Space's work. A Space with no entry gets only the isolated
+   * launcher and no additional child models.
+   */
+  launchApproval?: LaunchApproval[]
 }
 
 export const DevicePolicy: MessageType<DevicePolicy> =
@@ -28,5 +37,78 @@ export const DevicePolicy: MessageType<DevicePolicy> =
     () => [
       [1, 'revision', 4],
       [2, 'node_type_id', 9, 1],
+      [3, 'launch_approval', 11, 1, LaunchApproval.codec],
     ],
+  )
+
+/**
+ * LaunchApproval is the local operator's grant of execution profiles to one
+ * Space's work on this Device.
+ *
+ * @generated from message s4wave.device.policy.LaunchApproval
+ */
+export interface LaunchApproval {
+  /**
+   * SpaceId is the Space whose work this approval covers.
+   */
+  spaceId?: string
+  /**
+   * HostExecution permits the ordinary host launcher, which runs work directly
+   * on this Device with no process sandbox.
+   */
+  hostExecution?: boolean
+  /**
+   * AllowedChildModels are the additional model selectors an agent launched
+   * for this Space may grant its children.
+   */
+  allowedChildModels?: string[]
+}
+
+export const LaunchApproval: MessageType<LaunchApproval> =
+  /* @__PURE__ */ createMessageType<LaunchApproval>(
+    's4wave.device.policy.LaunchApproval',
+    () => [
+      [1, 'space_id', 9],
+      [2, 'host_execution', 8],
+      [3, 'allowed_child_models', 9, 1],
+    ],
+  )
+
+/**
+ * ReloadDevicePolicyRequest requests a reload of the policy file.
+ *
+ * @generated from message s4wave.device.policy.ReloadDevicePolicyRequest
+ */
+export interface ReloadDevicePolicyRequest {}
+
+export const ReloadDevicePolicyRequest: MessageType<ReloadDevicePolicyRequest> =
+  /* @__PURE__ */ createMessageType<ReloadDevicePolicyRequest>(
+    's4wave.device.policy.ReloadDevicePolicyRequest',
+    () => [],
+  )
+
+/**
+ * ReloadDevicePolicyResponse acknowledges a completed reload.
+ *
+ * @generated from message s4wave.device.policy.ReloadDevicePolicyResponse
+ */
+export interface ReloadDevicePolicyResponse {}
+
+export const ReloadDevicePolicyResponse: MessageType<ReloadDevicePolicyResponse> =
+  /* @__PURE__ */ createMessageType<ReloadDevicePolicyResponse>(
+    's4wave.device.policy.ReloadDevicePolicyResponse',
+    () => [],
+  )
+
+/**
+ * WatchDevicePolicyRequest requests the policy stream.
+ *
+ * @generated from message s4wave.device.policy.WatchDevicePolicyRequest
+ */
+export interface WatchDevicePolicyRequest {}
+
+export const WatchDevicePolicyRequest: MessageType<WatchDevicePolicyRequest> =
+  /* @__PURE__ */ createMessageType<WatchDevicePolicyRequest>(
+    's4wave.device.policy.WatchDevicePolicyRequest',
+    () => [],
   )

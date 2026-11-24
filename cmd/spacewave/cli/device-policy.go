@@ -8,9 +8,6 @@ import (
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
 )
 
-// devicePolicyReloadDaemon asks the daemon to reload its policy file.
-var devicePolicyReloadDaemon = requestDevicePolicyReload
-
 // newDevicePolicyCommand builds the policy command group.
 func newDevicePolicyCommand() *cli.Command {
 	return &cli.Command{
@@ -18,16 +15,18 @@ func newDevicePolicyCommand() *cli.Command {
 		Usage: "manage daemon-local Device policy",
 		Subcommands: []*cli.Command{
 			newDevicePolicyNodeTypeCommand(),
+			newDevicePolicyLaunchCommand(),
 		},
 	}
 }
 
 // runDevicePolicyMutation applies mutate to the policy file and reloads the
-// daemon.
+// daemon. mutate receives the connected daemon client, such as to resolve a
+// Space name.
 func runDevicePolicyMutation(
 	c *cli.Context,
 	statePath string,
-	mutate func(*device_policy.DevicePolicy) error,
+	mutate func(*sdkClient, *device_policy.DevicePolicy) error,
 ) error {
 	// Connect to the daemon for the policy mutation.
 	ctx := c.Context
@@ -46,12 +45,12 @@ func runDevicePolicyMutation(
 	if err != nil {
 		return err
 	}
-	if err := mutate(policy); err != nil {
+	if err := mutate(client, policy); err != nil {
 		return err
 	}
 	policy.Revision++
 	if err := device_policy.WriteFile(resolvedStatePath, policy); err != nil {
 		return err
 	}
-	return devicePolicyReloadDaemon(ctx, client)
+	return requestDevicePolicyReload(ctx, client)
 }

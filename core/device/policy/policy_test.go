@@ -14,6 +14,9 @@ func TestNodeTypeAllowList(t *testing.T) {
 	policy := &DevicePolicy{
 		Revision:   1,
 		NodeTypeId: []string{"tcp-port", "local-port"},
+		LaunchApproval: []*LaunchApproval{
+			{SpaceId: "space-a", HostExecution: true, AllowedChildModels: []string{"@fast"}},
+		},
 	}
 	if err := WriteFile(stateRoot, policy); err != nil {
 		t.Fatal(err)
@@ -26,6 +29,11 @@ func TestNodeTypeAllowList(t *testing.T) {
 		t.Fatalf("allow list changed on disk: %+v", read)
 	}
 
+	// A Space without an entry gets only the isolated launcher.
+	if !read.LaunchApprovalFor("space-a").GetHostExecution() || read.LaunchApprovalFor("space-b").GetHostExecution() {
+		t.Fatalf("launch approval lookup wrong: %+v", read.GetLaunchApproval())
+	}
+
 	// Reject each malformed list with its own error.
 	cases := map[string]struct {
 		ids  []string
@@ -36,6 +44,23 @@ func TestNodeTypeAllowList(t *testing.T) {
 	}
 	for name, tc := range cases {
 		err := Validate(&DevicePolicy{NodeTypeId: tc.ids})
+		if err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Fatalf("%s: expected %q error, got %v", name, tc.want, err)
+		}
+	}
+
+	// Reject each malformed launch approval with its own error.
+	approvals := map[string]struct {
+		approvals []*LaunchApproval
+		want      string
+	}{
+		"no space":       {[]*LaunchApproval{{HostExecution: true}}, "space id is required"},
+		"repeated space": {[]*LaunchApproval{{SpaceId: "a"}, {SpaceId: "a"}}, "duplicate device policy launch approval"},
+		"empty model":    {[]*LaunchApproval{{SpaceId: "a", AllowedChildModels: []string{""}}}, "empty child model"},
+		"repeated model": {[]*LaunchApproval{{SpaceId: "a", AllowedChildModels: []string{"m", "m"}}}, "repeats child model"},
+	}
+	for name, tc := range approvals {
+		err := Validate(&DevicePolicy{LaunchApproval: tc.approvals})
 		if err == nil || !strings.Contains(err.Error(), tc.want) {
 			t.Fatalf("%s: expected %q error, got %v", name, tc.want, err)
 		}

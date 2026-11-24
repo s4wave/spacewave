@@ -22,6 +22,17 @@ func (p *DevicePolicy) PermitsNodeType(typeID string) bool {
 	return slices.Contains(p.GetNodeTypeId(), typeID)
 }
 
+// LaunchApprovalFor returns the approval this Device holds for spaceID, or an
+// empty approval, which grants only the isolated launcher, when it holds none.
+func (p *DevicePolicy) LaunchApprovalFor(spaceID string) *LaunchApproval {
+	for _, approval := range p.GetLaunchApproval() {
+		if approval.GetSpaceId() == spaceID {
+			return approval.CloneVT()
+		}
+	}
+	return &LaunchApproval{SpaceId: spaceID}
+}
+
 // FilePath returns the Device policy file path under stateRoot.
 func FilePath(stateRoot string) string {
 	return filepath.Join(stateRoot, StateDir, StateFile)
@@ -80,15 +91,49 @@ func WriteFile(stateRoot string, policy *DevicePolicy) error {
 // Validate checks the persisted Device policy shape.
 func Validate(policy *DevicePolicy) error {
 	// Reject node type IDs that are missing or duplicated.
-	seenTypes := make(map[string]struct{}, len(policy.GetNodeTypeId()))
-	for _, typeID := range policy.GetNodeTypeId() {
-		if strings.TrimSpace(typeID) == "" {
+	if value, ok := firstInvalid(policy.GetNodeTypeId()); ok {
+		if value == "" {
 			return errors.New("device policy node type id is required")
 		}
-		if _, ok := seenTypes[typeID]; ok {
-			return errors.Errorf("duplicate device policy node type %q", typeID)
+		return errors.Errorf("duplicate device policy node type %q", value)
+	}
+
+	// Reject launch approvals without a Space or repeated for one Space.
+	spaceIDs := make([]string, 0, len(policy.GetLaunchApproval()))
+	for _, approval := range policy.GetLaunchApproval() {
+		spaceIDs = append(spaceIDs, approval.GetSpaceId())
+	}
+	if value, ok := firstInvalid(spaceIDs); ok {
+		if value == "" {
+			return errors.New("device policy launch approval space id is required")
 		}
-		seenTypes[typeID] = struct{}{}
+		return errors.Errorf("duplicate device policy launch approval for space %q", value)
+	}
+
+	// Reject an approval naming an empty or repeated child model.
+	for _, approval := range policy.GetLaunchApproval() {
+		if value, ok := firstInvalid(approval.GetAllowedChildModels()); ok {
+			if value == "" {
+				return errors.Errorf("launch approval for space %q has an empty child model", approval.GetSpaceId())
+			}
+			return errors.Errorf("launch approval for space %q repeats child model %q", approval.GetSpaceId(), value)
+		}
 	}
 	return nil
+}
+
+// firstInvalid returns the first blank or repeated value in values, with
+// blank reported as "", and whether one was found.
+func firstInvalid(values []string) (string, bool) {
+	seen := make(map[string]struct{}, len(values))
+	for _, value := range values {
+		if strings.TrimSpace(value) == "" {
+			return "", true
+		}
+		if _, ok := seen[value]; ok {
+			return value, true
+		}
+		seen[value] = struct{}{}
+	}
+	return "", false
 }

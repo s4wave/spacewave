@@ -25,6 +25,11 @@ func TestDevicePolicyCommandExposesSubcommandsAndFlags(t *testing.T) {
 	assertCommandFlags(t, findTestSubcommand(t, deviceCmd, "show"), "state-path", "socket-path", "session-index", "space", "output")
 	assertCommandFlags(t, nodeTypeAddCmd, "state-path", "socket-path")
 	assertCommandFlags(t, nodeTypeRemoveCmd, "state-path", "socket-path")
+
+	// Check the launch approval subcommands.
+	launchCmd := findTestSubcommand(t, policyCmd, "launch")
+	assertCommandFlags(t, findTestSubcommand(t, launchCmd, "approve"), "state-path", "socket-path", "session-index", "space", "host-execution", "allow-child-model")
+	assertCommandFlags(t, findTestSubcommand(t, launchCmd, "revoke"), "state-path", "socket-path", "session-index", "space")
 }
 
 // findTestSubcommand returns the requested command or fails the test.

@@ -215,6 +215,24 @@
         }
       }
     },
+    "439fb970836e3281500299187294a26ad65318aadf1ec5167a3e7c9a34e094f8": {
+      "protocFlagsHash": "f60c126929dea22bb34c7943348825cd0650bfdf1f02a74f8541bf7d5ea1b2c2",
+      "toolVersions": "protoc=embedded,generator=h1:PyfQFeourKBuI7y7aK3Ni+G0Eh9x4gjhlrfH/NjrN7A=,protobuf-go-lite=v0.19.1-0.20261028131920-f644656fc4a7,starpc=v0.52.3,protobuf-es-lite=1.2.6",
+      "packages": {
+        "github.com/s4wave/spacewave/core/device/policy": {
+          "hash": "2ea02be4a40519e90eb22466fc75984572cc29fa438b812828fe8e71aaac752e",
+          "generatedFiles": [
+            "core/device/policy/policy.pb.go",
+            "core/device/policy/policy.pb.ts",
+            "core/device/policy/policy_srpc.pb.go",
+            "core/device/policy/policy_srpc.pb.ts"
+          ],
+          "protoFiles": [
+            "core/device/policy/policy.proto"
+          ]
+        }
+      }
+    },
     "53093e1ed555e25c8d1d89eb0be100d9e4215fdf9b3274a801b8f2a5baf3e7ea": {
       "protocFlagsHash": "641054ce8cacc6009c9e5e7b7a0f04a99a13b3f78d4959e5ee499fe353b65951",
       "toolVersions": "protoc=embedded,generator=h1:PyfQFeourKBuI7y7aK3Ni+G0Eh9x4gjhlrfH/NjrN7A=,protobuf-go-lite=v0.19.1-0.20261028131920-f644656fc4a7,starpc=v0.52.3,protobuf-es-lite=1.2.6,uv.lock=e4c4bd2b1b09f2f90e1d7b987a9b18c5bf9158758fbd55f3b5d3d46656bd88be",
@@ -1545,10 +1563,12 @@
           ]
         },
         "github.com/s4wave/spacewave/core/device/policy": {
-          "hash": "d3573b71d8a6aad462850de07e68f863a0055dbed54c1c98be61c04d82bbe4e2",
+          "hash": "2ea02be4a40519e90eb22466fc75984572cc29fa438b812828fe8e71aaac752e",
           "generatedFiles": [
             "core/device/policy/policy.pb.go",
-            "core/device/policy/policy.pb.ts"
+            "core/device/policy/policy.pb.ts",
+            "core/device/policy/policy_srpc.pb.go",
+            "core/device/policy/policy_srpc.pb.ts"
           ],
           "protoFiles": [
             "core/device/policy/policy.proto"

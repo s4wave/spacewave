@@ -460,7 +460,7 @@ func runServeCommand(
 	if err := mux.Register(controlHandler); err != nil {
 		return err
 	}
-	if err := mux.Register(newDevicePolicyControlHandler(devicePolicy.Reload)); err != nil {
+	if err := device_policy.SRPCRegisterDevicePolicyService(mux, device_policy.NewService(devicePolicy)); err != nil {
 		return err
 	}
 	if releaseColdPacks != nil {

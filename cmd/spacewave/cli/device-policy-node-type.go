@@ -67,7 +67,7 @@ func (a *devicePolicyNodeTypeArgs) RunAdd(c *cli.Context) error {
 	}
 
 	// Index existing IDs once and append each new ID in argument order.
-	return runDevicePolicyMutation(c, a.statePath, func(policy *device_policy.DevicePolicy) error {
+	return runDevicePolicyMutation(c, a.statePath, func(_ *sdkClient, policy *device_policy.DevicePolicy) error {
 		// Track appended IDs too, so repeated arguments add only one entry.
 		allowed := make(map[string]struct{}, len(policy.GetNodeTypeId())+len(typeIDs))
 		for _, typeID := range policy.GetNodeTypeId() {
@@ -92,7 +92,7 @@ func (a *devicePolicyNodeTypeArgs) RunRemove(c *cli.Context) error {
 	}
 
 	// Require every requested ID before removing any entry from the policy.
-	return runDevicePolicyMutation(c, a.statePath, func(policy *device_policy.DevicePolicy) error {
+	return runDevicePolicyMutation(c, a.statePath, func(_ *sdkClient, policy *device_policy.DevicePolicy) error {
 		// Index the current allow list without changing its order or duplicate entries.
 		allowed := make(map[string]struct{}, len(policy.GetNodeTypeId()))
 		for _, typeID := range policy.GetNodeTypeId() {
