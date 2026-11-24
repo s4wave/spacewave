@@ -9,6 +9,7 @@ import {
 } from '../flowgraph.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { LaunchApproval } from '../../../core/device/policy/policy.pb.js'
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 
 /**
@@ -136,6 +137,15 @@ export interface CompileRequest {
    * EngineId is the ID of the World engine holding the Flowgraph.
    */
   engineId?: string
+  /**
+   * SpaceId is the shared object ID of the Space holding the Flowgraph.
+   */
+  spaceId?: string
+  /**
+   * LaunchApproval is the Device's grant to that Space's work, or an empty
+   * approval for the Space when the Device grants it nothing.
+   */
+  launchApproval?: LaunchApproval
 }
 
 export const CompileRequest: MessageType<CompileRequest> =
@@ -148,6 +158,8 @@ export const CompileRequest: MessageType<CompileRequest> =
       [4, 'device_peer_id', 9],
       [5, 'connections', 11, 1, PlacedConnection.codec],
       [6, 'engine_id', 9],
+      [7, 'space_id', 9],
+      [8, 'launch_approval', 11, 0, LaunchApproval.codec],
     ],
   )
 

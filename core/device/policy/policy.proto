@@ -30,6 +30,10 @@ message LaunchApproval {
   // AllowedChildModels are the additional model selectors an agent launched
   // for this Space may grant its children.
   repeated string allowed_child_models = 3;
+  // SecretPluginIds are the plugins this Device lets read, create and write
+  // this Space's Secrets when the Space itself loads them. The core root
+  // refuses those methods to every other plugin.
+  repeated string secret_plugin_ids = 4;
 }
 
 // DevicePolicyService serves the Device policy to local clients of the daemon
