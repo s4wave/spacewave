@@ -13,6 +13,7 @@ import (
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
+	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	resource_root "github.com/s4wave/spacewave/core/resource/root"
 	s4wave_account "github.com/s4wave/spacewave/sdk/account"
 	s4wave_block_cursor "github.com/s4wave/spacewave/sdk/block/cursor"
@@ -76,7 +77,7 @@ func TestPluginCallerFilterNestedSession(t *testing.T) {
 		t.Fatal(err)
 	}
 	coreMux := srpc.NewMux()
-	server := resource_server.NewFilteredResourceServer(rootMux, resource_root.NewPluginCallerFilter(logrus.NewEntry(logrus.New())))
+	server := resource_server.NewFilteredResourceServer(rootMux, resource_root.NewPluginCallerFilter(logrus.NewEntry(logrus.New()), nil))
 	if err := server.Register(coreMux); err != nil {
 		t.Fatal(err)
 	}
@@ -135,6 +136,135 @@ func TestPluginCallerFilterNestedSession(t *testing.T) {
 	if n := sess.calls.Load(); n != 2 {
 		t.Fatalf("session served %d host-set calls, want 2", n)
 	}
+}
+
+// TestPluginCallerFilterSecretGrant calls a Space's Secret methods through
+// PluginRpc under the Device policy's grant. Only the granted plugin, bound to
+// the granted Space, reaches the read, create and write methods; granting
+// participants and deleting stay refused to it.
+func TestPluginCallerFilterSecretGrant(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+
+	// Grant glados-core the Secrets of Space s1 in a real Device policy.
+	stateRoot := t.TempDir()
+	policy := &device_policy.DevicePolicy{LaunchApproval: []*device_policy.LaunchApproval{
+		{SpaceId: "s1", SecretPluginIds: []string{"glados-core"}},
+		{SpaceId: "s2"},
+	}}
+	if err := device_policy.WriteFile(stateRoot, policy); err != nil {
+		t.Fatal(err)
+	}
+	store, err := device_policy.NewPolicyStore(stateRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Serve a Space Resource service on the root, behind the granted filter.
+	sp := &fakeSpace{}
+	rootMux := srpc.NewMux()
+	if err := s4wave_space.SRPCRegisterSpaceResourceService(rootMux, sp); err != nil {
+		t.Fatal(err)
+	}
+	coreMux := srpc.NewMux()
+	server := resource_server.NewFilteredResourceServer(rootMux, resource_root.NewPluginCallerFilter(logrus.NewEntry(logrus.New()), store))
+	if err := server.Register(coreMux); err != nil {
+		t.Fatal(err)
+	}
+	pluginMux := srpc.NewMux()
+	if err := bldr_plugin.SRPCRegisterPlugin(pluginMux, stampedPlugin{inv: coreMux}); err != nil {
+		t.Fatal(err)
+	}
+	pluginClient := bldr_plugin.NewSRPCPluginClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(pluginMux))))
+
+	// spaceAs returns the Space Resource client a plugin stamped as caller sees.
+	spaceAs := func(pluginID, bindingKey string) s4wave_space.SRPCSpaceResourceServiceClient {
+		t.Helper()
+		caller := &bldr_plugin.PluginCaller{PluginId: pluginID, BindingKey: bindingKey}
+		conn := rpcstream.NewRpcStreamClient(pluginClient.PluginRpc, caller.ComponentID(), true)
+		client, err := resource_client.NewClient(ctx, resource.NewSRPCResourceServiceClient(conn))
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(client.Release)
+		rootRef := client.AccessRootResource()
+		t.Cleanup(rootRef.Release)
+		rootClient, err := rootRef.GetClient()
+		if err != nil {
+			t.Fatal(err)
+		}
+		return s4wave_space.NewSRPCSpaceResourceServiceClient(rootClient)
+	}
+
+	// The granted plugin in its Space reaches read, create and write.
+	granted := spaceAs("glados-core", "space/local/acct/s1")
+	if _, err := granted.ReadSecretPayload(ctx, &s4wave_space.ReadSecretPayloadRequest{ObjectKey: "k"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := granted.CreateSecret(ctx, &s4wave_space.CreateSecretRequest{ObjectKey: "k"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := granted.WriteSecretPayload(ctx, &s4wave_space.WriteSecretPayloadRequest{ObjectKey: "k"}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Participants and deletion stay refused to the granted plugin.
+	_, err = granted.AddSecretParticipant(ctx, &s4wave_space.AddSecretParticipantRequest{ObjectKey: "k"})
+	requireRefused(t, "AddSecretParticipant", err)
+	_, err = granted.DeleteSecret(ctx, &s4wave_space.DeleteSecretRequest{ObjectKey: "k"})
+	requireRefused(t, "DeleteSecret", err)
+
+	// Another plugin, the plugin in an ungranted Space, and a binding that is
+	// no Space are refused.
+	for _, caller := range [][2]string{
+		{"colors", "space/local/acct/s1"},
+		{"glados-core", "space/local/acct/s2"},
+		{"glados-core", "space/local/acct/s3"},
+		{"glados-core", "s1"},
+	} {
+		_, err := spaceAs(caller[0], caller[1]).ReadSecretPayload(ctx, &s4wave_space.ReadSecretPayloadRequest{ObjectKey: "k"})
+		requireRefused(t, "ReadSecretPayload as "+caller[0]+"@"+caller[1], err)
+	}
+	if n := sp.calls.Load(); n != 3 {
+		t.Fatalf("space served %d Secret calls, want 3", n)
+	}
+}
+
+// fakeSpace counts the Secret calls it serves. Its other methods are
+// unimplemented.
+type fakeSpace struct {
+	s4wave_space.SRPCSpaceResourceServiceServer
+	calls atomic.Int32
+}
+
+// CreateSecret counts the call.
+func (s *fakeSpace) CreateSecret(context.Context, *s4wave_space.CreateSecretRequest) (*s4wave_space.CreateSecretResponse, error) {
+	s.calls.Add(1)
+	return &s4wave_space.CreateSecretResponse{}, nil
+}
+
+// ReadSecretPayload counts the call.
+func (s *fakeSpace) ReadSecretPayload(context.Context, *s4wave_space.ReadSecretPayloadRequest) (*s4wave_space.ReadSecretPayloadResponse, error) {
+	s.calls.Add(1)
+	return &s4wave_space.ReadSecretPayloadResponse{}, nil
+}
+
+// WriteSecretPayload counts the call.
+func (s *fakeSpace) WriteSecretPayload(context.Context, *s4wave_space.WriteSecretPayloadRequest) (*s4wave_space.WriteSecretPayloadResponse, error) {
+	s.calls.Add(1)
+	return &s4wave_space.WriteSecretPayloadResponse{}, nil
+}
+
+// AddSecretParticipant counts the call.
+func (s *fakeSpace) AddSecretParticipant(context.Context, *s4wave_space.AddSecretParticipantRequest) (*s4wave_space.AddSecretParticipantResponse, error) {
+	s.calls.Add(1)
+	return &s4wave_space.AddSecretParticipantResponse{}, nil
+}
+
+// DeleteSecret counts the call.
+func (s *fakeSpace) DeleteSecret(context.Context, *s4wave_space.DeleteSecretRequest) (*s4wave_space.DeleteSecretResponse, error) {
+	s.calls.Add(1)
+	return &s4wave_space.DeleteSecretResponse{}, nil
 }
 
 // requireRefused fails unless err is the filter's refusal.

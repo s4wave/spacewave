@@ -95,7 +95,7 @@ func TestRequirementPlacement(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		r := NewReconciler(le, b, raceEngine, tb.EngineID, policy, NewForgeWorkerWatch(), deviceKey, peerID, func() func() { return func() {} })
+		r := NewReconciler(le, b, raceEngine, tb.EngineID, testSpaceID, policy, NewForgeWorkerWatch(), deviceKey, peerID, func() func() { return func() {} })
 		reconcilers[deviceKey] = r
 	}
 

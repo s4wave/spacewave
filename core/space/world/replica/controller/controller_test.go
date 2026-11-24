@@ -191,7 +191,7 @@ func startFlowgraph(ctx context.Context, t *testing.T, tb *testbed.Testbed, aPee
 		t.Fatal(err)
 	}
 	for key, peerID := range devices {
-		r := device_flowgraph.NewReconciler(tb.Logger, tb.Bus, tb.Engine, tb.EngineID, policy, device_flowgraph.NewForgeWorkerWatch(), key, peerID, func() func() { return func() {} })
+		r := device_flowgraph.NewReconciler(tb.Logger, tb.Bus, tb.Engine, tb.EngineID, "test-space", policy, device_flowgraph.NewForgeWorkerWatch(), key, peerID, func() func() { return func() {} })
 		runCtx, stop := context.WithCancel(ctx)
 		done := make(chan struct{})
 		go func() {

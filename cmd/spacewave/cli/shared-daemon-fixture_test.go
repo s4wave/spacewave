@@ -23,6 +23,7 @@ import (
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_state "github.com/s4wave/spacewave/bldr/resource/state"
+	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
@@ -233,7 +234,7 @@ func runSharedDaemonFixture() error {
 	// Use the same flags and daemon lifetime for both host shapes.
 	app := cli.NewApp()
 	app.Flags = []cli.Flag{statePathFlag(nil), socketPathFlag()}
-	app.Commands = []*cli.Command{newServeCommand(getBus, yield_policy.NewBroker(), NewCollectorFrees(), NewFormatUpgrade(nil))}
+	app.Commands = []*cli.Command{newServeCommand(getBus, yield_policy.NewBroker(), NewCollectorFrees(), NewFormatUpgrade(nil), &device_policy.PolicyStore{})}
 	err := app.RunContext(ctx, os.Args)
 	if buildErr != nil {
 		return buildErr

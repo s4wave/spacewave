@@ -45,6 +45,22 @@ func SpaceEngineId(ref *sobject.SharedObjectRef) string {
 	}, "/")
 }
 
+// SpaceIdFromEngineId returns the Space shared object ID inside a Space
+// world engine id that SpaceEngineId built, and whether engineID is one. The
+// ID is the last segment, since a resource ID is a DNS label with no slash.
+func SpaceIdFromEngineId(engineID string) (string, bool) {
+	// Require the Space body type, then take the segment after the last slash.
+	rest, ok := strings.CutPrefix(engineID, SpaceBodyType+"/")
+	if !ok {
+		return "", false
+	}
+	idx := strings.LastIndexByte(rest, '/')
+	if idx < 0 || idx == len(rest)-1 {
+		return "", false
+	}
+	return rest[idx+1:], true
+}
+
 // NewSpaceSoMeta constructs a new SpaceSoMeta.
 func NewSpaceSoMeta(name string) *SpaceSoMeta {
 	return &SpaceSoMeta{Name: name}

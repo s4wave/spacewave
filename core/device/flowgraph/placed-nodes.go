@@ -14,12 +14,12 @@ import (
 
 // readPlacedNodes reads every Flowgraph node in ws that is placed on the
 // Device at deviceKey, in Flowgraph key and node ID order, each marked with
-// the World engine engineID. It reads only the Flowgraphs with a placement
+// the World engine engineID and the Space spaceID. It reads only the Flowgraphs with a placement
 // edge to the Device.
 func readPlacedNodes(
 	ctx context.Context,
 	ws world.WorldState,
-	engineID, deviceKey, devicePeerID string,
+	engineID, spaceID, deviceKey, devicePeerID string,
 ) ([]*s4wave_flowgraph.PlacedFlowgraphNode, error) {
 	// List the Flowgraphs placed on the Device in key order.
 	flowgraphKeys, err := readPlacedFlowgraphKeys(ctx, ws, deviceKey)
@@ -59,6 +59,7 @@ func readPlacedNodes(
 				Node:         snapshot.GetState().GetNodes()[nodeID],
 				DevicePeerID: devicePeerID,
 				EngineID:     engineID,
+				SpaceID:      spaceID,
 				Connections:  connections,
 			})
 		}

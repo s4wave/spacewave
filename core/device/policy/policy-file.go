@@ -33,6 +33,17 @@ func (p *DevicePolicy) LaunchApprovalFor(spaceID string) *LaunchApproval {
 	return &LaunchApproval{SpaceId: spaceID}
 }
 
+// PermitsSecretPlugin reports whether the policy lets pluginID read, create
+// and write the Secrets of spaceID when that Space loads it.
+func (p *DevicePolicy) PermitsSecretPlugin(spaceID, pluginID string) bool {
+	for _, approval := range p.GetLaunchApproval() {
+		if approval.GetSpaceId() == spaceID {
+			return slices.Contains(approval.GetSecretPluginIds(), pluginID)
+		}
+	}
+	return false
+}
+
 // FilePath returns the Device policy file path under stateRoot.
 func FilePath(stateRoot string) string {
 	return filepath.Join(stateRoot, StateDir, StateFile)
@@ -110,13 +121,19 @@ func Validate(policy *DevicePolicy) error {
 		return errors.Errorf("duplicate device policy launch approval for space %q", value)
 	}
 
-	// Reject an approval naming an empty or repeated child model.
+	// Reject an approval naming an empty or repeated child model or Secret plugin.
 	for _, approval := range policy.GetLaunchApproval() {
 		if value, ok := firstInvalid(approval.GetAllowedChildModels()); ok {
 			if value == "" {
 				return errors.Errorf("launch approval for space %q has an empty child model", approval.GetSpaceId())
 			}
 			return errors.Errorf("launch approval for space %q repeats child model %q", approval.GetSpaceId(), value)
+		}
+		if value, ok := firstInvalid(approval.GetSecretPluginIds()); ok {
+			if value == "" {
+				return errors.Errorf("launch approval for space %q has an empty Secret plugin", approval.GetSpaceId())
+			}
+			return errors.Errorf("launch approval for space %q repeats Secret plugin %q", approval.GetSpaceId(), value)
 		}
 	}
 	return nil

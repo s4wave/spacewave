@@ -15,6 +15,7 @@ import (
 	"github.com/aperturerobotics/util/pipesock"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	"github.com/s4wave/spacewave/core/daemon"
+	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
 )
 
@@ -42,7 +43,7 @@ func TestInvalidDaemonIdleTimeoutReportsStartupError(t *testing.T) {
 	// Run the serve command.
 	commandErrCh := make(chan error, 1)
 	go func() {
-		commandErrCh <- runServeCommand(child, func() cli_entrypoint.CliBus { return nil }, yield_policy.NewBroker(), "startup", daemon.LauncherCommand, false, defaultDaemonIdleTimeout, "", nil, "", NewCollectorFrees())
+		commandErrCh <- runServeCommand(child, func() cli_entrypoint.CliBus { return nil }, yield_policy.NewBroker(), "startup", daemon.LauncherCommand, false, defaultDaemonIdleTimeout, "", nil, "", NewCollectorFrees(), &device_policy.PolicyStore{})
 	}()
 
 	// Require the startup error to name the idle-timeout variable.

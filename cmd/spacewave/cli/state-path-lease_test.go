@@ -20,6 +20,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	"github.com/s4wave/spacewave/core/daemon"
+	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	listener_control "github.com/s4wave/spacewave/core/resource/listener/control"
 	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
 	"github.com/sirupsen/logrus"
@@ -58,7 +59,7 @@ func TestRunServeCommandCompletesTakeoverBeforeBusInitialization(t *testing.T) {
 		commandErr <- runServeCommand(child, func() cli_entrypoint.CliBus {
 			close(busInitialized)
 			return nil
-		}, yield_policy.NewBroker(), "", daemon.LauncherManual, true, 0, "", nil, "", NewCollectorFrees())
+		}, yield_policy.NewBroker(), "", daemon.LauncherManual, true, 0, "", nil, "", NewCollectorFrees(), &device_policy.PolicyStore{})
 	}()
 
 	// Confirm the serve command waits for the shutdown to finish.

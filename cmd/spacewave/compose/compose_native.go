@@ -15,6 +15,7 @@ import (
 	spacewave_cli "github.com/s4wave/spacewave/cmd/spacewave/cli"
 	"github.com/s4wave/spacewave/core/camera"
 	"github.com/s4wave/spacewave/core/checkoutroot"
+	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	"github.com/s4wave/spacewave/core/display"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
@@ -36,7 +37,8 @@ import (
 // the resource listener, the root resource controller, the status projector and
 // the CLI commands, and one collector frees switch and one format upgrade
 // decision, which serve's flags set and the host storage reads as each Volume
-// opens. The app upgrades formats on its own, since a person cannot pass it a
+// opens, and one Device policy store, which serve loads before it starts the
+// bus and the root resource consults for the plugins granted Space Secrets. The app upgrades formats on its own, since a person cannot pass it a
 // flag; the development CLI asks the operator to opt in.
 func composeNative(composition *compose.Composition) {
 	// Create the shared brokers and set the native desktop action.
@@ -44,6 +46,7 @@ func composeNative(composition *compose.Composition) {
 	status := resource_listener.NewStatusBroker()
 	frees := spacewave_cli.NewCollectorFrees()
 	upgrade := spacewave_cli.NewFormatUpgrade(func() bool { return composition.Distribution })
+	devicePolicy := &device_policy.PolicyStore{}
 	composition.NativeAction = openDesktop
 	composition.ConfigureVolume = func(id string, conf config.Config) {
 		frees.ConfigureVolume(id, conf)
@@ -81,6 +84,7 @@ func composeNative(composition *compose.Composition) {
 				b,
 				resource_root_controller.WithYieldBroker(yield),
 				resource_root_controller.WithListenerStatusBroker(status),
+				resource_root_controller.WithPluginSecretGrant(devicePolicy),
 			),
 			statusprojector.NewFactory(b, statusprojector.WithListenerStatusBroker(status)),
 
@@ -106,7 +110,7 @@ func composeNative(composition *compose.Composition) {
 			}
 			return getBus()
 		}
-		return spacewave_cli.NewCliCommands(protectedGetBus, yield, frees, upgrade)
+		return spacewave_cli.NewCliCommands(protectedGetBus, yield, frees, upgrade, devicePolicy)
 	})
 	composition.Flags = append(composition.Flags, spacewave_cli.NewRootFlags()...)
 }

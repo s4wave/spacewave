@@ -85,6 +85,10 @@ func runFlowgraphReconciler(
 	}
 
 	// Mount the Space's World.
+	spaceID, err := decodeDeviceResourceID(record.ResourceID)
+	if err != nil {
+		return err
+	}
 	engine, engineID, release, err := mount(ctx, record)
 	if err != nil {
 		return err
@@ -92,7 +96,7 @@ func runFlowgraphReconciler(
 	defer release()
 
 	// Reconcile until the daemon stops.
-	return device_flowgraph.NewReconciler(le, b, engine, engineID, store, forgeWorker, record.DeviceObjectKey, record.PeerID, hold).Run(ctx)
+	return device_flowgraph.NewReconciler(le, b, engine, engineID, spaceID, store, forgeWorker, record.DeviceObjectKey, record.PeerID, hold).Run(ctx)
 }
 
 // waitDeviceSetupReady returns the setup record once the Device setup is

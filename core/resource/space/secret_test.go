@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	provider "github.com/s4wave/spacewave/core/provider"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -141,6 +142,25 @@ func TestSpaceResourceReadSecretPayloadUsesMountedSessionGrant(t *testing.T) {
 		ExpectedKind: "other",
 	}); !errors.Is(err, s4wave_secret.ErrSecretKindMismatch) {
 		t.Fatalf("expected kind mismatch, got %v", err)
+	}
+
+	// A plugin this Space loaded reads; one bound to another Space is refused.
+	ref := resource.space.GetSharedObjectRef()
+	own := bldr_plugin.WithPluginCaller(ctx, &bldr_plugin.PluginCaller{PluginId: "glados-core", BindingKey: space.SpaceEngineId(ref)})
+	if _, err := resource.ReadSecretPayload(own, &s4wave_space.ReadSecretPayloadRequest{
+		ObjectKey:    "secrets/provider/session-token",
+		ExpectedKind: s4wave_secret.SecretKindProviderCredential,
+	}); err != nil {
+		t.Fatalf("ReadSecretPayload as this Space's plugin: %v", err)
+	}
+	otherRef := ref.CloneVT()
+	otherRef.ProviderResourceRef.Id = "other-space"
+	other := bldr_plugin.WithPluginCaller(ctx, &bldr_plugin.PluginCaller{PluginId: "glados-core", BindingKey: space.SpaceEngineId(otherRef)})
+	if _, err := resource.ReadSecretPayload(other, &s4wave_space.ReadSecretPayloadRequest{
+		ObjectKey:    "secrets/provider/session-token",
+		ExpectedKind: s4wave_secret.SecretKindProviderCredential,
+	}); err == nil || !strings.Contains(err.Error(), "not bound to this Space") {
+		t.Fatalf("expected another Space's plugin refused, got %v", err)
 	}
 
 	// Verify another Session identity cannot use the saved reader grant.

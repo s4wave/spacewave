@@ -23,6 +23,8 @@ type devicePolicyLaunchArgs struct {
 	hostExecution bool
 	// childModels are the additional child model selectors granted.
 	childModels cli.StringSlice
+	// secretPlugins are the plugins granted the Space's Secrets.
+	secretPlugins cli.StringSlice
 }
 
 // newDevicePolicyLaunchCommand builds the launch approval command group.
@@ -91,23 +93,24 @@ func (a *devicePolicyLaunchArgs) BuildApproveFlags() []cli.Flag {
 			Usage:       "grant agents launched for this Space an additional child model selector",
 			Destination: &a.childModels,
 		},
+		&cli.StringSliceFlag{
+			Name:        "allow-secret-plugin",
+			Usage:       "let this plugin read, create and write the Space's Secrets when the Space loads it, such as glados-core",
+			Destination: &a.secretPlugins,
+		},
 	)
 }
 
 // RunApprove replaces the Space's launch approval with the flags' profile.
 func (a *devicePolicyLaunchArgs) RunApprove(c *cli.Context) error {
-	// Normalize the granted child models in argument order, once each.
-	var models []string
-	seen := make(map[string]struct{})
-	for _, model := range a.childModels.Value() {
-		model = strings.TrimSpace(model)
-		if model == "" {
-			return errors.New("child model selector is required")
-		}
-		if _, ok := seen[model]; !ok {
-			seen[model] = struct{}{}
-			models = append(models, model)
-		}
+	// Normalize the granted child models and Secret plugins.
+	models, err := uniqueFlagValues(a.childModels.Value(), "child model selector")
+	if err != nil {
+		return err
+	}
+	secretPlugins, err := uniqueFlagValues(a.secretPlugins.Value(), "Secret plugin ID")
+	if err != nil {
+		return err
 	}
 
 	// Replace the Space's entry, or append one.
@@ -119,7 +122,12 @@ func (a *devicePolicyLaunchArgs) RunApprove(c *cli.Context) error {
 		}
 
 		// Swap the Space's entry for the new profile.
-		approval := &device_policy.LaunchApproval{SpaceId: spaceID, HostExecution: a.hostExecution, AllowedChildModels: models}
+		approval := &device_policy.LaunchApproval{
+			SpaceId:            spaceID,
+			HostExecution:      a.hostExecution,
+			AllowedChildModels: models,
+			SecretPluginIds:    secretPlugins,
+		}
 		policy.LaunchApproval = slices.DeleteFunc(policy.LaunchApproval, func(entry *device_policy.LaunchApproval) bool {
 			return entry.GetSpaceId() == spaceID
 		})
@@ -162,4 +170,22 @@ func (a *devicePolicyLaunchArgs) resolveSpace(c *cli.Context, client *sdkClient)
 	}
 	defer sess.Release()
 	return client.resolveSpaceID(c.Context, sess, a.space)
+}
+
+// uniqueFlagValues trims values and keeps each once in argument order,
+// refusing a blank value, which what names.
+func uniqueFlagValues(values []string, what string) ([]string, error) {
+	var out []string
+	seen := make(map[string]struct{}, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			return nil, errors.Errorf("%s is required", what)
+		}
+		if _, ok := seen[value]; !ok {
+			seen[value] = struct{}{}
+			out = append(out, value)
+		}
+	}
+	return out, nil
 }

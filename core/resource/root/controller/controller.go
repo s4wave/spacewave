@@ -72,6 +72,9 @@ type Controller struct {
 	// resource after construction.
 	yieldBroker    *yield_policy.Broker
 	listenerStatus *resource_listener.StatusBroker
+	// secretGrant admits granted plugins to their Space's Secrets, shared
+	// with nested roots; nil admits none.
+	secretGrant resource_root.PluginSecretGrant
 }
 
 // Option configures the root resource controller factory.
@@ -87,14 +90,22 @@ func WithListenerStatusBroker(broker *resource_listener.StatusBroker) Option {
 	return func(c *Controller) { c.listenerStatus = broker }
 }
 
+// WithPluginSecretGrant admits the plugins grant permits to read, create and
+// write the Secrets of the Space that loaded them.
+func WithPluginSecretGrant(grant resource_root.PluginSecretGrant) Option {
+	return func(c *Controller) { c.secretGrant = grant }
+}
+
 // withParent nests the controller in parent's installation: it serves the
 // parent's plugin registries and Spaces load plugins through the parent host.
 func withParent(parent *Controller) Option {
 	return func(c *Controller) {
+		// Share the parent installation's registries, bindings and grants.
 		c.parent = parent
 		c.registries = parent.registries
 		c.bindingRegistry = parent.bindingRegistry
 		c.approvals = parent.approvals
+		c.secretGrant = parent.secretGrant
 	}
 }
 
@@ -124,9 +135,9 @@ func NewFactory(b bus.Bus, opts ...Option) controller.Factory {
 			}
 
 			// create the resource server, refusing protected methods to plugins
-			// outside the host set
+			// outside the host set apart from the Secrets the grant admits
 			c.rootResourceMux = srpc.NewMux()
-			c.server = resource_server.NewFilteredResourceServer(c.rootResourceMux, resource_root.NewPluginCallerFilter(base.GetLogger()))
+			c.server = resource_server.NewFilteredResourceServer(c.rootResourceMux, resource_root.NewPluginCallerFilter(base.GetLogger(), c.secretGrant))
 			c.server.SetOriginController(ControllerID)
 
 			// register the resource server to the mux

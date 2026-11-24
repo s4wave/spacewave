@@ -5,6 +5,7 @@ import (
 	"github.com/pkg/errors"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
+	space "github.com/s4wave/spacewave/core/space"
 	s4wave_account "github.com/s4wave/spacewave/sdk/account"
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
 	s4wave_root "github.com/s4wave/spacewave/sdk/root"
@@ -178,26 +179,39 @@ var pluginCallerDenied = map[string]struct{}{
 	webMethod(s4wave_session.SRPCSpacewaveSessionResourceServiceServiceID, "ReleaseSpaceHostedCopies"): {},
 }
 
+// pluginCallerSecretMethods are the denied methods that grant admits: a
+// plugin whose Space loaded it reads, creates and writes that Space's Secrets
+// when the Device grants it. Granting participants and deleting stay denied.
+var pluginCallerSecretMethods = map[string]struct{}{
+	webMethod(s4wave_space.SRPCSpaceResourceServiceServiceID, "CreateSecret"):       {},
+	webMethod(s4wave_space.SRPCSpaceResourceServiceServiceID, "ReadSecretPayload"):  {},
+	webMethod(s4wave_space.SRPCSpaceResourceServiceServiceID, "WriteSecretPayload"): {},
+}
+
 // NewPluginCallerFilter returns the InvokerFilter for the core root
 // Resource service. It refuses the pluginCallerDenied methods to a call that
 // carries a PluginCaller outside the host set, on the root and on every
-// Resource beneath it.
+// Resource beneath it. It admits the pluginCallerSecretMethods to a caller
+// whose binding is a Space when grant permits that plugin in that Space; a
+// nil grant permits none. The filter cannot see which Space a Resource
+// serves, so the Space Resource refuses a caller bound to another Space.
 //
 // A call with no PluginCaller passes. That is safe only because a plugin's
 // calls reach core through the target's PluginRpc, which the host stamps,
 // while a plugin's root mux serves the host's calls alone. A path that lets a
 // plugin reach core without passing through PluginRpc would bypass this filter.
-func NewPluginCallerFilter(le *logrus.Entry) resource_server.InvokerFilter {
+func NewPluginCallerFilter(le *logrus.Entry, grant PluginSecretGrant) resource_server.InvokerFilter {
 	return func(inv srpc.Invoker) srpc.Invoker {
-		return &pluginCallerInvoker{le: le, inv: inv}
+		return &pluginCallerInvoker{le: le, grant: grant, inv: inv}
 	}
 }
 
 // pluginCallerInvoker refuses the denied methods to plugins outside the host
-// set.
+// set, apart from the Secret methods grant admits.
 type pluginCallerInvoker struct {
-	le  *logrus.Entry
-	inv srpc.Invoker
+	le    *logrus.Entry
+	grant PluginSecretGrant
+	inv   srpc.Invoker
 }
 
 // InvokeMethod refuses a denied method to a caller outside the host set.
@@ -205,12 +219,21 @@ func (i *pluginCallerInvoker) InvokeMethod(serviceID, methodID string, strm srpc
 	caller := bldr_plugin.PluginCallerFromContext(strm.Context())
 	if caller != nil && !caller.GetHostSet() {
 		key := webMethod(serviceID, methodID)
-		if _, denied := pluginCallerDenied[key]; denied {
+		if _, denied := pluginCallerDenied[key]; denied && !i.granted(key, caller) {
 			i.le.WithField("method", key).WithField("plugin-id", caller.GetPluginId()).Info("refused method to plugin")
 			return true, errors.Wrap(errPluginCallerDenied, key)
 		}
 	}
 	return i.inv.InvokeMethod(serviceID, methodID, strm)
+}
+
+// granted reports whether the grant admits the denied method key to caller.
+func (i *pluginCallerInvoker) granted(key string, caller *bldr_plugin.PluginCaller) bool {
+	if _, ok := pluginCallerSecretMethods[key]; !ok || i.grant == nil {
+		return false
+	}
+	spaceID, ok := space.SpaceIdFromEngineId(caller.GetBindingKey())
+	return ok && i.grant.PermitsSecretPlugin(spaceID, caller.GetPluginId())
 }
 
 // _ is a type assertion

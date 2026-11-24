@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/aperturerobotics/controllerbus/config"
+	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	"github.com/s4wave/spacewave/db/world"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 )
@@ -60,6 +61,12 @@ type PlacedFlowgraphNode struct {
 	// EngineID is the ID of the World engine holding the Flowgraph, which a
 	// compiled controller looks up on the bus.
 	EngineID string
+	// SpaceID is the shared object ID of the Space holding the Flowgraph.
+	SpaceID string
+	// LaunchApproval is the Device's grant to the Space's work, read from the
+	// Device policy the node compiled against. A Space the Device grants
+	// nothing has an empty approval.
+	LaunchApproval *device_policy.LaunchApproval
 	// Connections contains the connections that end at the node.
 	Connections []*PlacedFlowgraphConnection
 }

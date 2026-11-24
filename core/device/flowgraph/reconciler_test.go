@@ -54,6 +54,8 @@ const (
 	testSelfKey = "device/self"
 	// testOtherKey is the Device that runs the other end of each connection.
 	testOtherKey = "device/other"
+	// testSpaceID is the Space holding the fixture graph.
+	testSpaceID = "test-space"
 )
 
 // TestReconciler runs a Reconciler for one Device against a World holding a
@@ -163,7 +165,7 @@ func TestReconciler(t *testing.T) {
 	runCtx, stop := context.WithCancel(ctx)
 	runErr := make(chan error, 1)
 	go func() {
-		runErr <- NewReconciler(le, b, engine, tb.EngineID, policy, forgeWorker, testSelfKey, selfPeer, hold).Run(runCtx)
+		runErr <- NewReconciler(le, b, engine, tb.EngineID, testSpaceID, policy, forgeWorker, testSelfKey, selfPeer, hold).Run(runCtx)
 	}()
 
 	// Place a TCP Port and a Local Port on this Device. Each connects to a node
