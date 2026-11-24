@@ -651,6 +651,11 @@ type ReadCounts struct {
 	// reads behind WindowBytes, TailBytes and ExtentBytes, failed ones
 	// included.
 	WindowLatency, TailLatency, ExtentLatency RangeLatency
+	// BatchBlocks counts the blocks ReadBatch read from the bucket.
+	BatchBlocks uint64
+	// BatchReads counts the range reads ReadBatch made for them, so
+	// BatchBlocks/BatchReads is the blocks one read carried.
+	BatchReads uint64
 }
 
 // RangeLatencyBuckets are the upper bounds, in seconds, of a RangeLatency's
@@ -720,6 +725,9 @@ type readCounters struct {
 	fetches [readModes]atomic.Uint64
 	// latency times the range reads of the window, tail and extent modes.
 	latency [readModes]rangeLatency
+	// batchBlocks counts the blocks ReadBatch read, and batchReads the range
+	// reads it made for them.
+	batchBlocks, batchReads atomic.Uint64
 }
 
 // downloaded counts n bytes downloaded from the bucket for mode.
@@ -748,6 +756,8 @@ func (s *PackStore) ReadCounts() ReadCounts {
 		IndexBytes:    s.reads.bytes[readIndex].Load(),
 		WholeBytes:    s.reads.bytes[readWhole].Load(),
 		OtherBytes:    s.reads.bytes[readOther].Load(),
+		BatchBlocks:   s.reads.batchBlocks.Load(),
+		BatchReads:    s.reads.batchReads.Load(),
 	}
 }
 
