@@ -155,6 +155,85 @@ func TestCloudPublicationSurvivesRestart(t *testing.T) {
 	}
 }
 
+// TestCloudPublicationPostsOperationsAtOnce checks that a local operation
+// reaches the cloud without waiting for the checkpoint interval, and only
+// after the blocks dirty before it, so a member that applies it at once finds
+// every block it names.
+func TestCloudPublicationPostsOperationsAtOnce(t *testing.T) {
+	// Record the order of block pushes and operation posts.
+	var pushes atomic.Int32
+	posted := make(chan struct{}, 4)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.HasSuffix(r.URL.Path, "/sync/push"):
+			pushes.Add(1)
+		case strings.HasSuffix(r.URL.Path, "/ops"):
+			if pushes.Load() == 0 {
+				t.Error("operation reached the cloud before its blocks")
+			}
+			posted <- struct{}{}
+		default:
+			t.Errorf("unexpected publication route: %s", r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/protobuf")
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(server.Close)
+
+	// Run the scheduler with a dirty block behind an interval the test never
+	// reaches.
+	initial, key := newTestGenesisState(t)
+	peerID := mustPeerID(t, key)
+	client := newTestPublicationClient(server, key, peerID)
+	syncer := newDirtySyncExecuteTestController(t, client, nil)
+	syncer.conf = &SyncConfig{SizeThresholdBytes: 1 << 30, CheckpointIntervalSecs: 3600}
+	account := &ProviderAccount{objStore: newSyncTestKvStore()}
+	host := &cloudSOHost{
+		le: logrus.New().WithField("test", t.Name()), client: client,
+		soID: testSharedObjectID, peerID: peerID, stateCtr: ccontainer.NewCContainer(initial),
+		verifiedConfig: initial.GetConfig(), lastConfigChainHash: initial.GetConfig().GetConfigChainHash(),
+		cloudState: initial.CloneVT(), syncer: syncer,
+		persistVerifiedStateCache: func(ctx context.Context, cache *api.VerifiedSOStateCache, changes []*sobject.SOConfigChange) error {
+			return account.writeVerifiedSOStateCache(ctx, testSharedObjectID, cache, changes)
+		},
+	}
+	ctx, cancel := context.WithCancel(t.Context())
+	done := make(chan error, 1)
+	go func() { done <- syncer.Execute(ctx) }()
+	t.Cleanup(func() {
+		cancel()
+		<-done
+	})
+
+	// Each operation posts at once and leaves nothing pending.
+	for range 2 {
+		if err := writeLocalOperation(t, host, key); err != nil {
+			t.Fatal(err)
+		}
+		select {
+		case <-posted:
+		case <-time.After(syncExecuteRequestTimeout):
+			t.Fatal("operation waited for the checkpoint interval")
+		}
+	}
+	timeout := time.After(syncExecuteRequestTimeout)
+	for {
+		var pending bool
+		var changed <-chan struct{}
+		host.bcast.HoldLock(func(_ func(), getWait func() <-chan struct{}) {
+			pending, changed = host.pending != nil, getWait()
+		})
+		if !pending {
+			return
+		}
+		select {
+		case <-changed:
+		case <-timeout:
+			t.Fatal("posted operations stayed pending")
+		}
+	}
+}
+
 // TestCloudPublicationHoldsPastCorruptBlock checks that a flush which holds
 // back a corrupt dirty block uploads the intact blocks but publishes nothing,
 // keeps the corrupt block's marker, local copy and count, and resumes
@@ -339,7 +418,7 @@ func TestCloudPublicationConcurrentAcceptance(t *testing.T) {
 	}
 	sent := host.pendingPublication()
 	done := make(chan error, 1)
-	go func() { done <- host.publishCheckpoint(t.Context(), sent) }()
+	go func() { done <- host.publishCheckpoint(t.Context(), sent, time.Now()) }()
 	select {
 	case <-started:
 	case <-t.Context().Done():

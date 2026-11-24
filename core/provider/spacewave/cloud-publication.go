@@ -92,7 +92,9 @@ func (h *cloudSOHost) pendingPublication() *api.PendingSOPublication {
 
 // publishCheckpoint sends only work captured before the corresponding block
 // fence. Newer local writes keep their own obligation through acknowledgment.
-func (h *cloudSOHost) publishCheckpoint(ctx context.Context, sent *api.PendingSOPublication) error {
+// sentAt is when sent was snapshotted: the work left pending arrived after it,
+// so it becomes that work's first pending time, which never delays it.
+func (h *cloudSOHost) publishCheckpoint(ctx context.Context, sent *api.PendingSOPublication, sentAt time.Time) error {
 	// A nil publication has nothing to send.
 	if sent == nil {
 		return nil
@@ -175,6 +177,8 @@ func (h *cloudSOHost) publishCheckpoint(ctx context.Context, sent *api.PendingSO
 	pending.Control = deleteSent(pending.Control, sent.Control)
 	if pending.GetCheckpoint() == nil && len(pending.Operations) == 0 && len(pending.Control) == 0 {
 		pending = nil
+	} else {
+		pending.FirstPendingUnixMilli = max(pending.GetFirstPendingUnixMilli(), sentAt.UnixMilli())
 	}
 	cache.PendingPublication = pending
 
@@ -212,6 +216,14 @@ func deleteSent[T interface{ MarshalVT() ([]byte, error) }](pending, sent []T) [
 	})
 }
 
+// publicationDue is a host's pending publication as the scheduler sees it.
+type publicationDue struct {
+	// first is when the oldest pending work was retained.
+	first time.Time
+	// ops is set when the publication holds operations, which are due at once.
+	ops bool
+}
+
 // setPublication projects durable obligations into the existing sync scheduler.
 func (s *syncController) setPublication(h *cloudSOHost, pending *api.PendingSOPublication) {
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
@@ -219,9 +231,12 @@ func (s *syncController) setPublication(h *cloudSOHost, pending *api.PendingSOPu
 			delete(s.publications, h)
 		} else {
 			if s.publications == nil {
-				s.publications = make(map[*cloudSOHost]time.Time)
+				s.publications = make(map[*cloudSOHost]publicationDue)
 			}
-			s.publications[h] = time.UnixMilli(pending.GetFirstPendingUnixMilli())
+			s.publications[h] = publicationDue{
+				first: time.UnixMilli(pending.GetFirstPendingUnixMilli()),
+				ops:   len(pending.GetOperations()) != 0,
+			}
 		}
 		if s.telemetry != nil {
 			s.telemetry.syncTelemetry.SetPendingPublications(s.resourceID, len(s.publications))
@@ -254,6 +269,7 @@ func (s *syncController) flushCheckpoint(ctx context.Context, orderBlocks bool) 
 	})
 
 	// Snapshot each host's durable obligation.
+	sentAt := time.Now()
 	pending := make([]*api.PendingSOPublication, len(hosts))
 	for i, host := range hosts {
 		pending[i] = host.pendingPublication()
@@ -273,7 +289,7 @@ func (s *syncController) flushCheckpoint(ctx context.Context, orderBlocks bool) 
 		return s.held(held)
 	}
 	for i, host := range hosts {
-		if err := host.publishCheckpoint(ctx, pending[i]); err != nil {
+		if err := host.publishCheckpoint(ctx, pending[i], sentAt); err != nil {
 			return err
 		}
 	}

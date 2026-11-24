@@ -86,7 +86,7 @@ type syncController struct {
 	// dirtyPendingAt projects the durable first-pending deadline under bcast.
 	dirtyPendingAt time.Time
 	// publications tracks mounted hosts with durable pending cloud work.
-	publications map[*cloudSOHost]time.Time
+	publications map[*cloudSOHost]publicationDue
 	// compactDue records a successful flush since the last merge check, under
 	// bcast. Any flush path sets it, so the scheduler merges once the queue drains.
 	compactDue bool
@@ -286,19 +286,30 @@ func (s *syncController) mergedManifestEntries() []*packfile.PackfileEntry {
 
 // pendingSnapshot reads the durable queue projection and its notification together.
 func (s *syncController) pendingSnapshot() (time.Time, int64, <-chan struct{}) {
+	first, dirty, _, changed := s.dueSnapshot()
+	return first, dirty, changed
+}
+
+// dueSnapshot reads the queue projection, whether any publication holds
+// operations, and the notification together. Operations are due at once, since
+// another member waits on them; blocks and a bare checkpoint wait for the
+// interval.
+func (s *syncController) dueSnapshot() (time.Time, int64, bool, <-chan struct{}) {
 	// Read the queue projection and the earliest pending publication.
 	var first time.Time
 	var dirty int64
+	var ops bool
 	var changed <-chan struct{}
 	s.bcast.HoldLock(func(_ func(), getWait func() <-chan struct{}) {
 		first, dirty, changed = s.dirtyPendingAt, s.dirtySize, getWait()
-		for _, pendingAt := range s.publications {
-			if first.IsZero() || pendingAt.Before(first) {
-				first = pendingAt
+		for _, pub := range s.publications {
+			if first.IsZero() || pub.first.Before(first) {
+				first = pub.first
 			}
+			ops = ops || pub.ops
 		}
 	})
-	return first, dirty, changed
+	return first, dirty, ops, changed
 }
 
 // takeCompactDue clears and reports whether a flush since the last check calls
@@ -359,7 +370,7 @@ func (s *syncController) Execute(ctx context.Context) error {
 
 	// Flush at each deadline or size threshold until ctx ends.
 	for ctx.Err() == nil {
-		first, dirty, changed := s.pendingSnapshot()
+		first, dirty, ops, changed := s.dueSnapshot()
 		if first.IsZero() && dirty < threshold {
 			bo.Reset()
 			if s.takeCompactDue() {
@@ -376,8 +387,10 @@ func (s *syncController) Execute(ctx context.Context) error {
 			}
 		}
 
-		// A later edit wakes this wait but keeps the original persisted deadline.
-		if delay := time.Until(first.Add(interval)); dirty < threshold && delay > 0 {
+		// A later edit wakes this wait but keeps the original persisted
+		// deadline. Pending operations flush at once: a flush in flight
+		// gathers the operations behind it, so its round trip bounds the rate.
+		if delay := time.Until(first.Add(interval)); !ops && dirty < threshold && delay > 0 {
 			select {
 			case <-ctx.Done():
 				return nil
