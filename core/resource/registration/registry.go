@@ -45,14 +45,20 @@ func (r *Registry) OnChange(changed func()) {
 }
 
 // BindLocked associates a comparable registration pointer with its generation.
-// A nil generation is a normal immediately visible registration. The caller
+// A nil generation is a normal immediately visible registration. A generation
+// accepts members while it prepares and while it is active: a member added to
+// the active generation is visible at once and hides with it, so a plugin can
+// register what it can serve only after starting, such as a handler that needs
+// recovery first. A closed or retired generation refuses members. The caller
 // holds Broadcast and must forget the member when its Resource is released.
 func (r *Registry) BindLocked(member any, generation *Generation) error {
+	// Refuse a generation this registry does not hold open.
 	if generation == nil {
 		return nil
 	}
-	if generation.registry != r || generation.closed || generation.activated {
-		return errors.New("plugin registration scope is no longer preparing")
+	retired := generation.activated && r.active[generation.binding] != generation
+	if generation.registry != r || generation.closed || retired {
+		return errors.New("plugin registration scope is closed or retired")
 	}
 	r.members[member] = generation
 	return nil

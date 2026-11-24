@@ -207,12 +207,23 @@ func TestPreparedRegistrationReplacement(t *testing.T) {
 	activate(next)
 	check("", "new")
 
-	// Reject retired activation and extensions to an admitted generation.
+	// Reject retired activation and members of a retired generation.
 	if _, err := plugin_registration.NewSRPCGenerationServiceClient(old).Activate(ctx, &plugin_registration.ActivateRequest{}); err == nil {
 		t.Fatal("retired generation was admitted again")
 	}
-	if _, err := objecttype.NewSRPCObjectTypeRegistryResourceServiceClient(next).RegisterObjectType(ctx, &objecttype.RegisterObjectTypeRequest{TypeId: "colors/late", PluginId: "colors"}); err == nil {
-		t.Fatal("admitted generation accepted a partial extension")
+	if _, err := objecttype.NewSRPCObjectTypeRegistryResourceServiceClient(old).RegisterObjectType(ctx, &objecttype.RegisterObjectTypeRequest{TypeId: "colors/retired", PluginId: "colors"}); err == nil {
+		t.Fatal("retired generation accepted a member")
+	}
+	if types.LookupRegistration("colors/retired", "") != nil {
+		t.Fatal("retired generation's refused member is visible")
+	}
+
+	// Accept a late member into the active generation, visible at once.
+	if _, err := objecttype.NewSRPCObjectTypeRegistryResourceServiceClient(next).RegisterObjectType(ctx, &objecttype.RegisterObjectTypeRequest{TypeId: "colors/late", PluginId: "colors"}); err != nil {
+		t.Fatal(err)
+	}
+	if types.LookupRegistration("colors/late", "") == nil {
+		t.Fatal("late member of the active generation is not visible")
 	}
 	oldRef.Release()
 	check("", "new")
