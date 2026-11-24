@@ -417,8 +417,9 @@ func TestCloudPublicationConcurrentAcceptance(t *testing.T) {
 		t.Fatal(err)
 	}
 	sent := host.pendingPublication()
+	sentAt := time.Now()
 	done := make(chan error, 1)
-	go func() { done <- host.publishCheckpoint(t.Context(), sent, time.Now()) }()
+	go func() { done <- host.publishCheckpoint(t.Context(), sent, sentAt) }()
 	select {
 	case <-started:
 	case <-t.Context().Done():
@@ -432,14 +433,18 @@ func TestCloudPublicationConcurrentAcceptance(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The acknowledgment keeps the concurrent operation and its deadline.
+	// The acknowledgment keeps the concurrent operation, and dates it from the
+	// snapshot, which precedes the operation's write.
 	cache, err := account.loadVerifiedSOStateCache(t.Context(), testSharedObjectID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	pending := cache.GetPendingPublication()
-	if len(pending.GetOperations()) != 1 || pending.GetFirstPendingUnixMilli() != sent.GetFirstPendingUnixMilli() {
-		t.Fatal("acknowledgment lost concurrent work or extended its deadline")
+	if len(pending.GetOperations()) != 1 {
+		t.Fatal("acknowledgment lost concurrent work")
+	}
+	if want := max(sent.GetFirstPendingUnixMilli(), sentAt.UnixMilli()); pending.GetFirstPendingUnixMilli() != want {
+		t.Fatalf("first pending time %d, want %d from the snapshot", pending.GetFirstPendingUnixMilli(), want)
 	}
 	kept := pending.Operations[0]
 	if kept.EqualVT(sent.GetOperations()[0]) || !slices.ContainsFunc(host.stateCtr.GetValue().GetOps(), kept.EqualVT) {
