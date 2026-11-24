@@ -69,6 +69,10 @@ type LaunchApproval struct {
 	// AllowedChildModels are the additional model selectors an agent launched
 	// for this Space may grant its children.
 	AllowedChildModels []string `protobuf:"bytes,3,rep,name=allowed_child_models,json=allowedChildModels,proto3" json:"allowedChildModels,omitempty"`
+	// SecretPluginIds are the plugins this Device lets read, create and write
+	// this Space's Secrets when the Space itself loads them. The core root
+	// refuses those methods to every other plugin.
+	SecretPluginIds []string `protobuf:"bytes,4,rep,name=secret_plugin_ids,json=secretPluginIds,proto3" json:"secretPluginIds,omitempty"`
 }
 
 func (x *LaunchApproval) Reset() {
@@ -94,6 +98,13 @@ func (x *LaunchApproval) GetHostExecution() bool {
 func (x *LaunchApproval) GetAllowedChildModels() []string {
 	if x != nil {
 		return x.AllowedChildModels
+	}
+	return nil
+}
+
+func (x *LaunchApproval) GetSecretPluginIds() []string {
+	if x != nil {
+		return x.SecretPluginIds
 	}
 	return nil
 }
@@ -157,6 +168,7 @@ func (m *LaunchApproval) CloneVT() *LaunchApproval {
 	r.SpaceId = m.SpaceId
 	r.HostExecution = m.HostExecution
 	r.AllowedChildModels = protobuf_go_lite.CloneSlice(m.AllowedChildModels)
+	r.SecretPluginIds = protobuf_go_lite.CloneSlice(m.SecretPluginIds)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -251,6 +263,9 @@ func (this *LaunchApproval) EqualVT(that *LaunchApproval) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualSlice(this.AllowedChildModels, that.AllowedChildModels) {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.SecretPluginIds, that.SecretPluginIds) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -421,6 +436,11 @@ func (x *LaunchApproval) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("allowedChildModels")
 		s.WriteStringArray(x.AllowedChildModels)
 	}
+	if len(x.SecretPluginIds) > 0 || s.HasField("secretPluginIds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("secretPluginIds")
+		s.WriteStringArray(x.SecretPluginIds)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -451,6 +471,13 @@ func (x *LaunchApproval) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				return
 			}
 			x.AllowedChildModels = s.ReadStringArray()
+		case "secret_plugin_ids", "secretPluginIds":
+			s.AddField("secret_plugin_ids")
+			if s.ReadNil() {
+				x.SecretPluginIds = nil
+				return
+			}
+			x.SecretPluginIds = s.ReadStringArray()
 		}
 	})
 }
@@ -635,6 +662,13 @@ func (m *LaunchApproval) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.SecretPluginIds) > 0 {
+		for iNdEx := len(m.SecretPluginIds) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.SecretPluginIds[iNdEx])
+			i--
+			dAtA[i] = 0x22
+		}
+	}
 	if len(m.AllowedChildModels) > 0 {
 		for iNdEx := len(m.AllowedChildModels) - 1; iNdEx >= 0; iNdEx-- {
 			i = protobuf_go_lite.EncodeString(dAtA, i, m.AllowedChildModels[iNdEx])
@@ -776,6 +810,7 @@ func (m *LaunchApproval) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SpaceId)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.HostExecution)
 	n += protobuf_go_lite.SizeStringSlice(1, m.AllowedChildModels)
+	n += protobuf_go_lite.SizeStringSlice(1, m.SecretPluginIds)
 	n += len(m.unknownFields)
 	return n
 }
@@ -858,6 +893,14 @@ func (x *LaunchApproval) MarshalProtoText() string {
 	if len(x.AllowedChildModels) > 0 {
 		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "allowed_child_models")
 		for i, v := range x.AllowedChildModels {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if len(x.SecretPluginIds) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "secret_plugin_ids")
+		for i, v := range x.SecretPluginIds {
 			protobuf_go_lite.TextWriteListSeparator(&sb, i)
 			protobuf_go_lite.TextWriteString(&sb, v)
 		}
@@ -1025,6 +1068,16 @@ func (m *LaunchApproval) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.AllowedChildModels = append(m.AllowedChildModels, v)
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SecretPluginIds", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SecretPluginIds = append(m.SecretPluginIds, v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

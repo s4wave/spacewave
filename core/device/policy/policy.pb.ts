@@ -62,6 +62,12 @@ export interface LaunchApproval {
    * for this Space may grant its children.
    */
   allowedChildModels?: string[]
+  /**
+   * SecretPluginIds are the plugins this Device lets read, create and write
+   * this Space's Secrets when the Space itself loads them. The core root
+   * refuses those methods to every other plugin.
+   */
+  secretPluginIds?: string[]
 }
 
 export const LaunchApproval: MessageType<LaunchApproval> =
@@ -71,6 +77,7 @@ export const LaunchApproval: MessageType<LaunchApproval> =
       [1, 'space_id', 9],
       [2, 'host_execution', 8],
       [3, 'allowed_child_models', 9, 1],
+      [4, 'secret_plugin_ids', 9, 1],
     ],
   )
 

@@ -1,6 +1,7 @@
 syntax = "proto3";
 package s4wave.flowgraph.registry;
 
+import "github.com/s4wave/spacewave/core/device/policy/policy.proto";
 import "github.com/s4wave/spacewave/sdk/flowgraph/flowgraph.proto";
 import "github.com/aperturerobotics/starpc/rpcstream/rpcstream.proto";
 import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
@@ -77,6 +78,11 @@ message CompileRequest {
   repeated PlacedConnection connections = 5;
   // EngineId is the ID of the World engine holding the Flowgraph.
   string engine_id = 6;
+  // SpaceId is the shared object ID of the Space holding the Flowgraph.
+  string space_id = 7;
+  // LaunchApproval is the Device's grant to that Space's work, or an empty
+  // approval for the Space when the Device grants it nothing.
+  .s4wave.device.policy.LaunchApproval launch_approval = 8;
 }
 
 // PlacedConnection adds remote Device identity to an authored edge.
