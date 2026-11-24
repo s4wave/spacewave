@@ -30,6 +30,11 @@ type fakeBucket struct {
 	versioned bool
 	// hidden counts the hidden versions of each key.
 	hidden map[string]int
+	// throttle, when set, answers every request with 503 SlowDown and a
+	// Retry-After of zero, as a throttled B2 bucket does, and throttled
+	// counts those answers.
+	throttle  bool
+	throttled int
 	// after, when set, runs after each request is answered and before the
 	// answer returns, so the client sees the bucket as it was before after.
 	after func(r *http.Request)
@@ -62,6 +67,13 @@ func (b *fakeBucket) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // serve answers one S3 request while the caller holds the bucket.
 func (b *fakeBucket) serve(w http.ResponseWriter, r *http.Request) {
+	// Refuse every request while throttled.
+	if b.throttle {
+		b.throttled++
+		w.Header().Set("Retry-After", "0")
+		http.Error(w, "<Error><Code>SlowDown</Code></Error>", http.StatusServiceUnavailable)
+		return
+	}
 
 	// Answer by the request's key and query.
 	key := strings.TrimPrefix(r.URL.Path, "/bucket/")

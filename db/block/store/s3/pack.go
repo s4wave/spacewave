@@ -540,13 +540,13 @@ func (s *PackStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*b
 	if ref.GetEmpty() {
 		return nil, block.ErrEmptyBlockRef
 	}
-	if stored := s.readExtent(ctx, ref); stored != nil {
-		return stored, nil
+	stored, err := s.readExtent(ctx, ref)
+	if stored != nil || err != nil {
+		return stored, err
 	}
 
 	// Otherwise read it through the pack readers.
-	var stored *block.StoredBlock
-	err := s.lookup(ctx, []*block.BlockRef{ref}, func(placed []bool) (bool, error) {
+	err = s.lookup(ctx, []*block.BlockRef{ref}, func(placed []bool) (bool, error) {
 		var err error
 		stored, err = s.packs.GetStoredBlock(ctx, ref)
 		return stored == nil && placed[0], err
@@ -619,23 +619,26 @@ func SetIndexExtentReads(on bool) {
 }
 
 // readExtent reads the block with one range read of its pack when its h row
-// holds its extent, and returns nil when it does not, or when the bytes read
-// do not hold the block: a row of a pack sharing its number may name the
-// wrong pack, and the lookup through the pack readers finds the right one.
+// holds its extent. It returns nil and no error when the row holds no extent,
+// when the pack is missing, or when the bytes read do not hold the block: a row
+// of a pack sharing its number may name the wrong pack, and the lookup through
+// the pack readers finds the right one. Any other failure of the read, such as
+// a throttled or failed request, returns its error, because the pack readers
+// would send the same bucket more and larger reads that fail the same way.
 // Concurrent reads of one block share the range read.
-func (s *PackStore) readExtent(ctx context.Context, ref *block.BlockRef) *block.StoredBlock {
+func (s *PackStore) readExtent(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	// Find the extent.
 	if s.index == nil || !extentReadsOn.Load() || ref.GetHash() == nil {
-		return nil
+		return nil, nil
 	}
 	key := packfile.BlockKey(ref.GetHash())
 	id, off, size, ok, err := s.index.locateExtent(ctx, key)
 	if err != nil || !ok {
-		return nil
+		return nil, err
 	}
 
 	// Read and verify the block's bytes, once for every concurrent reader.
-	value, _, _ := s.extentReads.Do(string(key), func() (any, error) {
+	value, err, _ := s.extentReads.Do(string(key), func() (any, error) {
 		// A cached copy saves the read; anything wrong with it costs only that.
 		if s.readCache != nil {
 			if data, ok := s.readCache.ReadCached(ctx, id, off, size); ok {
@@ -647,19 +650,25 @@ func (s *PackStore) readExtent(ctx context.Context, ref *block.BlockRef) *block.
 			}
 		}
 
-		// Read the extent.
+		// Read the extent; a missing pack means the row named the wrong one.
 		data, err := s.client.GetObjectRange(ctx, s.bucket, s.prefix+packDir+id, off, size)
+		if errors.Is(err, ErrNotFound) {
+			return nil, nil
+		}
 		if err != nil {
 			return nil, err
 		}
+
+		// Bytes that do not hold the block also mean the wrong pack.
 		stored, err := verifiedBlock(ref, data)
-		if err == nil {
-			s.reads.bucket.Add(1)
+		if err != nil {
+			return nil, nil
 		}
-		return stored, err
+		s.reads.bucket.Add(1)
+		return stored, nil
 	})
 	stored, _ := value.(*block.StoredBlock)
-	return stored
+	return stored, err
 }
 
 // GetBlockExists checks the packfiles for the block.
