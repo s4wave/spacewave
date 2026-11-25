@@ -3,12 +3,14 @@ package provider_local
 import (
 	"context"
 	"iter"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/s4wave/spacewave/db/block"
 	block_store_fillcache "github.com/s4wave/spacewave/db/block/store/fillcache"
+	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	"github.com/sirupsen/logrus"
 )
 
@@ -18,6 +20,14 @@ const residentSaveInterval = 5 * time.Minute
 
 // residentSaveWait bounds the save at unmount, which delays the unmount.
 const residentSaveWait = 10 * time.Second
+
+// warmRetryFirst and warmRetryMax bound the warm-up's wait before it reads a
+// slice the bucket failed with a transient status again: the wait starts at
+// the first and doubles up to the second.
+const (
+	warmRetryFirst = 5 * time.Second
+	warmRetryMax   = time.Minute
+)
 
 // residentWarmup turns the resident list's save and warm-up on; see
 // SetResidentWarmup.
@@ -129,13 +139,15 @@ func (t *bstoreTracker) warmResident(ctx context.Context, le *logrus.Entry, p *p
 	// Read the list into the cache, skipping what the local store serves, and
 	// log what it did.
 	start := time.Now()
-	var local int
-	read := skipLocal(p.withLinkedFiles(p.local), batch.ReadBatch, &local)
+	var local, retries int
+	fetch := retryTransient(le, batch.ReadBatch, warmRetryFirst, &retries)
+	read := skipLocal(p.withLinkedFiles(p.local), fetch, &local)
 	counts, err := cache.WarmResident(ctx, t.id, read)
 	le = le.WithField("listed", counts.Listed).
 		WithField("held", counts.Listed-counts.Missing).
 		WithField("local", local).
 		WithField("fetched", counts.Fetched).
+		WithField("retries", retries).
 		WithField("dur", time.Since(start).Round(time.Millisecond).String())
 	if err != nil && ctx.Err() == nil {
 		le.WithError(err).Warn("resident warm-up stopped")
@@ -175,6 +187,60 @@ func skipLocal(local block.StoreOps, read block_store_fillcache.ReadBatch, skipp
 			return nil
 		}
 		return read(ctx, want, fn)
+	}
+}
+
+// retryTransient returns a ReadBatch that reads with read and, when the bucket
+// fails a read with a transient status, such as a throttled account's 503
+// SlowDown, waits and reads again the refs it has not yet passed to fn. The
+// wait starts at first and doubles up to warmRetryMax, and retries counts the
+// waits. Other errors return.
+//
+// The bucket's client has retried the request before it returns the error, so
+// the bucket is throttling for longer than a request's retries cover, as it
+// does when a start's own fills pass the account's rate. The warm-up is
+// background work that a start can finish without, so it waits out the fault
+// rather than adding to the burst or ending: one throttled minute delays it.
+// Each wait costs one timer, and a retry reads only the refs still unread.
+func retryTransient(le *logrus.Entry, read block_store_fillcache.ReadBatch, first time.Duration, retries *int) block_store_fillcache.ReadBatch {
+	return func(ctx context.Context, refs []*block.BlockRef, fn func(*block.BlockRef, *block.StoredBlock) error) error {
+		// Read, recording each ref passed on, until a read ends without a
+		// transient failure.
+		var passed map[string]struct{}
+		wait := first
+		for {
+			err := read(ctx, refs, func(ref *block.BlockRef, stored *block.StoredBlock) error {
+				if passed == nil {
+					passed = make(map[string]struct{}, len(refs))
+				}
+				passed[ref.MarshalString()] = struct{}{}
+				return fn(ref, stored)
+			})
+			if err == nil || ctx.Err() != nil || !block_store_s3.IsTransient(err) {
+				return err
+			}
+
+			// Keep the refs still unread, then wait.
+			refs = slices.DeleteFunc(slices.Clone(refs), func(ref *block.BlockRef) bool {
+				_, ok := passed[ref.MarshalString()]
+				return ok
+			})
+			if len(refs) == 0 {
+				return nil
+			}
+			*retries++
+			le.WithError(err).WithField("wait", wait.String()).Debug("the bucket failed the resident warm-up, waiting to retry")
+			// The wait backs off a throttled bucket; it polls no state.
+			//gostyle:timer deadline
+			timer := time.NewTimer(wait)
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return context.Cause(ctx)
+			case <-timer.C:
+			}
+			wait = min(2*wait, warmRetryMax)
+		}
 	}
 }
 
