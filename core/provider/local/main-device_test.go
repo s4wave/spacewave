@@ -147,7 +147,8 @@ func TestFollowerReplaysAboveCheckpoint(t *testing.T) {
 // that a lone edit is checkpointed at the deadline, and logs the page bytes
 // per edit by tree and the restart time with the edits above the checkpoint.
 // CHECKPOINT_CADENCE_SEED=n first seeds the World with n objects, so the
-// reading compares with the World page readings on a seeded World.
+// reading compares with the World page readings on a seeded World. The seed
+// is padded up to a checkpoint before the count starts.
 func TestCheckpointCadence(t *testing.T) {
 	t.Run("count-only", func(t *testing.T) { checkpointCadence(t, true) })
 	t.Run("deadline", func(t *testing.T) { checkpointCadence(t, false) })
@@ -198,9 +199,19 @@ func checkpointCadence(t *testing.T, countOnly bool) {
 	}
 	var seeded uint64
 	if seed, _ := strconv.Atoi(os.Getenv("CHECKPOINT_CADENCE_SEED")); seed > 0 {
+		// Seed, then pad the seed's operations up to a checkpoint, so its
+		// pages are stored before the count starts.
 		owner.seed(ctx, seed)
-		owner.waitPlaced(ctx)
-		seeded, _ = owner.waitSettled(ctx, sobject.MinCheckpointOperations)
+		for pad := 0; ; pad++ {
+			owner.waitPlaced(ctx)
+			var left int
+			if seeded, left = owner.waitSettled(ctx, above); left == 0 {
+				break
+			}
+			for i := range sobject.MinCheckpointOperations - left {
+				owner.create(ctx, "pad-"+strconv.Itoa(pad)+"-"+strconv.Itoa(i))
+			}
+		}
 	}
 	before := world_block.StoredPages.Snapshot()
 	for i := range edits {
