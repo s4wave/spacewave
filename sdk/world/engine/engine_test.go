@@ -1831,7 +1831,7 @@ func TestSDKEngine_BodyPageCalls(t *testing.T) {
 	}
 
 	// The per-key object reads cost the same withheld read for every key.
-	if _, _, _, err := world.LookupObjectBodiesPage(ctx, readTx, keys, pageBudget); err != nil {
+	if _, _, _, err := world.LookupObjectBodiesPage(ctx, readTx, keys, pageBudget, 1); err != nil {
 		t.Fatal(err)
 	}
 	perKey := counter.take()

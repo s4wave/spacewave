@@ -547,7 +547,7 @@ func (ws *releaseCountingWorldState) GetObjectBodiesBatchPage(
 	keys []string,
 	byteBudget int,
 ) ([]*world.ObjectBody, uint32, uint64, error) {
-	return world.LookupObjectBodiesPage(ctx, ws, keys, byteBudget)
+	return world.LookupObjectBodiesPage(ctx, ws, keys, byteBudget, 1)
 }
 
 func (ws *releaseCountingWorldState) CreateObject(
@@ -716,7 +716,7 @@ func (txs *staleRetryTx) ApplyWorldOp(ctx context.Context, op world.Operation, o
 }
 
 func (txs *staleRetryTx) GetObjectBodiesBatchPage(ctx context.Context, keys []string, byteBudget int) ([]*world.ObjectBody, uint32, uint64, error) {
-	return world.LookupObjectBodiesPage(ctx, txs, keys, byteBudget)
+	return world.LookupObjectBodiesPage(ctx, txs, keys, byteBudget, 1)
 }
 
 func (txs *staleRetryTx) GetObject(ctx context.Context, key string) (world.ObjectState, bool, error) {
