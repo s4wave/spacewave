@@ -35,8 +35,10 @@ func SetResidentWarmup(on bool) {
 	residentWarmup.Store(on)
 }
 
-// residentCache is a fill cache that keeps a resident list per block store.
-type residentCache interface {
+// ResidentCache is a fill cache that keeps a resident list per block store.
+// A mount keeps its list only when its placement's fill cache implements it,
+// so a cache that wraps a fill cache implements it to forward the list.
+type ResidentCache interface {
 	// SaveResident replaces scope's list with refKeys.
 	SaveResident(ctx context.Context, scope string, refKeys iter.Seq[string]) error
 	// WarmResident reads the listed refs the cache lacks with read into the
@@ -63,7 +65,7 @@ type batchReader interface {
 // lost list costs reads and never a block.
 func (t *bstoreTracker) startResident(ctx context.Context, le *logrus.Entry, p *placementState, decodedBlocks *block.DecodedBlockCache) (stop func()) {
 	// Keep lists only in a fill cache that can, with the warm-up on.
-	cache, ok := p.cache.(residentCache)
+	cache, ok := p.cache.(ResidentCache)
 	if !ok || !residentWarmup.Load() {
 		return func() {}
 	}
@@ -113,7 +115,7 @@ func (t *bstoreTracker) startResident(ctx context.Context, le *logrus.Entry, p *
 // warmResident reads the blocks the last mount's list names and the cache
 // lacks from the backend into the cache, once the backend opens, when the
 // backend reads batches. The blocks it does not read read on demand.
-func (t *bstoreTracker) warmResident(ctx context.Context, le *logrus.Entry, p *placementState, cache residentCache) {
+func (t *bstoreTracker) warmResident(ctx context.Context, le *logrus.Entry, p *placementState, cache ResidentCache) {
 	// Wait for the backend to open, and warm only from one that reads batches.
 	store, err := t.waitBackend(ctx, p)
 	if err != nil || store == nil {
@@ -157,4 +159,4 @@ func (t *bstoreTracker) waitBackend(ctx context.Context, p *placementState) (blo
 }
 
 // _ is a type assertion: the disk fill cache keeps resident lists.
-var _ residentCache = (*block_store_fillcache.Cache)(nil)
+var _ ResidentCache = (*block_store_fillcache.Cache)(nil)
