@@ -22,6 +22,7 @@ import {
   type BottomBarContextMenuItem,
   type BottomBarContextMenuOpenKind,
   type BottomBarItem,
+  useBottomBarDismissMenu,
   useBottomBarItems,
   useBottomBarOpenMenu,
   useBottomBarOverlayHostRef,
@@ -50,7 +51,7 @@ interface BottomBarContextMenuState {
 interface BottomBarButtonSlotProps {
   item: BottomBarItem
   openMenu: string
-  setOpenMenu: (id: string) => void
+  activateMenu: (id: string) => void
   openContextMenu?: (
     item: BottomBarItem,
     activation: BottomBarSecondaryActivation,
@@ -62,7 +63,7 @@ interface BottomBarButtonSlotProps {
 function BottomBarButtonSlot({
   item,
   openMenu,
-  setOpenMenu,
+  activateMenu,
   openContextMenu,
   contextMenuOpen,
   className,
@@ -70,7 +71,7 @@ function BottomBarButtonSlot({
   const selected = openMenu === item.id
   const button = item.button(
     selected,
-    () => setOpenMenu(selected ? '' : item.id),
+    () => activateMenu(item.id),
     cn(selected && 'bg-bar-item-selected', className),
   )
   const hasContextMenu = (item.contextMenuItems?.length ?? 0) > 0
@@ -90,13 +91,13 @@ function BottomBarButtonSlot({
 function CollapsedBottomBarItems({
   items,
   openMenu,
-  setOpenMenu,
+  activateMenu,
   openContextMenu,
   contextMenuOpenItemId,
 }: {
   items: BottomBarItem[]
   openMenu: string
-  setOpenMenu: (id: string) => void
+  activateMenu: (id: string) => void
   openContextMenu?: (
     item: BottomBarItem,
     activation: BottomBarSecondaryActivation,
@@ -123,7 +124,7 @@ function CollapsedBottomBarItems({
           return (
             <DropdownMenuItem
               key={item.id}
-              onSelect={() => setOpenMenu(itemSelected ? '' : item.id)}
+              onSelect={() => activateMenu(item.id)}
               aria-haspopup={hasContextMenu ? 'menu' : undefined}
               aria-expanded={
                 hasContextMenu ? contextMenuOpenItemId === item.id : undefined
@@ -298,7 +299,10 @@ export function ViewerFrame(props: ViewerFrameProps) {
   const items = useBottomBarItems()
   const phoneShell = usePhoneShell()
   const openMenu = useBottomBarOpenMenu() ?? ''
-  const setOpenMenu = useBottomBarSetOpenMenu() ?? (() => {})
+  const setOpenMenu = useBottomBarSetOpenMenu()
+  const activateMenu = (id: string) =>
+    setOpenMenu?.((current) => (current === id ? '' : id))
+  const dismissMenu = useBottomBarDismissMenu(openMenu)
   const overlayHostRef = useBottomBarOverlayHostRef()
   const [contextMenuState, setContextMenuState] =
     useState<BottomBarContextMenuState | null>(null)
@@ -350,7 +354,7 @@ export function ViewerFrame(props: ViewerFrameProps) {
                 <BottomBarButtonSlot
                   item={item}
                   openMenu={openMenu}
-                  setOpenMenu={setOpenMenu}
+                  activateMenu={activateMenu}
                   openContextMenu={openContextMenu}
                   contextMenuOpen={contextMenuState?.itemId === item.id}
                 />
@@ -362,7 +366,7 @@ export function ViewerFrame(props: ViewerFrameProps) {
             <CollapsedBottomBarItems
               items={middle}
               openMenu={openMenu}
-              setOpenMenu={setOpenMenu}
+              activateMenu={activateMenu}
               openContextMenu={openContextMenu}
               contextMenuOpenItemId={contextMenuState?.itemId}
             />
@@ -372,7 +376,7 @@ export function ViewerFrame(props: ViewerFrameProps) {
             <BottomBarButtonSlot
               item={last}
               openMenu={openMenu}
-              setOpenMenu={setOpenMenu}
+              activateMenu={activateMenu}
               openContextMenu={openContextMenu}
               contextMenuOpen={contextMenuState?.itemId === last.id}
               className={lastClassName}
@@ -393,7 +397,7 @@ export function ViewerFrame(props: ViewerFrameProps) {
               <BottomBarButtonSlot
                 item={item}
                 openMenu={openMenu}
-                setOpenMenu={setOpenMenu}
+                activateMenu={activateMenu}
                 openContextMenu={openContextMenu}
                 contextMenuOpen={contextMenuState?.itemId === item.id}
                 className={
@@ -414,7 +418,7 @@ export function ViewerFrame(props: ViewerFrameProps) {
             <BottomBarButtonSlot
               item={item}
               openMenu={openMenu}
-              setOpenMenu={setOpenMenu}
+              activateMenu={activateMenu}
               openContextMenu={openContextMenu}
               contextMenuOpen={contextMenuState?.itemId === item.id}
             />
@@ -449,14 +453,14 @@ export function ViewerFrame(props: ViewerFrameProps) {
             ? activeItem.menuLabel
             : activeItem?.id
         }
-        onCloseOverlay={() => setOpenMenu('')}
+        onCloseOverlay={dismissMenu}
       >
         {props.children}
       </Frame>
       <BottomBarContextMenu
         item={contextMenuItem}
         state={contextMenuState}
-        setOpenMenu={setOpenMenu}
+        setOpenMenu={setOpenMenu ?? (() => {})}
         onClose={closeContextMenu}
         returnFocusRef={contextMenuTriggerRef}
       />

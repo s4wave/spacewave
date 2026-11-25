@@ -7,12 +7,15 @@ import type { Session } from '@s4wave/sdk/session/session.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { BottomBarItem } from '@s4wave/web/frame/bottom-bar-item.js'
 import { BottomBarLevel } from '@s4wave/web/frame/bottom-bar-level.js'
-import { useBottomBarSetOpenMenu } from '@s4wave/web/frame/bottom-bar-context.js'
+import {
+  useBottomBarDismissMenu,
+  useBottomBarSetOpenMenu,
+} from '@s4wave/web/frame/bottom-bar-context.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import { usePath } from '@s4wave/web/router/router.js'
 import {
   Popover,
-  PopoverAnchor,
+  PopoverTrigger,
   PopoverContent,
 } from '@s4wave/web/ui/Popover.js'
 import { useListenerStatus } from '@s4wave/app/hooks/useListenerStatus.js'
@@ -46,6 +49,7 @@ export function AgentConnectButton() {
   const listener = useListenerStatus()
   const routePath = usePath()
   const setOpenMenu = useBottomBarSetOpenMenu()
+  const dismissMenu = useBottomBarDismissMenu(AGENT_CONNECT_MENU_ID)
 
   const socketPath = listener?.listening ? listener.socketPath : ''
   const pairingSupported = providerId === 'local' || providerId === 'spacewave'
@@ -188,11 +192,13 @@ export function AgentConnectButton() {
         onClick()
       }
       return (
-        <Popover open={selected}>
-          <PopoverAnchor asChild>
+        <Popover
+          open={selected}
+          onOpenChange={(open) => (open ? handleClick() : dismissMenu())}
+        >
+          <PopoverTrigger asChild>
             <BottomBarItem
               selected={selected}
-              onClick={handleClick}
               className={className}
               aria-label={
                 selected ? 'Close agent connection' : 'Connect an agent'
@@ -201,12 +207,11 @@ export function AgentConnectButton() {
             >
               <LuBot aria-hidden="true" />
             </BottomBarItem>
-          </PopoverAnchor>
+          </PopoverTrigger>
           <PopoverContent
             side="top"
             align="end"
             sideOffset={6}
-            onEscapeKeyDown={onClick}
             onInteractOutside={(event) => event.preventDefault()}
             variant="status"
           >
@@ -218,7 +223,7 @@ export function AgentConnectButton() {
               copyState={copyState}
               onCopy={copyAgain}
               onNewCode={startPairing}
-              onClose={onClick}
+              onClose={dismissMenu}
             />
           </PopoverContent>
         </Popover>
@@ -232,6 +237,7 @@ export function AgentConnectButton() {
       copyState,
       copyAgain,
       startPairing,
+      dismissMenu,
     ],
   )
 

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useState } from 'react'
 import {
   cleanup,
   fireEvent,
@@ -6,7 +6,10 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+
+import { BottomBarRoot } from '@s4wave/web/frame/bottom-bar-root.js'
+import { ViewerFrame } from '@s4wave/web/frame/ViewerFrame.js'
 
 import { SessionSelfEnrollmentStatusButton } from './SessionSelfEnrollmentStatusButton.js'
 import {
@@ -15,8 +18,6 @@ import {
 } from './SessionSelfEnrollmentStatusContext.js'
 
 const mockUseSessionSelfEnrollmentStatus = vi.hoisted(() => vi.fn())
-const mockToggle = vi.hoisted(() => vi.fn())
-const mockSelected = vi.hoisted(() => ({ value: true }))
 
 vi.mock('./SessionSelfEnrollmentStatusContext.js', async () => {
   const actual = await vi.importActual<
@@ -28,33 +29,17 @@ vi.mock('./SessionSelfEnrollmentStatusContext.js', async () => {
   }
 })
 
-vi.mock('@s4wave/web/frame/bottom-bar-level.js', () => ({
-  BottomBarLevel: (props: {
-    id: string
-    position?: 'left' | 'right'
-    button: (
-      selected: boolean,
-      onClick: () => void,
-      className?: string,
-    ) => ReactNode
-    children?: ReactNode
-  }) => (
-    <div
-      data-testid={`bottom-bar-level-${props.id}`}
-      data-position={props.position ?? 'left'}
-    >
-      {props.button(mockSelected.value, mockToggle, '')}
-      {props.children}
-    </div>
-  ),
-}))
+function Harness() {
+  const [openMenu, setOpenMenu] = useState('session-self-enrollment-status')
+  return (
+    <BottomBarRoot openMenu={openMenu} setOpenMenu={setOpenMenu}>
+      <SessionSelfEnrollmentStatusButton />
+      <ViewerFrame />
+    </BottomBarRoot>
+  )
+}
 
 describe('SessionSelfEnrollmentStatusButton', () => {
-  beforeEach(() => {
-    mockToggle.mockClear()
-    mockSelected.value = true
-  })
-
   afterEach(() => {
     cleanup()
   })
@@ -107,10 +92,10 @@ describe('SessionSelfEnrollmentStatusButton', () => {
   ])('renders $name status', (test) => {
     mockUseSessionSelfEnrollmentStatus.mockReturnValue(test.view)
 
-    render(<SessionSelfEnrollmentStatusButton />)
+    render(<Harness />)
 
     expect(
-      screen.getByTestId('bottom-bar-level-session-self-enrollment-status'),
+      screen.getByTestId('session-self-enrollment-status-button'),
     ).toBeTruthy()
     expect(
       screen
@@ -139,7 +124,7 @@ describe('SessionSelfEnrollmentStatusButton', () => {
       }),
     )
 
-    render(<SessionSelfEnrollmentStatusButton />)
+    render(<Harness />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Connect' }))
 
@@ -156,10 +141,10 @@ describe('SessionSelfEnrollmentStatusButton', () => {
   it('stays hidden when no self-enrollment work is visible', () => {
     mockUseSessionSelfEnrollmentStatus.mockReturnValue(view({ count: 0 }))
 
-    render(<SessionSelfEnrollmentStatusButton />)
+    render(<Harness />)
 
     expect(
-      screen.queryByTestId('bottom-bar-level-session-self-enrollment-status'),
+      screen.queryByTestId('session-self-enrollment-status-button'),
     ).toBeNull()
   })
 
@@ -172,10 +157,10 @@ describe('SessionSelfEnrollmentStatusButton', () => {
       detailLabel: 'Waiting for connected-space status.',
     })
 
-    render(<SessionSelfEnrollmentStatusButton />)
+    render(<Harness />)
 
     expect(
-      screen.queryByTestId('bottom-bar-level-session-self-enrollment-status'),
+      screen.queryByTestId('session-self-enrollment-status-button'),
     ).toBeNull()
   })
 
@@ -189,10 +174,10 @@ describe('SessionSelfEnrollmentStatusButton', () => {
       ),
     )
 
-    render(<SessionSelfEnrollmentStatusButton />)
+    render(<Harness />)
 
     expect(
-      screen.queryByTestId('bottom-bar-level-session-self-enrollment-status'),
+      screen.queryByTestId('session-self-enrollment-status-button'),
     ).toBeNull()
   })
 })

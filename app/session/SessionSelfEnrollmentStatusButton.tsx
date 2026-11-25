@@ -7,11 +7,12 @@ import {
   LuSkipForward,
 } from 'react-icons/lu'
 
+import { useBottomBarDismissMenu } from '@s4wave/web/frame/bottom-bar-context.js'
 import { BottomBarItem } from '@s4wave/web/frame/bottom-bar-item.js'
 import { BottomBarLevel } from '@s4wave/web/frame/bottom-bar-level.js'
 import {
   Popover,
-  PopoverAnchor,
+  PopoverTrigger,
   PopoverContent,
 } from '@s4wave/web/ui/Popover.js'
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
@@ -24,16 +25,21 @@ import {
   useSessionSelfEnrollmentStatus,
 } from './SessionSelfEnrollmentStatusContext.js'
 
+const menuId = 'session-self-enrollment-status'
+
 // SessionSelfEnrollmentStatusButton registers the self-enrollment bottom-bar item.
 export function SessionSelfEnrollmentStatusButton() {
+  const dismissMenu = useBottomBarDismissMenu(menuId)
   const status = useSessionSelfEnrollmentStatus()
   const buttonRender = useCallback(
     (selected: boolean, onClick: () => void, className?: string) => (
-      <Popover open={selected}>
-        <PopoverAnchor asChild>
+      <Popover
+        open={selected}
+        onOpenChange={(open) => (open ? onClick() : dismissMenu())}
+      >
+        <PopoverTrigger asChild>
           <BottomBarItem
             selected={selected}
-            onClick={onClick}
             className={cn(
               className,
               status.running && 'text-brand',
@@ -45,30 +51,19 @@ export function SessionSelfEnrollmentStatusButton() {
           >
             <SessionSelfEnrollmentStatusGlyph status={status} />
           </BottomBarItem>
-        </PopoverAnchor>
-        <PopoverContent
-          side="top"
-          align="end"
-          sideOffset={6}
-          onEscapeKeyDown={onClick}
-          onPointerDownOutside={onClick}
-          variant="status"
-        >
+        </PopoverTrigger>
+        <PopoverContent side="top" align="end" sideOffset={6} variant="status">
           <SessionSelfEnrollmentStatusPopover status={status} />
         </PopoverContent>
       </Popover>
     ),
-    [status],
+    [status, dismissMenu],
   )
 
   if (!status.visible) return null
 
   return (
-    <BottomBarLevel
-      id="session-self-enrollment-status"
-      position="right"
-      button={buttonRender}
-    >
+    <BottomBarLevel id={menuId} position="right" button={buttonRender}>
       {null}
     </BottomBarLevel>
   )

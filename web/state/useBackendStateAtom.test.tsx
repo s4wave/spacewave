@@ -51,6 +51,40 @@ describe('useBackendStateAtomValue', () => {
     expect(button.textContent).toBe('welcome.md')
   })
 
+  it('persists only the winner of same-tick updates', async () => {
+    const setState = vi.fn(() => Promise.resolve())
+    const stateAtom = {
+      setState,
+      watchState: vi.fn(() => null),
+      release: vi.fn(),
+      [Symbol.dispose]: vi.fn(),
+    }
+    const accessor = buildAccessor(
+      vi.fn(() => Promise.resolve(stateAtom as never)),
+    )
+    function Menu() {
+      const menu = useBackendStateAtomValue(accessor, 'openMenu', 'plugins')
+      return (
+        <button
+          type="button"
+          onClick={() => {
+            menu.setValue('system-status')
+            menu.setValue((current) => (current === 'plugins' ? '' : current))
+          }}
+        >
+          {menu.value || 'closed'}
+        </button>
+      )
+    }
+    render(<Menu />)
+    fireEvent.click(screen.getByRole('button', { name: 'plugins' }))
+    expect(screen.getByRole('button').textContent).toBe('system-status')
+    await waitFor(() =>
+      expect(setState).toHaveBeenCalledWith('{"json":"system-status"}'),
+    )
+    expect(setState).toHaveBeenCalledTimes(1)
+  })
+
   it('flushes a pending state update when the backend atom becomes available', async () => {
     const setState = vi.fn(() => Promise.resolve())
     const stateAtom = {

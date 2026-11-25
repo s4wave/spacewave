@@ -1,4 +1,9 @@
-import React, { createContext, use, useSyncExternalStore } from 'react'
+import React, {
+  createContext,
+  use,
+  useCallback,
+  useSyncExternalStore,
+} from 'react'
 
 export type BottomBarContextMenuOpenKind = 'mouse' | 'keyboard' | 'touch'
 
@@ -96,6 +101,12 @@ export interface BottomBarContextValue {
  */
 export interface BottomBarRootContextValue extends BottomBarContextValue {}
 
+// SetBottomBarOpenMenu accepts an absolute selection or a transition from the
+// owner's latest selection.
+export type SetBottomBarOpenMenu = (
+  update: string | ((current: string) => string),
+) => void
+
 /**
  * Items context value for reading items via useSyncExternalStore.
  * This is separate from BottomBarContext to prevent re-renders when items change.
@@ -110,7 +121,7 @@ export interface BottomBarItemsContextValue {
   /** Ref callback for the frame's overlay host element. */
   overlayHostRef: (el: HTMLElement | null) => () => void
   openMenu?: string
-  setOpenMenu?: (id: string) => void
+  setOpenMenu?: SetBottomBarOpenMenu
 }
 
 /**
@@ -176,9 +187,18 @@ export function useBottomBarOpenMenu(): string | undefined {
 /**
  * Hook to get setOpenMenu from the BottomBarItemsContext.
  */
-export function useBottomBarSetOpenMenu(): ((id: string) => void) | undefined {
+export function useBottomBarSetOpenMenu(): SetBottomBarOpenMenu | undefined {
   const context = use(BottomBarItemsContext)
   return context?.setOpenMenu
+}
+
+// useBottomBarDismissMenu closes only the named menu. A departing popover can
+// report dismissal after another trigger has selected a different menu.
+export function useBottomBarDismissMenu(id: string): () => void {
+  const setOpenMenu = useBottomBarSetOpenMenu()
+  return useCallback(() => {
+    if (id) setOpenMenu?.((current) => (current === id ? '' : current))
+  }, [id, setOpenMenu])
 }
 
 /**

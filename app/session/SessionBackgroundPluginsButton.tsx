@@ -4,13 +4,14 @@ import { LuActivity } from 'react-icons/lu'
 import type { BackgroundPlugin } from '@s4wave/core/session/session.pb.js'
 import { knownSpacePlugin } from '@s4wave/app/space/known-plugins.js'
 import { useWatchSpacesList } from '@s4wave/app/system/useSystemStatus.js'
+import { useBottomBarDismissMenu } from '@s4wave/web/frame/bottom-bar-context.js'
 import { BottomBarItem } from '@s4wave/web/frame/bottom-bar-item.js'
 import { BottomBarLevel } from '@s4wave/web/frame/bottom-bar-level.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { Button } from '@s4wave/web/ui/button.js'
 import {
   Popover,
-  PopoverAnchor,
+  PopoverTrigger,
   PopoverContent,
 } from '@s4wave/web/ui/Popover.js'
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
@@ -50,10 +51,13 @@ function groupBySpace(
   return spaces
 }
 
+const menuId = 'session-background-plugins'
+
 // SessionBackgroundPluginsButton registers the bottom-bar item that lists the
 // plugins confirmed to run while their Space is closed. It shows only while
 // the Session has one.
 export function SessionBackgroundPluginsButton() {
+  const dismissMenu = useBottomBarDismissMenu(menuId)
   const backgroundPlugins = useBackgroundPlugins()
   const entries = backgroundPlugins.entries
   const running = entries.filter((entry) => !entry.suspended).length
@@ -63,43 +67,34 @@ export function SessionBackgroundPluginsButton() {
       : `Background plugins: ${running} running`
   const buttonRender = useCallback(
     (selected: boolean, onClick: () => void, className?: string) => (
-      <Popover open={selected}>
-        <PopoverAnchor asChild>
+      <Popover
+        open={selected}
+        onOpenChange={(open) => (open ? onClick() : dismissMenu())}
+      >
+        <PopoverTrigger asChild>
           <BottomBarItem
             selected={selected}
-            onClick={onClick}
             className={cn(className, running !== 0 && 'text-brand')}
             aria-label={ariaLabel}
             data-testid="session-background-plugins-button"
           >
             <LuActivity className="size-3.5" aria-hidden="true" />
           </BottomBarItem>
-        </PopoverAnchor>
-        <PopoverContent
-          side="top"
-          align="end"
-          sideOffset={6}
-          onEscapeKeyDown={onClick}
-          onPointerDownOutside={onClick}
-          variant="status"
-        >
+        </PopoverTrigger>
+        <PopoverContent side="top" align="end" sideOffset={6} variant="status">
           <SessionBackgroundPluginsPopover
             backgroundPlugins={backgroundPlugins}
           />
         </PopoverContent>
       </Popover>
     ),
-    [running, ariaLabel, backgroundPlugins],
+    [running, ariaLabel, backgroundPlugins, dismissMenu],
   )
 
   if (entries.length === 0) return null
 
   return (
-    <BottomBarLevel
-      id="session-background-plugins"
-      position="right"
-      button={buttonRender}
-    >
+    <BottomBarLevel id={menuId} position="right" button={buttonRender}>
       {null}
     </BottomBarLevel>
   )

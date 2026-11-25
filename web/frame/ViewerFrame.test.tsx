@@ -83,7 +83,7 @@ describe('ViewerFrame', () => {
 
     await user.click(screen.getByLabelText('Open hidden bottom bar items'))
     await user.click(screen.getByText('First'))
-    expect(setOpenMenu).toHaveBeenCalledWith('first')
+    expect(setOpenMenu.mock.lastCall?.[0]('')).toBe('first')
   })
 
   it('collapses two or more intermediate left bottom-bar items into a menu', async () => {
@@ -132,7 +132,7 @@ describe('ViewerFrame', () => {
     expect(item).toBeTruthy()
 
     await user.click(item)
-    expect(setOpenMenu).toHaveBeenCalledWith('middle-b')
+    expect(setOpenMenu.mock.lastCall?.[0]('')).toBe('middle-b')
   })
 
   it('opens a collapsed item context menu without selecting the hidden item', async () => {

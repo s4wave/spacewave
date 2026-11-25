@@ -140,14 +140,22 @@ export function useBackendStateAtomValue<T>(
   // Update function: superjson-encode and send to backend.
   const setValue = useCallback(
     (update: T | ((prev: T) => T)) => {
-      const newValue =
-        typeof update === 'function'
-          ? (update as (prev: T) => T)(currentValueLatest.current)
-          : update
-      setPendingState({
-        storeId,
-        stateJson: superjson.stringify(newValue),
-        value: newValue,
+      const renderedValue = currentValueLatest.current
+      setPendingState((pending) => {
+        // Apply updates in order even when React batches them into one render.
+        const previous =
+          pending?.storeId === storeId ? pending.value : renderedValue
+        const newValue =
+          typeof update === 'function'
+            ? (update as (prev: T) => T)(previous)
+            : update
+        if (typeof update === 'function' && Object.is(newValue, previous))
+          return pending
+        return {
+          storeId,
+          stateJson: superjson.stringify(newValue),
+          value: newValue,
+        }
       })
     },
     [storeId, currentValueLatest],

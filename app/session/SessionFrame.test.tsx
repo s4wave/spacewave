@@ -65,7 +65,7 @@ describe('SessionFrame', () => {
       const button = getByTestId('test-button')
 
       fireEvent.click(button)
-      expect(setOpenMenu).toHaveBeenCalledWith('test-item')
+      expect(setOpenMenu.mock.lastCall?.[0]('')).toBe('test-item')
 
       const uiSelected = (
         <BottomBarRoot setOpenMenu={setOpenMenu} openMenu="test-item">
@@ -86,7 +86,7 @@ describe('SessionFrame', () => {
 
       rerender(uiSelected)
       fireEvent.click(getByTestId('test-button'))
-      expect(setOpenMenu).toHaveBeenCalledWith('')
+      expect(setOpenMenu.mock.lastCall?.[0]('test-item')).toBe('')
     })
 
     it('passes className to button render function when selected', () => {
@@ -175,7 +175,7 @@ describe('SessionFrame', () => {
       expect(item).toBeTruthy()
       fireEvent.keyDown(item!, { key: ' ' })
 
-      expect(setOpenMenu).toHaveBeenCalledWith('test-item')
+      expect(setOpenMenu.mock.lastCall?.[0]('')).toBe('test-item')
     })
 
     it('triggers setOpenMenu when Enter is pressed on BottomBarItem', () => {
@@ -204,7 +204,7 @@ describe('SessionFrame', () => {
       expect(item).toBeTruthy()
       fireEvent.keyDown(item!, { key: 'Enter' })
 
-      expect(setOpenMenu).toHaveBeenCalledWith('test-item')
+      expect(setOpenMenu.mock.lastCall?.[0]('')).toBe('test-item')
     })
 
     it('BottomBarItem receives className for selected state styling', () => {
@@ -271,10 +271,10 @@ describe('SessionFrame', () => {
       const item2 = container.querySelector('[data-testid="item2"]')
 
       fireEvent.keyDown(item1!, { key: ' ' })
-      expect(setOpenMenu).toHaveBeenCalledWith('item1')
+      expect(setOpenMenu.mock.lastCall?.[0]('')).toBe('item1')
 
       fireEvent.keyDown(item2!, { key: 'Enter' })
-      expect(setOpenMenu).toHaveBeenCalledWith('item2')
+      expect(setOpenMenu.mock.lastCall?.[0]('item1')).toBe('item2')
     })
 
     it('renders items registered inside SessionFrame children', () => {
@@ -318,10 +318,10 @@ describe('SessionFrame', () => {
 
       // Verify both can be clicked
       fireEvent.keyDown(parent!, { key: ' ' })
-      expect(setOpenMenu).toHaveBeenCalledWith('parent')
+      expect(setOpenMenu.mock.lastCall?.[0]('')).toBe('parent')
 
       fireEvent.keyDown(child!, { key: 'Enter' })
-      expect(setOpenMenu).toHaveBeenCalledWith('child')
+      expect(setOpenMenu.mock.lastCall?.[0]('parent')).toBe('child')
     })
   })
 })

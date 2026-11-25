@@ -4,12 +4,13 @@ import {
   BottomBarRootContextValue,
   BottomBarItem,
   BottomBarItemsContext,
+  type SetBottomBarOpenMenu,
 } from './bottom-bar-context.js'
 
 export interface BottomBarRootProps {
   children: React.ReactNode
   openMenu?: string
-  setOpenMenu?: (id: string) => void
+  setOpenMenu?: SetBottomBarOpenMenu
 }
 
 // ItemsStore holds the registered items and the element the frame shows the

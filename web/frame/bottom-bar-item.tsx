@@ -29,7 +29,6 @@ export interface IBottomBarItemProps extends DOMAttributes<HTMLButtonElement> {
   trailing?: React.ReactNode
   className?: string
   style?: CSSProperties
-  onClick?: () => void
   onSecondaryActivate?: (activation: BottomBarSecondaryActivation) => void
   contextMenuOpen?: boolean
   ref?: Ref<HTMLButtonElement>
@@ -120,7 +119,7 @@ export function BottomBarItem({
 
     if (onClick && (event.key === 'Enter' || event.key === ' ')) {
       event.preventDefault()
-      onClick()
+      event.currentTarget.click()
     }
   }
 
@@ -131,7 +130,7 @@ export function BottomBarItem({
       event.stopPropagation()
       return
     }
-    onClick?.()
+    onClick?.(event)
   }
 
   const handleContextMenu = (event: MouseEvent<HTMLButtonElement>) => {

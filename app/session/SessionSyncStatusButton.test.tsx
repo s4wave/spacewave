@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react'
+import { useState } from 'react'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
   SyncActivityDirection,
@@ -9,6 +9,9 @@ import {
   SyncTransportState,
 } from '@s4wave/sdk/session/session.pb.js'
 
+import { BottomBarRoot } from '@s4wave/web/frame/bottom-bar-root.js'
+import { ViewerFrame } from '@s4wave/web/frame/ViewerFrame.js'
+
 import { SessionSyncStatusButton } from './SessionSyncStatusButton.js'
 import {
   buildSessionSyncStatusView,
@@ -16,8 +19,6 @@ import {
 } from './SessionSyncStatusContext.js'
 
 const mockUseSessionSyncStatus = vi.hoisted(() => vi.fn())
-const mockToggle = vi.hoisted(() => vi.fn())
-const mockSelected = vi.hoisted(() => ({ value: true }))
 
 vi.mock('./SessionSyncStatusContext.js', async () => {
   const actual = await vi.importActual<
@@ -30,33 +31,17 @@ vi.mock('./SessionSyncStatusContext.js', async () => {
   }
 })
 
-vi.mock('@s4wave/web/frame/bottom-bar-level.js', () => ({
-  BottomBarLevel: (props: {
-    id: string
-    position?: 'left' | 'right'
-    button: (
-      selected: boolean,
-      onClick: () => void,
-      className?: string,
-    ) => ReactNode
-    children?: ReactNode
-  }) => (
-    <div
-      data-testid={`bottom-bar-level-${props.id}`}
-      data-position={props.position ?? 'left'}
-    >
-      {props.button(mockSelected.value, mockToggle, '')}
-      {props.children}
-    </div>
-  ),
-}))
+function Harness() {
+  const [openMenu, setOpenMenu] = useState('session-sync-status')
+  return (
+    <BottomBarRoot openMenu={openMenu} setOpenMenu={setOpenMenu}>
+      <SessionSyncStatusButton />
+      <ViewerFrame />
+    </BottomBarRoot>
+  )
+}
 
 describe('SessionSyncStatusButton', () => {
-  beforeEach(() => {
-    mockToggle.mockClear()
-    mockSelected.value = true
-  })
-
   afterEach(() => {
     cleanup()
   })
@@ -227,11 +212,9 @@ describe('SessionSyncStatusButton', () => {
   ])('renders $name status in the collapsed button and popover', (test) => {
     mockUseSessionSyncStatus.mockReturnValue(test.view)
 
-    render(<SessionSyncStatusButton />)
+    render(<Harness />)
 
-    expect(
-      screen.getByTestId('bottom-bar-level-session-sync-status'),
-    ).toBeTruthy()
+    expect(screen.getByTestId('session-sync-status-button')).toBeTruthy()
     expect(
       screen
         .getByTestId('session-sync-status-button')
@@ -258,13 +241,13 @@ describe('SessionSyncStatusButton', () => {
       }),
     )
 
-    render(<SessionSyncStatusButton />)
+    render(<Harness />)
 
     fireEvent.keyDown(screen.getByTestId('session-sync-status-popover'), {
       key: 'Escape',
     })
 
-    expect(mockToggle).toHaveBeenCalledTimes(1)
+    expect(screen.queryByTestId('session-sync-status-popover')).toBeNull()
   })
 
   it('renders compact pack-read diagnostics from the sync snapshot', () => {
@@ -282,7 +265,7 @@ describe('SessionSyncStatusButton', () => {
       }),
     )
 
-    render(<SessionSyncStatusButton />)
+    render(<Harness />)
 
     fireEvent.click(screen.getByText('Storage diagnostics'))
     expect(screen.getByText('3 / 4.0 KiB')).toBeTruthy()
@@ -303,7 +286,7 @@ describe('SessionSyncStatusButton', () => {
       }),
     )
 
-    render(<SessionSyncStatusButton />)
+    render(<Harness />)
 
     expect(screen.getByText('Uploading now')).toBeTruthy()
     expect(screen.getByText('8.0 KiB / 32 KiB')).toBeTruthy()

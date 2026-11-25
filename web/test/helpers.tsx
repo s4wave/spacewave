@@ -5,6 +5,7 @@
  */
 import React from 'react'
 import { AppShell } from '@s4wave/app/AppShell.js'
+import type { SetBottomBarOpenMenu } from '../frame/bottom-bar-context.js'
 import { BottomBarRoot } from '@s4wave/web/frame/bottom-bar-root.js'
 
 // Re-export common testing utilities for convenience
@@ -41,7 +42,7 @@ export function BottomBarWrapper({
 }: {
   children: React.ReactNode
   openMenu?: string
-  setOpenMenu?: (id: string) => void
+  setOpenMenu?: SetBottomBarOpenMenu
 }) {
   return (
     <BottomBarRoot setOpenMenu={setOpenMenu ?? (() => {})} openMenu={openMenu}>

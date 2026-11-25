@@ -7,11 +7,12 @@ import {
 } from 'react-icons/lu'
 
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
+import { useBottomBarDismissMenu } from '@s4wave/web/frame/bottom-bar-context.js'
 import { BottomBarItem } from '@s4wave/web/frame/bottom-bar-item.js'
 import { BottomBarLevel } from '@s4wave/web/frame/bottom-bar-level.js'
 import {
   Popover,
-  PopoverAnchor,
+  PopoverTrigger,
   PopoverContent,
 } from '@s4wave/web/ui/Popover.js'
 import { cn } from '@s4wave/web/style/utils.js'
@@ -22,18 +23,23 @@ import {
   useSessionSyncSummary,
 } from './SessionSyncStatusContext.js'
 
+const menuId = 'session-sync-status'
+
 // SessionSyncStatusButton registers the session sync-status bottom-bar item.
 // The button follows the sync summary; only the open popover follows the
 // transfer rates.
 export function SessionSyncStatusButton() {
+  const dismissMenu = useBottomBarDismissMenu(menuId)
   const status = useSessionSyncSummary()
   const buttonRender = useCallback(
     (selected: boolean, onClick: () => void, className?: string) => (
-      <Popover open={selected}>
-        <PopoverAnchor asChild>
+      <Popover
+        open={selected}
+        onOpenChange={(open) => (open ? onClick() : dismissMenu())}
+      >
+        <PopoverTrigger asChild>
           <BottomBarItem
             selected={selected}
-            onClick={onClick}
             className={cn(
               className,
               status.active && 'text-brand',
@@ -44,28 +50,17 @@ export function SessionSyncStatusButton() {
           >
             <SessionSyncStatusGlyph status={status} />
           </BottomBarItem>
-        </PopoverAnchor>
-        <PopoverContent
-          side="top"
-          align="end"
-          sideOffset={6}
-          onEscapeKeyDown={onClick}
-          onPointerDownOutside={onClick}
-          variant="status"
-        >
+        </PopoverTrigger>
+        <PopoverContent side="top" align="end" sideOffset={6} variant="status">
           <SessionSyncStatusPopover />
         </PopoverContent>
       </Popover>
     ),
-    [status],
+    [status, dismissMenu],
   )
 
   return (
-    <BottomBarLevel
-      id="session-sync-status"
-      position="right"
-      button={buttonRender}
-    >
+    <BottomBarLevel id={menuId} position="right" button={buttonRender}>
       {null}
     </BottomBarLevel>
   )

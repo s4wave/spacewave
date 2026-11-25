@@ -1,4 +1,4 @@
-import { useState, useCallback, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { IObjectState } from '@s4wave/sdk/world/object-state.js'
@@ -266,11 +266,10 @@ function ViewerBottomBarLevel({
 // StandaloneViewerRoot owns the bottom bar of a viewer shown outside a layout.
 function StandaloneViewerRoot({ children }: { children: ReactNode }) {
   const [openMenu, setOpenMenu] = useState('')
-  const handleSetOpenMenu = useCallback((id: string) => setOpenMenu(id), [])
 
   return (
     <div className="flex h-full w-full flex-col">
-      <BottomBarRoot openMenu={openMenu} setOpenMenu={handleSetOpenMenu}>
+      <BottomBarRoot openMenu={openMenu} setOpenMenu={setOpenMenu}>
         {children}
       </BottomBarRoot>
     </div>
