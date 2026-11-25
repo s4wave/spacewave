@@ -510,18 +510,7 @@ func (c *Client) objectURL(bucket, key string, query url.Values) *url.URL {
 // isTransient reports whether a request failed in transit or with a status
 // the service returns for a passing fault or overload.
 func isTransient(resp *http.Response, err error) bool {
-	if err != nil {
-		return true
-	}
-	switch resp.StatusCode {
-	case http.StatusTooManyRequests,
-		http.StatusInternalServerError,
-		http.StatusBadGateway,
-		http.StatusServiceUnavailable,
-		http.StatusGatewayTimeout:
-		return true
-	}
-	return false
+	return err != nil || transientStatus(resp.StatusCode)
 }
 
 // checkStatus maps a missing bucket to ErrBucketNotFound, another 404 to
