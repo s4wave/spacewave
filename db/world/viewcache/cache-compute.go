@@ -97,7 +97,7 @@ func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compu
 		child, finish := world.WithViewReads(block.WithRefHold(ctx, entry.blocks), entry.reads)
 		child, parts := c.withParts(context.WithValue(child, computingKey{}, true))
 		entry.value, entry.err = c.observe(name, path, func() (any, error) {
-			return compute(child, entry.reads.Track(tx))
+			return compute(child, entry.reads.Track(world.Untracked(tx)))
 		})
 		entry.wake = finish()
 		if entry.err != nil {
@@ -190,7 +190,7 @@ func (c *Cache) computeBehind(
 		child, finish := world.WithViewReads(block.WithRefHold(ctx, entry.blocks), entry.reads)
 		child, parts := c.withParts(context.WithValue(child, behindClaimKey{entry}, true))
 		entry.value, entry.err = c.observe(name, "stale", func() (any, error) {
-			return compute(child, entry.reads.Track(tx))
+			return compute(child, entry.reads.Track(world.Untracked(tx)))
 		})
 		entry.wake = finish()
 		if entry.err == nil {
