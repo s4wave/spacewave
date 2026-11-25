@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"context"
 	"slices"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -79,6 +80,9 @@ type Store struct {
 	// and a pass advances the epoch before it walks, so a later entry sorts
 	// at or past it. Nil walks from the start, as after an open.
 	evictFrom []byte
+	// evictLimit is the block limit of the next eviction batch, guarded by
+	// evictMtx, as nextEvictLimit sets it; evictBatchBlocks on open.
+	evictLimit int
 	// bcast guards status, and wakes Upload and status watchers.
 	bcast broadcast.Broadcast
 	// status projects the committed markers and the upload policy.
@@ -150,8 +154,8 @@ func NewStoreWithPacks(
 	return newStore(ctx, packed, values, markers, markersID, enabled, packed.divert)
 }
 
-// newStore builds the Store over writes, which marks nothing when divert is
-// set.
+// newStore builds the Store over writes, which marks only cache fills when
+// divert is set.
 func newStore(
 	ctx context.Context,
 	writes, values block.StoreOps,
@@ -160,16 +164,18 @@ func newStore(
 	enabled bool,
 	divert bool,
 ) (*Store, error) {
-	// Connect local block writes to the durable upload markers, or diverted
-	// values to their packs, which need none.
-	s := &Store{local: writes, values: values, markers: markers, markersID: markersID, reads: newReadGate(), counted: make(chan struct{}), indexDone: make(chan struct{})}
+	// Connect local block writes to the durable upload markers. Diverted
+	// values go to their packs, which need none, so a diverting store marks
+	// only its cache fills.
+	s := &Store{local: writes, values: values, markers: markers, markersID: markersID, evictLimit: evictBatchBlocks, reads: newReadGate(), counted: make(chan struct{}), indexDone: make(chan struct{})}
 	switch {
-	case divert:
-		s.MarkingStore = NewMarkingStore(writes, func(context.Context, []Mark) error { return nil })
 	case block.HoldsRoots(writes):
 		s.MarkingStore = NewTxMarkingStore(writes, s, s.queue)
 	default:
 		s.MarkingStore = NewMarkingStore(writes, s.queue)
+	}
+	if divert {
+		s.MarkingStore = NewFillMarkingStore(s.MarkingStore)
 	}
 
 	// Restore the pending upload counts, eviction queue size and completed
@@ -674,11 +680,79 @@ func (s *Store) applyQueued(gen uint64, delta queueDelta) {
 // A dropped block written again since the batch read it keeps its marker: the
 // write changed the queue entry's value, and the block is on the local store
 // alone.
+//
+// The batch clears in transactions of at most ClearBatch.MaxBlocks entries,
+// each holding the writer for about ClearBatch.Hold at most, as SetClearBatch
+// sets them: a change of the hold applies from the next transaction, and one
+// of the block bound from the next prefetch window. A transaction the store
+// reports busy is retried in place after a backoff, as retryBusy describes,
+// since the blocks are already on the remote. Another failure leaves the entries after the last
+// commit queued, so they upload again, which the remote keeps as another copy.
 func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
-	// Read what the clear reads before taking any lock, so the reads under
-	// the writer lock find their pages cached and bound how long it holds
-	// them.
-	s.prefetchClear(ctx, batch)
+	for len(batch) != 0 {
+		// Read what the clears read before taking any lock, so the reads
+		// under the writer find their pages cached.
+		window := batch[:min(len(batch), loadClearBatch().MaxBlocks)]
+		batch = batch[len(window):]
+		s.prefetchClear(ctx, window)
+		for len(window) != 0 {
+			var n int
+			err := retryBusy(ctx, func() error {
+				var err error
+				n, err = s.clearSome(ctx, window)
+				return err
+			})
+			if err != nil {
+				return err
+			}
+			window = window[n:]
+		}
+	}
+	return nil
+}
+
+// busyRetries bounds how often retryBusy retries a transaction the store
+// reported busy, and busyWait is its first wait, doubling to busyMaxWait: about
+// 80 seconds in all.
+const (
+	busyRetries = 20
+	busyWait    = 250 * time.Millisecond
+	busyMaxWait = 5 * time.Second
+)
+
+// retryBusy runs fn, a transaction that commits whole or not at all, and runs
+// it again after a backoff while the store reports itself busy, up to
+// busyRetries times. Each attempt is its own transaction, so a retry holds the
+// writer no longer than the first attempt did. Returns fn's last error, or the
+// context's cause if it ends during a wait.
+func retryBusy(ctx context.Context, fn func() error) error {
+	wait := busyWait
+	for busy := 0; ; busy++ {
+		err := fn()
+		if err == nil || busy >= busyRetries || !IsBusyError(err) {
+			return err
+		}
+		select {
+		case <-ctx.Done():
+			return context.Cause(ctx)
+		//gostyle:timer backoff
+		case <-time.After(wait):
+		}
+		wait = min(2*wait, busyMaxWait)
+	}
+}
+
+// IsBusyError reports whether err is a store's report that another writer
+// holds its lock, SQLite's "database is locked", which a later attempt may
+// pass.
+func IsBusyError(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "database is locked")
+}
+
+// clearSome clears the batch's leading entries in one transaction, as many as
+// the hold in force admits and at least one, and returns how many it cleared.
+func (s *Store) clearSome(ctx context.Context, batch []pendingBlock) (int, error) {
+	// Keep one queue policy for the transaction.
 	retryRefused := evictRefusedRetry.Load()
 
 	// Clear with background admission: the upload is deferrable work. The
@@ -691,26 +765,38 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 	// Serialize uploaded marker removal with queue status updates.
 	release, err := s.mtx.Lock(ctx)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer release()
 
 	// Remove uploaded block markers, count their cleared bytes, and read the
 	// write time of the queue's new head.
-	var cleared, uploaded int
+	var taken, cleared, uploaded int
 	var clearedBytes, uploadedBytes, queuedBytes int64
 	var oldest time.Time
 	var head []byte
 	var lowered uint64
+
+	// Read the hold in force for this transaction.
+	hold := loadClearBatch().Hold
 	err = kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
+		// The writer is held from here.
+		held := time.Now()
+
 		// Delete the markers still queued, counting what they held, and queue
 		// the uploaded blocks for eviction.
 		epoch, err := readEpoch(ctx, tx)
 		if err != nil {
 			return err
 		}
-		cleared, uploaded, clearedBytes, uploadedBytes, queuedBytes = 0, 0, 0, 0, 0
+		taken, cleared, uploaded, clearedBytes, uploadedBytes, queuedBytes = 0, 0, 0, 0, 0, 0
 		for _, pending := range batch {
+			// Commit once the writer was held for the hold, leaving the rest
+			// to the next transaction.
+			if taken != 0 && time.Since(held) >= hold {
+				break
+			}
+			taken++
 			value, found, err := tx.Get(ctx, pending.queueKey)
 			if err != nil {
 				return err
@@ -771,7 +857,7 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 		return err
 	})
 	if err != nil {
-		return errors.Wrap(err, "clear uploaded blocks")
+		return 0, errors.Wrap(err, "clear uploaded blocks")
 	}
 
 	// Publish the remaining upload queue and clear its last failure.
@@ -790,7 +876,7 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 		}
 		broadcast()
 	})
-	return nil
+	return taken, nil
 }
 
 // prefetchClear reads the keys clear reads, in a read transaction that holds
@@ -798,13 +884,17 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 // clear to read the pages itself.
 func (s *Store) prefetchClear(ctx context.Context, batch []pendingBlock) {
 	_ = kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
-		// Read the epoch and each pending block's queue and evict keys.
+		// Read the epoch and each pending block's queue, marked and evict
+		// keys: the leaves clear reads, deletes and inserts into.
 		epoch, err := readEpoch(ctx, tx)
 		if err != nil {
 			return err
 		}
 		for _, pending := range batch {
 			if _, _, err := tx.Get(ctx, pending.queueKey); err != nil {
+				return err
+			}
+			if _, err := tx.Exists(ctx, pending.markedKey); err != nil {
 				return err
 			}
 			if _, err := tx.Exists(ctx, evictKey(epoch, pending.ref.GetHash())); err != nil {

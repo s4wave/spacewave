@@ -2,6 +2,7 @@ package block_store_writeback
 
 import (
 	"context"
+	"sync/atomic"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -31,13 +32,49 @@ type PackedStore struct {
 	local block.StoreOps
 	// divert sends new values to the Log; unset, writes go to local.
 	divert bool
+	// counts counts the writes, shared by the read scopes.
+	counts *packedCounts
+}
+
+// packedCounts counts a PackedStore's writes.
+type packedCounts struct {
+	diverted, divertedBytes, held, fills atomic.Uint64
+}
+
+// PackedStats counts a PackedStore's writes since it was built.
+type PackedStats struct {
+	// Diverted counts the values appended to the Log.
+	Diverted uint64
+	// DivertedBytes is their encoded size.
+	DivertedBytes uint64
+	// Held counts the diverted values the Log held durably already, so
+	// appended nothing.
+	Held uint64
+	// Fills counts the cache fills sent to the local store while diverting,
+	// which the upload markers, not the Log, upload.
+	Fills uint64
 }
 
 // NewPackedStore builds a PackedStore reading log before local, and keeping
 // new values in log, landing their child lists and roots in local, when
 // divert is set.
 func NewPackedStore(log *packahead.Log, local block.StoreOps, divert bool) *PackedStore {
-	return &PackedStore{log: log, local: local, divert: divert}
+	return &PackedStore{log: log, local: local, divert: divert, counts: &packedCounts{}}
+}
+
+// GetDivert reports whether the store diverts new values to the Log.
+func (s *PackedStore) GetDivert() bool {
+	return s.divert
+}
+
+// GetStats returns the store's write counts.
+func (s *PackedStore) GetStats() PackedStats {
+	return PackedStats{
+		Diverted:      s.counts.diverted.Load(),
+		DivertedBytes: s.counts.divertedBytes.Load(),
+		Held:          s.counts.held.Load(),
+		Fills:         s.counts.fills.Load(),
+	}
 }
 
 // GetStoreParts returns the local store.
@@ -62,7 +99,7 @@ func (s *PackedStore) BeginReadOperation(ctx context.Context) (block.StoreOps, f
 	if err != nil {
 		return nil, nil, err
 	}
-	return &PackedStore{log: s.log, local: scope, divert: s.divert}, release, nil
+	return &PackedStore{log: s.log, local: scope, divert: s.divert, counts: s.counts}, release, nil
 }
 
 // PutBlock stores a block as PutBlockBatch does. A cache fill, a copy of a
@@ -70,6 +107,9 @@ func (s *PackedStore) BeginReadOperation(ctx context.Context) (block.StoreOps, f
 func (s *PackedStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	// Send a cache fill, or any write while not diverting, to the local store.
 	if opts.GetCacheFill() || !s.divert {
+		if s.divert {
+			s.counts.fills.Add(1)
+		}
 		return s.local.PutBlock(ctx, data, opts)
 	}
 
@@ -159,12 +199,14 @@ func (s *PackedStore) SetRoots(ctx context.Context, entries []*block.PutBatchEnt
 	return nil
 }
 
-// appendValues appends the values of entries the Log does not hold, and
-// returns external copies of the entries to land, and whether the Log held
-// each block before. Tombstones pass through. A block whose bytes the local
-// store holds already is appended too: asking would cost a read of the local
-// store per block, the read this store exists to remove, and the copy holds
-// the same bytes.
+// appendValues appends the values of entries the Log does not hold durably,
+// and returns external copies of the entries to land, and whether the Log held
+// each block durably before. A value the Log holds in a batch not yet synced
+// goes to Append too, which stores nothing for it and waits for that sync, so
+// no entry lands before its value is durable. Tombstones pass through. A block
+// whose bytes the local store holds already is appended too: asking would cost
+// a read of the local store per block, the read this store exists to remove,
+// and the copy holds the same bytes.
 func (s *PackedStore) appendValues(ctx context.Context, entries []*block.PutBatchEntry) ([]*block.PutBatchEntry, []bool, error) {
 	// Encode each new value under its pack key, naming unnamed entries.
 	landed := make([]*block.PutBatchEntry, len(entries))
@@ -186,7 +228,8 @@ func (s *PackedStore) appendValues(ctx context.Context, entries []*block.PutBatc
 		copied.External = true
 		landed[i] = &copied
 		key := packfile.BlockKey(copied.Ref.GetHash())
-		if held[i] = s.log.Has(key); held[i] {
+		if held[i] = s.log.HasDurable(key); held[i] {
+			s.counts.held.Add(1)
 			continue
 		}
 		value, err := block.EncodeBlockObject(copied.Data, copied.Refs, copied.RefsKnown)
@@ -201,6 +244,12 @@ func (s *PackedStore) appendValues(ctx context.Context, entries []*block.PutBatc
 		if err := s.log.Append(ctx, values); err != nil {
 			return nil, nil, errors.Wrap(err, "append values")
 		}
+		var size int
+		for _, v := range values {
+			size += len(v.Value)
+		}
+		s.counts.diverted.Add(uint64(len(values)))
+		s.counts.divertedBytes.Add(uint64(size)) //nolint:gosec // a length is not negative.
 	}
 	return landed, held, nil
 }
@@ -249,8 +298,12 @@ func (s *PackedStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (
 			if err := block.VerifyRead(ref, stored.Data, ""); err != nil {
 				return nil, err
 			}
+			// Admit only bytes synced at the lookup. The earlier generation
+			// fences any drop of the location after this read began.
 			if durable {
 				block.MarkDurableRead(ctx, ref, gen)
+			} else {
+				block.MarkStagedRead(ctx)
 			}
 			return stored, nil
 		}

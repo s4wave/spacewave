@@ -782,10 +782,21 @@ func testRPCWritesRetainUploadMarkers(t *testing.T, holds bool) {
 // locatingStore is a remote whose index answers from located, or fails.
 type locatingStore struct {
 	block.StoreOps
-	located  map[string]bool
-	err      error
-	puts     int
-	reclaims bool
+	located   map[string]bool
+	err       error
+	existsErr error
+	puts      int
+	checks    int
+	reclaims  bool
+}
+
+// GetBlockExistsBatch counts the batched checks, or fails with existsErr.
+func (l *locatingStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	l.checks++
+	if l.existsErr != nil {
+		return nil, l.existsErr
+	}
+	return l.StoreOps.GetBlockExistsBatch(ctx, refs)
 }
 
 // LocateBlocks answers from located.
@@ -810,8 +821,9 @@ func (l *locatingStore) PutBlockBatch(ctx context.Context, entries []*block.PutB
 }
 
 // TestUploadSkipsLocatedBlocks drains blocks another writer uploaded without
-// reading them, and tries to lose one: a block the index does not name, a
-// lookup that fails, and the switch turned off all still upload.
+// reading them, and tries to lose one: a block the index does not name, one
+// it names that the remote lacks, a lookup or a confirm that fails, and the
+// switch turned off all still upload.
 func TestUploadSkipsLocatedBlocks(t *testing.T) {
 	ctx := t.Context()
 	env := newTestEnv(t)
@@ -836,19 +848,53 @@ func TestUploadSkipsLocatedBlocks(t *testing.T) {
 	}
 	on.Store(true)
 
-	// A located block clears unread, and one beside it still uploads.
-	remote.puts = 0
+	// A located block the remote holds clears unread, and one beside it
+	// still uploads, with one batched confirm for the chunk.
+	remote.puts, remote.checks = 0, 0
 	held, missing := put("held"), put("missing")
+	if _, _, err := remote.PutBlock(ctx, []byte("held"), leafOpts); err != nil {
+		t.Fatal(err)
+	}
 	remote.located[held.MarshalString()] = true
 	drain(t, s, remote)
 	if remote.puts != 1 {
 		t.Fatalf("wrote %d blocks, want only the unlocated one", remote.puts)
+	}
+	if remote.checks != 1 {
+		t.Fatalf("confirmed in %d checks, want one batch", remote.checks)
 	}
 	if found, err := remote.GetBlockExists(ctx, missing); err != nil || !found {
 		t.Fatalf("unlocated block not uploaded: %v", err)
 	}
 	if env.isMarked(t, held) || env.isMarked(t, missing) {
 		t.Fatal("a marker stayed after the drain")
+	}
+
+	// A block the index names that the remote lacks, as a row naming a pack
+	// without the block does, uploads.
+	remote.puts = 0
+	wrongRow := put("wrong row")
+	remote.located[wrongRow.MarshalString()] = true
+	drain(t, s, remote)
+	if remote.puts != 1 {
+		t.Fatalf("wrong row wrote %d blocks, want the unconfirmed one", remote.puts)
+	}
+	if found, err := remote.GetBlockExists(ctx, wrongRow); err != nil || !found {
+		t.Fatalf("unconfirmed block not uploaded: %v", err)
+	}
+
+	// A failed confirm uploads, though the remote holds the block.
+	remote.puts = 0
+	unconfirmed := put("confirm failed")
+	if _, _, err := remote.PutBlock(ctx, []byte("confirm failed"), leafOpts); err != nil {
+		t.Fatal(err)
+	}
+	remote.located[unconfirmed.MarshalString()] = true
+	remote.existsErr = errors.New("packs unavailable")
+	drain(t, s, remote)
+	remote.existsErr = nil
+	if remote.puts != 1 {
+		t.Fatalf("failed confirm wrote %d blocks", remote.puts)
 	}
 
 	// A failed lookup uploads everything, though the index would have said yes.
@@ -1027,9 +1073,14 @@ func TestClearLocatedWaitsForTheCount(t *testing.T) {
 	}
 	<-g.reached
 
-	// The clear waits for the count, then both land.
+	// The clear waits for the count, then both land. The remote holds the
+	// block, so its existence check confirms the index.
 	last := entries[total-1].Ref
-	remote := &locatingStore{StoreOps: newInmemBlockStore(), located: map[string]bool{last.MarshalString(): true}}
+	held := newInmemBlockStore()
+	if _, _, err := held.PutBlock(ctx, entries[total-1].Data, leafOpts); err != nil {
+		t.Fatal(err)
+	}
+	remote := &locatingStore{StoreOps: held, located: map[string]bool{last.MarshalString(): true}}
 	var on atomic.Bool
 	on.Store(true)
 	s.SetLocateUploaded(&on)

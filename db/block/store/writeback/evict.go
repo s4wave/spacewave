@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"strconv"
 	"sync/atomic"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -30,8 +31,110 @@ const evictableBytesKey = "evictable-bytes"
 // disk's other writers; its error ends the pass.
 type EvictAdmit func(ctx context.Context, lastBytes int64) error
 
-// evictBatchBlocks bounds the entries one eviction step reads and commits.
-const evictBatchBlocks = 1024
+// Bounds of one eviction batch. A batch reads at most the store's current
+// block limit of entries, and stops before an entry that would take it past
+// the batch byte bound, evictBatchBytes by default. The limit starts at
+// evictBatchBlocks on each open and follows the time the batch's drop write
+// takes, as nextEvictLimit describes, between the batch's least and most
+// blocks, evictBatchMinBlocks and evictBatchMaxBlocks by default.
+//
+// The drop write holds the store's writer for a time that grows with the
+// blocks it drops, not their bytes: each tombstone is a row delete that may
+// rebalance its B-tree page and read its neighbors. On a store much larger
+// than the page cache that costs from a quarter of a millisecond to several
+// milliseconds a block, so a fixed count large enough to move many bytes
+// would hold the writer for seconds on a slow disk.
+const (
+	evictBatchBlocks    = 1024
+	evictBatchMinBlocks = 128
+	evictBatchMaxBlocks = 8192
+	evictBatchBytes     = 32 << 20
+)
+
+// evictWriteTarget is the time a batch's drop write aims to take by default,
+// half the longest a background write may hold the writer, so a batch whose
+// blocks cost twice the last batch's still releases it within a second.
+const evictWriteTarget = 500 * time.Millisecond
+
+// EvictBatch bounds the eviction batches of every store in the process, as
+// SetEvictBatch sets them. A zero field keeps its default.
+type EvictBatch struct {
+	// MinBlocks is the least block limit a batch shrinks to, 128 by default.
+	MinBlocks int
+	// MaxBlocks is the most blocks a batch takes, 8192 by default.
+	MaxBlocks int
+	// MaxBytes is the most bytes a batch takes past its first entry, 32 MiB
+	// by default.
+	MaxBytes int64
+	// WriteTarget is the time a batch's drop write aims to take, 500 ms by
+	// default. The next batch's block limit scales to it.
+	WriteTarget time.Duration
+}
+
+// evictBatchConfig holds the bounds SetEvictBatch set, nil for the defaults.
+var evictBatchConfig atomic.Pointer[EvictBatch]
+
+// SetEvictBatch sets the bounds of the eviction batches of every store in the
+// process. A pass running reads them at its next batch, which clamps the
+// store's block limit into the new bounds, so lowering them applies within a
+// batch. A zero or negative field keeps its default, and a least block limit
+// past the most is lowered to it.
+func SetEvictBatch(b EvictBatch) {
+	b = b.normalize()
+	evictBatchConfig.Store(&b)
+}
+
+// loadEvictBatch returns the bounds in force.
+func loadEvictBatch() EvictBatch {
+	if b := evictBatchConfig.Load(); b != nil {
+		return *b
+	}
+	return EvictBatch{}.normalize()
+}
+
+// normalize fills the defaults of the zero or negative fields and keeps
+// MinBlocks at most MaxBlocks.
+func (b EvictBatch) normalize() EvictBatch {
+	// Fill the defaults, then keep MinBlocks at most MaxBlocks.
+	if b.MinBlocks <= 0 {
+		b.MinBlocks = evictBatchMinBlocks
+	}
+	if b.MaxBlocks <= 0 {
+		b.MaxBlocks = evictBatchMaxBlocks
+	}
+	if b.MaxBytes <= 0 {
+		b.MaxBytes = evictBatchBytes
+	}
+	if b.WriteTarget <= 0 {
+		b.WriteTarget = evictWriteTarget
+	}
+	b.MinBlocks = min(b.MinBlocks, b.MaxBlocks)
+	return b
+}
+
+// clamp returns limit within the batch's block bounds.
+func (b EvictBatch) clamp(limit int) int {
+	return min(max(limit, b.MinBlocks), b.MaxBlocks)
+}
+
+// nextEvictLimit returns the block limit of the batch after one that dropped
+// dropped blocks under limit in elapsed: the count that would take b's write
+// target at the same cost a block, moving at most a factor of two from limit
+// and kept within b's block bounds. A batch that dropped nothing measured
+// nothing and keeps limit. elapsed includes the write's wait for the writer
+// turn, so a busy writer shrinks the batches too.
+func nextEvictLimit(b EvictBatch, limit, dropped int, elapsed time.Duration) int {
+	// Keep the limit when the batch measured nothing.
+	if dropped == 0 {
+		return limit
+	}
+
+	// Scale the batch to the target at its cost a block, within the bounds.
+	elapsed = max(elapsed, time.Millisecond)
+	next := int(int64(dropped) * int64(b.WriteTarget) / int64(elapsed))
+	next = min(max(next, limit/2), limit*2)
+	return b.clamp(next)
+}
 
 // evictRetryCommitBlocks bounds each metadata write when refusals are retried.
 // The scan and remote probe keep their bulk size; a queue move always deletes
@@ -205,13 +308,54 @@ func addEvictableBytes(ctx context.Context, tx kvtx.Tx, delta int64) error {
 }
 
 // EvictBytes returns how many uploaded bytes a pass drops to bring the
-// resident bytes from past the high mark down to the low mark, or zero.
+// resident bytes from past the high mark down to the low mark, or zero. It
+// starts a pass only past the high mark; EvictLatch carries a cut-short pass on
+// to the low mark.
 func (s Status) EvictBytes() int64 {
 	resident := s.ResidentBytes()
 	if s.Policy.ResidentHigh <= 0 || resident <= s.Policy.ResidentHigh {
 		return 0
 	}
 	return min(resident-s.Policy.ResidentLow, s.EvictableBytes)
+}
+
+// EvictLatch carries an eviction loop from the high mark down to the low mark
+// across passes: once the resident bytes cross the high mark, Bytes keeps
+// returning the bytes down to the low mark after a pass cut short leaves them
+// between the marks, until they reach the low mark, no uploaded byte is left
+// to evict, or either mark changes. Without it a pass that ends early, such as
+// on a busy database, starts again only once the resident bytes cross the high
+// mark again. The latch decides only when a pass starts; each pass still
+// commits in the same short batches. The zero value is released.
+type EvictLatch struct {
+	// held is set while a pass started at the high mark has yet to reach
+	// the low mark.
+	held bool
+	// high and low are the marks the latch was set under.
+	high, low int64
+}
+
+// Bytes returns how many uploaded bytes the next pass drops: EvictBytes when
+// positive, which sets the latch, or else, while the latch holds under the same
+// marks, the bytes from the resident bytes down to the low mark. Otherwise it
+// releases the latch and returns zero.
+func (l *EvictLatch) Bytes(s Status) int64 {
+	// Set the latch when the store is past the high mark.
+	if want := s.EvictBytes(); want > 0 {
+		l.held, l.high, l.low = true, s.Policy.ResidentHigh, s.Policy.ResidentLow
+		return want
+	}
+
+	// Keep evicting toward the low mark while the latch holds under the same
+	// marks and there is something to drop.
+	var want int64
+	if l.held && s.Policy.ResidentHigh == l.high && s.Policy.ResidentLow == l.low {
+		want = min(s.ResidentBytes()-s.Policy.ResidentLow, s.EvictableBytes)
+	}
+	if want <= 0 {
+		l.held, want = false, 0
+	}
+	return want
 }
 
 // addEvictStatus projects committed eviction queue changes into the status:
@@ -248,7 +392,10 @@ func readEpoch(ctx context.Context, tx kvtx.Tx) (uint64, error) {
 // dropped. An entry whose value is already gone, such as a block the garbage
 // collector swept, is deleted. Values are dropped before their entries, so an
 // interrupted pass leaves only entries the next pass deletes. The pass takes
-// no lock a write waits on, since asking remote can wait on the network.
+// no lock a write waits on, since asking remote can wait on the network. A
+// transaction the store reports busy runs again after a backoff, as retryBusy
+// describes, each attempt its own short transaction; a pass ends on a busy
+// store only after those retries.
 //
 // The volume shares values by hash across its block stores. Eviction relies on
 // each placed store sealing its blocks with its own transform keys, so no other
@@ -306,13 +453,15 @@ func (s *Store) Evict(
 	// Advance the epoch, so entries this pass or a later fill queues sort
 	// after the walk.
 	var epoch uint64
-	err = kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
-		prev, err := readEpoch(ctx, tx)
-		if err != nil {
-			return err
-		}
-		epoch = prev + 1
-		return tx.Set(ctx, []byte(epochKey), []byte(strconv.FormatUint(epoch, 10)))
+	err = retryBusy(ctx, func() error {
+		return kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
+			prev, err := readEpoch(ctx, tx)
+			if err != nil {
+				return err
+			}
+			epoch = prev + 1
+			return tx.Set(ctx, []byte(epochKey), []byte(strconv.FormatUint(epoch, 10)))
+		})
 	})
 	releaseFill()
 	if err != nil {
@@ -355,38 +504,46 @@ func (s *Store) evictBatch(
 	from []byte,
 	result *EvictResult,
 ) ([]byte, bool, error) {
-	// Read the batch with the markers of its blocks.
-	var batch []evictEntry
-	var marked []bool
-	var next []byte
-	var done bool
-	err := kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
-		// Walk the older entries up to the batch and byte limits; the walk is
-		// done when it runs out of them.
-		batch, marked, done = batch[:0], marked[:0], true
-		var batchBytes int64
-		next = nil
-		err := scanEvictable(ctx, tx, from, func(entry evictEntry) error {
-			// Stop at the new epoch or a full batch, where the next batch
-			// starts.
-			if entry.epoch >= epoch || len(batch) == evictBatchBlocks || result.EvictedBytes+batchBytes >= maxBytes {
-				done, next = entry.epoch >= epoch, entry.key
-				return errScanDone
-			}
+	// Read the batch with the markers of its blocks, up to the block limit the
+	// last drop write set within the bounds in force.
+	bounds := loadEvictBatch()
+	blocks := bounds.clamp(s.evictLimit)
+	var (
+		batch  []evictEntry
+		marked []bool
+		next   []byte
+		done   bool
+	)
+	err := retryBusy(ctx, func() error {
+		return kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
+			// Walk the older entries up to the batch and byte limits; the walk is
+			// done when it runs out of them.
+			batch, marked, done = batch[:0], marked[:0], true
+			var batchBytes int64
+			next = nil
+			err := scanEvictable(ctx, tx, from, func(entry evictEntry) error {
+				// Stop at the new epoch or a full batch, where the next batch
+				// starts. A batch takes its first entry whatever its size.
+				full := len(batch) == blocks || (len(batch) != 0 && batchBytes+entry.size > bounds.MaxBytes)
+				if entry.epoch >= epoch || full || result.EvictedBytes+batchBytes >= maxBytes {
+					done, next = entry.epoch >= epoch, entry.key
+					return errScanDone
+				}
 
-			// Take the entry with whether a marker awaits its upload.
-			found, err := tx.Exists(ctx, markedKey(entry.hash))
-			if err != nil {
-				return err
+				// Take the entry with whether a marker awaits its upload.
+				found, err := tx.Exists(ctx, markedKey(entry.hash))
+				if err != nil {
+					return err
+				}
+				batch, marked = append(batch, entry), append(marked, found)
+				batchBytes += entry.size
+				return nil
+			})
+			if errors.Is(err, errScanDone) {
+				return nil
 			}
-			batch, marked = append(batch, entry), append(marked, found)
-			batchBytes += entry.size
-			return nil
+			return err
 		})
-		if errors.Is(err, errScanDone) {
-			return nil
-		}
-		return err
 	})
 	if err != nil {
 		return nil, false, errors.Wrap(err, "scan eviction queue")
@@ -436,11 +593,21 @@ func (s *Store) evictBatch(
 
 	// Drop the values the remote holds in one write, not one per block: the
 	// local writer is shared with every other write, so a write per block
-	// bounds eviction to a few blocks a second under load.
+	// bounds eviction to a few blocks a second under load. The write's time
+	// sets the next batch's limit: the attempt that committed, not the waits
+	// of a busy store before it.
 	if len(drop) != 0 {
-		if _, err := s.values.PutBlockBatch(ctx, drop); err != nil {
+		var took time.Duration
+		err := retryBusy(ctx, func() error {
+			start := time.Now()
+			_, err := s.values.PutBlockBatch(ctx, drop)
+			took = time.Since(start)
+			return err
+		})
+		if err != nil {
 			return nil, false, errors.Wrap(err, "evict blocks")
 		}
+		s.evictLimit = nextEvictLimit(bounds, blocks, len(drop), took)
 		result.Evicted += len(drop)
 	}
 
@@ -460,29 +627,31 @@ func (s *Store) evictBatch(
 		}
 		retained := requeue[:n]
 		var delta int64
-		err = kvtx.RunOptimisticTransaction(ctx, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
-			delta = 0
-			retainedAt := 0
-			for _, entry := range batch[first:end] {
-				// Only a live scanned row owns the right to be moved by this pass.
-				removed, found, err := deleteEvictEntry(ctx, tx, entry)
-				if err != nil {
-					return err
-				}
-				delta += removed
-				if retainedAt < len(retained) && bytes.Equal(retained[retainedAt].key, entry.key) {
-					retainedAt++
-					if found {
-						added, err := queueEvict(ctx, tx, epoch, entry.hash, entry.size)
-						if err != nil {
-							return err
+		err = retryBusy(ctx, func() error {
+			return kvtx.RunOptimisticTransaction(ctx, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
+				delta = 0
+				retainedAt := 0
+				for _, entry := range batch[first:end] {
+					// Only a live scanned row owns the right to be moved by this pass.
+					removed, found, err := deleteEvictEntry(ctx, tx, entry)
+					if err != nil {
+						return err
+					}
+					delta += removed
+					if retainedAt < len(retained) && bytes.Equal(retained[retainedAt].key, entry.key) {
+						retainedAt++
+						if found {
+							added, err := queueEvict(ctx, tx, epoch, entry.hash, entry.size)
+							if err != nil {
+								return err
+							}
+							delta += added
 						}
-						delta += added
 					}
 				}
-			}
-			return addEvictableBytes(ctx, tx, delta)
-		}, kvtx.RetryInvalidSnapshot)
+				return addEvictableBytes(ctx, tx, delta)
+			}, kvtx.RetryInvalidSnapshot)
+		})
 		if err != nil {
 			return nil, false, errors.Wrap(err, "update eviction queue")
 		}

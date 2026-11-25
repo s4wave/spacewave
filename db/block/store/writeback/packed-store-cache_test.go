@@ -61,21 +61,23 @@ func TestPackedStoreReadsEnterDecodedPool(t *testing.T) {
 		t.Fatalf("second read missed the pool: %+v", second)
 	}
 
-	// Once removed, the pooled entry is stale and the read finds nothing.
+	// Once removed, the Log keeps serving the value until its pack uploads,
+	// since a writer that found it held may have landed it again, but no
+	// longer reports it durable, so a put appends it again.
 	if err := packed.RmBlock(ctx, ref); err != nil {
 		t.Fatal(err)
 	}
-	if blk, err := read(); err == nil && blk != nil && blk.(*block_mock.Example).GetMsg() != "" {
-		t.Fatalf("read after RmBlock returned %v", blk)
+	if blk, err := read(); err != nil || blk.(*block_mock.Example).GetMsg() != "packed example" {
+		t.Fatalf("read after RmBlock = %v, %v", blk, err)
 	}
-	if entries := cache.Snapshot().Entries; entries != 0 {
-		t.Fatalf("the pool keeps %d entries after RmBlock", entries)
+	if log.HasDurable(packfile.BlockKey(ref.GetHash())) {
+		t.Fatal("the Log reports a removed block durable")
 	}
 }
 
 // TestPackedStoreTombstoneForgetsLogCopy tombstones a packed block in a batch
-// with the switch off: the Log forgets its copy, as RmBlock does, so the block
-// no longer reads.
+// with the switch off: the Log removes its copy, as RmBlock does, so a later
+// put appends the value again. The copy reads until its pack uploads.
 func TestPackedStoreTombstoneForgetsLogCopy(t *testing.T) {
 	ctx := t.Context()
 	env := newTestEnv(t)
@@ -96,10 +98,7 @@ func TestPackedStoreTombstoneForgetsLogCopy(t *testing.T) {
 	if _, err := off.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Tombstone: true}}); err != nil {
 		t.Fatal(err)
 	}
-	if log.Has(packfile.BlockKey(ref.GetHash())) {
-		t.Fatal("the Log keeps a tombstoned block")
-	}
-	if _, found, err := off.GetBlock(ctx, ref); err != nil || found {
-		t.Fatalf("tombstoned block reads: %v, %v", found, err)
+	if log.HasDurable(packfile.BlockKey(ref.GetHash())) {
+		t.Fatal("the Log reports a tombstoned block durable")
 	}
 }
