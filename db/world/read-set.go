@@ -70,6 +70,25 @@ func (r *ReadSet) Track(ws WorldState) WorldState {
 	return &readSetWorldState{WorldState: ws, reads: r}
 }
 
+// Untracked returns ws without the recording Track and a ReadTrackingEngine
+// add, so the reads made through it reach no ReadSet. A value computed inside
+// another evaluation, such as a cached part, tracks its reads into its own set
+// over Untracked: its reader then joins that set by reference or waits on the
+// value's retirement, as the value's cache decides, instead of also recording
+// every read the value made.
+func Untracked(ws WorldState) WorldState {
+	for {
+		switch tracked := ws.(type) {
+		case *readSetWorldState:
+			ws = tracked.WorldState
+		case *readTrackingTx:
+			ws = tracked.tx
+		default:
+			return ws
+		}
+	}
+}
+
 // Touched checks whether a ChangeSet may change what was read, by this set
 // or a set it joined.
 func (r *ReadSet) Touched(changes *ChangeSet) bool {
