@@ -981,7 +981,7 @@ func (a *ProviderAccount) RefreshSharedObjectList(context.Context) error {
 // no stored state gets a genesis.
 func (t *sobjectTracker) loadSharedObjectState(ctx context.Context, store mountTransactions, sharedObjectID string) error {
 	// Validate the stored state, or learn whether the object is listed.
-	selected, other := soStateLayouts(sharedObjectID)
+	selected, _ := soStateLayouts(sharedObjectID)
 	var found, convert, listed bool
 	err := kvtx.RunTransaction(ctx, false,
 		func(ctx context.Context) (kvtx.Tx, error) {
@@ -993,17 +993,23 @@ func (t *sobjectTracker) loadSharedObjectState(ctx context.Context, store mountT
 				return err
 			}
 
-			// Read the stored state; with none, read whether it is stored
-			// in the other layout, then whether it is listed.
-			state, _, ok, err := selected.load(ctx, tx)
+			// Read which layout holds the state, then the state when the
+			// selected layout holds it; with none, read whether it is listed.
+			stored, inLog, err := soStateInLog(ctx, tx, sharedObjectID)
 			if err != nil {
 				return err
 			}
-			if found = ok; found {
-				return state.Validate(sharedObjectID)
+			if convert = stored && inLog != stateLayoutLog; convert {
+				return nil
 			}
-			if convert, err = tx.Exists(ctx, other.tokenKey()); err != nil || convert {
-				return err
+			if stored {
+				state, _, ok, err := selected.load(ctx, tx)
+				if err != nil {
+					return err
+				}
+				if found = ok; found {
+					return state.Validate(sharedObjectID)
+				}
 			}
 			listed, err = storedListsSharedObject(ctx, tx, sharedObjectID)
 			return err

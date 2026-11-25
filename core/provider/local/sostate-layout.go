@@ -29,7 +29,22 @@ import (
 //  5. Only the selected layout is written. A mount converts a state stored in
 //     the other layout before its first write, in either direction, so
 //     switching back loses no write made under the log.
+//  6. The host key names the layout that holds a stored state: the whole
+//     state, or logLayoutMarker while the log holds it. A state is stored
+//     exactly when the host key exists.
+//
+// A build older than the log layout reads only the host key. It fails to
+// decode the marker and refuses the mount, where finding no state would start
+// a genesis over the log's keys. To run such a build over Spaces the log holds,
+// first run this build once with the whole layout selected
+// (SPACEWAVE_SOBJECT_STATE_LAYOUT unset or "whole"), so each mount converts its
+// state back under the host key.
 var stateLayoutLog = sobject_statestore.LogSelected()
+
+// logLayoutMarker is the host key's value while the log layout holds the
+// state. Its first byte, 0x00, is a protobuf tag of field 0, which every
+// decoder rejects, so a build older than the log layout fails to decode it.
+var logLayoutMarker = []byte("\x00sobject state is in the log layout")
 
 // errStateLayoutMismatch is returned when a state converted to the selected
 // layout does not load back equal to the state it was converted from.
@@ -38,7 +53,6 @@ var errStateLayoutMismatch = errors.New("shared object state differs after conve
 // soStateLayout is one way of storing a SharedObject's state.
 type soStateLayout interface {
 	// tokenKey returns the key whose bytes every write compares and changes.
-	// The state is stored in this layout when it exists.
 	tokenKey() []byte
 	// load reads the state and the token key's bytes.
 	load(ctx context.Context, tx kvtx.TxOps) (state *sobject.SOState, token []byte, found bool, err error)
@@ -62,7 +76,8 @@ func soStateLayouts(id string) (selected, other soStateLayout) {
 
 // soStateLayoutPair returns both layouts of id's state.
 func soStateLayoutPair(id string) (wholeLayout, logLayout) {
-	return wholeLayout(SobjectObjectStoreHostStateKey(id)), logLayout{sobject_statestore.New(SobjectObjectStorePrefix(id))}
+	host := SobjectObjectStoreHostStateKey(id)
+	return wholeLayout(host), logLayout{Store: sobject_statestore.New(SobjectObjectStorePrefix(id)), host: host}
 }
 
 // soStateKeys returns the token keys of both layouts of id's state.
@@ -73,12 +88,14 @@ func soStateKeys(id string) [2][]byte {
 
 // soStateStored reports whether id's state is stored in either layout.
 func soStateStored(ctx context.Context, tx kvtx.TxOps, id string) (bool, error) {
-	for _, key := range soStateKeys(id) {
-		if found, err := tx.Exists(ctx, key); err != nil || found {
-			return found, err
-		}
-	}
-	return false, nil
+	return tx.Exists(ctx, SobjectObjectStoreHostStateKey(id))
+}
+
+// soStateInLog reports whether id's state is stored, and whether the log
+// layout holds it, from the host key.
+func soStateInLog(ctx context.Context, tx kvtx.TxOps, id string) (stored, inLog bool, err error) {
+	data, found, err := tx.Get(ctx, SobjectObjectStoreHostStateKey(id))
+	return found, found && bytes.Equal(data, logLayoutMarker), err
 }
 
 // readSOStateData returns the encoded state of id in either layout: the
@@ -88,8 +105,11 @@ func readSOStateData(ctx context.Context, tx kvtx.TxOps, id string) ([]byte, boo
 	// The whole layout stores the encoding itself.
 	whole, log := soStateLayoutPair(id)
 	data, found, err := tx.Get(ctx, whole)
-	if err != nil || found {
-		return bytes.Clone(data), found, err
+	if err != nil || !found {
+		return nil, found, err
+	}
+	if !bytes.Equal(data, logLayoutMarker) {
+		return bytes.Clone(data), true, nil
 	}
 
 	// Encode the state the log assembles.
@@ -118,16 +138,22 @@ func replaceSOState(ctx context.Context, tx kvtx.TxOps, id string, state *sobjec
 // nothing.
 func convertSOState(ctx context.Context, tx kvtx.TxOps, id string) (*sobject.SOState, error) {
 	// A state already in the selected layout, or none, needs nothing.
-	selected, other := soStateLayouts(id)
-	if found, err := tx.Exists(ctx, selected.tokenKey()); err != nil || found {
+	stored, inLog, err := soStateInLog(ctx, tx, id)
+	if err != nil || !stored || inLog == stateLayoutLog {
 		return nil, err
 	}
+	selected, other := soStateLayouts(id)
 	state, _, found, err := other.load(ctx, tx)
 	if err != nil || !found {
 		return nil, err
 	}
 
-	// Write the selected layout and check it loads back equal.
+	// Clear the other layout, write the selected one, and check it loads
+	// back equal, in the same transaction. Both layouts own the host key, so
+	// the clear comes first.
+	if err := other.clear(ctx, tx); err != nil {
+		return nil, err
+	}
 	if _, err := selected.replace(ctx, tx, state); err != nil {
 		return nil, err
 	}
@@ -138,9 +164,7 @@ func convertSOState(ctx context.Context, tx kvtx.TxOps, id string) (*sobject.SOS
 	if !found || !converted.EqualVT(state) {
 		return nil, errors.Wrap(errStateLayoutMismatch, id)
 	}
-
-	// Clear the other layout in the same transaction.
-	return converted, other.clear(ctx, tx)
+	return converted, nil
 }
 
 // wholeLayout stores the encoded state under one key, the token key.
@@ -186,8 +210,11 @@ func (l wholeLayout) clear(ctx context.Context, tx kvtx.TxOps) error {
 }
 
 // logLayout stores the state as a head and its parts; the head is the token.
+// It holds logLayoutMarker under the host key while it stores a state.
 type logLayout struct {
 	sobject_statestore.Store
+	// host is the host key.
+	host []byte
 }
 
 // tokenKey returns the head's key.
@@ -205,12 +232,19 @@ func (l logLayout) write(ctx context.Context, tx kvtx.TxOps, token []byte, prev,
 	return l.Write(ctx, tx, token, prev, next)
 }
 
-// replace stores state as a new lineage.
+// replace stores state as a new lineage and marks the host key.
 func (l logLayout) replace(ctx context.Context, tx kvtx.TxOps, state *sobject.SOState) ([]byte, error) {
-	return l.Replace(ctx, tx, state)
+	head, err := l.Replace(ctx, tx, state)
+	if err != nil {
+		return nil, err
+	}
+	return head, tx.Set(ctx, l.host, logLayoutMarker)
 }
 
-// clear deletes the head and every part.
+// clear deletes the head, every part and the host key's marker.
 func (l logLayout) clear(ctx context.Context, tx kvtx.TxOps) error {
-	return l.Clear(ctx, tx)
+	if err := l.Clear(ctx, tx); err != nil {
+		return err
+	}
+	return tx.Delete(ctx, l.host)
 }

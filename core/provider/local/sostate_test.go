@@ -188,6 +188,22 @@ func TestStateLayoutConversionKeepsEveryOp(t *testing.T) {
 		t.Fatalf("the log holds another state than the whole layout did:\n%v\n%v", got, whole)
 	}
 
+	// A build older than the log layout reads only the host key. It must find
+	// a key it fails to decode, never no state, which would start a genesis.
+	host := SobjectObjectStoreHostStateKey(testSharedObjectID)
+	if err := run(false, func(tx kvtx.Tx) error {
+		data, found, err := tx.Get(ctx, host)
+		if err != nil || !found {
+			t.Fatalf("the log layout left no host key: %v", err)
+		}
+		if (&sobject.SOState{}).UnmarshalVT(data) == nil {
+			t.Fatal("an older build decodes the log layout's host key")
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+
 	// Write through the log, then convert back: no write is lost.
 	logged := write(2)
 	if len(logged.GetOps()) != len(whole.GetOps())+2 {
@@ -206,7 +222,6 @@ func TestStateLayoutConversionKeepsEveryOp(t *testing.T) {
 
 	// A state the log cannot hold, here one with a field it does not know,
 	// fails the conversion and keeps the whole layout.
-	host := SobjectObjectStoreHostStateKey(testSharedObjectID)
 	extended := protowire.AppendVarint(protowire.AppendTag(nil, 99, protowire.VarintType), 1)
 	if err := run(true, func(tx kvtx.Tx) error {
 		data, _, err := tx.Get(ctx, host)
