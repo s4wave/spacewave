@@ -487,6 +487,12 @@ func (r *Reconciler) compile(
 		return report
 	}
 
+	// Reject a node bound to an object another node holds.
+	if err := s4wave_flowgraph.CheckHold(ctx, ws, node.FlowgraphKey, node.NodeID, node.Node); err != nil {
+		report.err = err
+		return report
+	}
+
 	// Wait for a controller to supply the type.
 	report.nodeType = r.types.Get(typeID)
 	if report.nodeType == nil {

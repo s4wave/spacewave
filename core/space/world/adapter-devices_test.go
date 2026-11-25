@@ -6,6 +6,7 @@ import (
 	"math"
 	"slices"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	space_world "github.com/s4wave/spacewave/core/space/world"
+	"github.com/s4wave/spacewave/core/space/world/optypes"
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
@@ -20,6 +22,7 @@ import (
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
+	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 )
 
 // testDevice is another device's writer on a Space: a participant whose
@@ -501,6 +504,95 @@ func TestAdapterSupersedes(t *testing.T) {
 		t.Fatalf("write after %d attempts returned %v; want a second attempt that finds the object", attempts, err)
 	}
 	waitObjects(ctx, t, busEngine, "base", "contested")
+}
+
+// TestAdapterRefusesSecondHold races a local edit that takes a hold on an
+// object against another device's operation that takes it first: replay runs
+// the local hold op after the other device's edge, so the local write is
+// superseded and then refused, and the object keeps one holder.
+func TestAdapterRefusesSecondHold(t *testing.T) {
+	// Create the object and both Flowgraphs.
+	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
+	defer cancel()
+	f := newAdapterFixtureOn(t, fixtureOpts{opTypes: &space_world.OpTypes{Lookup: optypes.LookupWorldOp}})
+	_, engRef := f.start(t)
+	defer engRef.Release()
+	busEngine := world.NewBusEngine(ctx, f.tb.Bus, f.engineID)
+	const held, first, second = "held", "flowgraph/first", "flowgraph/second"
+	if err := world.ExecTransaction(ctx, busEngine, true, func(ctx context.Context, ws world.WorldState) error {
+		obj, err := ws.CreateObject(ctx, held, nil)
+		world.ReleaseObjectState(obj)
+		if err != nil {
+			return err
+		}
+		for _, key := range []string{first, second} {
+			if _, _, err := ws.ApplyWorldOp(ctx, &s4wave_flowgraph.CreateFlowgraphOp{ObjectKey: key}, ""); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	so := f.space(t)
+	remote := addDevice(t, so)
+	holdEdge, err := world_block_tx.NewTxSetGraphQuad(world.GraphQuadToQuad(s4wave_flowgraph.HoldQuad(second, "runtime", held)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	remoteHold, err := (&space_world.WorldOp{Body: &space_world.WorldOp_ApplyTxOp{ApplyTxOp: &space_world.ApplyTxOp{Tx: holdEdge}}}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Hold the state lock while the local edit builds on the head without the
+	// other device's hold, then add that hold, so the local edit queues after
+	// it.
+	host := so.(sobject.InviteHost).GetSOHost()
+	var attempts int
+	built := make(chan struct{})
+	done := make(chan error, 1)
+	err = host.UpdateSOState(ctx, func(state *sobject.SOState) error {
+		// Build the local edit.
+		go func() {
+			done <- world.ExecTransaction(ctx, busEngine, true, func(ctx context.Context, ws world.WorldState) error {
+				attempts++
+				if attempts == 1 {
+					defer close(built)
+				}
+				_, err := s4wave_flowgraph.UpdateFlowgraph(ctx, ws, first, &s4wave_flowgraph.UpdateFlowgraphRequest{SetNodes: map[string]*s4wave_flowgraph.FlowgraphNode{
+					"runtime": {TypeId: "fixture", ObjectKey: held, Requirements: &s4wave_flowgraph.FlowgraphRequirements{}},
+				}})
+				return err
+			})
+		}()
+		select {
+		case <-built:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+
+		// Add the other device's hold.
+		return remote.add(t, so, state, remoteHold, false)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The first attempt is superseded; the second finds the other hold.
+	err = <-done
+	if attempts != 2 || err == nil || !strings.Contains(err.Error(), "is held by") {
+		t.Fatalf("edit after %d attempts returned %v; want a second attempt refused by the other hold", attempts, err)
+	}
+	if err := world.ExecTransaction(ctx, busEngine, false, func(ctx context.Context, ws world.WorldState) error {
+		edges, err := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys("", s4wave_flowgraph.HoldPredicate, held, ""), 0)
+		if err == nil && (len(edges) != 1 || edges[0].GetSubject() != world.KeyToGraphValue(second).String()) {
+			err = errors.Errorf("hold edges = %v, want the other device's alone", edges)
+		}
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 // TestAdapterAdmitsOnMovedHead begins a write on the head H, lets replay
