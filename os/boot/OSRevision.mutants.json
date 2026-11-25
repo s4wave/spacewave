@@ -48,5 +48,15 @@
       ]
     ],
     "expect": "SelectedPresent"
+  },
+  {
+    "name": "publishing a trial keeps the last rollback's record",
+    "replace": [
+      [
+        "           /\\ roots' = [roots EXCEPT !.trial = placed, !.attempted = None,\n                                     !.rolledBack = None]",
+        "           /\\ roots' = [roots EXCEPT !.trial = placed, !.attempted = None]"
+      ]
+    ],
+    "expect": "RootsTellOutcome"
   }
 ]

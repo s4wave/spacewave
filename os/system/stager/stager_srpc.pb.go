@@ -17,6 +17,12 @@ type SRPCStagerClient interface {
 	// WatchRelease sends the release the node binds, and again each time it
 	// changes. It sends nothing while the object holds no release.
 	WatchRelease(ctx context.Context, in *WatchReleaseRequest) (SRPCStager_WatchReleaseClient, error)
+	// ReportRevision tells the node the Device's revisions, as the stage child
+	// last read them from the image store or changed them.
+	ReportRevision(ctx context.Context, in *Revision) (*ReportRevisionResponse, error)
+	// WatchRevision sends the last reported revisions, and again each time a
+	// report changes them. It sends nothing until the first report.
+	WatchRevision(ctx context.Context, in *WatchRevisionRequest) (SRPCStager_WatchRevisionClient, error)
 }
 
 type srpcStagerClient struct {
@@ -70,10 +76,58 @@ func (x *srpcStager_WatchReleaseClient) RecvTo(m *WatchReleaseResponse) error {
 	return x.MsgRecv(m)
 }
 
+func (c *srpcStagerClient) ReportRevision(ctx context.Context, in *Revision) (*ReportRevisionResponse, error) {
+	out := new(ReportRevisionResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "ReportRevision", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcStagerClient) WatchRevision(ctx context.Context, in *WatchRevisionRequest) (SRPCStager_WatchRevisionClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "WatchRevision", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcStager_WatchRevisionClient{stream}
+	// A failed half-close means the call ended; MsgRecv reports its outcome.
+	_ = strm.CloseSend()
+	return strm, nil
+}
+
+type SRPCStager_WatchRevisionClient interface {
+	srpc.Stream
+	Recv() (*Revision, error)
+	RecvTo(*Revision) error
+}
+
+type srpcStager_WatchRevisionClient struct {
+	srpc.Stream
+}
+
+func (x *srpcStager_WatchRevisionClient) Recv() (*Revision, error) {
+	m := new(Revision)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcStager_WatchRevisionClient) RecvTo(m *Revision) error {
+	return x.MsgRecv(m)
+}
+
 type SRPCStagerServer interface {
 	// WatchRelease sends the release the node binds, and again each time it
 	// changes. It sends nothing while the object holds no release.
 	WatchRelease(*WatchReleaseRequest, SRPCStager_WatchReleaseStream) error
+	// ReportRevision tells the node the Device's revisions, as the stage child
+	// last read them from the image store or changed them.
+	ReportRevision(context.Context, *Revision) (*ReportRevisionResponse, error)
+	// WatchRevision sends the last reported revisions, and again each time a
+	// report changes them. It sends nothing until the first report.
+	WatchRevision(*WatchRevisionRequest, SRPCStager_WatchRevisionStream) error
 }
 
 const SRPCStagerServiceID = "os.system.stager.Stager"
@@ -103,6 +157,8 @@ func (d *SRPCStagerHandler) GetServiceID() string { return d.serviceID }
 func (SRPCStagerHandler) GetMethodIDs() []string {
 	return []string{
 		"WatchRelease",
+		"ReportRevision",
+		"WatchRevision",
 	}
 }
 
@@ -117,6 +173,10 @@ func (d *SRPCStagerHandler) InvokeMethod(
 	switch methodID {
 	case "WatchRelease":
 		return true, d.InvokeMethod_WatchRelease(d.impl, strm)
+	case "ReportRevision":
+		return true, d.InvokeMethod_ReportRevision(d.impl, strm)
+	case "WatchRevision":
+		return true, d.InvokeMethod_WatchRevision(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -129,6 +189,27 @@ func (SRPCStagerHandler) InvokeMethod_WatchRelease(impl SRPCStagerServer, strm s
 	}
 	serverStrm := &srpcStager_WatchReleaseStream{strm}
 	return impl.WatchRelease(req, serverStrm)
+}
+
+func (SRPCStagerHandler) InvokeMethod_ReportRevision(impl SRPCStagerServer, strm srpc.Stream) error {
+	req := new(Revision)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.ReportRevision(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCStagerHandler) InvokeMethod_WatchRevision(impl SRPCStagerServer, strm srpc.Stream) error {
+	req := new(WatchRevisionRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcStager_WatchRevisionStream{strm}
+	return impl.WatchRevision(req, serverStrm)
 }
 
 type SRPCStager_WatchReleaseStream interface {
@@ -146,6 +227,37 @@ func (x *srpcStager_WatchReleaseStream) Send(m *WatchReleaseResponse) error {
 }
 
 func (x *srpcStager_WatchReleaseStream) SendAndClose(m *WatchReleaseResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
+}
+
+type SRPCStager_ReportRevisionStream interface {
+	srpc.Stream
+}
+
+type srpcStager_ReportRevisionStream struct {
+	srpc.Stream
+}
+
+type SRPCStager_WatchRevisionStream interface {
+	srpc.Stream
+	Send(*Revision) error
+	SendAndClose(*Revision) error
+}
+
+type srpcStager_WatchRevisionStream struct {
+	srpc.Stream
+}
+
+func (x *srpcStager_WatchRevisionStream) Send(m *Revision) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcStager_WatchRevisionStream) SendAndClose(m *Revision) error {
 	if m != nil {
 		if err := x.MsgSend(m); err != nil {
 			return err

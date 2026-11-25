@@ -14,6 +14,7 @@ import (
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/s4wave/spacewave/net/peer"
 	os_image "github.com/s4wave/spacewave/os/image"
+	os_system_stager "github.com/s4wave/spacewave/os/system/stager"
 	"github.com/sirupsen/logrus"
 )
 
@@ -29,7 +30,8 @@ const (
 	// attemptedRoot names the trial's authorization once a boot has tried it.
 	attemptedRoot = "attempted"
 	// rolledBackRoot names a record of the root block of the last trial that
-	// failed. The record has no children, so it keeps none of that revision.
+	// failed, until the next trial is staged. The record has no children, so
+	// it keeps none of that revision.
 	rolledBackRoot = "rolled-back"
 )
 
@@ -58,6 +60,21 @@ type revisions struct {
 	// attempted and rolledBack are the named roots of the same names, nil
 	// when free.
 	attempted, rolledBack *block.BlockRef
+	// failed is the image root the rolled-back record names, nil when free.
+	failed *block.BlockRef
+}
+
+// report returns the revisions as the Device's update state shows them: the
+// accepted revision, and a pending trial or else the trial that rolled back.
+func (r *revisions) report() *os_system_stager.Revision {
+	rev := &os_system_stager.Revision{Accepted: r.accepted.image.GetRootRef()}
+	switch {
+	case r.trial.auth != nil:
+		rev.Update = &os_system_stager.Revision_Trial{Trial: r.trial.image.GetRootRef()}
+	case r.failed != nil:
+		rev.Update = &os_system_stager.Revision_RolledBack{RolledBack: r.failed}
+	}
+	return rev
 }
 
 // Selection is the revision a boot serves, with the slots it read, so a trial
@@ -200,8 +217,10 @@ func AuthorizeImage(ctx context.Context, le *logrus.Entry, dir string, signed *p
 // StageRevision copies the revision signed authorizes from src, a store that
 // serves each block with its child list, such as another image store or a
 // Space's bucket, into the image store in dir and publishes it as the trial,
-// with its authorization, in one commit. It refuses while another trial is
-// pending. It returns the number of blocks it copied.
+// with its authorization, in one commit that also frees the record of the
+// last trial that rolled back, so the roots tell what the last update did. It
+// refuses while another trial is pending. It returns the number of blocks it
+// copied.
 func StageRevision(ctx context.Context, le *logrus.Entry, dir string, src block.StoreOps, signed *peer.SignedMsg, image *bucket.ObjectRef) (_ int, retErr error) {
 	// Build the authorization before copying, so a bad one copies nothing.
 	auth, err := authorizationBlock(signed, image)
@@ -214,12 +233,24 @@ func StageRevision(ctx context.Context, le *logrus.Entry, dir string, src block.
 	}
 	defer func() { retErr = errors.Join(retErr, vol.Close()) }()
 
-	// Copy the blocks the store lacks, then publish the trial.
+	// Copy the blocks the store lacks.
 	copied, err := copyRevision(ctx, vol, src, image.GetRootRef())
 	if err != nil {
 		return copied, err
 	}
-	err = vol.SetBucketRoots(ctx, imageBucket, []*block.PutBatchEntry{auth}, []block.NamedRoot{{Name: trialRoot, Ref: auth.Ref}})
+
+	// Publish the trial and free the last rollback's record, so the roots
+	// alone tell whether the newest trial rolled back. The writer is the
+	// store's only one, so the record read here is current.
+	rolledBack, err := vol.GetBucketRoot(ctx, imageBucket, rolledBackRoot)
+	if err != nil {
+		return copied, err
+	}
+	roots := []block.NamedRoot{{Name: trialRoot, Ref: auth.Ref}}
+	if rolledBack != nil {
+		roots = append(roots, block.NamedRoot{Name: rolledBackRoot, Previous: rolledBack})
+	}
+	err = vol.SetBucketRoots(ctx, imageBucket, []*block.PutBatchEntry{auth}, roots)
 	if err != nil {
 		return copied, err
 	}
@@ -369,8 +400,22 @@ func readRevisions(ctx context.Context, dir string, pinned []peer.ID) (_ *revisi
 		return nil, err
 	}
 
-	// Verify each occupied slot; a slot that fails keeps its reason.
+	// Read the root the rolled-back record names.
 	store := store_kvtx.NewKVTx(store_kvkey.NewDefaultKVKey(), db, nil)
+	if revs.rolledBack != nil {
+		data, found, err := store.GetBlock(ctx, revs.rolledBack)
+		if err != nil {
+			return nil, err
+		}
+		if found {
+			revs.failed = &block.BlockRef{}
+			if err := revs.failed.UnmarshalVT(data); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	// Verify each occupied slot; a slot that fails keeps its reason.
 	for _, slot := range []*revision{&revs.accepted, &revs.trial} {
 		if slot.auth != nil {
 			slot.image, slot.signer, slot.err = verifyRevision(ctx, store, slot.auth, pinned)

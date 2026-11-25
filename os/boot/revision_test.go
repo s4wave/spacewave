@@ -26,6 +26,7 @@ import (
 	os_release "github.com/s4wave/spacewave/os/release"
 	os_system "github.com/s4wave/spacewave/os/system"
 	os_system_controller "github.com/s4wave/spacewave/os/system/controller"
+	os_system_stager "github.com/s4wave/spacewave/os/system/stager"
 	"github.com/sirupsen/logrus"
 )
 
@@ -397,8 +398,22 @@ func TestStageReleaseFromNode(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = lis.Close() })
+	// Serve each connection at once, as the daemon does:
+	// srpc.AcceptMuxedListener serves one connection at a time.
+	srv := srpc.NewServer(srpc.NewMux(os_system.NewInvoker(tb.Bus)))
 	go func() {
-		_ = srpc.AcceptMuxedListener(ctx, lis, srpc.NewServer(srpc.NewMux(os_system.NewInvoker(tb.Bus))), nil)
+		for {
+			nc, err := lis.Accept()
+			if err != nil {
+				return
+			}
+			mc, err := srpc.NewMuxedConn(nc, false, nil)
+			if err != nil {
+				_ = nc.Close()
+				continue
+			}
+			go func() { _ = srv.AcceptMuxedConn(ctx, mc) }()
+		}
 	}()
 
 	// stage runs the console's child and returns the trial it staged.
@@ -413,11 +428,59 @@ func TestStageReleaseFromNode(t *testing.T) {
 		return revs.trial.image
 	}
 
+	// Watch the revisions the child reports to the node, as the daemon's
+	// update producer does.
+	conn, err := net.Dial("unix", filepath.Join(data, "daemon", daemonSocket))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = conn.Close() })
+	client, err := srpc.NewClientWithConn(conn, true, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	revStrm, err := os_system_stager.NewSRPCStagerClient(client).WatchRevision(ctx, &os_system_stager.WatchRevisionRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	reports := make(chan *os_system_stager.Revision, 64)
+	go func() {
+		defer close(reports)
+		for {
+			r, err := revStrm.Recv()
+			if err != nil {
+				return
+			}
+			reports <- r
+		}
+	}()
+	expect := func(want *os_system_stager.Revision) {
+		t.Helper()
+		deadline := time.After(10 * time.Second)
+		for {
+			select {
+			case r, ok := <-reports:
+				if !ok {
+					t.Fatal("the revision watch ended")
+				}
+				if r.EqualVT(want) {
+					return
+				}
+			case <-deadline:
+				t.Fatalf("the node never reported %v", want)
+			}
+		}
+	}
+
 	// The node's release B stages as the trial, and a second child refuses
 	// while that trial is pending.
 	if trial := stage(); !trial.EqualVT(imageB) {
 		t.Fatal("the child did not stage the node's release")
 	}
+	expect(&os_system_stager.Revision{
+		Accepted: imageA.GetRootRef(),
+		Update:   &os_system_stager.Revision_Trial{Trial: imageB.GetRootRef()},
+	})
 	if err := RunStageRelease(StageReleaseArgs(system, data)[1:]); err == nil {
 		t.Fatal("a second child staged over a pending trial")
 	}
@@ -443,8 +506,41 @@ func TestStageReleaseFromNode(t *testing.T) {
 		t.Fatalf("the child staged %s while the node served the accepted release", trial.GetRootRef().MarshalString())
 	case <-time.After(500 * time.Millisecond):
 	}
+	expect(&os_system_stager.Revision{Accepted: imageB.GetRootRef()})
 	publish(imageC)
 	if trial := <-staged; !trial.EqualVT(imageC) {
 		t.Fatal("the child did not stage the next release")
 	}
+
+	// C boots on trial and never gets healthy, so the next boot rolls it
+	// back, and the child reports the rollback.
+	if sel, err := SelectRevision(ctx, le, system, pinned); err != nil || !sel.OnTrial() {
+		t.Fatalf("C did not boot on trial: %v", err)
+	}
+	if sel, err := SelectRevision(ctx, le, system, pinned); err != nil || sel.OnTrial() {
+		t.Fatalf("C did not roll back: %v", err)
+	}
+	go func() { staged <- stage() }()
+	expect(&os_system_stager.Revision{
+		Accepted: imageB.GetRootRef(),
+		Update:   &os_system_stager.Revision_RolledBack{RolledBack: imageC.GetRootRef()},
+	})
+
+	// Staging the next release frees the rollback's record, so the roots
+	// again tell what the last update did.
+	publish(imageA)
+	if trial := <-staged; !trial.EqualVT(imageA) {
+		t.Fatal("the child did not stage the release after the rollback")
+	}
+	revs, err := readRevisions(ctx, system, pinned)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if revs.rolledBack != nil {
+		t.Fatal("staging a trial kept the rollback's record")
+	}
+	expect(&os_system_stager.Revision{
+		Accepted: imageB.GetRootRef(),
+		Update:   &os_system_stager.Revision_Trial{Trial: imageA.GetRootRef()},
+	})
 }

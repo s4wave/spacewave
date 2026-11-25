@@ -2,7 +2,13 @@
 // @generated from file github.com/s4wave/spacewave/os/system/stager/stager.proto (package os.system.stager, syntax proto3)
 /* eslint-disable */
 
-import { WatchReleaseRequest, WatchReleaseResponse } from './stager.pb.js'
+import {
+  ReportRevisionResponse,
+  Revision,
+  WatchReleaseRequest,
+  WatchReleaseResponse,
+  WatchRevisionRequest,
+} from './stager.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
 import {
   buildDecodeMessageTransform,
@@ -15,7 +21,9 @@ import {
  * Stager serves a placed os/system node's release to its Device's console.
  * The console's stage child is its one client; it reads the image's blocks
  * from the BlockStore service the node serves beside it, under BlocksServiceID.
- * The console is the image store's only writer, so this service only answers.
+ * The console is the image store's only writer, so the stage child also
+ * reports the store's revisions, which the node serves to the Device's update
+ * state.
  *
  * @generated from service os.system.stager.Stager
  */
@@ -34,6 +42,30 @@ export const StagerDefinition = {
       O: WatchReleaseResponse,
       kind: MethodKind.ServerStreaming,
     },
+    /**
+     * ReportRevision tells the node the Device's revisions, as the stage child
+     * last read them from the image store or changed them.
+     *
+     * @generated from rpc os.system.stager.Stager.ReportRevision
+     */
+    ReportRevision: {
+      name: 'ReportRevision',
+      I: Revision,
+      O: ReportRevisionResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * WatchRevision sends the last reported revisions, and again each time a
+     * report changes them. It sends nothing until the first report.
+     *
+     * @generated from rpc os.system.stager.Stager.WatchRevision
+     */
+    WatchRevision: {
+      name: 'WatchRevision',
+      I: WatchRevisionRequest,
+      O: Revision,
+      kind: MethodKind.ServerStreaming,
+    },
   },
 } as const
 
@@ -41,7 +73,9 @@ export const StagerDefinition = {
  * Stager serves a placed os/system node's release to its Device's console.
  * The console's stage child is its one client; it reads the image's blocks
  * from the BlockStore service the node serves beside it, under BlocksServiceID.
- * The console is the image store's only writer, so this service only answers.
+ * The console is the image store's only writer, so the stage child also
+ * reports the store's revisions, which the node serves to the Device's update
+ * state.
  *
  * @generated from service os.system.stager.Stager
  */
@@ -56,13 +90,37 @@ export interface Stager {
     request: WatchReleaseRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<WatchReleaseResponse>
+
+  /**
+   * ReportRevision tells the node the Device's revisions, as the stage child
+   * last read them from the image store or changed them.
+   *
+   * @generated from rpc os.system.stager.Stager.ReportRevision
+   */
+  ReportRevision(
+    request: Revision,
+    abortSignal?: AbortSignal,
+  ): Promise<ReportRevisionResponse>
+
+  /**
+   * WatchRevision sends the last reported revisions, and again each time a
+   * report changes them. It sends nothing until the first report.
+   *
+   * @generated from rpc os.system.stager.Stager.WatchRevision
+   */
+  WatchRevision(
+    request: WatchRevisionRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<Revision>
 }
 
 /**
  * Stager serves a placed os/system node's release to its Device's console.
  * The console's stage child is its one client; it reads the image's blocks
  * from the BlockStore service the node serves beside it, under BlocksServiceID.
- * The console is the image store's only writer, so this service only answers.
+ * The console is the image store's only writer, so the stage child also
+ * reports the store's revisions, which the node serves to the Device's update
+ * state.
  *
  * @generated from service os.system.stager.Stager
  */
@@ -78,6 +136,30 @@ export interface StagerHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): MessageStream<WatchReleaseResponse>
+
+  /**
+   * ReportRevision tells the node the Device's revisions, as the stage child
+   * last read them from the image store or changed them.
+   *
+   * @generated from rpc os.system.stager.Stager.ReportRevision
+   */
+  ReportRevision(
+    request: Revision,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ReportRevisionResponse>
+
+  /**
+   * WatchRevision sends the last reported revisions, and again each time a
+   * report changes them. It sends nothing until the first report.
+   *
+   * @generated from rpc os.system.stager.Stager.WatchRevision
+   */
+  WatchRevision(
+    request: WatchRevisionRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<Revision>
 }
 
 export const StagerServiceName = StagerDefinition.typeName
@@ -89,6 +171,8 @@ export class StagerClient implements Stager {
     this.service = opts?.service || StagerServiceName
     this.rpc = rpc
     this.WatchRelease = this.WatchRelease.bind(this)
+    this.ReportRevision = this.ReportRevision.bind(this)
+    this.WatchRevision = this.WatchRevision.bind(this)
   }
   /**
    * WatchRelease sends the release the node binds, and again each time it
@@ -108,5 +192,45 @@ export class StagerClient implements Stager {
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(WatchReleaseResponse)(result)
+  }
+
+  /**
+   * ReportRevision tells the node the Device's revisions, as the stage child
+   * last read them from the image store or changed them.
+   *
+   * @generated from rpc os.system.stager.Stager.ReportRevision
+   */
+  async ReportRevision(
+    request: Revision,
+    abortSignal?: AbortSignal,
+  ): Promise<ReportRevisionResponse> {
+    const requestMsg = Revision.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      StagerDefinition.methods.ReportRevision.name,
+      Revision.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return ReportRevisionResponse.fromBinary(result)
+  }
+
+  /**
+   * WatchRevision sends the last reported revisions, and again each time a
+   * report changes them. It sends nothing until the first report.
+   *
+   * @generated from rpc os.system.stager.Stager.WatchRevision
+   */
+  WatchRevision(
+    request: WatchRevisionRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<Revision> {
+    const requestMsg = WatchRevisionRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      StagerDefinition.methods.WatchRevision.name,
+      WatchRevisionRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(Revision)(result)
   }
 }

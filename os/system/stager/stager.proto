@@ -1,17 +1,50 @@
 syntax = "proto3";
 package os.system.stager;
 
+import "github.com/s4wave/spacewave/db/block/block.proto";
 import "github.com/s4wave/spacewave/os/release/release.proto";
 
 // Stager serves a placed os/system node's release to its Device's console.
 // The console's stage child is its one client; it reads the image's blocks
 // from the BlockStore service the node serves beside it, under BlocksServiceID.
-// The console is the image store's only writer, so this service only answers.
+// The console is the image store's only writer, so the stage child also
+// reports the store's revisions, which the node serves to the Device's update
+// state.
 service Stager {
   // WatchRelease sends the release the node binds, and again each time it
   // changes. It sends nothing while the object holds no release.
   rpc WatchRelease(WatchReleaseRequest) returns (stream WatchReleaseResponse);
+  // ReportRevision tells the node the Device's revisions, as the stage child
+  // last read them from the image store or changed them.
+  rpc ReportRevision(Revision) returns (ReportRevisionResponse);
+  // WatchRevision sends the last reported revisions, and again each time a
+  // report changes them. It sends nothing until the first report.
+  rpc WatchRevision(WatchRevisionRequest) returns (stream Revision);
 }
+
+// Revision is the Device's update state as its image store shows it: the
+// revision it runs and falls back to, and the last update, if one is under
+// way or failed. No update means none was tried or the last was accepted.
+message Revision {
+  // Accepted is the image root of the revision the Device falls back to.
+  .block.BlockRef accepted = 1;
+  // Update is the last update, when it is not accepted.
+  oneof update {
+    // Staging is the image root being copied into the store.
+    .block.BlockRef staging = 2;
+    // Trial is the image root staged to boot next, on trial.
+    .block.BlockRef trial = 3;
+    // RolledBack is the image root of the last trial, which failed and
+    // booted back into the accepted revision.
+    .block.BlockRef rolled_back = 4;
+  }
+}
+
+// ReportRevisionResponse acknowledges a report.
+message ReportRevisionResponse {}
+
+// WatchRevisionRequest asks for the Device's revisions.
+message WatchRevisionRequest {}
 
 // WatchReleaseRequest asks for the node's release.
 message WatchReleaseRequest {}

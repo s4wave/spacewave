@@ -269,7 +269,7 @@ func watchDeviceSetupTarget(ctx context.Context, le *logrus.Entry, statePath str
 
 	// Read the record after each change.
 	for {
-		record, ok, err := deviceLauncherProjectionTarget(statePath)
+		record, ok, err := deviceUpdateProjectionTarget(statePath)
 		switch {
 		case err != nil:
 			// A write in progress reads as a partial record. Its completion is

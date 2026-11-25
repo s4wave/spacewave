@@ -135,9 +135,9 @@ func TestProjectLauncherUpdateOntoDeviceLifecycle(t *testing.T) {
 			if existing == nil {
 				existing = base.CloneVT()
 			}
-			next, changed, err := projectLauncherUpdateOntoDevice(existing, tt.info, now)
+			next, changed, err := projectUpdateOntoDevice(existing, launcherUpdate(tt.info), now)
 			if err != nil {
-				t.Fatalf("projectLauncherUpdateOntoDevice() error = %v", err)
+				t.Fatalf("projectUpdateOntoDevice() error = %v", err)
 			}
 			if changed != tt.wantChanged {
 				t.Fatalf("changed = %v, want %v", changed, tt.wantChanged)
@@ -180,7 +180,7 @@ func TestProjectLauncherUpdateOntoDeviceLifecycle(t *testing.T) {
 func TestDeviceLauncherProjectionTargetRequiresReadyDeviceRecord(t *testing.T) {
 	// Reject a missing setup record.
 	statePath := t.TempDir()
-	if _, ok, err := deviceLauncherProjectionTarget(statePath); err != nil || ok {
+	if _, ok, err := deviceUpdateProjectionTarget(statePath); err != nil || ok {
 		t.Fatalf("missing setup target = (%v, %v), want no target without error", ok, err)
 	}
 
@@ -194,9 +194,9 @@ func TestDeviceLauncherProjectionTargetRequiresReadyDeviceRecord(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("write setup record: %v", err)
 	}
-	record, ok, err := deviceLauncherProjectionTarget(statePath)
+	record, ok, err := deviceUpdateProjectionTarget(statePath)
 	if err != nil {
-		t.Fatalf("deviceLauncherProjectionTarget() error = %v", err)
+		t.Fatalf("deviceUpdateProjectionTarget() error = %v", err)
 	}
 	if !ok {
 		t.Fatal("ready device setup record was not selected as projection target")

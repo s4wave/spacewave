@@ -17,6 +17,8 @@ type stager struct {
 	eng world.Engine
 	// key is the release's object key.
 	key string
+	// c holds the revisions the console reports.
+	c *Controller
 }
 
 // WatchRelease sends the release, and again each time it changes. A release
@@ -39,6 +41,37 @@ func (s *stager) WatchRelease(_ *os_system_stager.WatchReleaseRequest, strm os_s
 		}
 		return strm.Send(&os_system_stager.WatchReleaseResponse{Release: r})
 	})
+}
+
+// ReportRevision stores the console's report of the Device's revisions.
+func (s *stager) ReportRevision(_ context.Context, r *os_system_stager.Revision) (*os_system_stager.ReportRevisionResponse, error) {
+	s.c.setRevision(r)
+	return &os_system_stager.ReportRevisionResponse{}, nil
+}
+
+// WatchRevision sends the last reported revisions, and again each time a
+// report changes them, until the client or the engine stops.
+func (s *stager) WatchRevision(_ *os_system_stager.WatchRevisionRequest, strm os_system_stager.SRPCStager_WatchRevisionStream) error {
+	// End the stream with the engine as well as with the client.
+	ctx, cancel := context.WithCancel(strm.Context())
+	defer cancel()
+	stop := context.AfterFunc(s.ctx, cancel)
+	defer stop()
+
+	// Send each report once it exists.
+	for {
+		r, changed := s.c.getRevision()
+		if r != nil {
+			if err := strm.Send(r); err != nil {
+				return err
+			}
+		}
+		select {
+		case <-ctx.Done():
+			return context.Cause(ctx)
+		case <-changed:
+		}
+	}
 }
 
 // watchRelease calls cb with the release at key, and again after each change

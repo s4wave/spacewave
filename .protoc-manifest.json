@@ -4146,7 +4146,7 @@
           ]
         },
         "github.com/s4wave/spacewave/os/system/stager": {
-          "hash": "bface313c1293c7b75591d21f5ef6529c65bbfd6bf2369dcd390c8cd951eea0a",
+          "hash": "d9dd541997f21b8efe5d2159a878d57e1b6bb2f6b6fdfd30639d28725ca90c2e",
           "generatedFiles": [
             "os/system/stager/stager.pb.go",
             "os/system/stager/stager.pb.ts",

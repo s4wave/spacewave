@@ -2,9 +2,71 @@
 // @generated from file github.com/s4wave/spacewave/os/system/stager/stager.proto (package os.system.stager, syntax proto3)
 /* eslint-disable */
 
+import { BlockRef } from '../../../db/block/block.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { Release } from '../../release/release.pb.js'
+
+/**
+ * Revision is the Device's update state as its image store shows it: the
+ * revision it runs and falls back to, and the last update, if one is under
+ * way or failed. No update means none was tried or the last was accepted.
+ *
+ * @generated from message os.system.stager.Revision
+ */
+export interface Revision {
+  /**
+   * Accepted is the image root of the revision the Device falls back to.
+   */
+  accepted?: BlockRef
+  /**
+   * Update is the last update, when it is not accepted.
+   *
+   * @generated from oneof os.system.stager.Revision.update
+   */
+  update?:
+    | { value?: undefined; case: undefined }
+    | { value: BlockRef; case: 'staging' }
+    | { value: BlockRef; case: 'trial' }
+    | { value: BlockRef; case: 'rolledBack' }
+}
+
+export const Revision: MessageType<Revision> =
+  /* @__PURE__ */ createMessageType<Revision>(
+    'os.system.stager.Revision',
+    () => [
+      [1, 'accepted', 11, 0, BlockRef.codec],
+      [2, 'staging', 11, 0, BlockRef.codec, 'update'],
+      [3, 'trial', 11, 0, BlockRef.codec, 'update'],
+      [4, 'rolled_back', 11, 0, BlockRef.codec, 'update'],
+    ],
+  )
+
+/**
+ * ReportRevisionResponse acknowledges a report.
+ *
+ * @generated from message os.system.stager.ReportRevisionResponse
+ */
+export interface ReportRevisionResponse {}
+
+export const ReportRevisionResponse: MessageType<ReportRevisionResponse> =
+  /* @__PURE__ */ createMessageType<ReportRevisionResponse>(
+    'os.system.stager.ReportRevisionResponse',
+    () => [],
+  )
+
+/**
+ * WatchRevisionRequest asks for the Device's revisions.
+ *
+ * @generated from message os.system.stager.WatchRevisionRequest
+ */
+export interface WatchRevisionRequest {}
+
+export const WatchRevisionRequest: MessageType<WatchRevisionRequest> =
+  /* @__PURE__ */ createMessageType<WatchRevisionRequest>(
+    'os.system.stager.WatchRevisionRequest',
+    () => [],
+  )
 
 /**
  * WatchReleaseRequest asks for the node's release.

@@ -11,8 +11,114 @@ import (
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	block "github.com/s4wave/spacewave/db/block"
 	release "github.com/s4wave/spacewave/os/release"
 )
+
+// Revision is the Device's update state as its image store shows it: the
+// revision it runs and falls back to, and the last update, if one is under
+// way or failed. No update means none was tried or the last was accepted.
+type Revision struct {
+	unknownFields []byte
+	// Accepted is the image root of the revision the Device falls back to.
+	Accepted *block.BlockRef `protobuf:"bytes,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
+	// Update is the last update, when it is not accepted.
+	//
+	// Types that are assignable to Update:
+	//	*Revision_Staging
+	//	*Revision_Trial
+	//	*Revision_RolledBack
+	Update isRevision_Update `protobuf_oneof:"update"`
+}
+
+func (x *Revision) Reset() {
+	*x = Revision{}
+}
+
+func (*Revision) ProtoMessage() {}
+
+func (x *Revision) GetAccepted() *block.BlockRef {
+	if x != nil {
+		return x.Accepted
+	}
+	return nil
+}
+
+func (m *Revision) GetUpdate() isRevision_Update {
+	if m != nil {
+		return m.Update
+	}
+	return nil
+}
+
+func (x *Revision) GetStaging() *block.BlockRef {
+	if x, ok := x.GetUpdate().(*Revision_Staging); ok {
+		return x.Staging
+	}
+	return nil
+}
+
+func (x *Revision) GetTrial() *block.BlockRef {
+	if x, ok := x.GetUpdate().(*Revision_Trial); ok {
+		return x.Trial
+	}
+	return nil
+}
+
+func (x *Revision) GetRolledBack() *block.BlockRef {
+	if x, ok := x.GetUpdate().(*Revision_RolledBack); ok {
+		return x.RolledBack
+	}
+	return nil
+}
+
+type isRevision_Update interface {
+	isRevision_Update()
+}
+
+type Revision_Staging struct {
+	// Staging is the image root being copied into the store.
+	Staging *block.BlockRef `protobuf:"bytes,2,opt,name=staging,proto3,oneof"`
+}
+
+type Revision_Trial struct {
+	// Trial is the image root staged to boot next, on trial.
+	Trial *block.BlockRef `protobuf:"bytes,3,opt,name=trial,proto3,oneof"`
+}
+
+type Revision_RolledBack struct {
+	// RolledBack is the image root of the last trial, which failed and
+	// booted back into the accepted revision.
+	RolledBack *block.BlockRef `protobuf:"bytes,4,opt,name=rolled_back,json=rolledBack,proto3,oneof"`
+}
+
+func (*Revision_Staging) isRevision_Update() {}
+
+func (*Revision_Trial) isRevision_Update() {}
+
+func (*Revision_RolledBack) isRevision_Update() {}
+
+// ReportRevisionResponse acknowledges a report.
+type ReportRevisionResponse struct {
+	unknownFields []byte
+}
+
+func (x *ReportRevisionResponse) Reset() {
+	*x = ReportRevisionResponse{}
+}
+
+func (*ReportRevisionResponse) ProtoMessage() {}
+
+// WatchRevisionRequest asks for the Device's revisions.
+type WatchRevisionRequest struct {
+	unknownFields []byte
+}
+
+func (x *WatchRevisionRequest) Reset() {
+	*x = WatchRevisionRequest{}
+}
+
+func (*WatchRevisionRequest) ProtoMessage() {}
 
 // WatchReleaseRequest asks for the node's release.
 type WatchReleaseRequest struct {
@@ -45,6 +151,94 @@ func (x *WatchReleaseResponse) GetRelease() *release.Release {
 	return nil
 }
 
+func (m *Revision) CloneVT() *Revision {
+	if m == nil {
+		return (*Revision)(nil)
+	}
+	r := new(Revision)
+	r.Accepted = protobuf_go_lite.CloneVTValue(m.Accepted)
+	if m.Update != nil {
+		r.Update = m.Update.(interface{ CloneOneofVT() isRevision_Update }).CloneOneofVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *Revision) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *Revision_Staging) CloneVT() *Revision_Staging {
+	if m == nil {
+		return (*Revision_Staging)(nil)
+	}
+	r := new(Revision_Staging)
+	r.Staging = protobuf_go_lite.CloneVTValue(m.Staging)
+	return r
+}
+
+func (m *Revision_Staging) CloneOneofVT() isRevision_Update {
+	return m.CloneVT()
+}
+
+func (m *Revision_Trial) CloneVT() *Revision_Trial {
+	if m == nil {
+		return (*Revision_Trial)(nil)
+	}
+	r := new(Revision_Trial)
+	r.Trial = protobuf_go_lite.CloneVTValue(m.Trial)
+	return r
+}
+
+func (m *Revision_Trial) CloneOneofVT() isRevision_Update {
+	return m.CloneVT()
+}
+
+func (m *Revision_RolledBack) CloneVT() *Revision_RolledBack {
+	if m == nil {
+		return (*Revision_RolledBack)(nil)
+	}
+	r := new(Revision_RolledBack)
+	r.RolledBack = protobuf_go_lite.CloneVTValue(m.RolledBack)
+	return r
+}
+
+func (m *Revision_RolledBack) CloneOneofVT() isRevision_Update {
+	return m.CloneVT()
+}
+
+func (m *ReportRevisionResponse) CloneVT() *ReportRevisionResponse {
+	if m == nil {
+		return (*ReportRevisionResponse)(nil)
+	}
+	r := new(ReportRevisionResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReportRevisionResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WatchRevisionRequest) CloneVT() *WatchRevisionRequest {
+	if m == nil {
+		return (*WatchRevisionRequest)(nil)
+	}
+	r := new(WatchRevisionRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchRevisionRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *WatchReleaseRequest) CloneVT() *WatchReleaseRequest {
 	if m == nil {
 		return (*WatchReleaseRequest)(nil)
@@ -74,6 +268,121 @@ func (m *WatchReleaseResponse) CloneVT() *WatchReleaseResponse {
 
 func (m *WatchReleaseResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
+}
+
+func (this *Revision) EqualVT(that *Revision) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Update == nil && that.Update != nil {
+		return false
+	} else if this.Update != nil {
+		if that.Update == nil {
+			return false
+		}
+		if !this.Update.(interface{ EqualVT(isRevision_Update) bool }).EqualVT(that.Update) {
+			return false
+		}
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Accepted, that.Accepted) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *Revision) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*Revision)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *Revision_Staging) EqualVT(thatIface isRevision_Update) bool {
+	that, ok := thatIface.(*Revision_Staging)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Staging, that.Staging, func() *block.BlockRef { return &block.BlockRef{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *Revision_Trial) EqualVT(thatIface isRevision_Update) bool {
+	that, ok := thatIface.(*Revision_Trial)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Trial, that.Trial, func() *block.BlockRef { return &block.BlockRef{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *Revision_RolledBack) EqualVT(thatIface isRevision_Update) bool {
+	that, ok := thatIface.(*Revision_RolledBack)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.RolledBack, that.RolledBack, func() *block.BlockRef { return &block.BlockRef{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *ReportRevisionResponse) EqualVT(that *ReportRevisionResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReportRevisionResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReportRevisionResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WatchRevisionRequest) EqualVT(that *WatchRevisionRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchRevisionRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchRevisionRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
 }
 
 func (this *WatchReleaseRequest) EqualVT(that *WatchReleaseRequest) bool {
@@ -111,6 +420,155 @@ func (this *WatchReleaseResponse) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+// MarshalProtoJSON marshals the Revision message to JSON.
+func (x *Revision) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Accepted != nil || s.HasField("accepted") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("accepted")
+		x.Accepted.MarshalProtoJSON(s.WithField("accepted"))
+	}
+	if x.Update != nil {
+		switch ov := x.Update.(type) {
+		case *Revision_Staging:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("staging")
+			ov.Staging.MarshalProtoJSON(s.WithField("staging"))
+		case *Revision_Trial:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("trial")
+			ov.Trial.MarshalProtoJSON(s.WithField("trial"))
+		case *Revision_RolledBack:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("rolledBack")
+			ov.RolledBack.MarshalProtoJSON(s.WithField("rolledBack"))
+		}
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the Revision to JSON.
+func (x *Revision) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the Revision message from JSON.
+func (x *Revision) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "accepted":
+			if s.ReadNil() {
+				x.Accepted = nil
+				return
+			}
+			x.Accepted = &block.BlockRef{}
+			x.Accepted.UnmarshalProtoJSON(s.WithField("accepted", true))
+		case "staging":
+			ov := &Revision_Staging{}
+			x.Update = ov
+			if s.ReadNil() {
+				ov.Staging = nil
+				return
+			}
+			ov.Staging = &block.BlockRef{}
+			ov.Staging.UnmarshalProtoJSON(s.WithField("staging", true))
+		case "trial":
+			ov := &Revision_Trial{}
+			x.Update = ov
+			if s.ReadNil() {
+				ov.Trial = nil
+				return
+			}
+			ov.Trial = &block.BlockRef{}
+			ov.Trial.UnmarshalProtoJSON(s.WithField("trial", true))
+		case "rolled_back", "rolledBack":
+			ov := &Revision_RolledBack{}
+			x.Update = ov
+			if s.ReadNil() {
+				ov.RolledBack = nil
+				return
+			}
+			ov.RolledBack = &block.BlockRef{}
+			ov.RolledBack.UnmarshalProtoJSON(s.WithField("rolled_back", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the Revision from JSON.
+func (x *Revision) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReportRevisionResponse message to JSON.
+func (x *ReportRevisionResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReportRevisionResponse to JSON.
+func (x *ReportRevisionResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReportRevisionResponse message from JSON.
+func (x *ReportRevisionResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the ReportRevisionResponse from JSON.
+func (x *ReportRevisionResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WatchRevisionRequest message to JSON.
+func (x *WatchRevisionRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchRevisionRequest to JSON.
+func (x *WatchRevisionRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchRevisionRequest message from JSON.
+func (x *WatchRevisionRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchRevisionRequest from JSON.
+func (x *WatchRevisionRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the WatchReleaseRequest message to JSON.
@@ -189,6 +647,193 @@ func (x *WatchReleaseResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+func (m *Revision) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Revision) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *Revision) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if vtmsg, ok := m.Update.(interface {
+		MarshalToSizedBufferVT([]byte) (int, error)
+	}); ok {
+		size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
+	if m.Accepted != nil {
+		size, err := m.Accepted.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *Revision_Staging) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *Revision_Staging) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Staging != nil {
+		size, err := m.Staging.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x12
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *Revision_Trial) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *Revision_Trial) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Trial != nil {
+		size, err := m.Trial.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x1a
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *Revision_RolledBack) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *Revision_RolledBack) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.RolledBack != nil {
+		size, err := m.RolledBack.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x22
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReportRevisionResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReportRevisionResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReportRevisionResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WatchRevisionRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchRevisionRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchRevisionRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *WatchReleaseRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -263,6 +908,88 @@ func (m *WatchReleaseResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	return len(dAtA) - i, nil
 }
 
+func (m *Revision) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Accepted != nil {
+		l = m.Accepted.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if vtmsg, ok := m.Update.(interface{ SizeVT() int }); ok {
+		n += vtmsg.SizeVT()
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *Revision_Staging) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Staging != nil {
+		l = m.Staging.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *Revision_Trial) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Trial != nil {
+		l = m.Trial.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *Revision_RolledBack) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.RolledBack != nil {
+		l = m.RolledBack.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *ReportRevisionResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WatchRevisionRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *WatchReleaseRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -287,6 +1014,63 @@ func (m *WatchReleaseResponse) SizeVT() (n int) {
 	return n
 }
 
+func (x *Revision) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "Revision")
+	if x.Accepted != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "accepted")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Accepted)
+	}
+	switch body := x.Update.(type) {
+	case *Revision_Staging:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "staging")
+		if body.Staging == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &block.BlockRef{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Staging)
+		}
+	case *Revision_Trial:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "trial")
+		if body.Trial == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &block.BlockRef{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Trial)
+		}
+	case *Revision_RolledBack:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "rolled_back")
+		if body.RolledBack == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &block.BlockRef{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.RolledBack)
+		}
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *Revision) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReportRevisionResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "ReportRevisionResponse")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ReportRevisionResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WatchRevisionRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "WatchRevisionRequest")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *WatchRevisionRequest) String() string {
+	return x.MarshalProtoText()
+}
+
 func (x *WatchReleaseRequest) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	protobuf_go_lite.TextStartMessage(&sb, "WatchReleaseRequest")
@@ -309,6 +1093,210 @@ func (x *WatchReleaseResponse) MarshalProtoText() string {
 
 func (x *WatchReleaseResponse) String() string {
 	return x.MarshalProtoText()
+}
+
+func (m *Revision) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Revision: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Revision: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Accepted", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Accepted == nil {
+				m.Accepted = &block.BlockRef{}
+			}
+			if err := m.Accepted.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Staging", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Update.(*Revision_Staging); ok {
+				if err := oneof.Staging.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &block.BlockRef{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Update = &Revision_Staging{Staging: v}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Trial", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Update.(*Revision_Trial); ok {
+				if err := oneof.Trial.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &block.BlockRef{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Update = &Revision_Trial{Trial: v}
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RolledBack", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Update.(*Revision_RolledBack); ok {
+				if err := oneof.RolledBack.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &block.BlockRef{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Update = &Revision_RolledBack{RolledBack: v}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReportRevisionResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReportRevisionResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReportRevisionResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchRevisionRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchRevisionRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchRevisionRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
 }
 
 func (m *WatchReleaseRequest) UnmarshalVT(dAtA []byte) error {

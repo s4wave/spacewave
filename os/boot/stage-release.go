@@ -29,11 +29,14 @@ func StageReleaseArgs(system, data string) []string {
 
 // RunStageRelease stages one release from the os/system node that the
 // daemon whose state lives under data serves, as StageReleaseArgs names
-// them. It watches the node's release and stages the first one a pinned
-// signer authorized that is neither the accepted revision nor the trial
-// that last rolled back, then returns nil, so the console reboots into it.
-// It returns an error when the daemon or the node stops serving, or when a
-// trial is already pending, and the console runs it again after a backoff.
+// them. It reports the image store's revisions to the node, which serves
+// them to the Device's update state, then watches the node's release and
+// stages the first one a pinned signer authorized that is neither the
+// accepted revision nor the trial that last rolled back, reporting the
+// staging and then the trial. It returns nil once the trial is staged, so the
+// console reboots into it. It returns an error when the daemon or the node
+// stops serving, or when a trial is already pending, and the console runs it
+// again after a backoff, which reports the revisions again.
 func RunStageRelease(args []string) error {
 	// Name the store, the daemon's state and the log.
 	ctx := context.Background()
@@ -49,9 +52,6 @@ func RunStageRelease(args []string) error {
 	if err != nil {
 		return err
 	}
-	if revs.trial.auth != nil {
-		return errors.New("stage: a trial is pending")
-	}
 
 	// Connect to the node through the daemon's socket.
 	conn, err := net.Dial("unix", filepath.Join(data, "daemon", daemonSocket))
@@ -63,7 +63,17 @@ func RunStageRelease(args []string) error {
 	if err != nil {
 		return err
 	}
-	strm, err := os_system_stager.NewSRPCStagerClient(client).WatchRelease(ctx, &os_system_stager.WatchReleaseRequest{})
+	stager := os_system_stager.NewSRPCStagerClient(client)
+
+	// Report the revisions, and stage nothing while a trial is pending.
+	report := revs.report()
+	if _, err := stager.ReportRevision(ctx, report); err != nil {
+		return err
+	}
+	if revs.trial.auth != nil {
+		return errors.New("stage: a trial is pending")
+	}
+	strm, err := stager.WatchRelease(ctx, &os_system_stager.WatchReleaseRequest{})
 	if err != nil {
 		return err
 	}
@@ -88,12 +98,22 @@ func RunStageRelease(args []string) error {
 			println("SPACEWAVE_OS_RELEASE_SKIPPED root=" + root.MarshalString() + " reason=" + skip)
 			continue
 		}
+		report.Update = &os_system_stager.Revision_Staging{Staging: root}
+		if _, err := stager.ReportRevision(ctx, report); err != nil {
+			return err
+		}
 		src := block_rpc_client.NewBlockStore(blocks, root.GetHash().GetHashType(), true)
 		copied, err := StageRevision(ctx, le, system, src, signed, image)
 		if err != nil {
 			return err
 		}
 		le.Infof("staged release %s; copied %d blocks", root.MarshalString(), copied)
+		// The trial is published, so the console must reboot into it even
+		// when this report fails; the trial's boot reports again.
+		report.Update = &os_system_stager.Revision_Trial{Trial: root}
+		if _, err := stager.ReportRevision(ctx, report); err != nil {
+			le.WithError(err).Warn("cannot report the staged trial")
+		}
 		return nil
 	}
 }

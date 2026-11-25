@@ -17,13 +17,17 @@ EXTENDS Naturals, TLC
 \* Collection keeps every block the accepted and trial roots reach.
 \* A power cut may end any boot; only the named roots and stored blocks are
 \* durable.
+\* Publishing a trial frees rolled-back, so the roots alone tell what the
+\* last update did, as the Device's update state reports it: a trial pending,
+\* or a trial that rolled back, or neither, once the last trial was accepted.
+\* outcome records that last result for the check; it is not stored.
 \* Bounds: four revisions (A installed; B good; C fails its health; D signed by
 \* a key the Device did not pin), each placed at most once, MaxCuts cuts.
 CONSTANT MaxCuts
 VARIABLES phase, serving, roots, present, placed, everPlaced, trialServes,
-          cuts
+          cuts, outcome
 vars == <<phase, serving, roots, present, placed, everPlaced, trialServes,
-          cuts>>
+          cuts, outcome>>
 
 Revs == {"A", "B", "C", "D"}
 None == "none"
@@ -41,10 +45,11 @@ Init == /\ phase = "off" /\ serving = None
                     rolledBack |-> None]
         /\ present = {"A"} /\ placed = None /\ everPlaced = {}
         /\ trialServes = [r \in Revs |-> 0] /\ cuts = 0
+        /\ outcome = None
 
 Boot == /\ phase = "off" /\ phase' = "selecting"
         /\ UNCHANGED <<serving, roots, present, placed, everPlaced,
-                       trialServes, cuts>>
+                       trialServes, cuts, outcome>>
 
 \* A trial the pinned signers authorized, not yet tried, is marked attempted
 \* durably before anything serves it.
@@ -53,12 +58,12 @@ MarkAttempted == /\ phase = "selecting" /\ Trial # None
                  /\ roots' = [roots EXCEPT !.attempted = Trial]
                  /\ phase' = "trying"
                  /\ UNCHANGED <<serving, present, placed, everPlaced,
-                                trialServes, cuts>>
+                                trialServes, cuts, outcome>>
 
 ServeTrial == /\ phase = "trying"
               /\ serving' = Trial /\ phase' = "serving"
               /\ trialServes' = [trialServes EXCEPT ![Trial] = @ + 1]
-              /\ UNCHANGED <<roots, present, placed, everPlaced, cuts>>
+              /\ UNCHANGED <<roots, present, placed, everPlaced, cuts, outcome>>
 
 \* A trial already tried, or one no pinned signer authorized, is dropped and
 \* recorded as rolled back in one publish; the boot then serves the accepted
@@ -67,6 +72,7 @@ Rollback == /\ phase = "selecting" /\ Trial # None
             /\ (roots.attempted = Trial \/ Trial \notin Signed)
             /\ roots' = [roots EXCEPT !.trial = None, !.attempted = None,
                                       !.rolledBack = Trial]
+            /\ outcome' = "rolledBack"
             /\ UNCHANGED <<phase, serving, present, placed, everPlaced,
                            trialServes, cuts>>
 
@@ -74,30 +80,31 @@ ServeAccepted == /\ phase = "selecting" /\ Trial = None
                  /\ Accepted \in Signed
                  /\ serving' = Accepted /\ phase' = "serving"
                  /\ UNCHANGED <<roots, present, placed, everPlaced,
-                                trialServes, cuts>>
+                                trialServes, cuts, outcome>>
 
 \* The daemon listens once its revision works.
 Healthy == /\ phase = "serving" /\ serving \in Good
            /\ phase' = "healthy"
            /\ UNCHANGED <<serving, roots, present, placed, everPlaced,
-                          trialServes, cuts>>
+                          trialServes, cuts, outcome>>
 
 \* The console's deadline reboots a trial that never got healthy.
 Deadline == /\ phase = "serving" /\ serving = Trial
             /\ phase' = "off" /\ serving' = None
             /\ UNCHANGED <<roots, present, placed, everPlaced, trialServes,
-                           cuts>>
+                           cuts, outcome>>
 
 Accept == /\ phase = "healthy" /\ Trial # None /\ serving = Trial
           /\ roots' = [roots EXCEPT !.accepted = Trial, !.trial = None,
                                     !.attempted = None]
+          /\ outcome' = "accepted"
           /\ UNCHANGED <<phase, serving, present, placed, everPlaced,
                          trialServes, cuts>>
 
 \* The person places a new revision on the Device's os/system node.
 Place(r) == /\ r \notin everPlaced /\ r # "A"
             /\ placed' = r /\ everPlaced' = everPlaced \cup {r}
-            /\ UNCHANGED <<phase, serving, roots, present, trialServes, cuts>>
+            /\ UNCHANGED <<phase, serving, roots, present, trialServes, cuts, outcome>>
 
 \* Staging runs on the accepted revision while no trial is pending, for a
 \* placed revision that is neither running nor rolled back.
@@ -107,28 +114,31 @@ CanStage == /\ phase = "healthy" /\ serving = Accepted /\ Trial = None
 \* Copy the placed revision's blocks; a repeat copies nothing new.
 Copy == /\ CanStage /\ present' = present \cup {placed}
         /\ UNCHANGED <<phase, serving, roots, placed, everPlaced, trialServes,
-                       cuts>>
+                       cuts, outcome>>
 
-\* Publish the placed revision as the trial once its blocks are all present.
+\* Publish the placed revision as the trial once its blocks are all present,
+\* freeing the record of the last trial that rolled back.
 Publish == /\ CanStage /\ placed \in present
-           /\ roots' = [roots EXCEPT !.trial = placed, !.attempted = None]
+           /\ roots' = [roots EXCEPT !.trial = placed, !.attempted = None,
+                                     !.rolledBack = None]
+           /\ outcome' = None
            /\ UNCHANGED <<phase, serving, present, placed, everPlaced,
                           trialServes, cuts>>
 
 RequestReboot == /\ phase = "healthy" /\ serving = Accepted /\ Trial # None
                  /\ phase' = "off" /\ serving' = None
                  /\ UNCHANGED <<roots, present, placed, everPlaced,
-                                trialServes, cuts>>
+                                trialServes, cuts, outcome>>
 
 \* Collection releases every block neither revision root reaches.
 Collect == /\ phase \in {"serving", "healthy"}
            /\ present' = present \cap ({Accepted, Trial} \ {None})
            /\ UNCHANGED <<phase, serving, roots, placed, everPlaced,
-                          trialServes, cuts>>
+                          trialServes, cuts, outcome>>
 
 PowerCut == /\ phase # "off" /\ cuts < MaxCuts
             /\ phase' = "off" /\ serving' = None /\ cuts' = cuts + 1
-            /\ UNCHANGED <<roots, present, placed, everPlaced, trialServes>>
+            /\ UNCHANGED <<roots, present, placed, everPlaced, trialServes, outcome>>
 
 Next == \/ Boot \/ MarkAttempted \/ ServeTrial \/ Rollback \/ ServeAccepted
         \/ Healthy \/ Deadline \/ Accept \/ Copy \/ Publish \/ RequestReboot
@@ -146,6 +156,7 @@ TypeOK == /\ phase \in {"off", "selecting", "trying", "serving", "healthy"}
           /\ Accepted \in Revs
           /\ {Trial, roots.attempted, roots.rolledBack} \subseteq Revs \cup {None}
           /\ present \subseteq Revs /\ placed \in Revs \cup {None}
+          /\ outcome \in {None, "accepted", "rolledBack"}
 
 \* Every selected revision boots from blocks the store holds.
 SelectedPresent == /\ Accepted \in present
@@ -159,6 +170,10 @@ AcceptedGood == Accepted \in Good
 
 \* A trial boots at most once, so a bad trial cannot loop.
 TrialOnce == \A r \in Revs : trialServes[r] <= 1
+
+\* With no trial pending, rolled-back is set exactly when the last trial
+\* rolled back, so the Device's update state reads from the roots alone.
+RootsTellOutcome == Trial = None => (roots.rolledBack # None <=> outcome = "rolledBack")
 
 \* A pending trial always settles back to a healthy Device with none pending.
 TrialSettles == (Trial # None) ~> (Trial = None /\ phase = "healthy")

@@ -54,6 +54,13 @@ type Controller struct {
 	state s4wave_device.DeviceCapabilityState
 	// detail describes state.
 	detail string
+
+	// reports guards revision and wakes its watchers.
+	reports broadcast.Broadcast
+	// revision is the console's last report of the Device's revisions, or
+	// nil before its first. It outlives each engine, since the image store
+	// does not change with the World.
+	revision *os_system_stager.Revision
 }
 
 // NewController constructs a system controller.
@@ -95,7 +102,7 @@ func (c *Controller) serve(ctx context.Context, eng world.Engine) error {
 	// Register the services. Staging copies a whole image, so its reads are
 	// background work.
 	mux := srpc.NewMux()
-	if err := os_system_stager.SRPCRegisterStager(mux, &stager{ctx: ctx, eng: eng, key: c.conf.GetObjectKey()}); err != nil {
+	if err := os_system_stager.SRPCRegisterStager(mux, &stager{ctx: ctx, eng: eng, key: c.conf.GetObjectKey(), c: c}); err != nil {
 		return err
 	}
 	blocks := block_rpc_server.NewBlockStoreWithPolicy(store, block_rpc_server.ReadPolicy{Background: true})
@@ -157,6 +164,27 @@ func (c *Controller) setStatus(state s4wave_device.DeviceCapabilityState, detail
 	}
 	c.state, c.detail = state, detail
 	l.Broadcast()
+}
+
+// setRevision stores the console's report, waking the watchers when it
+// changes the revisions.
+func (c *Controller) setRevision(r *os_system_stager.Revision) {
+	// Store a changed report and wake the watchers.
+	l := c.reports.Lock()
+	defer l.Unlock()
+	if c.revision.EqualVT(r) {
+		return
+	}
+	c.revision = r
+	l.Broadcast()
+}
+
+// getRevision returns the last report, or nil before the first, and a
+// channel closed at the next change.
+func (c *Controller) getRevision() (*os_system_stager.Revision, <-chan struct{}) {
+	l := c.reports.Lock()
+	defer l.Unlock()
+	return c.revision, l.WaitCh()
 }
 
 // HandleDirective resolves no directives; the services resolve through the
