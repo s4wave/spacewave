@@ -69,4 +69,21 @@ func TestCacheResidentListYieldsWhatTheCacheLacks(t *testing.T) {
 	if got := missing("store/a"); len(got) != 0 {
 		t.Fatalf("foreign file yielded %v", got)
 	}
+
+	// A save killed before its rename leaves a temporary file, which the next
+	// open deletes beside the list.
+	temp := list + ".123.tmp"
+	if err := os.WriteFile(temp, []byte(residentMagic), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.Close(); err != nil {
+		t.Fatal(err)
+	}
+	openTest(t, path, 1<<30)
+	if _, err := os.Stat(temp); !os.IsNotExist(err) {
+		t.Fatalf("reopening kept the killed save's file: %v", err)
+	}
+	if _, err := os.Stat(list); err != nil {
+		t.Fatalf("reopening removed the list: %v", err)
+	}
 }
