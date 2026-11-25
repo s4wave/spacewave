@@ -2,22 +2,18 @@ package provider_local
 
 import (
 	"context"
-	"path/filepath"
-	"slices"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
-	block_store_fillcache "github.com/s4wave/spacewave/db/block/store/fillcache"
 	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
-	"github.com/sirupsen/logrus"
 )
 
-// TestWarmResidentSkipsLocalBlocks lists four blocks, two of which the local
-// volume holds, and warms the fill cache through skipLocal: the bucket is
-// asked for the other two alone, since a placed store's reads serve the first
-// two from the volume and would never reach their cached copies.
+// TestWarmResidentSkipsLocalBlocks reads four listed blocks through
+// skipLocal, two of which the local volume holds: the bucket is asked for the
+// other two alone, since a placed store's reads serve the first two from the
+// volume and would never reach copies the warm-up filled.
 func TestWarmResidentSkipsLocalBlocks(t *testing.T) {
 	ctx := t.Context()
 	newStore := func() block.StoreOps {
@@ -27,7 +23,6 @@ func TestWarmResidentSkipsLocalBlocks(t *testing.T) {
 
 	// Put four blocks in the bucket and the first two in the volume too.
 	var refs []*block.BlockRef
-	var keys []string
 	for i := range 4 {
 		data := []byte{'b', byte(i)}
 		ref, _, err := bucket.PutBlock(ctx, data, nil)
@@ -39,24 +34,10 @@ func TestWarmResidentSkipsLocalBlocks(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
-		key, err := ref.MarshalKey()
-		if err != nil {
-			t.Fatal(err)
-		}
-		refs, keys = append(refs, ref), append(keys, string(key))
+		refs = append(refs, ref)
 	}
 
-	// Save the list of all four.
-	cache, err := block_store_fillcache.Open(ctx, logrus.NewEntry(logrus.New()), filepath.Join(t.TempDir(), "blocks.db"), block_store_fillcache.Options{LimitBytes: 1 << 20})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cache.Close()
-	if err := cache.SaveResident(ctx, "scope", slices.Values(keys)); err != nil {
-		t.Fatal(err)
-	}
-
-	// Warm through skipLocal, recording what the bucket is asked for.
+	// Read the list through skipLocal, recording what the bucket is asked for.
 	var asked []*block.BlockRef
 	read := func(ctx context.Context, refs []*block.BlockRef, fn func(*block.BlockRef, *block.StoredBlock) error) error {
 		for _, ref := range refs {
@@ -71,15 +52,18 @@ func TestWarmResidentSkipsLocalBlocks(t *testing.T) {
 		}
 		return nil
 	}
-	var skipped int
-	counts, err := cache.WarmResident(ctx, "scope", skipLocal(volume, read, &skipped))
+	var skipped, fetched int
+	err := skipLocal(volume, read, &skipped)(ctx, refs, func(*block.BlockRef, *block.StoredBlock) error {
+		fetched++
+		return nil
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Only the blocks the volume lacks came from the bucket.
-	if skipped != 2 || counts.Fetched != 2 || len(asked) != 2 {
-		t.Fatalf("skipped %d, fetched %d, asked %d; want 2, 2, 2", skipped, counts.Fetched, len(asked))
+	if skipped != 2 || fetched != 2 || len(asked) != 2 {
+		t.Fatalf("skipped %d, fetched %d, asked %d; want 2, 2, 2", skipped, fetched, len(asked))
 	}
 	for _, ref := range asked {
 		if !ref.EqualVT(refs[2]) && !ref.EqualVT(refs[3]) {
