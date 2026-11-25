@@ -110,6 +110,48 @@ func TestRwcPacketConnReadErrNotTemporary(t *testing.T) {
 	}
 }
 
+// deadlineRwc blocks each read until its read deadline passes, as a data
+// channel blocks on a stream the remote peer never resets.
+type deadlineRwc struct {
+	io.ReadWriteCloser
+	deadline chan time.Time
+}
+
+func (r deadlineRwc) Read([]byte) (int, error) {
+	<-time.After(time.Until(<-r.deadline))
+	return 0, os.ErrDeadlineExceeded
+}
+
+func (r deadlineRwc) SetReadDeadline(t time.Time) error {
+	r.deadline <- t
+	return nil
+}
+
+// TestRwcPacketConnReadDeadline checks that SetReadDeadline reaches the
+// stream and wakes a blocked read, which quic-go's Transport.Close waits on.
+func TestRwcPacketConnReadDeadline(t *testing.T) {
+	// Block a read, then set a deadline of now as Transport.Close does.
+	pc := NewRwcPacketConn(deadlineRwc{deadline: make(chan time.Time, 1)}, nil, nil)
+	errCh := make(chan error, 1)
+	go func() {
+		_, _, err := pc.ReadFrom(make([]byte, 16))
+		errCh <- err
+	}()
+	if err := pc.SetReadDeadline(time.Now()); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Require the read to return the deadline error, wrapped.
+	select {
+	case err := <-errCh:
+		if !errors.Is(err, os.ErrDeadlineExceeded) {
+			t.Fatalf("read error %v is not the deadline", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("read did not return after its deadline")
+	}
+}
+
 // deadlineReadContext reports when a read reaches its wait after subscribing.
 type deadlineReadContext struct {
 	context.Context
