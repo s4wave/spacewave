@@ -37,6 +37,10 @@ type PackaheadConfig struct {
 	// a trickle of writes still finalizes into a pack that can upload. Zero
 	// uses 30 seconds.
 	Linger time.Duration
+	// ReserveBytes is the free disk each store's log leaves: a write that
+	// would leave less fails with packahead.ErrReserve and stores nothing, so
+	// the logs never take the space the Volume needs. Zero keeps none.
+	ReserveBytes int64
 }
 
 // packaheads maps the storage volume ID of an account to the
@@ -89,7 +93,7 @@ func (t *bstoreTracker) openPacks(ctx context.Context, le *logrus.Entry, local b
 	if linger <= 0 {
 		linger = packLinger
 	}
-	log, err := packahead.Open(ctx, dir, packahead.Options{Linger: linger})
+	log, err := packahead.Open(ctx, dir, packahead.Options{Linger: linger, ReserveBytes: conf.ReserveBytes})
 	if err != nil {
 		return nil, errors.Wrap(err, "open packahead")
 	}
@@ -112,4 +116,27 @@ func (t *bstoreTracker) admitUpload(ctx context.Context, lastBytes int64) error 
 		return (*fn)(ctx, lastBytes)
 	}
 	return nil
+}
+
+// PackaheadStats is a block store's packahead log: whether it diverts new
+// values, its drain's finalized packs and counts, and its write counts. The
+// counts restart with each mount.
+type PackaheadStats struct {
+	// Divert is set while the store diverts new values to the log.
+	Divert bool
+	// DrainStatus counts the log's finalized packs and the drain's uploads.
+	packahead.DrainStatus
+	// PackedStats counts the writes the log took.
+	block_store_writeback.PackedStats
+}
+
+// GetPackaheadStats returns the store's packahead log counts, or false when
+// the store keeps no log.
+func (b *BlockStore) GetPackaheadStats() (PackaheadStats, bool) {
+	p := b.placement
+	if p == nil || p.drain == nil || p.packed == nil {
+		return PackaheadStats{}, false
+	}
+	drain, _ := p.drain.Status()
+	return PackaheadStats{Divert: p.packed.GetDivert(), DrainStatus: drain, PackedStats: p.packed.GetStats()}, true
 }

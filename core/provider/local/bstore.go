@@ -89,6 +89,13 @@ type placementState struct {
 	evictGate *csync.Mutex
 	// evictAdmit paces eviction passes, or holds nil.
 	evictAdmit *atomic.Pointer[block_store_writeback.EvictAdmit]
+	// resident is the account's resident mark override, or nil.
+	resident *residentOverride
+	// policyWake wakes the eviction loop when the policy changes; nil never.
+	policyWake chan struct{}
+	// evictLatch carries the eviction loop to the low mark across passes and
+	// routine restarts, as EvictLatch describes; only runEviction uses it.
+	evictLatch block_store_writeback.EvictLatch
 	// sqlPrimary reports that the store writes to its SQL backend, which
 	// then holds blocks the reference graph may not track.
 	sqlPrimary bool
@@ -108,6 +115,9 @@ type placementState struct {
 	// fileSegments serves the blocks of linked files from the files, after the
 	// local store misses and before every remote tier.
 	fileSegments *block_store_filesegment.Store
+	// packed is the store over the packahead log, or nil when the store has
+	// no log.
+	packed *block_store_writeback.PackedStore
 }
 
 // live reports which blocks a bucket reclaim must keep: the blocks the volume
@@ -543,11 +553,12 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 
 	// Track the store's placement, which places new writes, refills evicted
 	// blocks and reclaims backend storage.
-	placement := &placementState{wb: wb, local: local, remote: &t.remote, evictGate: &t.evictGate, evictAdmit: &t.a.evictAdmit, done: ctx.Done()}
+	placement := &placementState{wb: wb, local: local, remote: &t.remote, evictGate: &t.evictGate, evictAdmit: &t.a.evictAdmit, resident: &t.a.resident, policyWake: make(chan struct{}, 1), done: ctx.Done()}
+	defer placement.unregister()
 	placement.fileSegments = block_store_filesegment.NewStore(block_store_filesegment.NewIndex(segments.GetObjectStore(), nil))
 	placement.fallbackFills.ctx, placement.fallbackFills.budget = ctx, &t.a.t.p.fillBudget
 	if packs != nil {
-		placement.drain = packs.drain
+		placement.drain, placement.packed = packs.drain, packs.packed
 	}
 	placement.tracker, _ = t.a.vol.(childListReader)
 	placement.serveOnly = serveOnly.Load()
@@ -703,6 +714,12 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	} else if sqlStore == nil {
 		stopPush := t.startNodePush(ctx, le, wb, placement, bstoreHandle)
 		defer stopPush()
+	}
+
+	// Adopt packs other writers uploaded to the bucket into this store's
+	// index, as AdoptBucketPack describes.
+	if sqlStore == nil {
+		defer t.registerAdopter(placement)()
 	}
 
 	// Keep the store under its placement's resident budget. A store writing

@@ -111,7 +111,9 @@ func (a *ProviderAccount) runAccountReplicaCopy(
 	}()
 	copier := routine.NewRoutineContainerWithLogger(a.le.WithField("routine", "copy-world-head"), routine.WithRetry(providerBackoff))
 	copier.SetRoutine(func(ctx context.Context) error {
-		err := publishErr(ctx, a.copyAccountWorldHeads(ctx, so, state, local, latest, absent, exchange))
+		// The copy's known-absent set resets on grants and session starts,
+		// so its reads skip the store's memory of refused blocks.
+		err := publishErr(ctx, a.copyAccountWorldHeads(withAbsenceTracked(ctx), so, state, local, latest, absent, exchange))
 		if errors.Is(err, volume.ErrReserve) {
 			// Retry once the volume leaves its disk reserve, not on a timer.
 			if werr := volume.WaitWritable(ctx, a.vol); werr != nil {

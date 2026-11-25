@@ -13,13 +13,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// flakyPeers fails its first fails reads, then answers from blk, which nil
-// makes a miss. With stall set every read instead waits for its context and
+// flakyPeers fails its first fails reads with err, or with a failed
+// exchange when err is nil, then answers from blk, which nil makes a miss. With stall set every read instead waits for its context and
 // fails as the DEX fanout does, with ErrUnavailable around the context's error.
 type flakyPeers struct {
 	block.StoreOps
 	fails int32
 	stall bool
+	err   error
 	reads atomic.Int32
 	blk   *block.StoredBlock
 }
@@ -32,7 +33,10 @@ func (f *flakyPeers) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*
 		return nil, fmt.Errorf("%w: %w", block.ErrUnavailable, ctx.Err())
 	}
 	if f.reads.Add(1) <= f.fails {
-		return nil, errors.New("tier away on the peer")
+		if f.err != nil {
+			return nil, f.err
+		}
+		return nil, errors.New("stream reset by the peer")
 	}
 	return f.blk, nil
 }

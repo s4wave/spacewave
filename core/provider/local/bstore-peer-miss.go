@@ -71,6 +71,8 @@ type peerMissLog struct {
 	misses *peerMisses
 	// counts counts the outcomes of the peer reads, or is nil.
 	counts *peerReadCounts
+	// unserved holds the refs the peers refused, or is nil to always ask.
+	unserved *unservedRefs
 }
 
 // peerMisses counts the misses since the last report.
@@ -91,7 +93,7 @@ type peerMisses struct {
 // that a peer still holds. Each peer read counts its outcome in counts, which
 // may be nil.
 func newPeerMissSource(le *logrus.Entry, peers func() block.StoreOps, wait func(context.Context) block.StoreOps, counts *peerReadCounts) func() block.StoreOps {
-	misses := &peerMisses{}
+	misses, unserved := &peerMisses{}, newUnservedRefs()
 	var hadPeers atomic.Bool
 	return func() block.StoreOps {
 		store := peers()
@@ -103,7 +105,7 @@ func newPeerMissSource(le *logrus.Entry, peers func() block.StoreOps, wait func(
 		default:
 			return nil
 		}
-		return &peerMissLog{StoreOps: store, le: le, misses: misses, counts: counts}
+		return &peerMissLog{StoreOps: store, le: le, misses: misses, counts: counts, unserved: unserved}
 	}
 }
 
@@ -155,7 +157,7 @@ func (p *peerMissLog) BeginReadOperation(ctx context.Context) (block.StoreOps, f
 	if err != nil {
 		return nil, nil, err
 	}
-	return &peerMissLog{StoreOps: scoped, le: p.le, misses: p.misses, counts: p.counts}, release, nil
+	return &peerMissLog{StoreOps: scoped, le: p.le, misses: p.misses, counts: p.counts, unserved: p.unserved}, release, nil
 }
 
 // GetBlock logs the miss and reads the block from peers.
@@ -172,16 +174,32 @@ func (p *peerMissLog) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte
 // describes.
 func (p *peerMissLog) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	p.logMiss(ref)
-	return readPeers(ctx, p.le, p.StoreOps, ref, p.counts)
+	return readPeers(ctx, p.le, p.StoreOps, ref, p.counts, p.unserved)
 }
 
 // readPeers asks the peers in store for ref until one answers, or
 // peerReadLimit ends, and counts the outcome once in counts, which may be nil.
 // A read that failed while its caller still waited warns through le, once per
-// block, as warnPeerFailed describes.
-func readPeers(ctx context.Context, le *logrus.Entry, store block.StoreOps, ref *block.BlockRef, counts *peerReadCounts) (blk *block.StoredBlock, err error) {
-	// Count the read's outcome once it ends, and warn of a failure.
+// block, as warnPeerFailed describes. A read that failed only because peers
+// refused the block, as peerRefused proves, is remembered in unserved, which
+// may be nil, and a read of a ref unserved holds fails with
+// block.ErrUnavailable at once, asks no peer and counts as remembered instead,
+// unless withAbsenceTracked marked ctx.
+// A failed exchange, a missing session or a timeout in any attempt leaves the
+// ref unremembered, so a blip to a peer costs no more than the read it failed.
+func readPeers(ctx context.Context, le *logrus.Entry, store block.StoreOps, ref *block.BlockRef, counts *peerReadCounts, unserved *unservedRefs) (blk *block.StoredBlock, err error) {
+	// Answer a ref the peers recently refused from memory, unless the reader
+	// tracks absence itself.
+	key := ref.MarshalString()
+	if !absenceTracked(ctx) && unserved.holds(key, time.Now()) {
+		counts.recordRemembered()
+		return nil, fmt.Errorf("%w: block %s recently refused by the peers", block.ErrUnavailable, key)
+	}
+
+	// Count the read's outcome once it ends, warn of a failure and remember
+	// a block the peers refused.
 	cause := peerTimeout
+	refused, unproven := false, false
 	defer func() {
 		switch {
 		case err == nil:
@@ -191,11 +209,15 @@ func readPeers(ctx context.Context, le *logrus.Entry, store block.StoreOps, ref 
 		default:
 			counts.recordFailed(cause)
 			warnPeerFailed(le, ref, cause)
+			if refused && !unproven {
+				unserved.remember(key, time.Now())
+			}
 		}
 	}()
 
 	// Ask the peers until one answers, or the bound ends. A timeout keeps
-	// the cause an earlier attempt found.
+	// the cause an earlier attempt found, and an attempt the bound cut off
+	// neither proves nor disproves a refusal.
 	readCtx, cancel := withStallBound(ctx, peerReadLimit(), store)
 	defer cancel()
 	pause := peerReadPauseMin
@@ -204,6 +226,12 @@ func readPeers(ctx context.Context, le *logrus.Entry, store block.StoreOps, ref 
 		if err != nil {
 			if c := peerFailCause(err); c != peerTimeout {
 				cause = c
+			}
+			switch {
+			case peerRefused(err):
+				refused = true
+			case readCtx.Err() == nil:
+				unproven = true
 			}
 		}
 		// A corrupt answer is deterministic: asking again returns the same bytes.
@@ -300,6 +328,9 @@ type peerReadCounts struct {
 	// canceled counts the reads whose caller went away first, which say
 	// nothing of the peers.
 	canceled atomic.Uint64
+	// remembered counts the reads answered unavailable from the memory of
+	// a recent peer error, which asked no peer.
+	remembered atomic.Uint64
 	// filled counts the blocks a peer served that filled the local store.
 	filled atomic.Uint64
 	// classes counts the served blocks by peerClass.
@@ -337,6 +368,14 @@ func (c *peerReadCounts) recordCanceled() {
 	}
 }
 
+// recordRemembered counts one read answered from the memory of a recent peer
+// error.
+func (c *peerReadCounts) recordRemembered() {
+	if c != nil {
+		c.remembered.Add(1)
+	}
+}
+
 // GetBlockExists reports every block missing. Peers are a read source only:
 // existence is a question about the stores this placement holds, and a write
 // or a copy that asks it must never wait on, or fail with, a peer exchange.
@@ -348,6 +387,16 @@ func (p *peerMissLog) GetBlockExists(context.Context, *block.BlockRef) (bool, er
 // GetBlockExistsBatch reports every block missing, as GetBlockExists does.
 func (p *peerMissLog) GetBlockExistsBatch(_ context.Context, refs []*block.BlockRef) ([]bool, error) {
 	return make([]bool, len(refs)), nil
+}
+
+// StatBlock reads the block from peers within the bound, as GetStoredBlock
+// does, since the peer store's own stat reads the whole block unbounded.
+func (p *peerMissLog) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
+	blk, err := p.GetStoredBlock(ctx, ref)
+	if blk == nil || err != nil {
+		return nil, err
+	}
+	return &block.BlockStat{Ref: ref, Size: int64(len(blk.Data))}, nil
 }
 
 // peerReadErr reports a peer read of ref that failed or outlived its bound
