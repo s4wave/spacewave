@@ -147,6 +147,9 @@ type Engine struct {
 	// watchedFloor is the lowest seqno whose recorded heads identify what a
 	// watcher saw. Guarded by bcast.
 	watchedFloor uint64
+	// pendingChanges holds ChangeSets of local commits in flight between
+	// sealing and installation. Guarded by bcast.
+	pendingChanges []*pendingChange
 	// closed rejects new operations while Close drains resources.
 	closed bool
 	// retired reports that Retire closed the engine for a successor, so the
@@ -448,7 +451,7 @@ func (e *Engine) SetRootRef(ctx context.Context, ref *bucket.ObjectRef) error {
 		unpin()
 		return e.closedErr()
 	}
-	retirement, err := e.installRootRefLocked(ctx, ref, true, rootBlock)
+	retirement, err := e.installRootRefLocked(ctx, ref, true, rootBlock, nil)
 	if err == nil && e.unpinBase != nil {
 		e.unpinBase, unpin = unpin, e.unpinBase
 	}
@@ -526,7 +529,7 @@ func (e *Engine) followHead(head world.Head) {
 	}
 
 	// Install the head, keeping a local writer, then drain what it replaced.
-	retirement, err := e.installRootRefLocked(ctx, ref, false, rootBlock)
+	retirement, err := e.installRootRefLocked(ctx, ref, false, rootBlock, nil)
 	if err == nil {
 		e.direct = nil
 	}
@@ -567,7 +570,15 @@ func (e *Engine) decodeRoot(ctx context.Context, ref *bucket.ObjectRef) (*World,
 
 // installRootRefLocked can preserve the active provisional successor. Durable
 // completion of N must never discard the already preparing N+1 transaction.
-func (e *Engine) installRootRefLocked(ctx context.Context, ref *bucket.ObjectRef, invalidateWriter bool, rootBlock *World) (engineRetirement, error) {
+// changes is the ChangeSet from the current published head to ref, or nil when
+// ref arrived without one.
+func (e *Engine) installRootRefLocked(
+	ctx context.Context,
+	ref *bucket.ObjectRef,
+	invalidateWriter bool,
+	rootBlock *World,
+	changes *world.ChangeSet,
+) (engineRetirement, error) {
 	// Start the root-ref trace.
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/engine/set-root-ref")
 	defer task.End()
@@ -611,13 +622,13 @@ func (e *Engine) installRootRefLocked(ctx context.Context, ref *bucket.ObjectRef
 
 	// The Authority's root holds the head while it is current, so publishing
 	// it takes no pin; a replaced head held by a reader pins later.
-	var watched []*watchedHead
-	if evicted := e.recordWatchedHeadLocked(nextRoot, seqno); evicted != nil {
-		watched = append(watched, evicted)
+	if changes == nil {
+		changes = e.takePendingChangeLocked(e.head.root.GetRef().GetRootRef(), ref.GetRootRef())
 	}
+	e.recordWatchedHeadLocked(nextRoot.GetRef(), seqno, changes)
 
 	// Publish one complete head and detach its predecessor for post-unlock cleanup.
-	retirement := engineRetirement{head: e.head, watched: watched}
+	retirement := engineRetirement{head: e.head}
 	if invalidateWriter && e.writeTx != nil {
 		writeRetirement := e.writeTx.detachLocked()
 		retirement.readTx = writeRetirement.readTx
@@ -750,9 +761,6 @@ func (e *Engine) drainRetirement(ctx context.Context, retirement engineRetiremen
 	}
 	if retirement.head != nil && retirement.head.root != nil {
 		retirement.head.root.Release()
-	}
-	for _, h := range retirement.watched {
-		h.root.Release()
 	}
 	if retirement.base != nil {
 		retirement.base.Release()
@@ -916,7 +924,7 @@ func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*En
 		switch {
 		case base.Durable && base.Seqno >= e.headSeqnoLocked():
 			// Publish a newer durable base another writer committed.
-			if retirement, err = e.installRootRefLocked(taskCtx, ref, true, baseBlock); err != nil {
+			if retirement, err = e.installRootRefLocked(taskCtx, ref, true, baseBlock, nil); err != nil {
 				return fail(retirement, err)
 			}
 			e.direct = &world.Head{Root: base.Root.Clone(), Seqno: base.Seqno, Durable: true}
@@ -1397,11 +1405,12 @@ func (e *Engine) Close() error {
 
 	// Detach every Engine-owned resource while publication is closed.
 	retirements := make([]engineRetirement, 0, 1)
-	retirement := engineRetirement{head: e.head, pub: e.pub.Swap(nil), watched: e.watchedHeads, closing: true}
+	retirement := engineRetirement{head: e.head, pub: e.pub.Swap(nil), closing: true}
 	headWatchRelease := e.headWatchRelease
 	e.headWatchRelease = nil
 	e.head = nil
 	e.watchedHeads = nil
+	e.pendingChanges = nil
 
 	// Detach the write transaction with the head, unless its commit is under
 	// way: the commit ends it after its swap, releasing its stage then, and

@@ -323,14 +323,24 @@ func benchmarkWorldSeededStoredPages(b *testing.B, c worldSeededWriteCase, windo
 	}
 	defer eng.Close()
 
-	// Store the kept pages the World reaches, counting them by tree and
-	// level first, then drop the pages no later World reaches.
+	// Store the kept pages the World and the Engine's ReadRoots reach,
+	// counting them by tree and level first, then drop the pages no later
+	// World reaches, as the Space Adapter's trim does.
 	var counts world_block.PageCounts
 	var walked time.Duration
 	storeWorld := func() {
 		root := eng.GetRootRef().GetRootRef()
+		roots := []*block.BlockRef{root}
+		named := []block.NamedRoot{{Name: "bench/world", Ref: root}}
+		for i, r := range eng.ReadRoots() {
+			if r.GetEmpty() || slices.ContainsFunc(roots, func(seen *block.BlockRef) bool { return seen.EqualsRef(r) }) {
+				continue
+			}
+			roots = append(roots, r)
+			named = append(named, block.NamedRoot{Name: "bench/read/" + strconv.Itoa(i), Ref: r})
+		}
 		start := time.Now()
-		err := world_block.WalkPages(ctx, pages, cursor.GetTransformer(), []*block.BlockRef{root}, func(p world_block.Page) (bool, error) {
+		err := world_block.WalkPages(ctx, pages, cursor.GetTransformer(), roots, func(p world_block.Page) (bool, error) {
 			size, ok := pages.Unflushed(p.Ref)
 			if ok {
 				counts.Add(p, size)
@@ -341,10 +351,10 @@ func benchmarkWorldSeededStoredPages(b *testing.B, c worldSeededWriteCase, windo
 		if err != nil {
 			b.Fatal(err.Error())
 		}
-		if err := pages.SetRoots(ctx, nil, []block.NamedRoot{{Name: "bench/world", Ref: root}}); err != nil {
+		if err := pages.SetRoots(ctx, nil, named); err != nil {
 			b.Fatal(err.Error())
 		}
-		pages.Sweep([]*block.BlockRef{root}, pages.SweepMark())
+		pages.Sweep(roots, pages.SweepMark())
 	}
 
 	// Commit c once per iteration, storing every window commits.

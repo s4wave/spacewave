@@ -26,8 +26,6 @@ type engineRetirement struct {
 	base *bucket_lookup.Cursor
 	// writeTxRel releases the local writer lock after the transaction drains.
 	writeTxRel func()
-	// watched are heads no longer recorded for change watchers.
-	watched []*watchedHead
 	// closing marks the retirement of a closing engine, whose replaced head
 	// takes no reader pin.
 	closing bool
@@ -55,6 +53,5 @@ func (r engineRetirement) empty() bool {
 		r.writeTx == nil &&
 		r.turn == nil &&
 		r.base == nil &&
-		r.writeTxRel == nil &&
-		len(r.watched) == 0
+		r.writeTxRel == nil
 }

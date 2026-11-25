@@ -126,12 +126,15 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 	locked.Unlock()
 
 	// Seal the transaction's blocks under its new root and propose them.
-	nextRootRef, adm, rootBlock, err := e.admit(ctx, turn)
+	nextRootRef, adm, rootBlock, changes, releasePending, err := e.admit(ctx, turn)
+	if releasePending != nil {
+		defer releasePending()
+	}
 	if adm != nil {
 		defer adm.Release()
 	}
 	if e.engine.authority == nil {
-		return e.publishCallerHead(ctx, turn, nextRootRef, rootBlock, err)
+		return e.publishCallerHead(ctx, turn, nextRootRef, rootBlock, changes, err)
 	}
 
 	// Record the published head at admission, and the candidate the next
@@ -163,6 +166,7 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 	}
 	if !published.EqualsRef(nextRootRef) {
 		rootBlock = nil
+		changes = nil
 	}
 
 	// Publish the head, unless a head was published since the admission: the
@@ -174,8 +178,11 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 	locked = e.engine.bcast.Lock()
 	retirement = engineRetirement{}
 	if !e.engine.closed && e.engine.pub.Load() == admittedAt {
+		if !e.engine.head.root.GetRef().EqualsRef(e.baseHeadRef) {
+			changes = nil
+		}
 		var installErr error
-		retirement, installErr = e.engine.installRootRefLocked(ctx, published, false, rootBlock)
+		retirement, installErr = e.engine.installRootRefLocked(ctx, published, false, rootBlock, changes)
 		if installErr != nil {
 			e.engine.le.WithError(installErr).Warn("unable to publish a durable World head; the authority holds it")
 		} else if p := e.engine.pub.Load(); p != nil {
@@ -191,7 +198,14 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 // whose caller owns the head and may replace it while the commit runs: the
 // writer keeps its slot until its head is published, and a commit whose
 // writer the caller detached is discarded.
-func (e *EngineTx) publishCallerHead(ctx context.Context, turn world.Turn, next *bucket.ObjectRef, rootBlock *World, err error) (*bucket.ObjectRef, error) {
+func (e *EngineTx) publishCallerHead(
+	ctx context.Context,
+	turn world.Turn,
+	next *bucket.ObjectRef,
+	rootBlock *World,
+	changes *world.ChangeSet,
+	err error,
+) (*bucket.ObjectRef, error) {
 	// Publish the head unless the caller replaced it.
 	var retirement engineRetirement
 	locked := e.engine.bcast.Lock()
@@ -200,7 +214,10 @@ func (e *EngineTx) publishCallerHead(ctx context.Context, turn world.Turn, next 
 		err = e.endedErr()
 	}
 	if err == nil && !e.engine.closed && !next.EqualsRef(e.baseHeadRef) {
-		retirement, err = e.engine.installRootRefLocked(ctx, next, false, rootBlock)
+		if !e.engine.head.root.GetRef().EqualsRef(e.baseHeadRef) {
+			changes = nil
+		}
+		retirement, err = e.engine.installRootRefLocked(ctx, next, false, rootBlock, changes)
 	}
 
 	// Detach this writer even when the commit failed, and end its turn
@@ -226,9 +243,15 @@ func (e *EngineTx) publishCallerHead(ctx context.Context, turn world.Turn, next 
 
 // admit seals the transaction's blocks under its new root and proposes them
 // to the Authority as the head after the base. It returns the root, the
-// Admission, and the decoded World root for the head's readers. A
-// transaction that changed nothing returns its base and no Admission.
-func (e *EngineTx) admit(ctx context.Context, turn world.Turn) (*bucket.ObjectRef, world.Admission, *World, error) {
+// Admission, the decoded World root for the head's readers, the transaction's
+// ChangeSet, and a cleanup func for the pending ChangeSet registration when an
+// Authority is present. A transaction that changed nothing returns its base
+// and no Admission.
+func (e *EngineTx) admit(ctx context.Context, turn world.Turn) (*bucket.ObjectRef, world.Admission, *World, *world.ChangeSet, func(), error) {
+	// Capture the transaction's ChangeSet before CommitBlockTransaction
+	// rebuilds the block state onto the written root.
+	changes := e.writeTx.state.takeChanges()
+
 	// Seal the transaction's blocks under its new root.
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine-tx/commit-block-transaction/write-tx-commit")
 	nroot, err := e.writeTx.CommitBlockTransaction(taskCtx)
@@ -240,13 +263,13 @@ func (e *EngineTx) admit(ctx context.Context, turn world.Turn) (*bucket.ObjectRe
 		err = nroot.Validate(false)
 	}
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 
 	// A transaction that changed no root data has nothing to propose.
 	base := e.baseHeadRef.GetRootRef()
 	if nroot.EqualVT(base) {
-		return e.baseHeadRef.Clone(), nil, nil, nil
+		return e.baseHeadRef.Clone(), nil, nil, nil, nil, nil
 	}
 	next := e.baseHeadRef.Clone()
 	next.RootRef = nroot
@@ -257,7 +280,7 @@ func (e *EngineTx) admit(ctx context.Context, turn world.Turn) (*bucket.ObjectRe
 	state := e.writeTx.state
 	batch, err := state.ownedStore.TakeReachable(ctx, slices.Concat([]*block.BlockRef{nroot}, e.recordedRoots)...)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 	seqno, err := state.GetSeqno(ctx)
 	var rootBlock *World
@@ -266,7 +289,14 @@ func (e *EngineTx) admit(ctx context.Context, turn world.Turn) (*bucket.ObjectRe
 	}
 	if err != nil {
 		batch.Complete(err)
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
+	}
+
+	// Register the ChangeSet before Admit so followHead sees it if the
+	// Authority publishes the candidate before Admit returns.
+	var releasePending func()
+	if e.engine.authority != nil {
+		releasePending = e.engine.registerPendingChange(base, nroot, changes)
 	}
 
 	// Propose the candidate. Admit takes the entries: once it returns, the
@@ -281,9 +311,12 @@ func (e *EngineTx) admit(ctx context.Context, turn world.Turn) (*bucket.ObjectRe
 	})
 	batch.Complete(err)
 	if err != nil {
-		return nil, nil, nil, err
+		if releasePending != nil {
+			releasePending()
+		}
+		return nil, nil, nil, nil, nil, err
 	}
-	return next, adm, rootBlock, nil
+	return next, adm, rootBlock, changes, releasePending, nil
 }
 
 // waitDurable waits for the Authority's decision and then for the head to be

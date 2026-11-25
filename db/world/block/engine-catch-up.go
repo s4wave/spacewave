@@ -6,7 +6,6 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 )
 
@@ -52,7 +51,7 @@ func (e *Engine) catchUpSubscriber(ctx context.Context, w *engineChangeWatch, su
 			sub.add(seqno, world.NewUnknownChangeSet())
 			return nil
 		}
-		c := w.findCatchUpLocked(afterSeqno, after.root.GetRef())
+		c := w.findCatchUpLocked(afterSeqno, after.ref)
 		if c == nil {
 			c = e.startCatchUpLocked(w, afterSeqno, after)
 		}
@@ -92,14 +91,15 @@ func (e *Engine) catchUpSubscriber(ctx context.Context, w *engineChangeWatch, su
 	}
 }
 
-// startCatchUpLocked starts comparing the recorded head after at afterSeqno
-// with the watch base and records the comparison for later subscribers. Close
-// joins the comparison like a change watch. The caller must hold bcast.
+// startCatchUpLocked starts resolving the changes from the recorded head after
+// at afterSeqno to the watch base and records the catch-up for later
+// subscribers. Close joins the resolution like a change watch. The caller must
+// hold bcast.
 func (e *Engine) startCatchUpLocked(w *engineChangeWatch, afterSeqno uint64, after *watchedHead) *changeCatchUp {
-	// Record the comparison, evicting the oldest at capacity.
+	// Record the catch-up, evicting the oldest at capacity.
 	c := &changeCatchUp{
 		after:    afterSeqno,
-		afterRef: after.root.GetRef().CloneVT(),
+		afterRef: after.ref.CloneVT(),
 		seqno:    w.baseSeqno,
 		ref:      w.base.GetRef().CloneVT(),
 		done:     make(chan struct{}),
@@ -109,21 +109,26 @@ func (e *Engine) startCatchUpLocked(w *engineChangeWatch, afterSeqno uint64, aft
 	}
 	w.catchUps = append(w.catchUps, c)
 
-	// Compare retained heads outside the lock. Missing history cannot
-	// certify a filter, so no reader may sleep on the endpoint diff alone.
-	middle, complete := e.watchIntermediatesLocked(after.publication, w.basePublication)
-	if !complete {
+	// Collect the span plan under bcast. Complete immediately when unknown or
+	// one recorded ChangeSet covers the span; otherwise merge and compare in
+	// one shared goroutine outside bcast.
+	plan := e.watchSpanPlanLocked(after.publication, after.ref, w.basePublication)
+	if plan.unknown {
 		c.changes = world.NewUnknownChangeSet()
 		close(c.done)
 		return c
 	}
-	before, base := after.root.Clone(), w.base.Clone()
+	if len(plan.pairs) == 0 && len(plan.recorded) == 1 {
+		c.changes = plan.recorded[0]
+		close(c.done)
+		return c
+	}
 	e.changeWatches++
 	go func() {
-		// Compare until done or the watch stops.
-		e.compareCatchUp(w.ctx, c, before, base, middle)
+		// Resolve the span until done or the watch stops.
+		e.resolveCatchUp(w.ctx, c, plan)
 
-		// Let Close release the stores only after the comparison ends.
+		// Let Close release the stores only after resolution ends.
 		locked := e.bcast.Lock()
 		e.changeWatches--
 		locked.Broadcast()
@@ -132,57 +137,86 @@ func (e *Engine) startCatchUpLocked(w *engineChangeWatch, afterSeqno uint64, aft
 	return c
 }
 
-// compareCatchUp publishes the shared comparison and releases its endpoints.
-func (e *Engine) compareCatchUp(ctx context.Context, c *changeCatchUp, before, after *bucket_lookup.Cursor, middle []*bucket_lookup.Cursor) {
-	// Release the endpoints before waking the subscribers.
+// resolveCatchUp publishes the shared catch-up ChangeSet and wakes its waiters.
+func (e *Engine) resolveCatchUp(ctx context.Context, c *changeCatchUp, plan watchSpanPlan) {
 	defer close(c.done)
-	defer before.Release()
-	defer after.Release()
 
-	// An unreadable head makes the span unknown, not empty.
+	// An unreadable fallback head makes the span unknown, not empty.
 	var err error
-	c.changes, err = e.compareWatchSpan(ctx, before, after, middle)
+	c.changes, err = e.resolveWatchSpan(ctx, plan)
 	if err != nil && ctx.Err() == nil {
 		e.le.WithError(err).Warn("world change comparison failed; reporting unknown changes")
 	}
 }
 
-// compareWatchSpan unions adjacent changes, including changes that cancel
-// out between the endpoints. It takes ownership of the intermediate cursors
-// but borrows the endpoints. A head that cannot be read makes the span unknown.
-func (e *Engine) compareWatchSpan(ctx context.Context, before, after *bucket_lookup.Cursor, middle []*bucket_lookup.Cursor) (*world.ChangeSet, error) {
-	// Release the intermediate cursors even when an old head is gone.
+// resolveWatchSpan merges the recorded ChangeSets of plan and falls back to
+// tree comparison for each unrecorded adjacent pair, stopping once the union
+// becomes unknown.
+func (e *Engine) resolveWatchSpan(ctx context.Context, plan watchSpanPlan) (*world.ChangeSet, error) {
+	// Return unknown immediately for an incomplete or overflowing plan.
+	if plan.unknown {
+		return world.NewUnknownChangeSet(), nil
+	}
+
+	// Merge recorded ChangeSets before touching storage.
+	var changes *world.ChangeSet
+	for _, cs := range plan.recorded {
+		changes = world.MergeChangeSets(changes, cs, changeDiffLimit)
+		if changes.Unknown {
+			return changes, nil
+		}
+	}
+
+	// Fall back to tree comparison for any publication without a recorded
+	// ChangeSet while its pages remain readable.
+	if len(plan.pairs) != 0 {
+		compared, err := e.compareRefPairs(ctx, plan.pairs)
+		if err != nil {
+			return world.NewUnknownChangeSet(), err
+		}
+		changes = world.MergeChangeSets(changes, compared, changeDiffLimit)
+	}
+	if changes == nil {
+		return &world.ChangeSet{}, nil
+	}
+	return changes, nil
+}
+
+// compareRefPairs compares each adjacent head ref pair and unions their
+// ChangeSets, pinning at most two roots at once without waiting for an absent
+// peer. An unreadable root makes the span unknown.
+func (e *Engine) compareRefPairs(ctx context.Context, pairs []watchedRefPair) (*world.ChangeSet, error) {
+	// Pin without waiting for a peer, keeping at most two pins live at once.
+	ctx, _ = block.WithoutPeerWait(ctx)
+	var pinnedRef *block.BlockRef
+	var unpin func()
 	defer func() {
-		for _, head := range middle {
-			head.Release()
+		if unpin != nil {
+			unpin()
 		}
 	}()
 
-	// Pin without waiting for a peer. Keep at most two pins live at once.
-	ctx, _ = block.WithoutPeerWait(ctx)
-	unpin, err := block.PinRoot(ctx, e.writeBlockStore, before.GetRef().GetRootRef())
-	if err != nil {
-		return world.NewUnknownChangeSet(), nil
-	}
-	defer func() { unpin() }()
-
-	// Merge one comparison at a time, taking the next pin before dropping
-	// the previous one so the next comparison can use it as its base.
+	// Compare each pair, reusing the previous after pin for consecutive pairs.
 	var changes *world.ChangeSet
-	for i := range len(middle) + 1 {
-		next := after
-		if i < len(middle) {
-			next = middle[i]
+	for _, pair := range pairs {
+		if pinnedRef == nil || !pinnedRef.EqualsRef(pair.before.GetRootRef()) {
+			if unpin != nil {
+				unpin()
+				unpin = nil
+			}
+			var err error
+			unpin, err = block.PinRoot(ctx, e.writeBlockStore, pair.before.GetRootRef())
+			if err != nil {
+				return world.NewUnknownChangeSet(), nil
+			}
 		}
-		release, err := block.PinRoot(ctx, e.writeBlockStore, next.GetRef().GetRootRef())
+		nextUnpin, err := block.PinRoot(ctx, e.writeBlockStore, pair.after.GetRootRef())
 		if err != nil {
 			return world.NewUnknownChangeSet(), nil
 		}
-		_, beforeBcs := before.BuildTransactionWithStore(nil, e.writeBlockStore)
-		_, nextBcs := next.BuildTransactionWithStore(nil, e.writeBlockStore)
-		delta, err := WorldChanges(ctx, beforeBcs, nextBcs, changeDiffLimit)
+		delta, err := e.compareObjectRefs(ctx, pair.before, pair.after)
 		unpin()
-		before, unpin = next, release
+		pinnedRef, unpin = pair.after.GetRootRef(), nextUnpin
 		if err != nil {
 			return world.NewUnknownChangeSet(), err
 		}
@@ -192,6 +226,26 @@ func (e *Engine) compareWatchSpan(ctx context.Context, before, after *bucket_loo
 		}
 	}
 	return changes, nil
+}
+
+// compareObjectRefs follows two pinned ObjectRefs and lists their WorldChanges.
+func (e *Engine) compareObjectRefs(ctx context.Context, before, after *bucket.ObjectRef) (*world.ChangeSet, error) {
+	// Follow both pinned refs on the base bucket cursor.
+	beforeCur, err := e.baseRoot.FollowRef(ctx, before)
+	if err != nil {
+		return nil, err
+	}
+	defer beforeCur.Release()
+	afterCur, err := e.baseRoot.FollowRef(ctx, after)
+	if err != nil {
+		return nil, err
+	}
+	defer afterCur.Release()
+
+	// Compare their object and graph trees.
+	_, beforeBcs := beforeCur.BuildTransactionWithStore(nil, e.writeBlockStore)
+	_, afterBcs := afterCur.BuildTransactionWithStore(nil, e.writeBlockStore)
+	return WorldChanges(ctx, beforeBcs, afterBcs, changeDiffLimit)
 }
 
 // findCatchUpLocked returns the recorded comparison from the head at after,

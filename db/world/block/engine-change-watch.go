@@ -297,27 +297,46 @@ func (e *Engine) runChangeWatch(w *engineChangeWatch) {
 		nextHead := e.published
 		listChanges := len(w.subs) != 0
 		skipped := nextHead != w.basePublication+1
-		var middle []*bucket_lookup.Cursor
-		var complete bool
-		if skipped && listChanges {
-			middle, complete = e.watchIntermediatesLocked(w.basePublication, nextHead)
+		var recorded *world.ChangeSet
+		var plan watchSpanPlan
+		switch {
+		case !skipped:
+			recorded = e.watchedHeads[len(e.watchedHeads)-1].changes
+		case listChanges:
+			plan = e.watchSpanPlanLocked(w.basePublication, w.base.GetRef().CloneVT(), nextHead)
 		}
 		locked.Unlock()
 
-		// Compare the World trees outside the publication lock. Every
-		// subscriber, and so every view and every write's rehearsal, waits
-		// behind the comparison, so its reads go ahead of other reads on a
-		// bounded link (block.ReadUrgent), and a block only an absent peer
-		// could serve fails it instead of waiting for the peer.
+		// Resolve the span outside the publication lock. Every subscriber, and
+		// so every view and every write's rehearsal, waits behind it, so any
+		// fallback tree reads go ahead of other reads on a bounded link
+		// (block.ReadUrgent), and a block only an absent peer could serve fails
+		// instead of waiting for the peer.
 		compareCtx, _ := block.WithoutPeerWait(block.WithReadClass(w.ctx, block.ReadUrgent))
 		var keys []string
 		var changes *world.ChangeSet
 		var err error
-		if !skipped {
+		switch {
+		case !skipped && recorded != nil && !recorded.Unknown:
+			changes = recorded
+			keys = recorded.Keys
+			if keys == nil {
+				keys = []string{}
+			}
+		case !skipped && recorded != nil:
+			changes = recorded
+			keys, err = e.compareWatchedObjectKeys(compareCtx, w, w.base, next)
+		case !skipped:
 			keys, changes, err = e.compareChangeWatchHeads(compareCtx, w, w.base, next, listChanges)
-		} else if complete {
-			changes, err = e.compareWatchSpan(compareCtx, w.base, next, middle)
-		} else {
+		case listChanges:
+			changes, err = e.resolveWatchSpan(compareCtx, plan)
+			if err == nil && !changes.Unknown {
+				keys = changes.Keys
+				if keys == nil {
+					keys = []string{}
+				}
+			}
+		default:
 			changes = world.NewUnknownChangeSet()
 		}
 		if err != nil && w.ctx.Err() == nil {
@@ -397,10 +416,7 @@ func (e *Engine) compareChangeWatchHeads(
 	// Compare only the watched keys of a change too large to list. A waiter
 	// registered after after was published reads a head at or past it.
 	if !complete {
-		locked := e.bcast.Lock()
-		watched := slices.Collect(maps.Keys(w.waiters))
-		locked.Unlock()
-		keys, err = ChangedObjectKeysIn(ctx, beforeBcs, afterBcs, watched)
+		keys, err = e.compareWatchedObjectKeys(ctx, w, before, after)
 		return keys, world.NewUnknownChangeSet(), err
 	}
 
@@ -410,6 +426,28 @@ func (e *Engine) compareChangeWatchHeads(
 		changes, err = worldChangesWithKeys(ctx, beforeBcs, afterBcs, slices.Clone(keys), changeDiffLimit)
 	}
 	return keys, changes, err
+}
+
+// compareWatchedObjectKeys compares only the object keys w's waiters watch
+// between two held heads. It returns an empty non-nil slice when no waiter is
+// registered.
+func (e *Engine) compareWatchedObjectKeys(
+	ctx context.Context,
+	w *engineChangeWatch,
+	before, after *bucket_lookup.Cursor,
+) ([]string, error) {
+	// Snapshot the watched keys under bcast, returning early when none wait.
+	locked := e.bcast.Lock()
+	watched := slices.Collect(maps.Keys(w.waiters))
+	locked.Unlock()
+	if len(watched) == 0 {
+		return []string{}, nil
+	}
+
+	// Compare only the watched keys between the two heads.
+	_, beforeBcs := before.BuildTransactionWithStore(nil, e.writeBlockStore)
+	_, afterBcs := after.BuildTransactionWithStore(nil, e.writeBlockStore)
+	return ChangedObjectKeysIn(ctx, beforeBcs, afterBcs, watched)
 }
 
 // readWatchedRevs reads, at head, the revision of each changed key some

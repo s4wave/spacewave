@@ -2,12 +2,26 @@ package world_block
 
 import (
 	"context"
+	"maps"
+	"slices"
 
 	"github.com/s4wave/spacewave/db/block"
 	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
 )
+
+// quadKey identifies a graph quad by its canonical Cayley string fields.
+type quadKey struct {
+	// subj is the quad subject as the graph stores it.
+	subj string
+	// pred is the quad predicate as the graph stores it.
+	pred string
+	// obj is the quad object as the graph stores it.
+	obj string
+	// label is the quad label as the graph stores it.
+	label string
+}
 
 // queueWorldChange adds a world change to the apply queue and updates the seqno.
 // expects rmtx to be locked
@@ -41,12 +55,93 @@ func (t *WorldState) queueWorldChange(ctx context.Context, w *WorldChange) (*blo
 	t.pendingChanges = append(t.pendingChanges, changeBcs)
 	t.pendingType = w.GetChangeType()
 	t.noteTypeChange(w)
+	t.noteChange(w)
 
 	// Update the sequence number, wake the waiters of the keys the change
 	// names and return the change cursor.
 	t.updateSeqno(r)
 	t.revs.wake(w.GetKey(), w.GetNewKey())
 	return changeBcs, nil
+}
+
+// noteChange records w in the transaction's ChangeSet, collapsing to unknown
+// once the distinct keys and quads exceed changeDiffLimit.
+func (t *WorldState) noteChange(w *WorldChange) {
+	// Stop recording once the transaction already exceeded changeDiffLimit.
+	if t.changeUnknown {
+		return
+	}
+
+	// Record any touched object keys, including both ends of a rename.
+	if key := w.GetKey(); key != "" {
+		if t.changeKeys == nil {
+			t.changeKeys = make(map[string]struct{})
+		}
+		t.changeKeys[key] = struct{}{}
+	}
+	if newKey := w.GetNewKey(); newKey != "" {
+		if t.changeKeys == nil {
+			t.changeKeys = make(map[string]struct{})
+		}
+		t.changeKeys[newKey] = struct{}{}
+	}
+
+	// Record any touched graph quad spelled as the graph stores it.
+	if q := w.GetQuad(); q != nil {
+		cq, err := world.GraphQuadToCayleyQuad(world.QuadToGraphQuad(q), false)
+		if err != nil {
+			t.changeUnknown = true
+			t.changeKeys, t.changeQuads = nil, nil
+			return
+		}
+		gq := world.CayleyQuadToGraphQuad(cq)
+		if t.changeQuads == nil {
+			t.changeQuads = make(map[quadKey]struct{})
+		}
+		t.changeQuads[quadKey{
+			subj:  gq.GetSubject(),
+			pred:  gq.GetPredicate(),
+			obj:   gq.GetObj(),
+			label: gq.GetLabel(),
+		}] = struct{}{}
+	}
+
+	// Collapse to unknown once the change exceeds the diff bound.
+	if len(t.changeKeys)+len(t.changeQuads) > changeDiffLimit {
+		t.changeUnknown = true
+		t.changeKeys, t.changeQuads = nil, nil
+	}
+}
+
+// takeChanges returns the ChangeSet accumulated since the last take, Commit,
+// Discard, or SetBlockTransaction and clears the accumulator.
+func (t *WorldState) takeChanges() *world.ChangeSet {
+	// Reset the accumulator on exit and return unknown if it overflowed.
+	defer t.resetChanges()
+	if t.changeUnknown {
+		return world.NewUnknownChangeSet()
+	}
+
+	// Materialize the sorted keys and distinct quads.
+	var keys []string
+	if len(t.changeKeys) != 0 {
+		keys = slices.Sorted(maps.Keys(t.changeKeys))
+	}
+	var quads []world.GraphQuad
+	if len(t.changeQuads) != 0 {
+		quads = make([]world.GraphQuad, 0, len(t.changeQuads))
+		for q := range t.changeQuads {
+			quads = append(quads, world.NewGraphQuad(q.subj, q.pred, q.obj, q.label))
+		}
+	}
+	return &world.ChangeSet{Keys: keys, Quads: quads}
+}
+
+// resetChanges clears the transaction's accumulated ChangeSet state.
+func (t *WorldState) resetChanges() {
+	t.changeKeys = nil
+	t.changeQuads = nil
+	t.changeUnknown = false
 }
 
 // updateSeqno computes the latest sequence number, updates t.seqno and wakes

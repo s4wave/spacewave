@@ -123,6 +123,15 @@ type WorldState struct {
 	// the last take, Commit or Discard links on its new side; see
 	// noteLoggedRoot.
 	loggedRoots []*block.BlockRef
+	// changeKeys holds the object keys touched by queueWorldChange since the
+	// last take, Commit, Discard, or SetBlockTransaction.
+	changeKeys map[string]struct{}
+	// changeQuads holds the graph quads touched by queueWorldChange since the
+	// last take, Commit, Discard, or SetBlockTransaction, spelled as the graph
+	// stores them.
+	changeQuads map[quadKey]struct{}
+	// changeUnknown reports that the pending changes exceeded changeDiffLimit.
+	changeUnknown bool
 
 	// seqnoBcast guards below fields
 	seqnoBcast broadcast.Broadcast
@@ -564,6 +573,7 @@ func (t *WorldState) setBlockTransaction(
 	t.modObjects = nil
 	t.setRoots = nil
 	t.loggedRoots = nil
+	t.resetChanges()
 	subtask.End()
 
 	// Update the sequence number from the new root and wake every object
@@ -658,6 +668,7 @@ func (t *WorldState) Discard() {
 	t.modObjects = nil
 	t.setRoots = nil
 	t.loggedRoots = nil
+	t.resetChanges()
 	t.seqnoBcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		broadcast()
 	})
@@ -739,6 +750,7 @@ func (t *WorldState) Commit(ctx context.Context) error {
 		t.modObjects = nil
 		t.setRoots = nil
 		t.loggedRoots = nil
+		t.resetChanges()
 		return nil
 	}
 

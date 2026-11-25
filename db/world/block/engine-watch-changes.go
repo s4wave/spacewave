@@ -6,27 +6,67 @@ import (
 	"sync"
 	"sync/atomic"
 
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
 )
 
 // changeWatchHeads bounds the published heads the Engine records so a new
-// change subscriber can compare the head it last saw against a later one.
+// change subscriber can catch up from the head it last saw against a later one.
 const changeWatchHeads = 128
 
-// maxWatchComparisons bounds the per-span tree comparisons. Beyond it, an
-// unknown change lets subscribers reread rather than making them wait for
-// an arbitrarily long history walk.
+// maxWatchComparisons bounds the per-span tree comparisons for publications
+// without a recorded ChangeSet. Beyond it, an unknown change lets subscribers
+// reread rather than making them wait for an arbitrarily long history walk.
 const maxWatchComparisons = 8
 
-// watchedHead is a published head recorded for change watchers.
+// watchedHead is a published head recorded for change watchers. It holds only
+// the head's ref and ChangeSet, never a cursor, so past Worlds stay collectible.
 type watchedHead struct {
 	// seqno is the World seqno of the head.
 	seqno uint64
 	// publication is the local publication number, independent of the seqno.
 	publication uint64
-	// root is the root cursor of the head.
-	root *bucket_lookup.Cursor
+	// ref is the ObjectRef of the head.
+	ref *bucket.ObjectRef
+	// changes is the ChangeSet from the preceding publication to this head,
+	// or nil when the head arrived without one.
+	changes *world.ChangeSet
+}
+
+// pendingChange pairs an in-flight local commit's base and candidate roots with
+// the ChangeSet it accumulated, so followHead or a durable-base install that
+// publishes the candidate ahead of CommitBlockTransaction still records it.
+type pendingChange struct {
+	// base is the root the local commit built on.
+	base *block.BlockRef
+	// root is the candidate root the local commit produced.
+	root *block.BlockRef
+	// changes is the ChangeSet accumulated from base to root.
+	changes *world.ChangeSet
+}
+
+// watchedRefPair is one adjacent publication pair whose ChangeSet was not
+// recorded and must be derived by comparing the two trees.
+type watchedRefPair struct {
+	// before is the ObjectRef of the earlier publication.
+	before *bucket.ObjectRef
+	// after is the ObjectRef of the later publication.
+	after *bucket.ObjectRef
+}
+
+// watchSpanPlan is the work collected under bcast to compute the ChangeSet
+// across a span of publications: recorded ChangeSets to merge and unrecorded
+// adjacent head pairs to compare.
+type watchSpanPlan struct {
+	// recorded holds the ChangeSets recorded in the ring for the span.
+	recorded []*world.ChangeSet
+	// pairs holds the adjacent pairs without a recorded ChangeSet.
+	pairs []watchedRefPair
+	// unknown reports that the span cannot be certified: history is missing,
+	// a recorded ChangeSet is unknown, or more than maxWatchComparisons pairs
+	// require tree comparison.
+	unknown bool
 }
 
 // changeSubscriber is one WatchChanges call on the change watch. Its pending
@@ -77,15 +117,15 @@ func (s *slotSubscriber) ReleaseWatch() {
 //
 // A subscriber that starts behind the change watch merges the ChangeSets the
 // watch recorded since the head at afterSeqno. When the watch did not record
-// that far back, it compares the head at afterSeqno against the watch's base
-// and continues from there, sharing the comparison with the other subscribers
-// that start at the same head. The Engine records the last changeWatchHeads
-// heads it published, starting with the head it opened at, so a recent
-// afterSeqno is precise. Recording does not pin a head, so superseded
-// Worlds stay collectible, and a base the volume collected reports unknown
-// changes. The ChangeSet is also unknown when the head at afterSeqno is no
-// longer recorded, when two recorded heads share that seqno, or when the
-// change is too large to list.
+// that far back, catch-up merges the ChangeSets each local commit recorded in
+// the Engine's ring of changeWatchHeads publications, falling back to a shared
+// tree comparison for any publication that arrived without one while its pages
+// remain readable. Recording keeps only each publication's ref and ChangeSet
+// and holds no cursor or ReadRoots entry, so superseded Worlds stay
+// collectible and trim stores no past heads for the watch. The ChangeSet is
+// unknown when the head at afterSeqno is no longer recorded, when two recorded
+// heads share that seqno, when an unrecorded publication's pages were
+// collected, or when the change is too large to list.
 func (e *Engine) WatchChanges(
 	ctx context.Context,
 	afterSeqno uint64,
@@ -120,7 +160,7 @@ func (e *Engine) WatchIndexedChanges(
 	caughtUp := afterSeqno >= w.baseSeqno
 	var spans []changeSpan
 	if base := e.watchedHeadLocked(afterSeqno); !caughtUp && base != nil {
-		spans, caughtUp = w.spansSinceLocked(afterSeqno, base.root.GetRef())
+		spans, caughtUp = w.spansSinceLocked(afterSeqno, base.ref)
 	}
 	baseSeqno := w.baseSeqno
 	locked.Unlock()
@@ -275,8 +315,8 @@ func (e *Engine) leaveChangeWatch(w *engineChangeWatch, sub *changeSubscriber) {
 	locked.Unlock()
 }
 
-// watchedHeadLocked returns the one recorded root at seqno, or nil when the
-// seqno is below the floor, unrecorded, or shared by different roots. The
+// watchedHeadLocked returns the one recorded head at seqno, or nil when the
+// seqno is below the floor, unrecorded, or shared by different refs. The
 // caller must hold bcast.
 func (e *Engine) watchedHeadLocked(seqno uint64) *watchedHead {
 	if seqno < e.watchedFloor {
@@ -287,7 +327,7 @@ func (e *Engine) watchedHeadLocked(seqno uint64) *watchedHead {
 		if h.seqno != seqno {
 			continue
 		}
-		if found != nil && !found.root.GetRef().EqualsRef(h.root.GetRef()) {
+		if found != nil && !found.ref.EqualsRef(h.ref) {
 			return nil
 		}
 		found = h
@@ -302,49 +342,106 @@ func (e *Engine) recordInitialHead(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	e.recordWatchedHeadLocked(e.head.root, seqno)
+	e.recordWatchedHeadLocked(e.head.root.GetRef(), seqno, nil)
 	return nil
 }
 
 // recordWatchedHeadLocked records a newly published head for change watchers.
-// It returns the evicted oldest head for release after the lock. Eviction
-// raises the floor above the evicted seqno, so no watcher compares against
-// another head that shared it. The caller must hold bcast.
-func (e *Engine) recordWatchedHeadLocked(root *bucket_lookup.Cursor, seqno uint64) *watchedHead {
+// Eviction raises the floor above the evicted seqno, so no watcher compares
+// against another head that shared it. The caller must hold bcast.
+func (e *Engine) recordWatchedHeadLocked(ref *bucket.ObjectRef, seqno uint64, changes *world.ChangeSet) {
 	// Evict the oldest head at capacity.
-	var evicted *watchedHead
 	if len(e.watchedHeads) == changeWatchHeads {
-		evicted = e.watchedHeads[0]
+		evicted := e.watchedHeads[0]
 		e.watchedFloor = max(e.watchedFloor, evicted.seqno+1)
 		e.watchedHeads = slices.Delete(e.watchedHeads, 0, 1)
 	}
 	// signalHeadLocked assigns this publication number before releasing bcast.
-	e.watchedHeads = append(e.watchedHeads, &watchedHead{seqno: seqno, publication: e.published + 1, root: root.Clone()})
-	return evicted
+	e.watchedHeads = append(e.watchedHeads, &watchedHead{
+		seqno:       seqno,
+		publication: e.published + 1,
+		ref:         ref.CloneVT(),
+		changes:     changes,
+	})
 }
 
-// watchIntermediatesLocked clones the retained heads strictly between two
-// local publications. A gap in the retained history cannot certify a span.
-// The caller holds bcast and releases the clones after comparing them.
-func (e *Engine) watchIntermediatesLocked(first, last uint64) ([]*bucket_lookup.Cursor, bool) {
-	// An adjacent pair needs no recorded intermediate head.
-	if last <= first || last-first > maxWatchComparisons {
-		return nil, false
+// registerPendingChange records a local commit's ChangeSet while its candidate
+// is in flight and returns a cleanup function that removes it once the commit
+// finishes or fails.
+func (e *Engine) registerPendingChange(base, root *block.BlockRef, changes *world.ChangeSet) func() {
+	// Append the pending entry under bcast so followHead sees it immediately.
+	p := &pendingChange{
+		base:    base.Clone(),
+		root:    root.Clone(),
+		changes: changes,
 	}
-	if last-first == 1 {
-		return nil, true
+	locked := e.bcast.Lock()
+	e.pendingChanges = append(e.pendingChanges, p)
+	locked.Unlock()
+
+	// Return an idempotent cleanup func for commit exit.
+	return func() {
+		locked := e.bcast.Lock()
+		e.pendingChanges = slices.DeleteFunc(e.pendingChanges, func(o *pendingChange) bool {
+			return o == p
+		})
+		locked.Unlock()
+	}
+}
+
+// takePendingChangeLocked returns and removes the ChangeSet of an in-flight
+// local commit whose base and candidate match the transition from base to
+// root, or nil when none matches. The caller must hold bcast.
+func (e *Engine) takePendingChangeLocked(base, root *block.BlockRef) *world.ChangeSet {
+	// Match an in-flight commit whose exact base and candidate roots agree.
+	i := slices.IndexFunc(e.pendingChanges, func(p *pendingChange) bool {
+		return p.base.EqualsRef(base) && p.root.EqualsRef(root)
+	})
+	if i < 0 {
+		return nil
 	}
 
-	// The ring records one entry per publication in order.
+	// Remove and return the matched ChangeSet.
+	changes := e.pendingChanges[i].changes
+	e.pendingChanges = slices.Delete(e.pendingChanges, i, i+1)
+	return changes
+}
+
+// watchSpanPlanLocked collects the recorded ChangeSets and unrecorded adjacent
+// ref pairs for publications strictly after first through last. firstRef is the
+// head ref at publication first. A gap in retained history, an unknown recorded
+// ChangeSet, or more than maxWatchComparisons unrecorded pairs yields an
+// unknown plan. The caller must hold bcast.
+func (e *Engine) watchSpanPlanLocked(first uint64, firstRef *bucket.ObjectRef, last uint64) watchSpanPlan {
+	// Require every publication in (first, last] to be retained in order.
+	if last <= first || len(e.watchedHeads) == 0 {
+		return watchSpanPlan{unknown: true}
+	}
 	oldest := e.watchedHeads[0].publication
-	if first+1 < oldest || last-1-oldest >= uint64(len(e.watchedHeads)) {
-		return nil, false
+	if first+1 < oldest || last-oldest >= uint64(len(e.watchedHeads)) {
+		return watchSpanPlan{unknown: true}
 	}
-	middle := make([]*bucket_lookup.Cursor, 0, last-first-1)
-	for _, head := range e.watchedHeads[first+1-oldest : last-oldest] {
-		middle = append(middle, head.root.Clone())
+
+	// Collect recorded ChangeSets and adjacent pairs that need tree diffing.
+	var plan watchSpanPlan
+	prevRef := firstRef
+	for pub := first + 1; pub <= last; pub++ {
+		head := e.watchedHeads[pub-oldest]
+		if head.changes != nil {
+			if head.changes.Unknown {
+				return watchSpanPlan{unknown: true}
+			}
+			plan.recorded = append(plan.recorded, head.changes)
+			prevRef = head.ref
+			continue
+		}
+		if len(plan.pairs) >= maxWatchComparisons {
+			return watchSpanPlan{unknown: true}
+		}
+		plan.pairs = append(plan.pairs, watchedRefPair{before: prevRef, after: head.ref})
+		prevRef = head.ref
 	}
-	return middle, true
+	return plan
 }
 
 // add merges the changes up to the head at seqno and wakes the subscriber.

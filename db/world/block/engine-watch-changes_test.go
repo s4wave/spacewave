@@ -254,22 +254,23 @@ func TestWatchChangesRecorded(t *testing.T) {
 }
 
 // TestWatchChangesShareCatchUp checks that the subscribers that start behind
-// the change watch at the same head share one comparison, and that a later one
-// continues from that comparison through the spans the watch recorded since.
+// the change watch at the same head share one comparison when a publication
+// arrived without a recorded ChangeSet, and that a later one continues from
+// that comparison through the spans the watch recorded since.
 func TestWatchChangesShareCatchUp(t *testing.T) {
-	// Commit a first head to watch from, since an empty root takes no pin.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
-	e := newVolumeFixture(t).engine
+	// Commit past the first head through a second engine on the same Authority
+	// so f.engine receives the head without a recorded ChangeSet and must
+	// compare trees on catch-up. Count comparisons from the first head by its
+	// pins, after the external commit finishes.
+	f := newVolumeFixture(t)
+	e := f.engine
 	ws := world.NewEngineWorldState(e, true)
 	createWatchTestObject(t, ctx, ws, "share/first")
 	after := headSeqno(t, ctx, e)
 	afterRoot := e.GetRootRef().GetRootRef()
-
-	// Commit past the first head, then count the comparisons from the first
-	// head by its pins. The commit's stage pins the head it builds over, so
-	// the count starts after it.
-	createWatchTestObject(t, ctx, ws, "share/a")
+	commitExternalObject(t, ctx, f, "share/a")
 	var pins atomic.Int32
 	store := e.writeBlockStore
 	setPin(e, func(ctx context.Context, ref *block.BlockRef) (func(), error) {
@@ -432,7 +433,8 @@ func TestWatchChangesEvicted(t *testing.T) {
 }
 
 // TestWatchChangesCollectedBase checks that a watcher whose head the volume
-// collected sees unknown changes rather than a partial list.
+// collected sees unknown changes when an intervening publication arrived
+// without a recorded ChangeSet, rather than a partial list.
 func TestWatchChangesCollectedBase(t *testing.T) {
 	// Commit an object and watch from that head.
 	f := newVolumeFixture(t)
@@ -445,12 +447,9 @@ func TestWatchChangesCollectedBase(t *testing.T) {
 	after := headSeqno(t, ctx, f.engine)
 	base := f.engine.GetRootRef().GetRootRef()
 
-	// Supersede the head and collect it.
-	w = fixtureWriter(t, f.engine)
-	fixtureObject(t, w, "collected/second", "collected/second")
-	if err := w.Commit(ctx); err != nil {
-		t.Fatal(err)
-	}
+	// Supersede the head through another engine so f.engine records no
+	// ChangeSet for it, then collect the superseded head.
+	commitExternalObject(t, ctx, f, "collected/second")
 	f.collect(t)
 	if found, err := f.volume.GetBlockExists(ctx, base); err != nil || found {
 		t.Fatalf("superseded head retained: %v %v", found, err)
@@ -460,6 +459,96 @@ func TestWatchChangesCollectedBase(t *testing.T) {
 	if _, changes := readChangeWindow(t, ctx, f.engine, after); !changes.Unknown {
 		t.Fatalf("changes since a collected head = %+v, want unknown", changes)
 	}
+}
+
+// TestWatchChangesCatchUpAcrossCollectedHeads checks that a subscriber resuming
+// after every past head has been collected still receives an exact ChangeSet
+// from local commits, including changes that cancel out and spans longer than
+// maxWatchComparisons.
+func TestWatchChangesCatchUpAcrossCollectedHeads(t *testing.T) {
+	// Commit a starting head to resume from.
+	f := newVolumeFixture(t)
+	ctx := t.Context()
+	commitLocal := func(fn func(w *EngineTx)) {
+		t.Helper()
+		w := fixtureWriter(t, f.engine)
+		fn(w)
+		if err := w.Commit(ctx); err != nil {
+			t.Fatal(err)
+		}
+	}
+	commitLocal(func(w *EngineTx) {
+		fixtureObject(t, w, "trim/base", "trim/base")
+	})
+	after := headSeqno(t, ctx, f.engine)
+	pastRoots := []*block.BlockRef{f.engine.GetRootRef().GetRootRef().Clone()}
+
+	// Commit more than maxWatchComparisons local writes, including an object
+	// created and deleted across commits and a quad set and deleted in one
+	// commit.
+	commitLocal(func(w *EngineTx) {
+		fixtureObject(t, w, "trim/kept", "trim/kept")
+	})
+	pastRoots = append(pastRoots, f.engine.GetRootRef().GetRootRef().Clone())
+	commitLocal(func(w *EngineTx) {
+		fixtureObject(t, w, "trim/transient", "trim/transient")
+	})
+	pastRoots = append(pastRoots, f.engine.GetRootRef().GetRootRef().Clone())
+	commitLocal(func(w *EngineTx) {
+		if deleted, err := w.DeleteObject(ctx, "trim/transient"); err != nil || !deleted {
+			t.Fatalf("delete transient: deleted=%t err=%v", deleted, err)
+		}
+	})
+	pastRoots = append(pastRoots, f.engine.GetRootRef().GetRootRef().Clone())
+	cancelledQuad := world.NewGraphQuadWithKeys("trim/kept", "<temp>", "trim/base", "")
+	commitLocal(func(w *EngineTx) {
+		if err := w.SetGraphQuad(ctx, cancelledQuad); err != nil {
+			t.Fatal(err)
+		}
+		if err := w.DeleteGraphQuad(ctx, cancelledQuad); err != nil {
+			t.Fatal(err)
+		}
+	})
+	pastRoots = append(pastRoots, f.engine.GetRootRef().GetRootRef().Clone())
+	wantKeys := []string{"trim/kept", "trim/transient"}
+	for i := range maxWatchComparisons + 2 {
+		key := "trim/step-" + strconv.Itoa(i)
+		wantKeys = append(wantKeys, key)
+		commitLocal(func(w *EngineTx) {
+			fixtureObject(t, w, key, key)
+		})
+		if i < maxWatchComparisons+1 {
+			pastRoots = append(pastRoots, f.engine.GetRootRef().GetRootRef().Clone())
+		}
+	}
+
+	// Verify ReadRoots reports none of the past heads, then collect them all.
+	readRoots := f.engine.ReadRoots()
+	for _, past := range pastRoots {
+		if slices.ContainsFunc(readRoots, func(r *block.BlockRef) bool { return r.EqualsRef(past) }) {
+			t.Fatalf("ReadRoots still reports past head %v", past)
+		}
+	}
+	f.collect(t)
+	for _, past := range pastRoots {
+		if found, err := f.volume.GetBlockExists(ctx, past); err != nil || found {
+			t.Fatalf("past head %v still present after collection: found=%t err=%v", past, found, err)
+		}
+	}
+
+	// Resume from the collected starting head and expect the exact ChangeSet.
+	seqno, changes := readChangeWindow(t, ctx, f.engine, after)
+	if seqno != headSeqno(t, ctx, f.engine) {
+		t.Fatalf("catch-up seqno = %d, want %d", seqno, headSeqno(t, ctx, f.engine))
+	}
+	if changes.Unknown {
+		t.Fatal("changes across collected local commits are unknown")
+	}
+	slices.Sort(wantKeys)
+	if got := slices.Sorted(slices.Values(changes.Keys)); !slices.Equal(got, wantKeys) {
+		t.Fatalf("changed keys %q, want %q", got, wantKeys)
+	}
+	checkQuads(t, changes.Quads, cancelledQuad)
 }
 
 // pinFuncStore pins roots with pin and passes everything else to the store.
@@ -504,13 +593,10 @@ func TestWatchChangesPeerBase(t *testing.T) {
 	after := headSeqno(t, ctx, f.engine)
 	base := f.engine.GetRootRef().GetRootRef()
 
-	// Supersede the head and leave the base only on an absent peer: a pin
-	// that may wait for the peer blocks, and one that may not fails.
-	w = fixtureWriter(t, f.engine)
-	fixtureObject(t, w, "peer/second", "peer/second")
-	if err := w.Commit(ctx); err != nil {
-		t.Fatal(err)
-	}
+	// Supersede the head through another engine so f.engine records no
+	// ChangeSet for it, and leave the base only on an absent peer: a pin that
+	// may wait for the peer blocks, and one that may not fails.
+	commitExternalObject(t, ctx, f, "peer/second")
 	store := f.engine.writeBlockStore
 	setPin(f.engine, func(ctx context.Context, ref *block.BlockRef) (func(), error) {
 		if !ref.EqualsRef(base) {
@@ -569,6 +655,34 @@ func TestHeadHoldersSharePublicationPin(t *testing.T) {
 	fork.Discard()
 	if err := ctx.Err(); err != nil {
 		t.Fatalf("head holder pinned again: %v", err)
+	}
+}
+
+// commitExternalObject commits one object through a second engine sharing f's
+// Authority and waits until f.engine installs the resulting head via
+// followHead, so f.engine records the publication without a ChangeSet.
+func commitExternalObject(t *testing.T, ctx context.Context, f *volumeFixture, key string) {
+	// Commit on a peer engine sharing the Authority.
+	t.Helper()
+	peer := f.openEngine(t, f.authority())
+	w := fixtureWriter(t, peer)
+	fixtureObject(t, w, key, key)
+	if err := w.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	wantRoot := peer.GetRootRef().GetRootRef()
+
+	// Wait for f.engine's head watch to install the peer's root.
+	for {
+		if f.engine.GetRootRef().GetRootRef().EqualsRef(wantRoot) {
+			return
+		}
+		wait := f.engine.headSignal.Load().changed
+		select {
+		case <-ctx.Done():
+			t.Fatalf("engine did not follow external head %v: %v", wantRoot, ctx.Err())
+		case <-wait:
+		}
 	}
 }
 
@@ -694,7 +808,8 @@ func TestWatchChangesMissingBlockNoPeer(t *testing.T) {
 	// Leave the watched head's root only on an absent peer once armed.
 	armed, _ := setPeerOnlyBlock(f.engine, base)
 
-	// Subscribe from the head, then commit past it with the root missing.
+	// Subscribe from the head, then publish past it from another engine with
+	// the base root missing so the watch falls back to comparing trees.
 	after := headSeqno(t, ctx, f.engine)
 	windows := make(chan *world.ChangeSet, 1)
 	go func() {
@@ -703,12 +818,13 @@ func TestWatchChangesMissingBlockNoPeer(t *testing.T) {
 			return errWindowRead
 		})
 	}()
-	armed.Store(true)
-	w = fixtureWriter(t, f.engine)
-	fixtureObject(t, w, "hole/second", "hole/second")
-	if err := w.Commit(ctx); err != nil {
-		t.Fatal(err)
+	for deadline := time.Now().Add(5 * time.Second); len(f.engine.indexedSubscribers()) != 1; time.Sleep(time.Millisecond) {
+		if time.Now().After(deadline) {
+			t.Fatal("subscriber did not join")
+		}
 	}
+	armed.Store(true)
+	commitExternalObject(t, ctx, f, "hole/second")
 
 	// Expect unknown changes before the deadline.
 	select {
@@ -737,13 +853,9 @@ func TestWatchChangesCatchUpMissingBlockNoPeer(t *testing.T) {
 	after := headSeqno(t, ctx, f.engine)
 	armed, _ := setPeerOnlyBlock(f.engine, f.engine.GetRootRef().GetRootRef())
 
-	// Commit past it and start the watch there, so it records no span from
-	// the first head.
-	w = fixtureWriter(t, f.engine)
-	fixtureObject(t, w, "hole/second", "hole/second")
-	if err := w.Commit(ctx); err != nil {
-		t.Fatal(err)
-	}
+	// Publish past it through another engine so f.engine records no ChangeSet,
+	// and start the watch there, so it records no span from the first head.
+	commitExternalObject(t, ctx, f, "hole/second")
 	live := headSeqno(t, ctx, f.engine)
 	go func() {
 		_ = f.engine.WatchChanges(ctx, live, nil, func(uint64, *world.ChangeSet) error { return nil })
