@@ -2,6 +2,7 @@ package viewstream
 
 import (
 	"context"
+	"slices"
 	"sync"
 	"time"
 )
@@ -29,7 +30,7 @@ type Admission struct {
 	free int
 	// waiting holds the streams waiting for a slot, oldest first, by
 	// priority.
-	waiting [][]chan struct{}
+	waiting [][]*waiter
 	// defaultPriority applies when a context names no priority.
 	defaultPriority int
 }
@@ -40,7 +41,16 @@ type Admission struct {
 func NewAdmission(slots, priorities, defaultPriority int, hold time.Duration, observer AdmissionObserver) *Admission {
 	priorities = max(1, priorities)
 	slots = max(1, slots)
-	return &Admission{observer: observer, hold: hold, slots: slots, free: slots, waiting: make([][]chan struct{}, priorities), defaultPriority: max(0, min(defaultPriority, priorities-1))}
+	return &Admission{observer: observer, hold: hold, slots: slots, free: slots, waiting: make([][]*waiter, priorities), defaultPriority: max(0, min(defaultPriority, priorities-1))}
+}
+
+// waiter is one stream waiting in line for a slot.
+type waiter struct {
+	// granted closes when the stream is given a slot.
+	granted chan struct{}
+	// p is the priority of the line the stream waits in, guarded by the
+	// Admission's mtx. raise moves it to a more urgent line.
+	p int
 }
 
 // Acquire waits for a slot at the priority ctx carries and returns the
@@ -48,19 +58,35 @@ func NewAdmission(slots, priorities, defaultPriority int, hold time.Duration, ob
 // returns or its stream ends; the slot also returns by itself after the hold.
 // A nil admission admits at once. It fails only when ctx ends first.
 func (a *Admission) Acquire(ctx context.Context) (func(), error) {
-	// A source without an admission admits every stream.
 	if a == nil {
 		return func() {}, nil
 	}
+	return a.acquire(ctx, a.newWaiter(a.priority(ctx)))
+}
 
-	// Take a free slot when no stream waits ahead.
+// priority returns the line ctx asks for, or the default for none or one
+// out of range.
+func (a *Admission) priority(ctx context.Context) int {
 	p := Priority(ctx, a.defaultPriority)
 	if p < 0 || p >= len(a.waiting) {
-		p = a.defaultPriority
+		return a.defaultPriority
 	}
+	return p
+}
+
+// newWaiter returns a stream that waits at priority p once it joins a line.
+func (a *Admission) newWaiter(p int) *waiter {
+	return &waiter{granted: make(chan struct{}), p: p}
+}
+
+// acquire waits for a slot as w, at w's priority when it joins the line or
+// the one raise moved it to since.
+func (a *Admission) acquire(ctx context.Context, w *waiter) (func(), error) {
+	// Take a free slot when no stream waits ahead.
 	a.mtx.Lock()
 	if a.free > 0 {
 		a.free--
+		p := w.p
 		a.mtx.Unlock()
 		if a.observer != nil {
 			a.observer.Admitted(p, 0)
@@ -69,17 +95,18 @@ func (a *Admission) Acquire(ctx context.Context) (func(), error) {
 	}
 
 	// Otherwise wait in line at the stream's priority.
-	granted := make(chan struct{})
-	a.waiting[p] = append(a.waiting[p], granted)
+	a.waiting[w.p] = append(a.waiting[w.p], w)
+	p := w.p
 	a.mtx.Unlock()
 	if a.observer != nil {
 		a.observer.Waiting(p, 1)
-		defer a.observer.Waiting(p, -1)
 	}
 	start := time.Now()
 	select {
-	case <-granted:
+	case <-w.granted:
+		p = a.line(w)
 		if a.observer != nil {
+			a.observer.Waiting(p, -1)
 			a.observer.Admitted(p, time.Since(start))
 		}
 		return a.held(), nil
@@ -88,16 +115,59 @@ func (a *Admission) Acquire(ctx context.Context) (func(), error) {
 
 	// Leave the line; a slot granted meanwhile passes to the next stream.
 	a.mtx.Lock()
-	for i, w := range a.waiting[p] {
-		if w == granted {
-			a.waiting[p] = append(a.waiting[p][:i], a.waiting[p][i+1:]...)
-			a.mtx.Unlock()
-			return nil, ctx.Err()
-		}
+	left := a.leaveLocked(w, w.p)
+	p = w.p
+	a.mtx.Unlock()
+	if a.observer != nil {
+		a.observer.Waiting(p, -1)
+	}
+	if !left {
+		a.release()
+	}
+	return nil, ctx.Err()
+}
+
+// line returns the priority of the line w waits or waited in.
+func (a *Admission) line(w *waiter) int {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+	return w.p
+}
+
+// raise moves w to the line of priority p when p is more urgent than its
+// own, behind the streams already waiting there. A stream not yet in line
+// joins at p; one already granted keeps its slot.
+func (a *Admission) raise(w *waiter, p int) {
+	// Lower the waiter's priority, and move it when it stands in line.
+	a.mtx.Lock()
+	from := w.p
+	if p < 0 || p >= from {
+		a.mtx.Unlock()
+		return
+	}
+	w.p = p
+	moved := a.leaveLocked(w, from)
+	if moved {
+		a.waiting[p] = append(a.waiting[p], w)
 	}
 	a.mtx.Unlock()
-	a.release()
-	return nil, ctx.Err()
+
+	// Count the move.
+	if moved && a.observer != nil {
+		a.observer.Waiting(from, -1)
+		a.observer.Waiting(p, 1)
+	}
+}
+
+// leaveLocked takes w out of the line of priority p and reports whether it
+// stood there. The caller holds mtx.
+func (a *Admission) leaveLocked(w *waiter, p int) bool {
+	i := slices.Index(a.waiting[p], w)
+	if i < 0 {
+		return false
+	}
+	a.waiting[p] = slices.Delete(a.waiting[p], i, i+1)
+	return true
 }
 
 // held returns the function that gives back one slot, once, and gives it back
@@ -160,7 +230,7 @@ func (a *Admission) release() {
 func (a *Admission) grantLocked() bool {
 	for p := range a.waiting {
 		if len(a.waiting[p]) != 0 {
-			close(a.waiting[p][0])
+			close(a.waiting[p][0].granted)
 			a.waiting[p] = a.waiting[p][1:]
 			return true
 		}

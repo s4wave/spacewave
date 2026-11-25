@@ -15,6 +15,9 @@ type revisionEntry struct {
 	name string
 	// done is closed once the fields below are set.
 	done chan struct{}
+	// gate is the cold read gate of the caller computing the value, or nil;
+	// a waiter lends it its priority until done closes.
+	gate block.ColdReadGate
 	// at is the revision the value was computed from.
 	at    uint64
 	value any

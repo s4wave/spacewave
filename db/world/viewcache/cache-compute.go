@@ -40,7 +40,7 @@ func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compu
 			c.mtx.Unlock()
 			// A reader that leaves stops waiting, so streams a client
 			// abandoned during a slow build do not pile up behind it.
-			if err := awaitComputation(ctx, entry.done); err != nil {
+			if err := awaitComputation(ctx, entry); err != nil {
 				return nil, err
 			}
 			if entry.err != nil {
@@ -89,7 +89,7 @@ func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compu
 			}
 			path = "stale"
 		}
-		entry = &revisionEntry{name: name, done: make(chan struct{}), at: seqno, reads: world.NewReadSet(), blocks: block.NewRefHold()}
+		entry = &revisionEntry{name: name, done: make(chan struct{}), gate: block.ColdReadGateOf(ctx), at: seqno, reads: world.NewReadSet(), blocks: block.NewRefHold()}
 		c.keepLocked(entry)
 		c.mtx.Unlock()
 
@@ -161,7 +161,7 @@ func (c *Cache) computeBehind(
 		entry := c.behind[key]
 		if entry != nil && ctx.Value(behindClaimKey{entry}) == nil {
 			c.mtx.Unlock()
-			if err := awaitComputation(ctx, entry.done); err != nil {
+			if err := awaitComputation(ctx, entry); err != nil {
 				return nil, err
 			}
 			if entry.err != nil {
@@ -178,7 +178,7 @@ func (c *Cache) computeBehind(
 			c.addViewReads(ctx, entry)
 			return entry.value, nil
 		}
-		entry = &revisionEntry{name: name, done: make(chan struct{}), at: seqno, reads: world.NewReadSet(), blocks: block.NewRefHold()}
+		entry = &revisionEntry{name: name, done: make(chan struct{}), gate: block.ColdReadGateOf(ctx), at: seqno, reads: world.NewReadSet(), blocks: block.NewRefHold()}
 		claimed := c.behind[key] == nil
 		if claimed {
 			if c.behind == nil {
@@ -299,19 +299,24 @@ func Value[T any](ctx context.Context, c *Cache, tx world.WorldState, name strin
 	return value.(T), nil
 }
 
-// awaitComputation waits for another caller's computation to close done, or
-// for ctx to end. A waiter about to block lends back its cold read admission
+// awaitComputation waits for another caller's computation of entry, or for
+// ctx to end. A waiter about to block lends back its cold read admission
 // first: the computer may be waiting at the gate for a slot, and a slot held
-// by its own waiters would never free.
-func awaitComputation(ctx context.Context, done <-chan struct{}) error {
+// by its own waiters would never free. It also lends the computer its
+// priority while it waits, so a computer claimed by a less urgent reader is
+// admitted as urgently as its most urgent waiter.
+func awaitComputation(ctx context.Context, entry *revisionEntry) error {
 	select {
-	case <-done:
+	case <-entry.done:
 		return nil
 	default:
 	}
 	block.LendColdRead(ctx)
+	if entry.gate != nil {
+		defer entry.gate.Inherit(ctx)()
+	}
 	select {
-	case <-done:
+	case <-entry.done:
 		return nil
 	case <-ctx.Done():
 		return ctx.Err()

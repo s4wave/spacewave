@@ -200,3 +200,77 @@ func TestTicketTakesOneSlotAtTheFirstColdRead(t *testing.T) {
 	}
 	first.Close()
 }
+
+// TestTicketInheritsItsWaitersPriority holds the one slot while a desktop run
+// and then the run computing a value wait in the desktop line, and has a
+// website run wait on that value. The computing run inherits the website
+// priority and moves ahead, so the freed slot goes to it and not to the
+// desktop run that queued first; after the loan ends it acquires at its own
+// priority again.
+func TestTicketInheritsItsWaitersPriority(t *testing.T) {
+	// One slot, held, with two desktop runs in line, the computer last.
+	const website, desktop = 0, 1
+	ctx := t.Context()
+	a := NewAdmission(1, 2, desktop, 0, nil)
+	holder := a.Ticket()
+	if err := holder.EnterCold(ctx); err != nil {
+		t.Fatal(err)
+	}
+	enter := func(tk *Ticket) chan error {
+		done := make(chan error, 1)
+		go func() { done <- tk.EnterCold(WithPriority(ctx, desktop)) }()
+		return done
+	}
+	inLine := func(n int) {
+		t.Helper()
+		for deadline := time.Now().Add(5 * time.Second); ; {
+			a.mtx.Lock()
+			queued := len(a.waiting[website]) + len(a.waiting[desktop])
+			a.mtx.Unlock()
+			if queued == n {
+				return
+			}
+			if time.Now().After(deadline) {
+				t.Fatalf("%d runs in line, want %d", queued, n)
+			}
+			time.Sleep(time.Millisecond)
+		}
+	}
+	other, computer := a.Ticket(), a.Ticket()
+	otherIn := enter(other)
+	inLine(1)
+	computerIn := enter(computer)
+	inLine(2)
+
+	// The website run's wait moves the computer ahead of the other run.
+	end := computer.Inherit(WithPriority(ctx, website))
+	holder.Close()
+	if err := <-computerIn; err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-otherIn:
+		t.Fatal("the desktop run that queued first took the slot")
+	default:
+	}
+
+	// After the loan ends, the computer's next acquisition waits its turn.
+	end()
+	computer.Lend()
+	if err := <-otherIn; err != nil {
+		t.Fatal(err)
+	}
+	computerIn = enter(computer)
+	inLine(1)
+	a.mtx.Lock()
+	queuedAt := len(a.waiting[desktop])
+	a.mtx.Unlock()
+	if queuedAt != 1 {
+		t.Fatal("the computer still acquires at the website priority")
+	}
+	other.Close()
+	if err := <-computerIn; err != nil {
+		t.Fatal(err)
+	}
+	computer.Close()
+}
