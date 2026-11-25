@@ -6,6 +6,7 @@ import (
 	"math"
 	"slices"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -13,10 +14,29 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// readBatchGap is the widest gap between two extents of one pack that a batch
-// read spans rather than splitting the read. Reading 64 KiB of unwanted bytes
-// costs less than a second request.
-const readBatchGap = 64 << 10
+// readBatchLatency and readBatchBandwidth are a range read's fixed cost and
+// one read's transfer rate across a network to a bucket. Reading their product
+// of unwanted bytes, 500 kB, takes as long as a second request. A bucket on a
+// local network has less latency and more bandwidth, and a product near it.
+const (
+	readBatchLatency   = 20 * time.Millisecond
+	readBatchBandwidth = 25e6
+)
+
+// batchGap returns the widest gap between two extents of one pack that a batch
+// read spans rather than splitting the read: the gap whose bytes cost a second
+// request's time, or, on a service that bills egress, its price, whichever is
+// less. Amazon S3's prices make the second about 4.8 kB.
+func batchGap(p *Pricing) int64 {
+	// Time spans up to the bytes one request's latency would carry.
+	gap := int64(readBatchLatency.Seconds() * readBatchBandwidth)
+
+	// Price spans up to the bytes whose egress costs one class B request.
+	if egress := p.GetEgressGb(); egress > 0 {
+		gap = min(gap, int64(p.GetClassBPerMillion()/1e6/egress*gib))
+	}
+	return gap
+}
 
 // readBatchRun bounds the bytes of one range read of a batch, so a read holds
 // at most this much in memory and a slow one delays few blocks.
@@ -54,6 +74,9 @@ type batchRun struct {
 // reads each run of nearby extents of one pack, at most readBatchRun bytes,
 // with one range read, readBatchReads at a time. Calls of fn never overlap.
 //
+// Runs span gaps up to batchGap of the bucket's prices, so a read carries every
+// listed block near its neighbours when egress is free.
+//
 // It reads only the refs whose index rows hold their extents, and skips the
 // rest, a missing pack, and bytes that do not hold their block: a caller that
 // warms a cache with it reads the skipped refs, if they are wanted, as any
@@ -76,7 +99,7 @@ func (s *PackStore) ReadBatch(ctx context.Context, refs []*block.BlockRef, fn fu
 	var mtx sync.Mutex
 	eg, egCtx := errgroup.WithContext(ctx)
 	eg.SetLimit(readBatchReads)
-	for run := range batchRuns(extents) {
+	for run := range batchRuns(extents, s.batchGap) {
 		eg.Go(func() error {
 			// Read the span; a missing pack means its rows named the wrong one.
 			data, err := s.client.GetObjectRange(egCtx, s.bucket, s.prefix+packDir+run.id, run.off, int(run.end-run.off))
@@ -87,6 +110,7 @@ func (s *PackStore) ReadBatch(ctx context.Context, refs []*block.BlockRef, fn fu
 				return err
 			}
 			s.reads.batchReads.Add(1)
+			s.reads.batchBytes.Add(uint64(len(data)))
 
 			// Pass on each block whose bytes hold it, as its own copy, so a
 			// kept block does not pin the span.
@@ -113,9 +137,9 @@ func (s *PackStore) ReadBatch(ctx context.Context, refs []*block.BlockRef, fn fu
 }
 
 // batchRuns sorts extents by pack and offset and yields its runs: the extents
-// of one pack whose gaps are at most readBatchGap, spanning at most
-// readBatchRun bytes. An extent larger than readBatchRun is a run of its own.
-func batchRuns(extents []batchExtent) func(yield func(batchRun) bool) {
+// of one pack whose gaps are at most gap, spanning at most readBatchRun bytes.
+// An extent larger than readBatchRun is a run of its own.
+func batchRuns(extents []batchExtent, gap int64) func(yield func(batchRun) bool) {
 	return func(yield func(batchRun) bool) {
 		slices.SortFunc(extents, func(a, b batchExtent) int {
 			return cmp.Or(cmp.Compare(a.id, b.id), cmp.Compare(a.off, b.off))
@@ -124,7 +148,7 @@ func batchRuns(extents []batchExtent) func(yield func(batchRun) bool) {
 		for i, e := range extents {
 			// Extend the run with an extent close enough to its end.
 			end := e.off + int64(e.size)
-			if i != 0 && e.id == run.id && e.off <= run.end+readBatchGap && max(end, run.end)-run.off <= readBatchRun {
+			if i != 0 && e.id == run.id && e.off <= run.end+gap && max(end, run.end)-run.off <= readBatchRun {
 				run.end = max(run.end, end)
 				run.extents = append(run.extents, e)
 				continue

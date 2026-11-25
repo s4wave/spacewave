@@ -18,11 +18,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// slowObjects adds a fixed latency to each range read of an object store, as
-// a bucket across a network has.
+// slowObjects adds a fixed latency and a transfer time at bytesPerSec to each
+// range read of an object store, as a bucket across a network has.
 type slowObjects struct {
 	block_store_s3.ObjectStore
-	latency time.Duration
+	latency     time.Duration
+	bytesPerSec int
 }
 
 func (s *slowObjects) GetObjectRange(ctx context.Context, bucket, key string, off int64, length int) ([]byte, error) {
@@ -30,7 +31,7 @@ func (s *slowObjects) GetObjectRange(ctx context.Context, bucket, key string, of
 	case <-ctx.Done():
 		return nil, context.Cause(ctx)
 	//gostyle:timer external
-	case <-time.After(s.latency):
+	case <-time.After(s.latency + time.Duration(length)*time.Second/time.Duration(s.bytesPerSec)):
 	}
 	return s.ObjectStore.GetObjectRange(ctx, bucket, key, off, length)
 }
@@ -46,7 +47,9 @@ func harnessEnv(name string, def int) int {
 // TestWarmResidentHarness measures a restart's warm-up at the size its
 // environment names: a bucket of SPACEWAVE_WARM_BLOCKS blocks of 1 to 16 KiB
 // in packs of 2,000, a resident list of a random SPACEWAVE_WARM_LISTED_PCT
-// percent of them, and SPACEWAVE_WARM_LATENCY_MS of latency per range read.
+// percent of them, and SPACEWAVE_WARM_LATENCY_MS of latency and
+// SPACEWAVE_WARM_MBPS megabytes a second per range read, priced as Backblaze
+// B2.
 // It reports the warm-up's time and requests, and a foreground reader's
 // latency over unlisted blocks with and without the warm-up running. It runs
 // only with SPACEWAVE_WARM_BLOCKS set, on the build host.
@@ -58,6 +61,7 @@ func TestWarmResidentHarness(t *testing.T) {
 	}
 	pct := harnessEnv("SPACEWAVE_WARM_LISTED_PCT", 30)
 	latency := time.Duration(harnessEnv("SPACEWAVE_WARM_LATENCY_MS", 20)) * time.Millisecond
+	bytesPerSec := harnessEnv("SPACEWAVE_WARM_MBPS", 25) * 1e6
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 	le.Logger.SetLevel(logrus.WarnLevel)
@@ -65,10 +69,17 @@ func TestWarmResidentHarness(t *testing.T) {
 	// Write the blocks into packs through a store that indexes their extents.
 	_, client := s3test.New(t)
 	index := hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]())
-	opts := &block_store_s3.PackStoreOptions{KeepPacks: true, Index: index, SoleWriter: true, RefreshInterval: time.Hour}
+	opts := &block_store_s3.PackStoreOptions{
+		KeepPacks:       true,
+		Index:           index,
+		SoleWriter:      true,
+		RefreshInterval: time.Hour,
+		Pricing:         block_store_s3.PricingForEndpoint("s3.us-west-004.backblazeb2.com"),
+	}
 	writer := block_store_s3.NewPackStore(le, client, s3test.BucketName, "p/", opts)
 	rng := rand.New(rand.NewPCG(1, 2))
 	refs := make([]*block.BlockRef, 0, total)
+	sizes := make(map[*block.BlockRef]int, total)
 	var batch []*block.PutBatchEntry
 	var stored int64
 	flush := func() {
@@ -87,6 +98,7 @@ func TestWarmResidentHarness(t *testing.T) {
 			t.Fatal(err)
 		}
 		refs = append(refs, ref)
+		sizes[ref] = len(data)
 		stored += int64(len(data))
 		batch = append(batch, &block.PutBatchEntry{Ref: ref, Data: data})
 		if len(batch) == 2000 {
@@ -102,6 +114,10 @@ func TestWarmResidentHarness(t *testing.T) {
 	// List a random share of the blocks; the rest are the foreground's.
 	rng.Shuffle(len(refs), func(i, j int) { refs[i], refs[j] = refs[j], refs[i] })
 	listedRefs, foreground := refs[:total*pct/100], refs[total*pct/100:]
+	var listedBytes uint64
+	for _, ref := range listedRefs {
+		listedBytes += uint64(sizes[ref])
+	}
 	keys := make([]string, 0, len(listedRefs))
 	for _, ref := range listedRefs {
 		key, err := ref.MarshalKey()
@@ -114,7 +130,7 @@ func TestWarmResidentHarness(t *testing.T) {
 	// openRestart opens a restarted store over the same index and an empty
 	// cache holding the list.
 	openRestart := func(name string) (*block_store_s3.PackStore, *Cache) {
-		store := block_store_s3.NewPackStore(le, &slowObjects{ObjectStore: client, latency: latency}, s3test.BucketName, "p/", opts)
+		store := block_store_s3.NewPackStore(le, &slowObjects{ObjectStore: client, latency: latency, bytesPerSec: bytesPerSec}, s3test.BucketName, "p/", opts)
 		t.Cleanup(store.Close)
 		if err := store.Preload(ctx); err != nil {
 			t.Fatal(err)
@@ -173,9 +189,9 @@ func TestWarmResidentHarness(t *testing.T) {
 		t.Fatal(err)
 	}
 	cacheCounts := c.Counts()
-	t.Logf("warm-up: %+v in %v, %d range reads for %d blocks (%.1f a read), %d left missing, %d fills dropped",
+	t.Logf("warm-up: %+v in %v, %d range reads for %d blocks (%.1f a read), %d MiB read for %d MiB listed, %d left missing, %d fills dropped",
 		counts, warm.Round(time.Millisecond), reads.BatchReads, reads.BatchBlocks,
-		float64(reads.BatchBlocks)/float64(max(reads.BatchReads, 1)), left, cacheCounts.Dropped)
+		float64(reads.BatchBlocks)/float64(max(reads.BatchReads, 1)), reads.BatchBytes>>20, listedBytes>>20, left, cacheCounts.Dropped)
 	if counts.Fetched != len(listedRefs) || left != 0 || cacheCounts.Dropped != 0 {
 		t.Fatalf("warm-up fetched %d of %d, left %d, dropped %d", counts.Fetched, len(listedRefs), left, cacheCounts.Dropped)
 	}
