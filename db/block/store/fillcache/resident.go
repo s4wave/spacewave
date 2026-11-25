@@ -14,10 +14,14 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/packfile"
 )
 
 // residentMagic opens a resident list file. A file without it reads as empty.
 const residentMagic = "spacewave fill cache resident list 1\n"
+
+// residentDir is the directory of the lists, inside the cache's directory.
+const residentDir = "resident"
 
 // residentSlice is the number of listed refs MissingResident checks and
 // yields at once, which bounds the memory a read of the list holds.
@@ -31,8 +35,8 @@ const residentKeyMax = 1 << 10
 // it was saved, so the next start can read them into the cache before its
 // first views ask. It is a hint: a damaged, stale or missing list costs only
 // reads, since every listed block is read through the stores that verify it.
-// The lists live in a directory beside the database, one file per scope. A
-// list outlives a recreated database, since its refs stay good hints.
+// The lists live in the cache's directory beside the packs, one file per
+// scope.
 //
 // A file is residentMagic, then each ref's MarshalKey bytes after their
 // uvarint length.
@@ -84,7 +88,8 @@ func (c *Cache) SaveResident(ctx context.Context, scope string, refKeys iter.Seq
 // duplicates, at most residentSlice at a time, and returns the number of refs
 // the list named, each counted once per slice it appears in. fn may keep the slice. A missing list calls fn with nothing,
 // and a damaged one ends at the damage. A failure to check the cache yields
-// the slice whole, as a miss would.
+// the slice whole, as a miss would. Call it once the packs have loaded:
+// before then every ref reads as missing.
 func (c *Cache) MissingResident(ctx context.Context, scope string, fn func([]*block.BlockRef) error) (int, error) {
 	// Open the list, reading a missing or foreign file as empty.
 	f, err := os.Open(c.residentPath(scope))
@@ -105,7 +110,7 @@ func (c *Cache) MissingResident(ctx context.Context, scope string, fn func([]*bl
 	var listed int
 	for {
 		keys, done := readResidentKeys(r, residentSlice)
-		refs, n := c.missing(ctx, keys)
+		refs, n := c.missing(keys)
 		listed += n
 		if len(refs) != 0 {
 			if err := fn(refs); err != nil {
@@ -119,9 +124,8 @@ func (c *Cache) MissingResident(ctx context.Context, scope string, fn func([]*bl
 }
 
 // missing decodes keys into refs, sorted and without duplicates, and returns
-// those the cache does not hold, checked in one transaction, with the number
-// of refs decoded.
-func (c *Cache) missing(ctx context.Context, keys [][]byte) ([]*block.BlockRef, int) {
+// those the cache does not hold, with the number of refs decoded.
+func (c *Cache) missing(keys [][]byte) ([]*block.BlockRef, int) {
 	// Decode the keys in key order, dropping duplicates and keys that are not
 	// refs.
 	slices.SortFunc(keys, bytes.Compare)
@@ -135,13 +139,9 @@ func (c *Cache) missing(ctx context.Context, keys [][]byte) ([]*block.BlockRef, 
 	}
 
 	// Keep the refs the cache lacks.
-	held, err := c.blocks.GetBlockExistsBatch(ctx, refs)
-	if err != nil || len(held) != len(refs) {
-		return refs, len(refs)
-	}
 	missing := refs[:0]
-	for i, ref := range refs {
-		if !held[i] {
+	for _, ref := range refs {
+		if !c.packs.Has(packfile.BlockKey(ref.GetHash())) {
 			missing = append(missing, ref)
 		}
 	}
@@ -167,18 +167,17 @@ func readResidentKeys(r *bufio.Reader, n int) ([][]byte, bool) {
 }
 
 // removeResidentTemps deletes the temporary files a killed SaveResident left
-// in the list directory of the cache at path. A save that is running when it
+// in the list directory of the cache in dir. A save that is running when it
 // is called loses its file, fails its rename and keeps the previous list.
 // Leftovers it cannot delete cost only disk, so it ignores failures.
-func removeResidentTemps(path string) {
-	temps, _ := filepath.Glob(filepath.Join(path+".resident", "*.tmp"))
+func removeResidentTemps(dir string) {
+	temps, _ := filepath.Glob(filepath.Join(dir, residentDir, "*.tmp"))
 	for _, name := range temps {
 		_ = os.Remove(name)
 	}
 }
 
-// residentPath returns the list file of scope, in the directory beside the
-// database.
+// residentPath returns the list file of scope.
 func (c *Cache) residentPath(scope string) string {
-	return filepath.Join(c.path+".resident", hex.EncodeToString([]byte(scope)))
+	return filepath.Join(c.dir, residentDir, hex.EncodeToString([]byte(scope)))
 }

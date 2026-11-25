@@ -147,9 +147,10 @@ func (t *bstoreTracker) warmResident(ctx context.Context, le *logrus.Entry, p *p
 }
 
 // skipLocal returns a ReadBatch that reads with read only the refs local lacks,
-// adding the count it skipped to skipped. A placed store's reads try its local
-// store before the fill cache, so a block local holds would fill a copy no read
-// reaches; the list names such blocks, as the decoded cache sits above both.
+// adding the count it skipped to skipped. A block local holds is served from
+// local on a cache miss, so fetching it from the bucket would cost a bucket
+// read to save a local one; the list names such blocks, as the decoded cache
+// sits above both.
 // Each call costs one batched existence probe of local. A failed probe fails
 // the call, ending the warm-up, rather than reading the whole slice from the
 // bucket.

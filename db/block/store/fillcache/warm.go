@@ -25,17 +25,23 @@ type WarmCounts struct {
 // with read, and queues each block read into the cache, a slice of the list
 // at a time. After every eighth of the queue's bound it waits for the writer,
 // so the warm-up holds at most that much of the queue a foreground fill
-// shares. It stops at ctx's end or the first
-// failed read, returning what it did: the refs it left read on demand.
+// shares. It waits for the packs to load first, so it reads only what they
+// lack. It stops at ctx's end, a failed load or the first failed read,
+// returning what it did: the refs it left read on demand.
 func (c *Cache) WarmResident(ctx context.Context, scope string, read ReadBatch) (WarmCounts, error) {
-	// Read each slice of missing refs, queueing each block it yields.
+	// Wait for the packs, which say what the cache lacks.
 	var counts WarmCounts
+	if err := c.packs.Ready(ctx); err != nil {
+		return counts, err
+	}
+
+	// Read each slice of missing refs, queueing each block it yields.
 	var queued int64
 	listed, err := c.MissingResident(ctx, scope, func(refs []*block.BlockRef) error {
 		counts.Missing += len(refs)
 		return read(ctx, refs, func(ref *block.BlockRef, stored *block.StoredBlock) error {
 			// Queue the block, and let the writer catch up at each mark.
-			c.enqueue(&block.PutBatchEntry{Ref: ref, Data: stored.Data})
+			c.enqueue(&block.PutBatchEntry{Ref: ref, Data: stored.Data, Refs: stored.Refs, RefsKnown: stored.RefsKnown})
 			counts.Fetched++
 			queued += int64(len(stored.Data))
 			if queued < c.warmBytes {

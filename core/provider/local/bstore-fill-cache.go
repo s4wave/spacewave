@@ -13,6 +13,11 @@ import (
 // backend's packs, in place of the account's volume. It must hold only copies
 // of blocks the packs hold, so losing it loses nothing.
 type FillCache interface {
+	// View returns the cache's read side: a read-only store that serves the
+	// blocks the cache holds, misses the rest and reports none as existing.
+	// The placed store reads it before its local store, so a block the cache
+	// holds costs no read of the Volume.
+	View() block.StoreOps
 	// Reads returns a source that reads the cache, then lower, and copies
 	// lower's hits into the cache. A nil lower yields a nil source.
 	Reads(lower block_store.StoreSource) block_store.StoreSource

@@ -6,8 +6,6 @@ type Counts struct {
 	Hits uint64
 	// Misses counts Gets that found none, those before the load included.
 	Misses uint64
-	// Dropped counts values Put dropped before the load.
-	Dropped uint64
 	// Evicted counts packs evicted.
 	Evicted uint64
 	// Carried counts values carried forward by evictions.

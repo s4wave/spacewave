@@ -61,9 +61,10 @@ func (b *fillBudget) give(n int) {
 // to the backend, the marker keeps eviction from dropping it before then, and
 // later reads find it there instead of the fallback.
 //
-// With a fill cache, the backend's reads go through it: a block read from the
-// packs is copied into the cache instead of the local store, and the next read
-// finds it in the cache. The cache holds only copies of blocks the packs hold,
+// With a fill cache, reads ask it first, before the local store, and the
+// backend's reads go through it: a block read from the packs is copied into
+// the cache instead of the local store, and the next read finds it in the
+// cache without reading the Volume. The cache holds only copies of blocks the packs hold,
 // so nothing but a read of the packs fills it: not the fallback, which keeps
 // the marker path above, and not peers, which fill the local store as before.
 // The copy path never reads the cache.
@@ -199,31 +200,50 @@ func (p *placementState) withColdPacks(primary block.StoreOps) block.StoreOps {
 }
 
 // packReads builds the reads of the local store over the backend. With a fill
-// cache, a backend hit is copied into the cache and not the local store, and the
-// cache is read between the two. Without one, a backend hit fills the local
-// store.
+// cache, a backend hit is copied into the cache and not the local store, and
+// the cache is read first; see cacheFirst. Without one, a backend hit fills the
+// local store.
 func (p *placementState) packReads(recorded block.StoreOps, remote block_store.StoreSource) block.StoreOps {
-	// Read the front store, when registered, before the cache and the packs.
+	// Read the front store, when registered, after the local store and before
+	// the packs.
 	if p.front != nil {
-		front, lower := p.front, p.cacheReads(recorded, remote)
-		return block_store.NewStoreReadThrough(
+		front, lower := p.front, p.cacheReads(remote)
+		return p.cacheFirst(block_store.NewStoreReadThrough(
 			func() block.StoreOps { return recorded },
 			func() block.StoreOps {
 				return block_store.NewStoreReadThrough(func() block.StoreOps { return front }, lower, nil)
 			},
 			nil,
-		)
+		))
 	}
 	return p.packReadsBehind(recorded, remote)
 }
 
 // cacheReads returns the source below the local store: the fill cache over
 // the backend, or the backend alone.
-func (p *placementState) cacheReads(recorded block.StoreOps, remote block_store.StoreSource) block_store.StoreSource {
+func (p *placementState) cacheReads(remote block_store.StoreSource) block_store.StoreSource {
 	if p.cache == nil {
 		return remote
 	}
 	return p.cache.Reads(remote)
+}
+
+// cacheFirst returns reads behind the fill cache's view, or reads alone
+// without a cache. The view holds only copies of blocks the packs hold, so
+// serving one before the local store serves the same bytes; a hit skips the
+// Volume's read and leaves no read record, which only lets local eviction drop
+// a copy the cache holds. A read that misses both asks the view again inside
+// cacheReads, one more lookup in memory before the backend's read.
+func (p *placementState) cacheFirst(reads block.StoreOps) block.StoreOps {
+	if p.cache == nil {
+		return reads
+	}
+	cache := p.cache
+	return block_store.NewStoreReadThrough(
+		func() block.StoreOps { return cache.View() },
+		func() block.StoreOps { return reads },
+		nil,
+	)
 }
 
 // packReadsBehind is packReads without a front store.
@@ -235,11 +255,11 @@ func (p *placementState) packReadsBehind(recorded block.StoreOps, remote block_s
 			p.fill,
 		)
 	}
-	return block_store.NewStoreReadThrough(
+	return p.cacheFirst(block_store.NewStoreReadThrough(
 		func() block.StoreOps { return recorded },
-		p.cache.Reads(remote),
+		p.cacheReads(remote),
 		nil,
-	)
+	))
 }
 
 // peerFill fills the local store with a block read from a peer, and counts
