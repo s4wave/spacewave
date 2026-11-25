@@ -3,6 +3,7 @@
 package block_store_s3
 
 import (
+	"errors"
 	"io"
 	"net/http"
 	"strconv"
@@ -24,6 +25,14 @@ type StatusError struct {
 	Code string
 	// Message is the S3 error message.
 	Message string
+}
+
+// IsTransient reports whether err holds a StatusError with a status the
+// service returns for a passing fault or overload, such as a throttled
+// bucket's 503 SlowDown, so the same request may succeed later.
+func IsTransient(err error) bool {
+	var serr *StatusError
+	return errors.As(err, &serr) && transientStatus(serr.StatusCode)
 }
 
 // transientStatus reports whether status is one the service returns for a
