@@ -363,7 +363,10 @@ func TestReconciler(t *testing.T) {
 
 	// Run the same AVC subscription against the hardware source on its build host.
 	displayParameters := map[string]string{}
-	if os.Getenv("SPACEWAVE_GST_TEST_HELPER") != "" {
+	switch {
+	case os.Getenv("SPACEWAVE_TEST_PRIVATE_PLASMA_HELPER") != "":
+		displayParameters["source"] = "plasma"
+	case os.Getenv("SPACEWAVE_GST_TEST_HELPER") != "":
 		displayParameters["source"] = "gstreamer-test"
 	}
 	commit(t, ctx, engine, func(tx world.Tx) error {

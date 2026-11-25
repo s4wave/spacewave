@@ -127,8 +127,13 @@ func checkDisplayAVC(t *testing.T, frames s4wave_display.SRPCDisplayResourceServ
 		t.Fatal(err)
 	}
 
-	// Open the decoder from the first complete group's header.
-	for n := range 3 {
+	// Open the decoder from the first group. A static Plasma output can stay idle.
+	privatePlasma := os.Getenv("SPACEWAVE_TEST_PRIVATE_PLASMA_HELPER") != ""
+	count := 3
+	if privatePlasma {
+		count = 1
+	}
+	for n := range count {
 		// Read the access units in decode order from the real resource.
 		response, err := frames.Recv()
 		if err != nil {
@@ -142,7 +147,7 @@ func checkDisplayAVC(t *testing.T, frames s4wave_display.SRPCDisplayResourceServ
 			header.GetCodec() != frametrack.Codec_CODEC_H264_AVC || len(header.GetDecoderDescription()) < 7) {
 			t.Fatalf("AVC opening header = %v", header)
 		}
-		if n == 0 && os.Getenv("SPACEWAVE_GST_TEST_HELPER") != "" &&
+		if n == 0 && (privatePlasma || os.Getenv("SPACEWAVE_GST_TEST_HELPER") != "") &&
 			(header.GetWidth() != 1920 || header.GetHeight() != 1080) {
 			t.Fatalf("GPU AVC opening size = %dx%d", header.GetWidth(), header.GetHeight())
 		}

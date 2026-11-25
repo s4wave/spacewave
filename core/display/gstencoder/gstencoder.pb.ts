@@ -6,6 +6,25 @@ import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 
 /**
+ * Capture is the first message on stdin and selects the source for this process.
+ *
+ * @generated from message display.gstencoder.Capture
+ */
+export interface Capture {
+  /**
+   * PipewireNodeId names a portal node on the remote inherited as descriptor 3.
+   * Zero selects the synthetic test pattern and requires no inherited descriptor.
+   */
+  pipewireNodeId?: number
+}
+
+export const Capture: MessageType<Capture> =
+  /* @__PURE__ */ createMessageType<Capture>(
+    'display.gstencoder.Capture',
+    () => [[1, 'pipewire_node_id', 13]],
+  )
+
+/**
  * Command controls the helper. Its stdout carries frametrack.FramePacket.
  * Both pipes frame each protobuf with its little-endian uint32 byte count.
  *

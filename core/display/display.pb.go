@@ -23,6 +23,8 @@ const (
 	Source_SOURCE_UNKNOWN Source = 0
 	// SOURCE_GSTREAMER_TEST encodes synthetic pictures with the Linux GPU.
 	Source_SOURCE_GSTREAMER_TEST Source = 1
+	// SOURCE_PLASMA captures the authorized local KDE Plasma session.
+	Source_SOURCE_PLASMA Source = 2
 )
 
 // Enum value maps for Source.
@@ -30,10 +32,12 @@ var (
 	Source_name = map[int32]string{
 		0: "SOURCE_UNKNOWN",
 		1: "SOURCE_GSTREAMER_TEST",
+		2: "SOURCE_PLASMA",
 	}
 	Source_value = map[string]int32{
 		"SOURCE_UNKNOWN":        0,
 		"SOURCE_GSTREAMER_TEST": 1,
+		"SOURCE_PLASMA":         2,
 	}
 )
 

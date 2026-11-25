@@ -23,11 +23,17 @@ export enum Source {
    * SOURCE_GSTREAMER_TEST encodes synthetic pictures with the Linux GPU.
    */
   GSTREAMER_TEST = 1,
+
+  /**
+   * SOURCE_PLASMA captures the authorized local KDE Plasma session.
+   */
+  PLASMA = 2,
 }
 
 export const Source_Enum = /* @__PURE__ */ createEnumType('display.Source', [
   [0, 'SOURCE_UNKNOWN'],
   [1, 'SOURCE_GSTREAMER_TEST'],
+  [2, 'SOURCE_PLASMA'],
 ])
 
 /**

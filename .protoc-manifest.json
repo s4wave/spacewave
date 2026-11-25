@@ -1605,7 +1605,7 @@
           ]
         },
         "github.com/s4wave/spacewave/core/display": {
-          "hash": "205de8fece77efd7fbf53aa0624506c653d10b8d3d4d9352679a2a4ae4c131cb",
+          "hash": "86746d621df138ca03205621a99044a462130c13524b1981cef4bfcf2fdf9d1f",
           "generatedFiles": [
             "core/display/display.pb.go",
             "core/display/display.pb.ts"
@@ -1615,7 +1615,7 @@
           ]
         },
         "github.com/s4wave/spacewave/core/display/gstencoder": {
-          "hash": "23ac49819ef224f76b5149877394974bf40330461a322912bad64d454cec72e0",
+          "hash": "a8370eb614eb06c7d79e32638621b0f6e5bc422d51a1c7b2bb07e9aa364086fb",
           "generatedFiles": [
             "core/display/gstencoder/gstencoder.pb.go",
             "core/display/gstencoder/gstencoder.pb.ts"

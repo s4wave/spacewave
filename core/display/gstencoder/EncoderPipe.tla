@@ -7,10 +7,15 @@ VARIABLES state, request, picture, stalled
 vars == <<state, request, picture, stalled>>
 
 Init ==
-  /\ state = "running"
+  /\ state = "starting"
   /\ request = "none"
   /\ picture = "none"
   /\ stalled = FALSE
+
+Configure ==
+  /\ state = "starting"
+  /\ state' = "running"
+  /\ UNCHANGED <<request, picture, stalled>>
 
 Request ==
   /\ state = "running"
@@ -52,14 +57,14 @@ ReadIDR ==
   /\ UNCHANGED <<state, stalled>>
 
 Cancel ==
-  /\ state = "running"
+  /\ state \in {"starting", "running"}
   /\ state' = "stopping"
   /\ request' = "none"
   /\ picture' = "none"
   /\ UNCHANGED stalled
 
 Stall ==
-  /\ state \in {"running", "stopping"}
+  /\ state \in {"starting", "running", "stopping"}
   /\ ~stalled
   /\ stalled' = TRUE
   /\ UNCHANGED <<state, request, picture>>
@@ -79,7 +84,7 @@ Kill ==
 FinishStop == Stop \/ Kill
 
 Crash ==
-  /\ state = "running"
+  /\ state \in {"starting", "running"}
   /\ state' = "exited"
   /\ request' = "none"
   /\ picture' = "none"
@@ -94,12 +99,12 @@ Done ==
   /\ state = "reaped"
   /\ UNCHANGED vars
 
-Next == Request \/ Deliver \/ Encode \/ ReadDelta \/ SkipDelta \/ ReadIDR
+Next == Configure \/ Request \/ Deliver \/ Encode \/ ReadDelta \/ SkipDelta \/ ReadIDR
         \/ Cancel \/ Stall \/ FinishStop \/ Crash \/ Reap \/ Done
 Spec == Init /\ [][Next]_vars /\ WF_vars(FinishStop) /\ WF_vars(Reap)
 
 TypeOK ==
-  /\ state \in {"running", "stopping", "exited", "killed", "reaped"}
+  /\ state \in {"starting", "running", "stopping", "exited", "killed", "reaped"}
   /\ request \in {"none", "queued", "armed"}
   /\ picture \in {"none", "IDR", "delta"}
   /\ stalled \in BOOLEAN

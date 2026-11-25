@@ -1,0 +1,13 @@
+#!/bin/sh
+# Run inside the KDE Plasma user's session.
+set -eu
+
+app_id=org.s4wave.Spacewave.DisplayCapture
+data_dir=${XDG_DATA_HOME:-"$HOME/.local/share"}
+script_dir=$(dirname "$0")
+install -D -m 0644 "$script_dir/$app_id.desktop" "$data_dir/applications/$app_id.desktop"
+exec gdbus call --session \
+  --dest org.freedesktop.impl.portal.PermissionStore \
+  --object-path /org/freedesktop/impl/portal/PermissionStore \
+  --method org.freedesktop.impl.portal.PermissionStore.SetPermission \
+  kde-authorized true remote-desktop "$app_id" "['yes']"

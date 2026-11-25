@@ -48,9 +48,18 @@ func run() error {
 		io.WriteCloser
 	}{input, os.Stdout}, gstencoder.MaxPacketSize)
 
+	// The daemon chooses the source and already owns the portal FD, if any.
+	var capture gstencoder.Capture
+	if err := packets.RecvMsg(&capture); err != nil {
+		if errors.Is(err, io.EOF) {
+			return nil
+		}
+		return errors.Wrap(err, "read encoder capture configuration")
+	}
+
 	// Open the encoder and start listening for commands.
 	var failure *C.GError
-	pipeline := C.open_pipeline(&failure)
+	pipeline := C.open_pipeline(C.guint32(capture.GetPipewireNodeId()), &failure)
 	if failure != nil {
 		return gstError(failure)
 	}

@@ -54,6 +54,8 @@ func (display) Compile(_ context.Context, node *s4wave_flowgraph.PlacedFlowgraph
 	case "":
 	case "gstreamer-test":
 		source = display_service.Source_SOURCE_GSTREAMER_TEST
+	case "plasma":
+		source = display_service.Source_SOURCE_PLASMA
 	default:
 		return nil, errors.New("unknown display source")
 	}

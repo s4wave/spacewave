@@ -59,9 +59,10 @@ require (
 	github.com/fclairamb/ftpserverlib v0.32.7
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v6 v6.0.0-beta.1.0.20261118131511-ef69bf247300 // main
-	github.com/go-git/go-git/v6 v6.0.0-beta.1.0.20261120123602-b135e8d10903 // main
+	github.com/go-git/go-git/v6 v6.0.0-beta.1.0.20261125152119-85d69308d46e // main
 	github.com/go-sql-driver/mysql v1.10.1
 	github.com/goccy/go-json v0.12.0
+	github.com/godbus/dbus/v5 v5.2.4
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/google/pprof v0.0.0-20261026192309-dbd0ed30aa88
 	github.com/google/uuid v1.6.0

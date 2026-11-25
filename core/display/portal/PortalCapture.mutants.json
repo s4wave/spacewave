@@ -1,0 +1,12 @@
+[
+  {
+    "name": "Start accepts a response after the deadline",
+    "replace": [["  /\\ ~expired\n  /\\ state' = \"opening_remote\"", "  /\\ state' = \"opening_remote\""]],
+    "expect": "ExpiredStartCannotCapture"
+  },
+  {
+    "name": "An unauthorized source leaves the portal session open",
+    "replace": [["  /\\ state' = \"not_authorized\"\n  /\\ session' = FALSE", "  /\\ state' = \"not_authorized\"\n  /\\ session' = session"]],
+    "expect": "TerminalHasNoSession"
+  }
+]

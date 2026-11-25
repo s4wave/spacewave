@@ -59,6 +59,11 @@ func (f *Factory) Construct(_ context.Context, config config.Config, opts contro
 
 	// Serve one source per controller execution. Only JPEG can repaint bars.
 	return callback.NewCallbackController(info, func(ctx context.Context) error {
+		// Bind Plasma capture and its track to the same portal session.
+		if conf.GetSource() == Source_SOURCE_PLASMA {
+			return servePlasma(ctx, le, f.b, id)
+		}
+
 		// Pass the GPU encoder's pictures straight through to the frame track.
 		if conf.GetSource() == Source_SOURCE_GSTREAMER_TEST {
 			source, err := gstencoder.OpenSource(ctx, gstencoder.Executable)

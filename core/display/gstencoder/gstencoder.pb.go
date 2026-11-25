@@ -13,6 +13,27 @@ import (
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
 
+// Capture is the first message on stdin and selects the source for this process.
+type Capture struct {
+	unknownFields []byte
+	// PipewireNodeId names a portal node on the remote inherited as descriptor 3.
+	// Zero selects the synthetic test pattern and requires no inherited descriptor.
+	PipewireNodeId uint32 `protobuf:"varint,1,opt,name=pipewire_node_id,json=pipewireNodeId,proto3" json:"pipewireNodeId,omitempty"`
+}
+
+func (x *Capture) Reset() {
+	*x = Capture{}
+}
+
+func (*Capture) ProtoMessage() {}
+
+func (x *Capture) GetPipewireNodeId() uint32 {
+	if x != nil {
+		return x.PipewireNodeId
+	}
+	return 0
+}
+
 // Command controls the helper. Its stdout carries frametrack.FramePacket.
 // Both pipes frame each protobuf with its little-endian uint32 byte count.
 type Command struct {
@@ -34,6 +55,22 @@ func (x *Command) GetRequestKeyframe() bool {
 	return false
 }
 
+func (m *Capture) CloneVT() *Capture {
+	if m == nil {
+		return (*Capture)(nil)
+	}
+	r := new(Capture)
+	r.PipewireNodeId = m.PipewireNodeId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *Capture) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *Command) CloneVT() *Command {
 	if m == nil {
 		return (*Command)(nil)
@@ -48,6 +85,26 @@ func (m *Command) CloneVT() *Command {
 
 func (m *Command) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
+}
+
+func (this *Capture) EqualVT(that *Capture) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.PipewireNodeId != that.PipewireNodeId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *Capture) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*Capture)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
 }
 
 func (this *Command) EqualVT(that *Command) bool {
@@ -68,6 +125,48 @@ func (this *Command) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+// MarshalProtoJSON marshals the Capture message to JSON.
+func (x *Capture) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.PipewireNodeId != 0 || s.HasField("pipewireNodeId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pipewireNodeId")
+		s.WriteUint32(x.PipewireNodeId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the Capture to JSON.
+func (x *Capture) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the Capture message from JSON.
+func (x *Capture) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "pipewire_node_id", "pipewireNodeId":
+			s.AddField("pipewire_node_id")
+			x.PipewireNodeId = s.ReadUint32()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the Capture from JSON.
+func (x *Capture) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the Command message to JSON.
@@ -112,6 +211,43 @@ func (x *Command) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+func (m *Capture) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Capture) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *Capture) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.PipewireNodeId != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PipewireNodeId))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Command) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -149,6 +285,17 @@ func (m *Command) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *Capture) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.PipewireNodeId)
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *Command) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -158,6 +305,20 @@ func (m *Command) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.RequestKeyframe)
 	n += len(m.unknownFields)
 	return n
+}
+
+func (x *Capture) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "Capture")
+	if x.PipewireNodeId != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "pipewire_node_id")
+		protobuf_go_lite.TextWriteUint(&sb, x.PipewireNodeId)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *Capture) String() string {
+	return x.MarshalProtoText()
 }
 
 func (x *Command) MarshalProtoText() string {
@@ -172,6 +333,58 @@ func (x *Command) MarshalProtoText() string {
 
 func (x *Command) String() string {
 	return x.MarshalProtoText()
+}
+
+func (m *Capture) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Capture: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Capture: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PipewireNodeId", wireType)
+			}
+			m.PipewireNodeId = 0
+			m.PipewireNodeId, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
 }
 
 func (m *Command) UnmarshalVT(dAtA []byte) error {

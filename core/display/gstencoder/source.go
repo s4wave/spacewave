@@ -42,6 +42,17 @@ type Source struct {
 // OpenSource starts a test-pattern encoder and binds it to ctx.
 // executable is a locally configured helper name or path.
 func OpenSource(ctx context.Context, executable string) (*Source, error) {
+	return openSource(ctx, executable, nil, &Capture{})
+}
+
+// OpenPipeWireSource starts capture of nodeID on the portal's restricted remote.
+// The caller owns remote and can close it as soon as this call returns.
+func OpenPipeWireSource(ctx context.Context, executable string, remote *os.File, nodeID uint32) (*Source, error) {
+	return openSource(ctx, executable, []*os.File{remote}, &Capture{PipewireNodeId: nodeID})
+}
+
+// openSource starts the helper and sends its capture configuration before commands.
+func openSource(ctx context.Context, executable string, remotes []*os.File, capture *Capture) (*Source, error) {
 	// Hand the subprocess independent pipe ends so Wait cannot race a pipe read.
 	input, commands, err := os.Pipe()
 	if err != nil {
@@ -65,6 +76,7 @@ func OpenSource(ctx context.Context, executable string) (*Source, error) {
 	}
 	cmd.WaitDelay = stopGrace
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = input, output, os.Stderr
+	cmd.ExtraFiles = remotes
 	if err := cmd.Start(); err != nil {
 		cause := context.Cause(ctx)
 		stop(err)
@@ -86,7 +98,7 @@ func OpenSource(ctx context.Context, executable string) (*Source, error) {
 		keyframe: make(chan struct{}, 1),
 		exited:   promise.NewPromise[struct{}](),
 	}
-	go source.run(cmd, commands)
+	go source.run(cmd, commands, capture)
 	return source, nil
 }
 
@@ -159,12 +171,12 @@ func (s *Source) Close() error {
 }
 
 // run joins the process and the command writer. Close releases the picture pipe.
-func (s *Source) run(cmd *exec.Cmd, commands *os.File) {
+func (s *Source) run(cmd *exec.Cmd, commands *os.File, capture *Capture) {
 	// Only the command worker can block on stdin writes.
 	commandsDone := make(chan struct{})
 	go func() {
 		defer close(commandsDone)
-		s.sendCommands()
+		s.sendCommands(capture)
 	}()
 
 	// Retire the writer after exit. The reader can drain stdout through EOF.
@@ -176,7 +188,14 @@ func (s *Source) run(cmd *exec.Cmd, commands *os.File) {
 }
 
 // sendCommands forwards coalesced requests until the pipe or source ends.
-func (s *Source) sendCommands() {
+func (s *Source) sendCommands(capture *Capture) {
+	// Select the input before GStreamer opens any device or remote.
+	if err := s.packets.SendMsg(capture); err != nil {
+		s.stop(ErrEncoderFailed)
+		return
+	}
+
+	// Deliver keyframe requests for the rest of this capture.
 	cmd := &Command{RequestKeyframe: true}
 	for {
 		select {

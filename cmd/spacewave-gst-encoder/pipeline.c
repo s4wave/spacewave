@@ -9,15 +9,25 @@ static GstFlowReturn sample_ready(GstAppSink *sink, gpointer bus) {
   return GST_FLOW_OK;
 }
 
-Pipeline *open_pipeline(GError **error) {
+Pipeline *open_pipeline(guint32 node_id, GError **error) {
   gst_init(NULL, NULL);
-  GstElement *graph = gst_parse_launch(
-      "videotestsrc is-live=true ! "
-      "video/x-raw,format=NV12,width=1920,height=1080,framerate=30/1 ! "
+  g_autofree gchar *source = NULL;
+  if (node_id != 0) {
+    /* The portal remote is inherited as fd 3. The path names a node ID. */
+    source = g_strdup_printf("pipewiresrc fd=3 path=%u on-disconnect=error ! "
+                             "videoconvert ! video/x-raw,format=NV12",
+                             node_id);
+  } else {
+    source = g_strdup("videotestsrc is-live=true ! "
+                      "video/x-raw,format=NV12,width=1920,height=1080,framerate=30/1");
+  }
+  g_autofree gchar *description = g_strconcat(
+      source, " ! "
       "vah264enc name=encoder b-frames=0 key-int-max=120 ! h264parse ! "
       "video/x-h264,stream-format=avc,alignment=au ! "
       "appsink name=encoded emit-signals=true sync=false max-buffers=1",
-      error);
+      NULL);
+  GstElement *graph = gst_parse_launch(description, error);
   if (*error != NULL) {
     if (graph != NULL) {
       gst_object_unref(graph);

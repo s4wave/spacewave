@@ -11,6 +11,8 @@ enum Source {
   SOURCE_UNKNOWN = 0;
   // SOURCE_GSTREAMER_TEST encodes synthetic pictures with the Linux GPU.
   SOURCE_GSTREAMER_TEST = 1;
+  // SOURCE_PLASMA captures the authorized local KDE Plasma session.
+  SOURCE_PLASMA = 2;
 }
 
 // Config selects the source and codec of the Device's display.

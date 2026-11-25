@@ -3,6 +3,13 @@ package display.gstencoder;
 
 option go_package = "github.com/s4wave/spacewave/core/display/gstencoder;gstencoder";
 
+// Capture is the first message on stdin and selects the source for this process.
+message Capture {
+  // PipewireNodeId names a portal node on the remote inherited as descriptor 3.
+  // Zero selects the synthetic test pattern and requires no inherited descriptor.
+  uint32 pipewire_node_id = 1;
+}
+
 // Command controls the helper. Its stdout carries frametrack.FramePacket.
 // Both pipes frame each protobuf with its little-endian uint32 byte count.
 message Command {

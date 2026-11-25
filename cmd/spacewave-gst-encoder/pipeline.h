@@ -21,7 +21,7 @@ typedef struct {
   gboolean keyframe;
 } Picture;
 
-Pipeline *open_pipeline(GError **error);
+Pipeline *open_pipeline(guint32 node_id, GError **error);
 GstSample *read_sample(Pipeline *pipeline, GError **error);
 gboolean request_idr(Pipeline *pipeline);
 void stop_pipeline(Pipeline *pipeline);

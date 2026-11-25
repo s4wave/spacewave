@@ -36,7 +36,7 @@ func (c *Config) Validate() error {
 			return nil
 		}
 		return errors.New("display codec must be h264 or jpeg")
-	case Source_SOURCE_GSTREAMER_TEST:
+	case Source_SOURCE_GSTREAMER_TEST, Source_SOURCE_PLASMA:
 		if codec == frametrack.Codec_CODEC_H264_AVC {
 			return nil
 		}
