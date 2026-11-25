@@ -232,8 +232,8 @@ func UpdateBoundFlowgraph(ctx context.Context, ws world.WorldState, b bus.Bus, e
 		}
 	}
 
-	// Write the object last, so its World change closes this edit in the
-	// changelog. A placement-only edit leaves the body as it was, so it marks
+	// Write the object after its placement edges, so its World change closes
+	// this edit's placements in the changelog. A placement-only edit leaves the body as it was, so it marks
 	// the object with a revision change instead.
 	obj, found, err := ws.GetObject(ctx, key)
 	defer world.ReleaseObjectState(obj)
@@ -253,6 +253,12 @@ func UpdateBoundFlowgraph(ctx context.Context, ws world.WorldState, b bus.Bus, e
 		_, err = obj.IncrementRev(ctx)
 	}
 	if err != nil {
+		return nil, err
+	}
+
+	// Sync the hold edges through a World op after the body and placements
+	// are written, since the op reads them from the World it applies to.
+	if err := syncHolds(ctx, ws, key, previous, next); err != nil {
 		return nil, err
 	}
 

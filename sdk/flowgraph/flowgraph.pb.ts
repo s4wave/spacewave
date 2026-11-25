@@ -592,6 +592,28 @@ export const CreateFlowgraphOp: MessageType<CreateFlowgraphOp> =
   )
 
 /**
+ * SyncFlowgraphHoldsOp brings the hold edges of one Flowgraph in line with
+ * the nodes of its body and placements in the World the op applies to. It
+ * refuses an object another Flowgraph's node holds. Replay runs it at its
+ * agreed position, so two Devices that take one object at once see the second
+ * refused.
+ *
+ * @generated from message s4wave.flowgraph.SyncFlowgraphHoldsOp
+ */
+export interface SyncFlowgraphHoldsOp {
+  /**
+   * ObjectKey is the Flowgraph whose holds the op syncs.
+   */
+  objectKey?: string
+}
+
+export const SyncFlowgraphHoldsOp: MessageType<SyncFlowgraphHoldsOp> =
+  /* @__PURE__ */ createMessageType<SyncFlowgraphHoldsOp>(
+    's4wave.flowgraph.SyncFlowgraphHoldsOp',
+    () => [[1, 'object_key', 9]],
+  )
+
+/**
  * GetFlowgraphRequest reads the mounted graph.
  *
  * @generated from message s4wave.flowgraph.GetFlowgraphRequest

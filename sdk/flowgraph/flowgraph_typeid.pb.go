@@ -23,8 +23,17 @@ func (*CreateFlowgraphOp) TypeID() string {
 	return CreateFlowgraphOpTypeID
 }
 
+// SyncFlowgraphHoldsOpTypeID is the type ID of SyncFlowgraphHoldsOp.
+const SyncFlowgraphHoldsOpTypeID = "flowgraph/sync-holds"
+
+// TypeID returns the type ID of SyncFlowgraphHoldsOp.
+func (*SyncFlowgraphHoldsOp) TypeID() string {
+	return SyncFlowgraphHoldsOpTypeID
+}
+
 // FlowgraphTypes lists the typed messages of flowgraph.proto.
 var FlowgraphTypes = []typeid.Type{
 	{ID: FlowgraphTypeID, New: func() any { return new(Flowgraph) }},
 	{ID: CreateFlowgraphOpTypeID, New: func() any { return new(CreateFlowgraphOp) }},
+	{ID: SyncFlowgraphHoldsOpTypeID, New: func() any { return new(SyncFlowgraphHoldsOp) }},
 }

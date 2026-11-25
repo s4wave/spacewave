@@ -5109,6 +5109,26 @@
         }
       }
     },
+    "d2e9c7c597428c6a6eda3a6a0eee8e827e52a371c45bef2f8fabdfdb6cb9c8dc": {
+      "protocFlagsHash": "f60c126929dea22bb34c7943348825cd0650bfdf1f02a74f8541bf7d5ea1b2c2",
+      "toolVersions": "protoc=embedded,generator=h1:PyfQFeourKBuI7y7aK3Ni+G0Eh9x4gjhlrfH/NjrN7A=,protobuf-go-lite=v0.19.1-0.20261028131920-f644656fc4a7,starpc=v0.52.3,protobuf-es-lite=1.2.6",
+      "packages": {
+        "github.com/s4wave/spacewave/sdk/flowgraph": {
+          "hash": "c6340a96900d034c1fd86aeb7a7d24f1301437f3ad2ea3d631434619e8d56288",
+          "generatedFiles": [
+            "sdk/flowgraph/flowgraph.pb.go",
+            "sdk/flowgraph/flowgraph.pb.ts",
+            "sdk/flowgraph/flowgraph_srpc.pb.go",
+            "sdk/flowgraph/flowgraph_srpc.pb.ts",
+            "sdk/flowgraph/flowgraph_typeid.pb.go",
+            "sdk/flowgraph/flowgraph_typeid.pb.ts"
+          ],
+          "protoFiles": [
+            "sdk/flowgraph/flowgraph.proto"
+          ]
+        }
+      }
+    },
     "e40754b587969439d2a11c1a01a86f4abec1c32d97f32259e1a714c009fe0fe3": {
       "protocFlagsHash": "2016a1e638be9b553c888e551dc0e95ce77192b09ea1233b6b1fd297cf2d6e7d",
       "toolVersions": "protoc=embedded,generator=h1:PyfQFeourKBuI7y7aK3Ni+G0Eh9x4gjhlrfH/NjrN7A=,protobuf-go-lite=v0.19.1-0.20261028131920-f644656fc4a7,starpc=v0.52.3,protobuf-es-lite=1.2.6",
