@@ -65,12 +65,10 @@ func (a *bodyLookahead) result(i int) (*ObjectBody, error) {
 func (a *bodyLookahead) start(i int) {
 	s := &a.slots[i%len(a.slots)]
 	*s = bodyLookaheadSlot{done: make(chan struct{})}
-	a.wg.Add(1)
-	go func() {
-		defer a.wg.Done()
+	a.wg.Go(func() {
 		defer close(s.done)
 		s.body, s.err = a.lookup(a.ctx, a.keys[i])
-	}()
+	})
 }
 
 // close cancels the lookups still running and waits for them to end.
