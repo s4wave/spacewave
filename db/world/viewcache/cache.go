@@ -46,6 +46,8 @@ type Cache struct {
 	history []cacheAdvance
 	// typed holds the last key listing of each type typedKeys read, by type.
 	typed map[string]*typedKeyIndex
+	// keys holds the key indexes KeyIndex built, which each catch-up patches.
+	keys map[keyIndexID]*KeyIndex
 	// index holds the finished values kept in entries by every read set
 	// checking them consults, so a catch-up checks only the values its
 	// changes name.
