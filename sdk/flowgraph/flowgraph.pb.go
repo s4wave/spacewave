@@ -250,6 +250,10 @@ type FlowgraphNode struct {
 	ObjectKey string `protobuf:"bytes,5,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
 	// Requirements selects an eligible Device when this standing node is unplaced.
 	Requirements *FlowgraphRequirements `protobuf:"bytes,6,opt,name=requirements,proto3" json:"requirements,omitempty"`
+	// Reads makes the binding a read: the node follows its object without
+	// holding it, so any number of nodes, each on its own Device, may read one
+	// object. A node that is not a read and runs on a Device holds its object.
+	Reads bool `protobuf:"varint,7,opt,name=reads,proto3" json:"reads,omitempty"`
 }
 
 func (x *FlowgraphNode) Reset() {
@@ -298,6 +302,13 @@ func (x *FlowgraphNode) GetRequirements() *FlowgraphRequirements {
 		return x.Requirements
 	}
 	return nil
+}
+
+func (x *FlowgraphNode) GetReads() bool {
+	if x != nil {
+		return x.Reads
+	}
+	return false
 }
 
 // FlowgraphRequirements constrains a standing node's Device and capacity grant.
@@ -1884,6 +1895,7 @@ func (m *FlowgraphNode) CloneVT() *FlowgraphNode {
 	r := new(FlowgraphNode)
 	r.TypeId = m.TypeId
 	r.ObjectKey = m.ObjectKey
+	r.Reads = m.Reads
 	r.Parameters = protobuf_go_lite.CloneMap(m.Parameters)
 	r.Ports = protobuf_go_lite.CloneVTSlice(m.Ports)
 	r.Step = protobuf_go_lite.CloneVTValue(m.Step)
@@ -2503,6 +2515,9 @@ func (this *FlowgraphNode) EqualVT(that *FlowgraphNode) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.Requirements, that.Requirements) {
+		return false
+	}
+	if this.Reads != that.Reads {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -3790,6 +3805,11 @@ func (x *FlowgraphNode) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("requirements")
 		x.Requirements.MarshalProtoJSON(s.WithField("requirements"))
 	}
+	if x.Reads || s.HasField("reads") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("reads")
+		s.WriteBool(x.Reads)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -3855,6 +3875,9 @@ func (x *FlowgraphNode) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Requirements = &FlowgraphRequirements{}
 			x.Requirements.UnmarshalProtoJSON(s.WithField("requirements", true))
+		case "reads":
+			s.AddField("reads")
+			x.Reads = s.ReadBool()
 		}
 	})
 }
@@ -6619,6 +6642,11 @@ func (m *FlowgraphNode) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Reads {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Reads)
+		i--
+		dAtA[i] = 0x38
+	}
 	if m.Requirements != nil {
 		size, err := m.Requirements.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -8418,6 +8446,7 @@ func (m *FlowgraphNode) SizeVT() (n int) {
 		l = m.Requirements.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Reads)
 	n += len(m.unknownFields)
 	return n
 }
@@ -9120,6 +9149,10 @@ func (x *FlowgraphNode) MarshalProtoText() string {
 	if x.Requirements != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "requirements")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Requirements)
+	}
+	if x.Reads != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "reads")
+		protobuf_go_lite.TextWriteBool(&sb, x.Reads)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -10424,6 +10457,16 @@ func (m *FlowgraphNode) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Reads", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Reads = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

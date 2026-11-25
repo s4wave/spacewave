@@ -22,6 +22,12 @@ func (n *FlowgraphNode) Validate() error {
 		}
 	}
 
+	// A read binds an object for a standing node to follow; a sink writes its
+	// object, so it never reads.
+	if n.GetReads() && (n.GetObjectKey() == "" || n.GetStep() != nil || n.GetTypeId() == ObjectSinkNodeTypeID) {
+		return errors.New("a read binding needs a standing node with an object key")
+	}
+
 	// Requirements reserve standing capacity; Steps use Forge Execution admission.
 	if n.GetRequirements() != nil && n.GetStep() != nil {
 		return errors.New("requirements are only supported on standing nodes")

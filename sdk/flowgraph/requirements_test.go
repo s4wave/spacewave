@@ -47,7 +47,7 @@ func TestNodeRequirements(t *testing.T) {
 
 // TestNodeHoldsBoundObject checks that a node running on a Device holds its
 // bound object across every Flowgraph of the World, and that an unplaced
-// binding of the same object holds nothing.
+// binding or a read of the same object holds nothing.
 func TestNodeHoldsBoundObject(t *testing.T) {
 	// Bind standing nodes in two Flowgraphs to one object.
 	_, engine, _ := setupFlowgraphClient(t)
@@ -121,6 +121,23 @@ func TestNodeHoldsBoundObject(t *testing.T) {
 		t.Fatal("a node that lost its hold still runs")
 	}
 	if err := checkHold("flowgraph/second", "runtime", standing); err != nil {
+		t.Fatal(err)
+	}
+
+	// A read holds nothing: beside the holder, it runs on two Devices at once.
+	reader := &s4wave_flowgraph.FlowgraphNode{
+		TypeId:       "fixture",
+		ObjectKey:    held,
+		Reads:        true,
+		Requirements: &s4wave_flowgraph.FlowgraphRequirements{Replicas: 2},
+	}
+	if err := update("flowgraph/first", &s4wave_flowgraph.UpdateFlowgraphRequest{
+		SetNodes:      map[string]*s4wave_flowgraph.FlowgraphNode{"reader": reader},
+		SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacements{"reader": twoCopies},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := checkHold("flowgraph/first", "reader", reader); err != nil {
 		t.Fatal(err)
 	}
 }

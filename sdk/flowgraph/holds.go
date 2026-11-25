@@ -23,7 +23,9 @@ import (
 // point per Space, such as a service that takes custody of the Space's inputs,
 // binds its node to an object it creates once per Space, so the World refuses
 // a second placement of it on the graph mutation path, on every Device alike.
-// An unplaced node, such as an event source, binds without holding.
+// An unplaced node, such as an event source, binds without holding, and so
+// does a node whose binding is a read, such as a Device following a release
+// that many Devices follow.
 //
 // Deleting the held object or its Flowgraph deletes the edge and releases the
 // hold.
@@ -59,7 +61,7 @@ func LookupHolder(ctx context.Context, ws world.WorldState, objectKey string) (s
 // HoldsObject reports whether node, placed at placements, holds its bound
 // object.
 func HoldsObject(node *FlowgraphNode, placements *FlowgraphPlacements) bool {
-	if node.GetObjectKey() == "" || node.GetStep() != nil {
+	if node.GetObjectKey() == "" || node.GetStep() != nil || node.GetReads() {
 		return false
 	}
 	if node.GetRequirements() != nil {
@@ -178,13 +180,14 @@ func syncHolds(ctx context.Context, ws world.WorldState, key string, previous, n
 }
 
 // CheckHold returns an error unless the node nodeID of the Flowgraph at
-// graphKey, placed on a Device, holds its bound object in ws or binds none. A
+// graphKey, placed on a Device, holds its bound object in ws, binds none, or
+// reads it. A
 // Device runs a holding node only while the World names it the holder, so a
 // node whose object was deleted and then taken by another node does not run
 // beside it.
 func CheckHold(ctx context.Context, ws world.WorldState, graphKey, nodeID string, node *FlowgraphNode) error {
-	// A placed standing node holds the object it binds.
-	if node.GetObjectKey() == "" || node.GetStep() != nil {
+	// A placed standing node holds the object it binds, unless it reads it.
+	if node.GetObjectKey() == "" || node.GetStep() != nil || node.GetReads() {
 		return nil
 	}
 

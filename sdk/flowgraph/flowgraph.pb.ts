@@ -220,6 +220,12 @@ export interface FlowgraphNode {
    * Requirements selects an eligible Device when this standing node is unplaced.
    */
   requirements?: FlowgraphRequirements
+  /**
+   * Reads makes the binding a read: the node follows its object without
+   * holding it, so any number of nodes, each on its own Device, may read one
+   * object. A node that is not a read and runs on a Device holds its object.
+   */
+  reads?: boolean
 }
 
 export const FlowgraphNode: MessageType<FlowgraphNode> =
@@ -232,6 +238,7 @@ export const FlowgraphNode: MessageType<FlowgraphNode> =
       [4, 'step', 11, 0, FlowgraphStep.codec],
       [5, 'object_key', 9],
       [6, 'requirements', 11, 0, FlowgraphRequirements.codec],
+      [7, 'reads', 8],
     ],
   )
 

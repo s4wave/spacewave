@@ -36,6 +36,10 @@ message FlowgraphNode {
   string object_key = 5;
   // Requirements selects an eligible Device when this standing node is unplaced.
   FlowgraphRequirements requirements = 6;
+  // Reads makes the binding a read: the node follows its object without
+  // holding it, so any number of nodes, each on its own Device, may read one
+  // object. A node that is not a read and runs on a Device holds its object.
+  bool reads = 7;
 }
 
 // FlowgraphRequirements constrains a standing node's Device and capacity grant.

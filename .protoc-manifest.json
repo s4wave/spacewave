@@ -4105,6 +4105,16 @@
             "os/release/release.proto"
           ]
         },
+        "github.com/s4wave/spacewave/os/release/publish": {
+          "hash": "a15d7e9b85e00ef7ac8b9a5f37e0df3bbb3261394dddb19294379df60a3769c5",
+          "generatedFiles": [
+            "os/release/publish/config.pb.go",
+            "os/release/publish/config.pb.ts"
+          ],
+          "protoFiles": [
+            "os/release/publish/config.proto"
+          ]
+        },
         "github.com/s4wave/spacewave/os/system": {
           "hash": "b2835917c0ec95b0ca853bf2c9438fcf06c97653756d32924bf2b4a2d4c6c494",
           "generatedFiles": [
@@ -4518,7 +4528,7 @@
           ]
         },
         "github.com/s4wave/spacewave/sdk/flowgraph": {
-          "hash": "c6340a96900d034c1fd86aeb7a7d24f1301437f3ad2ea3d631434619e8d56288",
+          "hash": "97a43e7a89cab6116cb87257ebc950d6a81da10062f316e670ffe5e263fec2e0",
           "generatedFiles": [
             "sdk/flowgraph/flowgraph.pb.go",
             "sdk/flowgraph/flowgraph.pb.ts",

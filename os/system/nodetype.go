@@ -9,13 +9,15 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/world"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 )
 
-// NodeTypeID selects the os/system node type. The node binds the os/release
-// object its Device runs as its object.
+// NodeTypeID selects the os/system node type. The node reads the os/release
+// object its Device runs as its object: many Devices may follow one release,
+// so the binding holds nothing.
 const NodeTypeID = "os/system"
 
 // NodeType is the os/system node type. Its node runs a system controller on
@@ -39,6 +41,10 @@ func (NodeType) GetConfigIDs() []string {
 
 // Compile returns the system controller config of the node.
 func (NodeType) Compile(_ context.Context, node *s4wave_flowgraph.PlacedFlowgraphNode) (map[string]config.Config, error) {
+	// A held release would let only one Device follow it.
+	if !node.Node.GetReads() {
+		return nil, errors.New("an os/system node reads its release; set reads on the node")
+	}
 	conf := &Config{EngineId: node.EngineID, ObjectKey: node.Node.GetObjectKey()}
 	if err := conf.Validate(); err != nil {
 		return nil, err

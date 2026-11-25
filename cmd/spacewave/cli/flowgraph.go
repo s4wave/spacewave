@@ -16,6 +16,7 @@ import (
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	forge_target "github.com/s4wave/spacewave/forge/target"
+	os_system "github.com/s4wave/spacewave/os/system"
 	flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 	sdk_engine "github.com/s4wave/spacewave/sdk/world/engine"
 )
@@ -344,6 +345,8 @@ type flowgraphNodeSetArgs struct {
 	maxSpend uint64
 	// keyed makes the Step hold one running activation per arrival key.
 	keyed bool
+	// reads makes the node's binding a read that holds nothing.
+	reads bool
 }
 
 // BuildFlags returns the node set flags.
@@ -373,6 +376,11 @@ func (a *flowgraphNodeSetArgs) BuildFlags() []cli.Flag {
 		&cli.UintFlag{Name: "max-visits", Usage: "Step visit bound (zero is unlimited)", Destination: &a.maxVisits},
 		&cli.Uint64Flag{Name: "max-spend", Usage: "Step spend bound (zero is unlimited)", Destination: &a.maxSpend},
 		&cli.BoolFlag{Name: "keyed", Usage: "Step holds one running activation per arrival key", Destination: &a.keyed},
+		&cli.BoolFlag{
+			Name:        "reads",
+			Usage:       "bind the object as a read that holds nothing (default for os/system)",
+			Destination: &a.reads,
+		},
 	)
 }
 
@@ -386,6 +394,11 @@ func (a *flowgraphNodeSetArgs) Run(c *cli.Context) error {
 	placement, err := a.buildPlacement()
 	if err != nil {
 		return err
+	}
+
+	// An os/system node reads its release unless told otherwise.
+	if !c.IsSet("reads") && a.typeID == os_system.NodeTypeID {
+		a.reads = true
 	}
 
 	// Build the node from its flags.
@@ -405,7 +418,7 @@ func (a *flowgraphNodeSetArgs) Run(c *cli.Context) error {
 // buildNode converts the flags into a node.
 func (a *flowgraphNodeSetArgs) buildNode() (*flowgraph.FlowgraphNode, error) {
 	// Parse the parameters.
-	node := &flowgraph.FlowgraphNode{TypeId: a.typeID, ObjectKey: a.object}
+	node := &flowgraph.FlowgraphNode{TypeId: a.typeID, ObjectKey: a.object, Reads: a.reads}
 	for _, param := range a.params.Value() {
 		key, value, found := strings.Cut(param, "=")
 		if !found {
