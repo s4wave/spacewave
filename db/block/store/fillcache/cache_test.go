@@ -18,11 +18,15 @@ import (
 )
 
 // packs stands in for the durable store: an in-memory store of blocks with
-// known refs that counts the reads it serves.
+// known refs, or unknown refs when refsUnknown is set, that counts the reads it
+// serves.
 type packs struct {
 	block.StoreOps
 	// reads counts the block reads.
 	reads atomic.Int64
+	// refsUnknown serves every block with its refs unknown, as a pack holds a
+	// block written without them.
+	refsUnknown bool
 }
 
 // newPacks returns an empty durable store stand-in.
@@ -30,12 +34,13 @@ func newPacks() *packs {
 	return &packs{StoreOps: block_store_inmem.NewInmemBlock(store_kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), 0)}
 }
 
-// GetStoredBlock counts the read and serves the block as a leaf with known refs.
+// GetStoredBlock counts the read and serves the block as a leaf with known
+// refs, or with unknown refs when refsUnknown is set.
 func (p *packs) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	p.reads.Add(1)
 	stored, err := block.GetBlockWithoutRefs(ctx, p.StoreOps, ref)
 	if stored != nil {
-		stored.RefsKnown = true
+		stored.RefsKnown = !p.refsUnknown
 	}
 	return stored, err
 }
@@ -490,5 +495,41 @@ func TestCacheEvictsAStartRangeLargerThanTheBound(t *testing.T) {
 	}
 	if kept == 0 || kept == 60 {
 		t.Fatalf("eviction kept %d of the 60 range rows", kept)
+	}
+}
+
+// TestCacheFillsBlocksWithUnknownRefs reads a block the durable store serves
+// with its refs unknown, as most pack blocks are: the read fills the cache,
+// the next read is served from it without touching the durable store, and the
+// cached block still reports its refs unknown.
+func TestCacheFillsBlocksWithUnknownRefs(t *testing.T) {
+	// Put a block in a durable store that serves it with unknown refs.
+	src := newPacks()
+	src.refsUnknown = true
+	data := bytes.Repeat([]byte("unknown refs"), 1024)
+	ref, _, err := src.PutBlock(t.Context(), data, &block.PutOpts{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Read the block through the cache and wait for its fill.
+	c := openTest(t, filepath.Join(t.TempDir(), "blocks.db"), 0)
+	reads := c.Reads(func() block.StoreOps { return src })()
+	if got, found, err := reads.GetBlock(t.Context(), ref); err != nil || !found || !bytes.Equal(got, data) {
+		t.Fatalf("first read = %d bytes, %v, %v", len(got), found, err)
+	}
+	wait(t, c)
+
+	// Read it again: the cache serves it, with its refs still unknown.
+	before := src.reads.Load()
+	stored, err := reads.GetStoredBlock(t.Context(), ref)
+	if err != nil || stored == nil || !bytes.Equal(stored.Data, data) {
+		t.Fatalf("second read = %v, %v", stored, err)
+	}
+	if n := src.reads.Load() - before; n != 0 {
+		t.Fatalf("second read touched the durable store %d times, want 0", n)
+	}
+	if stored.RefsKnown {
+		t.Fatal("the cached block reports its refs known")
 	}
 }

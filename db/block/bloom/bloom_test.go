@@ -3,6 +3,8 @@ package bloom
 import (
 	"strconv"
 	"testing"
+
+	"github.com/s4wave/spacewave/db/block/bitset"
 )
 
 // TestBloom performs a end to end test of the bloom block.
@@ -106,4 +108,19 @@ func TestBloomConsistent(t *testing.T) {
 
 	// n=1,000,000, 40%, k=4, 238392 bytes
 	check(1000000, 0.4, 2, 1907140)
+}
+
+// TestFromInconsistent checks that From refuses words holding fewer bits than
+// the filter's size, which a lookup would index past.
+func TestFromInconsistent(t *testing.T) {
+	if f, err := From(make([]uint64, 2), 129, 3); err != ErrInconsistentBloom || f != nil {
+		t.Fatalf("From(2 words, m=129) = %v, %v", f, err)
+	}
+	if f, err := From(make([]uint64, 2), 128, 3); err != nil || f == nil {
+		t.Fatalf("From(2 words, m=128) = %v, %v", f, err)
+	}
+	b := &BloomFilter{K: 3, M: 64 * 1024, BitSet: &bitset.BitSet{Set: []uint64{1}}}
+	if f := b.ToBloomFilter(); f != nil {
+		t.Fatal("ToBloomFilter returned an inconsistent filter")
+	}
 }

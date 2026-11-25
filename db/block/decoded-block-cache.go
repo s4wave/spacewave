@@ -142,6 +142,8 @@ type decodedBlockCacheEntry struct {
 	read       *decodedBlockReadSlot
 	epochs     decodedBlockCacheEpochs
 	durableGen uint64
+	// version identifies this exact publication within its shard.
+	version uint64
 }
 
 // decodedBlockCacheStoreToken captures the epochs at the start of a read so a
@@ -195,6 +197,7 @@ func NewDecodedBlockCacheWithOptions(opts DecodedBlockCacheOptions) (*DecodedBlo
 
 // newDecodedBlockCacheScope allocates a scope in pool.
 func newDecodedBlockCacheScope(pool *decodedBlockPool, ownsPool bool) *DecodedBlockCache {
+	PrepareBlockRemovalTracking()
 	id := pool.nextScope.Add(1)
 	return &DecodedBlockCache{
 		pool:     pool,
@@ -287,7 +290,7 @@ func (c *DecodedBlockCache) Lookup(
 	cacheKey := c.cacheKey(key)
 	cached, ok := c.pool.get(cacheKey)
 	if ok && (cached.epochs != c.epochs(key.ref) || removedSince(key.ref, cached.durableGen)) {
-		c.pool.del(cacheKey)
+		c.pool.delIfCurrent(cacheKey, cached.version)
 		ok = false
 	}
 
@@ -351,10 +354,10 @@ func (c *DecodedBlockCache) Store(
 		}
 	}
 
-	// Retain the cloned block in the read-operation cache, and keep a block a
-	// durable store removed since the read out of the shared pool.
+	// Retain the cloned block in the read-operation cache before trying to
+	// share it across transactions.
 	front.store(key, cloned)
-	if !c.enabled() || removedSince(key.ref, durableGen) {
+	if !c.enabled() {
 		return nil
 	}
 
@@ -366,15 +369,15 @@ func (c *DecodedBlockCache) Store(
 		return nil
 	}
 
-	// An invalidation or removal after the checks above leaves this entry
-	// stale, and Lookup then treats it as a miss.
+	// Prepare shareable read data and let the pool check the removal
+	// generation before publishing the entry.
 	var read *decodedBlockReadSlot
 	if _, ok := cloned.(DecodedBlockShareable); ok {
 		read = &decodedBlockReadSlot{}
 	} else if _, ok := cloned.(DecodedBlockReadShareable); ok {
 		read = &decodedBlockReadSlot{}
 	}
-	accepted := c.pool.put(cacheKey, decodedBlockCacheEntry{
+	accepted := c.pool.put(cacheKey, key.ref, decodedBlockCacheEntry{
 		read:       read,
 		block:      cloned,
 		epochs:     epochs,

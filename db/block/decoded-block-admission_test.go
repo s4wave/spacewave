@@ -54,6 +54,35 @@ func TestDecodedBlockCacheRemovalGenerations(t *testing.T) {
 		t.Fatal("read after the removal was not admitted")
 	}
 
+	// A packed hash drop also invalidates refs with unknown outer fields.
+	alias := &BlockRef{}
+	if err := alias.UnmarshalVT(append([]byte(key.ref), 0x10, 0x01)); err != nil {
+		t.Fatal(err)
+	}
+	aliasKey, ok := decodedBlockCacheRefKey(alias)
+	if !ok || aliasKey == key.ref {
+		t.Fatal("test alias needs distinct cache identity")
+	}
+	snapshot = DurableReadGeneration()
+	InvalidateRemovedBlockDigest(ref.GetHash().MarshalDigest())
+	if !removedSince(aliasKey, snapshot) {
+		t.Fatal("packed hash drop missed a ref alias")
+	}
+
+	// A batch publishes one generation across distinct and repeated stripes.
+	stripe := BlockRemovalStripeForDigest(ref.GetHash().MarshalDigest())
+	other := stripe ^ 1
+	snapshot = DurableReadGeneration()
+	var removals BlockRemovalBatch
+	removals.Add(stripe)
+	removals.Add(other)
+	removals.Add(stripe)
+	removals.Publish()
+	slots := decodedBlockRemovalStripesTable()
+	if gen := snapshot + 1; DurableReadGeneration() != gen || slots[stripe].Load() != gen || slots[other].Load() != gen {
+		t.Fatal("batched removals did not share one generation")
+	}
+
 	// Removing every block of a store makes every entry miss.
 	InvalidateAllRemovedBlocks()
 	if lookup(first) {

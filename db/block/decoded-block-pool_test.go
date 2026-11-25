@@ -12,7 +12,7 @@ import (
 func TestDecodedBlockPoolStoreVisible(t *testing.T) {
 	// Store an entry and find it with no wait.
 	pool := newDecodedBlockPoolShards(1000)
-	if !pool.put("a", decodedBlockCacheEntry{}, 10) {
+	if !pool.put("a", "", decodedBlockCacheEntry{}, 10) {
 		t.Fatal("store refused")
 	}
 	if _, ok := pool.get("a"); !ok {
@@ -20,7 +20,7 @@ func TestDecodedBlockPoolStoreVisible(t *testing.T) {
 	}
 
 	// Refuse an entry over the shard budget and count it.
-	if pool.put("big", decodedBlockCacheEntry{}, 1001) {
+	if pool.put("big", "", decodedBlockCacheEntry{}, 1001) {
 		t.Fatal("stored an entry over budget")
 	}
 	if got := pool.stats().rejections; got != 1 {
@@ -36,7 +36,7 @@ func TestDecodedBlockPoolBudget(t *testing.T) {
 	pool := newDecodedBlockPoolShards(1000)
 	for i := range 1000 {
 		key := strconv.Itoa(i)
-		pool.put(key, decodedBlockCacheEntry{}, 10)
+		pool.put(key, "", decodedBlockCacheEntry{}, 10)
 		if _, ok := pool.get(key); !ok {
 			t.Fatalf("entry %d missing after its store", i)
 		}
@@ -62,13 +62,13 @@ func TestDecodedBlockPoolScanResistance(t *testing.T) {
 	pool := newDecodedBlockPoolShards(1000)
 	for i := range 50 {
 		key := "hot " + strconv.Itoa(i)
-		pool.put(key, decodedBlockCacheEntry{}, 10)
+		pool.put(key, "", decodedBlockCacheEntry{}, 10)
 		pool.get(key)
 	}
 
 	// Scan many times the budget in entries never read.
 	for i := range 1000 {
-		pool.put("scan "+strconv.Itoa(i), decodedBlockCacheEntry{}, 10)
+		pool.put("scan "+strconv.Itoa(i), "", decodedBlockCacheEntry{}, 10)
 	}
 
 	// Every read entry survives.
@@ -87,7 +87,7 @@ func TestDecodedBlockPoolHotEntriesAge(t *testing.T) {
 	pool := newDecodedBlockPoolShards(1000)
 	for i := range 100 {
 		key := "old " + strconv.Itoa(i)
-		pool.put(key, decodedBlockCacheEntry{}, 10)
+		pool.put(key, "", decodedBlockCacheEntry{}, 10)
 		for range 20 {
 			pool.get(key)
 		}
@@ -96,7 +96,7 @@ func TestDecodedBlockPoolHotEntriesAge(t *testing.T) {
 	// Store and read new entries until the old ones are gone.
 	for i := range 1000 {
 		key := "new " + strconv.Itoa(i)
-		pool.put(key, decodedBlockCacheEntry{}, 10)
+		pool.put(key, "", decodedBlockCacheEntry{}, 10)
 		pool.get(key)
 	}
 	for i := range 100 {
@@ -112,15 +112,26 @@ func TestDecodedBlockPoolHotEntriesAge(t *testing.T) {
 func TestDecodedBlockPoolUpdateDeleteClear(t *testing.T) {
 	// Replace an entry with a larger one.
 	pool := newDecodedBlockPoolShards(1000)
-	pool.put("a", decodedBlockCacheEntry{}, 10)
-	pool.put("a", decodedBlockCacheEntry{}, 30)
+	pool.put("a", "", decodedBlockCacheEntry{}, 10)
+	stale, ok := pool.get("a")
+	if !ok {
+		t.Fatal("first entry missing")
+	}
+	pool.put("a", "", decodedBlockCacheEntry{}, 30)
 	if got := pool.stats().retained; got != 30 {
 		t.Fatalf("retained %d after update, want 30", got)
 	}
 	checkDecodedBlockPool(t, pool)
 
-	// Delete it.
-	pool.del("a")
+	// A delayed deletion of the earlier version must preserve the replacement.
+	pool.delIfCurrent("a", stale.version)
+	current, ok := pool.get("a")
+	if !ok || current.version == stale.version {
+		t.Fatal("stale deletion removed the replacement")
+	}
+
+	// Delete the current version.
+	pool.delIfCurrent("a", current.version)
 	if _, ok := pool.get("a"); ok {
 		t.Fatal("deleted entry found")
 	}
@@ -131,7 +142,7 @@ func TestDecodedBlockPoolUpdateDeleteClear(t *testing.T) {
 
 	// Clear a pool of many entries.
 	for i := range 50 {
-		pool.put(strconv.Itoa(i), decodedBlockCacheEntry{}, 10)
+		pool.put(strconv.Itoa(i), "", decodedBlockCacheEntry{}, 10)
 	}
 	pool.clear()
 	if got := pool.stats().retained; got != 0 {
@@ -158,9 +169,11 @@ func TestDecodedBlockPoolRandom(t *testing.T) {
 						case op < 5:
 							pool.get(key)
 						case op < 9:
-							pool.put(key, decodedBlockCacheEntry{}, 1+rng.Int64N(budget/8))
+							pool.put(key, "", decodedBlockCacheEntry{}, 1+rng.Int64N(budget/8))
 						default:
-							pool.del(key)
+							if value, ok := pool.get(key); ok {
+								pool.delIfCurrent(key, value.version)
+							}
 						}
 					}
 				})

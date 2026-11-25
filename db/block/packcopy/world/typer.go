@@ -56,6 +56,8 @@ type nodeType struct {
 	ctor block.Ctor
 	// xfrm decodes the stored bytes.
 	xfrm block.Transformer
+	// xfrmConf is the config xfrm was built from, nil for none.
+	xfrmConf *block_transform.Config
 	// values constructs the values of the tree, nil for none.
 	values block.Ctor
 	// objectRoot marks the root of an Object, typed by the object's type.
@@ -114,6 +116,7 @@ func (t *Typer) Kind(typ any) string {
 // roots from a snapshot of the head read through store; an object only an
 // earlier root holds has no listed type.
 func New(ctx context.Context, le *logrus.Entry, store block.StoreOps, heads []*bucket.ObjectRef, roots RootTypes) (*Typer, error) {
+	// Type each World root with its head's transform.
 	if len(heads) == 0 {
 		return nil, errors.New("no World head")
 	}
@@ -133,11 +136,11 @@ func New(ctx context.Context, le *logrus.Entry, store block.StoreOps, heads []*b
 		if err != nil {
 			return nil, err
 		}
-		t.worlds[h.GetRootRef().MarshalString()] = &nodeType{ctor: world_block.NewWorldBlock, xfrm: xfrm}
+		t.worlds[h.GetRootRef().MarshalString()] = &nodeType{ctor: world_block.NewWorldBlock, xfrm: xfrm, xfrmConf: h.GetTransformConf()}
 	}
 	head := heads[0]
 
-	// List the objects of each type from a snapshot of the head.
+	// Open a snapshot of the head.
 	engine, err := world_block.OpenSnapshot(ctx, le, store, head)
 	if err != nil {
 		return nil, errors.Wrap(err, "open world snapshot")
@@ -148,8 +151,10 @@ func New(ctx context.Context, le *logrus.Entry, store block.StoreOps, heads []*b
 		return nil, err
 	}
 	defer tx.Discard()
-	// A type whose listing meets a block no source holds keeps the objects it
-	// listed; the rest stay untyped, and the copy leaves their roots as holes.
+
+	// List the objects of each type from the snapshot. A type whose listing
+	// meets a block no source holds keeps the objects it listed; the rest stay
+	// untyped, and the copy leaves their roots as holes.
 	var failed []string
 	for _, typeID := range slices.Sorted(maps.Keys(roots)) {
 		err := world_types.IterateObjectsWithType(ctx, tx, typeID, func(key string) (bool, error) {
@@ -282,7 +287,7 @@ func (t *Typer) children(blk any, nt *nodeType, values block.Ctor) ([]packcopy.T
 				out = append(out, packcopy.TypedRef{Ref: ref})
 				continue
 			}
-			out = append(out, packcopy.TypedRef{Ref: ref, Type: &nodeType{ctor: ctor, xfrm: nt.xfrm, values: values}})
+			out = append(out, packcopy.TypedRef{Ref: ref, Type: &nodeType{ctor: ctor, xfrm: nt.xfrm, xfrmConf: nt.xfrmConf, values: values}})
 		}
 	}
 
@@ -360,14 +365,15 @@ func (t *Typer) objectRoot(o *world_block.Object, nt *nodeType) ([]packcopy.Type
 	}
 
 	// Decode the root with its own transform when it names one.
-	xfrm := nt.xfrm
+	xfrm, xfrmConf := nt.xfrm, nt.xfrmConf
 	if conf := root.GetTransformConf(); !conf.GetEmpty() {
 		var err error
 		if xfrm, err = t.transformer(conf); err != nil {
 			return nil, err
 		}
+		xfrmConf = conf
 	}
-	return []packcopy.TypedRef{{Ref: ref, Type: &nodeType{ctor: ctor, xfrm: xfrm, objectRoot: true}}}, nil
+	return []packcopy.TypedRef{{Ref: ref, Type: &nodeType{ctor: ctor, xfrm: xfrm, xfrmConf: xfrmConf, objectRoot: true}}}, nil
 }
 
 // transformer returns the transformer for conf, built once per config.

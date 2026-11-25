@@ -171,7 +171,7 @@ func TestReadCacheBudgetPool(t *testing.T) {
 	// Fill the pool with hot entries, then the encoded side to the limit.
 	for i := range 50 {
 		key := strconv.Itoa(i)
-		pool.put(key, decodedBlockCacheEntry{}, 100)
+		pool.put(key, "", decodedBlockCacheEntry{}, 100)
 		pool.get(key)
 		pool.get(key)
 	}
@@ -195,7 +195,7 @@ func TestReadCacheBudgetPool(t *testing.T) {
 
 	// A store past the limit reclaims through the pool itself.
 	for i := range 500 {
-		pool.put("n"+strconv.Itoa(i), decodedBlockCacheEntry{}, 100)
+		pool.put("n"+strconv.Itoa(i), "", decodedBlockCacheEntry{}, 100)
 	}
 	if got := b.Total(); got > limit {
 		t.Fatalf("total %d over limit %d after stores", got, limit)
@@ -245,7 +245,7 @@ func BenchmarkReadCacheBudgetProduction(b *testing.B) {
 		}
 		spans.add(1)
 		budget.Reclaim()
-		pool.put(key, decodedBlockCacheEntry{}, entryCost)
+		pool.put(key, "", decodedBlockCacheEntry{}, entryCost)
 		if t := budget.Total(); t > peak {
 			peak = t
 		}

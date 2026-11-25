@@ -2,6 +2,8 @@ package block
 
 import (
 	"context"
+	"encoding/binary"
+	"math/bits"
 	"sync"
 	"sync/atomic"
 )
@@ -39,10 +41,9 @@ import (
 // decodedBlockRemovalStripes is the number of removal generations. A removal
 // invalidates every entry whose ref hashes to its stripe, so the table is
 // large enough that a sweep of many blocks leaves most entries current. It is
-// one process-wide table of 512 KiB, allocated at the first removal: a process
-// that never removes a block, such as a browser worker that only reads, never
-// pays for it, and a GoScript build would otherwise build each slot as an
-// object at package load.
+// one process-wide table of 512 KiB. Cache and pack log construction prepare
+// it outside request locks. GoScript would build each slot as an object if
+// the table were initialized at package load.
 const decodedBlockRemovalStripes = 1 << 16
 
 // decodedBlockRemovalTable holds the generation of the latest removal hashing
@@ -51,9 +52,9 @@ type decodedBlockRemovalTable [decodedBlockRemovalStripes]atomic.Uint64
 
 // decodedBlockRemovals is the process-wide removal state.
 var decodedBlockRemovals struct {
-	// gen advances on every removal.
+	// gen advances on every removal batch.
 	gen atomic.Uint64
-	// stripes is nil until the first removal of a single block.
+	// stripes is initialized by PrepareBlockRemovalTracking or the first removal.
 	stripes atomic.Pointer[decodedBlockRemovalTable]
 	// cleared holds the generation of the latest removal of a whole store.
 	cleared atomic.Uint64
@@ -67,16 +68,74 @@ func DurableReadGeneration() uint64 {
 	return decodedBlockRemovals.gen.Load()
 }
 
+// BlockDigestTailLen is the number of trailing bytes a packed block lookup
+// uses from the protobuf encoding of its hash. Removal stripes use the same
+// identity so every ref that could read that location is invalidated.
+const BlockDigestTailLen = 16
+
 // InvalidateRemovedBlock records that a durable store removed ref. Call it
 // after the removal is durable, such as after the transaction that deleted the
-// block commits; calling it for a removal that did not happen only costs a
-// miss.
+// block commits. Calling it for a removal that did not happen only costs a miss.
 func InvalidateRemovedBlock(ref *BlockRef) {
-	refKey, ok := decodedBlockCacheRefKey(ref)
-	if !ok {
-		return
+	if !ref.GetEmpty() {
+		InvalidateRemovedBlockDigest(ref.GetHash().MarshalDigest())
 	}
-	invalidateRemovedRefKey(refKey)
+}
+
+// InvalidateRemovedBlockDigest records a removal by the encoded hash used in
+// a pack index or its BlockDigestTailLen-byte lookup key.
+func InvalidateRemovedBlockDigest(digest []byte) {
+	InvalidateRemovedBlockStripe(BlockRemovalStripeForDigest(digest))
+}
+
+// BlockRemovalStripe identifies a generation slot shared by digest tails.
+type BlockRemovalStripe uint16
+
+// BlockRemovalStripeForDigest computes the stripe before the caller takes
+// the lock that protects the locations it will remove.
+func BlockRemovalStripeForDigest(digest []byte) BlockRemovalStripe {
+	return decodedBlockRemovalStripe(string(digest))
+}
+
+// InvalidateRemovedBlockStripe publishes a single removal with its precomputed
+// stripe, before the caller makes the location unreadable.
+func InvalidateRemovedBlockStripe(stripe BlockRemovalStripe) {
+	// A single stripe needs no batch of slots.
+	stripes := decodedBlockRemovalStripesTable()
+	raiseRemovalGeneration(&stripes[stripe], decodedBlockRemovals.gen.Add(1))
+}
+
+// BlockRemovalBatch collects the distinct stripes a store is removing. The
+// zero value is empty. Publish it before releasing the lock that hides the
+// location changes from readers.
+type BlockRemovalBatch [decodedBlockRemovalStripes / 64]uint64
+
+// Add marks stripe for invalidation, merging entries that share it.
+func (b *BlockRemovalBatch) Add(stripe BlockRemovalStripe) {
+	b[stripe/64] |= uint64(1) << (stripe % 64)
+}
+
+// Publish assigns one generation to the batch and raises each marked stripe.
+// An empty batch leaves the generation unchanged.
+func (b *BlockRemovalBatch) Publish() {
+	// Reserve a generation only for a nonempty batch.
+	var table *decodedBlockRemovalTable
+	var gen uint64
+	for i, marked := range b {
+		if marked == 0 {
+			continue
+		}
+		if table == nil {
+			table = decodedBlockRemovalStripesTable()
+			gen = decodedBlockRemovals.gen.Add(1)
+		}
+
+		// Publish each set bit once, even when several keys mapped to it.
+		for ; marked != 0; marked &= marked - 1 {
+			stripe := i*64 + bits.TrailingZeros64(marked)
+			raiseRemovalGeneration(&table[stripe], gen)
+		}
+	}
 }
 
 // InvalidateRemovedTombstones records each tombstone entry of a batch a
@@ -99,17 +158,14 @@ func InvalidateAllRemovedBlocks() {
 	raiseRemovalGeneration(&decodedBlockRemovals.cleared, decodedBlockRemovals.gen.Add(1))
 }
 
-// invalidateRemovedRefKey advances the removal generation and raises refKey's
-// stripe to it. The table exists before the stripe rises, so a reader that
-// finds no table has no stripe removal to miss.
-func invalidateRemovedRefKey(refKey string) {
-	stripes := decodedBlockRemovalStripesTable()
-	gen := decodedBlockRemovals.gen.Add(1)
-	raiseRemovalGeneration(&stripes[decodedBlockRefHash(refKey)%decodedBlockRemovalStripes], gen)
+// PrepareBlockRemovalTracking allocates the process-wide removal table before
+// a store starts recording removals under its lock.
+func PrepareBlockRemovalTracking() {
+	decodedBlockRemovalStripesTable()
 }
 
 // decodedBlockRemovalStripesTable returns the stripe table, allocating it on
-// first use.
+// first use by a constructor or a store without a decoded cache.
 func decodedBlockRemovalStripesTable() *decodedBlockRemovalTable {
 	if stripes := decodedBlockRemovals.stripes.Load(); stripes != nil {
 		return stripes
@@ -141,11 +197,36 @@ func RemovedSince(ref *BlockRef, gen uint64) bool {
 // removedSince reports whether a removal of refKey's stripe or of a whole
 // store happened after generation gen.
 func removedSince(refKey string, gen uint64) bool {
+	return removedStripeSince(decodedBlockRemovalStripe(blockRefDigestKey(refKey)), gen)
+}
+
+// removedStripeSince checks a precomputed stripe and whole-store removals.
+func removedStripeSince(stripe BlockRemovalStripe, gen uint64) bool {
 	if decodedBlockRemovals.cleared.Load() > gen {
 		return true
 	}
 	stripes := decodedBlockRemovals.stripes.Load()
-	return stripes != nil && stripes[decodedBlockRefHash(refKey)%decodedBlockRemovalStripes].Load() > gen
+	return stripes != nil && stripes[stripe].Load() > gen
+}
+
+// blockRefDigestKey returns the hash field of a marshaled BlockRef. The
+// generated marshaler writes field 1 first, followed by any unknown fields.
+func blockRefDigestKey(refKey string) string {
+	if len(refKey) != 0 && refKey[0] == 0x0a {
+		size, n := binary.Uvarint([]byte(refKey[1:]))
+		if n > 0 {
+			digest := refKey[1+n:]
+			if size <= uint64(len(digest)) {
+				return digest[:size]
+			}
+		}
+	}
+	return refKey
+}
+
+// decodedBlockRemovalStripe maps a packed lookup key to its removal stripe.
+func decodedBlockRemovalStripe(digest string) BlockRemovalStripe {
+	return BlockRemovalStripe(decodedBlockRefHash(digest[max(0, len(digest)-BlockDigestTailLen):]) % decodedBlockRemovalStripes)
 }
 
 // decodedBlockRefHash hashes a ref key with unseeded FNV-1a. Ref keys encode
@@ -255,6 +336,8 @@ func (m *blockReadMark) takeKeep() func(context.Context, []*BlockRef) {
 	if m == nil {
 		return nil
 	}
+
+	// Transfer the callback to its sole consumer.
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 	keep := m.keep

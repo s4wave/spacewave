@@ -11,7 +11,7 @@ func TestDecodedBlockReadSlotRetirement(t *testing.T) {
 			pool := newDecodedBlockPoolShards(1024)
 			slot := &decodedBlockReadSlot{}
 			data := &decodedBlockReadData{links: map[uint32]*decodedBlockReadLink{1: {}}}
-			if !pool.put("held", decodedBlockCacheEntry{read: slot}, 512) || !pool.attachReadData("held", slot, data, 128) {
+			if !pool.put("held", "", decodedBlockCacheEntry{read: slot}, 512) || !pool.attachReadData("held", slot, data, 128) {
 				t.Fatal("failed to admit traversal metadata")
 			}
 
@@ -23,11 +23,15 @@ func TestDecodedBlockReadSlotRetirement(t *testing.T) {
 			// Retire the entry while an ancestor still holds its slot.
 			switch mode {
 			case "remove":
-				pool.del("held")
+				value, ok := pool.get("held")
+				if !ok {
+					t.Fatal("admitted block missing")
+				}
+				pool.delIfCurrent("held", value.version)
 			case "replace":
-				pool.put("held", decodedBlockCacheEntry{read: &decodedBlockReadSlot{}}, 512)
+				pool.put("held", "", decodedBlockCacheEntry{read: &decodedBlockReadSlot{}}, 512)
 			case "evict":
-				pool.put("replacement", decodedBlockCacheEntry{}, 1024)
+				pool.put("replacement", "", decodedBlockCacheEntry{}, 1024)
 			case "clear":
 				pool.clear()
 			}
