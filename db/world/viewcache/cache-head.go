@@ -100,14 +100,28 @@ func (c *Cache) Newest(ctx context.Context) (uint64, error) {
 // call head takes the newest revision from the watch instead of asking the
 // World on every read. unfollow ends that once the watch stops.
 func (c *Cache) Follow(seqno uint64) {
+	if c.watched.Load() == 0 {
+		c.mtx.Lock()
+		if c.following == nil {
+			c.following, c.stopFollowing = context.WithCancel(context.Background())
+		}
+		c.mtx.Unlock()
+	}
 	raise(&c.watched, seqno)
 	c.catchUp(seqno)
 }
 
 // Unfollow returns head to asking the World for its newest revision, once the
-// change watch that called follow has stopped.
+// change watch that called follow has stopped. The views reading a value by
+// retirement rerun, and join its reads until the watch follows again.
 func (c *Cache) Unfollow() {
 	c.watched.Store(0)
+	c.mtx.Lock()
+	if c.following != nil {
+		c.stopFollowing()
+		c.following, c.stopFollowing = nil, nil
+	}
+	c.mtx.Unlock()
 }
 
 // catchUp brings the cache to revision seqno in the background. Exactly one

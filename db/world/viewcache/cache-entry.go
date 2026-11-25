@@ -60,6 +60,20 @@ type revisionEntry struct {
 	checked     *world.ReadSet
 	facetFree   bool
 	checkedOnce sync.Once
+	// retired ends once the cache stops keeping the value, for the views
+	// that wait on it in place of the value's reads (retirement). Set,
+	// with retire, under the cache's mtx when the first such view reads it.
+	retired context.Context
+	retire  context.CancelFunc
+}
+
+// retireLocked ends e's retirement context, waking the views that read e in
+// place of its reads. Call it, holding the cache's mtx, whenever the cache
+// stops keeping e.
+func (e *revisionEntry) retireLocked() {
+	if e.retire != nil {
+		e.retire()
+	}
 }
 
 // detached returns a finished entry with e's value whose own reads are e's

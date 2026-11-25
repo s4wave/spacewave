@@ -111,7 +111,6 @@ func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compu
 		c.mtx.Lock()
 		entry.parts, entry.facets = parts.collected()
 		c.mtx.Unlock()
-		c.addViewReads(ctx, entry)
 
 		// Check the value against the changes passed while it computed. One
 		// they left alone holds at the newer revisions too, so the readers
@@ -120,7 +119,7 @@ func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compu
 		if !c.heldSinceLocked(entry, seqno) {
 			entry.stale = true
 			if c.entries[name] == entry {
-				delete(c.entries, name)
+				c.removeLocked(name)
 			}
 			c.keepBuiltLocked(entry)
 			c.countDrop(name, "computing")
@@ -131,6 +130,9 @@ func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compu
 		}
 		close(entry.done)
 		c.mtx.Unlock()
+
+		// Share its reads, or its retirement, once it is checked and kept.
+		c.addViewReads(ctx, entry)
 		return entry.value, entry.err
 	}
 }

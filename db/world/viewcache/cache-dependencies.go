@@ -38,7 +38,8 @@ type partsKey struct{}
 // such as each player's listing built from the route standings, the whole
 // part's keys. Any other evaluation adds entry's merged read set. Either way
 // the hold of ctx keeps entry's, so the blocks behind a value stay held while
-// a value or view built from it lives.
+// a value or view built from it lives. A view reading a value that reaches a
+// part by facet waits on the value's retirement in place of its reads.
 func (c *Cache) addViewReads(ctx context.Context, entry *revisionEntry) {
 	block.RefHoldFromContext(ctx).Keep(entry.blocks)
 	if parts, ok := ctx.Value(partsKey{}).(*entryParts); ok && parts.cache == c {
@@ -48,7 +49,58 @@ func (c *Cache) addViewReads(ctx context.Context, entry *revisionEntry) {
 		world.RerunAt(ctx, entry.wake)
 		return
 	}
+	if retired, following, ok := c.retirement(ctx, entry); ok {
+		world.RerunOn(ctx, retired)
+		world.RerunOn(ctx, following)
+		world.RerunAt(ctx, entry.wake)
+		return
+	}
 	world.AddViewReads(ctx, entry.viewReads(), entry.wake)
+}
+
+// retirement returns what a view evaluation in ctx waits on in place of
+// entry's reads: a context that ends when the cache stops keeping entry, and
+// one that ends when the change watch stops feeding the cache. ok is false,
+// and the view joins entry's reads, unless entry reaches a part read by
+// facet, the cache keeps it finished, the watch feeds the cache (Follow), and
+// ctx is not computing a value of any cache.
+//
+// Such a view needs none of entry's reads. Each catch-up checks entry's own
+// reads, its parts and its facets, and drops it when they may have changed
+// it, so its retirement wakes the view exactly when a change gets through
+// the facets. Joining entry's merged reads instead wakes the view on every
+// change to a faceted part, such as every idle player's view on every lobby
+// change. Only the watch runs catch-ups for a view that waits without reading,
+// so the view also wakes when the watch stops. A computation of another cache
+// keeps the reads, since a cache checks reads, not rerun contexts.
+func (c *Cache) retirement(ctx context.Context, entry *revisionEntry) (retired, following context.Context, ok bool) {
+	// Only a view of a done value reaching a facet goes further, checked
+	// without the mtx: every cached read a view makes passes here, and a
+	// value's parts and facets are set before done closes.
+	if computing(ctx) {
+		return nil, nil, false
+	}
+	select {
+	case <-entry.done:
+	default:
+		return nil, nil, false
+	}
+	if _, free := entry.checkedSet(); free {
+		return nil, nil, false
+	}
+
+	// The cache must keep the value while the watch follows.
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+	if !entry.finished || c.entries[entry.name] != entry || c.following == nil {
+		return nil, nil, false
+	}
+
+	// The first such view creates the context the cache ends on removal.
+	if entry.retired == nil {
+		entry.retired, entry.retire = context.WithCancel(context.Background())
+	}
+	return entry.retired, c.following, true
 }
 
 // withParts returns a context that collects the cached values computed or

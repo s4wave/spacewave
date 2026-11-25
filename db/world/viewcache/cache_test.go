@@ -5,6 +5,7 @@ import (
 	"errors"
 	"maps"
 	"strconv"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"testing/synctest"
@@ -1078,5 +1079,153 @@ func TestRevisionCacheBehindRecursive(t *testing.T) {
 		}
 	case <-time.After(5 * time.Second):
 		t.Fatal("a part read from its own computation waited on itself")
+	}
+}
+
+// TestViewWaitsOnFacetedValue runs two views over one recorded change stream:
+// one reads a player's value, which reads a shared summary by facet, and one
+// reads the summary itself. Changes to other players' entries rerun only the
+// second; a change to the player's entry reruns both, with the same answer.
+func TestViewWaitsOnFacetedValue(t *testing.T) {
+	// Start a World and a cache the change watch feeds, as a server runs it.
+	_, engine := readsStore(t)
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	cache := &Cache{engine: engine}
+	after, err := engine.GetSeqno(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cache.Follow(after)
+	defer cache.Unfollow()
+	go func() {
+		_ = world.WatchChanges(ctx, engine, after, func(seqno uint64, _ *world.ChangeSet) error {
+			cache.Follow(seqno)
+			return nil
+		})
+	}()
+
+	// The summary reads the key of every membership change, and serves the
+	// table of lobbies by player; the player's value reads its own entry by
+	// facet.
+	var mtx sync.Mutex
+	table := map[string]int{"a": 0, "b": 0}
+	keys := []string{"member-b-0", "member-b-1", "member-b-2", "member-a-0"}
+	summary := func(ctx context.Context, tx world.WorldState) (any, error) {
+		mtx.Lock()
+		value := maps.Clone(table)
+		mtx.Unlock()
+		for _, key := range keys {
+			if _, err := tx.HasObject(ctx, key); err != nil {
+				return nil, err
+			}
+		}
+		return value, nil
+	}
+	player := func(ctx context.Context, tx world.WorldState) (any, error) {
+		value, err := cache.Get(ctx, tx, "summary", summary)
+		if err != nil {
+			return nil, err
+		}
+		cache.Facet(ctx, "summary", summary, func(previous, next any) bool {
+			return previous.(map[string]int)["a"] != next.(map[string]int)["a"]
+		})
+		return value.(map[string]int)["a"], nil
+	}
+
+	// Each view reports the revision and answer of every evaluation.
+	type run struct {
+		seqno uint64
+		lobby int
+	}
+	watch := func(read func(ctx context.Context, ws world.WorldState) (int, error)) <-chan run {
+		runs := make(chan run, 16)
+		go func() {
+			_ = world.WatchView(ctx, engine, func(ctx context.Context, ws world.WorldState) error {
+				seqno, err := ws.GetSeqno(ctx)
+				if err != nil {
+					return err
+				}
+				lobby, err := read(ctx, ws)
+				if err != nil {
+					return err
+				}
+				runs <- run{seqno, lobby}
+				return nil
+			})
+		}()
+		return runs
+	}
+	faceted := watch(func(ctx context.Context, ws world.WorldState) (int, error) {
+		value, err := cache.Get(ctx, ws, "player:a", player)
+		if err != nil {
+			return 0, err
+		}
+		return value.(int), nil
+	})
+	full := watch(func(ctx context.Context, ws world.WorldState) (int, error) {
+		value, err := cache.Get(ctx, ws, "summary", summary)
+		if err != nil {
+			return 0, err
+		}
+		return value.(map[string]int)["a"], nil
+	})
+	next := func(runs <-chan run, what string) run {
+		t.Helper()
+		select {
+		case r := <-runs:
+			return r
+		case <-time.After(10 * time.Second):
+			t.Fatal("no evaluation of the", what, "view")
+			return run{}
+		}
+	}
+	next(faceted, "faceted")
+	next(full, "full")
+
+	// change moves player's lobby and commits a key the summary reads, then
+	// waits for the full view and the cache to pass the commit.
+	change := func(player string, i int) uint64 {
+		t.Helper()
+		mtx.Lock()
+		table[player]++
+		mtx.Unlock()
+		seed(t, engine, "member-"+player+"-"+strconv.Itoa(i))
+		seqno, err := engine.GetSeqno(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for r := next(full, "full"); r.seqno < seqno; r = next(full, "full") {
+		}
+		if _, err := cache.Head(ctx, seqno); err != nil {
+			t.Fatal(err)
+		}
+		return seqno
+	}
+
+	// Other players' changes leave the faceted view waiting, its value kept.
+	cache.mtx.Lock()
+	kept := cache.entries["player:a"]
+	cache.mtx.Unlock()
+	for i := range 3 {
+		change("b", i)
+	}
+	cache.mtx.Lock()
+	still := cache.entries["player:a"] == kept && kept.retired != nil && kept.retired.Err() == nil
+	cache.mtx.Unlock()
+	if !still {
+		t.Fatal("a change to another player's entry retired the faceted value")
+	}
+
+	// The player's own change reruns it once, with the full view's answer.
+	seqno := change("a", 0)
+	r := next(faceted, "faceted")
+	if r.seqno < seqno || r.lobby != 1 {
+		t.Fatal("faceted view after the player's change", r)
+	}
+	select {
+	case r := <-faceted:
+		t.Fatal("faceted view ran again", r)
+	default:
 	}
 }

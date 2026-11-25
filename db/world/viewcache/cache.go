@@ -1,6 +1,7 @@
 package viewcache
 
 import (
+	"context"
 	"sync"
 	"sync/atomic"
 
@@ -61,6 +62,11 @@ type Cache struct {
 	behind map[behindKey]*revisionEntry
 	// refreshing holds the names a background refresh computes again.
 	refreshing map[string]struct{}
+	// following ends when the change watch stops feeding the cache
+	// (Unfollow); nil while none feeds it. A view reading a value by
+	// retirement waits on it too, since no catch-up runs without the watch.
+	following     context.Context
+	stopFollowing context.CancelFunc
 	// moved is closed, and cleared, when anything recent would answer
 	// changes: seqno advances, or a finished value replaces a previous one.
 	// nil until a waiter asks for it (changed).

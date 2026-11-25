@@ -310,6 +310,9 @@ func (c *Cache) keepLocked(entry *revisionEntry) {
 	}
 	if old := c.entries[entry.name]; old != nil {
 		c.unindexLocked(old)
+		if old != entry {
+			old.retireLocked()
+		}
 	}
 	c.entries[entry.name] = entry
 
@@ -323,6 +326,7 @@ func (c *Cache) keepLocked(entry *revisionEntry) {
 func (c *Cache) removeLocked(name string) {
 	if entry := c.entries[name]; entry != nil {
 		c.unindexLocked(entry)
+		entry.retireLocked()
 		delete(c.entries, name)
 	}
 }
