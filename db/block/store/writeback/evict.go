@@ -36,6 +36,45 @@ type EvictAdmit func(ctx context.Context, lastBytes int64) error
 // its old key, inserts its replacement and adjusts bytes in one transaction.
 const evictRetryCommitBlocks = 64
 
+// DurableConfirmer is a remote that proves from its own local records, without
+// reading the remote, which blocks it durably holds.
+type DurableConfirmer interface {
+	// ConfirmsDurable reports whether ConfirmDurable's answers prove
+	// durability; when false, eviction asks the remote instead.
+	ConfirmsDurable() bool
+	// ConfirmDurable reports, for each ref, that the remote durably holds the
+	// block. A false is a block the records cannot vouch for, not proof of
+	// absence.
+	ConfirmDurable(ctx context.Context, refs []*block.BlockRef) ([]bool, error)
+}
+
+// evictRemoteProbe selects the remote existence probe over a remote's local
+// confirmation. Each batch reads it, so a change applies from the next batch.
+var evictRemoteProbe atomic.Bool
+
+// SetEvictRemoteProbe makes eviction ask the remote whether it holds each
+// block, through its existence check, even when the remote can confirm from
+// local records, as eviction did before DurableConfirmer. The probe can read
+// pack indexes from the bucket for every batch.
+func SetEvictRemoteProbe(on bool) {
+	evictRemoteProbe.Store(on)
+}
+
+// confirmHeld reports which of refs check holds, from its local records when
+// it is a DurableConfirmer that can prove durability and the remote probe is
+// not selected, and otherwise from its existence check.
+//
+// Invariant: a true is proof that the remote durably holds the block, since
+// eviction drops the last local copy on it. A confirmer answers from records
+// that only a durable remote copy writes, and a block with no such record
+// reads false, so eviction keeps it rather than asking the remote.
+func confirmHeld(ctx context.Context, check block.StoreOps, refs []*block.BlockRef) ([]bool, error) {
+	if c, ok := check.(DurableConfirmer); ok && c.ConfirmsDurable() && !evictRemoteProbe.Load() {
+		return c.ConfirmDurable(ctx, refs)
+	}
+	return check.GetBlockExistsBatch(ctx, refs)
+}
+
 // evictRefusedRetry selects refusal retention and queue-before-value fills.
 // The default preserves the earlier refusal-dropping behavior until enabled.
 var evictRefusedRetry atomic.Bool
@@ -244,8 +283,11 @@ func readEpoch(ctx context.Context, tx kvtx.Tx) (uint64, error) {
 // instead. A nil keep keeps nothing.
 //
 // A block leaves the local values only while no marker awaits its upload and
-// remote reports holding it, so the remote store always holds what was
-// dropped. An entry whose value is already gone, such as a block the garbage
+// remote confirms holding it, as confirmHeld describes, so the remote store
+// always holds what was dropped. A remote that is a DurableConfirmer answers
+// from its local records, one local read per block; any other remote is asked
+// through its existence probe, which can wait on the pack index writer and on
+// bucket reads. An entry whose value is already gone, such as a block the garbage
 // collector swept, is deleted. Values are dropped before their entries, so an
 // interrupted pass leaves only entries the next pass deletes. The pass takes
 // no lock a write waits on, since asking remote can wait on the network.
@@ -443,7 +485,7 @@ func (s *Store) evictBatch(
 	if err != nil {
 		return nil, false, errors.Wrap(err, "check local values")
 	}
-	stored, err := remote.GetBlockExistsBatch(ctx, refs)
+	stored, err := confirmHeld(ctx, remote, refs)
 	if err != nil {
 		return nil, false, errors.Wrap(err, "check remote blocks")
 	}
