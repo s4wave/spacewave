@@ -4,29 +4,37 @@ import (
 	"context"
 	"crypto/sha256"
 	"errors"
+	"net"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/bucket"
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
+	"github.com/s4wave/spacewave/db/world"
+	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
 	os_image "github.com/s4wave/spacewave/os/image"
+	os_release "github.com/s4wave/spacewave/os/release"
+	os_system "github.com/s4wave/spacewave/os/system"
+	os_system_controller "github.com/s4wave/spacewave/os/system/controller"
 	"github.com/sirupsen/logrus"
 )
 
-// graphSource is an image store of its own that serves revisions to a
-// staging. After limit reads it fails, as a source cut off mid-copy does; a
-// negative limit never fails. Its revisions share one transform, as a Space's
-// do.
+// graphSource is a block store that serves revisions to a staging: an image
+// store of its own, or a Space's. After limit reads it fails, as a source cut
+// off mid-copy does; a negative limit never fails. Its revisions share one
+// transform, as a Space's do.
 type graphSource struct {
-	*volume_s4db.Volume
+	block.StoreOps
 	transform *block_transform.Config
 	limit     int64
 	reads     atomic.Int64
@@ -39,11 +47,16 @@ func newGraphSource(t *testing.T, le *logrus.Entry) *graphSource {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = vol.Close() })
+	return newStoreSource(t, vol)
+}
+
+// newStoreSource serves revisions added to store.
+func newStoreSource(t *testing.T, store block.StoreOps) *graphSource {
 	transform, err := os_image.NewTransform()
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &graphSource{Volume: vol, transform: transform, limit: -1}
+	return &graphSource{StoreOps: store, transform: transform, limit: -1}
 }
 
 // GetStoredBlock serves a stored block until the source's read limit.
@@ -51,7 +64,7 @@ func (s *graphSource) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (
 	if n := s.reads.Add(1); s.limit >= 0 && n > s.limit {
 		return nil, errors.New("source cut off")
 	}
-	return s.Volume.GetStoredBlock(ctx, ref)
+	return s.StoreOps.GetStoredBlock(ctx, ref)
 }
 
 // add stores a block with children in the source and returns its ref.
@@ -283,5 +296,155 @@ func TestRevisionLifecycle(t *testing.T) {
 	// An authorization of another root is refused before copying.
 	if _, err := StageRevision(ctx, le, dir, src, signImage(t, key, imageA), imageD); err == nil || !strings.Contains(err.Error(), "does not name root") {
 		t.Fatalf("mismatched authorization returned %v", err)
+	}
+}
+
+// TestStageReleaseFromNode stages the releases a placed os/system node serves,
+// as a Device's console does: the stage-release child reaches the node through
+// the daemon socket's os.system fallback and copies the revision from the
+// Space's blocks. A release that is already accepted is skipped while the
+// child keeps watching, and writing the next release to the object stages it.
+func TestStageReleaseFromNode(t *testing.T) {
+	// Hold revisions A, B and C in the Space.
+	ctx := t.Context()
+	le := logrus.NewEntry(logrus.New())
+	tb, err := world_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tb.Release)
+	var imageA, imageB, imageC *bucket.ObjectRef
+	err = world.ExecTransaction(ctx, tb.Engine, true, func(ctx context.Context, ws world.WorldState) error {
+		cs, err := ws.BuildStorageCursor(ctx)
+		if err != nil {
+			return err
+		}
+		defer cs.Release()
+		space := newStoreSource(t, cs.GetBlockStore())
+		imageA, _ = revisionGraph(t, space, "A", 2)
+		imageB, _ = revisionGraph(t, space, "B", 2)
+		imageC, _ = revisionGraph(t, space, "C", 3)
+
+		// The Space keeps only blocks its objects reach, as it keeps a
+		// build Step's image.
+		for name, image := range map[string]*bucket.ObjectRef{"A": imageA, "B": imageB, "C": imageC} {
+			obj, err := ws.CreateObject(ctx, "os/image/"+name, image)
+			world.ReleaseObjectState(obj)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Install A, and pin its signer in the data Volume as a first boot does.
+	// The socket's path must fit a sockaddr, so the data directory is short.
+	system := t.TempDir()
+	vol, err := volume_s4db.NewVolume(ctx, le, &volume_s4db.Config{Path: filepath.Join(system, "image.s4wave")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	cs, err := tb.Engine.BuildStorageCursor(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	seedRevision(t, vol, newStoreSource(t, cs.GetBlockStore()), imageA)
+	cs.Release()
+	if err := vol.Close(); err != nil {
+		t.Fatal(err)
+	}
+	key, owner := newSigner(t)
+	pinned := []peer.ID{owner}
+	if err := AuthorizeImage(ctx, le, system, signImage(t, key, imageA), imageA); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.MkdirTemp("", "os-data")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(data) })
+	if err := os.MkdirAll(filepath.Join(data, "daemon"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os_image.WriteSigners(filepath.Join(data, pinnedSigners), pinned); err != nil {
+		t.Fatal(err)
+	}
+
+	// Place the node over the Space's release object and serve the daemon
+	// socket with the os.system fallback, as serve does.
+	const releaseKey = "os/release"
+	publish := func(image *bucket.ObjectRef) {
+		r, err := os_release.NewRelease(signImage(t, key, image))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os_release.WriteRelease(ctx, tb.WorldState, releaseKey, r); err != nil {
+			t.Fatal(err)
+		}
+	}
+	publish(imageB)
+	node := os_system_controller.NewController(le, tb.Bus, &os_system.Config{EngineId: tb.EngineID, ObjectKey: releaseKey})
+	releaseNode, err := tb.Bus.AddController(ctx, node, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(releaseNode)
+	lis, err := net.Listen("unix", filepath.Join(data, "daemon", daemonSocket))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = lis.Close() })
+	go func() {
+		_ = srpc.AcceptMuxedListener(ctx, lis, srpc.NewServer(srpc.NewMux(os_system.NewInvoker(tb.Bus))), nil)
+	}()
+
+	// stage runs the console's child and returns the trial it staged.
+	stage := func() *bucket.ObjectRef {
+		if err := RunStageRelease(StageReleaseArgs(system, data)[1:]); err != nil {
+			t.Fatal(err)
+		}
+		revs, err := readRevisions(ctx, system, pinned)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return revs.trial.image
+	}
+
+	// The node's release B stages as the trial, and a second child refuses
+	// while that trial is pending.
+	if trial := stage(); !trial.EqualVT(imageB) {
+		t.Fatal("the child did not stage the node's release")
+	}
+	if err := RunStageRelease(StageReleaseArgs(system, data)[1:]); err == nil {
+		t.Fatal("a second child staged over a pending trial")
+	}
+
+	// B boots on trial and is accepted.
+	sel, err := SelectRevision(ctx, le, system, pinned)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !sel.OnTrial() || !sel.Image.EqualVT(imageB) {
+		t.Fatal("the staged release did not boot on trial")
+	}
+	if err := AcceptTrial(ctx, le, system, sel); err != nil {
+		t.Fatal(err)
+	}
+
+	// The node still serves B, now accepted, so the child skips it and keeps
+	// watching; publishing C stages C.
+	staged := make(chan *bucket.ObjectRef, 1)
+	go func() { staged <- stage() }()
+	select {
+	case trial := <-staged:
+		t.Fatalf("the child staged %s while the node served the accepted release", trial.GetRootRef().MarshalString())
+	case <-time.After(500 * time.Millisecond):
+	}
+	publish(imageC)
+	if trial := <-staged; !trial.EqualVT(imageC) {
+		t.Fatal("the child did not stage the next release")
 	}
 }
