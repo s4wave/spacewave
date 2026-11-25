@@ -48,5 +48,8 @@
 //     after its batch is written and removed if recovery discards that batch.
 //   - A local pack is unlinked only after the remote holds its object and
 //     entry and the pack index registers it (EvictCheck and
-//     EvictedRegistered); eviction is added with the upload.
+//     EvictedRegistered); eviction is added with the upload. The one
+//     exception is EvictCarry, for a Log of copies: it drops what it does not
+//     carry, and a carried value is relocated under the lock, so a reader
+//     finds it in one pack or the other.
 package packahead

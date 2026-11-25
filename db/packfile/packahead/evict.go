@@ -1,12 +1,14 @@
 package packahead
 
 import (
+	"cmp"
 	"container/list"
 	"context"
 	"os"
 	"slices"
 	"time"
 
+	"github.com/aperturerobotics/go-kvfile"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/packfile"
@@ -18,10 +20,91 @@ import (
 // and EvictedRegistered in PackAhead.tla). A value written again into a
 // later pack stays readable there. Evicting an unknown pack does nothing.
 func (l *Log) Evict(ctx context.Context, seq uint64) error {
-	// Claim the finalized pack. Two evictions of the same pack share the
-	// outcome through the registry and its watch.
+	p, index, release, err := l.claimEviction(ctx, seq)
+	if err != nil || p == nil {
+		return err
+	}
+	defer release()
+	return l.unlink(p, index)
+}
+
+// carryBatchBytes bounds the values one carry append writes.
+const carryBatchBytes = 1 << 20
+
+// EvictCarry unlinks finalized pack seq as Evict does, after appending to the
+// open pack, unsynced, the values Get read since their write into it, in
+// offset order, up to carryBytes of them. A carried value is relocated under
+// the lock, so a reader finds it in one pack or the other, and starts with
+// its read bit clear, so it is carried again only if read again. It returns
+// the values carried.
+//
+// It drops every value it does not carry, with no proof that a remote holds
+// it, so only a Log of copies, such as a cache, calls it.
+func (l *Log) EvictCarry(ctx context.Context, seq uint64, carryBytes int64) (int, error) {
+	// Claim the pack and read its index.
+	p, index, release, err := l.claimEviction(ctx, seq)
+	if err != nil || p == nil {
+		return 0, err
+	}
+	defer release()
+
+	// Choose the read values the pack still locates, one bounded batch of
+	// the index per lock hold, then order them by offset.
+	type carried struct {
+		key []byte
+		loc location
+	}
+	var carry []carried
+	for batch := range slices.Chunk(index, locationBatchSize) {
+		l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			for _, e := range batch {
+				loc, ok := l.table[tailOf(e.GetKey())]
+				if ok && loc.p == p && loc.read && int64(loc.size) <= carryBytes {
+					carryBytes -= int64(loc.size)
+					carry = append(carry, carried{key: e.GetKey(), loc: loc})
+				}
+			}
+		})
+	}
+	slices.SortFunc(carry, func(a, b carried) int { return cmp.Compare(a.loc.off, b.loc.off) })
+
+	// Read them in order and append them in batches, relocating each.
+	var batch []Block
+	var batchBytes int
+	flush := func() error {
+		if len(batch) == 0 {
+			return nil
+		}
+		_, _, err := l.write(ctx, batch, p)
+		batch, batchBytes = batch[:0], 0
+		return err
+	}
+	for _, c := range carry {
+		value := make([]byte, c.loc.size)
+		if _, err := p.f.ReadAt(value, int64(c.loc.off)); err != nil {
+			return 0, errors.Wrapf(err, "read pack %s", seqText(seq))
+		}
+		batch = append(batch, Block{Key: c.key, Value: value})
+		if batchBytes += len(value); batchBytes >= carryBatchBytes {
+			if err := flush(); err != nil {
+				return 0, err
+			}
+		}
+	}
+	if err := flush(); err != nil {
+		return 0, err
+	}
+	return len(carry), l.unlink(p, index)
+}
+
+// claimEviction claims finalized pack seq for eviction and reads its index
+// outside the lock. It returns a nil pack when the Log holds no finalized
+// pack seq, and otherwise a release the caller runs once done. Two
+// evictions of the same pack share the outcome through the registry and its
+// watch.
+func (l *Log) claimEviction(ctx context.Context, seq uint64) (*pack, []*kvfile.IndexEntry, func(), error) {
+	// Claim the finalized pack.
 	var p *pack
-	var uploaded bool
 	if err := l.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
 		// Close stops new claims and waits for claims already in flight.
 		if l.closed {
@@ -36,40 +119,52 @@ func (l *Log) Evict(ctx context.Context, seq uint64) error {
 			return false, nil
 		}
 		p.evicting = true
-		uploaded = p.uploaded
 		l.evictions++
 		return true, nil
 	}); err != nil {
-		return err
+		return nil, nil, nil, err
 	}
 	if p == nil {
-		return nil
+		return nil, nil, nil, nil
 	}
-	defer l.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		p.evicting = false
-		l.evictions--
-		broadcast()
-	})
+	release := func() {
+		l.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			p.evicting = false
+			l.evictions--
+			broadcast()
+		})
+	}
 
 	// Read the keys outside the lock and allow cancellation before unlinking.
 	index, err := packfile.ReadIndex(p.f, uint64(p.written)) //nolint:gosec // non-negative.
+	if err == nil {
+		err = ctx.Err()
+	}
 	if err != nil {
-		return errors.Wrapf(err, "read pack %s index", seqText(seq))
+		release()
+		return nil, nil, nil, errors.Wrapf(err, "read pack %s index", seqText(seq))
 	}
-	if err := ctx.Err(); err != nil {
-		return err
-	}
+	return p, index, release, nil
+}
 
-	// The caller proved the remote durably holds the pack. Apply deferred
-	// removals before losing the table entries that identify their backing.
+// unlink drops claimed pack p, whose keys are index: it marks the pack
+// uploaded, unlinks its file and forgets the values it still locates.
+func (l *Log) unlink(p *pack, index []*kvfile.IndexEntry) error {
+	// The caller proved the remote durably holds the pack, or the Log holds
+	// copies. Apply deferred removals before losing the table entries that
+	// identify their backing.
+	var uploaded bool
+	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		uploaded = p.uploaded
+	})
 	if !uploaded {
-		l.MarkUploaded(seq)
+		l.MarkUploaded(p.seq)
 	}
 
 	// Unlink while keeping the descriptor readable. If either disk step
 	// fails, the descriptor and registry stay available for another attempt.
 	if err := os.Remove(p.path); err != nil && !os.IsNotExist(err) { // #nosec G703 -- a pack in the Log's directory.
-		return errors.Wrapf(err, "unlink pack %s", seqText(seq))
+		return errors.Wrapf(err, "unlink pack %s", seqText(p.seq))
 	}
 	if err := dirSync(l.dir); err != nil {
 		return errors.Wrap(err, "sync pack directory")
@@ -91,7 +186,7 @@ func (l *Log) Evict(ctx context.Context, seq uint64) error {
 	// Release the descriptor after publishing the loss of the local copy.
 	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		// Withdraw the evicted pack from the finalized view.
-		delete(l.packs, seq)
+		delete(l.packs, p.seq)
 		l.finals.Remove(p.order)
 		l.localBytes -= p.written
 		l.finalBytes -= p.written

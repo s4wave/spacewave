@@ -344,7 +344,7 @@ func TestPackAheadMultiPackAppendRejectsFailure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = l.writeBlocks(ctx, []Block{older, testBlock(t, 2, 64)})
+	_, err = l.writeBlocks(ctx, []Block{older, testBlock(t, 2, 64)}, nil)
 	release()
 	if err != nil {
 		t.Fatal(err)
