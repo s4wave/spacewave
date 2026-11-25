@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
+	block_store "github.com/s4wave/spacewave/db/block/store"
 	"github.com/s4wave/spacewave/net/hash"
 )
 
@@ -57,7 +58,7 @@ func TestCacheServesBoundsAndIsolates(t *testing.T) {
 		refs = append(refs, ref)
 	}
 	c := New(4 * (1024 + entryOverhead))
-	reads := c.Reads(func() block.StoreOps { return lower })()
+	reads := block_store.NewStoreReadThrough(c.View, c.Reads(func() block.StoreOps { return lower }), nil)
 	read := func(i int) []byte {
 		t.Helper()
 		data, found, err := reads.GetBlock(ctx, refs[i])

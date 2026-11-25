@@ -109,7 +109,7 @@ func testFillCacheTakesPackHits(t *testing.T, memory bool) {
 	waitCache()
 	cacheHolds := func(ref *block.BlockRef) bool {
 		t.Helper()
-		_, found, err := cache.Reads(func() block.StoreOps { return newLeafStore() })().GetBlock(f.ctx, ref)
+		_, found, err := cache.View().GetBlock(f.ctx, ref)
 		if err != nil {
 			t.Fatal(err)
 		}

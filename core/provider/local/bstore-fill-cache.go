@@ -18,8 +18,9 @@ type FillCache interface {
 	// The placed store reads it before its local store, so a block the cache
 	// holds costs no read of the Volume.
 	View() block.StoreOps
-	// Reads returns a source that reads the cache, then lower, and copies
-	// lower's hits into the cache. A nil lower yields a nil source.
+	// Reads returns a source that reads lower and copies its hits into the
+	// cache. It does not read the cache, which the placed store has read
+	// through View already. A nil lower yields a nil source.
 	Reads(lower block_store.StoreSource) block_store.StoreSource
 }
 
