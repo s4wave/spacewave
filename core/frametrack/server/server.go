@@ -31,12 +31,12 @@ type Server struct {
 	protocol protocol.ID
 	// window bounds each viewer's pending frames, including the active write.
 	window int
-	// input receives input from live subscriptions. Nil makes the track view-only.
-	input func(*frametrack.Input)
+	// input binds each admitted viewer. Nil makes the track view-only.
+	input func() Input
 }
 
 // Serve runs the track and publishes its handler on the Device's Session bus.
-// It takes ownership of source. Input may be called concurrently by viewers.
+// It takes ownership of source. Each admitted viewer gets its own input binding.
 func Serve(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -44,7 +44,7 @@ func Serve(
 	id protocol.ID,
 	source frametrack.Source,
 	window int,
-	input func(*frametrack.Input),
+	input func() Input,
 ) error {
 	// Bind the source and control streams to this controller execution.
 	ctx, cancel := context.WithCancel(ctx)
@@ -137,13 +137,26 @@ func (s *Server) serve(linkCtx context.Context, ms link.MountedStream) {
 		return
 	}
 
+	// Release this viewer's held input when its control stream ends.
+	sink := s.input()
+	defer func() {
+		if err := sink.Close(); err != nil && s.ctx.Err() == nil {
+			s.le.WithError(err).Warn("release display input")
+		}
+	}()
+
 	// Apply only complete input events from the live subscription.
 	for {
 		input, err := frametrack.ReadInput(control)
 		if err != nil || ctx.Err() != nil {
 			return
 		}
-		s.input(input)
+		if err := sink.Send(ctx, input); err != nil {
+			if ctx.Err() == nil {
+				s.le.WithError(err).Warn("send display input")
+			}
+			return
+		}
 	}
 }
 

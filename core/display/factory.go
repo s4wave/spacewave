@@ -70,24 +70,24 @@ func (f *Factory) Construct(_ context.Context, config config.Config, opts contro
 			if err != nil {
 				return err
 			}
-			return frametrack_server.Serve(ctx, le, f.b, id, source, 4, func(*frametrack.Input) {})
+			return frametrack_server.Serve(ctx, le, f.b, id, source, 4, frametrack_server.ObserveInput(func(*frametrack.Input) {}))
 		}
 
 		// The pre-encoded clip takes input without changing its pictures.
 		if codec == frametrack.Codec_CODEC_H264_AVC {
-			return frametrack_server.Serve(ctx, le, f.b, id, testpattern.NewH264Source(), 4, func(*frametrack.Input) {})
+			return frametrack_server.Serve(ctx, le, f.b, id, testpattern.NewH264Source(), 4, frametrack_server.ObserveInput(func(*frametrack.Input) {}))
 		}
 
 		// Draw the most recent pointer on the next JPEG from this source.
 		source := testpattern.NewJPEGSource()
-		return frametrack_server.Serve(ctx, le, f.b, id, source, 1, func(input *frametrack.Input) {
+		return frametrack_server.Serve(ctx, le, f.b, id, source, 1, frametrack_server.ObserveInput(func(input *frametrack.Input) {
 			if pointer := input.GetPointer(); pointer != nil {
 				source.SetPointer(image.Pt(
 					min(testpattern.Width-1, int(pointer.X*testpattern.Width)),
 					min(testpattern.Height-1, int(pointer.Y*testpattern.Height)),
 				))
 			}
-		})
+		}))
 	}, nil, nil), nil
 }
 

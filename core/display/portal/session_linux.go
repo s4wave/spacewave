@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aperturerobotics/util/csync"
 	"github.com/godbus/dbus/v5"
 )
 
@@ -63,6 +64,14 @@ type Session struct {
 	watched chan struct{}
 	// nodeID identifies the chosen screen on the restricted PipeWire remote.
 	nodeID uint32
+	// width is the stream's logical width in compositor coordinates.
+	width int32
+	// height is the stream's logical height in compositor coordinates.
+	height int32
+	// inputMtx orders all motion and held-state transitions on the session.
+	inputMtx csync.Mutex
+	// pressed counts viewers holding each key or button under inputMtx.
+	pressed map[inputCode]int
 	// startedAt is the time the caller issued the portal Start request.
 	startedAt time.Time
 }
@@ -323,6 +332,17 @@ func (s *Session) start() error {
 		return errors.New("plasma returned no PipeWire screen node")
 	}
 	s.nodeID = streams[0].NodeID
+
+	// The portal reports logical dimensions independently of encoded pixels.
+	var size struct{ Width, Height int32 }
+	if err := dbus.Store([]any{streams[0].Properties["size"].Value()}, &size); err != nil {
+		return err
+	}
+	if size.Width <= 0 || size.Height <= 0 {
+		return errors.New("plasma returned no logical screen size")
+	}
+	s.width, s.height = size.Width, size.Height
+	s.pressed = make(map[inputCode]int)
 	return nil
 }
 

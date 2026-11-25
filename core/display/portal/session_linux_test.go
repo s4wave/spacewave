@@ -5,6 +5,8 @@ import (
 	"errors"
 	"os"
 	"os/exec"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -82,13 +84,50 @@ func checkPortalCapture(t *testing.T, helper string, stopped error, end func(*Se
 		t.Fatalf("expected 1920x1080 AVC IDR, got header %v and %d bytes", header, len(frame.GetData()))
 	}
 	t.Logf("Start to first picture: %s, node %d, %d bytes", time.Since(s.startedAt), nodeID, len(frame.GetData()))
+	if pidFile := os.Getenv("SPACEWAVE_TEST_PLASMA_HELPER_PID"); pidFile != "" {
+		measureHelperCPU(t, source, pidFile)
+	}
+
+	// Exercise the same viewer binding the admitted frame track creates.
+	input := s.NewInput()
+	defer func() { _ = input.Close() }()
+	for _, event := range []*frametrack.Input{
+		{Event: &frametrack.Input_Pointer{Pointer: &frametrack.PointerInput{X: 0.5, Y: 0.25, Buttons: 1}}},
+		{Event: &frametrack.Input_Pointer{Pointer: &frametrack.PointerInput{X: 0.5, Y: 0.25}}},
+	} {
+		if err := input.Send(s.Context(), event); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// One viewer closing must leave Shift held for the other viewer.
+	shift := &frametrack.Input{Event: &frametrack.Input_Key{Key: &frametrack.KeyInput{Code: "ShiftLeft", Pressed: true}}}
+	other := s.NewInput()
+	for _, viewer := range []*Input{input, other} {
+		if err := viewer.Send(s.Context(), shift); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := input.Close(); err != nil {
+		t.Fatal(err)
+	}
+	code := inputCode{code: evdevKeycodes["ShiftLeft"]}
+	if got := s.pressed[code]; got != 1 {
+		t.Fatalf("first viewer close left %d Shift presses, want 1", got)
+	}
+	if err := other.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if got := s.pressed[code]; got != 0 {
+		t.Fatalf("last viewer close left %d Shift presses, want 0", got)
+	}
 
 	// The real portal accepts pointer events while both capabilities are live.
-	input := func(ctx context.Context) error {
+	notify := func(ctx context.Context) error {
 		return s.conn.Object(s.owner, desktopPath).CallWithContext(ctx,
 			remoteDesktop+".NotifyPointerMotion", 0, s.path, map[string]dbus.Variant{}, float64(0), float64(0)).Err
 	}
-	if err := input(t.Context()); err != nil {
+	if err := notify(t.Context()); err != nil {
 		t.Fatalf("portal rejected input on live session: %v", err)
 	}
 
@@ -100,7 +139,57 @@ func checkPortalCapture(t *testing.T, helper string, stopped error, end func(*Se
 	if _, _, err := source.ReadFrame(t.Context()); !errors.Is(err, stopped) {
 		t.Fatalf("stopped source returned %v, want %v", err, stopped)
 	}
-	if err := input(t.Context()); err == nil {
+	if err := notify(t.Context()); err == nil {
 		t.Fatal("portal still accepted input after the session ended")
 	}
+}
+
+// measureHelperCPU samples the helper's own accounting between encoded frames.
+func measureHelperCPU(t *testing.T, source *gstencoder.Source, pidFile string) {
+	// Read the identity published before the wrapper execs the actual encoder.
+	t.Helper()
+	pid, err := os.ReadFile(pidFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stat := "/proc/" + strings.TrimSpace(string(pid)) + "/stat"
+	hz, err := strconv.ParseFloat(os.Getenv("SPACEWAVE_TEST_PLASMA_CLK_TCK"), 64)
+	if err != nil || hz <= 0 {
+		t.Fatalf("invalid CLK_TCK: %v", err)
+	}
+
+	// Measure steady state with an animated private output to keep it producing.
+	const frames = 120
+	start := time.Now()
+	before := readCPUTicks(t, stat)
+	for range frames {
+		if _, _, err := source.ReadFrame(t.Context()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	ms := float64(readCPUTicks(t, stat)-before) * 1000 / hz / frames
+	t.Logf("encoder CPU on %d frames: %.3f ms/frame at %.2f fps", frames, ms, frames/time.Since(start).Seconds())
+}
+
+// readCPUTicks returns user and system ticks from a Linux proc stat entry.
+func readCPUTicks(t *testing.T, path string) int64 {
+	// Fields after the command name start at field 3, even when the name has spaces.
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(data)
+	fields := strings.Fields(text[strings.LastIndex(text, ")")+1:])
+
+	// Include CPU from GStreamer's threads in the encoder process.
+	var ticks int64
+	for _, field := range fields[11:13] {
+		value, err := strconv.ParseInt(field, 10, 64)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ticks += value
+	}
+	return ticks
 }

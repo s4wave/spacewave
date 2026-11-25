@@ -18,6 +18,10 @@ and PipeWire runtime. Build the helper with the PipeWire GStreamer source
 installed on that machine. Set `source=plasma` on the Display node to use its
 local Plasma session.
 
+The helper prefers PipeWire DMA-BUFs and uses VA post-processing to pass
+NV12 surfaces to the hardware encoder. It uses `videoconvert` for streams
+that supply system memory. The helper reports its selected path on stderr.
+
 Run the provisioning command once from the checkout as the Plasma session user.
 
 ```sh
@@ -31,3 +35,9 @@ action. On restart, the node reads the same grant. It closes capture and input
 when the portal closes the session or the grant is removed. If KDE fails to
 answer Start within four seconds, the node closes the request and session and
 reports that provisioning is required.
+
+The Display's admitted viewers send motion, buttons and keys on the frame
+track's control stream. Plasma receives positions in the selected monitor's
+logical coordinates and keys as Linux input codes. A viewer disconnect
+releases its held keys and buttons. The portal session ends input for all
+viewers when capture closes.

@@ -6,7 +6,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/s4wave/spacewave/core/display/gstencoder"
 	"github.com/s4wave/spacewave/core/display/portal"
-	"github.com/s4wave/spacewave/core/frametrack"
 	frametrack_server "github.com/s4wave/spacewave/core/frametrack/server"
 	"github.com/s4wave/spacewave/net/protocol"
 	"github.com/sirupsen/logrus"
@@ -33,5 +32,5 @@ func servePlasma(ctx context.Context, le *logrus.Entry, b bus.Bus, id protocol.I
 	}
 
 	// Revocation or Session.Closed stops the track and all admitted control streams.
-	return frametrack_server.Serve(session.Context(), le, b, id, source, 4, func(*frametrack.Input) {})
+	return frametrack_server.Serve(session.Context(), le, b, id, source, 4, func() frametrack_server.Input { return session.NewInput() })
 }

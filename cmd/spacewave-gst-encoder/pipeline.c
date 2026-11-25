@@ -9,14 +9,57 @@ static GstFlowReturn sample_ready(GstAppSink *sink, gpointer bus) {
   return GST_FLOW_OK;
 }
 
+/* Report the negotiated capture route on caps changes, off the frame path. */
+static void capture_route_changed(GObject *route, GParamSpec *property,
+                                  gpointer data) {
+  guint path;
+  g_object_get(route, "current-path", &path, NULL);
+  if (path == 0) {
+    g_printerr("display capture: DMA-BUF through vapostproc and VA surfaces\n");
+  } else if (path == 1) {
+    g_printerr("display capture: system memory through videoconvert\n");
+  }
+}
+
+/* Offer DMA-BUF first, with system memory as a disjoint fallback. */
+static gboolean configure_capture_routes(GstElement *graph, GError **error) {
+  g_autoptr(GstElement) route =
+      gst_bin_get_by_name(GST_BIN(graph), "capture-route");
+  g_autoptr(GstElement) gpu = gst_parse_bin_from_description(
+      "vapostproc ! capsfilter caps=\"video/x-raw(memory:VAMemory),format=NV12\"",
+      TRUE, error);
+  if (*error != NULL) {
+    return FALSE;
+  }
+  g_autoptr(GstElement) cpu = gst_parse_bin_from_description(
+      "videoconvert ! capsfilter caps=video/x-raw,format=NV12", TRUE, error);
+  if (*error != NULL) {
+    return FALSE;
+  }
+
+  g_autoptr(GstCaps) dma_caps =
+      gst_caps_from_string("video/x-raw(memory:DMABuf),format=DMA_DRM");
+  g_autoptr(GstCaps) cpu_caps = gst_caps_from_string("video/x-raw");
+  gst_object_ref_sink(gpu);
+  gst_object_ref_sink(cpu);
+  gst_child_proxy_set(GST_CHILD_PROXY(route), "path0::caps", dma_caps,
+                      "path0::element", gpu, "path1::caps", cpu_caps,
+                      "path1::element", cpu, NULL);
+  g_signal_connect(route, "notify::current-path",
+                   G_CALLBACK(capture_route_changed), NULL);
+  return TRUE;
+}
+
 Pipeline *open_pipeline(guint32 node_id, GError **error) {
   gst_init(NULL, NULL);
   g_autofree gchar *source = NULL;
   if (node_id != 0) {
     /* The portal remote is inherited as fd 3. The path names a node ID. */
-    source = g_strdup_printf("pipewiresrc fd=3 path=%u on-disconnect=error ! "
-                             "videoconvert ! video/x-raw,format=NV12",
-                             node_id);
+    /* The portal ends capture. Let PipeWire replace buffers on caps changes. */
+    source = g_strdup_printf(
+        "pipewiresrc fd=3 path=%u ! "
+        "switchbin name=capture-route num-paths=2",
+        node_id);
   } else {
     source = g_strdup("videotestsrc is-live=true ! "
                       "video/x-raw,format=NV12,width=1920,height=1080,framerate=30/1");
@@ -32,6 +75,10 @@ Pipeline *open_pipeline(guint32 node_id, GError **error) {
     if (graph != NULL) {
       gst_object_unref(graph);
     }
+    return NULL;
+  }
+  if (node_id != 0 && !configure_capture_routes(graph, error)) {
+    gst_object_unref(graph);
     return NULL;
   }
 

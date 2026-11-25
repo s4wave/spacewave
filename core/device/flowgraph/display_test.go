@@ -160,4 +160,18 @@ func checkDisplayAVC(t *testing.T, frames s4wave_display.SRPCDisplayResourceServ
 			t.Fatalf("AVC picture %d has keyframe %v and %d bytes", n, frame.GetKeyframe(), len(frame.GetData()))
 		}
 	}
+
+	// Drive input through the admitted viewer on the private compositor.
+	if privatePlasma {
+		for _, event := range []*frametrack.Input{
+			{Event: &frametrack.Input_Pointer{Pointer: &frametrack.PointerInput{X: 0.5, Y: 0.5, Buttons: 1}}},
+			{Event: &frametrack.Input_Pointer{Pointer: &frametrack.PointerInput{X: 0.5, Y: 0.5}}},
+			{Event: &frametrack.Input_Key{Key: &frametrack.KeyInput{Code: "ShiftLeft", Pressed: true}}},
+			{Event: &frametrack.Input_Key{Key: &frametrack.KeyInput{Code: "ShiftLeft"}}},
+		} {
+			if err := frames.Send(event); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
 }

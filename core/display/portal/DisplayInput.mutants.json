@@ -1,0 +1,12 @@
+[
+  {
+    "name": "A viewer that was never admitted can hold a key",
+    "replace": [["v \\in admitted \\ held", "v \\notin held"]],
+    "expect": "OnlyAdmittedHold"
+  },
+  {
+    "name": "One viewer releases a key while another still holds it",
+    "replace": [["/\\ down' = (held' # {})\n  /\\ UNCHANGED live", "/\\ down' = FALSE\n  /\\ UNCHANGED live"]],
+    "expect": "DownHasHolder"
+  }
+]
