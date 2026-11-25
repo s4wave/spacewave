@@ -175,25 +175,44 @@ func buildStoreInfo(label string, store block.StoreOps, depth int) *s4wave_statu
 }
 
 // WatchDirectives streams the list of active directives on change.
+//
+// The list is read outside the broadcast lock. The directive controller takes
+// that lock while it holds its own mutex, and reading the list takes that
+// mutex, so reading under the lock deadlocks the bus against AddDirective. The
+// wait channel is taken before each read, so a change during the read wakes the
+// next pass.
 func (r *StatusResource) WatchDirectives(
 	_ *s4wave_status.WatchDirectivesRequest,
 	strm s4wave_status.SRPCSystemStatusService_WatchDirectivesStream,
 ) error {
+	ctx := strm.Context()
 	bcast := r.b.GetDirectivesBroadcast()
-	return broadcast.WatchBroadcastVT(
-		strm.Context(),
-		bcast,
-		func() *s4wave_status.WatchDirectivesResponse {
-			infos := buildDirectiveInfos(r.b.GetDirectives())
-			return &s4wave_status.WatchDirectivesResponse{
-				Directives:     infos,
-				DirectiveCount: uint32(len(infos)), //nolint:gosec // infos is the bounded response collection.
+	var prev *s4wave_status.WatchDirectivesResponse
+	for {
+		// Take the wait channel, then read the directives.
+		var waitCh <-chan struct{}
+		bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			waitCh = getWaitCh()
+		})
+		infos := buildDirectiveInfos(r.b.GetDirectives())
+		resp := &s4wave_status.WatchDirectivesResponse{
+			Directives:     infos,
+			DirectiveCount: uint32(len(infos)), //nolint:gosec // infos is the bounded response collection.
+		}
+
+		// Send the list when it changed, then wait for the next change.
+		if prev == nil || !resp.EqualVT(prev) {
+			if err := strm.Send(resp); err != nil {
+				return err
 			}
-		},
-		func(resp *s4wave_status.WatchDirectivesResponse) error {
-			return strm.Send(resp)
-		},
-	)
+			prev = resp
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-waitCh:
+		}
+	}
 }
 
 // buildDirectiveInfos describes dirs with their references.
