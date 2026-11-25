@@ -955,6 +955,51 @@ func (x *packIndex) locateAll(ctx context.Context, keys [][]byte) ([]bool, error
 	return out, nil
 }
 
+// confirmAll reports for each key whether its h row proves a pack the bucket
+// durably holds lists the key: the row holds an extent and names a pack the
+// table holds. It reads the rows in one snapshot and reads nothing else.
+//
+// An extent row is proof because only a pack's own index tail writes one:
+// addWritten takes it from the tail of the pack it just uploaded or verified,
+// and the tail drain upgrades only rows that name the pack whose tail it read.
+// A pack enters the table only once the bucket holds it: publishPack uploads
+// it before its rows, a listing reads it from the bucket, and adopt verifies
+// it there. The caller checks ConfirmsDurable, so nothing deletes a pack the
+// bucket holds, and the pack whose tail listed the block stays there. A pack
+// number that older builds gave to two packs does not break this, since the
+// tail that wrote the extent listed the block in a held pack either way. A
+// bare row, which names only a number, may come from such a shared number
+// without any tail behind it, so it proves nothing here, and neither does a
+// missing row.
+func (x *packIndex) confirmAll(ctx context.Context, keys [][]byte) ([]bool, error) {
+	// Read every row in one snapshot.
+	tx, err := x.store.NewTransaction(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Discard()
+
+	// Confirm each key whose row holds an extent in a pack the table holds.
+	out := make([]bool, len(keys))
+	for i, key := range keys {
+		if key == nil {
+			continue
+		}
+		value, found, err := tx.Get(ctx, hashRowKey(key))
+		if err != nil {
+			return nil, err
+		}
+		row, valid := parseHashValue(value)
+		if !found || !valid || !row.extent {
+			continue
+		}
+		x.mtx.RLock()
+		out[i] = int(row.num) < len(x.ids) && x.ids[row.num] != ""
+		x.mtx.RUnlock()
+	}
+	return out, nil
+}
+
 // Indexed reports whether every key of the pack is in h rows.
 func (x *packIndex) Indexed(id string) bool {
 	x.mtx.RLock()

@@ -270,9 +270,18 @@ var cacheReadsOff = os.Getenv(CacheReadsEnv) == "off"
 // Every other value, including an unset variable, keeps the default off.
 const EvictRefusedRetryEnv = "SPACEWAVE_EVICT_REFUSED_RETRY"
 
-// init selects the provider's refusal policy once at process startup.
+// EvictConfirmEnv names the environment variable that, set to "remote", makes
+// eviction ask the backend's bucket whether it holds each block, as
+// block_store_writeback.SetEvictRemoteProbe describes, instead of confirming
+// from the backend's local pack index. Every other value, including an unset
+// variable, confirms locally where the backend can.
+const EvictConfirmEnv = "SPACEWAVE_EVICT_CONFIRM"
+
+// init selects the provider's refusal and confirmation policies once at
+// process startup.
 func init() {
 	block_store_writeback.SetEvictRefusedRetry(evictRefusedRetryOn(os.Getenv(EvictRefusedRetryEnv)))
+	block_store_writeback.SetEvictRemoteProbe(os.Getenv(EvictConfirmEnv) == "remote")
 }
 
 // evictRefusedRetryOn reports whether an EvictRefusedRetryEnv value enables
@@ -608,8 +617,11 @@ func (p *placementState) evict(ctx context.Context, maxBytes int64) (block_store
 	// block: an entry can stand for a block no upload backed, as one an older
 	// build's fill queued, and a dropped block may be the only copy. With
 	// peer fills uploading, a peer fill the backend does not yet hold keeps
-	// its local value: it is refused until its upload queues it again. The
-	// check costs a backend existence probe per batch.
+	// its local value: it is refused until its upload queues it again. A pack
+	// store with a local index that keeps its packs confirms from the index
+	// alone, and a block the index cannot vouch for is kept, not probed; any
+	// other backend, or every backend under EvictConfirmEnv "remote", answers
+	// through an existence probe per batch.
 	return p.wb.Evict(ctx, remote.store, maxBytes, keep, admit)
 }
 

@@ -1,6 +1,7 @@
 package provider_local
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"strings"
@@ -14,6 +15,7 @@ import (
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/db/kvtx/hashmap"
+	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/db/packfile/packahead"
 	"github.com/sirupsen/logrus"
 
@@ -104,6 +106,7 @@ func newIndexedFallbackTest(t *testing.T) *fallbackTest {
 		}
 		return store
 	}
+	f.index = index
 	f.packs.Close()
 	f.packs = f.openPacks()
 
@@ -560,5 +563,92 @@ func TestPeerUploadEvictAsksBackend(t *testing.T) {
 	}
 	if status := f.status(); status.EvictableBytes != 0 {
 		t.Fatalf("evictable = %d, want the refused entry gone from the queue", status.EvictableBytes)
+	}
+}
+
+// TestIndexedEvictConfirmsLocally checks that eviction over a pack store with
+// a local index that keeps its packs confirms each block from the index alone,
+// with the bucket refusing every request: a block whose h row holds its extent
+// is dropped, and a block whose row names only its pack, or that has no row,
+// keeps its local copy, refused, without a probe of the bucket. The pass
+// stores no index tail.
+func TestIndexedEvictConfirmsLocally(t *testing.T) {
+	// Upload three blocks, so all queue for eviction with extent rows.
+	f := newIndexedFallbackTest(t)
+	f.p.evictGate = &csync.Mutex{}
+	var refs []*block.BlockRef
+	var size int
+	for _, data := range []string{"block with an extent row", "block with a bare row", "block with no row"} {
+		ref, _, err := f.wb.PutBlock(f.ctx, []byte(data), &block.PutOpts{RefsKnown: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		refs = append(refs, ref)
+		size += len(data)
+	}
+	f.upload()
+	placedRef, bareRef, unrowedRef := refs[0], refs[1], refs[2]
+	if status := f.status(); status.Pending != 0 || status.EvictableBytes != int64(size) {
+		t.Fatalf("status = %+v, want the blocks queued for eviction", status)
+	}
+
+	// Strip the second block's row to its pack number and delete the third's,
+	// so the index places one only by number and the other nowhere, while
+	// the bucket still holds both.
+	tx, err := f.index.NewTransaction(f.ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rowKey := func(ref *block.BlockRef) []byte {
+		key := packfile.BlockKey(ref.GetHash())
+		return append([]byte("h"), key[len(key)-16:]...)
+	}
+	for _, ref := range []*block.BlockRef{placedRef, bareRef} {
+		value, found, err := tx.Get(f.ctx, rowKey(ref))
+		if err != nil || !found || len(value) != 16 {
+			t.Fatalf("row of %s = %x, %v, %v, want an extent row", ref.MarshalString(), value, found, err)
+		}
+	}
+	value, _, _ := tx.Get(f.ctx, rowKey(bareRef))
+	if err := tx.Set(f.ctx, rowKey(bareRef), bytes.Clone(value[:4])); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Delete(f.ctx, rowKey(unrowedRef)); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(f.ctx); err != nil {
+		t.Fatal(err)
+	}
+	tx.Discard()
+
+	// With the bucket refusing every request, the pass drops only the block
+	// the index proves and refuses the others.
+	f.bucket.setUnavailable(true)
+	result, err := f.p.evict(f.ctx, 1<<30)
+	f.bucket.setUnavailable(false)
+	if err != nil {
+		t.Fatalf("evict: %v, want a pass that asks the bucket nothing", err)
+	}
+	if result.Evicted != 1 || result.Refused != 2 {
+		t.Fatalf("evict = %+v, want one evicted and two refused", result)
+	}
+	if f.held(placedRef) {
+		t.Fatal("the block the index proves was not evicted")
+	}
+	if !f.held(bareRef) || !f.held(unrowedRef) {
+		t.Fatal("eviction dropped a block the index cannot prove")
+	}
+
+	// The pass stored no index tail.
+	rtx, err := f.index.NewTransaction(f.ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rtx.Discard()
+	err = rtx.ScanPrefixKeys(f.ctx, []byte("t/"), func(key []byte) error {
+		return fmt.Errorf("index tail row %q stored", key)
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
 }
