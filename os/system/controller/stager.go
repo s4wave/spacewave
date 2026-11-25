@@ -75,14 +75,14 @@ func (s *stager) WatchRevision(_ *os_system_stager.WatchRevisionRequest, strm os
 }
 
 // watchRelease calls cb with the release at key, and again after each change
-// to the object, until ctx ends or cb returns an error. A missing object
-// calls cb with world.ErrObjectNotFound and waits for it to appear. Deleting
-// the object calls nothing, so the Device keeps the image it runs.
+// to the object, until ctx ends or cb returns an error. A missing or deleted
+// object calls cb with world.ErrObjectNotFound and waits for it to appear;
+// the stager sends nothing then, so the Device keeps the image it runs.
 func watchRelease(ctx context.Context, eng world.Engine, key string, cb func(*os_release.Release, error) error) error {
 	ws := world.NewEngineWorldState(eng, false)
 	for {
 		// Read the release at its current revision.
-		next, _, err := world.GetObjectRev(ctx, ws, key)
+		rev, found, err := world.GetObjectRev(ctx, ws, key)
 		if err != nil {
 			return err
 		}
@@ -94,10 +94,11 @@ func watchRelease(ctx context.Context, eng world.Engine, key string, cb func(*os
 			return err
 		}
 
-		// Wait for the next revision. A change between the two reads above
-		// ends this wait at once and sends the same release again, which the
-		// console skips.
-		if _, err := world.WaitObjectRev(ctx, ws, key, next+1, true); err != nil {
+		// Wait for the next revision, the deletion or the creation. A change
+		// between the two reads above ends this wait at once and sends the
+		// same release again, which the console skips.
+		seen := &world.ObjectRootRef{ObjectKey: key, Rev: rev, Exists: found}
+		if err := world.WaitObjectChange(ctx, ws, seen); err != nil {
 			return err
 		}
 	}

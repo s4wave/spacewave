@@ -543,4 +543,21 @@ func TestStageReleaseFromNode(t *testing.T) {
 		Accepted: imageB.GetRootRef(),
 		Update:   &os_system_stager.Revision_Trial{Trial: imageA.GetRootRef()},
 	})
+
+	// Deleting the release shows the node waiting for one again.
+	if _, err := tb.WorldState.DeleteObject(ctx, releaseKey); err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.After(10 * time.Second)
+	for {
+		_, detail, changed := node.GetNodeStatus()
+		if detail == "waiting for a release" {
+			break
+		}
+		select {
+		case <-changed:
+		case <-deadline:
+			t.Fatalf("the node still shows %q after the release was deleted", detail)
+		}
+	}
 }
