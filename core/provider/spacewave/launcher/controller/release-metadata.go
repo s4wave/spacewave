@@ -286,6 +286,14 @@ func (c *Controller) stageReleaseManifestUpdate(
 	// The daemon cannot identify Electron's installed app. Its executable
 	// bytes must never suppress the separately selected desktop artifact.
 	c.setUpdateStaged(metadata.GetVersion(), stagedPath)
+
+	// Remove the older release copies; a failure leaves them to the next
+	// staging and never withdraws this update.
+	if !c.keepStagedReleases {
+		if err := c.pruneStagedReleases(stagingDir, metadata.GetVersion()); err != nil {
+			c.le.WithError(err).Warn("older release copies stay until the next update")
+		}
+	}
 	return nil
 }
 
