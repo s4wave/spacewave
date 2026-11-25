@@ -63,6 +63,21 @@ func RerunOn(ctx context.Context, rerun context.Context) {
 	reads.reads.addRerun(rerun)
 }
 
+// AddViewPatterns records graph quad lookups in the running WatchView or
+// SendViews evaluation without making them, so the view reruns when a change
+// touches a quad one of filters matches, as if it had looked them up. Use it
+// when a value kept in memory, such as an index of the keys with an edge of
+// some predicate, answered what the lookup would have read; the caller then
+// owns that the value held at the evaluation's revision or later. It does
+// nothing outside an evaluation. Call it before the evaluation returns.
+func AddViewPatterns(ctx context.Context, filters ...GraphQuad) {
+	reads := getViewReads(ctx)
+	if reads == nil || len(filters) == 0 {
+		return
+	}
+	reads.reads.addPatterns(filters...)
+}
+
 // AddViewReads adds a finished read set to the running WatchView or SendViews
 // evaluation, so the view reruns when a change touches set, and asks for a
 // rerun at rerunAt like RerunAt. Use it for a value computed once on its own

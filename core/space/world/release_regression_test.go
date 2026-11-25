@@ -30,7 +30,7 @@ func (c *countingWorldState) GetObject(ctx context.Context, key string) (world.O
 func (c *countingWorldState) GetObjectBodiesBatchPage(
 	ctx context.Context, keys []string, byteBudget int,
 ) ([]*world.ObjectBody, uint32, uint64, error) {
-	return world.LookupObjectBodiesPage(ctx, c, keys, byteBudget)
+	return world.LookupObjectBodiesPage(ctx, c, keys, byteBudget, 1)
 }
 
 // countingObjectState delegates to the wrapped state and counts Release calls.

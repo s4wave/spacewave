@@ -117,13 +117,17 @@ func collectObjectBodyPages(ctx context.Context, ws WorldState, keys []string) (
 
 // LookupObjectBodiesPage implements WorldStateObject.GetObjectBodiesBatchPage
 // for a store without a batch read: it reads the seqno, then each body
-// through one World storage cursor held for the page. Call it only on a store
-// that reads one revision, such as a transaction.
+// through one World storage cursor held for the page, with up to width lookups
+// in flight. Call it only on a store that reads one revision, such as a
+// transaction, and pass a width above 1 only when the store serves concurrent
+// reads, such as a read-only block World state; 1 reads one body at a time on
+// the caller's goroutine.
 func LookupObjectBodiesPage(
 	ctx context.Context,
 	ws WorldState,
 	keys []string,
 	byteBudget int,
+	width int,
 ) ([]*ObjectBody, uint32, uint64, error) {
 	// Read the seqno, then each body until the page is full.
 	if len(keys) == 0 {
@@ -137,7 +141,7 @@ func LookupObjectBodiesPage(
 	var consumed uint32
 	err = ws.AccessWorldState(ctx, nil, func(root *bucket_lookup.Cursor) error {
 		var err error
-		bodies, consumed, err = getObjectBodiesBatchPage(ctx, keys, byteBudget, func(ctx context.Context, key string) (*ObjectBody, error) {
+		bodies, consumed, err = getObjectBodiesBatchPage(ctx, keys, byteBudget, width, func(ctx context.Context, key string) (*ObjectBody, error) {
 			return lookupObjectBodyFrom(ctx, ws, root, key)
 		})
 		return err
@@ -148,19 +152,26 @@ func LookupObjectBodiesPage(
 	return bodies, consumed, seqno, nil
 }
 
+// getObjectBodiesBatchPage answers keys in order until the page reaches
+// byteBudget, reading through a lookahead of width. It returns only after
+// every lookup it started has ended, so none outlives the caller's cursor.
 func getObjectBodiesBatchPage(
 	ctx context.Context,
 	keys []string,
 	byteBudget int,
+	width int,
 	lookup func(context.Context, string) (*ObjectBody, error),
 ) ([]*ObjectBody, uint32, error) {
+	// Answer each key in order from the lookahead until the page is full.
+	ahead := newBodyLookahead(ctx, keys, width, lookup)
+	defer ahead.close()
 	out := make([]*ObjectBody, 0, len(keys))
 	encodedSize := 0
-	for i, key := range keys {
+	for i := range keys {
 		if len(out) > 0 && encodedSize >= byteBudget {
 			return out, uint32(i), nil
 		}
-		result, err := lookup(ctx, key)
+		result, err := ahead.result(i)
 		if err != nil {
 			return nil, 0, err
 		}

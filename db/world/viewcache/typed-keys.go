@@ -45,7 +45,7 @@ func (c *Cache) TypedKeys(typeID string) func(context.Context, world.WorldState)
 		at, keys := index.at, index.keys
 		index.mtx.Unlock()
 		if at != 0 && at <= seqno {
-			if changes, ok := c.changesSince(at); ok {
+			if changes, _, ok := c.changesSince(at); ok {
 				next, err := patchTypedKeys(ctx, tx, typeID, keys, changes)
 				if err != nil {
 					return nil, err
@@ -90,20 +90,24 @@ func (c *Cache) typedIndex(typeID string) *typedKeyIndex {
 	return index
 }
 
-// changesSince merges the changes the cache passed after revision at. It
-// reports false when the history no longer reaches back to at or the merged
-// changes are unknown. The changes may run past a reader's revision; each
-// object they name is then checked in the reader's snapshot.
-func (c *Cache) changesSince(at uint64) (*world.ChangeSet, bool) {
-	// Merge retained changes only while history covers the requested revision.
+// changesSince merges the changes the cache passed after revision at, and
+// returns the revision they run through. It reports false when the history no
+// longer reaches back to at or the merged changes are unknown. The changes may
+// run past a reader's revision; each object they name is then checked in the
+// reader's snapshot.
+func (c *Cache) changesSince(at uint64) (*world.ChangeSet, uint64, bool) {
+	// Answer only while history covers the requested revision.
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
-	if at >= c.seqno.Load() {
-		return &world.ChangeSet{}, true
+	through := c.seqno.Load()
+	if at >= through {
+		return &world.ChangeSet{}, at, true
 	}
 	if len(c.history) == 0 || c.history[0].from > at {
-		return nil, false
+		return nil, 0, false
 	}
+
+	// Merge the retained changes after at.
 	var changes *world.ChangeSet
 	for _, step := range c.history {
 		if step.through > at {
@@ -111,9 +115,9 @@ func (c *Cache) changesSince(at uint64) (*world.ChangeSet, bool) {
 		}
 	}
 	if changes == nil {
-		return &world.ChangeSet{}, true
+		return &world.ChangeSet{}, through, true
 	}
-	return changes, !changes.Unknown
+	return changes, through, !changes.Unknown
 }
 
 // patchTypedKeys returns keys with each object the changes named checked
