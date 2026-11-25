@@ -47,9 +47,12 @@ type Tx struct {
 	flow *walFlow
 	// release ends a write transaction's writer turn.
 	release func()
-	// turns admits a snapshot read's statements into SQLite, nil for writes
-	// and reads through the pool.
+	// turns admits a snapshot read's statements into SQLite, nil for writes,
+	// urgent reads and reads through the pool.
 	turns readTurns
+	// keep is where the transaction's connection comes from and returns to,
+	// or nil for the pool.
+	keep *connKeep
 
 	// finalizeMu guards closed.
 	finalizeMu sync.RWMutex
@@ -59,12 +62,13 @@ type Tx struct {
 	finalizeOnce atomic.Bool
 }
 
-// newWriteTx returns a write transaction begun on conn during the writer turn
-// that release ends.
-func newWriteTx(conn *sql.Conn, queries *queries, flusher *kvtx.OrderedFlusher, flow *walFlow, release func()) *Tx {
+// newWriteTx returns a write transaction during the writer turn that release
+// ends, whose connection, from keep or db, NewTransaction begins and sets.
+func newWriteTx(db *sql.DB, keep *connKeep, queries *queries, flusher *kvtx.OrderedFlusher, flow *walFlow, release func()) *Tx {
 	return &Tx{
 		queries: queries,
-		conn:    conn,
+		db:      db,
+		keep:    keep,
 		write:   true,
 		flusher: flusher,
 		flow:    flow,
@@ -73,9 +77,10 @@ func newWriteTx(conn *sql.Conn, queries *queries, flusher *kvtx.OrderedFlusher, 
 }
 
 // newReadTx returns a read transaction on db, in one snapshot when snapshot
-// is set, whose statements take turns when turns is set.
-func newReadTx(db *sql.DB, queries *queries, snapshot bool, turns readTurns) *Tx {
-	return &Tx{queries: queries, db: db, snapshot: snapshot, turns: turns}
+// is set, whose statements take turns when turns is set. A snapshot takes its
+// connection from keep when it is set, and from db otherwise.
+func newReadTx(db *sql.DB, queries *queries, snapshot bool, turns readTurns, keep *connKeep) *Tx {
+	return &Tx{queries: queries, db: db, snapshot: snapshot, turns: turns, keep: keep}
 }
 
 // errIfClosed returns kvtx.ErrDiscarded after Commit or Discard.
@@ -113,18 +118,18 @@ func (t *Tx) queryer(ctx context.Context) (sqliteQueryer, error) {
 	}
 
 	// Begin the snapshot on a connection of its own; the first read fixes it.
-	conn, err := t.db.Conn(ctx)
+	conn, err := t.takeConn(ctx)
 	if err != nil {
 		return nil, err
 	}
 	if err := t.turns.enter(ctx); err != nil {
-		_ = conn.Close()
+		t.putConn(conn)
 		return nil, err
 	}
 	_, err = conn.ExecContext(ctx, "BEGIN")
 	t.turns.leave()
 	if err != nil {
-		discardConn(conn)
+		t.dropConn(conn)
 		return nil, err
 	}
 	t.conn = conn
@@ -474,26 +479,58 @@ func (t *Tx) endRead() {
 		return
 	}
 
-	// Roll back inside a turn, then return or discard the connection.
+	// Roll back in a turn, then keep the connection unless it failed.
 	_ = t.turns.enter(context.Background())
 	_, err := t.conn.ExecContext(context.Background(), "ROLLBACK")
 	t.turns.leave()
 	if err != nil {
-		discardConn(t.conn)
+		t.dropConn(t.conn)
 		return
 	}
-	_ = t.conn.Close()
+	t.putConn(t.conn)
 }
 
 // endWrite returns the write transaction's connection to the pool, or
 // discards it unless clean, and ends its writer turn.
 func (t *Tx) endWrite(clean bool) {
 	if clean {
-		_ = t.conn.Close()
+		t.putConn(t.conn)
 	} else {
-		discardConn(t.conn)
+		t.dropConn(t.conn)
 	}
 	t.release()
+}
+
+// takeConn takes the transaction's connection from the keep or the pool.
+// A transaction that finds the keep in use reads on a pool connection.
+func (t *Tx) takeConn(ctx context.Context) (*sql.Conn, error) {
+	if t.keep != nil {
+		conn, ok, err := t.keep.take(ctx)
+		if ok || err != nil {
+			return conn, err
+		}
+		t.keep = nil
+	}
+	return t.db.Conn(ctx)
+}
+
+// putConn returns conn, outside any transaction, to where it came from.
+func (t *Tx) putConn(conn *sql.Conn) {
+	if t.keep != nil {
+		t.keep.put(conn)
+		return
+	}
+	_ = conn.Close()
+}
+
+// dropConn discards conn, which may still be inside a transaction, as
+// discardConn does, freeing its place in the keep.
+func (t *Tx) dropConn(conn *sql.Conn) {
+	if t.keep != nil {
+		t.keep.discard(conn)
+		return
+	}
+	discardConn(conn)
 }
 
 // discardConn closes conn instead of returning it to the pool. A connection

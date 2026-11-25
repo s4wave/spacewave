@@ -73,6 +73,13 @@ type Store[T SQLiteDriverConfig] struct {
 	// readTurns admits the snapshot reads' statements into SQLite, nil
 	// without snapshot reads, whose statements wait for the pool instead.
 	readTurns readTurns
+	// urgentReads keeps the connections of urgent snapshot reads, see
+	// NewTransaction. It and writeConn are nil on a pool with a bound on its
+	// open connections, which kept connections could exhaust.
+	urgentReads *connKeep
+	// writeConn keeps the write transactions' connection; one write
+	// transaction runs at a time, under writeMtx.
+	writeConn *connKeep
 
 	// writeMtx admits one write transaction at a time: a transaction opened
 	// with block.WithBackground waits behind every waiting
@@ -233,6 +240,15 @@ func newStore[T SQLiteDriverConfig](db *sql.DB, table string, config T, walBound
 	if s.snapshotReads {
 		s.readTurns = newReadTurns()
 	}
+
+	// Keep connections only from a pool without a bound, which they cannot
+	// exhaust.
+	if db.Stats().MaxOpenConnections == 0 {
+		s.urgentReads = newConnKeep(db, urgentReadConns)
+		s.writeConn = newConnKeep(db, 1)
+	}
+
+	// Start the flusher, the WAL flow and the checkpointer.
 	s.flusher = kvtx.NewOrderedFlusher(s.flushWAL, SyncDeadline)
 	s.flow = newWALFlow(s.walSize, s.wakeCheckpoint, walBound, &s.stats)
 	go s.runCheckpoints(ctx)
@@ -290,6 +306,17 @@ func openHeld[T SQLiteDriverConfig](ctx context.Context, path string, table stri
 		}
 	}
 
+	// Create a fresh file with incremental auto_vacuum, so the pages deletes
+	// free can be handed back to the disk with PRAGMA incremental_vacuum. With
+	// SQLite's default of none they stay in the file for good, and shrinking
+	// it means copying the whole file. The mode must be set before the first
+	// table; an existing file keeps the mode it was made with, since changing
+	// it needs a VACUUM.
+	if err := setFreshAutoVacuum(ctx, db); err != nil {
+		db.Close()
+		return nil, err
+	}
+
 	// Select WAL mode, which the database keeps across connections.
 	if _, err := db.ExecContext(ctx, "PRAGMA journal_mode=WAL"); err != nil {
 		db.Close()
@@ -334,6 +361,43 @@ func applyPageSize(ctx context.Context, db *sql.DB, size int32) error {
 		if _, err := conn.ExecContext(ctx, stmt); err != nil {
 			return fmt.Errorf("%s: %w", stmt, err)
 		}
+	}
+	return nil
+}
+
+// setFreshAutoVacuum sets incremental auto_vacuum on a database that holds no
+// table yet. A driver whose DSN selects WAL mode has already written the
+// file's header, after which SQLite applies the new mode only on a VACUUM,
+// which on an empty file rewrites one page.
+func setFreshAutoVacuum(ctx context.Context, db *sql.DB) error {
+	// Leave a database that already holds tables in its mode.
+	var tables int
+	if err := db.QueryRowContext(ctx, "SELECT count(*) FROM sqlite_master").Scan(&tables); err != nil {
+		return err
+	}
+	if tables != 0 {
+		return nil
+	}
+
+	// Set the mode and rewrite the empty file on one connection.
+	conn, err := db.Conn(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	for _, q := range []string{"PRAGMA auto_vacuum=INCREMENTAL", "VACUUM"} {
+		if _, err := conn.ExecContext(ctx, q); err != nil {
+			return fmt.Errorf("%s: %w", q, err)
+		}
+	}
+
+	// Check that the file took the mode.
+	var mode int
+	if err := conn.QueryRowContext(ctx, "PRAGMA auto_vacuum").Scan(&mode); err != nil {
+		return err
+	}
+	if mode != 2 {
+		return fmt.Errorf("sqlite: auto_vacuum is %d after setting incremental", mode)
 	}
 	return nil
 }
@@ -565,10 +629,20 @@ const (
 // NewTransaction returns a new transaction against the store. A write
 // transaction waits for the writer turn until ctx ends, behind every waiting
 // foreground writer when ctx carries block.WithBackground.
+//
+// A read under ctx of class block.ReadUrgent, made while holding something
+// every write waits for, such as the World's writer lock, takes no read turn
+// and reads on a kept connection, as connKeep describes, so a burst of other
+// readers delays it neither in the turns nor in opening a connection. Past
+// urgentReadConns at once, an urgent read takes a pool connection, still
+// without a turn.
 func (s *Store[T]) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	// Read transactions open their connection at their first read.
 	if !write {
-		return newReadTx(s.db, s.queries, s.snapshotReads, s.readTurns), nil
+		if s.snapshotReads && s.urgentReads != nil && block.ReadClassOf(ctx) == block.ReadUrgent {
+			return newReadTx(s.db, s.queries, true, nil, s.urgentReads), nil
+		}
+		return newReadTx(s.db, s.queries, s.snapshotReads, s.readTurns, nil), nil
 	}
 
 	// A read-only store never takes the writer's lock from the file's writer.
@@ -576,11 +650,13 @@ func (s *Store[T]) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, err
 		return nil, ErrReadOnly
 	}
 
-	// Queue for the writer turn, counted for WritersWaiting.
+	// Queue background writes behind foreground ones.
 	prio := writerForeground
 	if block.IsBackground(ctx) {
 		prio = writerBackground
 	}
+
+	// Wait for the writer turn, counted for WritersWaiting.
 	s.writersWaiting.Add(1)
 	queued := time.Now()
 	release, err := s.writeMtx.Lock(ctx, prio)
@@ -599,19 +675,21 @@ func (s *Store[T]) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, err
 		}
 	}(release)
 
-	// Begin on a connection of its own, taking SQLite's write lock at once so
-	// the transaction never waits to upgrade from a read.
-	conn, err := s.db.Conn(ctx)
+	// Begin on the kept write connection, taking SQLite's write lock at once
+	// so the transaction never waits to upgrade from a read.
+	tx := newWriteTx(s.db, s.writeConn, s.queries, s.flusher, s.flow, release)
+	conn, err := tx.takeConn(ctx)
 	if err != nil {
 		release()
 		return nil, err
 	}
 	if _, err := conn.ExecContext(ctx, "BEGIN IMMEDIATE"); err != nil {
-		discardConn(conn)
+		tx.dropConn(conn)
 		release()
 		return nil, err
 	}
-	return newWriteTx(conn, s.queries, s.flusher, s.flow, release), nil
+	tx.conn = conn
+	return tx, nil
 }
 
 // WritersWaiting reports whether a write transaction waits for the writer
@@ -655,8 +733,11 @@ func (s *Store[T]) Close() error {
 	s.stopCheckpoints()
 	<-s.checkpointsDone
 
-	// Release the file after the pool. A connection a caller still uses
-	// holds the file itself until it closes, so SQLite keeps its locks.
+	// Close the kept connections, then the pool. Release the file after
+	// the pool. A connection a caller still uses holds the file itself until
+	// it closes, so SQLite keeps its locks.
+	s.urgentReads.close()
+	s.writeConn.close()
 	return errors.Join(s.flusher.Close(), s.db.Close(), s.hold.release())
 }
 
