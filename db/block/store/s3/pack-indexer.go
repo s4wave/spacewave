@@ -37,6 +37,9 @@ type IndexProgress struct {
 // so no read waits for it. A restart resumes from the packs whose p/ row is not
 // indexed.
 func (s *PackStore) runIndexer(ctx context.Context) error {
+	// Index at background priority, so a foreground writer takes the
+	// index's writer turn ahead of every queued indexer step.
+	ctx = block.WithBackground(ctx)
 	for {
 		var progress IndexProgress
 		if err := s.indexPending(ctx, 1, indexPackPause, indexBatchPause, &progress); err != nil {
@@ -93,7 +96,9 @@ func (s *PackStore) indexPack(ctx context.Context, entry *packfile.PackfileEntry
 	var read uint64
 	tail, err := packfile.ReadIndexTail(ctx, size, packfile.IndexTailReadSize(entry.GetBlockCount()), func(ctx context.Context, off int64, length int) ([]byte, error) {
 		read += uint64(length) //nolint:gosec // length is a nonnegative read length.
-		return s.client.GetObjectRange(ctx, s.bucket, s.prefix+packDir+id, off, length)
+		data, err := s.client.GetObjectRange(ctx, s.bucket, s.prefix+packDir+id, off, length)
+		s.reads.downloaded(readIndex, len(data))
+		return data, err
 	})
 	if err != nil {
 		return 0, read, err

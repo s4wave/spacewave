@@ -3,10 +3,12 @@
 package block_store_s3
 
 import (
+	"bytes"
 	"context"
 
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block/bloom"
 	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/db/packfile/identity"
 )
@@ -20,37 +22,68 @@ import (
 // blocks are on the remote, which can drop the last local copy, so a report
 // that is wrong, or a pack that is not there, must leave the blocks queued.
 func (s *PackStore) AdoptPack(ctx context.Context, entry *packfile.PackfileEntry, keys [][]byte) error {
+	_, err := s.adopt(ctx, entry, func(ctx context.Context) ([][]byte, []byte, error) {
+		tail, err := s.verifyAdopted(ctx, entry, keys)
+		return keys, tail, err
+	})
+	return err
+}
+
+// AdoptBucketPack registers a pack another writer uploaded under this store's
+// prefix when no copy of the pack is at hand to report its keys. The keys come
+// from the pack's own index, read once from the bucket, which also serves the
+// checks AdoptPack makes. Adopting a pack twice changes nothing.
+//
+// Invariant: a pack is registered only once the bucket holds an object at its
+// key of exactly the entry's size, whose index lists exactly the entry's block
+// count of distinct keys, each of which the entry's bloom filter holds. The
+// keys come from the object itself, so the filter is what ties the object to
+// the entry: another pack of the same size and count at this key fails it.
+//
+// registered is true only when this call verified the pack and registered it.
+// For a pack the store held already it is false and nothing is checked, so the
+// caller must not treat entry as verified against the bucket.
+func (s *PackStore) AdoptBucketPack(ctx context.Context, entry *packfile.PackfileEntry) (registered bool, err error) {
+	return s.adopt(ctx, entry, func(ctx context.Context) ([][]byte, []byte, error) {
+		return s.verifyBucketPack(ctx, entry)
+	})
+}
+
+// adopt registers entry with the keys and index tail verify returns, unless the
+// store holds the pack already. verify runs only for a pack the store lacks.
+// registered reports whether this call verified and registered the pack.
+func (s *PackStore) adopt(ctx context.Context, entry *packfile.PackfileEntry, verify func(ctx context.Context) ([][]byte, []byte, error)) (bool, error) {
 	// Adopting needs an index to register the pack in.
 	if s.index == nil {
-		return errors.New("pack store has no index")
+		return false, errors.New("pack store has no index")
 	}
 	id := entry.GetId()
 	if err := identity.ValidatePackID(id); err != nil {
-		return err
+		return false, err
 	}
 
 	// Load the pack table first, as a write numbering a pack does.
 	if err := s.loadEntries(ctx); err != nil {
-		return err
+		return false, err
 	}
 	held, err := s.HasPackfile(ctx, id)
 	if err != nil || held {
-		return err
+		return false, err
 	}
 
 	// Check the pack against what it was reported to hold.
-	tail, err := s.verifyAdopted(ctx, entry, keys)
+	keys, tail, err := verify(ctx)
 	if err != nil {
-		return errors.Wrapf(err, "adopt pack %s", id)
+		return false, errors.Wrapf(err, "adopt pack %s", id)
 	}
 
 	// Register it with the extents its index lists, and list it as this
 	// store's own writes are.
 	if err := s.index.addWritten(ctx, entry, keys, tail); err != nil {
-		return errors.Wrap(err, "index packfile")
+		return false, errors.Wrap(err, "index packfile")
 	}
 	s.published(entry)
-	return nil
+	return true, nil
 }
 
 // KeepsBlocks reports that the store never reclaims a block it holds.
@@ -58,27 +91,126 @@ func (s *PackStore) KeepsBlocks() bool {
 	return s.keepPacks
 }
 
+// objectStatter reports an object's size without reading its body.
+type objectStatter interface {
+	HeadObject(ctx context.Context, bucket, key string) (*ObjectStat, error)
+}
+
+// verifyBucketPack checks that the bucket holds the pack at the entry's size,
+// reads its index from the bucket and returns the keys it lists with the
+// index, or an error unless it lists exactly the entry's block count.
+func (s *PackStore) verifyBucketPack(ctx context.Context, entry *packfile.PackfileEntry) ([][]byte, []byte, error) {
+	// The object must be the size the entry names, which locates its index.
+	statter, ok := s.client.(objectStatter)
+	if !ok {
+		return nil, nil, errors.New("object store cannot report an object's size")
+	}
+	key := s.adoptedKey(entry)
+	stat, err := statter.HeadObject(ctx, s.bucket, key)
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "stat %s", key)
+	}
+	if stat.Size < 0 || uint64(stat.Size) != entry.GetSizeBytes() {
+		return nil, nil, errors.Errorf("bucket object is %d bytes, its entry %d", stat.Size, entry.GetSizeBytes())
+	}
+
+	// Read the index once, take the keys it lists, and check them as a report.
+	tail, err := s.readAdoptedTail(ctx, entry)
+	if err != nil {
+		return nil, nil, err
+	}
+	var keys [][]byte
+	err = packfile.ScanIndexTail(tail, entry.GetSizeBytes(), func(e *kvfile.IndexEntry) error {
+		keys = append(keys, bytes.Clone(e.GetKey()))
+		return nil
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// The keys come from the object itself, so only the entry's bloom filter
+	// ties the object to the entry: each key must be in it.
+	if err := checkEntryBloom(entry, keys); err != nil {
+		return nil, nil, err
+	}
+	if err := checkAdopted(tail, entry, keys); err != nil {
+		return nil, nil, err
+	}
+	return keys, tail, nil
+}
+
+// checkEntryBloom returns an error unless the entry carries a bloom filter of
+// a known format that holds every one of keys.
+func checkEntryBloom(entry *packfile.PackfileEntry, keys [][]byte) error {
+	// Decode the entry's filter, which must be there and in a known format.
+	data := entry.GetBloomFilter()
+	if len(data) == 0 {
+		return errors.New("entry has no bloom filter to check the pack's keys against")
+	}
+	if v := entry.GetBloomFormatVersion(); v != packfile.BloomFormatVersionV1 {
+		return errors.Errorf("entry bloom filter has unknown format version %d", v)
+	}
+	var pbf bloom.BloomFilter
+	if err := pbf.UnmarshalVT(data); err != nil {
+		return errors.Wrap(err, "decode entry bloom filter")
+	}
+	filter, err := pbf.ParseFilter()
+	if err != nil {
+		return errors.Wrap(err, "decode entry bloom filter")
+	}
+	if filter == nil {
+		return errors.New("entry has no bloom filter to check the pack's keys against")
+	}
+
+	// Every key must test present.
+	for _, k := range keys {
+		if !filter.Test(k) {
+			return errors.New("pack holds a block its entry's bloom filter does not")
+		}
+	}
+	return nil
+}
+
 // verifyAdopted reads the pack's index from the bucket and returns it, or an
 // error unless it holds exactly keys.
 func (s *PackStore) verifyAdopted(ctx context.Context, entry *packfile.PackfileEntry, keys [][]byte) ([]byte, error) {
-	// Read the index at the end of the pack, sized by the entry.
-	size := entry.GetSizeBytes()
-	key := s.prefix + packDir + entry.GetId()
-	read := func(ctx context.Context, off int64, length int) ([]byte, error) {
-		return s.client.GetObjectRange(ctx, s.bucket, key, off, length)
-	}
-	tail, err := packfile.ReadIndexTail(ctx, size, packfile.IndexTailReadSize(entry.GetBlockCount()), read)
+	tail, err := s.readAdoptedTail(ctx, entry)
 	if err != nil {
 		return nil, err
 	}
+	if err := checkAdopted(tail, entry, keys); err != nil {
+		return nil, err
+	}
+	return tail, nil
+}
 
+// adoptedKey returns the bucket key of the pack entry names.
+func (s *PackStore) adoptedKey(entry *packfile.PackfileEntry) string {
+	return s.prefix + packDir + entry.GetId()
+}
+
+// readAdoptedTail reads the index at the end of the pack from the bucket,
+// sized by the entry.
+func (s *PackStore) readAdoptedTail(ctx context.Context, entry *packfile.PackfileEntry) ([]byte, error) {
+	key := s.adoptedKey(entry)
+	read := func(ctx context.Context, off int64, length int) ([]byte, error) {
+		data, err := s.client.GetObjectRange(ctx, s.bucket, key, off, length)
+		s.reads.downloaded(readIndex, len(data))
+		return data, err
+	}
+	return packfile.ReadIndexTail(ctx, entry.GetSizeBytes(), packfile.IndexTailReadSize(entry.GetBlockCount()), read)
+}
+
+// checkAdopted returns an error unless the index tail of the pack entry names
+// holds exactly keys, and as many as the entry's block count.
+func checkAdopted(tail []byte, entry *packfile.PackfileEntry, keys [][]byte) error {
 	// Every key the pack holds must be reported, and every reported key held.
 	want := make(map[string]struct{}, len(keys))
 	for _, k := range keys {
 		want[string(k)] = struct{}{}
 	}
 	var seen uint64
-	err = packfile.ScanIndexTail(tail, size, func(e *kvfile.IndexEntry) error {
+	err := packfile.ScanIndexTail(tail, entry.GetSizeBytes(), func(e *kvfile.IndexEntry) error {
 		if _, ok := want[string(e.GetKey())]; !ok {
 			return errors.New("pack holds a block its report does not name")
 		}
@@ -86,10 +218,10 @@ func (s *PackStore) verifyAdopted(ctx context.Context, entry *packfile.PackfileE
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if seen != uint64(len(want)) || seen != entry.GetBlockCount() {
-		return nil, errors.Errorf("pack holds %d blocks, its report names %d and its entry %d", seen, len(want), entry.GetBlockCount())
+		return errors.Errorf("pack holds %d blocks, its report names %d and its entry %d", seen, len(want), entry.GetBlockCount())
 	}
-	return tail, nil
+	return nil
 }

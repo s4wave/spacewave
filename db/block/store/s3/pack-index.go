@@ -9,8 +9,10 @@ import (
 	"encoding/binary"
 	"math"
 	"slices"
+	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/pkg/errors"
@@ -62,6 +64,11 @@ const (
 
 	// indexBatchKeys bounds the keys inspected by one background write transaction.
 	indexBatchKeys = 2048
+	// indexScanBatchKeys bounds the rows a background step point-reads while
+	// it holds the index's writer turn. Each read can miss the page cache, so
+	// a foreground writer queued behind the step waits for up to this many
+	// disk reads.
+	indexScanBatchKeys = 256
 	// indexFlushEntries bounds the entries read from the listing that wait for
 	// their write transaction.
 	indexFlushEntries = 32
@@ -507,7 +514,7 @@ func putPackRows(ctx context.Context, tx kvtx.Tx, entry *packfile.PackfileEntry,
 //
 // Invariant: an h row written with an extent holds exactly the offset and
 // size the tail lists for its key in this pack of entry's size, the values
-// upgradeHashRows would write. An extent read verifies the block's hash, so a
+// planTailUpgrades would plan. An extent read verifies the block's hash, so a
 // row that is wrong anyway costs one range read and the lookup through the
 // pack readers, never a wrong block.
 func (x *packIndex) addWritten(ctx context.Context, entry *packfile.PackfileEntry, keys [][]byte, tail []byte) error {
@@ -536,7 +543,7 @@ func (x *packIndex) addWritten(ctx context.Context, entry *packfile.PackfileEntr
 		if extents != nil {
 			slice = extents[start:end]
 		}
-		if err := x.writeSlice(ctx, entry, stored, start == 0, keys[start:end], value, slice); err != nil {
+		if err := x.writeSliceRetry(ctx, entry, stored, start == 0, keys[start:end], value, slice); err != nil {
 			return err
 		}
 	}
@@ -606,6 +613,44 @@ func extentValues(tail []byte, size uint64, num uint32, keys [][]byte) [][]byte 
 		values[i] = v.marshal()
 	}
 	return values
+}
+
+// sliceBusyRetries bounds how often writeSliceRetry writes a slice the store
+// reported busy, and sliceBusyWait is its first wait, doubling to
+// sliceBusyMaxWait.
+const (
+	sliceBusyRetries = 20
+	sliceBusyWait    = 250 * time.Millisecond
+	sliceBusyMaxWait = 5 * time.Second
+)
+
+// writeSliceRetry writes one slice as writeSlice does, writing it again after
+// a wait when the store reports itself busy. The rows of a slice are written
+// whole or not at all and say the same each time, so a busy slice is retried
+// in place: returning the error would fail the pack's publish, and the upload
+// would write the pack to the bucket again.
+func (x *packIndex) writeSliceRetry(ctx context.Context, entry *packfile.PackfileEntry, row packRow, first bool, keys [][]byte, value []byte, extents [][]byte) error {
+	wait := sliceBusyWait
+	for attempt := 0; ; attempt++ {
+		err := x.writeSlice(ctx, entry, row, first, keys, value, extents)
+		if err == nil || attempt >= sliceBusyRetries || !isBusyError(err) {
+			return err
+		}
+		select {
+		case <-ctx.Done():
+			return context.Cause(ctx)
+		//gostyle:timer backoff
+		case <-time.After(wait):
+		}
+		wait = min(2*wait, sliceBusyMaxWait)
+	}
+}
+
+// isBusyError reports whether err is a store's report that another writer
+// holds its lock, SQLite's "database is locked", which a later attempt may
+// pass.
+func isBusyError(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "database is locked")
 }
 
 // writeSlice writes the h rows of keys, each naming value or, when extents is
@@ -772,7 +817,7 @@ func (x *packIndex) remove(ctx context.Context, ids []string) error {
 // cache.
 func (x *packIndex) Get(ctx context.Context, packID string) ([]byte, bool, error) {
 	// Serve a tail still awaiting its write.
-	if data, ok := x.queuedTail(packID); ok {
+	if data, ok := x.queuedTailData(packID); ok {
 		return data, true, nil
 	}
 
@@ -789,26 +834,30 @@ func (x *packIndex) Get(ctx context.Context, packID string) ([]byte, bool, error
 	return bytes.Clone(data), true, nil
 }
 
-// Set takes the index tail of a pack, as the packfile store's index cache. It
-// queues the tail for a background drain that writes each listed block's
+// Set takes the index tail a pack reader read from the bucket, as the
+// packfile store's index cache, and returns at once. A background drain
+// stores it in the pack's t/ row while tail rows are on (SetIndexTailRows),
+// so the pack's later loads read the row, and writes each listed block's
 // extent into its h row, so the block's next read needs neither the tail nor
-// the pack's entry, and returns at once. Until the drain takes it, Get serves
-// it; the tail itself is not stored.
+// the pack's entry. Until the row is written, Get serves the queued tail.
 func (x *packIndex) Set(ctx context.Context, packID string, data []byte) error {
 	if x.readOnly {
 		return nil
 	}
-	x.queueTail(packID, bytes.Clone(data))
+	x.queueTail(packID, bytes.Clone(data), true)
 	return nil
 }
 
-// cacheTail stores the index tail of a pack that its writer or the indexer
-// already holds, so the pack's first reader skips the remote tail read. The
-// row is a cache: a failed write only leaves that read in place. A pack
-// removed meanwhile may keep the row; pack ids are never reused, so no reader
-// finds it.
+// cacheTail queues the index tail of a pack that its writer or the indexer
+// already holds for the h row upgrade, so the pack's blocks read by extent
+// without the tail. The tail is not stored: most such packs are never read
+// through their readers, and storing each doubled the index. A failed or
+// dropped upgrade only leaves the remote tail read in place.
 func (x *packIndex) cacheTail(ctx context.Context, packID string, tail []byte) {
-	_ = x.Set(ctx, packID, tail)
+	if x.readOnly {
+		return
+	}
+	x.queueTail(packID, bytes.Clone(tail), false)
 }
 
 // Locate returns the pack that holds a block key. A row that names a removed
@@ -962,7 +1011,7 @@ func (x *packIndex) pendingEntry(id string) *packfile.PackfileEntry {
 }
 
 // writeKeys writes h rows of the pack for the keys scan yields, in
-// transactions of indexBatchKeys inspected keys with pause after each, then marks
+// transactions of indexScanBatchKeys inspected keys with pause after each, then marks
 // the pack indexed. Preserved rows count toward the bound: checking a row still
 // holds the transaction. scan may reuse the key slice it passes. It returns the
 // keys written, excluding preserved rows.
@@ -1024,7 +1073,7 @@ func (x *packIndex) writeKeys(ctx context.Context, id string, scan func(func(key
 			total++
 		}
 		inTx++
-		if inTx >= indexBatchKeys {
+		if inTx >= indexScanBatchKeys {
 			return commit()
 		}
 		return nil

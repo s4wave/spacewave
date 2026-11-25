@@ -235,8 +235,8 @@ func NewPackStore(le *logrus.Entry, client ObjectStore, bucket, prefix string, o
 		maxPackBytes:    cmp.Or(max(opts.MaxPackBytes, 0), writer.DefaultMaxPackBytes),
 	}
 
-	// Open the local index, which also keeps each pack's index tail, so a
-	// restart does not read the tails again.
+	// Open the local index, which also keeps the index tail of each pack a
+	// reader loaded, so a restart does not read those tails again.
 	var tails packfile_store.IndexCache
 	if opts.Index != nil {
 		s.index = newPackIndex(opts.Index)
@@ -575,6 +575,19 @@ type readCounters struct {
 	// batchBlocks counts the blocks ReadBatch read, and batchReads the range
 	// reads it made for them.
 	batchBlocks, batchReads atomic.Uint64
+	// bytes counts the bytes downloaded from the bucket by read mode.
+	bytes [readModes]atomic.Uint64
+	// fetches counts the pack readers' range reads by read mode.
+	fetches [readModes]atomic.Uint64
+	// latency times the range reads of the window, tail and extent modes.
+	latency [readModes]rangeLatency
+}
+
+// downloaded counts n bytes downloaded from the bucket for mode.
+func (r *readCounters) downloaded(mode readMode, n int) {
+	if n > 0 {
+		r.bytes[mode].Add(uint64(n)) //nolint:gosec // n is positive.
+	}
 }
 
 // ReadCounts returns the store's block reads by where their bytes came from.
@@ -587,6 +600,17 @@ func (s *PackStore) ReadCounts() ReadCounts {
 		BatchBlocks:   s.reads.batchBlocks.Load(),
 		BatchReads:    s.reads.batchReads.Load(),
 		BatchBytes:    s.reads.batchBytes.Load(),
+		WindowBytes:   s.reads.bytes[readWindow].Load(),
+		TailBytes:     s.reads.bytes[readTail].Load(),
+		WindowFetches: s.reads.fetches[readWindow].Load(),
+		TailFetches:   s.reads.fetches[readTail].Load(),
+		WindowLatency: s.reads.latency[readWindow].snapshot(),
+		TailLatency:   s.reads.latency[readTail].snapshot(),
+		ExtentLatency: s.reads.latency[readExtent].snapshot(),
+		ExtentBytes:   s.reads.bytes[readExtent].Load(),
+		IndexBytes:    s.reads.bytes[readIndex].Load(),
+		WholeBytes:    s.reads.bytes[readWhole].Load(),
+		OtherBytes:    s.reads.bytes[readOther].Load(),
 	}
 }
 
@@ -629,6 +653,20 @@ func SetIndexExtentReads(on bool) {
 	extentReadsOn.Store(on)
 }
 
+// packExactReads makes the pack readers of every PackStore without
+// ExactReads read exactly while it holds true; see SetPackExactReads.
+var packExactReads atomic.Bool
+
+// SetPackExactReads turns exact reads on or off for the pack readers of every
+// PackStore that does not set ExactReads, including the readers already open.
+// On, a block the pack readers read fetches only its own bytes, which suits a
+// bucket that bills each byte read over packs whose neighboring blocks are
+// seldom read together; off, the default, a read fetches a window of at least
+// 1 MiB around the block. A pack's index tail reads the same either way.
+func SetPackExactReads(on bool) {
+	packExactReads.Store(on)
+}
+
 // readExtent reads the block with one range read of its pack when its h row
 // holds its extent. It returns nil and no error when the row holds no extent,
 // when the pack is missing, or when the bytes read do not hold the block: a row
@@ -662,7 +700,10 @@ func (s *PackStore) readExtent(ctx context.Context, ref *block.BlockRef) (*block
 		}
 
 		// Read the extent; a missing pack means the row named the wrong one.
+		start := time.Now()
 		data, err := s.client.GetObjectRange(ctx, s.bucket, s.prefix+packDir+id, off, size)
+		s.reads.latency[readExtent].observe(start)
+		s.reads.downloaded(readExtent, len(data))
 		if errors.Is(err, ErrNotFound) {
 			return nil, nil
 		}
@@ -1136,6 +1177,7 @@ func (s *PackStore) readEntry(ctx context.Context, id string) (*packfile.Packfil
 	}
 	data, err := io.ReadAll(body)
 	_ = body.Close()
+	s.reads.downloaded(readIndex, len(data))
 	if err != nil {
 		return nil, errors.Wrap(err, "read packfile entry")
 	}
@@ -1180,10 +1222,12 @@ func (s *PackStore) updateEntries(add []*packfile.PackfileEntry, remove []string
 
 // openPack opens a reader over the ranges of packfile id.
 func (s *PackStore) openPack(id string, size int64) (*packfile_store.PackReader, error) {
-	transport := &rangeTransport{client: s.client, bucket: s.bucket, key: s.prefix + packDir + id}
+	transport := &rangeTransport{client: s.client, bucket: s.bucket, key: s.prefix + packDir + id, reads: &s.reads}
 	eng := packfile_store.NewPackReader(id, size, transport)
 	if s.exactReads {
 		eng.SetExactReads()
+	} else {
+		eng.SetExactReadsSwitch(&packExactReads)
 	}
 	return eng, nil
 }
@@ -1193,19 +1237,41 @@ type rangeTransport struct {
 	client ObjectStore
 	bucket string
 	key    string
+	// reads counts the fetches and their bytes, when set.
+	reads *readCounters
 }
 
-// Fetch reads bytes [off, off+length) of the object.
+// Fetch reads bytes [off, off+length) of the object's block payloads.
 func (t *rangeTransport) Fetch(ctx context.Context, off int64, length int) ([]byte, error) {
+	return t.fetch(ctx, readWindow, off, length)
+}
+
+// FetchIndex reads bytes [off, off+length) of the object's index tail.
+func (t *rangeTransport) FetchIndex(ctx context.Context, off int64, length int) ([]byte, error) {
+	return t.fetch(ctx, readTail, off, length)
+}
+
+// fetch reads bytes [off, off+length) of the object, counted as mode.
+func (t *rangeTransport) fetch(ctx context.Context, mode readMode, off int64, length int) ([]byte, error) {
+	// Skip an empty range.
 	if length <= 0 {
 		return nil, nil
 	}
-	return t.client.GetObjectRange(ctx, t.bucket, t.key, off, length)
+
+	// Read the range, counting and timing it.
+	start := time.Now()
+	data, err := t.client.GetObjectRange(ctx, t.bucket, t.key, off, length)
+	if t.reads != nil {
+		t.reads.latency[mode].observe(start)
+		t.reads.fetches[mode].Add(1)
+		t.reads.downloaded(mode, len(data))
+	}
+	return data, err
 }
 
 // _ is a type assertion
 var (
-	_ block.StoreOps           = (*PackStore)(nil)
-	_ block.BatchSizer         = (*PackStore)(nil)
-	_ packfile_store.Transport = (*rangeTransport)(nil)
+	_ block.StoreOps                = (*PackStore)(nil)
+	_ block.BatchSizer              = (*PackStore)(nil)
+	_ packfile_store.IndexTransport = (*rangeTransport)(nil)
 )

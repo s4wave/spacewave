@@ -153,7 +153,8 @@ func TestPackStoreDrain(t *testing.T) {
 	if !drain.UploadedBefore(later) {
 		t.Fatal("drained Log not reported uploaded")
 	}
-	if st, _ := drain.Status(); st != (packahead.DrainStatus{}) {
+	if st, _ := drain.Status(); st.Pending != 0 || st.PendingBytes != 0 || st.LocalBytes != 0 ||
+		!st.Oldest.IsZero() || st.Written != 1 || st.WrittenBytes == 0 || st.Listed != 1 || st.Failures != 1 {
 		t.Fatalf("status after the drain = %+v", st)
 	}
 	if got := remote.puts.Load(); got != 1 {
