@@ -5,6 +5,7 @@ import (
 	"math/rand/v2"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -20,6 +21,39 @@ type crashCase struct {
 	mutate func(data []byte, start, end int) []byte
 	// keepsLast reports whether recovery keeps the last batch.
 	keepsLast bool
+}
+
+// TestPackAheadExclusiveOpen keeps a second opener out of recovery until the
+// first log closes.
+func TestPackAheadExclusiveOpen(t *testing.T) {
+	// Open a log with an empty pack that recovery would remove.
+	ctx, dir := t.Context(), t.TempDir()
+	first, err := Open(ctx, dir, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(first.Close)
+
+	// Require an error naming the directory, with the open pack still intact.
+	second, err := Open(ctx, dir, Options{})
+	if err == nil {
+		second.Close()
+		t.Fatal("second Open succeeded while the first log was open")
+	}
+	if !strings.Contains(err.Error(), strconv.Quote(dir)) || !strings.Contains(err.Error(), "already open") {
+		t.Fatalf("second Open returned %v, want an already-open error naming %s", err, dir)
+	}
+	if _, err := os.Stat(filepath.Join(dir, openName(1))); err != nil {
+		t.Fatalf("second Open disturbed the first log's open pack: %v", err)
+	}
+
+	// Open the same directory after the first log releases ownership.
+	first.Close()
+	reopened, err := Open(ctx, dir, Options{})
+	if err != nil {
+		t.Fatalf("Open after Close: %v", err)
+	}
+	reopened.Close()
 }
 
 // TestPackAheadCrash leaves the last batch of an open pack in every state a
@@ -114,6 +148,59 @@ func TestPackAheadCrash(t *testing.T) {
 	}
 }
 
+// TestPackAheadStartupRejectsEmbeddedRecord puts a complete record at the
+// absolute offset of a block value after an unreadable batch header.
+func TestPackAheadStartupRejectsEmbeddedRecord(t *testing.T) {
+	// Give the embedded record valid checksums and an exact absolute end.
+	prefix := []Block{testBlock(t, 1, 64)}
+	embedded := []Block{testBlock(t, 2, 64)}
+	damaged := []Block{testBlock(t, 3, recordLen(embedded)+dataLen(embedded))}
+	later := []Block{testBlock(t, 4, 64)}
+	damagedAt := int64(recordLen(prefix) + dataLen(prefix))
+	embeddedAt := damagedAt + int64(recordLen(damaged))
+	encodeBatch(damaged[0].Value, embeddedAt, embedded)
+
+	// Write genuine adjacent batches and simulate an unreadable middle record.
+	dir := t.TempDir()
+	l, err := Open(t.Context(), dir, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, batch := range [][]Block{prefix, damaged, later} {
+		if err := l.Append(t.Context(), batch); err != nil {
+			l.Close()
+			t.Fatal(err)
+		}
+	}
+	l.Close()
+	path := filepath.Join(dir, openName(1))
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data[damagedAt] = 0
+	if _, _, err := decodeBatch(data, embeddedAt); err != nil {
+		t.Fatalf("embedded record must pass decoding: %v", err)
+	}
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Reopen and check both the local table and the finalized index.
+	l, err = Open(t.Context(), dir, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+	for _, key := range [][]byte{damaged[0].Key, embedded[0].Key, later[0].Key} {
+		if l.Has(key) {
+			t.Fatalf("startup indexed key %x beyond the unreadable record", key)
+		}
+	}
+	infos := waitFinalized(t, l, 1)
+	checkPack(t, infos[0], map[string][]byte{string(prefix[0].Key): prefix[0].Value}, Options{})
+}
+
 // TestPackAheadCrashFinalize leaves a finalized pack under its open name, as a
 // crash after its index but before its rename does, with the index whole or
 // cut short, and checks that recovery keeps every batch and finalizes again.
@@ -148,7 +235,7 @@ func TestPackAheadCrashFinalize(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, batchesEnd := scanBatches(data)
+	_, batchesEnd, _ := scanBatches(data)
 
 	// Recover the pack with its index whole and cut at points inside it.
 	for cut := int(batchesEnd); cut <= len(data); cut += max(1, (len(data)-int(batchesEnd))/7) {

@@ -53,6 +53,16 @@ func waitFinalized(t testing.TB, l *Log, n int) []PackInfo {
 // checkPack reads a finalized pack as a remote pack reader would and checks
 // that it holds want.
 func checkPack(t testing.TB, info PackInfo, want map[string][]byte, opts Options) {
+	// Require enough distinct indexed keys to cover the full expected set.
+	t.Helper()
+	if info.Blocks != len(want) {
+		t.Fatalf("pack %d holds %d blocks, want %d", info.Seq, info.Blocks, len(want))
+	}
+	checkPackSubset(t, info, want, opts)
+}
+
+// checkPackSubset checks one pack against the expected values across packs.
+func checkPackSubset(t testing.TB, info PackInfo, want map[string][]byte, opts Options) {
 	t.Helper()
 
 	// Check the pack's name, size and bloom filter.
@@ -77,16 +87,25 @@ func checkPack(t testing.TB, info PackInfo, want map[string][]byte, opts Options
 	if err != nil {
 		t.Fatalf("pack %d is not a kvfile: %v", info.Seq, err)
 	}
-	var n int
+	seen := make(map[string]struct{}, info.Blocks)
 	err = rd.ScanPrefix(nil, func(key, value []byte) error {
-		n++
-		if w, ok := want[string(key)]; ok && !bytes.Equal(w, value) {
-			t.Fatalf("pack %d holds a wrong value", info.Seq)
+		// Match each indexed key and value once.
+		k := string(key)
+		w, ok := want[k]
+		if !ok {
+			t.Fatalf("pack %d indexes unexpected key %x", info.Seq, key)
 		}
+		if _, dup := seen[k]; dup {
+			t.Fatalf("pack %d indexes duplicate key %x", info.Seq, key)
+		}
+		if !bytes.Equal(w, value) {
+			t.Fatalf("pack %d holds a wrong value for key %x", info.Seq, key)
+		}
+		seen[k] = struct{}{}
 		return nil
 	})
-	if err != nil || n != info.Blocks {
-		t.Fatalf("pack %d: scanned %d of %d: %v", info.Seq, n, info.Blocks, err)
+	if err != nil || len(seen) != info.Blocks {
+		t.Fatalf("pack %d: scanned %d of %d: %v", info.Seq, len(seen), info.Blocks, err)
 	}
 }
 
@@ -142,7 +161,7 @@ func TestPackAhead(t *testing.T) {
 	// The full packs finalize into packfiles a remote reader accepts.
 	infos := waitFinalized(t, l, 240/16-1)
 	for _, info := range infos {
-		checkPack(t, info, want, opts)
+		checkPackSubset(t, info, want, opts)
 	}
 	for _, b := range all {
 		if got, ok, err := l.Get(b.Key); err != nil || !ok || !bytes.Equal(got, b.Value) {
@@ -159,10 +178,26 @@ func TestPackAhead(t *testing.T) {
 		t.Fatalf("held blocks rewritten: %d to %d bytes", before, after)
 	}
 
-	// A removed block is forgotten until the next open.
+	// A removed block stays held while its pack is not uploaded, and once it
+	// is, it is forgotten until the next open.
 	l.Remove(all[0].Key)
-	if l.Has(all[0].Key) {
-		t.Fatal("removed block still held")
+	if !l.Has(all[0].Key) {
+		t.Fatal("removed block forgotten before its pack uploaded")
+	}
+	var uploaded int
+	for _, info := range infos {
+		l.MarkUploaded(info.Seq)
+		uploaded += info.Blocks
+	}
+	var forgotten int
+	for _, b := range all {
+		l.Remove(b.Key)
+		if !l.Has(b.Key) {
+			forgotten++
+		}
+	}
+	if forgotten != uploaded {
+		t.Fatalf("removed %d blocks of uploaded packs holding %d", forgotten, uploaded)
 	}
 	l.Close()
 	if err := l.Append(ctx, all[:1]); err != ErrClosed {
@@ -179,7 +214,7 @@ func TestPackAhead(t *testing.T) {
 		t.Fatalf("reopened with %d packs", len(infos))
 	}
 	for _, info := range infos {
-		checkPack(t, info, want, opts)
+		checkPackSubset(t, info, want, opts)
 	}
 	for _, b := range all {
 		if got, ok, err := l.Get(b.Key); err != nil || !ok || !bytes.Equal(got, b.Value) {

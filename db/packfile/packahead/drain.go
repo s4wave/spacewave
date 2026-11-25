@@ -3,7 +3,7 @@ package packahead
 import (
 	"context"
 	"os"
-	"slices"
+	"sync/atomic"
 	"time"
 
 	"github.com/pkg/errors"
@@ -43,6 +43,13 @@ type Drain struct {
 	log *Log
 	// opts are the options.
 	opts DrainOptions
+	// written counts the packs PutPackFile wrote, and writtenBytes their size.
+	written, writtenBytes atomic.Uint64
+	// listed counts the packs the remote listed already, uploading nothing.
+	listed atomic.Uint64
+	// failures counts the Run calls that ended in an error other than their
+	// context's.
+	failures atomic.Uint64
 }
 
 // DrainStatus counts a Drain's finalized local packs.
@@ -57,6 +64,15 @@ type DrainStatus struct {
 	// Oldest is when the oldest pending pack's first batch was written, zero
 	// with none pending or for a pack loaded at Open.
 	Oldest time.Time
+	// Written counts the packs this Drain wrote to the remote.
+	Written uint64
+	// WrittenBytes is their size.
+	WrittenBytes uint64
+	// Listed counts the packs this Drain found the remote listed already,
+	// such as one uploaded before a restart, and wrote nothing for.
+	Listed uint64
+	// Failures counts the Run calls that failed other than by their context.
+	Failures uint64
 }
 
 // NewDrain builds a Drain of log.
@@ -67,46 +83,78 @@ func NewDrain(log *Log, opts DrainOptions) *Drain {
 // Status reports the Log's finalized packs, and a channel that closes when
 // the Log next changes: a pack finalizes, uploads or is evicted.
 func (d *Drain) Status() (DrainStatus, <-chan struct{}) {
-	packs, changed := d.log.GetPacks()
+	// Read the aggregate and its watch without walking retained packs.
+	l := d.log
+	var changed <-chan struct{}
 	var st DrainStatus
-	for _, p := range packs {
-		st.LocalBytes += p.Size
-		if p.Uploaded {
-			continue
+	l.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		st.Pending, st.PendingBytes, st.LocalBytes = l.pending.Len(), l.pendingBytes, l.finalBytes
+		if oldest := l.pending.Front(); oldest != nil {
+			st.Oldest = oldest.Value.(*pack).firstAt
 		}
-		if st.Pending == 0 {
-			st.Oldest = p.FirstAt
-		}
-		st.Pending++
-		st.PendingBytes += p.Size
-	}
+		changed = getWaitCh()
+	})
+
+	// Upload metrics are recorded before the log marks a pack uploaded.
+	st.Written, st.WrittenBytes = d.written.Load(), d.writtenBytes.Load()
+	st.Listed, st.Failures = d.listed.Load(), d.failures.Load()
 	return st, changed
 }
 
 // Run uploads finalized packs to remote, oldest first, and evicts uploaded
 // packs beyond the budget, until ctx ends or a step fails.
 func (d *Drain) Run(ctx context.Context, remote Remote) error {
+	err := d.run(ctx, remote)
+	if err != nil && ctx.Err() == nil {
+		d.failures.Add(1)
+	}
+	return err
+}
+
+// run is Run without the failure count.
+func (d *Drain) run(ctx context.Context, remote Remote) error {
 	var last int64
+	l := d.log
 	for {
-		// Upload the oldest pack not yet uploaded, or wait for the next.
-		packs, changed := d.log.GetPacks()
-		i := slices.IndexFunc(packs, func(p PackInfo) bool { return !p.Uploaded })
-		if i < 0 {
-			if err := d.evict(ctx, packs); err != nil {
+		// Select one upload or eviction, or watch for the next pack.
+		var upload PackInfo
+		var haveUpload bool
+		var evict *pack
+		var changed <-chan struct{}
+		l.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			if oldest := l.pending.Front(); oldest != nil {
+				upload, haveUpload = packInfo(oldest.Value.(*pack)), true
+				return
+			}
+			if d.opts.KeepBytes > 0 && l.finalBytes > d.opts.KeepBytes {
+				evict = l.finals.Front().Value.(*pack)
+				return
+			}
+			changed = getWaitCh()
+		})
+
+		// Run disk and network work outside bcast.
+		if haveUpload {
+			sent, err := d.upload(ctx, remote, upload, last)
+			if err != nil {
 				return err
 			}
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case <-changed:
+			last = sent
+			continue
+		}
+		if evict != nil {
+			if err := l.Evict(ctx, evict.seq); err != nil {
+				return err
 			}
 			continue
 		}
-		sent, err := d.upload(ctx, remote, packs[i], last)
-		if err != nil {
-			return err
+
+		// A watch closes on the next change to the drained Log.
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-changed:
 		}
-		last = sent
 	}
 }
 
@@ -133,35 +181,13 @@ func (d *Drain) upload(ctx context.Context, remote Remote, p PackInfo, last int6
 			return 0, errors.Wrapf(err, "upload pack %s", p.ID)
 		}
 		sent = int64(len(data))
+		d.written.Add(1)
+		d.writtenBytes.Add(uint64(sent))
+	} else {
+		d.listed.Add(1)
 	}
 	d.log.MarkUploaded(p.Seq)
 	return sent, nil
-}
-
-// evict unlinks the oldest uploaded packs while the finalized packs exceed
-// the budget. It stops at the first pack not yet uploaded, so the packs kept
-// are the newest.
-func (d *Drain) evict(ctx context.Context, packs []PackInfo) error {
-	// A zero budget keeps every pack.
-	if d.opts.KeepBytes <= 0 {
-		return nil
-	}
-
-	// Evict oldest first until the rest fit the budget.
-	var total int64
-	for _, p := range packs {
-		total += p.Size
-	}
-	for _, p := range packs {
-		if total <= d.opts.KeepBytes || !p.Uploaded {
-			return nil
-		}
-		if err := d.log.Evict(ctx, p.Seq); err != nil {
-			return err
-		}
-		total -= p.Size
-	}
-	return nil
 }
 
 // UploadedBefore reports whether the remote holds every value the Log took

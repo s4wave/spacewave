@@ -12,6 +12,11 @@ type Stats struct {
 	Entries int
 	// Syncs counts the fdatasyncs writers have run.
 	Syncs uint64
+	// SyncFailures counts the fdatasyncs that failed.
+	SyncFailures uint64
+	// Poisoned counts the local packs a failed sync poisoned, which stay
+	// unfinalized until the next Open recovers them.
+	Poisoned int
 	// MaintainError is the background work's last failure, or nil.
 	MaintainError error
 }
@@ -20,15 +25,12 @@ type Stats struct {
 func (l *Log) GetStats() Stats {
 	var s Stats
 	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		s.Packs = len(l.packs) + 1
-		for _, p := range l.packs {
-			if p.state == packFinal {
-				s.Finalized++
-			}
-			s.LocalBytes += p.written
-		}
-		s.LocalBytes += l.open.written
-		s.Entries, s.Syncs, s.MaintainError = len(l.table), l.syncs, l.maintErr
+		// Count the tracked packs and the open writer.
+		s.Packs, s.Finalized, s.Poisoned = len(l.packs)+1, l.finals.Len(), l.poisoned
+		s.LocalBytes = l.localBytes + l.open.written
+
+		// Read the Log's counters.
+		s.Entries, s.Syncs, s.SyncFailures, s.MaintainError = len(l.table), l.syncs, l.syncFailures, l.maintErr
 	})
 	return s
 }

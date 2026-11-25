@@ -1,17 +1,14 @@
 package packahead
 
-// keyTailLen is the bytes of a key the table keeps: the end of its hash
-// digest, 128 bits, as the bucket pack index keeps, so two blocks share a
-// row only by a collision no one will find.
-const keyTailLen = 16
+import "github.com/s4wave/spacewave/db/block"
 
 // keyTail is the table key of a block.
-type keyTail [keyTailLen]byte
+type keyTail [block.BlockDigestTailLen]byte
 
-// tailOf returns the table key of key, which has at least keyTailLen bytes.
+// tailOf returns the table key of key, which has at least block.BlockDigestTailLen bytes.
 func tailOf(key []byte) keyTail {
 	var t keyTail
-	copy(t[:], key[len(key)-keyTailLen:])
+	copy(t[:], key[len(key)-block.BlockDigestTailLen:])
 	return t
 }
 
@@ -28,4 +25,11 @@ type location struct {
 // end returns the offset just past the value.
 func (l location) end() int64 {
 	return int64(l.off) + int64(l.size)
+}
+
+// synced implements I1: admit only locations synced at lookup. A failed
+// pack must verify its batches before its bytes are eligible again.
+// The caller holds the log lock.
+func (l location) synced() bool {
+	return l.p.state == packFinal || (l.p.err == nil && l.end() <= l.p.synced)
 }

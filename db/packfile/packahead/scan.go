@@ -1,6 +1,7 @@
 package packahead
 
 import (
+	"bytes"
 	"context"
 	"encoding/binary"
 	"hash/crc32"
@@ -34,7 +35,7 @@ func ScanRecords(ctx context.Context, ra io.ReaderAt, size, maxBytes int64, fn f
 		if _, err := ra.ReadAt(header[:], at); err != nil {
 			return at, errors.Wrap(err, "read batch record")
 		}
-		if binary.LittleEndian.Uint32(header[:]) != recordMagic {
+		if !bytes.HasPrefix(header[:], []byte(recordMagic)) {
 			break
 		}
 		recLen := int64(recordHeaderLen) + int64(binary.LittleEndian.Uint32(header[4:])) + recordTrailerLen
@@ -46,6 +47,12 @@ func ScanRecords(ctx context.Context, ra io.ReaderAt, size, maxBytes int64, fn f
 			return at, errors.Wrap(err, "read batch record")
 		}
 		entries, _, n, dataCRC, end, err := parseRecord(rec, at, size-at)
+		if err == errSkippedRecord {
+			// A recovery skip record seals a damaged extent that holds no
+			// values; the batches past it are still the pack's.
+			at = end
+			continue
+		}
 		if err != nil {
 			break
 		}
