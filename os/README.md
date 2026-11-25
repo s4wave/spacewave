@@ -229,6 +229,25 @@ and its authorization publish in one commit, refused while another trial is
 pending. The rehearsal's [revision trial](qemu/README.md#revision-trial) runs it
 in a booted guest.
 
+An `os/system` Flowgraph node moves a Device to a release. Placed on a Device
+running Spacewave OS, the node binds an `os/release` World object, which holds
+the owner's signed image reference (`os/release`). Its controller
+(`os/system/controller`) serves the release with the `Stager` service and the
+Space's blocks, read only, with the BlockStore service, both on the daemon's
+bus, and the daemon's socket routes every `os.system.` service to it
+(`os/system/stager`). The console is the image store's only writer, so it
+stages: once the daemon writes `spacewave.sock.ready` and no trial is pending,
+it runs `spacewave-init stage-release IMAGE DATA` as a supervised child beside
+the daemon (`SPACEWAVE_OS_STAGE_STARTED`). On a trial boot that is after the
+accept child exits. The child verifies each release against the pinned signers
+(`SPACEWAVE_OS_RELEASE_REFUSED`), skips the accepted revision and the trial
+that last rolled back (`SPACEWAVE_OS_RELEASE_SKIPPED root= reason=`), and
+stages the first other one through the node's BlockStore. It exits cleanly once
+the trial publishes, and the console reboots into it
+(`SPACEWAVE_OS_STAGED_REBOOT`). A child that fails, as when the daemon
+restarts, runs again after the daemon's backoff. A release that rolled back
+waits for the owner to publish another.
+
 `os/qemu/install.sh` writes the installable disk. It copies the image store
 into a fresh system root and runs `spacewave-init install-card` with the
 Space's signers and bootstrap grant and the owner's authorization. The command

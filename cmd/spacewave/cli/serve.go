@@ -38,6 +38,7 @@ import (
 	resource_root "github.com/s4wave/spacewave/core/resource/root"
 	trace_service "github.com/s4wave/spacewave/core/trace/service"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
+	os_system "github.com/s4wave/spacewave/os/system"
 	flowgraph_nodetype "github.com/s4wave/spacewave/sdk/flowgraph/nodetype"
 	s4wave_trace "github.com/s4wave/spacewave/sdk/trace"
 )
@@ -438,7 +439,9 @@ func runServeCommand(
 	startFlowgraphReconciler(serveCtx, le, resolved, cliBus.GetBus(), invoker, devicePolicy, forgeWorker, idleTracker)
 
 	// Retain desktop demand independently of the connection that opens it.
-	mux := srpc.NewMux(invoker)
+	// The os.system services route to a placed os/system node, for the
+	// console of a Device running Spacewave OS.
+	mux := srpc.NewMux(invoker, os_system.NewInvoker(cliBus.GetBus()))
 	desktopControl := newDaemonDesktopControl(serveCtx, cliBus.GetBus(), idleTracker)
 	defer desktopControl.close()
 	if err := desktop_control.SRPCRegisterDesktopControlService(mux, desktopControl); err != nil {

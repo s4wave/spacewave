@@ -197,6 +197,14 @@ func TestRevisionLifecycle(t *testing.T) {
 		t.Fatal("rollback left a trial pending or recorded nothing")
 	}
 
+	// The node still serves C, so the stager must skip it rather than boot
+	// it again in a loop, and skip the accepted A as well.
+	for image, want := range map[*bucket.ObjectRef]string{imageC: "rolled-back", imageA: "accepted"} {
+		if skip, err := revs.skipRelease(image); err != nil || skip != want {
+			t.Fatalf("stager skipped %q, want %q: %v", skip, want, err)
+		}
+	}
+
 	// Stage B one read at a time, cut off after four reads, which complete
 	// one subtree: the cut keeps it, and the retry copies the rest.
 	stageReads = 1

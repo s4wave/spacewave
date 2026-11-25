@@ -21,6 +21,9 @@ const (
 	DeviceCapabilityKindFlowgraphNode = "flowgraph-node"
 	// DeviceCapabilityKindRemoteShell identifies the remote shell a Device serves.
 	DeviceCapabilityKindRemoteShell = "remote-shell"
+	// DeviceCapabilityKindSystem identifies the operating system image a Device
+	// runs, which its os/system node moves between releases.
+	DeviceCapabilityKindSystem = "system"
 )
 
 // NewDeviceBlock constructs a new Device block.

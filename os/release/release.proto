@@ -1,0 +1,19 @@
+syntax = "proto3";
+package os.release;
+
+import "github.com/aperturerobotics/common/typeid/typeid.proto";
+import "github.com/s4wave/spacewave/net/peer/peer.proto";
+
+// Release is the root of an os/release object: one Spacewave OS image,
+// authorized by its signer, that every Device whose os/system node binds the
+// object runs. Writing a new authorization moves those Devices to its image.
+// The image's blocks are the Space's own, so the object holds only the
+// signed reference to them.
+message Release {
+  option (typeid.id) = "os/release";
+
+  // Authorization is the signer's peer.SignedMsg over the image's
+  // bucket.ObjectRef, in os/image's image authorization context. A Device
+  // stages the image only when a signer it pinned made it.
+  .peer.SignedMsg authorization = 1;
+}

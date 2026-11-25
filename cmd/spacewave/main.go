@@ -95,6 +95,7 @@ import (
 	udp "github.com/s4wave/spacewave/net/transport/udp"
 	webrtc "github.com/s4wave/spacewave/net/transport/webrtc"
 	websocket "github.com/s4wave/spacewave/net/transport/websocket"
+	os_system_controller "github.com/s4wave/spacewave/os/system/controller"
 	flowgraph_run "github.com/s4wave/spacewave/sdk/flowgraph/run"
 )
 
@@ -166,6 +167,8 @@ var factories = []cli_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Fac
 	return []controller.Factory{core_alarm_watch.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{core_unixfs_linkedfolder.NewFactory(b)}
+}, func(b bus.Bus) []controller.Factory {
+	return []controller.Factory{os_system_controller.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{dex_solicit.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {

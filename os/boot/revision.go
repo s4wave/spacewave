@@ -301,22 +301,34 @@ func rollBack(ctx context.Context, le *logrus.Entry, dir string, revs *revisions
 		root = claimedRoot(ctx, dir, trial.auth)
 	}
 	if root != nil {
-		data, err := root.MarshalVT()
+		record, err := rolledBackRecord(root)
 		if err != nil {
 			return err
 		}
-		ref, err := block.BuildBlockRef(data, nil)
-		if err != nil {
-			return err
-		}
-		entries = append(entries, &block.PutBatchEntry{Ref: ref, Data: data, RefsKnown: true})
-		roots = append(roots, block.NamedRoot{Name: rolledBackRoot, Previous: revs.rolledBack, Ref: ref})
+		entries = append(entries, record)
+		roots = append(roots, block.NamedRoot{Name: rolledBackRoot, Previous: revs.rolledBack, Ref: record.Ref})
 	}
 	if err := setRevisionRoots(ctx, le, dir, entries, roots); err != nil {
 		return err
 	}
 	println("SPACEWAVE_OS_ROLLED_BACK root=" + root.MarshalString() + " reason=" + reason)
 	return nil
+}
+
+// rolledBackRecord returns the block that records root as rolled back: the
+// root's reference, with no children, so the record keeps none of the
+// revision's blocks.
+func rolledBackRecord(root *block.BlockRef) (*block.PutBatchEntry, error) {
+	// Store the encoded root as a leaf block.
+	data, err := root.MarshalVT()
+	if err != nil {
+		return nil, err
+	}
+	ref, err := block.BuildBlockRef(data, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &block.PutBatchEntry{Ref: ref, Data: data, RefsKnown: true}, nil
 }
 
 // readRevisions reads the revision roots of the store in dir from one

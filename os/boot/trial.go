@@ -41,8 +41,6 @@ const (
 type trialRun struct {
 	// healthy closes once the trial's revision works; nil until watch.
 	healthy <-chan struct{}
-	// stopWatch ends the health watch.
-	stopWatch func()
 	// deadline runs expire once the trial has run out of time.
 	deadline *time.Timer
 	// supervised is set once the console's loop receives from expired.
@@ -60,7 +58,7 @@ type trialRun struct {
 // newTrialRun arms a trial's deadline at selection, so every boot step after
 // selection counts against it, and accepts with the accept arguments.
 func newTrialRun(accept []string) *trialRun {
-	t := &trialRun{stopWatch: func() {}, accept: accept, expired: make(chan struct{})}
+	t := &trialRun{accept: accept, expired: make(chan struct{})}
 	t.deadline = time.AfterFunc(trialDeadline, t.expire) //gostyle:timer deadline
 	println("SPACEWAVE_OS_TRIAL_DEADLINE seconds=" + strconv.Itoa(int(trialDeadline.Seconds())))
 	return t
@@ -80,23 +78,22 @@ func (t *trialRun) expire() {
 	_ = unix.Reboot(unix.LINUX_REBOOT_CMD_RESTART)
 }
 
-// watch starts the health watch. An image with a daemon is healthy once the
-// daemon reports ready in state; one without is healthy once the console is
-// ready, so healthy is already closed.
-func (t *trialRun) watch(state string) error {
-	// Watch for the daemon's readiness, or none for an image without one.
+// watch makes the trial healthy once ready closes, as watchReady returns it.
+func (t *trialRun) watch(ready <-chan struct{}) {
+	t.healthy = ready
+}
+
+// watchReady returns a channel that closes once the daemon whose state
+// directory is state reports ready, and a function that ends the watch. An
+// image without a daemon, whose state is "", is ready once the console is,
+// so its channel is already closed.
+func watchReady(state string) (<-chan struct{}, func(), error) {
 	if state == "" {
-		healthy := make(chan struct{})
-		close(healthy)
-		t.healthy = healthy
-		return nil
+		ready := make(chan struct{})
+		close(ready)
+		return ready, func() {}, nil
 	}
-	healthy, stop, err := watchWritten(state, daemonReady)
-	if err != nil {
-		return err
-	}
-	t.healthy, t.stopWatch = healthy, stop
-	return nil
+	return watchWritten(state, daemonReady)
 }
 
 // supervise hands the deadline to the console's loop, which reboots in order.
@@ -129,13 +126,12 @@ func (t *trialRun) deadlineC() <-chan struct{} {
 	return t.expired
 }
 
-// startAccept ends the health watch and starts the child that accepts the
-// healthy trial. The console's Wait4 loop reaps it; the deadline stays armed
-// until it exits, so an accept that hangs still reboots.
+// startAccept starts the child that accepts the healthy trial. The console's
+// Wait4 loop reaps it; the deadline stays armed until it exits, so an accept
+// that hangs still reboots.
 func (t *trialRun) startAccept(executable string, tty *os.File) error {
-	// Health is reached once; stop watching for it.
-	t.stopWatch()
-	t.stopWatch, t.healthy = func() {}, nil
+	// Health is reached once; stop waiting for it.
+	t.healthy = nil
 
 	// The child writes the accepted revision; release only Go's handle.
 	process, err := os.StartProcess(executable, append([]string{executable}, t.accept...), &os.ProcAttr{
@@ -166,12 +162,11 @@ func (t *trialRun) accepted(status unix.WaitStatus) error {
 	return nil
 }
 
-// close ends the watch and the deadline; a nil trialRun has neither.
+// close ends the deadline; a nil trialRun has none.
 func (t *trialRun) close() {
 	if t == nil {
 		return
 	}
-	t.stopWatch()
 	if t.deadline != nil {
 		t.deadline.Stop()
 		t.deadline = nil

@@ -277,21 +277,27 @@ func RunConsole(ctx context.Context, requests <-chan os.Signal, system, data, co
 	}
 
 	// A trial is accepted once its daemon is ready, or at once without one.
+	// A ready daemon may serve an os/system node, so the console then stages
+	// the node's release, once no trial is pending.
+	state := ""
+	var stage []string
+	if daemonArgs != nil {
+		state, stage = filepath.Join(data, "daemon"), StageReleaseArgs(system, data)
+	}
+	ready, stopReady, err := watchReady(state)
+	if err != nil {
+		return PowerOff, err
+	}
+	defer stopReady()
 	if trial != nil {
-		state := ""
-		if daemonArgs != nil {
-			state = filepath.Join(data, "daemon")
-		}
-		if err := trial.watch(state); err != nil {
-			return PowerOff, err
-		}
+		trial.watch(ready)
 	}
 
 	// Start only after helpers finish; from here one Wait4 authority owns children.
 	if err := context.Cause(runCtx); err != nil {
 		return PowerOff, err
 	}
-	stop, usersStopped, err = runGuestShell(runCtx, requests, executable, rootPath, terminal, daemonArgs, trial)
+	stop, usersStopped, err = runGuestShell(runCtx, requests, executable, rootPath, terminal, daemonArgs, stage, ready, trial)
 	return stop, errors.Join(err, context.Cause(runCtx))
 }
 

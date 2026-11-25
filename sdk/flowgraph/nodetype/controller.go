@@ -6,6 +6,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	space_world_replica "github.com/s4wave/spacewave/core/space/world/replica"
+	os_system "github.com/s4wave/spacewave/os/system"
 	alarm_watch "github.com/s4wave/spacewave/sdk/alarm/watch"
 	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 	unixfs_linkedfolder "github.com/s4wave/spacewave/sdk/unixfs/linkedfolder"
@@ -38,6 +39,7 @@ func NewController() *Controller {
 			alarm_watch.NodeTypeID:                  alarm_watch.NodeType{},
 			space_world_replica.NodeTypeID:          space_world_replica.NodeType{},
 			unixfs_linkedfolder.NodeTypeID:          unixfs_linkedfolder.NodeType{},
+			os_system.NodeTypeID:                    os_system.NodeType{},
 		},
 	}
 }

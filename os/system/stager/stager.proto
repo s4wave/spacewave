@@ -1,0 +1,23 @@
+syntax = "proto3";
+package os.system.stager;
+
+import "github.com/s4wave/spacewave/os/release/release.proto";
+
+// Stager serves a placed os/system node's release to its Device's console.
+// The console's stage child is its one client; it reads the image's blocks
+// from the BlockStore service the node serves beside it, under BlocksServiceID.
+// The console is the image store's only writer, so this service only answers.
+service Stager {
+  // WatchRelease sends the release the node binds, and again each time it
+  // changes. It sends nothing while the object holds no release.
+  rpc WatchRelease(WatchReleaseRequest) returns (stream WatchReleaseResponse);
+}
+
+// WatchReleaseRequest asks for the node's release.
+message WatchReleaseRequest {}
+
+// WatchReleaseResponse carries the node's current release.
+message WatchReleaseResponse {
+  // Release is the release the node binds.
+  .os.release.Release release = 1;
+}

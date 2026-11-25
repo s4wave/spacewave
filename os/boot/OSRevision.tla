@@ -6,9 +6,10 @@ EXTENDS Naturals, TLC
 \* already tried; and rolled-back, the last trial that failed. Each revision
 \* root is published with its own authorization, and each move between
 \* revisions is one atomic publish of the named roots.
-\* The running daemon stages the revision its os/system node names beside the
-\* console's read-only reader: it copies the revision's blocks, publishes it as
-\* the trial, and asks for a reboot. It never restages a revision that rolled
+\* The console, the store's one writer, stages the revision the Device's
+\* os/system node serves in a child beside its own read-only reader: the child
+\* copies the revision's blocks, publishes it as the trial, and the console
+\* reboots. It never restages a revision that rolled
 \* back; that waits for the person to place another. A boot marks the trial
 \* attempted before serving it, so a trial that panics, hangs past the
 \* console's deadline or loses power boots back to the accepted revision. A

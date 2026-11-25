@@ -18,13 +18,17 @@ import (
 // joined proves guest processes have stopped, including adopted descendants.
 // daemonArgs, when set, start the image's daemon beside the shell. trial,
 // when set, is accepted by a child once healthy, or ends the run with Reboot
-// at its deadline. A request ends the run with Reboot for SIGTERM, which BusyBox
-// reboot sends, and with PowerOff for any other signal.
+// at its deadline. stageArgs, when set, start the child that stages the next
+// release once ready closes and no trial is unsettled; its clean exit ends
+// the run with Reboot, which boots the staged trial. A request ends the run
+// with Reboot for SIGTERM, which BusyBox reboot sends, and with PowerOff for
+// any other signal.
 func runGuestShell(
 	ctx context.Context,
 	requests <-chan os.Signal,
 	executable, root, terminal string,
-	daemonArgs []string,
+	daemonArgs, stageArgs []string,
+	ready <-chan struct{},
 	trial *trialRun,
 ) (stop Stop, joined bool, retErr error) {
 	// Global waits and signals are forbidden in the hosted mount-namespace probe.
@@ -66,11 +70,25 @@ func runGuestShell(
 	}()
 
 	// Start the daemon after containment is deferred; stopping it runs first.
-	var daemon *guestDaemon
+	var daemon *guestChild
 	if daemonArgs != nil {
-		daemon = &guestDaemon{executable: executable, args: daemonArgs, tty: tty}
+		daemon = &guestChild{name: "DAEMON", executable: executable, args: daemonArgs, tty: tty}
 		daemon.start()
 		defer daemon.stop(children)
+	}
+
+	// The stager is the daemon's client, so it stops first. It starts at the
+	// first pass with stageC set.
+	var stager *guestChild
+	if stageArgs != nil {
+		stager = &guestChild{name: "STAGE", executable: executable, args: stageArgs, tty: tty}
+		defer stager.stop(children)
+	}
+	stageC := func() <-chan struct{} {
+		if stager == nil || !stager.idle() || trial.unsettled() {
+			return nil
+		}
+		return ready
 	}
 	trial.supervise()
 	println("Console ready. Save files under /data; run poweroff or sync; exit to shut down.")
@@ -92,6 +110,15 @@ func runGuestShell(
 			}
 			if daemon != nil && pid == daemon.pid {
 				daemon.exited(status)
+				continue
+			}
+			if stager != nil && pid == stager.pid {
+				if status.Exited() && status.ExitStatus() == 0 {
+					stager.pid = 0
+					println("SPACEWAVE_OS_STAGED_REBOOT")
+					return Reboot, false, nil
+				}
+				stager.exited(status)
 				continue
 			}
 			if trial.accepting(pid) {
@@ -123,6 +150,10 @@ func runGuestShell(
 		case <-children:
 		case <-daemon.restartC():
 			daemon.restartDue()
+		case <-stageC():
+			stager.start()
+		case <-stager.restartC():
+			stager.restartDue()
 		case <-trial.healthyC():
 			if err := trial.startAccept(executable, tty); err != nil {
 				return PowerOff, false, errors.Join(errors.New("accept trial"), err)

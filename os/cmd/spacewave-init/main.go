@@ -197,7 +197,8 @@ var storeCommands = map[string]storeCommand{
 	"stage": {"IMAGE-DIRECTORY SOURCE-IMAGE-DIRECTORY AUTHORIZATION", 3, 3, func(args []string) error {
 		return stageImage(args[0], args[1], args[2])
 	}},
-	"accept-trial": {"IMAGE-DIRECTORY ROOT ACCEPTED TRIAL", 4, 4, boot.RunAcceptTrial},
+	"accept-trial":  {"IMAGE-DIRECTORY ROOT ACCEPTED TRIAL", 4, 4, boot.RunAcceptTrial},
+	"stage-release": {"IMAGE-DIRECTORY DATA-DIRECTORY", 2, 2, boot.RunStageRelease},
 	"seed-data": {"ABSENT-DIRECTORY", 1, 1, func(args []string) error {
 		return seedData(args[0])
 	}},
