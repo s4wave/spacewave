@@ -81,36 +81,29 @@ func (c *Cache) View() block.StoreOps {
 	return c.view
 }
 
-// Reads returns a source that reads the cache, then the durable store lower,
-// and keeps a copy of each of lower's hits, whether or not its refs are known:
-// the copy keeps the refs-known state it was read with, so a block with unknown
-// refs never reads back as a leaf. A nil lower yields a nil source, as no store
-// holds the blocks to copy.
+// Reads returns a source that reads the durable store lower and keeps a copy
+// of each of its hits. It does not read the cache: the caller reads View first,
+// so a block is looked up once per read. A nil lower yields a nil source, as no
+// store holds the blocks to copy.
 func (c *Cache) Reads(lower block_store.StoreSource) block_store.StoreSource {
-	view := c.view
 	return func() block.StoreOps {
 		store := lower()
 		if store == nil {
 			return nil
 		}
-		return block_store.NewCacheReadThrough(
-			func() block.StoreOps { return view },
-			func() block.StoreOps { return store },
-			c.Fill,
-		)
+		return block_store.NewStoreFillReads(store, c.Fill)
 	}
 }
 
 // Fill keeps a copy of a block read from the durable store, evicting the least
-// recently read blocks past the bound. It matches block_store.Fill and ignores
-// the store it is given.
-func (c *Cache) Fill(_ context.Context, _ block.StoreOps, ref *block.BlockRef, stored *block.StoredBlock) error {
+// recently read blocks past the bound.
+func (c *Cache) Fill(_ context.Context, ref *block.BlockRef, stored *block.StoredBlock) {
 	// Copy the block, so no reader's change to its slices reaches the cache.
 	key := cacheKey(ref)
 	copied := &block.StoredBlock{Data: slices.Clone(stored.Data), Refs: stored.Refs, RefsKnown: stored.RefsKnown}
 	size := int64(len(copied.Data)) + entryOverhead
 	if size > c.limit {
-		return nil
+		return
 	}
 
 	// Keep it as the most recently read, unless it is held already.
@@ -118,7 +111,7 @@ func (c *Cache) Fill(_ context.Context, _ block.StoreOps, ref *block.BlockRef, s
 	defer c.mtx.Unlock()
 	if el, ok := c.entries[key]; ok {
 		c.order.MoveToFront(el)
-		return nil
+		return
 	}
 	c.entries[key] = c.order.PushFront(&entry{key: key, stored: copied, size: size})
 	c.bytes += size
@@ -133,7 +126,6 @@ func (c *Cache) Fill(_ context.Context, _ block.StoreOps, ref *block.BlockRef, s
 		c.bytes -= old.size
 		c.evicted.Add(1)
 	}
-	return nil
 }
 
 // get returns a copy of the block held under ref, and marks it read.

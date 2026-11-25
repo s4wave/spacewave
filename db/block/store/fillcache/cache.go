@@ -1,9 +1,9 @@
 // Package block_store_fillcache implements a best-effort disk cache of copies
 // of blocks that a durable store holds, kept in a log of local packs.
 //
-// A read through the cache serves a block the cache holds, else reads the
-// durable store and queues the block to be copied into the cache. Every failure
-// of the cache reads as a miss, so a damaged, full, slow or missing cache costs
+// A read serves a block the cache holds through View, else reads the durable
+// store through Reads, which queues the block to be copied into the cache.
+// Every failure of the cache reads as a miss, so a damaged, full, slow or missing cache costs
 // only the read of the durable store. The directory may be deleted at any time
 // and Open recreates it.
 //
@@ -117,29 +117,24 @@ func (c *Cache) View() block.StoreOps {
 	return c.view
 }
 
-// Reads returns a source that reads the cache, then the durable store lower,
-// and queues each of lower's hits for the cache. A nil lower yields a nil
-// source, as no store holds the blocks to copy.
+// Reads returns a source that reads the durable store lower and queues each
+// of its hits for the cache. It does not read the cache: the caller reads View
+// first, so a block is looked up once per read and each miss counts once. A nil
+// lower yields a nil source, as no store holds the blocks to copy.
 func (c *Cache) Reads(lower block_store.StoreSource) block_store.StoreSource {
 	return func() block.StoreOps {
 		store := lower()
 		if store == nil {
 			return nil
 		}
-		return block_store.NewStoreReadThrough(
-			func() block.StoreOps { return c.view },
-			func() block.StoreOps { return store },
-			c.Fill,
-		)
+		return block_store.NewStoreFillReads(store, c.Fill)
 	}
 }
 
 // Fill queues a block read from the durable store to be copied into the cache.
-// It returns before the write and drops the block when the queue is full. It
-// matches block_store.Fill and ignores the store it is given.
-func (c *Cache) Fill(_ context.Context, _ block.StoreOps, ref *block.BlockRef, stored *block.StoredBlock) error {
+// It returns before the write and drops the block when the queue is full.
+func (c *Cache) Fill(_ context.Context, ref *block.BlockRef, stored *block.StoredBlock) {
 	c.enqueue(&block.PutBatchEntry{Ref: ref, Data: stored.Data, Refs: stored.Refs, RefsKnown: stored.RefsKnown})
-	return nil
 }
 
 // remove forgets the copy of a block that failed its hash.

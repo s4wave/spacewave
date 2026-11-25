@@ -156,8 +156,8 @@ func (p *placementState) cacheReads(remote block_store.StoreSource) block_store.
 // without a cache. The view holds only copies of blocks the packs hold, so
 // serving one before the local store serves the same bytes; a hit skips the
 // Volume's read and leaves no read record, which only lets local eviction drop
-// a copy the cache holds. A read that misses both asks the view again inside
-// cacheReads, one more lookup in memory before the backend's read.
+// a copy the cache holds. The view is the cache's only read: cacheReads reads
+// the backend alone and fills the cache, so each read looks a block up once.
 func (p *placementState) cacheFirst(reads block.StoreOps) block.StoreOps {
 	if p.cache == nil {
 		return reads

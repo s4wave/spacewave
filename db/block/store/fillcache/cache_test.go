@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/s4wave/spacewave/db/block"
+	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
@@ -68,10 +69,12 @@ func testBlocks(t *testing.T, n int) (*packs, []*block.BlockRef) {
 	return src, refs
 }
 
-// fillRead reads ref through c from src and waits for the writer.
+// fillRead reads ref through c's view, then src, as a placed store reads, and
+// waits for the writer.
 func fillRead(t *testing.T, c *Cache, src *packs, ref *block.BlockRef) {
 	t.Helper()
-	data, found, err := c.Reads(func() block.StoreOps { return src })().GetBlock(t.Context(), ref)
+	reads := block_store.NewStoreReadThrough(c.View, c.Reads(func() block.StoreOps { return src }), nil)
+	data, found, err := reads.GetBlock(t.Context(), ref)
 	if err != nil || !found || len(data) != 16<<10 {
 		t.Fatalf("read = %d bytes, %v, %v", len(data), found, err)
 	}
