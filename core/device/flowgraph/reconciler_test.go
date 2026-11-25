@@ -360,6 +360,12 @@ func TestReconciler(t *testing.T) {
 	if err := policy.Reload(); err != nil {
 		t.Fatal(err)
 	}
+
+	// Run the same AVC subscription against the hardware source on its build host.
+	displayParameters := map[string]string{}
+	if os.Getenv("SPACEWAVE_GST_TEST_HELPER") != "" {
+		displayParameters["source"] = "gstreamer-test"
+	}
 	commit(t, ctx, engine, func(tx world.Tx) error {
 		_, err := s4wave_flowgraph.UpdateFlowgraph(ctx, tx, testFlowgraphKey, &s4wave_flowgraph.UpdateFlowgraphRequest{
 			SetNodes: map[string]*s4wave_flowgraph.FlowgraphNode{
@@ -367,7 +373,7 @@ func TestReconciler(t *testing.T) {
 				"shell-b":   {TypeId: s4wave_flowgraph.RemoteShellNodeTypeID},
 				"camera":    {TypeId: s4wave_flowgraph.CameraNodeTypeID},
 				"display-a": {TypeId: s4wave_flowgraph.DisplayNodeTypeID, Parameters: map[string]string{"codec": "jpeg"}},
-				"display-b": {TypeId: s4wave_flowgraph.DisplayNodeTypeID},
+				"display-b": {TypeId: s4wave_flowgraph.DisplayNodeTypeID, Parameters: displayParameters},
 			},
 			SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacements{
 				"shell-a":   {Copies: []*s4wave_flowgraph.FlowgraphPlacement{devicePlacement(testSelfKey)}},
@@ -438,7 +444,7 @@ func TestReconciler(t *testing.T) {
 	jpegFrames := openDisplay(t, ctx, engine, viewerBus, viewer.GetPeerID(), displayCap.GetId(), "display/jpeg")
 	checkDisplayJPEG(t, ctx, st.GetPeerID(), outsider, displayProtocol, jpegFrames)
 
-	// Move to the next eligible display and decode its default AVC stream.
+	// Move to the next eligible display and decode its AVC stream.
 	commit(t, ctx, engine, func(tx world.Tx) error {
 		_, err := s4wave_flowgraph.UpdateFlowgraph(ctx, tx, testFlowgraphKey, &s4wave_flowgraph.UpdateFlowgraphRequest{
 			RemoveNodeIds: []string{"display-a"},

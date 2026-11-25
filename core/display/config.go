@@ -21,19 +21,28 @@ func ControlProtocolID(capabilityID string) protocol.ID {
 	return protocol.ID("alpha/display/control/1/" + capabilityID)
 }
 
-// Validate requires the placed capability and a codec the test pattern serves.
+// Validate requires the placed capability and a codec the source can serve.
 func (c *Config) Validate() error {
 	// The protocol must belong to one placed node through its lifetime.
 	if c.GetCapabilityId() == "" {
 		return errors.New("display capability ID is required")
 	}
 
-	// Choose a supported rendition for the source.
-	switch c.GetCodec() {
-	case frametrack.Codec_CODEC_H264_AVC, frametrack.Codec_CODEC_JPEG:
-		return nil
-	default:
+	// Match the rendition to the selected source.
+	codec := c.GetCodec()
+	switch c.GetSource() {
+	case Source_SOURCE_UNKNOWN:
+		if codec == frametrack.Codec_CODEC_H264_AVC || codec == frametrack.Codec_CODEC_JPEG {
+			return nil
+		}
 		return errors.New("display codec must be h264 or jpeg")
+	case Source_SOURCE_GSTREAMER_TEST:
+		if codec == frametrack.Codec_CODEC_H264_AVC {
+			return nil
+		}
+		return errors.New("GStreamer display capture requires h264")
+	default:
+		return errors.New("unknown display source")
 	}
 }
 
@@ -42,7 +51,7 @@ func (c *Config) GetConfigID() string {
 	return ConfigID
 }
 
-// EqualsConfig reports whether other selects the same test pattern.
+// EqualsConfig reports whether other selects the same display configuration.
 func (c *Config) EqualsConfig(other config.Config) bool {
 	o, ok := other.(*Config)
 	return ok && c.EqualVT(o)

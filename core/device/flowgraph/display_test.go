@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"image/jpeg"
+	"os"
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -119,8 +120,14 @@ func checkDisplayJPEG(
 
 // checkDisplayAVC requires an IDR and its first two dependent pictures.
 func checkDisplayAVC(t *testing.T, frames s4wave_display.SRPCDisplayResourceService_ConnectDisplayClient) {
-	// Open the decoder from the first complete group's header.
+	// The viewer can send its pointer while the AVC source keeps serving pictures.
 	t.Helper()
+	pointer := &frametrack.Input_Pointer{Pointer: &frametrack.PointerInput{X: 0.5, Y: 0.25}}
+	if err := frames.Send(&frametrack.Input{Event: pointer}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Open the decoder from the first complete group's header.
 	for n := range 3 {
 		// Read the access units in decode order from the real resource.
 		response, err := frames.Recv()
@@ -134,6 +141,10 @@ func checkDisplayAVC(t *testing.T, frames s4wave_display.SRPCDisplayResourceServ
 		if n == 0 && (header.GetGroupSequence() == 0 ||
 			header.GetCodec() != frametrack.Codec_CODEC_H264_AVC || len(header.GetDecoderDescription()) < 7) {
 			t.Fatalf("AVC opening header = %v", header)
+		}
+		if n == 0 && os.Getenv("SPACEWAVE_GST_TEST_HELPER") != "" &&
+			(header.GetWidth() != 1920 || header.GetHeight() != 1080) {
+			t.Fatalf("GPU AVC opening size = %dx%d", header.GetWidth(), header.GetHeight())
 		}
 
 		// The following access units depend on the opening keyframe.

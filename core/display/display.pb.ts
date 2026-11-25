@@ -2,13 +2,36 @@
 // @generated from file github.com/s4wave/spacewave/core/display/display.proto (package display, syntax proto3)
 /* eslint-disable */
 
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import type { Codec } from '../frametrack/frametrack.pb.js'
 import { Codec_Enum } from '../frametrack/frametrack.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 
 /**
- * Config selects the codec of the Device's display test pattern.
+ * Source identifies the capture source of a display node.
+ *
+ * @generated from enum display.Source
+ */
+export enum Source {
+  /**
+   * SOURCE_UNKNOWN leaves the default test pattern selected.
+   */
+  UNKNOWN = 0,
+
+  /**
+   * SOURCE_GSTREAMER_TEST encodes synthetic pictures with the Linux GPU.
+   */
+  GSTREAMER_TEST = 1,
+}
+
+export const Source_Enum = /* @__PURE__ */ createEnumType('display.Source', [
+  [0, 'SOURCE_UNKNOWN'],
+  [1, 'SOURCE_GSTREAMER_TEST'],
+])
+
+/**
+ * Config selects the source and codec of the Device's display.
  *
  * @generated from message display.Config
  */
@@ -21,10 +44,15 @@ export interface Config {
    * CapabilityId identifies the placed node that owns the control endpoint.
    */
   capabilityId?: string
+  /**
+   * Source selects where the pictures come from.
+   */
+  source?: Source
 }
 
 export const Config: MessageType<Config> =
   /* @__PURE__ */ createMessageType<Config>('display.Config', () => [
     [1, 'codec', 14, 0, Codec_Enum],
     [2, 'capability_id', 9],
+    [3, 'source', 14, 0, Source_Enum],
   ])

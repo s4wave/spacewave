@@ -5,10 +5,20 @@ import "github.com/s4wave/spacewave/core/frametrack/frametrack.proto";
 
 option go_package = "github.com/s4wave/spacewave/core/display;display";
 
-// Config selects the codec of the Device's display test pattern.
+// Source identifies the capture source of a display node.
+enum Source {
+  // SOURCE_UNKNOWN leaves the default test pattern selected.
+  SOURCE_UNKNOWN = 0;
+  // SOURCE_GSTREAMER_TEST encodes synthetic pictures with the Linux GPU.
+  SOURCE_GSTREAMER_TEST = 1;
+}
+
+// Config selects the source and codec of the Device's display.
 message Config {
   // Codec selects the AVC bars clip or the pointer-responsive JPEG pattern.
   .s4wave.frametrack.Codec codec = 1;
   // CapabilityId identifies the placed node that owns the control endpoint.
   string capability_id = 2;
+  // Source selects where the pictures come from.
+  Source source = 3;
 }

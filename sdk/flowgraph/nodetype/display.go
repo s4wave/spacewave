@@ -15,6 +15,9 @@ import (
 // displayCodecParameter names the test pattern codec on a display node.
 const displayCodecParameter = "codec"
 
+// displaySourceParameter selects the capture source on a display node.
+const displaySourceParameter = "source"
+
 // display serves a display track on the Device that runs the node.
 type display struct{}
 
@@ -45,9 +48,23 @@ func (display) Compile(_ context.Context, node *s4wave_flowgraph.PlacedFlowgraph
 		return nil, errors.New("display codec must be h264 or jpeg")
 	}
 
-	// Start the source selected by the node.
+	// Leave the existing patterns as the default and make GPU capture explicit.
+	var source display_service.Source
+	switch node.Node.GetParameters()[displaySourceParameter] {
+	case "":
+	case "gstreamer-test":
+		source = display_service.Source_SOURCE_GSTREAMER_TEST
+	default:
+		return nil, errors.New("unknown display source")
+	}
+
+	// Validate the source and rendition before placing the display controller.
+	conf := &display_service.Config{Codec: codec, CapabilityId: node.CapabilityID(), Source: source}
+	if err := conf.Validate(); err != nil {
+		return nil, err
+	}
 	return map[string]config.Config{
-		"display": &display_service.Config{Codec: codec, CapabilityId: node.CapabilityID()},
+		"display": conf,
 	}, nil
 }
 

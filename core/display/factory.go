@@ -10,6 +10,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/callback"
+	"github.com/s4wave/spacewave/core/display/gstencoder"
 	"github.com/s4wave/spacewave/core/frametrack"
 	frametrack_server "github.com/s4wave/spacewave/core/frametrack/server"
 	"github.com/s4wave/spacewave/core/testpattern"
@@ -44,7 +45,7 @@ func (f *Factory) ConstructConfig() config.Config {
 	return &Config{}
 }
 
-// Construct creates the controller that runs the selected test pattern.
+// Construct creates the controller that runs the selected display source.
 func (f *Factory) Construct(_ context.Context, config config.Config, opts controller.ConstructOpts) (controller.Controller, error) {
 	// Validate the rendition before publishing the controller.
 	conf := config.(*Config)
@@ -58,6 +59,15 @@ func (f *Factory) Construct(_ context.Context, config config.Config, opts contro
 
 	// Serve one source per controller execution. Only JPEG can repaint bars.
 	return callback.NewCallbackController(info, func(ctx context.Context) error {
+		// Pass the GPU encoder's pictures straight through to the frame track.
+		if conf.GetSource() == Source_SOURCE_GSTREAMER_TEST {
+			source, err := gstencoder.OpenSource(ctx, gstencoder.Executable)
+			if err != nil {
+				return err
+			}
+			return frametrack_server.Serve(ctx, le, f.b, id, source, 4, func(*frametrack.Input) {})
+		}
+
 		// The pre-encoded clip takes input without changing its pictures.
 		if codec == frametrack.Codec_CODEC_H264_AVC {
 			return frametrack_server.Serve(ctx, le, f.b, id, testpattern.NewH264Source(), 4, func(*frametrack.Input) {})
