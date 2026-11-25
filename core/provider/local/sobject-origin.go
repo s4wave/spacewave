@@ -62,7 +62,7 @@ func (a *ProviderAccount) ReadStoredSharedObject(ctx context.Context, id string)
 		out.Entry, out.Origin = entry, origin
 
 		// Read the stored state in the same transaction.
-		data, found, err := readSOStateData(ctx, tx, id)
+		data, found, err := ReadSOStateData(ctx, tx, id)
 		if found {
 			out.State = data
 		}

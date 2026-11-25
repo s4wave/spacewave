@@ -98,10 +98,10 @@ func soStateInLog(ctx context.Context, tx kvtx.TxOps, id string) (stored, inLog 
 	return found, found && bytes.Equal(data, logLayoutMarker), err
 }
 
-// readSOStateData returns the encoded state of id in either layout: the
+// ReadSOStateData returns the encoded state of id in either layout: the
 // bytes the whole layout stores, or the encoding of the state the log
 // assembles, which equals the bytes that state was written from.
-func readSOStateData(ctx context.Context, tx kvtx.TxOps, id string) ([]byte, bool, error) {
+func ReadSOStateData(ctx context.Context, tx kvtx.TxOps, id string) ([]byte, bool, error) {
 	// The whole layout stores the encoding itself.
 	whole, log := soStateLayoutPair(id)
 	data, found, err := tx.Get(ctx, whole)
@@ -121,9 +121,9 @@ func readSOStateData(ctx context.Context, tx kvtx.TxOps, id string) ([]byte, boo
 	return data, err == nil, err
 }
 
-// replaceSOState stores state as id's new lineage in the selected layout and
+// ReplaceSOState stores state as id's new lineage in the selected layout and
 // clears the other one.
-func replaceSOState(ctx context.Context, tx kvtx.TxOps, id string, state *sobject.SOState) error {
+func ReplaceSOState(ctx context.Context, tx kvtx.TxOps, id string, state *sobject.SOState) error {
 	selected, other := soStateLayouts(id)
 	if err := other.clear(ctx, tx); err != nil {
 		return err

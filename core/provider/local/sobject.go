@@ -1173,7 +1173,7 @@ func (a *ProviderAccount) genesisSOStateWriter(ctx context.Context, id string) (
 		if err := WriteSOConfigHistory(ctx, tx, id, genesis.GetConfig(), state.GetConfig(), []*sobject.SOConfigChange{genesis}); err != nil {
 			return err
 		}
-		return replaceSOState(ctx, tx, id, state)
+		return ReplaceSOState(ctx, tx, id, state)
 	}, nil
 }
 

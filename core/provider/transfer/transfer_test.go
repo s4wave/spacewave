@@ -1160,9 +1160,12 @@ func targetSpaceState(ctx context.Context, t *testing.T, store object.ObjectStor
 		t.Fatal(err)
 	}
 	defer tx.Discard()
-	key := provider_local.SobjectObjectStoreHostStateKey(id)
 	if set != nil {
-		if err := tx.Set(ctx, key, set); err != nil {
+		state := &sobject.SOState{}
+		if err := state.UnmarshalVT(set); err != nil {
+			t.Fatal(err)
+		}
+		if err := provider_local.ReplaceSOState(ctx, tx, id, state); err != nil {
 			t.Fatal(err)
 		}
 		if err := tx.Commit(ctx); err != nil {
@@ -1170,7 +1173,7 @@ func targetSpaceState(ctx context.Context, t *testing.T, store object.ObjectStor
 		}
 		return set
 	}
-	data, found, err := tx.Get(ctx, key)
+	data, found, err := provider_local.ReadSOStateData(ctx, tx, id)
 	if err != nil || !found {
 		t.Fatalf("read target state of %s: found=%v err=%v", id, found, err)
 	}

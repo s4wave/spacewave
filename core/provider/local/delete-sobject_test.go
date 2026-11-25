@@ -411,7 +411,7 @@ func TestMountReloadsAfterAmbiguousCommit(t *testing.T) {
 		var err error
 		commitOnce.Do(func() {
 			err = a.runSoObjectStoreTx(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
-				data, _, err := readSOStateData(ctx, tx, "ambiguous")
+				data, _, err := ReadSOStateData(ctx, tx, "ambiguous")
 				if err != nil {
 					return err
 				}

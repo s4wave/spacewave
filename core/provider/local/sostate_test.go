@@ -40,7 +40,7 @@ func seedTestGenesisState(t *testing.T, store kvtx.Store) (*sobject.SOState, *so
 		if err := WriteSOConfigHistory(ctx, tx, testSharedObjectID, genesis.GetConfig(), state.GetConfig(), []*sobject.SOConfigChange{genesis}); err != nil {
 			return err
 		}
-		return replaceSOState(ctx, tx, testSharedObjectID, state)
+		return ReplaceSOState(ctx, tx, testSharedObjectID, state)
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -54,7 +54,7 @@ func storeTestStateData(ctx context.Context, tx kvtx.Tx, id string, data []byte)
 	if err := state.UnmarshalVT(data); err != nil {
 		return err
 	}
-	return replaceSOState(ctx, tx, id, state)
+	return ReplaceSOState(ctx, tx, id, state)
 }
 
 // newTestGenesisHost returns a host over store seeded with the genesis state
