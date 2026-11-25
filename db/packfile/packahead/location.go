@@ -23,6 +23,8 @@ type location struct {
 	off uint32
 	// size is the value's length.
 	size uint32
+	// read is set by the first Get since the value was written to p.
+	read bool
 }
 
 // end returns the offset just past the value.

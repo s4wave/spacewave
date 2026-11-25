@@ -255,23 +255,7 @@ func (l *Log) applyFinal(p *pack, fin *finalized) {
 // waits for that copy to be durable instead. Blocks that do not fit the open
 // pack go to the next.
 func (l *Log) Append(ctx context.Context, blocks []Block) error {
-	// Check every key and size before writing any block.
-	for _, b := range blocks {
-		if len(b.Key) < keyTailLen {
-			return ErrKeyTooShort
-		}
-		if int64(recordLen([]Block{b})+len(b.Value)+len(b.Key)+indexEntryReserve+indexTrailerReserve) > l.opts.MaxPackBytes {
-			return ErrValueTooLarge
-		}
-	}
-
-	// Write the blocks under writeMtx, collecting the syncs they wait for.
-	release, err := l.writeMtx.Lock(ctx)
-	if err != nil {
-		return err
-	}
-	waits, err := l.writeBlocks(ctx, blocks)
-	release()
+	waits, err := l.write(ctx, blocks, nil)
 	if err != nil {
 		return err
 	}
@@ -285,6 +269,39 @@ func (l *Log) Append(ctx context.Context, blocks []Block) error {
 	return nil
 }
 
+// AppendUnsynced writes blocks as Append does and returns once they are
+// written, without waiting for a sync. They become durable at the next sync
+// a writer leads or when the maintainer finalizes their pack; a crash before
+// that drops them, and recovery truncates the pack to the batches that
+// reached the drive. Only a Log of copies, such as a cache, appends this way.
+func (l *Log) AppendUnsynced(ctx context.Context, blocks []Block) error {
+	_, err := l.write(ctx, blocks, nil)
+	return err
+}
+
+// write checks blocks and writes them under writeMtx, returning the syncs
+// they wait for. A held key located in pack replace is written again and
+// relocated, as a carry needs; every other held key is skipped.
+func (l *Log) write(ctx context.Context, blocks []Block, replace *pack) ([]syncWait, error) {
+	// Check every key and size before writing any block.
+	for _, b := range blocks {
+		if len(b.Key) < keyTailLen {
+			return nil, ErrKeyTooShort
+		}
+		if int64(recordLen([]Block{b})+len(b.Value)+len(b.Key)+indexEntryReserve+indexTrailerReserve) > l.opts.MaxPackBytes {
+			return nil, ErrValueTooLarge
+		}
+	}
+
+	// Write the blocks under writeMtx, collecting the syncs they wait for.
+	release, err := l.writeMtx.Lock(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer release()
+	return l.writeBlocks(ctx, blocks, replace)
+}
+
 // syncWait is a pack offset a caller waits to be durable.
 type syncWait struct {
 	// p is the pack.
@@ -294,8 +311,9 @@ type syncWait struct {
 }
 
 // writeBlocks writes blocks as batches to the open pack, rotating when one
-// fills, and returns the syncs they need. The caller holds writeMtx.
-func (l *Log) writeBlocks(ctx context.Context, blocks []Block) ([]syncWait, error) {
+// fills, and returns the syncs they need. A held key located in replace is
+// written again. The caller holds writeMtx.
+func (l *Log) writeBlocks(ctx context.Context, blocks []Block, replace *pack) ([]syncWait, error) {
 	var waits []syncWait
 	addWait := func(p *pack, end int64) {
 		for i := range waits {
@@ -317,7 +335,7 @@ func (l *Log) writeBlocks(ctx context.Context, blocks []Block) ([]syncWait, erro
 				return
 			}
 			p = l.open
-			plan = l.planBatchLocked(p, blocks, addWait)
+			plan = l.planBatchLocked(p, blocks, replace, addWait)
 		})
 		if err != nil {
 			return nil, err
@@ -358,9 +376,10 @@ type batchPlan struct {
 }
 
 // planBatchLocked chooses the leading blocks pack p takes: held keys add a
-// wait for their copy and are skipped, and the rest are taken while the pack
-// stays within its bounds. The caller holds bcast.
-func (l *Log) planBatchLocked(p *pack, blocks []Block, addWait func(*pack, int64)) batchPlan {
+// wait for their copy and are skipped, unless their copy is in replace, and
+// the rest are taken while the pack stays within its bounds. The caller holds
+// bcast.
+func (l *Log) planBatchLocked(p *pack, blocks []Block, replace *pack, addWait func(*pack, int64)) batchPlan {
 	// A failed pack takes nothing more.
 	if p.err != nil {
 		return batchPlan{rotate: true}
@@ -371,7 +390,7 @@ func (l *Log) planBatchLocked(p *pack, blocks []Block, addWait func(*pack, int64
 	var entryBytes, data, keyBytes int64
 	for plan.consumed < len(blocks) {
 		b := blocks[plan.consumed]
-		if loc, ok := l.table[tailOf(b.Key)]; ok {
+		if loc, ok := l.table[tailOf(b.Key)]; ok && (replace == nil || loc.p != replace) {
 			if loc.p.state != packFinal {
 				addWait(loc.p, loc.end())
 			}
@@ -571,7 +590,8 @@ func (l *Log) Get(key []byte) ([]byte, bool, error) {
 
 // GetDurable returns the value under key as Get does, and whether the value
 // was synced when found. A value not yet synced is one a failed sync forgets,
-// so a cache keeps only a durable one.
+// so a cache keeps only a durable one. A hit sets the value's read bit, which
+// EvictCarry keeps a value by.
 func (l *Log) GetDurable(key []byte) ([]byte, bool, bool, error) {
 	// Locate the value, copying it out of a pack buffer.
 	if len(key) < keyTailLen {
@@ -581,9 +601,15 @@ func (l *Log) GetDurable(key []byte) ([]byte, bool, bool, error) {
 	var found, copied, durable bool
 	var out []byte
 	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		loc, found = l.table[tailOf(key)]
+		// Find the value and set its read bit on the first hit.
+		t := tailOf(key)
+		loc, found = l.table[t]
 		if !found {
 			return
+		}
+		if !loc.read {
+			loc.read = true
+			l.table[t] = loc
 		}
 		durable = loc.end() <= loc.p.synced
 		if loc.p.buf != nil {
@@ -641,7 +667,10 @@ func (l *Log) GetPacks() ([]PackInfo, <-chan struct{}) {
 	l.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 		for _, p := range l.packs {
 			if p.state == packFinal {
-				infos = append(infos, PackInfo{Seq: p.seq, ID: p.id, Path: p.path, Size: p.written, Blocks: p.blocks, BloomFilter: p.bloom, FirstAt: p.firstAt, Uploaded: p.uploaded})
+				infos = append(infos, PackInfo{
+					Seq: p.seq, ID: p.id, Path: p.path, Size: p.written, Blocks: p.blocks,
+					BloomFilter: p.bloom, FirstAt: p.firstAt, Uploaded: p.uploaded,
+				})
 			}
 		}
 		waitCh = getWaitCh()
