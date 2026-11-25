@@ -12,6 +12,7 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
+	"github.com/s4wave/spacewave/db/world/viewstream"
 	world_testbed "github.com/s4wave/spacewave/testbed"
 )
 
@@ -1078,5 +1079,57 @@ func TestRevisionCacheBehindRecursive(t *testing.T) {
 		}
 	case <-time.After(5 * time.Second):
 		t.Fatal("a part read from its own computation waited on itself")
+	}
+}
+
+// TestWaiterLendsItsColdReadSlot gives one admission slot to view B, which
+// then waits on a shared value that view A, holding no slot, is computing.
+// A's computation needs a cold read, so it waits at the gate: B must lend its
+// slot back while it waits, or neither ever finishes.
+func TestWaiterLendsItsColdReadSlot(t *testing.T) {
+	// One slot, held by B's first cold read.
+	store, engine := readsStore(t)
+	ctx := t.Context()
+	cache := &Cache{engine: engine}
+	tx, err := store.engine.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tx.Discard)
+	admission := viewstream.NewAdmission(1, 1, 0, 0, nil)
+	ticketA, ticketB := admission.Ticket(), admission.Ticket()
+	defer ticketA.Close()
+	defer ticketB.Close()
+	if err := ticketB.EnterCold(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	// A claims the value, then waits at the gate inside its computation.
+	started := make(chan struct{})
+	ctxA := block.WithColdReadGate(ctx, ticketA)
+	aDone := make(chan error, 1)
+	go func() {
+		_, err := cache.Get(ctxA, tx, "shared", func(ctx context.Context, _ world.WorldState) (any, error) {
+			close(started)
+			if err := ticketA.EnterCold(ctx); err != nil {
+				return nil, err
+			}
+			return 7, nil
+		})
+		aDone <- err
+	}()
+	<-started
+
+	// B waits on A's computation and gets its value.
+	waitCtx, cancel := context.WithTimeout(block.WithColdReadGate(ctx, ticketB), 5*time.Second)
+	defer cancel()
+	got, err := cache.Get(waitCtx, tx, "shared", func(context.Context, world.WorldState) (any, error) {
+		return nil, errors.New("the waiter computed")
+	})
+	if err != nil || got != 7 {
+		t.Fatalf("B got %v, %v: it held its slot while waiting on A", got, err)
+	}
+	if err := <-aDone; err != nil {
+		t.Fatal(err)
 	}
 }

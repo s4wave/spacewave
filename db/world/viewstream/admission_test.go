@@ -3,6 +3,7 @@ package viewstream
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 	"testing/synctest"
 	"time"
@@ -150,4 +151,52 @@ func TestPacer(t *testing.T) {
 			t.Fatal(err)
 		}
 	})
+}
+
+// TestTicketTakesOneSlotAtTheFirstColdRead runs two tickets on one slot: a
+// run that never reads cold takes no slot, concurrent cold reads of one run
+// share one acquisition, a lent slot admits the other run, and the lender's
+// next cold read waits for it until the other run closes.
+func TestTicketTakesOneSlotAtTheFirstColdRead(t *testing.T) {
+	ctx := t.Context()
+	a := NewAdmission(1, 1, 0, 0, nil)
+
+	// A warm run closes without a slot; the slot stays free.
+	a.Ticket().Close()
+
+	// Eight cold reads of one run take the slot once.
+	first := a.Ticket()
+	var wg sync.WaitGroup
+	for range 8 {
+		wg.Go(func() {
+			if err := first.EnterCold(ctx); err != nil {
+				t.Error(err)
+			}
+		})
+	}
+	wg.Wait()
+	second := a.Ticket()
+	blocked, cancel := context.WithTimeout(ctx, 20*time.Millisecond)
+	defer cancel()
+	if err := second.EnterCold(blocked); err == nil {
+		t.Fatal("a second run took the slot the first holds")
+	}
+
+	// Lending admits the other run, and the lender waits for its close.
+	first.Lend()
+	if err := second.EnterCold(ctx); err != nil {
+		t.Fatal(err)
+	}
+	back := make(chan error, 1)
+	go func() { back <- first.EnterCold(ctx) }()
+	select {
+	case <-back:
+		t.Fatal("the lender read cold while the other run held the slot")
+	case <-time.After(20 * time.Millisecond):
+	}
+	second.Close()
+	if err := <-back; err != nil {
+		t.Fatal(err)
+	}
+	first.Close()
 }

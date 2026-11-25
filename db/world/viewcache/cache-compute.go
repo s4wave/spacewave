@@ -40,10 +40,8 @@ func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compu
 			c.mtx.Unlock()
 			// A reader that leaves stops waiting, so streams a client
 			// abandoned during a slow build do not pile up behind it.
-			select {
-			case <-entry.done:
-			case <-ctx.Done():
-				return nil, ctx.Err()
+			if err := awaitComputation(ctx, entry.done); err != nil {
+				return nil, err
 			}
 			if entry.err != nil {
 				// A computation its own caller abandoned failed for that
@@ -161,10 +159,8 @@ func (c *Cache) computeBehind(
 		entry := c.behind[key]
 		if entry != nil && ctx.Value(behindClaimKey{entry}) == nil {
 			c.mtx.Unlock()
-			select {
-			case <-entry.done:
-			case <-ctx.Done():
-				return nil, ctx.Err()
+			if err := awaitComputation(ctx, entry.done); err != nil {
+				return nil, err
 			}
 			if entry.err != nil {
 				if err := ctx.Err(); err != nil {
@@ -299,4 +295,23 @@ func Value[T any](ctx context.Context, c *Cache, tx world.WorldState, name strin
 		return zero, err
 	}
 	return value.(T), nil
+}
+
+// awaitComputation waits for another caller's computation to close done, or
+// for ctx to end. A waiter about to block lends back its cold read admission
+// first: the computer may be waiting at the gate for a slot, and a slot held
+// by its own waiters would never free.
+func awaitComputation(ctx context.Context, done <-chan struct{}) error {
+	select {
+	case <-done:
+		return nil
+	default:
+	}
+	block.LendColdRead(ctx)
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
