@@ -112,8 +112,8 @@ func (t *bstoreTracker) startResident(ctx context.Context, le *logrus.Entry, p *
 	}
 }
 
-// warmResident reads the blocks the last mount's list names and the cache
-// lacks from the backend into the cache, once the backend opens, when the
+// warmResident reads the blocks the last mount's list names and neither the
+// cache nor the local store holds from the backend into the cache, once the backend opens, when the
 // backend reads batches. The blocks it does not read read on demand.
 func (t *bstoreTracker) warmResident(ctx context.Context, le *logrus.Entry, p *placementState, cache ResidentCache) {
 	// Wait for the backend to open, and warm only from one that reads batches.
@@ -126,11 +126,15 @@ func (t *bstoreTracker) warmResident(ctx context.Context, le *logrus.Entry, p *p
 		return
 	}
 
-	// Read the list into the cache and log what it did.
+	// Read the list into the cache, skipping what the local store serves, and
+	// log what it did.
 	start := time.Now()
-	counts, err := cache.WarmResident(ctx, t.id, batch.ReadBatch)
+	var local int
+	read := skipLocal(p.withLinkedFiles(p.local), batch.ReadBatch, &local)
+	counts, err := cache.WarmResident(ctx, t.id, read)
 	le = le.WithField("listed", counts.Listed).
 		WithField("held", counts.Listed-counts.Missing).
+		WithField("local", local).
 		WithField("fetched", counts.Fetched).
 		WithField("dur", time.Since(start).Round(time.Millisecond).String())
 	if err != nil && ctx.Err() == nil {
@@ -139,6 +143,37 @@ func (t *bstoreTracker) warmResident(ctx context.Context, le *logrus.Entry, p *p
 	}
 	if counts.Listed != 0 {
 		le.Info("resident warm-up done")
+	}
+}
+
+// skipLocal returns a ReadBatch that reads with read only the refs local lacks,
+// adding the count it skipped to skipped. A placed store's reads try its local
+// store before the fill cache, so a block local holds would fill a copy no read
+// reaches; the list names such blocks, as the decoded cache sits above both.
+// Each call costs one batched existence probe of local. A failed probe fails
+// the call, ending the warm-up, rather than reading the whole slice from the
+// bucket.
+func skipLocal(local block.StoreOps, read block_store_fillcache.ReadBatch, skipped *int) block_store_fillcache.ReadBatch {
+	var want []*block.BlockRef
+	return func(ctx context.Context, refs []*block.BlockRef, fn func(*block.BlockRef, *block.StoredBlock) error) error {
+		// Keep the refs local lacks.
+		held, err := local.GetBlockExistsBatch(ctx, refs)
+		if err != nil {
+			return err
+		}
+		want = want[:0]
+		for i, ref := range refs {
+			if !held[i] {
+				want = append(want, ref)
+			}
+		}
+		*skipped += len(refs) - len(want)
+
+		// Read them.
+		if len(want) == 0 {
+			return nil
+		}
+		return read(ctx, want, fn)
 	}
 }
 
