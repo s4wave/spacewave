@@ -712,7 +712,8 @@ func TestLoweredHighMarkKeepsBatchesShort(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	drain(t, s, newInmemBlockStore())
+	remote := newInmemBlockStore()
+	drain(t, s, remote)
 	s.SetPolicy(Policy{ResidentHigh: 1 << 40, ResidentLow: 1 << 39})
 	if status, _ := s.GetStatus(); status.EvictBytes() != 0 {
 		t.Fatalf("evict bytes = %d under a high mark past the store", status.EvictBytes())
@@ -738,7 +739,7 @@ func TestLoweredHighMarkKeepsBatchesShort(t *testing.T) {
 		}
 		return nil
 	}
-	result, err := s.Evict(ctx, nil, want, nil, admit)
+	result, err := s.Evict(ctx, remote, want, nil, admit)
 	if err != nil {
 		t.Fatal(err)
 	}
