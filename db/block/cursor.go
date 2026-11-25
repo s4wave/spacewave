@@ -669,10 +669,13 @@ func (c *Cursor) fetchAt(ctx context.Context, ref *BlockRef) ([]byte, int, bool,
 		return nil, 0, false, nil
 	}
 
-	// Find the store to read from.
+	// Find the store to read from, and wait for the reader's admission to it.
 	bkt := c.readStore(ctx)
 	if bkt == nil {
 		return nil, 0, false, ErrBlockStoreUnavailable
+	}
+	if err := enterColdRead(ctx); err != nil {
+		return nil, 0, false, err
 	}
 
 	// Read the stored block, recording the read and its time on the
