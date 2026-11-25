@@ -166,6 +166,17 @@ func readResidentKeys(r *bufio.Reader, n int) ([][]byte, bool) {
 	return keys, false
 }
 
+// removeResidentTemps deletes the temporary files a killed SaveResident left
+// in the list directory of the cache at path. A save that is running when it
+// is called loses its file, fails its rename and keeps the previous list.
+// Leftovers it cannot delete cost only disk, so it ignores failures.
+func removeResidentTemps(path string) {
+	temps, _ := filepath.Glob(filepath.Join(path+".resident", "*.tmp"))
+	for _, name := range temps {
+		_ = os.Remove(name)
+	}
+}
+
 // residentPath returns the list file of scope, in the directory beside the
 // database.
 func (c *Cache) residentPath(scope string) string {

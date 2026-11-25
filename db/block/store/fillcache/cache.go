@@ -130,6 +130,7 @@ func Open(ctx context.Context, le *logrus.Entry, path string, opts Options) (*Ca
 	if err != nil {
 		return nil, errors.Wrap(err, "open the block fill cache")
 	}
+	removeResidentTemps(path)
 
 	// Build the cache over the database.
 	keys := store_kvkey.NewDefaultKVKey()
