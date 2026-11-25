@@ -4,6 +4,7 @@
 package s3test
 
 import (
+	"bytes"
 	"encoding/xml"
 	"io"
 	"maps"
@@ -136,13 +137,19 @@ type listContent struct {
 
 // ServeHTTP answers one S3 request.
 func (b *Bucket) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// Serve one request at a time.
+	// Read an object outside the lock, as a bucket serves reads in parallel.
+	key := strings.TrimPrefix(r.URL.Path, "/"+BucketName+"/")
+	query := r.URL.Query()
+	if (r.Method == http.MethodGet || r.Method == http.MethodHead) && !query.Has("versions") && query.Get("list-type") == "" {
+		b.serveObject(w, r, key, query.Get("versionId"))
+		return
+	}
+
+	// Serve every other request one at a time.
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
 
 	// Answer by the request's method, key and query.
-	key := strings.TrimPrefix(r.URL.Path, "/"+BucketName+"/")
-	query := r.URL.Query()
 	switch {
 	case query.Has("versions"):
 		b.listVersions(w, query.Get("prefix"))
@@ -192,20 +199,35 @@ func (b *Bucket) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case r.Method == http.MethodDelete && query.Has("versionId"):
 		b.deleteVersion(key, query.Get("versionId"))
 		w.WriteHeader(http.StatusNoContent)
-	case r.Method == http.MethodGet || r.Method == http.MethodHead:
-		history := b.history[key]
-		i := 0
-		if version := query.Get("versionId"); version != "" {
-			i = slices.IndexFunc(history, func(v objectVersion) bool { return v.id == version })
-		}
-		if i < 0 || i >= len(history) {
-			http.Error(w, "<Error><Code>NoSuchKey</Code></Error>", http.StatusNotFound)
-			return
-		}
-		http.ServeContent(w, r, key, history[i].modified, strings.NewReader(string(history[i].data)))
 	default:
 		w.WriteHeader(http.StatusNoContent)
 	}
+}
+
+// serveObject answers a GET or HEAD of key's current version, or of version
+// when it is set. It finds the version under the lock and writes its bytes
+// after, which is safe because a version's bytes never change once stored.
+func (b *Bucket) serveObject(w http.ResponseWriter, r *http.Request, key, version string) {
+	// Find the version.
+	b.mtx.Lock()
+	history := b.history[key]
+	i := 0
+	if version != "" {
+		i = slices.IndexFunc(history, func(v objectVersion) bool { return v.id == version })
+	}
+	var found objectVersion
+	ok := i >= 0 && i < len(history)
+	if ok {
+		found = history[i]
+	}
+	b.mtx.Unlock()
+
+	// Write its bytes, or report the key missing.
+	if !ok {
+		http.Error(w, "<Error><Code>NoSuchKey</Code></Error>", http.StatusNotFound)
+		return
+	}
+	http.ServeContent(w, r, key, found.modified, bytes.NewReader(found.data))
 }
 
 // store makes data the current version of key.
