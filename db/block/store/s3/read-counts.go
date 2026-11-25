@@ -18,4 +18,6 @@ type ReadCounts struct {
 	// BatchReads counts the range reads ReadBatch made for them, so
 	// BatchBlocks/BatchReads is the blocks one read carried.
 	BatchReads uint64
+	// BatchBytes counts the bytes those reads carried, wanted or not.
+	BatchBytes uint64
 }

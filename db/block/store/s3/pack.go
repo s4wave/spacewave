@@ -99,6 +99,8 @@ type PackStore struct {
 	prefix string
 	// pricing is the price list of the service holding the bucket.
 	pricing *Pricing
+	// batchGap is the widest gap a batch read spans, from pricing.
+	batchGap int64
 	// keepPacks stops compaction and reclaim.
 	keepPacks bool
 	// packs reads blocks from the known packfiles.
@@ -211,6 +213,7 @@ func NewPackStore(le *logrus.Entry, client ObjectStore, bucket, prefix string, o
 		bucket:    bucket,
 		prefix:    prefix,
 		pricing:   pricing,
+		batchGap:  batchGap(pricing),
 		keepPacks: opts.KeepPacks,
 		entries:   make(map[string]*packfile.PackfileEntry),
 		loadedCh:  make(chan struct{}),
@@ -567,6 +570,8 @@ type readCounters struct {
 	bucket atomic.Uint64
 	// packs counts the reads through the pack readers.
 	packs atomic.Uint64
+	// batchBytes counts the bytes of ReadBatch's range reads.
+	batchBytes atomic.Uint64
 	// batchBlocks counts the blocks ReadBatch read, and batchReads the range
 	// reads it made for them.
 	batchBlocks, batchReads atomic.Uint64
@@ -581,6 +586,7 @@ func (s *PackStore) ReadCounts() ReadCounts {
 		Packs:         s.reads.packs.Load(),
 		BatchBlocks:   s.reads.batchBlocks.Load(),
 		BatchReads:    s.reads.batchReads.Load(),
+		BatchBytes:    s.reads.batchBytes.Load(),
 	}
 }
 
