@@ -860,6 +860,7 @@ app.renderBoundApp(document.getElementById('bldr-root'), ` + quoteWebListenerScr
 	stylesheetLinks := quoteWebListenerScriptString(metadata.stylesheetLinks)
 	return []byte(`<!doctype html>
 <meta charset="utf-8">
+<meta name="darkreader-lock">
 <title>Spacewave</title>
 ` + importMapScript + `
 <div id="bldr-root" role="main"></div>

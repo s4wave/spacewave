@@ -106,6 +106,9 @@ func TestWebListenerServesBootShell(t *testing.T) {
 	if !strings.Contains(text, "if (otp)") {
 		t.Fatalf("boot shell should allow reloads with an existing capability: %s", text)
 	}
+	if !strings.Contains(text, `<meta name="darkreader-lock">`) {
+		t.Fatalf("boot shell should lock out Dark Reader: %s", text)
+	}
 }
 
 func TestWebListenerServesDisplayBootShellBeforeCapability(t *testing.T) {
