@@ -36,6 +36,7 @@ func NewController() *Controller {
 			s4wave_flowgraph.RemoteShellNodeTypeID:  remoteShell{},
 			s4wave_flowgraph.ForgeWorkerNodeTypeID:  forgeWorker{},
 			s4wave_flowgraph.EventSourceNodeTypeID:  eventSource{},
+			s4wave_flowgraph.ObjectSinkNodeTypeID:   objectSink{},
 			alarm_watch.NodeTypeID:                  alarm_watch.NodeType{},
 			space_world_replica.NodeTypeID:          space_world_replica.NodeType{},
 			unixfs_linkedfolder.NodeTypeID:          unixfs_linkedfolder.NodeType{},

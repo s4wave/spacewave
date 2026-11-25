@@ -13,6 +13,7 @@ import (
 	"github.com/s4wave/spacewave/db/block/blob"
 	"github.com/s4wave/spacewave/db/world"
 	world_parent "github.com/s4wave/spacewave/db/world/parent"
+	world_types "github.com/s4wave/spacewave/db/world/types"
 	forge_job "github.com/s4wave/spacewave/forge/job"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_task "github.com/s4wave/spacewave/forge/task"
@@ -104,7 +105,9 @@ func readRun(ctx context.Context, ws world.WorldState, runKey string) (
 }
 
 // route marks each completed activation done and delivers its chosen output
-// along the chosen port's connections. A failed activation requeues its inputs
+// along the chosen port's connections, committing it to the object sinks they
+// reach in the same transaction. A failed activation, or one a sink refuses,
+// requeues its inputs
 // and pauses the run at its Step. Either way, the live inputs the activation
 // never acknowledged return to the arrivals with their keys, so the next
 // readiness pass starts a successor that receives them. A standing run then
@@ -139,6 +142,12 @@ func (r *runner) route(ctx context.Context) error {
 		key := activation.GetKey()
 		if failure == "" {
 			key, failure, err = r.routingKey(ctx, task, key)
+			if err != nil {
+				return err
+			}
+		}
+		if failure == "" {
+			failure, err = r.commitSinks(ctx, activation.GetNodeId(), port, task)
 			if err != nil {
 				return err
 			}
@@ -232,6 +241,94 @@ func (r *runner) deliver(nodeID, port, taskKey, key string) {
 			},
 		})
 	}
+}
+
+// commitSinks writes the output a completed activation chose on port as the
+// state of each object sink the port feeds. It runs in the transaction that
+// routes the activation, so a sink's object changes exactly when the
+// activation routes, and once. A sink whose object exists without the sink's
+// type belongs to another writer: failure names it and no sink is written,
+// so the run pauses at the Step with its inputs kept. A missing object is
+// created with the sink's type. ObjectSink.tla models the rule.
+func (r *runner) commitSinks(ctx context.Context, nodeID, port string, task *forge_task.Task) (string, error) {
+	// Find the sinks the port feeds.
+	sinks := feedsSinks(r.graph, nodeID, port)
+	if len(sinks) == 0 {
+		return "", nil
+	}
+
+	// Resolve the chosen value.
+	output, _ := task.GetValueSet().LookupOutput(port)
+	ref, err := output.ToBucketRef()
+	if err != nil {
+		return "", err
+	}
+	if ref.GetRootRef().GetEmpty() {
+		return "output " + port + " feeds an object sink but holds no value", nil
+	}
+
+	// Check every sink's object before writing any, so a refusal writes none.
+	objs := make([]world.ObjectState, len(sinks))
+	defer func() {
+		for _, obj := range objs {
+			world.ReleaseObjectState(obj)
+		}
+	}()
+	for i, sink := range sinks {
+		key, typeID := sink.GetObjectKey(), sink.GetParameters()[s4wave_flowgraph.ObjectSinkTypeParameter]
+		obj, found, err := r.ws.GetObject(ctx, key)
+		objs[i] = obj
+		if err != nil || !found {
+			if err != nil {
+				return "", err
+			}
+			continue
+		}
+		objType, err := world_types.GetObjectType(ctx, r.ws, key)
+		if err != nil {
+			return "", err
+		}
+		if objType != typeID {
+			return "object sink " + key + " holds type " + strconv.Quote(objType) + ", want " + typeID, nil
+		}
+	}
+
+	// Write each sink, creating a missing object with the sink's type.
+	for i, sink := range sinks {
+		if objs[i] != nil {
+			if _, err := objs[i].SetRootRef(ctx, ref); err != nil {
+				return "", err
+			}
+			continue
+		}
+		key := sink.GetObjectKey()
+		created, err := r.ws.CreateObject(ctx, key, ref)
+		world.ReleaseObjectState(created)
+		if err != nil {
+			return "", err
+		}
+		if err := world_types.SetObjectType(ctx, r.ws, key, sink.GetParameters()[s4wave_flowgraph.ObjectSinkTypeParameter]); err != nil {
+			return "", err
+		}
+	}
+	return "", nil
+}
+
+// feedsSinks returns the object sinks a node's port connects to, in
+// connection ID order.
+func feedsSinks(graph *s4wave_flowgraph.Flowgraph, nodeID, port string) []*s4wave_flowgraph.FlowgraphNode {
+	var sinks []*s4wave_flowgraph.FlowgraphNode
+	connections := graph.GetConnections()
+	for _, id := range slices.Sorted(maps.Keys(connections)) {
+		connection := connections[id]
+		if connection.GetOutputNode() != nodeID || connection.GetOutputPort() != port {
+			continue
+		}
+		if sink := graph.GetNodes()[connection.GetInputNode()]; sink.GetTypeId() == s4wave_flowgraph.ObjectSinkNodeTypeID {
+			sinks = append(sinks, sink)
+		}
+	}
+	return sinks
 }
 
 // outgoing returns the connections from a node into Step inputs, in

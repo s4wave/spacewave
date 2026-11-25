@@ -12,6 +12,16 @@ func (n *FlowgraphNode) Validate() error {
 		return errors.New("step instructions are required only for a step node")
 	}
 
+	// An object sink writes one typed object, and no Device places it.
+	if n.GetTypeId() == ObjectSinkNodeTypeID {
+		if n.GetObjectKey() == "" || n.GetParameters()[ObjectSinkTypeParameter] == "" {
+			return errors.New("an object sink needs an object key and a type parameter")
+		}
+		if n.GetRequirements() != nil {
+			return errors.New("an object sink takes no requirements")
+		}
+	}
+
 	// Requirements reserve standing capacity; Steps use Forge Execution admission.
 	if n.GetRequirements() != nil && n.GetStep() != nil {
 		return errors.New("requirements are only supported on standing nodes")
@@ -36,6 +46,9 @@ func (n *FlowgraphNode) Validate() error {
 				return errors.New("only Step outputs may have conditions")
 			}
 		case FlowgraphPortDirection_FLOWGRAPH_PORT_DIRECTION_OUTPUT:
+			if n.GetTypeId() == ObjectSinkNodeTypeID {
+				return errors.New("an object sink has only inputs")
+			}
 			if n.GetStep() == nil && port.GetCondition() != "" {
 				return errors.New("only Step outputs may have conditions")
 			}

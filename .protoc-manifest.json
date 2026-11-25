@@ -4093,6 +4093,40 @@
             "os/image/sign/config.proto"
           ]
         },
+        "github.com/s4wave/spacewave/os/release": {
+          "hash": "cc03bdc6aa8d323052dad6f2d2d8766e31c837ebbdf8a917be67a501fc357a26",
+          "generatedFiles": [
+            "os/release/release.pb.go",
+            "os/release/release.pb.ts",
+            "os/release/release_typeid.pb.go",
+            "os/release/release_typeid.pb.ts"
+          ],
+          "protoFiles": [
+            "os/release/release.proto"
+          ]
+        },
+        "github.com/s4wave/spacewave/os/system": {
+          "hash": "b2835917c0ec95b0ca853bf2c9438fcf06c97653756d32924bf2b4a2d4c6c494",
+          "generatedFiles": [
+            "os/system/system.pb.go",
+            "os/system/system.pb.ts"
+          ],
+          "protoFiles": [
+            "os/system/system.proto"
+          ]
+        },
+        "github.com/s4wave/spacewave/os/system/stager": {
+          "hash": "bface313c1293c7b75591d21f5ef6529c65bbfd6bf2369dcd390c8cd951eea0a",
+          "generatedFiles": [
+            "os/system/stager/stager.pb.go",
+            "os/system/stager/stager.pb.ts",
+            "os/system/stager/stager_srpc.pb.go",
+            "os/system/stager/stager_srpc.pb.ts"
+          ],
+          "protoFiles": [
+            "os/system/stager/stager.proto"
+          ]
+        },
         "github.com/s4wave/spacewave/plugin/cli": {
           "hash": "f490b6db60121269dd0cae1f27c9c156d2e19dca2f8f744931a98ebb5d857be0",
           "generatedFiles": [
@@ -5171,6 +5205,22 @@
           ],
           "protoFiles": [
             "bldr/web/plugin/plugin.proto"
+          ]
+        }
+      }
+    },
+    "f0812d751a214731c85f29967eb99dbed3aac3193a9f4e39afd7afc259b9580e": {
+      "protocFlagsHash": "f60c126929dea22bb34c7943348825cd0650bfdf1f02a74f8541bf7d5ea1b2c2",
+      "toolVersions": "protoc=embedded,generator=h1:PyfQFeourKBuI7y7aK3Ni+G0Eh9x4gjhlrfH/NjrN7A=,protobuf-go-lite=v0.19.1-0.20261028131920-f644656fc4a7,starpc=v0.52.3,protobuf-es-lite=1.2.6",
+      "packages": {
+        "github.com/s4wave/spacewave/os/release/publish": {
+          "hash": "a15d7e9b85e00ef7ac8b9a5f37e0df3bbb3261394dddb19294379df60a3769c5",
+          "generatedFiles": [
+            "os/release/publish/config.pb.go",
+            "os/release/publish/config.pb.ts"
+          ],
+          "protoFiles": [
+            "os/release/publish/config.proto"
           ]
         }
       }

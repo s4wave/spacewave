@@ -1,0 +1,19 @@
+syntax = "proto3";
+package os.release.publish;
+
+// Config publishes a signed OS image as a release, as a Forge Step.
+//
+// The Step reads the authorization the sign Step made and outputs it as an
+// os/release block in the Space, so a connection from its output into an
+// object sink bound to an os/release object moves every Device whose
+// os/system node binds that object to the image. The image's blocks are
+// already the Space's, written by the build Step, so the release holds only
+// the signed reference to them. The Step checks that the authorization names
+// a complete image reference; only a Device's pins can judge the signature.
+//
+// Inputs:
+//  - authorization: the sign Step's tree holding the authorization file.
+//
+// Outputs:
+//  - release: the os/release block.
+message Config {}

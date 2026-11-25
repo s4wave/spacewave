@@ -56,6 +56,8 @@ import (
 	os_image "github.com/s4wave/spacewave/os/image"
 	os_image_build "github.com/s4wave/spacewave/os/image/build"
 	os_image_sign "github.com/s4wave/spacewave/os/image/sign"
+	os_release "github.com/s4wave/spacewave/os/release"
+	os_release_publish "github.com/s4wave/spacewave/os/release/publish"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 	flowgraph_run "github.com/s4wave/spacewave/sdk/flowgraph/run"
@@ -426,13 +428,25 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 	rehearse := f.rehearsalNode(image, dockerPath)
 	rehearse.Ports = append(rehearse.Ports, inputPort(forge_lib_skiffos.OutputImages), inputPort(osImage))
 	sign := f.signNode(os_image_sign.InputImage)
-	nodes := map[string]*s4wave_flowgraph.FlowgraphNode{"build": build, "busybox": busybox, "image": seed, "rehearse": rehearse, "sign": sign}
+	publish := f.stepNode(os_release_publish.ControllerID, &os_release_publish.Config{}, os_release_publish.OutputRelease, false)
+	publish.Ports = append(publish.Ports, inputPort(os_release_publish.InputAuthorization))
+	release := &s4wave_flowgraph.FlowgraphNode{
+		TypeId:     s4wave_flowgraph.ObjectSinkNodeTypeID,
+		ObjectKey:  osRelease,
+		Parameters: map[string]string{s4wave_flowgraph.ObjectSinkTypeParameter: os_release.ReleaseTypeID},
+		Ports:      []*s4wave_flowgraph.FlowgraphPort{inputPort("state")},
+	}
+	nodes := map[string]*s4wave_flowgraph.FlowgraphNode{
+		"build": build, "busybox": busybox, "image": seed, "rehearse": rehearse, "sign": sign, "publish": publish, "release": release,
+	}
 	conns := map[string]*s4wave_flowgraph.FlowgraphConnection{
 		"busybox":      {OutputNode: "busybox", OutputPort: os_image_build.InputBusybox, InputNode: "image", InputPort: os_image_build.InputBusybox},
 		"boot-set":     {OutputNode: "build", OutputPort: forge_lib_skiffos.OutputImages, InputNode: "rehearse", InputPort: forge_lib_skiffos.OutputImages},
 		"image":        {OutputNode: "image", OutputPort: osImage, InputNode: "rehearse", InputPort: osImage},
 		"signed-image": {OutputNode: "image", OutputPort: osImage, InputNode: "sign", InputPort: os_image_sign.InputImage},
 		"receipt":      {OutputNode: "rehearse", OutputPort: "rehearsed", InputNode: "sign", InputPort: os_image_sign.InputRehearsed},
+		"signed":       {OutputNode: "sign", OutputPort: os_image_sign.OutputAuthorization, InputNode: "publish", InputPort: os_release_publish.InputAuthorization},
+		"published":    {OutputNode: "publish", OutputPort: os_release_publish.OutputRelease, InputNode: "release", InputPort: "state"},
 	}
 
 	// Updating, the build takes the Repo the approved update moved; the
@@ -526,6 +540,17 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 		t.Fatalf("authorized %s by %s, want the image root %s by the Worker %s", authorized.GetRootRef().MarshalString(), signer, root.MarshalString(), f.workerPeerID)
 	}
 
+	// The publish Step's release, which its sink wrote as the os/release
+	// object, names the signed image.
+	f.waitTask("flowgraph-run/spacewave-os", "publish", true)
+	published, err := os_release.ReadRelease(f.ctx, f.tb.WorldState, osRelease)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if image, err := published.Image(); err != nil || !image.EqualVT(built) {
+		t.Fatalf("release names a different image: %v", err)
+	}
+
 	// Keep the rehearsed boot set, image and authorization as World objects,
 	// and install them with a card naming the Worker.
 	f.storeRef("os/images", images)
@@ -601,6 +626,10 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 // osImage names the image Step's output, the image store, and the input
 // that reads it.
 const osImage = os_image_build.OutputImage
+
+// osRelease is the key of the os/release object the publish Step's sink
+// writes.
+const osRelease = "os/release"
 
 // dockerConfig returns a Docker Step config for the os/qemu tool image that
 // mounts the named inputs, runs command and writes output under /outputs.
@@ -895,6 +924,7 @@ func newSkiffOSProof(t *testing.T) *skiffOSProof {
 	h.tb.StaticResolver.AddFactory(forge_lib_util_presence.NewFactory(h.tb.Bus))
 	h.tb.StaticResolver.AddFactory(os_image_build.NewFactory())
 	h.tb.StaticResolver.AddFactory(os_image_sign.NewFactory(h.tb.Bus))
+	h.tb.StaticResolver.AddFactory(os_release_publish.NewFactory())
 	admission := h.newAdmission("skiffos-proof")
 	h.tb.StaticResolver.AddFactory(forge_lib_docker.NewWorkerFactory(h.tb.Bus, admission))
 

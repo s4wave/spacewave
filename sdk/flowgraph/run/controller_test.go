@@ -1,6 +1,7 @@
 package flowgraph_run_test
 
 import (
+	"bytes"
 	"context"
 	"os"
 	"path/filepath"
@@ -9,7 +10,9 @@ import (
 	"time"
 
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/blob"
 	"github.com/s4wave/spacewave/db/world"
+	world_types "github.com/s4wave/spacewave/db/world/types"
 	forge_cluster "github.com/s4wave/spacewave/forge/cluster"
 	cluster_controller "github.com/s4wave/spacewave/forge/cluster/controller"
 	forge_job "github.com/s4wave/spacewave/forge/job"
@@ -470,6 +473,85 @@ func TestNoOutputFailsStep(t *testing.T) {
 	}
 	if arrivals := run.GetArrivals(); len(arrivals) != 1 || arrivals[0].GetNodeId() != "b" {
 		t.Fatalf("arrivals = %v, want b's input", arrivals)
+	}
+}
+
+// TestObjectSink commits a Step's chosen output as its sink's object, creating
+// it typed, and pauses with the input kept when another writer typed the
+// object otherwise, leaving that object as it was.
+func TestObjectSink(t *testing.T) {
+	const sinkKey, sinkType = "sink/state", "test/state"
+	for _, taken := range []bool{false, true} {
+		// A Step feeds a sink and a next Step from one output.
+		e := newEnv(t)
+		sink := &s4wave_flowgraph.FlowgraphNode{
+			TypeId:     s4wave_flowgraph.ObjectSinkNodeTypeID,
+			ObjectKey:  sinkKey,
+			Parameters: map[string]string{s4wave_flowgraph.ObjectSinkTypeParameter: sinkType},
+			Ports:      []*s4wave_flowgraph.FlowgraphPort{port("state", s4wave_flowgraph.FlowgraphPortDirection_FLOWGRAPH_PORT_DIRECTION_INPUT)},
+		}
+		e.createGraph(map[string]*s4wave_flowgraph.FlowgraphNode{
+			"a":    e.step(nil, [2]string{"yes", "no"}, true, nil),
+			"next": e.step([]string{"in"}, [2]string{"done", "other"}, true, nil),
+			"sink": sink,
+		}, map[string]*s4wave_flowgraph.FlowgraphConnection{
+			"next": connect("a", "yes", "next", "in"),
+			"sink": connect("a", "yes", "sink", "state"),
+		})
+		if taken {
+			e.exec(func(ctx context.Context, tx world.WorldState) error {
+				created, _, err := world.CreateWorldObject(ctx, tx, sinkKey, func(bcs *block.Cursor) error {
+					_, err := blob.BuildBlob(ctx, 6, bytes.NewReader([]byte("theirs")), bcs, nil)
+					return err
+				})
+				world.ReleaseObjectState(created)
+				if err != nil {
+					return err
+				}
+				return world_types.SetObjectType(ctx, tx, sinkKey, "test/other")
+			})
+		}
+		e.startWorker()
+		e.startRun()
+		e.startController()
+
+		// The sink holds the Step's output, or refuses another writer's object.
+		want, wantType := filepath.Join(e.dir, "flag"), sinkType
+		if taken {
+			run := e.waitRun(s4wave_flowgraph.FlowgraphRunState_FLOWGRAPH_RUN_STATE_PAUSED)
+			if run.GetPausedNode() != "a" || run.GetPauseReason() != `object sink sink/state holds type "test/other", want test/state` {
+				t.Fatalf("paused at %q: %q", run.GetPausedNode(), run.GetPauseReason())
+			}
+			if arrivals := run.GetArrivals(); len(arrivals) != 1 || arrivals[0].GetNodeId() != "a" {
+				t.Fatalf("arrivals = %v, want a's start", arrivals)
+			}
+			want, wantType = "theirs", "test/other"
+		} else {
+			run := e.waitRun(s4wave_flowgraph.FlowgraphRunState_FLOWGRAPH_RUN_STATE_COMPLETE)
+			requireTrace(t, run, "a.yes", "next.done")
+		}
+		e.exec(func(ctx context.Context, tx world.WorldState) error {
+			objType, err := world_types.GetObjectType(ctx, tx, sinkKey)
+			if err != nil {
+				return err
+			}
+			if objType != wantType {
+				t.Fatalf("type = %q, want %q", objType, wantType)
+			}
+			obj, _, err := tx.GetObject(ctx, sinkKey)
+			defer world.ReleaseObjectState(obj)
+			if err != nil {
+				return err
+			}
+			_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
+				data, err := blob.FetchToBytes(ctx, bcs)
+				if err == nil && string(data) != want {
+					t.Fatalf("sink object = %q, want %q", data, want)
+				}
+				return err
+			})
+			return err
+		})
 	}
 }
 

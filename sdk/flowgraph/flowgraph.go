@@ -30,6 +30,13 @@ const (
 	// EventSourceService. The standing run's controller turns the object's
 	// events into arrivals.
 	EventSourceNodeTypeID = "flowgraph/event-source"
+	// ObjectSinkNodeTypeID selects a node bound to an object that a run
+	// writes: each activation routed into one of its inputs commits the
+	// value it chose as the object's state.
+	ObjectSinkNodeTypeID = "flowgraph/object-sink"
+	// ObjectSinkTypeParameter names the parameter of an object sink that
+	// holds the World type its object must have, and is created with.
+	ObjectSinkTypeParameter = "type"
 )
 
 // FlowgraphObjectKey builds an independently addressed Flowgraph key.

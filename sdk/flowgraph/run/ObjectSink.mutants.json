@@ -1,0 +1,32 @@
+[
+  {
+    "name": "the sink writes without checking the object's type",
+    "replace": [
+      [
+        "                ELSE IF obj.type \\in {None, \"sink\"}",
+        "                ELSE IF TRUE"
+      ]
+    ],
+    "expect": "NoWrongTarget"
+  },
+  {
+    "name": "a refused write drops the activation without pausing",
+    "replace": [
+      [
+        "                ELSE Requeue(id)",
+        "                ELSE /\\ done' = [done EXCEPT ![id] = TRUE]\n                     /\\ UNCHANGED <<task, out, port, obj, written, paused>>"
+      ]
+    ],
+    "expect": "RefusalPauses"
+  },
+  {
+    "name": "the sink takes any output, not only its own port's",
+    "replace": [
+      [
+        "                ELSE IF port[id] # \"sink\"",
+        "                ELSE IF FALSE"
+      ]
+    ],
+    "expect": "WriteWithRouting"
+  }
+]

@@ -10,9 +10,9 @@ import (
 const (
 	// eventPortName is the one port of an event source.
 	eventPortName = "event"
-	// eventPortTypeID is the data contract of an event: an arrival, which a
-	// Step input port accepts.
-	eventPortTypeID = "activation"
+	// activationPortTypeID is the data contract of an arrival: an event, or a
+	// Step's chosen output, which a Step input or an object sink accepts.
+	activationPortTypeID = "activation"
 )
 
 // eventSource marks a node whose bound object serves EventSourceService.
@@ -28,7 +28,7 @@ func (eventSource) GetPorts() []*s4wave_flowgraph.FlowgraphPort {
 	return []*s4wave_flowgraph.FlowgraphPort{{
 		Name:      eventPortName,
 		Direction: s4wave_flowgraph.FlowgraphPortDirection_FLOWGRAPH_PORT_DIRECTION_OUTPUT,
-		TypeId:    eventPortTypeID,
+		TypeId:    activationPortTypeID,
 	}}
 }
 
