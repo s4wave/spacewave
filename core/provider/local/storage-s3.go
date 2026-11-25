@@ -6,6 +6,7 @@ import (
 
 	account_settings "github.com/s4wave/spacewave/core/account/settings"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
+	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/sirupsen/logrus"
 )
@@ -79,3 +80,7 @@ func buildS3Client(
 		Region:      location.GetRegion(),
 	})
 }
+
+// _ asserts that the pack store confirms evicted blocks from its local index,
+// so eviction never falls back to probing the bucket by a signature drift.
+var _ block_store_writeback.DurableConfirmer = (*block_store_s3.PackStore)(nil)

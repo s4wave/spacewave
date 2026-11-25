@@ -196,6 +196,42 @@ func (s *PackStore) LocateBlocks(ctx context.Context, refs []*block.BlockRef) ([
 	return s.index.locateAll(ctx, keys)
 }
 
+// ConfirmsDurable reports whether ConfirmDurable can prove durability from
+// the local index: the store keeps an index, keeps its packs so neither
+// compaction nor reclaim deletes one, and merges no tail, since a tail merge
+// deletes the tail pack. Then a block a held pack lists stays in the bucket.
+func (s *PackStore) ConfirmsDurable() bool {
+	return s.index != nil && s.keepPacks && s.mergeTailBytes == 0
+}
+
+// ConfirmDurable reports, for each ref, whether the local index proves a pack
+// the bucket holds lists the block: its h row holds the block's extent and
+// names a pack the table holds. It reads no pack and nothing remote, and
+// stores nothing. A false is a block the index cannot vouch for, such as one
+// whose row names only its pack or is missing, not proof of absence. Each call
+// is one read transaction on the index. Callers check ConfirmsDurable first.
+func (s *PackStore) ConfirmDurable(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	// Refuse a store without an index.
+	if s.index == nil {
+		return nil, errors.New("pack store has no index")
+	}
+
+	// Load the pack table first: a row names its pack by number, and only the
+	// loaded table maps the number to a pack.
+	if err := s.loadEntries(ctx); err != nil {
+		return nil, err
+	}
+
+	// Confirm each block from its row.
+	keys := make([][]byte, len(refs))
+	for i, ref := range refs {
+		if h := ref.GetHash(); h != nil {
+			keys[i] = packfile.BlockKey(h)
+		}
+	}
+	return s.index.confirmAll(ctx, keys)
+}
+
 func (p *IndexProgress) load() IndexProgress {
 	return IndexProgress{
 		Packs: atomic.LoadUint64(&p.Packs),

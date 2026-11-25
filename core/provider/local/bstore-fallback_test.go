@@ -16,6 +16,7 @@ import (
 	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/packfile/packahead"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
@@ -184,6 +185,8 @@ type fallbackTest struct {
 	reads, copies block.StoreOps
 	// open opens the pack store; nil opens it on the fake bucket.
 	open func() backendStore
+	// index is the local pack index every open shares, or nil without one.
+	index kvtx.Store
 }
 
 // newFallbackTest builds a placed store whose reads fall back to the stand-in.
