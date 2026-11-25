@@ -54,10 +54,12 @@ func (s *attempt) checkout(ctx context.Context, registry *registry, fetch Fetch,
 // from its first look at the directory until it removed the blocks it
 // fetched, so no other writer or eviction, in this process or another, touches
 // the directory, its staging or its cache meanwhile. It reuses a directory
-// check approves: a release publishes once. It replaces one check rejects,
-// such as a checkout an older desktop half deleted or one holding a file the
-// PC cannot read. Otherwise it writes the files beside directory, reading the
-// blocks the previous checkout beside it shares from its files and those an
+// whose fingerprint matches its files and that check approves: a release
+// publishes once. It writes again one without a matching fingerprint, such as
+// a checkout an older engine wrote or one a program changed, and one check
+// rejects, such as a checkout holding a file the PC cannot read. Otherwise it
+// writes the files beside directory, reading the blocks the checkout being
+// replaced, or else the previous checkout beside it, shares from its files and those an
 // interrupted attempt fetched from the cache beside it, and moves them into
 // place at once. A failed or canceled attempt keeps the cache for the next.
 // Each attempt logs one line with the time each phase took and the bytes
@@ -114,15 +116,19 @@ func (s *attempt) prepare(ctx context.Context, open func(context.Context) ([]blo
 	}
 	defer func() { _ = lease.Release(context.Background()) }()
 
-	// Reuse a complete checkout, and replace an incomplete or unreadable one.
+	// Reuse a checkout whose files are the ones written from verified blocks
+	// and that check approves, and write any other again, seeded from its
+	// own files so only what changed is fetched.
 	if _, err := os.Stat(directory); err == nil {
-		err := check(directory)
+		err := unchanged(directory, parts)
+		if err == nil {
+			err = check(directory)
+		}
 		if err == nil {
 			markUsed(directory)
 			return nil
 		}
-		s.le.WithError(err).Warnf("replacing incomplete checkout of %s", what)
-
+		s.le.WithError(err).Warnf("writing the checkout of %s again", what)
 	}
 
 	// Write the files beside the destination.
@@ -142,6 +148,9 @@ func (s *attempt) prepare(ctx context.Context, open func(context.Context) ([]blo
 		return errors.Wrapf(err, "Download %s", what)
 	}
 	if err := check(staging); err != nil {
+		return err
+	}
+	if err := recordFingerprint(staging, parts); err != nil {
 		return err
 	}
 
