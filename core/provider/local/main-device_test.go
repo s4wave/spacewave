@@ -2,6 +2,7 @@ package provider_local_test
 
 import (
 	"context"
+	"os"
 	"strconv"
 	"testing"
 	"time"
@@ -145,6 +146,8 @@ func TestFollowerReplaysAboveCheckpoint(t *testing.T) {
 // most once per MinCheckpointOperations edits plus the deadline's last one,
 // that a lone edit is checkpointed at the deadline, and logs the page bytes
 // per edit by tree and the restart time with the edits above the checkpoint.
+// CHECKPOINT_CADENCE_SEED=n first seeds the World with n objects, so the
+// reading compares with the World page readings on a seeded World.
 func TestCheckpointCadence(t *testing.T) {
 	t.Run("count-only", func(t *testing.T) { checkpointCadence(t, true) })
 	t.Run("deadline", func(t *testing.T) { checkpointCadence(t, false) })
@@ -193,12 +196,19 @@ func checkpointCadence(t *testing.T, countOnly bool) {
 	if countOnly {
 		above = sobject.MinCheckpointOperations
 	}
+	var seeded uint64
+	if seed, _ := strconv.Atoi(os.Getenv("CHECKPOINT_CADENCE_SEED")); seed > 0 {
+		owner.seed(ctx, seed)
+		owner.waitPlaced(ctx)
+		seeded, _ = owner.waitSettled(ctx, sobject.MinCheckpointOperations)
+	}
 	before := world_block.StoredPages.Snapshot()
 	for i := range edits {
 		owner.create(ctx, "edit-"+strconv.Itoa(i))
 	}
 	owner.waitPlaced(ctx)
-	checkpoints, left := owner.waitSettled(ctx, above)
+	height, left := owner.waitSettled(ctx, above)
+	checkpoints := height - seeded
 
 	// Count the stored Worlds and the page bytes by tree.
 	byTree := make(map[world_block.PageTree]int64)

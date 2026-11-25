@@ -3,6 +3,7 @@ package provider_local_test
 import (
 	"context"
 	"slices"
+	"strconv"
 	"testing"
 	"time"
 
@@ -144,6 +145,27 @@ func (m *offlineMember) create(ctx context.Context, key string) {
 		world.ReleaseObjectState(obj)
 		return err
 	})
+}
+
+// seed creates n objects, seedBatch to a transaction.
+func (m *offlineMember) seed(ctx context.Context, n int) {
+	const seedBatch = 500
+	for from := 0; from < n; from += seedBatch {
+		m.write(ctx, func(tx world.Tx) error {
+			for i := from; i < min(from+seedBatch, n); i++ {
+				key := "seed-" + strconv.Itoa(i)
+				obj, _, err := world.CreateWorldObject(ctx, tx, key, func(cursor *block.Cursor) error {
+					cursor.SetBlock(block_mock.NewExample(m.name+" wrote "+key), true)
+					return nil
+				})
+				world.ReleaseObjectState(obj)
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+	}
 }
 
 // write commits one transaction.
