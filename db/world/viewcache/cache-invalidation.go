@@ -46,12 +46,18 @@ func (c *Cache) Advance(ctx context.Context, seqno uint64) error {
 		}
 		if len(c.entries) == 0 {
 			// The jump reads no changes, so no older value can be checked
-			// across it.
-			c.seqno.Store(seqno)
-			c.history = nil
-			c.movedLocked()
-			c.mtx.Unlock()
-			return nil
+			// across it. It stops at the oldest revision a key index patches
+			// from, and the changes after it are read below.
+			to := c.keyFloorLocked(seqno)
+			if to > c.seqno.Load() {
+				c.seqno.Store(to)
+				c.history = nil
+				c.movedLocked()
+			}
+			if to >= seqno {
+				c.mtx.Unlock()
+				return nil
+			}
 		}
 		if wait := c.advancing; wait != nil {
 			c.mtx.Unlock()
@@ -91,6 +97,9 @@ func (c *Cache) Advance(ctx context.Context, seqno uint64) error {
 			if through > c.seqno.Load() {
 				c.seqno.Store(through)
 				c.movedLocked()
+				for _, index := range c.keys {
+					index.kick()
+				}
 			}
 		}
 		c.mtx.Unlock()
@@ -98,6 +107,19 @@ func (c *Cache) Advance(ctx context.Context, seqno uint64) error {
 			return err
 		}
 	}
+}
+
+// keyFloorLocked returns seqno, or the oldest label below it of a key index's
+// published set, which patches from the changes after its label. An index
+// still on its first build sets no floor: its pass rebuilds when the cache
+// moved past its build without the changes.
+func (c *Cache) keyFloorLocked(seqno uint64) uint64 {
+	for _, index := range c.keys {
+		if set := index.set.Load(); set != nil && set.at < seqno {
+			seqno = set.at
+		}
+	}
+	return seqno
 }
 
 // refreshFacets computes again each facet part the changes touched, which
