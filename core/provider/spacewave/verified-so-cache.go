@@ -208,10 +208,20 @@ func writeVerifiedSOStateLog(
 		return verifiedSOLogged{}, log.Clear(ctx, tx)
 	}
 
-	// Store the delta over a known state, else the whole state.
+	// Store the delta over a known state the log still holds under its head,
+	// else the whole state: another write, such as InvalidateVerifiedChain,
+	// may have changed the log since prev.
+	stored := known && prev.state != nil
+	if stored {
+		head, found, err := tx.Get(ctx, log.HeadKey())
+		if err != nil {
+			return verifiedSOLogged{}, err
+		}
+		stored = found && bytes.Equal(head, prev.head)
+	}
 	var head []byte
 	var err error
-	if known && prev.state != nil {
+	if stored {
 		head, err = log.Write(ctx, tx, prev.head, prev.state, next)
 	} else {
 		head, err = log.Replace(ctx, tx, next)

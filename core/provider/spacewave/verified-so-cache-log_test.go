@@ -18,7 +18,8 @@ import (
 // TestVerifiedSOCacheLogWritesDeltas writes a mount's verified cache through
 // verifiedSOCacheWriter in the log layout. It checks that an appended op
 // stores the same bytes at n and 10n ops, that a write whose commit failed is
-// forgotten so no later delta builds on it, and that switching layouts both
+// forgotten so no later delta builds on it, that a write after the chain is
+// invalidated stores the whole state, and that switching layouts both
 // ways loads every state back and leaves the other layout empty.
 func TestVerifiedSOCacheLogWritesDeltas(t *testing.T) {
 	ctx := t.Context()
@@ -69,6 +70,18 @@ func TestVerifiedSOCacheLogWritesDeltas(t *testing.T) {
 	}
 	assertVerifiedCache(t, acc, "so-1", cache)
 
+	// Invalidating the chain deletes the logs under the live writer; its next
+	// write must store the whole state, which a delta over the deleted logs
+	// would leave partial.
+	if err := acc.InvalidateVerifiedChain(ctx, "so-1"); err != nil {
+		t.Fatal(err)
+	}
+	cache = withVerifiedOps(cache, 10, 11)
+	if err := w.write(ctx, cache, nil); err != nil {
+		t.Fatal(err)
+	}
+	assertVerifiedCache(t, acc, "so-1", cache)
+
 	// A remount in the whole layout moves the states into the record and
 	// clears the logs.
 	verifiedStateLog = false
@@ -77,7 +90,7 @@ func TestVerifiedSOCacheLogWritesDeltas(t *testing.T) {
 		t.Fatal(err)
 	}
 	w = &verifiedSOCacheWriter{a: acc, soID: "so-1", written: written}
-	cache = withVerifiedOps(cache, 10, 11)
+	cache = withVerifiedOps(cache, 11, 12)
 	if err := w.write(ctx, cache, nil); err != nil {
 		t.Fatal(err)
 	}
@@ -93,7 +106,7 @@ func TestVerifiedSOCacheLogWritesDeltas(t *testing.T) {
 		t.Fatal(err)
 	}
 	w = &verifiedSOCacheWriter{a: acc, soID: "so-1", written: written}
-	cache = withVerifiedOps(cache, 11, 12)
+	cache = withVerifiedOps(cache, 12, 13)
 	if err := w.write(ctx, cache, nil); err != nil {
 		t.Fatal(err)
 	}
