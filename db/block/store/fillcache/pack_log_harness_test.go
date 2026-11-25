@@ -30,6 +30,7 @@ func TestPackLogHarness(t *testing.T) {
 	hi := harnessEnv("SPACEWAVE_PACKLOG_MAX", 16<<10)
 	reads := harnessEnv("SPACEWAVE_PACKLOG_READS", 200000)
 	arms := os.Getenv("SPACEWAVE_PACKLOG_ARMS")
+	unsynced := os.Getenv("SPACEWAVE_PACKLOG_UNSYNCED") != ""
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 	dir := t.TempDir()
@@ -112,7 +113,11 @@ func TestPackLogHarness(t *testing.T) {
 		for i := range n {
 			batch = append(batch, packahead.Block{Key: keys[i], Value: values[i]})
 			if len(batch) == cap(batch) || i == n-1 {
-				if err := l.Append(ctx, batch); err != nil {
+				appendBatch := l.Append
+				if unsynced {
+					appendBatch = l.AppendUnsynced
+				}
+				if err := appendBatch(ctx, batch); err != nil {
 					t.Fatal(err)
 				}
 				batch = batch[:0]
@@ -120,7 +125,19 @@ func TestPackLogHarness(t *testing.T) {
 		}
 		fill := time.Since(start)
 		l.Close()
-		t.Logf("packlog fill %.1f µs/block, synced per batch", us(fill, n))
+		if ents, err := os.ReadDir(path); err == nil {
+			var open, final int
+			for _, e := range ents {
+				o, f := packahead.ClassifyName(e.Name())
+				if o {
+					open++
+				} else if f {
+					final++
+				}
+			}
+			t.Logf("packlog after close: %d open, %d finalized packs", open, final)
+		}
+		t.Logf("packlog fill %.1f µs/block, unsynced %v", us(fill, n), unsynced)
 
 		// Drop the values so the heap reading holds the table alone.
 		clear(values)
