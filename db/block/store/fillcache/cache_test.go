@@ -5,6 +5,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -449,6 +450,43 @@ func TestCacheStartRangeSurvivesRestart(t *testing.T) {
 	}
 	if l, h, ok := storedRange(t, c); !ok || l != lo || h != hi {
 		t.Fatalf("an empty window left %d..%d %v, want %d..%d", l, h, ok, lo, hi)
+	}
+}
+
+// TestCacheKeepsAnOlderLayout fills a cache in the WITHOUT ROWID layout an
+// older release wrote, then reopens it under the current layout: the file keeps
+// its rows and its layout, since recreating it would empty a cache a start
+// depends on.
+func TestCacheKeepsAnOlderLayout(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "blocks.db")
+	src, refs := testBlocks(t, 5)
+
+	// An older release fills the file in its layout.
+	current := filePragmas
+	filePragmas.WithoutRowID = true
+	c := openTest(t, path, 1<<20)
+	filePragmas = current
+	for _, ref := range refs {
+		fillRead(t, c, src, ref)
+	}
+	if err := c.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	// The current release serves every block from it and leaves its layout.
+	c = openTest(t, path, 1<<20)
+	defer c.Close()
+	for i, ref := range refs {
+		if !holds(t, c, ref) {
+			t.Fatalf("block %d was lost when the cache reopened an older layout", i)
+		}
+	}
+	var def string
+	if err := c.store.GetDB().QueryRow("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?", cacheTable).Scan(&def); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(strings.ToUpper(def), "WITHOUT ROWID") {
+		t.Fatalf("the reopened table was recreated: %s", def)
 	}
 }
 
