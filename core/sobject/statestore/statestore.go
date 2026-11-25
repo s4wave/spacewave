@@ -30,15 +30,15 @@ const (
 	seqKey        = stateKey + "seq/"
 )
 
-// LayoutEnv selects how a provider stores SharedObject states: "log" selects
-// this package's layout, and any other value, or none, the whole encoded
-// state each provider stored before it.
+// LayoutEnv selects how a provider stores SharedObject states: "whole"
+// selects the whole encoded state each provider stored before this package,
+// and any other value, or none, this package's layout.
 const LayoutEnv = "SPACEWAVE_SOBJECT_STATE_LAYOUT"
 
 // LogSelected reports whether LayoutEnv selects the log layout. Each provider
 // reads it once at startup.
 func LogSelected() bool {
-	return os.Getenv(LayoutEnv) == "log"
+	return os.Getenv(LayoutEnv) != "whole"
 }
 
 // ErrOutOfOrder is returned by Write when a list of the state it is given is

@@ -37,8 +37,8 @@ import (
 // decode the marker and refuses the mount, where finding no state would start
 // a genesis over the log's keys. To run such a build over Spaces the log holds,
 // first run this build once with the whole layout selected
-// (SPACEWAVE_SOBJECT_STATE_LAYOUT unset or "whole"), so each mount converts its
-// state back under the host key.
+// (SPACEWAVE_SOBJECT_STATE_LAYOUT=whole), so each mount converts its state
+// back under the host key.
 var stateLayoutLog = sobject_statestore.LogSelected()
 
 // logLayoutMarker is the host key's value while the log layout holds the
