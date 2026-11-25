@@ -12,18 +12,17 @@ import (
 // cacheTable is the key/value table of the cache's database.
 const cacheTable = "fill_cache"
 
-// pageSize is the page size of a new cache file. Blocks are larger than the
-// default page, and a larger page shortens the chain of pages a block spans.
-const pageSize = 16 << 10
-
-// walBytes bounds the cache's write-ahead log, so the log stays small enough
-// that reads search it quickly even when reads never let SQLite restart it.
-const walBytes = 64 << 20
-
-// mmapBytes is the mmap_size of the cache file: the bytes of it SQLite reads
-// through a mapping instead of a read call. Zero maps none. The read
-// benchmark sets it to compare the two.
-var mmapBytes int64
+// filePragmas are the cache file's layout and settings. Its page is 16 KiB,
+// as blocks are larger than the default page and a larger page shortens the
+// chain of pages a block spans. Its write-ahead log is bounded at 64 MiB, so
+// the log stays small enough that reads search it quickly even when reads
+// never let SQLite restart it. The read benchmark replaces it to compare
+// layouts; nothing else writes it.
+var filePragmas = store_kvtx_sqlite.Pragmas{
+	WithoutRowID:       true,
+	PageSize:           16 << 10,
+	WALCheckpointBytes: 64 << 20,
+}
 
 // quickCheckBytes is the file size up to which Open checks the file's
 // structure. A larger file opens unchecked, since scanning it would hold up the
@@ -52,12 +51,7 @@ func openStore(ctx context.Context, le *logrus.Entry, path string) (store_kvtx_s
 // checks the structure of a file up to quickCheckBytes.
 func tryOpenStore(ctx context.Context, path string) (store_kvtx_sqlite.Store, error) {
 	// Open the database.
-	store, err := store_kvtx_sqlite.OpenWithPragmas(ctx, path, cacheTable, store_kvtx_sqlite.Pragmas{
-		WithoutRowID:       true,
-		PageSize:           pageSize,
-		WALCheckpointBytes: walBytes,
-		MmapSize:           mmapBytes,
-	})
+	store, err := store_kvtx_sqlite.OpenWithPragmas(ctx, path, cacheTable, filePragmas)
 	if err != nil {
 		return nil, err
 	}
