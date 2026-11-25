@@ -1,0 +1,7 @@
+[
+  {
+    "name": "reuse a published checkout without comparing its fingerprint",
+    "replace": [["Reusable == published /\\ ~changed", "Reusable == published"]],
+    "expect": "ReuseIsWritten"
+  }
+]

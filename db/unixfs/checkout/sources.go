@@ -160,23 +160,15 @@ func (s *sources) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRe
 	return found, nil
 }
 
-// seed returns the blocks of the most recently used checkout beside
-// directory, hashed like root, or nil when there is none or it cannot be
-// read: a checkout without a seed fetches every block.
+// seed returns the blocks of the checkout at directory, which a rewrite
+// replaces, or else of the most recently used checkout beside it, hashed like
+// root, or nil when there is none or it cannot be read: a checkout without a
+// seed fetches every block.
 func seed(ctx context.Context, le *logrus.Entry, codec Codec, directory string, root *block.BlockRef) block.StoreOps {
-	// Find the most recently used sibling checkout.
-	siblings, err := os.ReadDir(filepath.Dir(directory))
-	if err != nil {
-		return nil
-	}
-	var previous string
-	var used time.Time
-	for _, sibling := range siblings {
-		info, err := sibling.Info()
-		if err != nil || !info.IsDir() || strings.HasPrefix(sibling.Name(), ".") || info.ModTime().Before(used) {
-			continue
-		}
-		previous, used = filepath.Join(filepath.Dir(directory), sibling.Name()), info.ModTime()
+	// Prefer the checkout being replaced, then the most recently used sibling.
+	previous := directory
+	if info, err := os.Stat(directory); err != nil || !info.IsDir() {
+		previous = latestSibling(filepath.Dir(directory))
 	}
 	if previous == "" {
 		return nil
@@ -189,6 +181,25 @@ func seed(ctx context.Context, le *logrus.Entry, codec Codec, directory string, 
 		return nil
 	}
 	return blocks
+}
+
+// latestSibling returns the most recently used checkout in parent, or "".
+func latestSibling(parent string) string {
+	// Keep the visible directory used last.
+	siblings, err := os.ReadDir(parent)
+	if err != nil {
+		return ""
+	}
+	var previous string
+	var used time.Time
+	for _, sibling := range siblings {
+		info, err := sibling.Info()
+		if err != nil || !info.IsDir() || strings.HasPrefix(sibling.Name(), ".") || info.ModTime().Before(used) {
+			continue
+		}
+		previous, used = filepath.Join(parent, sibling.Name()), info.ModTime()
+	}
+	return previous
 }
 
 // _ is a type assertion
