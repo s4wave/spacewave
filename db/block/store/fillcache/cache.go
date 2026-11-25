@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/util/broadcast"
-	"github.com/aperturerobotics/util/routine"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
@@ -168,12 +167,11 @@ func Open(ctx context.Context, le *logrus.Entry, path string, opts Options) (*Ca
 	c.queue = newFillQueue(queueBytes)
 	c.warmBytes = queueBytes / 8
 
-	// Run the writer until Close.
+	// Run the writer until Close. Its goroutine runs whatever state ctx is in,
+	// so exited closes and Close returns even when ctx ended first.
 	runCtx, cancel := context.WithCancel(ctx)
 	c.cancel = cancel
-	rc := routine.NewRoutineContainer()
-	rc.SetRoutine(c.run)
-	rc.SetContext(runCtx, false)
+	go c.run(runCtx)
 
 	// Close the start window when it ends.
 	window := opts.StartWindow
@@ -284,7 +282,7 @@ func (c *Cache) Close() error {
 // run writes the queued entries in batches, stamps the rows they wrote and the
 // rows hits read, stores the start range when the window closes, and evicts
 // while the cache is over its bound, until ctx ends.
-func (c *Cache) run(ctx context.Context) error {
+func (c *Cache) run(ctx context.Context) {
 	defer close(c.exited)
 
 	// Mark the writes as background work a crash may lose, so a commit takes no
@@ -304,7 +302,7 @@ func (c *Cache) run(ctx context.Context) error {
 			return len(batch) != 0 || len(hits) != 0 || evicting || windowDue, nil
 		})
 		if err != nil {
-			return nil
+			return
 		}
 
 		// Write the entries.
