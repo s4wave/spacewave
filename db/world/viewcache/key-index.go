@@ -21,10 +21,11 @@ const (
 	KeyObject
 )
 
-// keyIndexWait bounds how long Absent waits for an index behind the reader's
-// revision to reach it. The index moves within a cache catch-up of the
-// World, milliseconds, while the walk it saves costs a cold read of the
-// World's graph, seconds after a start.
+// keyIndexWait bounds how long Absent waits for a published index behind
+// the reader's revision to reach it. A patch moves the index within a cache
+// catch-up of the World, milliseconds, while the walk it saves costs a cold
+// read of the World's graph, seconds after a start. Absent never waits for
+// the first build, which takes seconds: the reader walks meanwhile.
 const keyIndexWait = 50 * time.Millisecond
 
 // KeyIndex holds the object keys that have at least one edge of one predicate
@@ -48,8 +49,8 @@ type KeyIndex struct {
 	side KeySide
 	// set is the latest published set, nil until the first build ends.
 	set atomic.Pointer[keySet]
-	// first ends when the first set is published, for a reader that arrives
-	// during the first build.
+	// first ends when the first set is published, for a caller that waits
+	// for the first build; Absent does not.
 	first chan struct{}
 	// running is set while the index's one worker builds or patches it.
 	running atomic.Bool
@@ -108,8 +109,8 @@ type keyIndexID struct {
 // When it reports true it records the lookup the reader skipped in the view
 // evaluation ctx carries, so the view reruns when a change gives the key an
 // edge. When it reports false the reader reads the World as it would without
-// the index: the key has an edge, the index is still building, or it stayed
-// behind seqno for keyIndexWait.
+// the index: the key has an edge, the first build has not ended, or the index
+// stayed behind seqno for keyIndexWait.
 func (k *KeyIndex) Absent(ctx context.Context, seqno uint64, key string) bool {
 	// Find a set that reaches the reader's revision.
 	if k == nil || key == "" {
@@ -129,11 +130,16 @@ func (k *KeyIndex) Absent(ctx context.Context, seqno uint64, key string) bool {
 }
 
 // reach returns the published set once it stands at or past seqno, waiting at
-// most keyIndexWait for the first build or a patch to reach it.
+// most keyIndexWait for a patch to reach it. Before the first build ends it
+// returns at once.
 func (k *KeyIndex) reach(ctx context.Context, seqno uint64) (*keySet, bool) {
-	// Answer from the published set when it already reaches seqno.
+	// Answer from the published set when it already reaches seqno, and
+	// leave a reader before the first build to walk.
 	set := k.set.Load()
-	if set != nil && set.at >= seqno {
+	if set == nil {
+		return nil, false
+	}
+	if set.at >= seqno {
 		return set, true
 	}
 
@@ -141,13 +147,9 @@ func (k *KeyIndex) reach(ctx context.Context, seqno uint64) (*keySet, bool) {
 	k.c.catchUp(seqno)
 	timer := time.NewTimer(keyIndexWait)
 	defer timer.Stop()
-	for set == nil || set.at < seqno {
-		wait := k.first
-		if set != nil {
-			wait = set.next
-		}
+	for set.at < seqno {
 		select {
-		case <-wait:
+		case <-set.next:
 		case <-timer.C:
 			return nil, false
 		case <-ctx.Done():

@@ -157,7 +157,8 @@ func TestKeyIndexViewReruns(t *testing.T) {
 
 // TestKeyIndexBehindWalks holds an index at an old revision whose set lacks a
 // key the World has since given an edge: a reader at the newer revision must
-// walk, not answer from it.
+// walk, not answer from it. Before the first set is published a reader walks
+// at once, without waiting for the build.
 func TestKeyIndexBehindWalks(t *testing.T) {
 	// a gains an edge after the old revision.
 	_, engine := readsStore(t)
@@ -170,6 +171,13 @@ func TestKeyIndexBehindWalks(t *testing.T) {
 	// An index published at the old revision, with no worker to move it.
 	index := &KeyIndex{c: &Cache{engine: engine}, filter: world.NewGraphQuad("", keyPred, "", ""), first: make(chan struct{})}
 	index.running.Store(true)
+	start := time.Now()
+	if index.Absent(ctx, old, "a") {
+		t.Fatal("an index with no set answered")
+	}
+	if waited := time.Since(start); waited >= keyIndexWait {
+		t.Fatalf("a reader waited %v for the first build", waited)
+	}
 	index.publish(map[string]struct{}{}, old)
 
 	// Only a reader at the old revision may use it.
