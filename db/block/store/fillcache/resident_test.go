@@ -2,7 +2,6 @@ package block_store_fillcache
 
 import (
 	"os"
-	"path/filepath"
 	"slices"
 	"testing"
 
@@ -12,8 +11,8 @@ import (
 func TestCacheResidentListYieldsWhatTheCacheLacks(t *testing.T) {
 	// Fill two of four blocks into a cache, and save all four as one scope's
 	// list, the first one twice, as a walk over two block types yields it.
-	path := filepath.Join(t.TempDir(), "fill.db")
-	c := openTest(t, path, 1<<30)
+	dir := t.TempDir()
+	c := openTest(t, dir, 1<<30)
 	src, refs := testBlocks(t, 4)
 	fillRead(t, c, src, refs[0])
 	fillRead(t, c, src, refs[1])
@@ -76,10 +75,8 @@ func TestCacheResidentListYieldsWhatTheCacheLacks(t *testing.T) {
 	if err := os.WriteFile(temp, []byte(residentMagic), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := c.Close(); err != nil {
-		t.Fatal(err)
-	}
-	openTest(t, path, 1<<30)
+	c.Close()
+	openTest(t, dir, 1<<30)
 	if _, err := os.Stat(temp); !os.IsNotExist(err) {
 		t.Fatalf("reopening kept the killed save's file: %v", err)
 	}

@@ -15,9 +15,9 @@ import (
 // TestFillCacheTakesPackHits reads blocks the pack store holds, a block only
 // the fallback holds, and one the disk holds, through the disk fill cache and
 // the memory one. A pack hit fills the fill cache and not the disk, and the
-// next read is served from the cache without the pack store. A fallback hit
-// fills the disk with its upload marker and never the cache. A disk cache that
-// fails reads as a miss, so the read goes on to the pack store.
+// next read is served from the cache without the pack store or the disk. A
+// fallback hit fills the disk with its upload marker and never the cache. A
+// disk cache that fails reads as a miss, so the read goes on to the pack store.
 func TestFillCacheTakesPackHits(t *testing.T) {
 	t.Run("disk", func(t *testing.T) { testFillCacheTakesPackHits(t, false) })
 	t.Run("memory", func(t *testing.T) { testFillCacheTakesPackHits(t, true) })
@@ -34,16 +34,17 @@ func testFillCacheTakesPackHits(t *testing.T, memory bool) {
 		cache = block_store_memcache.New(0)
 	} else {
 		var err error
-		disk, err = block_store_fillcache.Open(f.ctx, logrus.NewEntry(logrus.New()), filepath.Join(t.TempDir(), "cache.db"), block_store_fillcache.Options{})
+		disk, err = block_store_fillcache.Open(f.ctx, logrus.NewEntry(logrus.New()), filepath.Join(t.TempDir(), "cache"), block_store_fillcache.Options{})
 		if err != nil {
 			t.Fatal(err)
 		}
-		t.Cleanup(func() { _ = disk.Close() })
+		t.Cleanup(disk.Close)
 		cache = disk
 	}
 	counted := &countingStore{StoreOps: f.packs}
 	f.p.cache = cache
-	recorded := &readRecorder{StoreOps: f.local, reads: &f.p.reads}
+	localReads := &countingStore{StoreOps: f.local}
+	recorded := &readRecorder{StoreOps: localReads, reads: &f.p.reads}
 	f.reads, f.copies = f.p.readChains(
 		recorded,
 		f.local,
@@ -81,7 +82,7 @@ func testFillCacheTakesPackHits(t *testing.T, memory bool) {
 	}
 
 	// A pack hit fills the cache, not the disk, and the next read skips the
-	// pack store.
+	// pack store and the disk.
 	before := counted.reads.Load()
 	f.read(trackedRef, tracked)
 	f.read(untrackedRef, untracked)
@@ -92,11 +93,11 @@ func testFillCacheTakesPackHits(t *testing.T, memory bool) {
 	if f.held(trackedRef) || f.held(untrackedRef) || f.status().Pending != 0 {
 		t.Fatal("a pack hit filled the disk")
 	}
-	before = counted.reads.Load()
+	before, beforeLocal := counted.reads.Load(), localReads.reads.Load()
 	f.read(trackedRef, tracked)
 	f.read(untrackedRef, untracked)
-	if n := counted.reads.Load() - before; n != 0 {
-		t.Fatalf("cached reads touched the pack store %d times", n)
+	if n, local := counted.reads.Load()-before, localReads.reads.Load()-beforeLocal; n != 0 || local != 0 {
+		t.Fatalf("cached reads touched the pack store %d times and the disk %d times", n, local)
 	}
 
 	// A block only the fallback holds fills the disk with its marker, and the
@@ -122,9 +123,7 @@ func testFillCacheTakesPackHits(t *testing.T, memory bool) {
 	if disk == nil {
 		return
 	}
-	if err := disk.Close(); err != nil {
-		t.Fatal(err)
-	}
+	disk.Close()
 	before = counted.reads.Load()
 	f.read(trackedRef, tracked)
 	if n := counted.reads.Load() - before; n != 1 {

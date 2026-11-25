@@ -135,7 +135,7 @@ func TestWarmResidentHarness(t *testing.T) {
 		if err := store.Preload(ctx); err != nil {
 			t.Fatal(err)
 		}
-		c := openTest(t, filepath.Join(t.TempDir(), name+".db"), 1<<40)
+		c := openTest(t, filepath.Join(t.TempDir(), name), 1<<40)
 		if err := c.SaveResident(ctx, "store", slices.Values(keys)); err != nil {
 			t.Fatal(err)
 		}

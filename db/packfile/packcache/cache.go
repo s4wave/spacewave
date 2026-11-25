@@ -17,17 +17,22 @@
 //   - Eviction takes the oldest finalized pack once the Log passes the limit,
 //     carrying forward the values read since their write, at most half the
 //     pack's bytes, so each eviction frees at least half a pack.
-//   - Until the Log has loaded, Get misses and Put drops, so opening the cache
-//     never delays its caller.
+//   - Until the Log has loaded, Get misses and Put stores nothing, so opening
+//     the cache never delays its caller.
 package packcache
 
 import (
 	"context"
+	"errors"
 	"sync/atomic"
 
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/s4wave/spacewave/db/packfile/packahead"
 )
+
+// ErrUnavailable is Put's result while the cache holds no loaded Log: before
+// the load ends, after a failure and after Close.
+var ErrUnavailable = errors.New("packcache: the cache is not loaded")
 
 // Cache is a bounded disk cache of values under pack index keys.
 type Cache struct {
@@ -46,15 +51,15 @@ type Cache struct {
 	// done closes when the load and the evictor have ended and the Log is
 	// closed.
 	done chan struct{}
-	// hits, misses, dropped, evicted and carried back Counts.
-	hits, misses, dropped, evicted, carried atomic.Uint64
+	// hits, misses, evicted and carried back Counts.
+	hits, misses, evicted, carried atomic.Uint64
 }
 
 // state is a Cache's place in its life.
 type state int
 
 const (
-	// stateLoading opens the Log; Get misses and Put drops.
+	// stateLoading opens the Log; Get misses and Put stores nothing.
 	stateLoading state = iota
 	// stateReady serves from the Log.
 	stateReady
@@ -178,14 +183,21 @@ func (c *Cache) Get(key []byte) ([]byte, bool, error) {
 }
 
 // Put stores copies of blocks, returning once they are written, without a
-// sync. Before the load it drops them.
+// sync. Before the load, and after a failure or Close, it stores nothing and
+// returns ErrUnavailable.
 func (c *Cache) Put(ctx context.Context, blocks []packahead.Block) error {
 	l := c.log.Load()
 	if l == nil {
-		c.dropped.Add(uint64(len(blocks)))
-		return nil
+		return ErrUnavailable
 	}
 	return l.AppendUnsynced(ctx, blocks)
+}
+
+// Has reports whether the cache holds a value under key, false before the
+// load.
+func (c *Cache) Has(key []byte) bool {
+	l := c.log.Load()
+	return l != nil && l.Has(key)
 }
 
 // Remove forgets the copy under key, such as one that failed its hash check.
@@ -208,7 +220,6 @@ func (c *Cache) Counts() Counts {
 	return Counts{
 		Hits:    c.hits.Load(),
 		Misses:  c.misses.Load(),
-		Dropped: c.dropped.Load(),
 		Evicted: c.evicted.Load(),
 		Carried: c.carried.Load(),
 	}

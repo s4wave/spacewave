@@ -26,20 +26,6 @@ const DefaultLimitBytes = 1 << 30
 // blocks inside its bound too.
 const entryOverhead = 256
 
-// Stats counts what a Cache holds and has served.
-type Stats struct {
-	// Blocks counts the blocks held.
-	Blocks int
-	// Bytes is the memory they take, as the bound counts it.
-	Bytes int64
-	// Hits counts the reads the cache served.
-	Hits uint64
-	// Fills counts the blocks copied in.
-	Fills uint64
-	// Evicted counts the blocks evicted for the bound.
-	Evicted uint64
-}
-
 // Cache is a bounded, least recently read set of copies of blocks a durable
 // store holds.
 //
@@ -55,6 +41,8 @@ type Cache struct {
 	fills atomic.Uint64
 	// evicted counts the blocks evicted.
 	evicted atomic.Uint64
+	// view is the read-only view View returns.
+	view *view
 
 	// mtx guards the fields below.
 	mtx sync.Mutex
@@ -82,7 +70,15 @@ func New(limitBytes int64) *Cache {
 	if limitBytes <= 0 {
 		limitBytes = DefaultLimitBytes
 	}
-	return &Cache{limit: limitBytes, entries: make(map[string]*list.Element)}
+	c := &Cache{limit: limitBytes, entries: make(map[string]*list.Element)}
+	c.view = &view{cache: c}
+	return c
+}
+
+// View returns the cache's read side as a block store: it serves the blocks
+// the cache holds and nothing else.
+func (c *Cache) View() block.StoreOps {
+	return c.view
 }
 
 // Reads returns a source that reads the cache, then the durable store lower,
@@ -91,7 +87,7 @@ func New(limitBytes int64) *Cache {
 // refs never reads back as a leaf. A nil lower yields a nil source, as no store
 // holds the blocks to copy.
 func (c *Cache) Reads(lower block_store.StoreSource) block_store.StoreSource {
-	view := &view{cache: c}
+	view := c.view
 	return func() block.StoreOps {
 		store := lower()
 		if store == nil {
