@@ -541,8 +541,18 @@ func TestSpacewaveOSRehearsal(t *testing.T) {
 	}
 
 	// The publish Step's release, which its sink wrote as the os/release
-	// object, names the signed image.
+	// object when the run routed the Step's output, names the signed image.
 	f.waitTask("flowgraph-run/spacewave-os", "publish", true)
+	f.wait("release", func() bool {
+		if run := f.readRun("flowgraph-run/spacewave-os"); run.GetState() == s4wave_flowgraph.FlowgraphRunState_FLOWGRAPH_RUN_STATE_PAUSED {
+			f.t.Fatalf("graph paused: %s", run.GetPauseReason())
+		}
+		found, err := f.tb.WorldState.HasObject(f.ctx, osRelease)
+		if err != nil {
+			f.t.Fatal(err)
+		}
+		return found
+	})
 	published, err := os_release.ReadRelease(f.ctx, f.tb.WorldState, osRelease)
 	if err != nil {
 		t.Fatal(err)
