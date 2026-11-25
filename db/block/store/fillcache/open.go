@@ -20,6 +20,11 @@ const pageSize = 16 << 10
 // that reads search it quickly even when reads never let SQLite restart it.
 const walBytes = 64 << 20
 
+// mmapBytes is the mmap_size of the cache file: the bytes of it SQLite reads
+// through a mapping instead of a read call. Zero maps none. The read
+// benchmark sets it to compare the two.
+var mmapBytes int64
+
 // quickCheckBytes is the file size up to which Open checks the file's
 // structure. A larger file opens unchecked, since scanning it would hold up the
 // start for the whole scan; its blocks are hash-checked as they are read.
@@ -51,6 +56,7 @@ func tryOpenStore(ctx context.Context, path string) (store_kvtx_sqlite.Store, er
 		WithoutRowID:       true,
 		PageSize:           pageSize,
 		WALCheckpointBytes: walBytes,
+		MmapSize:           mmapBytes,
 	})
 	if err != nil {
 		return nil, err
