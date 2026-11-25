@@ -203,11 +203,9 @@ func OpenWithPragmas[T SQLiteDriverConfig](ctx context.Context, path string, tab
 		return openReadOnly(ctx, db, table, config)
 	}
 
-	// page_size must be applied before the WAL header is written and before
-	// any tables are created on a fresh database. On an existing database it
-	// has no effect unless followed by VACUUM, which we do not run here.
+	// Give a new file its page size; a file that holds a schema keeps its own.
 	if pragmas.PageSize != 0 {
-		if _, err := db.ExecContext(ctx, "PRAGMA page_size="+strconv.FormatInt(int64(pragmas.PageSize), 10)); err != nil {
+		if err := applyPageSize(ctx, db, pragmas.PageSize); err != nil {
 			db.Close()
 			return nil, err
 		}
@@ -262,6 +260,44 @@ func setFreshAutoVacuum(ctx context.Context, db *sql.DB) error {
 	}
 	if mode != 2 {
 		return fmt.Errorf("sqlite: auto_vacuum is %d after setting incremental", mode)
+	}
+	return nil
+}
+
+// applyPageSize sets the page size of a database that holds no schema yet. The
+// DSN puts every connection in WAL mode as it opens, which writes the header
+// with the default page, and a WAL file cannot change its page size; so on one
+// connection it leaves WAL, sets the size, rebuilds the empty file with VACUUM
+// and returns to WAL. A database with a schema keeps its page size, as
+// changing it would rewrite the whole file.
+func applyPageSize(ctx context.Context, db *sql.DB, size int32) error {
+	// Leave a file with a schema, or with the size already, as it is.
+	conn, err := db.Conn(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	var tables, page int64
+	if err := conn.QueryRowContext(ctx, "SELECT count(*) FROM sqlite_master").Scan(&tables); err != nil {
+		return err
+	}
+	if err := conn.QueryRowContext(ctx, "PRAGMA page_size").Scan(&page); err != nil {
+		return err
+	}
+	if tables != 0 || page == int64(size) {
+		return nil
+	}
+
+	// Rebuild the empty file with the size, outside WAL mode.
+	for _, stmt := range []string{
+		"PRAGMA journal_mode=DELETE",
+		"PRAGMA page_size=" + strconv.FormatInt(int64(size), 10),
+		"VACUUM",
+		"PRAGMA journal_mode=WAL",
+	} {
+		if _, err := conn.ExecContext(ctx, stmt); err != nil {
+			return fmt.Errorf("%s: %w", stmt, err)
+		}
 	}
 	return nil
 }
