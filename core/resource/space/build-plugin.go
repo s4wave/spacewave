@@ -144,18 +144,14 @@ func (r *SpaceResource) selectDevicePlacement(ctx context.Context, tx world.Tx, 
 	if err != nil {
 		return nil, err
 	}
-	worker := device.FindSelectableForgeWorker()
-	if !device.IsSelectable() || worker == nil {
-		return nil, errors.New("device has no available Forge worker")
-	}
-
-	// Bind the Job to the Device's peer and linked Worker.
-	devicePeer, err := confparse.ParsePeerID(device.GetPeerId())
+	placement, err := forge_runtime.DeviceWorkerPlacement(ctx, tx, device)
 	if err != nil {
 		return nil, err
 	}
-	placement := &forge_worker.Placement{WorkerObjectKey: worker.GetLink().GetObjectKey(), PeerId: devicePeer.String()}
-	if err := placement.ValidateLinked(ctx, tx); err != nil {
+
+	// Execute as the Device's peer, which the placement checked.
+	devicePeer, err := confparse.ParsePeerID(placement.GetPeerId())
+	if err != nil {
 		return nil, err
 	}
 	return &devicePlacement{sender: sender, device: device, devicePeer: devicePeer, placement: placement}, nil

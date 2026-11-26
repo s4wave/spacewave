@@ -12,7 +12,7 @@ import (
 	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 )
 
-// readPlacedNodes reads every Flowgraph node in ws that is placed on the
+// readPlacedNodes reads every standing Flowgraph node in ws that is placed on the
 // Device at deviceKey, in Flowgraph key and node ID order, each marked with
 // the World engine engineID and the Space spaceID. It reads only the Flowgraphs with a placement
 // edge to the Device.
@@ -46,7 +46,10 @@ func readPlacedNodes(
 			return nil, errors.Wrapf(err, "read flowgraph %q", flowgraphKey)
 		}
 		for _, nodeID := range slices.Sorted(maps.Keys(snapshot.GetPlacements())) {
-			if !isPlacedOn(snapshot.GetPlacements()[nodeID], deviceKey) {
+			// A Device-placed Step runs as Forge Tasks on the Device's
+			// Worker, so the Device hosts only standing nodes.
+			node := snapshot.GetState().GetNodes()[nodeID]
+			if node.GetStep() != nil || !isPlacedOn(snapshot.GetPlacements()[nodeID], deviceKey) {
 				continue
 			}
 			connections, err := placedConnections(snapshot, nodeID, peerID)
@@ -56,7 +59,7 @@ func readPlacedNodes(
 			placed = append(placed, &s4wave_flowgraph.PlacedFlowgraphNode{
 				FlowgraphKey: flowgraphKey,
 				NodeID:       nodeID,
-				Node:         snapshot.GetState().GetNodes()[nodeID],
+				Node:         node,
 				DevicePeerID: devicePeerID,
 				EngineID:     engineID,
 				SpaceID:      spaceID,

@@ -51,7 +51,8 @@ export enum FlowgraphPlacementKind {
   UNKNOWN = 0,
 
   /**
-   * FLOWGRAPH_PLACEMENT_KIND_DEVICE places a standing node on a Device.
+   * FLOWGRAPH_PLACEMENT_KIND_DEVICE places a standing node on a Device, or runs
+   * each activation of a Step on the Device's Forge Worker.
    */
   DEVICE = 1,
 

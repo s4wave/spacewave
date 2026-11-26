@@ -27,6 +27,7 @@ import (
 	"github.com/s4wave/spacewave/identity"
 	"github.com/s4wave/spacewave/net/peer"
 	peer_controller "github.com/s4wave/spacewave/net/peer/controller"
+	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 	flowgraph_run "github.com/s4wave/spacewave/sdk/flowgraph/run"
 )
@@ -705,4 +706,77 @@ func TestJobBetweenActivations(t *testing.T) {
 	run := e.waitRun(s4wave_flowgraph.FlowgraphRunState_FLOWGRAPH_RUN_STATE_COMPLETE)
 	requireTrace(t, run, "a.out", "b.out")
 	e.waitJob(forge_job.State_JobState_COMPLETE)
+}
+
+// TestStepPlacedOnDevice pins a Device-placed Step's Task to that Device's
+// Worker, pausing at the Step while the Device offers no Worker.
+func TestStepPlacedOnDevice(t *testing.T) {
+	// Register a Device on the Worker's peer that has not linked its Worker.
+	const deviceKey = "device/bench"
+	e := newEnv(t)
+	setDevice := func(capabilities []*s4wave_device.DeviceCapability) {
+		e.exec(func(ctx context.Context, tx world.WorldState) error {
+			_, _, err := world.AccessWorldObject(ctx, tx, deviceKey, true, func(cursor *block.Cursor) error {
+				cursor.SetBlock(&s4wave_device.Device{
+					PeerId:       e.workerPeerID.String(),
+					Label:        "bench",
+					SetupState:   s4wave_device.DeviceSetupState_DEVICE_SETUP_STATE_DEVICE_SESSION_READY,
+					Capabilities: capabilities,
+				}, true)
+				return nil
+			})
+			return err
+		})
+	}
+	e.exec(func(ctx context.Context, tx world.WorldState) error {
+		obj, _, err := world.CreateWorldObject(ctx, tx, deviceKey, func(cursor *block.Cursor) error {
+			cursor.SetBlock(&s4wave_device.Device{}, true)
+			return nil
+		})
+		world.ReleaseObjectState(obj)
+		if err != nil {
+			return err
+		}
+		return world_types.SetObjectType(ctx, tx, deviceKey, s4wave_device.DeviceTypeID)
+	})
+	setDevice(nil)
+
+	// Place the run's only Step on the Device.
+	e.createGraph(map[string]*s4wave_flowgraph.FlowgraphNode{
+		"a": e.step(nil, [2]string{"yes", "no"}, true, nil),
+	}, nil)
+	e.editGraph(&s4wave_flowgraph.UpdateFlowgraphRequest{SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacements{
+		"a": {Copies: []*s4wave_flowgraph.FlowgraphPlacement{{
+			Kind:      s4wave_flowgraph.FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_DEVICE,
+			ObjectKey: deviceKey,
+		}}},
+	}})
+	e.startWorker()
+	e.startRun()
+	e.startController()
+
+	// Without a Worker the run pauses at the Step instead of running it anywhere.
+	run := e.waitRun(s4wave_flowgraph.FlowgraphRunState_FLOWGRAPH_RUN_STATE_PAUSED)
+	if run.GetPausedNode() != "a" || len(run.GetActivations()) != 0 {
+		t.Fatalf("paused at %q with %d activations: %s", run.GetPausedNode(), len(run.GetActivations()), run.GetPauseReason())
+	}
+
+	// Once the Device links its Worker, the resumed Step runs placed there.
+	setDevice([]*s4wave_device.DeviceCapability{{
+		Id:    "forge-worker",
+		Kind:  s4wave_device.DeviceCapabilityKindForgeWorker,
+		State: s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_AVAILABLE,
+		Link:  &s4wave_device.DeviceCapabilityLink{ObjectKey: workerKey, TypeId: forge_worker.WorkerTypeID},
+	}})
+	e.resume()
+	run = e.waitRun(s4wave_flowgraph.FlowgraphRunState_FLOWGRAPH_RUN_STATE_COMPLETE)
+	requireTrace(t, run, "a.yes")
+	task, err := forge_task.LookupTaskBody(e.ctx, e.tb.WorldState, run.GetActivations()[0].GetTaskKey())
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := &forge_worker.Placement{WorkerObjectKey: workerKey, PeerId: e.workerPeerID.String()}
+	if !task.GetPlacement().EqualVT(want) {
+		t.Fatalf("task placement %v, want %v", task.GetPlacement(), want)
+	}
 }

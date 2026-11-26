@@ -19,6 +19,7 @@ import (
 	forge_task "github.com/s4wave/spacewave/forge/task"
 	task_tx "github.com/s4wave/spacewave/forge/task/tx"
 	forge_value "github.com/s4wave/spacewave/forge/value"
+	forge_worker "github.com/s4wave/spacewave/forge/worker"
 	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 )
 
@@ -377,7 +378,15 @@ func (r *runner) start(ctx context.Context) error {
 				r.pause(id, reason)
 				break
 			}
-			if err := r.activate(ctx, id, step, key, r.consume(taken)); err != nil {
+			placement, reason, err := r.stepPlacement(ctx, id)
+			if err != nil {
+				return err
+			}
+			if reason != "" {
+				r.pause(id, reason)
+				break
+			}
+			if err := r.activate(ctx, id, step, key, placement, r.consume(taken)); err != nil {
 				return err
 			}
 		}
@@ -474,12 +483,14 @@ func (r *runner) blocked(nodeID string, step *s4wave_flowgraph.FlowgraphStep) st
 
 // activate adds a Task running the Step to the run's Job, with each input
 // port wired to the output or event object that arrived there. key is the key
-// of a keyed Step's activation, and empty for an unkeyed Step.
+// of a keyed Step's activation, and empty for an unkeyed Step. placement fixes
+// the Worker that runs the Task, or is nil for any Worker of the Cluster.
 func (r *runner) activate(
 	ctx context.Context,
 	nodeID string,
 	step *s4wave_flowgraph.FlowgraphStep,
 	key string,
+	placement *forge_worker.Placement,
 	inputs []*s4wave_flowgraph.FlowgraphArrival,
 ) error {
 	// Wire each arrival as a Forge input named after its port.
@@ -495,12 +506,8 @@ func (r *runner) activate(
 		target.Inputs = append(target.Inputs, input)
 	}
 
-	// Resolve the Job placement and reserve the next activation identity.
+	// Reserve the next activation identity.
 	jobKey := r.run.GetJobKey()
-	job, err := forge_job.LookupJobBody(ctx, r.ws, jobKey)
-	if err != nil {
-		return err
-	}
 	name, taskKey, err := r.newTaskName(ctx, jobKey)
 	if err != nil {
 		return err
@@ -511,7 +518,7 @@ func (r *runner) activate(
 	if err != nil {
 		return err
 	}
-	obj, _, err := forge_task.CreateTaskWithTarget(ctx, r.ws, "", taskKey, name, target, "", 1, job.GetPlacement(), timestamp.Now())
+	obj, _, err := forge_task.CreateTaskWithTarget(ctx, r.ws, "", taskKey, name, target, "", 1, placement, timestamp.Now())
 	world.ReleaseObjectState(obj)
 	if err != nil {
 		return err

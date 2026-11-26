@@ -63,7 +63,8 @@ type FlowgraphPlacementKind int32
 const (
 	// FLOWGRAPH_PLACEMENT_KIND_UNKNOWN is unset.
 	FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_UNKNOWN FlowgraphPlacementKind = 0
-	// FLOWGRAPH_PLACEMENT_KIND_DEVICE places a standing node on a Device.
+	// FLOWGRAPH_PLACEMENT_KIND_DEVICE places a standing node on a Device, or runs
+	// each activation of a Step on the Device's Forge Worker.
 	FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_DEVICE FlowgraphPlacementKind = 1
 	// FLOWGRAPH_PLACEMENT_KIND_ACTOR places a Step on an actor.
 	FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_ACTOR FlowgraphPlacementKind = 2

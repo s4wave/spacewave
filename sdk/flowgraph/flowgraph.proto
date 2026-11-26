@@ -138,7 +138,8 @@ message FlowgraphConnection {
 enum FlowgraphPlacementKind {
   // FLOWGRAPH_PLACEMENT_KIND_UNKNOWN is unset.
   FLOWGRAPH_PLACEMENT_KIND_UNKNOWN = 0;
-  // FLOWGRAPH_PLACEMENT_KIND_DEVICE places a standing node on a Device.
+  // FLOWGRAPH_PLACEMENT_KIND_DEVICE places a standing node on a Device, or runs
+  // each activation of a Step on the Device's Forge Worker.
   FLOWGRAPH_PLACEMENT_KIND_DEVICE = 1;
   // FLOWGRAPH_PLACEMENT_KIND_ACTOR places a Step on an actor.
   FLOWGRAPH_PLACEMENT_KIND_ACTOR = 2;

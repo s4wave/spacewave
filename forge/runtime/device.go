@@ -7,6 +7,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/world"
+	forge_worker "github.com/s4wave/spacewave/forge/worker"
+	"github.com/s4wave/spacewave/net/util/confparse"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 )
 
@@ -160,4 +162,25 @@ func ForgeWorkerObjectKey(capability *s4wave_device.DeviceCapability) string {
 		return ""
 	}
 	return strings.TrimSpace(capability.GetLink().GetObjectKey())
+}
+
+// DeviceWorkerPlacement places work on the selectable Forge Worker of dev and
+// on dev's own peer, and checks that the peer is linked to that Worker.
+func DeviceWorkerPlacement(ctx context.Context, ws world.WorldState, dev *s4wave_device.Device) (*forge_worker.Placement, error) {
+	// Require a selectable Device with a linked Worker.
+	workerKey := ForgeWorkerObjectKey(SelectForgeWorkerCapability(dev))
+	if workerKey == "" {
+		return nil, errors.New("device has no available Forge worker")
+	}
+
+	// Bind the Device's peer to the Worker it links.
+	devicePeer, err := confparse.ParsePeerID(dev.GetPeerId())
+	if err != nil {
+		return nil, err
+	}
+	placement := &forge_worker.Placement{WorkerObjectKey: workerKey, PeerId: devicePeer.String()}
+	if err := placement.ValidateLinked(ctx, ws); err != nil {
+		return nil, err
+	}
+	return placement, nil
 }
