@@ -1,0 +1,7 @@
+[
+  {
+    "name": "a failed request write replaces a remote method error",
+    "replace": [["read \\notin Terminal\n", "read # \"success\"\n"]],
+    "expect": "KeepsRemoteOutcome"
+  }
+]

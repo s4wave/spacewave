@@ -59,13 +59,20 @@ func (r *ProxyInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream
 	}
 
 	// Track completion of both directions of the proxied call.
-	serverDone := make(chan error, 1)
+	type response struct {
+		// err is the result of reading and forwarding the remote response.
+		err error
+		// complete records a terminal packet from the remote method.
+		complete bool
+	}
+	serverDone := make(chan response, 1)
 	clientDone := make(chan error, 1)
 
 	// Read messages from prw -> write to invoker stream.
 	go func() {
-		// Reuse a zero-copy message for responses from the remote service.
-		proxyMsg := srpc.NewRawMessage(nil, false) // zero-copy mode
+		// Reuse a zero-copy message and collect the remote method's result.
+		proxyMsg := srpc.NewRawMessage(nil, false)
+		var result response
 
 		// We have to handle the Packet here because srpc.Stream MsgSend will be
 		// encoded and wrapped in a Body packet.
@@ -85,7 +92,8 @@ func (r *ProxyInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream
 					}
 				}
 
-				// Report the remote service error or completion to the packet reader.
+				// Record the outcome sent by the remote method before ending the read.
+				result.complete = errStr != "" || complete
 				if errStr != "" {
 					return errors.New(errStr)
 				}
@@ -97,11 +105,10 @@ func (r *ProxyInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream
 		})
 
 		// Deliver remote packets until the service completes or the stream fails.
-		err := rpcstream.ReadToHandler(rpcStream, handler)
-		if err == io.EOF {
-			err = nil
+		if err := rpcstream.ReadToHandler(rpcStream, handler); err != io.EOF {
+			result.err = err
 		}
-		serverDone <- err
+		serverDone <- result
 	}()
 
 	// Write messages from invoker stream -> rpc client.
@@ -136,19 +143,19 @@ func (r *ProxyInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream
 
 	// Return remote completion, or wait for it after request forwarding ends.
 	select {
-	case err := <-serverDone:
-		return true, err
+	case result := <-serverDone:
+		return true, result.err
 	case err := <-clientDone:
+		// End the read when request forwarding fails. An already queued
+		// terminal packet still carries the outcome of the RPC.
 		if err != nil {
-			// The remote may have completed before the failed write. Close the
-			// stream to end the read loop, and keep a clean remote result.
 			_ = rpcStream.Close()
-			if <-serverDone == nil {
-				return true, nil
-			}
+		}
+		result := <-serverDone
+		if err != nil && !result.complete {
 			return true, err
 		}
-		return true, <-serverDone
+		return true, result.err
 	}
 }
 
