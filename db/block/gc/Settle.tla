@@ -10,23 +10,23 @@
 \*
 \* While Open nothing is deleted: the free parks each block at zero, and a
 \* parked block reads absent. A park is a free that keeps the bytes and the
-\* list: it releases the block's holds, so a parked block holds nothing and
-\* the free cascades down an unreachable subtree while Open, as it does
-\* after. Only a rebirth, a copied write or a recount makes the list hold
-\* again: an unpark gives no ups and owes a recount, which holds the walk's
-\* pops and the flip until it runs, and the sweep deletes a parked block
-\* without giving its downs again. Seeding pushes each unverified block a
-\* root names onto the front; the walk decodes a front block, which verifies its
-\* list, and pushes its unverified children. Land pushes the unverified
-\* blocks it holds, and a put of a stored block while Open verifies its list.
-\* The run names every unverified block and every parked one. A parked block
-\* that gains a holder, as a recount after a list gained a child gives it,
-\* leaves the park. The flip finds the run complete, the roots seeded, the
-\* front empty and no parked block held; every block the run names is then
-\* unreachable, and becomes unmarked. The sweep deletes each unmarked block,
-\* and a put of one gives birth to it again from its content. Once none is
-\* left the run goes and the generation is Settled, where every stored list
-\* was written from content, so no settle record or rule remains.
+\* list: it releases the block's holds, so a parked block holds nothing and the
+\* free cascades down an unreachable subtree while Open, as it does after. Only
+\* a rebirth, a copied write or a recount makes the list hold again: an unpark
+\* gives no ups and owes a recount, as a rewrite that gains a child does, which
+\* holds the walk's pops and the flip until it runs, and the sweep deletes a
+\* parked block without giving its downs again. Seeding pushes each unverified
+\* block a root names onto the front; the walk decodes a front block, which
+\* verifies its list, and pushes its unverified children. Land pushes the
+\* unverified blocks it holds, and a put of a stored block while Open verifies
+\* its list. The run names every unverified block and every parked one. A parked
+\* block that gains a holder, as a recount after a list gained a child gives it,
+\* leaves the park. The flip finds the run complete, the roots seeded, the front
+\* empty and no parked block held; every block the run names is then
+\* unreachable, and becomes unmarked. The sweep deletes each unmarked block, and
+\* a put of one gives birth to it again from its content. Once none is left the
+\* run goes and the generation is Settled, where every stored list was written
+\* from content, so no settle record or rule remains.
 \*
 \* A format upgrade recounts and keeps the generation and the run, so an
 \* upgrade that lands mid-Sweeping finishes its sweep first. The recount
@@ -88,13 +88,14 @@ CONSTANTS
   Upgrade,  \* whether the format upgrade may run
   Lost      \* the blocks no read resolves once the Volume lacks them
 
-\* r is the root's block; a's old list was cut and lacks b; g is an old,
-\* unreachable block whose list was cut too; n is a block a writer may write;
-\* h is a block the Volume lacks, and k a stored block only h names.
+\* r is the root's block, whose old list was cut and lacks h; a's was cut and
+\* lacks b; g is an old, unreachable block whose list was cut too; n is a block
+\* a writer may write; h is a block the Volume lacks, and k a stored block only
+\* h names.
 Blocks == {"r", "a", "b", "g", "n", "h", "k"}
 True == [r |-> {"a", "h"}, a |-> {"b"}, b |-> {}, g |-> {"b"}, n |-> {"a"},
          h |-> {"k"}, k |-> {}]
-Cut == [r |-> {"a", "h"}, a |-> {}, b |-> {}, g |-> {}, n |-> {"a"},
+Cut == [r |-> {"a"}, a |-> {}, b |-> {}, g |-> {}, n |-> {"a"},
         h |-> {}, k |-> {}]
 
 VARIABLES
@@ -112,17 +113,20 @@ VARIABLES
   unmarked,  \* run blocks the flip unmarked and the sweep has not deleted
   root,      \* the block the root names
   fmt,       \* the store format
-  owed,      \* an unpark of a released block owes the counts a recount
+  owed,      \* an unpark of a released list or a rewrite owes a recount
+  gained,    \* <<p, c>>: a rewrite gave p's list c without c's holder
   txns       \* Land transactions so far
-vars == <<gen, stored, verified, short, front, seeded, run, complete, parked, released, debt, unmarked, root, fmt, owed, txns>>
+vars == <<gen, stored, verified, short, front, seeded, run, complete, parked, released, debt, unmarked, root, fmt, owed, gained, txns>>
 
 List(b) == IF b \in verified \ short THEN True[b] ELSE Cut[b]
 
 \* The holders of b: the root and each stored list that names it, except a
-\* list its park released, less any down a defect gave twice.
+\* list its park released and a list whose rewrite gave it b without its
+\* holder, less any down a defect gave twice.
 Count(b) ==
   LET n == (IF root = b THEN 1 ELSE 0)
-             + Cardinality({p \in stored \ released : b \in List(p)}) - debt[b]
+             + Cardinality({p \in stored \ released : b \in List(p) /\ <<p, b>> \notin gained})
+             - debt[b]
   IN IF n < 0 THEN 0 ELSE n
 
 \* A hidden block reads absent, and a Land refuses a hold onto it.
@@ -157,12 +161,21 @@ Init ==
   /\ root = "r"
   /\ fmt = 9
   /\ owed = FALSE
+  /\ gained = {}
   /\ txns = 0
 
 \* Verify gives the blocks V lists from content, takes them off the front
 \* and out of the run unless parked, and, while Open, pushes the children
-\* it still owes.
+\* it still owes. A stored list it rewrites gains each child its cut list
+\* lacked without the holder the list now gives it, as the rebuild and
+\* markStored write a list, so the counts owe a recount; a list it writes
+\* for a block not stored is new, and its holders are counted.
 Verify(V) ==
+  /\ LET g == IF gen = "open"
+               THEN {<<p, c>> \in (V \cap stored \ verified) \X Blocks : c \in True[p] \ Cut[p]}
+               ELSE {}
+     IN /\ gained' = gained \cup g
+        /\ owed' = (owed \/ g # {})
   /\ verified' = verified \cup V
   /\ short' = short \ V
   /\ front' = (front \ V)
@@ -190,8 +203,9 @@ Put(b) ==
             /\ unmarked' = unmarked \ {b}
             /\ released' = released \ {b}
             /\ run' = IF gen = "sweeping" THEN run ELSE run \ {b}
+            /\ UNCHANGED <<owed, gained>>
   /\ txns' = txns + 1
-  /\ UNCHANGED <<gen, seeded, complete, root, fmt, owed, debt>>
+  /\ UNCHANGED <<gen, seeded, complete, root, fmt, debt>>
 
 \* Move moves the root onto a present block, pushing it while Open when its
 \* list is unverified.
@@ -202,7 +216,7 @@ Move(t) ==
   /\ root' = t
   /\ front' = IF gen = "open" THEN front \cup Owed({t}) ELSE front
   /\ txns' = txns + 1
-  /\ UNCHANGED <<gen, stored, verified, short, seeded, run, complete, parked, released, debt, unmarked, fmt, owed>>
+  /\ UNCHANGED <<gen, stored, verified, short, seeded, run, complete, parked, released, debt, unmarked, fmt, owed, gained>>
 
 \* MarkCopied marks the copied lists of V as Verify marks a decoded one,
 \* which only a defect does: the lists stay cut.
@@ -228,14 +242,14 @@ CopyWrite(b) ==
             Put(b)
        [] Present(b) ->
             /\ txns' = txns + 1
-            /\ UNCHANGED <<gen, stored, verified, short, front, seeded, run, complete, parked, unmarked, root, fmt, owed>>
+            /\ UNCHANGED <<gen, stored, verified, short, front, seeded, run, complete, parked, unmarked, root, fmt, owed, gained>>
             /\ UNCHANGED <<released, debt>>
        [] gen = "open" /\ b \notin stored ->
             /\ stored' = stored \cup {b}
             /\ run' = run \cup {b}
             /\ front' = front \cup {b}
             /\ txns' = txns + 1
-            /\ UNCHANGED <<gen, verified, short, seeded, complete, parked, unmarked, root, fmt, owed>>
+            /\ UNCHANGED <<gen, verified, short, seeded, complete, parked, unmarked, root, fmt, owed, gained>>
             /\ UNCHANGED <<released, debt>>
        [] gen = "settled" /\ b \notin stored ->
             /\ stored' = stored \cup {b}
@@ -243,14 +257,14 @@ CopyWrite(b) ==
             /\ front' = front \cup {b}
             /\ gen' = "open"
             /\ txns' = txns + 1
-            /\ UNCHANGED <<verified, short, seeded, complete, parked, unmarked, root, fmt, owed>>
+            /\ UNCHANGED <<verified, short, seeded, complete, parked, unmarked, root, fmt, owed, gained>>
             /\ UNCHANGED <<released, debt>>
        [] gen = "open" /\ b \in parked /\ b \notin verified ->
             /\ parked' = parked \ {b}
             /\ front' = front \cup {b}
             /\ released' = released \ {b}
             /\ txns' = txns + 1
-            /\ UNCHANGED <<gen, stored, verified, short, seeded, run, complete, unmarked, root, fmt, owed, debt>>
+            /\ UNCHANGED <<gen, stored, verified, short, seeded, run, complete, unmarked, root, fmt, owed, gained, debt>>
        [] OTHER -> FALSE
 
 Land == \E b \in Blocks : Put(b) \/ Move(b) \/ CopyWrite(b)
@@ -260,7 +274,7 @@ Seed ==
   /\ ~seeded
   /\ seeded' = TRUE
   /\ front' = front \cup Owed({root})
-  /\ UNCHANGED <<gen, stored, verified, short, run, complete, parked, released, debt, unmarked, root, fmt, owed, txns>>
+  /\ UNCHANGED <<gen, stored, verified, short, run, complete, parked, released, debt, unmarked, root, fmt, owed, gained, txns>>
 
 \* Walk takes a front block off the front. It decodes only a block the root
 \* reaches, as the walk reads through the root's tree: a present block, which
@@ -269,7 +283,9 @@ Seed ==
 \* leaves, since the run holds it and an unpark returns it, and a block
 \* nothing holds may leave undecoded, present or not, as the free proof pops
 \* it; any other block stays until the root reaches it or its holders go.
-\* Nothing pops while a recount is owed, since a count may miss a holder.
+\* Nothing pops while a recount is owed, since a count may miss a holder,
+\* and the recount returns only a stored child to the front, so an absent
+\* child popped then would never return.
 Walk(b) ==
   /\ b \in front
   /\ \/ /\ b \in stored /\ ~Hidden(b) /\ b \in Reach({root})
@@ -281,15 +297,15 @@ Walk(b) ==
      \/ /\ ~owed
         /\ Hidden(b) \/ Count(b) = 0
         /\ front' = front \ {b}
-        /\ UNCHANGED <<stored, verified, short, run>>
-  /\ UNCHANGED <<gen, seeded, complete, parked, released, debt, unmarked, root, fmt, owed, txns>>
+        /\ UNCHANGED <<stored, verified, short, run, owed, gained>>
+  /\ UNCHANGED <<gen, seeded, complete, parked, released, debt, unmarked, root, fmt, txns>>
 
 BuildRun ==
   /\ gen = "open"
   /\ ~complete
   /\ complete' = TRUE
   /\ run' = run \cup Unverified(stored)
-  /\ UNCHANGED <<gen, stored, verified, short, front, seeded, parked, released, debt, unmarked, root, fmt, owed, txns>>
+  /\ UNCHANGED <<gen, stored, verified, short, front, seeded, parked, released, debt, unmarked, root, fmt, owed, gained, txns>>
 
 \* Free deletes a block at zero holders, except that while Open it parks it.
 \* A park is a free that keeps the bytes and the list: it releases the
@@ -314,7 +330,7 @@ Free(b) ==
   /\ verified' = IF gen = "open" THEN verified ELSE verified \ {b}
   /\ short' = IF gen = "open" THEN short ELSE short \ {b}
   /\ debt' = [k \in Blocks |-> debt[k] + (IF b \in released /\ k \in List(b) THEN 1 ELSE 0)]
-  /\ UNCHANGED <<gen, front, seeded, complete, unmarked, root, fmt, owed, txns>>
+  /\ UNCHANGED <<gen, front, seeded, complete, unmarked, root, fmt, owed, gained, txns>>
 
 \* Unpark ends the park of a block that gained a holder. A park that kept
 \* its holds leaves a list that holds; a released one stays released, since
@@ -340,7 +356,7 @@ Flip ==
   /\ gen' = "sweeping"
   /\ unmarked' = run
   /\ parked' = {}
-  /\ UNCHANGED <<stored, verified, short, front, seeded, run, complete, released, debt, root, fmt, owed, txns>>
+  /\ UNCHANGED <<stored, verified, short, front, seeded, run, complete, released, debt, root, fmt, owed, gained, txns>>
 
 \* Sweep deletes an unmarked block. A block its park released gives no
 \* downs, since the park gave them; any other gives its downs as a free does.
@@ -352,14 +368,14 @@ Sweep(b) ==
   /\ unmarked' = unmarked \ {b}
   /\ released' = released \ {b}
   /\ debt' = debt
-  /\ UNCHANGED <<gen, front, seeded, run, complete, parked, root, fmt, owed, txns>>
+  /\ UNCHANGED <<gen, front, seeded, run, complete, parked, root, fmt, owed, gained, txns>>
 
 Settle ==
   /\ gen = "sweeping"
   /\ unmarked = {}
   /\ gen' = "settled"
   /\ run' = {}
-  /\ UNCHANGED <<stored, verified, short, front, seeded, complete, parked, released, debt, unmarked, root, fmt, owed, txns>>
+  /\ UNCHANGED <<stored, verified, short, front, seeded, complete, parked, released, debt, unmarked, root, fmt, owed, gained, txns>>
 
 \* Recount is the adoption's recount: it drops every park first, taking a
 \* verified parked block out of the run and returning an unverified one to
@@ -377,6 +393,7 @@ Recount ==
   /\ released' = {}
   /\ debt' = [k \in Blocks |-> 0]
   /\ owed' = FALSE
+  /\ gained' = {}
   /\ run' = run \ (parked \cap verified)
   /\ front' = front \cup Owed(parked)
                \cup (IF gen = "open"
@@ -423,14 +440,16 @@ LiveStored == Reach({root}) \ {"h"} \subseteq stored
 \* The root's block reads present.
 HeldPresent == ~Hidden(root)
 
-\* A hidden block the root reaches that a shown parent names, by a list
-\* from its whole content that holds, keeps that holder, so an unpark shows
-\* it again; only a released list's children, which its park gave their
-\* downs before an unpark that owes their recount, may lose it. Once the
-\* flip could run, no block the root reaches reads hidden: the owed recount
-\* has given back every holder a released list took.
+\* A hidden block the root reaches that a shown parent names, by a list from its
+\* whole content that holds, keeps that holder, so an unpark shows it again;
+\* only a released list's children, which its park gave their downs before an
+\* unpark that owes their recount, and a rewritten list's gained children until
+\* that recount, may lose it. Once the flip could run, no block the root reaches
+\* reads hidden: the owed recount has given back every holder a released list
+\* took.
 Holding(b) ==
-  {p \in Reach({root}) : Present(p) /\ p \in verified \ short /\ p \notin released /\ b \in True[p]}
+  {p \in Reach({root}) : Present(p) /\ p \in verified \ short /\ p \notin released
+                         /\ <<p, b>> \notin gained /\ b \in True[p]}
 FlipReady ==
   /\ gen = "open" /\ complete /\ seeded /\ front = {} /\ ~owed
   /\ \A b \in parked : Count(b) = 0

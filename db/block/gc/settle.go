@@ -689,7 +689,10 @@ type frontPos struct {
 // holder, if anything holds it, is a seed the flip pushes or a block below a
 // front entry, which holds the flip until the walk decodes it. A list that
 // gained a child logged no holder for it, so while kindRewritten exists the
-// counts may miss a holder whose list is marked, and nothing pops. The
+// counts may miss a holder whose list is marked, and nothing pops: the
+// recount returns to the front only a child with an unmarked list, as
+// adoption.hold describes, so an absent gained child popped then would never
+// return, and the sweep would delete the stored blocks only it names. The
 // record lasts until the next flip attempt returns the Volume to unadopted
 // and the adoption that follows deletes it, so the front waits for one
 // recount at most. A block popped before the rewrite that the rewritten list

@@ -125,7 +125,7 @@
     "replace": [
       [
         "        /\\ stored' = stored \\cup {b}\n        /\\ Verify({b})",
-        "        /\\ front' = front \\ {b}\n        /\\ UNCHANGED <<stored, verified, short, run>>"
+        "        /\\ front' = front \\ {b}\n        /\\ UNCHANGED <<stored, verified, short, run, owed, gained>>"
       ]
     ],
     "expect": "ReachedShown",
@@ -135,8 +135,8 @@
     "name": "a copied put of a stored block with an unverified list marks it (F2, markStored)",
     "replace": [
       [
-        "       [] Present(b) ->\n            /\\ txns' = txns + 1\n            /\\ UNCHANGED <<gen, stored, verified, short, front, seeded, run, complete, parked, unmarked, root, fmt, owed>>",
-        "       [] Present(b) ->\n            /\\ txns' = txns + 1\n            /\\ IF gen = \"open\" /\\ b \\notin verified\n                 THEN MarkCopied({b})\n                 ELSE UNCHANGED <<verified, short, front, run>>\n            /\\ UNCHANGED <<gen, stored, seeded, complete, parked, unmarked, root, fmt, owed>>"
+        "       [] Present(b) ->\n            /\\ txns' = txns + 1\n            /\\ UNCHANGED <<gen, stored, verified, short, front, seeded, run, complete, parked, unmarked, root, fmt, owed, gained>>",
+        "       [] Present(b) ->\n            /\\ txns' = txns + 1\n            /\\ IF gen = \"open\" /\\ b \\notin verified\n                 THEN MarkCopied({b})\n                 ELSE UNCHANGED <<verified, short, front, run>>\n            /\\ UNCHANGED <<gen, stored, seeded, complete, parked, unmarked, root, fmt, owed, gained>>"
       ]
     ],
     "expect": "LiveStored",
@@ -146,8 +146,8 @@
     "name": "a copied put of a block not stored writes its list marked (F2, Land's birth)",
     "replace": [
       [
-        "            /\\ run' = run \\cup {b}\n            /\\ front' = front \\cup {b}\n            /\\ txns' = txns + 1\n            /\\ UNCHANGED <<gen, verified, short, seeded, complete, parked, unmarked, root, fmt, owed>>",
-        "            /\\ MarkCopied({b})\n            /\\ txns' = txns + 1\n            /\\ UNCHANGED <<gen, seeded, complete, parked, unmarked, root, fmt, owed>>"
+        "            /\\ run' = run \\cup {b}\n            /\\ front' = front \\cup {b}\n            /\\ txns' = txns + 1\n            /\\ UNCHANGED <<gen, verified, short, seeded, complete, parked, unmarked, root, fmt, owed, gained>>",
+        "            /\\ MarkCopied({b})\n            /\\ txns' = txns + 1\n            /\\ UNCHANGED <<gen, seeded, complete, parked, unmarked, root, fmt, owed, gained>>"
       ]
     ],
     "expect": "LiveStored",
