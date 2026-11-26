@@ -2610,16 +2610,9 @@ func TestExecPluginReadsExternalManifestViaLookupBlockFromNetwork(t *testing.T) 
 		t.Fatal("expected demand execution to invoke LookupBlockFromNetwork")
 	}
 	accounting := pi.manifestCopyAccounting.Load()
-	if accounting == nil || accounting.counters == nil {
-		t.Fatal("expected demand accounting for executed manifest")
-	}
-	readCount, readBytes := accounting.counters.snapshot()
-	demandSnapshot := block.ReadCounterSnapshot{
-		BlockReadCount: readCount,
-		BlockReadBytes: readBytes,
-	}
-	if demandSnapshot.BlockReadCount == 0 || demandSnapshot.BlockReadBytes == 0 {
-		t.Fatalf("expected nonzero demand accounting, got %#v", demandSnapshot)
+	stats := accounting.apply(bucket_lookup.ObjectCopyStats{})
+	if stats.DemandReadCount == 0 || stats.DemandReadBytes == 0 {
+		t.Fatalf("expected nonzero demand accounting, got %#v", stats)
 	}
 	if string(host.distData) != "console.log('release cdn')\n" {
 		t.Fatalf("dist entrypoint bytes = %q", host.distData)

@@ -85,8 +85,13 @@ func TestSelectedHostStorage(t *testing.T) {
 
 		// Bridge the plugin bus to the host through the plugin host RPC.
 		mux := srpc.NewMux(bifrost_rpc.NewInvoker(hostBus, "", true))
-		server := plugin_host.NewPluginHostServer(ctx, hostBus, le, "test-plugin", storageID, nil, nil, storageID, false)
-		server.SetHostExportPluginIDs(hostExports)
+		server := plugin_host.NewPluginHostServer(ctx, hostBus, le, plugin_host.PluginHostServerConfig{
+			PluginID:                "test-plugin",
+			InstanceKey:             storageID,
+			RegistrationInstanceKey: storageID,
+			HostStorageID:           storageID,
+			HostExportPluginIDs:     hostExports,
+		})
 		if err := bldr_plugin.SRPCRegisterPluginHost(mux, server); err != nil {
 			return nil, err
 		}

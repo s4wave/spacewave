@@ -618,28 +618,27 @@ func (c *Controller) buildPluginMux(
 ) (srpc.Mux, func()) {
 	// Build the plugin host service, which also decides what the plugin
 	// reaches on the host bus beyond the services registered here.
+	hostExports := c.conf.GetHostExportPluginIds()
 	hostServer := bldr_plugin_host.NewPluginHostServer(
 		ctx,
 		c.bus,
 		c.le,
-		pluginID,
-		c.conf.GetInstanceKey(),
-		manifest,
-		proxyHostVolInfo,
-		c.conf.GetHostStorageId(),
-		historical,
+		bldr_plugin_host.PluginHostServerConfig{
+			PluginID:                pluginID,
+			InstanceKey:             c.conf.GetInstanceKey(),
+			RegistrationInstanceKey: bindingKey,
+			ManifestSnapshot:        manifest,
+			HostVolumeInfo:          proxyHostVolInfo,
+			HostStorageID:           c.conf.GetHostStorageId(),
+			Historical:              historical,
+			Prepared:                prepared,
+			NamesPeers:              slices.Contains(hostExports, pluginID),
+			HostExportPluginIDs:     hostExports,
+			Scheduler:               c,
+		},
 	)
-	hostServer.SetPrepared(prepared)
 
-	// A plugin trusted to run plugins on these hosts may also select the
-	// peer whose approvals decide its loads. Every other plugin's loads use
-	// none.
-	hostServer.SetNamesPeers(slices.Contains(c.conf.GetHostExportPluginIds(), pluginID))
-
-	// Bind the registration and scheduler, then register the service.
-	hostServer.SetRegistrationInstanceKey(bindingKey)
-	hostServer.SetHostExportPluginIDs(c.conf.GetHostExportPluginIds())
-	hostServer.SetPluginScheduler(c)
+	// Register the plugin host service and its host bus fallback.
 	mux := srpc.NewMux(hostServer.HostBusInvoker(c.conf.GetAllowedHostServiceIds()))
 	_ = bldr_plugin.SRPCRegisterPluginHost(mux, hostServer)
 

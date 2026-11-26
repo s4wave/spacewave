@@ -212,10 +212,11 @@ var testHostExports = []string{"spacewave-core"}
 // newHostServer serves pluginID, bound to binding, on a host whose own plugin
 // set is testHostExports.
 func newHostServer(ctx context.Context, hostBus bus.Bus, le *logrus.Entry, pluginID, binding string) *bldr_plugin_host.PluginHostServer {
-	server := bldr_plugin_host.NewPluginHostServer(ctx, hostBus, le, pluginID, "", nil, nil, "", false)
-	server.SetRegistrationInstanceKey(binding)
-	server.SetHostExportPluginIDs(testHostExports)
-	return server
+	return bldr_plugin_host.NewPluginHostServer(ctx, hostBus, le, bldr_plugin_host.PluginHostServerConfig{
+		PluginID:                pluginID,
+		RegistrationInstanceKey: binding,
+		HostExportPluginIDs:     testHostExports,
+	})
 }
 
 // TestExecControllerRefusesNonHostPlugin runs the config sets that escaped a

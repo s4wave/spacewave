@@ -8,6 +8,7 @@ import (
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/s4wave/spacewave/db/unixfs"
+	"github.com/s4wave/spacewave/db/volume"
 )
 
 // ErrPluginUninitialized is returned if the plugin was not initialized.
@@ -79,4 +80,31 @@ type PluginHostScheduler interface {
 	// AddAssetsPluginReference retains a plugin whose files the caller serves
 	// to a browser, mounting a browser manifest when no host can run it.
 	AddAssetsPluginReference(pluginID, instanceKey, manifestRoot string) (bldr_plugin.RunningPluginRef, func())
+}
+
+// PluginHostServerConfig supplies the identity, permissions, and services of one plugin host.
+type PluginHostServerConfig struct {
+	// PluginID identifies the plugin this server serves.
+	PluginID string
+	// InstanceKey is the host scheduler's routing key.
+	InstanceKey string
+	// RegistrationInstanceKey identifies the logical installation, independent of the routing key.
+	RegistrationInstanceKey string
+	// ManifestSnapshot describes the running build.
+	ManifestSnapshot *manifest.ManifestSnapshot
+	// HostVolumeInfo describes the plugin's view of the host volume.
+	HostVolumeInfo *volume.VolumeInfo
+	// HostStorageID selects the storage that allocates named volumes. Empty selects the host default.
+	HostStorageID string
+	// Historical suppresses current-generation registration for a replay worker.
+	Historical bool
+	// Prepared delays publication until the scheduler admits the candidate.
+	Prepared bool
+	// NamesPeers permits the plugin to name the peer whose approvals decide its loads.
+	// Grant it only to a plugin trusted to run plugins on the host.
+	NamesPeers bool
+	// HostExportPluginIDs lists the plugins the host trusts to use its bus and name instance keys.
+	HostExportPluginIDs []string
+	// Scheduler supplies plugin status when present.
+	Scheduler bldr_plugin.PluginScheduler
 }

@@ -457,9 +457,12 @@ func TestKeyedCallerLoadStaysInScope(t *testing.T) {
 	defer rel()
 
 	// Serve the host to the attacker as execute-plugin does for its instance.
-	srv := bldr_plugin_host.NewPluginHostServer(ctx, tb.Bus, le, "attacker", app.conf.GetInstanceKey(), nil, nil, "", false)
-	srv.SetRegistrationInstanceKey(app.bindingKey("space-a"))
-	srv.SetHostExportPluginIDs([]string{"spacewave-core"})
+	srv := bldr_plugin_host.NewPluginHostServer(ctx, tb.Bus, le, bldr_plugin_host.PluginHostServerConfig{
+		PluginID:                "attacker",
+		InstanceKey:             app.conf.GetInstanceKey(),
+		RegistrationInstanceKey: app.bindingKey("space-a"),
+		HostExportPluginIDs:     []string{"spacewave-core"},
+	})
 	mux := srpc.NewMux()
 	if err := bldr_plugin.SRPCRegisterPluginHost(mux, srv); err != nil {
 		t.Fatal(err.Error())

@@ -62,29 +62,31 @@ type PluginHostServer struct {
 	pluginFsTracker *keyed.KeyedRefCount[string, *pluginHostServerFsTracker]
 }
 
-// NewPluginHostServer constructs a new PluginHostServer.
+// NewPluginHostServer constructs a PluginHostServer whose file servers use ctx.
 func NewPluginHostServer(
 	ctx context.Context,
 	b bus.Bus,
 	le *logrus.Entry,
-	pluginID string,
-	instanceKey string,
-	manifest *bldr_manifest.ManifestSnapshot,
-	hostVolumeInfo *volume.VolumeInfo,
-	hostStorageID string,
-	historical bool,
+	conf PluginHostServerConfig,
 ) *PluginHostServer {
+	// Install the plugin identity and host policy before starting the tracker.
 	s := &PluginHostServer{
 		b:                       b,
 		le:                      le,
-		pluginID:                pluginID,
-		instanceKey:             instanceKey,
-		registrationInstanceKey: instanceKey,
-		manifestSnapshot:        manifest,
-		hostVolumeInfo:          hostVolumeInfo,
-		hostStorageID:           hostStorageID,
-		historical:              historical,
+		pluginID:                conf.PluginID,
+		instanceKey:             conf.InstanceKey,
+		registrationInstanceKey: conf.RegistrationInstanceKey,
+		manifestSnapshot:        conf.ManifestSnapshot,
+		hostVolumeInfo:          conf.HostVolumeInfo,
+		hostStorageID:           conf.HostStorageID,
+		historical:              conf.Historical,
+		prepared:                conf.Prepared,
+		namesPeers:              conf.NamesPeers,
+		hostExportPluginIDs:     conf.HostExportPluginIDs,
+		scheduler:               conf.Scheduler,
 	}
+
+	// Tie the file server tracker to the plugin host's context.
 	s.pluginFsTracker = keyed.NewKeyedRefCountWithLogger(
 		s.newPluginHostServerFsTracker,
 		le,
@@ -92,39 +94,6 @@ func NewPluginHostServer(
 	)
 	s.pluginFsTracker.SetContext(ctx, true)
 	return s
-}
-
-// SetPrepared requests private registration until explicit candidate admission.
-func (s *PluginHostServer) SetPrepared(prepared bool) {
-	s.prepared = prepared
-}
-
-// SetNamesPeers permits this plugin's LoadPlugin requests to select the peer
-// whose approvals decide their roots. Grant this permission only to plugins
-// trusted to run plugins on the host, such as one that forwards a session's
-// Space loads. A request from any other plugin that selects a peer is refused,
-// so a plugin cannot borrow another peer's approvals. Set namesPeers before
-// exposing this server to its plugin.
-func (s *PluginHostServer) SetNamesPeers(namesPeers bool) {
-	s.namesPeers = namesPeers
-}
-
-// SetRegistrationInstanceKey binds registrations to the logical installation.
-// Set it before exposing this server to its plugin.
-func (s *PluginHostServer) SetRegistrationInstanceKey(instanceKey string) {
-	s.registrationInstanceKey = instanceKey
-}
-
-// SetHostExportPluginIDs sets the scheduler's trusted plugins (see
-// loadInstanceKey). Set it before exposing this server to its plugin.
-func (s *PluginHostServer) SetHostExportPluginIDs(pluginIDs []string) {
-	s.hostExportPluginIDs = pluginIDs
-}
-
-// SetPluginScheduler sets the host scheduler whose status WatchPluginStatus
-// streams. Set it before exposing this server to its plugin.
-func (s *PluginHostServer) SetPluginScheduler(scheduler bldr_plugin.PluginScheduler) {
-	s.scheduler = scheduler
 }
 
 // GetPluginInfo returns information about the running plugin.
@@ -179,7 +148,7 @@ func (s *PluginHostServer) LoadPlugin(
 // refuseLoad returns why this server's plugin may not send req, or nil. The
 // function enforces every rule about what a request may select beyond the
 // caller's own scope: a peer whose approvals decide the roots is selected only
-// by a plugin granted SetNamesPeers.
+// by a plugin granted NamesPeers.
 func (s *PluginHostServer) refuseLoad(req *bldr_plugin.LoadPluginRequest) error {
 	if req.GetPeerId() != "" && !s.namesPeers {
 		return errors.Errorf("plugin %q may not name the approving peer of a load", s.pluginID)

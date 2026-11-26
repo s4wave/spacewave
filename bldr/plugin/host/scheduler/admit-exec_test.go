@@ -89,7 +89,10 @@ func TestExecControllerCannotStartAdmission(t *testing.T) {
 	}
 
 	// The evil plugin's own PluginHost service, as buildPluginMux registers it.
-	hostSrv := bldr_plugin_host.NewPluginHostServer(ctx, host.Bus, le, evilID, "", &manifest.ManifestSnapshot{}, nil, "", false)
+	hostSrv := bldr_plugin_host.NewPluginHostServer(ctx, host.Bus, le, bldr_plugin_host.PluginHostServerConfig{
+		PluginID:         evilID,
+		ManifestSnapshot: &manifest.ManifestSnapshot{},
+	})
 	hostMux := srpc.NewMux()
 	if err := plugin.SRPCRegisterPluginHost(hostMux, hostSrv); err != nil {
 		t.Fatal(err)

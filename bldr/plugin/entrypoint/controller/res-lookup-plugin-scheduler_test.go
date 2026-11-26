@@ -41,8 +41,10 @@ func TestLookupPluginSchedulerStreamsHostStatus(t *testing.T) {
 	scheduler := &testHostScheduler{
 		statusCtr: ccontainer.NewCContainer(&bldr_plugin.PluginStatusSnapshot{}),
 	}
-	host := plugin_host.NewPluginHostServer(ctx, hostBus, le, "spacewave-core", "", nil, nil, "", false)
-	host.SetPluginScheduler(scheduler)
+	host := plugin_host.NewPluginHostServer(ctx, hostBus, le, plugin_host.PluginHostServerConfig{
+		PluginID:  "spacewave-core",
+		Scheduler: scheduler,
+	})
 	mux := srpc.NewMux()
 	if err := bldr_plugin.SRPCRegisterPluginHost(mux, host); err != nil {
 		t.Fatal(err)

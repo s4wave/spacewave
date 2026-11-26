@@ -171,8 +171,8 @@ func (a *manifestCopyAccounting) apply(stats bucket_lookup.ObjectCopyStats) buck
 
 	// Copy the demand read totals into the stats.
 	readCount, readBytes := a.counters.snapshot()
-	stats.DemandReadCount = int64(readCount) //nolint:gosec // copy statistics use signed counters; the read counter's monotonic values are bounded by the signed stats API.
-	stats.DemandReadBytes = int64(readBytes) //nolint:gosec // copy statistics use signed counters; the read counter's monotonic values are bounded by the signed stats API.
+	stats.DemandReadCount = int64(readCount) //nolint:gosec // Demand counters are bounded by the signed copy statistics API.
+	stats.DemandReadBytes = int64(readBytes) //nolint:gosec // Demand counters are bounded by the signed copy statistics API.
 	return stats
 }
 
@@ -180,7 +180,29 @@ func (a *manifestCopyAccounting) sameCandidate(manifestSnapshot *bldr_manifest.M
 	if a == nil || a.manifestRef == nil || manifestSnapshot == nil {
 		return false
 	}
-	return bldr_manifest_world.ManifestObjectRefsSameExecutable(a.manifestRef, manifestSnapshot.GetManifestRef()) && a.manifestRef.EqualVT(manifestSnapshot.GetManifestRef())
+	return bldr_manifest_world.ManifestObjectRefsSameExecutable(a.manifestRef, manifestSnapshot.GetManifestRef()) &&
+		a.manifestRef.EqualVT(manifestSnapshot.GetManifestRef())
+}
+
+// registerDemandReads tracks this execution's reads for the selected candidate.
+func (a *manifestCopyAccounting) registerDemandReads(counter *block.ReadCounter) {
+	if a != nil {
+		a.counters.register(counter)
+	}
+}
+
+// observeDemandReads folds reads from the execution if it is still active.
+func (a *manifestCopyAccounting) observeDemandReads(counter *block.ReadCounter) {
+	if a != nil {
+		a.counters.observe(counter)
+	}
+}
+
+// finishDemandReads folds the last reads and stops tracking the execution if it is still active.
+func (a *manifestCopyAccounting) finishDemandReads(counter *block.ReadCounter) {
+	if a != nil {
+		a.counters.finish(counter)
+	}
 }
 
 type manifestDemandObservation struct {
@@ -189,28 +211,29 @@ type manifestDemandObservation struct {
 }
 
 func (o *manifestDemandObservation) register() {
-	if o == nil || o.accounting == nil || o.counter == nil || o.accounting.counters == nil {
+	if o == nil {
 		return
 	}
-	o.accounting.counters.register(o.counter)
+	o.accounting.registerDemandReads(o.counter)
 }
 
 func (o *manifestDemandObservation) snapshot() block.ReadCounterSnapshot {
+	// Report zero reads if this execution has no counter.
 	if o == nil || o.counter == nil {
 		return block.ReadCounterSnapshot{}
 	}
+
+	// Capture this execution's reads and fold them into the candidate's totals.
 	snapshot := o.counter.Snapshot()
-	if o.accounting != nil && o.accounting.counters != nil {
-		o.accounting.counters.observe(o.counter)
-	}
+	o.accounting.observeDemandReads(o.counter)
 	return snapshot
 }
 
 func (o *manifestDemandObservation) finish() {
-	if o == nil || o.accounting == nil || o.counter == nil || o.accounting.counters == nil {
+	if o == nil {
 		return
 	}
-	o.accounting.counters.finish(o.counter)
+	o.accounting.finishDemandReads(o.counter)
 }
 
 func (t *pluginInstance) setManifestCopySelection(

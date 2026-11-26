@@ -89,8 +89,12 @@ func TestHostPluginBuildSelectionRefused(t *testing.T) {
 		{"plugin outside the host set, Space key", "attacker", "space-a"},
 		{"host plugin", "spacewave-app", ""},
 	} {
-		srv := NewPluginHostServer(ctx, b, le, caller.pluginID, caller.key, nil, nil, "", false)
-		srv.SetHostExportPluginIDs(hostSet)
+		srv := NewPluginHostServer(ctx, b, le, PluginHostServerConfig{
+			PluginID:                caller.pluginID,
+			InstanceKey:             caller.key,
+			RegistrationInstanceKey: caller.key,
+			HostExportPluginIDs:     hostSet,
+		})
 		mux := srpc.NewMux()
 		if err := plugin.SRPCRegisterPluginHost(mux, srv); err != nil {
 			t.Fatal(err)
@@ -136,8 +140,10 @@ func TestLoadPluginRefusesBorrowedPeer(t *testing.T) {
 	// load sends one LoadPlugin request from caller and returns the first
 	// response or the refusal.
 	load := func(caller string, namesPeers bool, peerID string) error {
-		srv := &PluginHostServer{b: b, le: le, pluginID: caller}
-		srv.SetNamesPeers(namesPeers)
+		srv := NewPluginHostServer(ctx, b, le, PluginHostServerConfig{
+			PluginID:   caller,
+			NamesPeers: namesPeers,
+		})
 		mux := srpc.NewMux()
 		if err := plugin.SRPCRegisterPluginHost(mux, srv); err != nil {
 			t.Fatal(err)
