@@ -37,17 +37,18 @@ type PrepareTestbedFunc func(t *testbed.Testbed, bc *bucket.Config) ([]config.Co
 type PrepareBucketConfigFunc func(bc *bucket.Config) error
 
 // Retention is what the reading node's Volume keeps of a block it read from a
-// peer.
+// peer and decoded. A Volume does not trust the references a peer lists, so
+// it keeps the block with the references its reader decodes.
 type Retention int
 
 const (
-	// RetainAny accepts either outcome, for exchanges that race to answer.
+	// RetainAny accepts either outcome.
 	RetainAny Retention = iota
-	// RetainStored requires the block stored, as an exchange that carries the
-	// block's references writes it back.
+	// RetainStored requires the block stored, as a bucket lookup that writes
+	// back keeps a block once its reader decodes it.
 	RetainStored
-	// RetainNone requires the block not stored, as an exchange without the
-	// block's references serves it and stores nothing.
+	// RetainNone requires the block not stored, as a bucket lookup that does
+	// not write back serves it and stores nothing.
 	RetainNone
 )
 
@@ -292,7 +293,8 @@ func TestMultiNodeDEX(
 		if err != nil {
 			t.Fatal(err.Error())
 		}
-		lkDat, lkOk, err := rootCursor.GetBlock(ctx, dataXferRef)
+		_, bcs := rootCursor.BuildTransactionAtRef(nil, dataXferRef)
+		lkDat, lkOk, err := bcs.FetchLeaf(ctx)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -342,15 +344,16 @@ func TestMultiNodeDEX(
 	// An exchange that carries refs answers a subtree read with the blocks
 	// under the root too.
 	if retain == RetainStored {
-		checkSubtreeWriteback(subCtx, t, testbeds[0], testbeds[2], bc.GetId())
+		checkSubtreeWriteback(subCtx, t, le, testbeds[0], testbeds[2], bc.GetId())
 	}
 }
 
 // checkSubtreeWriteback writes a small tree, with each block's refs, to the
-// bucket on src, reads its root through the bucket lookup on dst as a subtree
-// read, and checks that dst's Volume then holds every block of the tree, so a
-// walk reads the levels under the root locally.
-func checkSubtreeWriteback(ctx context.Context, t *testing.T, src, dst *testbed.Testbed, bucketID string) {
+// bucket on src, and walks it on dst: it reads the root through the bucket
+// lookup as a subtree read, then the levels under it without the network. It
+// checks that the peer's answer to the root carried those levels, and that
+// dst's Volume holds every block once the walk decoded it.
+func checkSubtreeWriteback(ctx context.Context, t *testing.T, le *logrus.Entry, src, dst *testbed.Testbed, bucketID string) {
 	// Build the tree: the root names a and b, and a names c.
 	t.Helper()
 	var entries []*block.PutBatchEntry
@@ -379,23 +382,42 @@ func checkSubtreeWriteback(ctx context.Context, t *testing.T, src, dst *testbed.
 		t.Fatal(err.Error())
 	}
 
+	// Read a block on dst through cur and decode it: the tree's blocks are
+	// raw bytes, so the test names the refs a decoder would find.
+	read := func(ctx context.Context, cur *bucket_lookup.Cursor, name string, ref *block.BlockRef, refs ...*block.BlockRef) {
+		// Fetch the bytes as a reader that decodes them itself.
+		t.Helper()
+		_, bcs := cur.BuildTransactionAtRef(nil, ref)
+		data, keep, found, err := bcs.FetchWithKeep(ctx)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if !found || string(data) != name {
+			t.Fatalf("read of %q returned %q, found %v", name, data, found)
+		}
+
+		// Hand the store the decoded refs when it asked to keep the block.
+		if keep != nil {
+			keep(ctx, refs)
+		}
+	}
+
 	// Read the root on dst as a subtree read.
-	lkv, _, lkRel, err := bucket_lookup.ExBuildBucketLookup(ctx, dst.Bus, false, bucketID, nil)
+	cur, _, err := bucket_lookup.BuildEmptyCursor(ctx, dst.Bus, le, nil, bucketID, dst.Volume.GetID(), nil, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer lkRel.Release()
-	lk, err := lkv.GetLookup(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	stored, err := lk.LookupStoredBlock(block.WithSubtreeRead(ctx), root)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if stored == nil || string(stored.Data) != "subtree root" || len(stored.Refs) != 2 {
-		t.Fatalf("subtree root read %v", stored)
-	}
+	defer cur.Release()
+	read(block.WithSubtreeRead(ctx), cur, "subtree root", root, a, b)
+
+	// Read the levels under it without the network. The Volume drops the fill
+	// of a block whose refs a peer only listed, so the lookup holds the blocks
+	// the peer sent with the root until the walk reads them.
+	local := cur.CloneWithLocalOnlyReads()
+	defer local.Release()
+	read(ctx, local, "subtree node a", a, c)
+	read(ctx, local, "subtree leaf b", b)
+	read(ctx, local, "subtree leaf c", c)
 
 	// Check that dst's Volume holds every block of the tree.
 	dstAPI, _, dstRel, err := bucket.ExBuildBucketAPI(ctx, dst.Bus, false, bucketID, dst.Volume.GetID(), nil)

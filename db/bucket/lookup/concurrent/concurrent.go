@@ -3,6 +3,7 @@ package lookup_concurrent
 import (
 	"context"
 	"runtime"
+	"sync"
 	"sync/atomic"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -40,6 +41,9 @@ type LookupController struct {
 	bucketHandleSetCtr *ccontainer.CContainer[*[]bucket.BucketHandle]
 	// fallbackBlockStoreRc is a refcount for the fallback block store.
 	fallbackBlockStoreRc *refcount.RefCount[block_store.Store]
+	// held holds the blocks the network sent under a subtree read that no
+	// bucket handle kept, each until the walk reads it, as writeback describes.
+	held *fillHold
 }
 
 // NewLookupController is the lookup controller constructor.
@@ -53,6 +57,7 @@ func NewLookupController(
 		b:                  b,
 		conf:               conf,
 		bucketHandleSetCtr: ccontainer.NewCContainer[*[]bucket.BucketHandle](nil),
+		held:               newFillHold(fillHoldBytes),
 	}
 	if fallbackBlockStoreID := lc.conf.GetFallbackBlockStoreId(); fallbackBlockStoreID != "" {
 		lc.fallbackBlockStoreRc = refcount.NewRefCount(
@@ -245,9 +250,9 @@ func (c *LookupController) lookupBlock(
 	return res, nil
 }
 
-// lookupMissing reads a block that no bucket handle holds from the fallback
-// store, then the network, and writes a hit back to the bucket handles, with
-// the blocks under it the network sent.
+// lookupMissing reads a block that no bucket handle holds from the blocks
+// held for a walk, then the fallback store, then the network, and writes a
+// hit back to the bucket handles, with the blocks under it the network sent.
 func (c *LookupController) lookupMissing(
 	reqCtx context.Context,
 	bh []bucket.BucketHandle,
@@ -258,6 +263,13 @@ func (c *LookupController) lookupMissing(
 	if c.conf.GetVerbose() {
 		c.le.WithField("ref", ref.MarshalString()).
 			Debugf("ref not found against %d handles", len(bh))
+	}
+
+	// Serve a block an earlier subtree read brought in. The buckets dropped
+	// its fill then, so it is written back once the reader decodes it.
+	if res := c.held.take(ref); res != nil {
+		c.keepDecoded(reqCtx, ref, res)
+		return res, nil
 	}
 
 	// Search the fallback block store after the bucket handles miss.
@@ -293,96 +305,167 @@ func (c *LookupController) lookupMissing(
 
 	// Write the recovered block and its edges back to the bucket handles.
 	if res != nil {
-		if err := c.writeback(reqCtx, bh, ref, res, subtree); err != nil {
-			c.le.WithField("ref", ref.MarshalString()).
-				WithError(err).
-				Warn("unable to write-back block")
-		}
+		c.writeback(reqCtx, bh, ref, res, subtree)
 	}
 	return res, nil
 }
 
 // writeback writes a block found outside the bucket handles back to them
 // with its refs, together with subtree, the blocks under it the network sent,
-// as one batch per bucket. A block without known refs is not written back,
-// so a bucket never holds a block whose edges were lost. The peer listed the
-// refs of every subtree block, so each is a copied fill, as
-// block.RefsSource.Asserted describes. A bucket that drops any fill of the
-// batch is neither a failure nor counted as gaining the block, and a later
-// read fills the dropped blocks again.
+// as one batch per bucket. The copies are cache fills: they take no bucket
+// ownership, so the collector removes them unless a retained root reaches
+// them.
+//
+// The source only listed the refs of each block, as block.RefsSource.Asserted
+// describes, and a bucket that keeps liveness drops such a fill of a block
+// whose child list it has not marked. A block no bucket kept is filled again
+// with the refs its reader decodes: ref's through block.KeepDecodedRefs, and
+// each subtree block from held, which serves the walk's read of it without
+// the network. A block whose refs the source does not know is never filled
+// as listed, so a bucket never holds a block whose edges were lost; it is
+// kept by its decode alone. A read that decodes nothing, such as a copy of
+// the bytes, leaves the buckets without the blocks they dropped.
 func (c *LookupController) writeback(
 	reqCtx context.Context,
 	bh []bucket.BucketHandle,
 	ref *block.BlockRef,
 	res *block.StoredBlock,
 	subtree []*block.PutBatchEntry,
-) error {
-	// Require enabled writeback and known edges before storing the block.
-	if !c.writesBack() || !res.RefsSource.Recorded() {
-		return nil
+) {
+	// Leave the buckets as they are when write-back is off.
+	if !c.writesBack() {
+		return
 	}
 
-	// Preserve each block reference and its edges in every bucket write. The
-	// copies are cache fills: they take no bucket ownership, so the collector
-	// removes them unless a retained root reaches them. The buckets share
-	// the entries, which they only read.
+	// Fill the buckets with the block, when its refs are known, and the
+	// blocks under it. The buckets share the entries, which they only read.
 	entries := make([]*block.PutBatchEntry, 0, 1+len(subtree))
-	entries = append(entries, &block.PutBatchEntry{Ref: ref.Clone(), Data: res.Data, Refs: res.Refs, RefsKnown: res.RefsSource.Asserted()})
+	if res.RefsSource.Recorded() {
+		entries = append(entries, &block.PutBatchEntry{Ref: ref.Clone(), Data: res.Data, Refs: res.Refs, RefsKnown: res.RefsSource.Asserted()})
+	}
+	listed := len(entries)
 	entries = append(entries, subtree...)
+	kept, err := c.fillBuckets(reqCtx, bh, entries)
+	if err != nil {
+		c.le.WithField("ref", ref.MarshalString()).
+			WithError(err).
+			Warn("unable to write-back block")
+	}
+
+	// Stop when no bucket could take a block: there is nowhere to keep one.
+	if kept == nil {
+		return
+	}
+
+	// Hold each subtree block no bucket kept for the walk's read of it.
+	for i, e := range subtree {
+		if !kept[listed+i] {
+			c.held.put(e.Ref, &block.StoredBlock{Data: e.Data, Refs: e.Refs, RefsSource: block.RefsListed})
+		}
+	}
+
+	// Fill the block again with its decoded refs when no bucket kept it.
+	if listed == 0 || !kept[0] {
+		c.keepDecoded(reqCtx, ref, res)
+	}
+
+	// Report a block the buckets gained.
+	if c.conf.GetVerbose() && listed != 0 && kept[0] {
+		c.le.WithField("ref", ref.MarshalString()).Debug("wrote-back block")
+	}
+}
+
+// keepDecoded asks the reader of ref on reqCtx to fill the bucket handles
+// with the block once it decodes it, with the refs it decodes, as
+// block.KeepDecodedRefs describes. The fill runs on the reader's goroutine
+// after its read returns, as the write-back of a listed block runs inside the
+// read. A failed fill leaves the block to its next read.
+func (c *LookupController) keepDecoded(reqCtx context.Context, ref *block.BlockRef, res *block.StoredBlock) {
+	ref = ref.Clone()
+	block.KeepDecodedRefs(reqCtx, ref, res, func(ctx context.Context, decoded *block.StoredBlock) {
+		// Fill the handles the set holds now: the read's own may be gone.
+		// The read found the set, so this never waits for one.
+		bhp := c.bucketHandleSetCtr.GetValue()
+		if bhp == nil {
+			return
+		}
+		bh := *bhp
+
+		// The refs are asserted, so every bucket keeps the block.
+		entry := &block.PutBatchEntry{Ref: ref, Data: decoded.Data, Refs: decoded.Refs, RefsKnown: decoded.RefsSource.Asserted()}
+		if _, err := c.fillBuckets(ctx, bh, []*block.PutBatchEntry{entry}); err != nil {
+			c.le.WithField("ref", ref.MarshalString()).
+				WithError(err).
+				Warn("unable to write-back decoded block")
+		}
+	})
+}
+
+// fillBuckets writes entries as cache fills to every bucket handle that can
+// receive a block, one batch per bucket, and reports for each entry whether a
+// bucket has it now: stored by the fill, or held before it. It returns nil
+// when no bucket can receive a block or the writes did not finish, and the
+// last write failure with the result of the buckets that did not fail.
+func (c *LookupController) fillBuckets(ctx context.Context, bh []bucket.BucketHandle, entries []*block.PutBatchEntry) ([]bool, error) {
+	// Mark each entry a cache fill.
+	if len(entries) == 0 {
+		return nil, nil
+	}
 	for _, e := range entries {
 		e.CacheFill = true
 	}
 
-	// Queue writes to existing bucket handles and collect their outcomes.
+	// Queue a write for each bucket handle that can receive the blocks.
+	var mtx sync.Mutex
+	var lastErr error
+	kept := make([]bool, len(entries))
 	doFns := make([]func(), 0, len(bh))
-	var lastErr atomic.Pointer[error]
-	var nw atomic.Uint32
 	for _, h := range bh {
-		// Exclude bucket handles that cannot receive the block.
 		if !h.GetExists() || h.GetBucket() == nil {
 			continue
 		}
-
-		// Record whether this bucket write failed or added the block. A
-		// bucket that drops the fill, as block.ErrRefsUnknown describes,
-		// neither failed nor gained it.
 		doFns = append(doFns, func() {
-			existed, werr := h.GetBucket().PutBlockBatch(reqCtx, entries)
-			if errors.Is(werr, block.ErrRefsUnknown) {
+			// A bucket that drops fills, as block.ErrRefsUnknown describes,
+			// names the dropped entries of a batch and stores the rest.
+			_, werr := h.GetBucket().PutBlockBatch(ctx, entries)
+			var dropped *block.FillsDroppedError
+			var skip []int
+			switch {
+			case errors.As(werr, &dropped):
+				skip = dropped.At
+			case errors.Is(werr, block.ErrRefsUnknown):
+				return
+			case werr != nil:
+				mtx.Lock()
+				lastErr = werr
+				mtx.Unlock()
 				return
 			}
-			if werr != nil {
-				lastErr.Store(&werr)
-			} else if !existed[0] {
-				nw.Add(1)
+
+			// Record the entries this bucket has.
+			mtx.Lock()
+			defer mtx.Unlock()
+			for i := range kept {
+				if len(skip) != 0 && skip[0] == i {
+					skip = skip[1:]
+					continue
+				}
+				kept[i] = true
 			}
 		})
 	}
-
-	// Finish without starting workers when no bucket can receive the block.
 	if len(doFns) == 0 {
-		return nil
+		return nil, nil
 	}
 
-	// Complete the queued bucket writes before reporting their errors.
+	// Complete the queued bucket writes before reading their outcomes.
 	q := conc.NewConcurrentQueue(runtime.NumCPU(), doFns...)
-	if err := q.WaitIdle(reqCtx, nil); err != nil {
-		return err
+	if err := q.WaitIdle(ctx, nil); err != nil {
+		return nil, err
 	}
-
-	// Propagate a bucket write failure after all workers finish.
-	if errp := lastErr.Load(); errp != nil {
-		return *errp
-	}
-
-	// Report how many bucket handles gained the block.
-	if c.conf.GetVerbose() {
-		if written := nw.Load(); written != 0 {
-			c.le.WithField("ref", ref.MarshalString()).
-				Debugf("wrote-back block to %d handles", written)
-		}
-	}
-	return nil
+	mtx.Lock()
+	defer mtx.Unlock()
+	return kept, lastErr
 }
 
 // LookupBlockExistsBatch checks whether each block exists using local block
@@ -611,6 +694,22 @@ func (c *LookupController) putBlockAllVolumes(
 	return refs, allExisted, rerr
 }
 
+// holdsBlocks reports for each ref whether a bucket handle or the hold has its
+// block, so a subtree answer leaves out what this side need not be sent.
+func (c *LookupController) holdsBlocks(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	// Ask the bucket handles.
+	has, err := c.LookupBlockExistsBatch(ctx, refs, lookup.WithLocalOnly())
+	if err != nil {
+		return nil, err
+	}
+
+	// Count the blocks held for the walk.
+	for i, ref := range refs {
+		has[i] = has[i] || c.held.holds(ref)
+	}
+	return has, nil
+}
+
 // writesBack reports whether blocks found outside the bucket handles are
 // written back to them.
 func (c *LookupController) writesBack() bool {
@@ -629,9 +728,7 @@ func (c *LookupController) lookupWithDirective(reqCtx context.Context, ref *bloc
 	bucketID := c.conf.GetBucketConf().GetId()
 	dir := dex.NewLookupBlockFromNetwork(bucketID, ref)
 	if block.IsSubtreeRead(reqCtx) && c.writesBack() {
-		dir = dex.NewLookupSubtreeFromNetwork(bucketID, ref, subtreeLookupBytes, func(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
-			return c.LookupBlockExistsBatch(ctx, refs, lookup.WithLocalOnly())
-		})
+		dir = dex.NewLookupSubtreeFromNetwork(bucketID, ref, subtreeLookupBytes, c.holdsBlocks)
 	}
 
 	// End idle network demand once a missing block has been reported.

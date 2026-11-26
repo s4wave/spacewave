@@ -111,14 +111,11 @@ func TestBlockStoreHTTPLookup(t *testing.T) {
 	}
 	defer lkRef.Release()
 
-	// Obtain the client bucket lookup interface.
-	lk, err := lkr.GetLookup(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Look up the sample block through the HTTP controller.
-	lkDat, lkFound, err := lk.LookupBlock(ctx, sampleBlockRef.Clone())
+	// Read the sample block as a leaf, the way a cursor reads a raw value. The
+	// server only lists the block's refs, which the client bucket does not
+	// trust, so the bucket keeps the block once its reader decodes it.
+	_, bcs := block.NewTransaction(bucket_lookup.NewBucketFromHandle(lkr), nil, sampleBlockRef.Clone(), nil)
+	lkDat, lkFound, err := bcs.FetchLeaf(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

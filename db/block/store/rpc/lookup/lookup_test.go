@@ -131,14 +131,11 @@ func TestBlockStoreRPCLookup(t *testing.T) {
 	}
 	defer lkRef.Release()
 
-	// Acquire the configured client bucket lookup interface.
-	lk, err := lkr.GetLookup(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Fetch the sample block through the RPC-backed bucket lookup.
-	lkDat, lkFound, err := lk.LookupBlock(ctx, sampleBlockRef.Clone())
+	// Read the sample block as a leaf, the way a cursor reads a raw value. The
+	// server only lists the block's refs, which the client bucket does not
+	// trust, so the bucket keeps the block once its reader decodes it.
+	_, bcs := block.NewTransaction(bucket_lookup.NewBucketFromHandle(lkr), nil, sampleBlockRef.Clone(), nil)
+	lkDat, lkFound, err := bcs.FetchLeaf(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -173,6 +170,10 @@ func TestBlockStoreRPCLookup(t *testing.T) {
 	untrackedRef, _, err := serverTb.Volume.(*volume_kvtx.Volume).Store.PutBlock(ctx, untrackedData, nil)
 	if err != nil {
 		t.Fatal(err)
+	}
+	lk, err := lkr.GetLookup(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
 	}
 	got, found, err := lk.LookupBlock(ctx, untrackedRef)
 	if err != nil || !found || !bytes.Equal(got, untrackedData) {
