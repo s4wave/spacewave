@@ -507,17 +507,30 @@ func TestEngineAuthorityRunThrough(t *testing.T) {
 		fixtureHas(t, reader, "pin-held", true)
 		reader.Discard()
 
-		// A reader that lets go before the delay leaves its head unpinned.
-		short := engine.GetRootRef().GetRootRef()
-		reader, err = engine.NewTransaction(ctx, false)
-		if err != nil {
-			t.Fatal(err)
-		}
-		commit("pin-after-short")
-		reader.Discard()
-		time.Sleep(5 * delay)
-		if pinned(short) {
-			t.Fatal("a head every reader released before the delay was pinned")
+		// A reader that lets go before the delay leaves its head unpinned. The
+		// pin timer starts inside the commit that replaces the head, so a
+		// release less than the delay after that commit began surely precedes
+		// it. A loaded host can be slower; only such an attempt is judged.
+		for attempt := 0; ; attempt++ {
+			short := engine.GetRootRef().GetRootRef()
+			reader, err = engine.NewTransaction(ctx, false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			began := time.Now()
+			commit("pin-after-short-" + strconv.Itoa(attempt))
+			reader.Discard()
+			if time.Since(began) >= delay {
+				if attempt == 50 {
+					t.Fatal("no commit and release finished within the pin delay")
+				}
+				continue
+			}
+			time.Sleep(5 * delay)
+			if pinned(short) {
+				t.Fatal("a head every reader released before the delay was pinned")
+			}
+			break
 		}
 	})
 
