@@ -159,8 +159,8 @@ func (v *Volume) SetBucketRoots(ctx context.Context, bucketID string, entries []
 		}
 	}
 
-	// Store the entries and move the roots in one transaction, once the
-	// Volume no longer sweeps.
+	// Store the entries and move the roots in one transaction; a background
+	// copied put waits out a sweep, as retrySwept describes.
 	v.noteUnknownRefsBatch(putRoots, entries)
 	var existed []bool
 	err := v.retrySwept(ctx, func() error {

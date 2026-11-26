@@ -7940,27 +7940,31 @@ func TestLivenessSettle(t *testing.T) {
 
 	t.Run("copied put while Sweeping", func(t *testing.T) {
 		// Once the generation flips, no walk is left to check a copied
-		// list: a copied put of a new block waits for the sweep to settle,
-		// then reopens the Volume, and the walk decodes it.
+		// list: a foreground copied put of a new block is refused at once,
+		// and a background one waits for the sweep to settle, then reopens
+		// the Volume, and the walk decodes it.
 		v, clk, store, tr := oldU(t, false)
 		collectUntil(t, v, clk, flipped)
 		tr.add(t, "N")
 		put := func(ctx context.Context) error {
 			return v.SetBucketRoots(ctx, "b", []*block.PutBatchEntry{copied(tr, "N")}, []block.NamedRoot{{Name: "n", Ref: tr["N"].Ref}})
 		}
-		ctx, cancel := context.WithTimeout(t.Context(), 50*time.Millisecond)
+		if err := put(t.Context()); !errors.Is(err, block_gc.ErrSweeping) {
+			t.Fatalf("foreground copied put while Sweeping err %v, want ErrSweeping at once", err)
+		}
+		ctx, cancel := context.WithTimeout(block.WithBackground(t.Context()), 50*time.Millisecond)
 		defer cancel()
 		if err := put(ctx); !errors.Is(err, context.DeadlineExceeded) {
-			t.Fatalf("copied put while Sweeping err %v, want it to wait", err)
+			t.Fatalf("background copied put while Sweeping err %v, want it to wait", err)
 		}
 		if gen := livenessGeneration(t, v); gen != block_gc.Generation_GENERATION_SWEEPING {
-			t.Fatalf("the generation after the waiting put is %v, want Sweeping", gen)
+			t.Fatalf("the generation after the refused and waiting puts is %v, want Sweeping", gen)
 		}
 		requireStored(t, v, tr, false, "N")
 
-		// The put lands once the sweep settles.
+		// The background put lands once the sweep settles.
 		done := make(chan error, 1)
-		go func() { done <- put(t.Context()) }()
+		go func() { done <- put(block.WithBackground(t.Context())) }()
 		collectUntil(t, v, clk, settled)
 		select {
 		case err := <-done:

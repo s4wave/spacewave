@@ -414,10 +414,10 @@ func nextCut(cuts []bool, s, want int) int {
 }
 
 // landStaged stores entries under the open stage and moves the stage's roots
-// in one transaction, once the Volume no longer sweeps, then records the
-// moves. It returns how long the last transaction held the writer. A root the
-// stage's record holds that the table no longer does refuses the put, and the
-// stage is lost.
+// in one transaction, then records the moves; a background copied put waits
+// out a sweep, as retrySwept describes. It returns how long the last
+// transaction held the writer. A root the stage's record holds that the table
+// no longer does refuses the put, and the stage is lost.
 func (v *Volume) landStaged(ctx context.Context, stage string, entries []*block.PutBatchEntry) ([]bool, time.Duration, error) {
 	var existed []bool
 	var hold time.Duration

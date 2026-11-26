@@ -368,7 +368,8 @@ func (v *Volume) putEntries(
 		}
 	}
 
-	// Store them in one transaction, once the Volume no longer sweeps.
+	// Store them in one transaction; a background copied put waits out a
+	// sweep, as retrySwept describes.
 	var existed []bool
 	err := v.retrySwept(ctx, func() error {
 		return direct(ctx, func(p *physicalTx) error {

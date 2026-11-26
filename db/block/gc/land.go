@@ -441,7 +441,8 @@ func (l *lander) checkLease(ctx context.Context, id string) error {
 // ErrSweeping is returned by Land for a copied put of a block the Volume
 // does not store while it sweeps: no walk is left to check the copied list
 // before the flip, and a reopen then could undo a sweep in progress. It wraps
-// block.ErrRefsUnknown; the writer retries once the generation moves.
+// block.ErrRefsUnknown; the writer retries once the generation moves, which
+// a Volume does for a background writer and leaves to a foreground one.
 var ErrSweeping = errors.Wrap(block.ErrRefsUnknown, "the volume is sweeping")
 
 // putEntries stores the entries' bytes and the child lists of the blocks

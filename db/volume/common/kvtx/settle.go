@@ -88,18 +88,22 @@ func settledWord(word uint64) bool {
 
 // retrySwept runs attempt, a write that lands a batch, and runs it again
 // each time the generation moves while it fails with block_gc.ErrSweeping: a
-// copied put waits for the sweep to settle, then reopens the Volume, as
-// block_gc.Land describes. With frees off the sweep never ends, so the error
-// returns. The wait channel is taken before each attempt, so a move between
-// the attempt's commit and the wait still wakes it.
+// copied put marked block.WithBackground waits for the sweep to settle, then
+// reopens the Volume, as block_gc.Land describes. The sweep can run for
+// minutes on a large Volume, so a foreground put gets the error at once and
+// its caller retries; no user request waits on the sweep. With frees off the
+// sweep never ends, so the error returns. The wait channel is taken before
+// each attempt, so a move between the attempt's commit and the wait still
+// wakes it.
 func (v *Volume) retrySwept(ctx context.Context, attempt func() error) error {
+	wait := block.IsBackground(ctx)
 	for {
 		var moved <-chan struct{}
 		v.genBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			moved = getWaitCh()
 		})
 		err := attempt()
-		if !errors.Is(err, block_gc.ErrSweeping) || v.collector == nil || !v.collector.Frees() {
+		if !wait || !errors.Is(err, block_gc.ErrSweeping) || v.collector == nil || !v.collector.Frees() {
 			return err
 		}
 		select {
