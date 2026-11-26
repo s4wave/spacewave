@@ -8,6 +8,7 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/aperturerobotics/util/csync"
@@ -75,6 +76,8 @@ type Session struct {
 	inputMtx csync.Mutex
 	// pressed counts viewers holding each key or button under inputMtx.
 	pressed map[inputCode]int
+	// ending stops viewers while the daemon releases the session's held inputs.
+	ending atomic.Bool
 	// startedAt is the time the caller issued the portal Start request.
 	startedAt time.Time
 }
@@ -88,20 +91,22 @@ func Open(ctx context.Context) (_ *Session, err error) {
 		return nil, err
 	}
 
-	// Derive this peer's portal paths before sending any request.
-	ctx, cancel := context.WithCancelCause(ctx)
+	// Keep the portal alive long enough to release held inputs on node stop.
+	parent := ctx
+	ctx, cancel := context.WithCancelCause(context.WithoutCancel(parent))
 	sender := strings.ReplaceAll(strings.TrimPrefix(conn.Names()[0], ":"), ".", "_")
 	s := &Session{
 		ctx: ctx, cancel: cancel, conn: conn, socket: socket, owner: owner,
 		path:        dbus.ObjectPath("/org/freedesktop/portal/desktop/session/" + sender + "/display"),
 		requestRoot: "/org/freedesktop/portal/desktop/request/" + sender,
 		watched:     make(chan struct{}),
+		pressed:     make(map[inputCode]int),
 	}
 
 	// Join the session watcher if setup fails before the source takes ownership.
 	signals := make(chan *dbus.Signal, 8)
 	conn.Signal(signals)
-	go s.watch(signals)
+	go s.watch(parent, signals)
 	defer func() {
 		if err != nil {
 			_ = s.Close()
@@ -171,7 +176,7 @@ func (s *Session) OpenPipeWireRemote() (*os.File, uint32, error) {
 // Close ends capture and input, and joins the bus signal receiver.
 func (s *Session) Close() error {
 	// Join the watcher's explicit Session.Close before dropping the connection.
-	s.cancel(context.Canceled)
+	s.end(context.Canceled)
 	<-s.watched
 	return s.conn.Close()
 }
@@ -210,7 +215,7 @@ func (s *Session) subscribe() error {
 }
 
 // watch ends the source when the grant, portal session or connection is lost.
-func (s *Session) watch(signals chan *dbus.Signal) {
+func (s *Session) watch(parent context.Context, signals chan *dbus.Signal) {
 	// Release the portal session before publishing monitor completion.
 	defer close(s.watched)
 	defer s.conn.RemoveSignal(signals)
@@ -218,6 +223,9 @@ func (s *Session) watch(signals chan *dbus.Signal) {
 	for {
 		select {
 		case <-s.ctx.Done():
+			return
+		case <-parent.Done():
+			s.end(context.Cause(parent))
 			return
 		case event, ok := <-signals:
 			if !ok {
@@ -235,11 +243,11 @@ func (s *Session) watch(signals chan *dbus.Signal) {
 			}
 			if event.Sender == "org.freedesktop.DBus" && event.Name == "org.freedesktop.DBus.NameOwnerChanged" &&
 				len(event.Body) == 3 && event.Body[0] == permissions && event.Body[1] != "" {
-				s.cancel(ErrNotAuthorized)
+				s.end(ErrNotAuthorized)
 				return
 			}
 			if grantWasRevoked(event) {
-				s.cancel(ErrNotAuthorized)
+				s.end(ErrNotAuthorized)
 				return
 			}
 		}
@@ -345,7 +353,6 @@ func (s *Session) start() error {
 		return errors.New("plasma returned no logical screen size")
 	}
 	s.width, s.height = size.Width, size.Height
-	s.pressed = make(map[inputCode]int)
 	return nil
 }
 

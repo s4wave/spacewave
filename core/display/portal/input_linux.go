@@ -43,6 +43,9 @@ func (i *Input) Send(ctx context.Context, event *frametrack.Input) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+	if s.ending.Load() {
+		return context.Canceled
+	}
 
 	// Place the cursor in the stream's logical monitor before changing buttons.
 	// Finish an admitted event on the portal lifetime so disconnect can release it.
@@ -78,6 +81,9 @@ func (i *Input) Close() error {
 		return err
 	}
 	defer unlock()
+	if i.session.ending.Load() {
+		return nil
+	}
 
 	// Release every held code, even if the portal reports a failure on one.
 	for code := range i.held {
@@ -98,12 +104,12 @@ func (i *Input) setPressed(code inputCode, pressed bool) error {
 	}
 	count := i.session.pressed[code]
 	if pressed && count == 0 {
-		if err := i.notifyPress(code, 1); err != nil {
+		if err := i.session.notifyPress(code, 1); err != nil {
 			return err
 		}
 	}
 	if !pressed && count == 1 {
-		if err := i.notifyPress(code, 0); err != nil {
+		if err := i.session.notifyPress(code, 0); err != nil {
 			return err
 		}
 	}
@@ -123,13 +129,38 @@ func (i *Input) setPressed(code inputCode, pressed bool) error {
 	return nil
 }
 
+// end closes a session the daemon still owns after sending the final releases.
+func (s *Session) end(cause error) {
+	// Stop new viewer events before taking the lock from any active send.
+	if !s.ending.CompareAndSwap(false, true) {
+		// The watcher must wait for the releases before closing the portal object.
+		<-s.ctx.Done()
+		return
+	}
+	unlock, err := s.inputMtx.Lock(s.ctx)
+	if err != nil {
+		return
+	}
+	defer unlock()
+
+	// Send one release per compositor press while the session still owns input.
+	// The portal processes these before the watcher's Close on the same bus.
+	for code := range s.pressed {
+		if err := s.notifyPress(code, 0); err != nil {
+			break
+		}
+		delete(s.pressed, code)
+	}
+	s.cancel(cause)
+}
+
 // notifyPress sends an evdev button or key transition.
-func (i *Input) notifyPress(code inputCode, pressed uint32) error {
+func (s *Session) notifyPress(code inputCode, pressed uint32) error {
 	method := "NotifyKeyboardKeycode"
 	if code.button {
 		method = "NotifyPointerButton"
 	}
-	return i.session.notify(method, code.code, pressed)
+	return s.notify(method, code.code, pressed)
 }
 
 // inputWriteLimit bounds backpressure from the session bus socket.
