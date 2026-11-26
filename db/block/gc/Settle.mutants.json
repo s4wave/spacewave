@@ -14,8 +14,8 @@
     "name": "the flip does not wait for the front to empty",
     "replace": [
       [
-        "  /\\ front = {}\n  /\\ \\A b \\in parked",
-        "  /\\ TRUE\n  /\\ \\A b \\in parked"
+        "  /\\ front = {}\n  /\\ ~owed\n  /\\ \\A b \\in parked",
+        "  /\\ TRUE\n  /\\ ~owed\n  /\\ \\A b \\in parked"
       ]
     ],
     "expect": "HeldPresent",
@@ -25,8 +25,8 @@
     "name": "the flip does not wait for the roots to be seeded",
     "replace": [
       [
-        "  /\\ complete\n  /\\ seeded\n",
-        "  /\\ complete\n  /\\ TRUE\n"
+        "  /\\ seeded\n  /\\ front = {}\n",
+        "  /\\ TRUE\n  /\\ front = {}\n"
       ]
     ],
     "expect": "HeldPresent",
@@ -47,19 +47,8 @@
     "name": "the flip unmarks a parked block that gained a holder",
     "replace": [
       [
-        "  /\\ \\A b \\in parked : Count(b) = 0\n",
-        "  /\\ TRUE\n"
-      ]
-    ],
-    "expect": "LiveStored",
-    "config": "Settle.cfg"
-  },
-  {
-    "name": "an unparked block does not return to the front",
-    "replace": [
-      [
-        "  /\\ front' = front \\cup Owed({b})\n",
-        "  /\\ UNCHANGED front\n"
+        "  /\\ \\A b \\in parked : Count(b) = 0\n  /\\ gen' = \"sweeping\"",
+        "  /\\ TRUE\n  /\\ gen' = \"sweeping\""
       ]
     ],
     "expect": "LiveStored",
@@ -117,15 +106,15 @@
         "               \\cup (IF gen = \"open\" THEN Unverified(UNION {True[b] : b \\in V}) \\ V ELSE {})"
       ]
     ],
-    "expect": "LiveStored",
+    "expect": "ReachedShown",
     "config": "Settle.cfg"
   },
   {
     "name": "the walk pops an absent block no read resolves while it is held",
     "replace": [
       [
-        "     \\/ /\\ Hidden(b) \\/ Count(b) = 0\n",
-        "     \\/ /\\ Hidden(b) \\/ Count(b) = 0 \\/ b \\notin stored\n"
+        "        /\\ Hidden(b) \\/ Count(b) = 0\n",
+        "        /\\ Hidden(b) \\/ Count(b) = 0 \\/ b \\notin stored\n"
       ]
     ],
     "expect": "LiveStored",
@@ -139,15 +128,15 @@
         "        /\\ front' = front \\ {b}\n        /\\ UNCHANGED <<stored, verified, short, run>>"
       ]
     ],
-    "expect": "LiveStored",
+    "expect": "ReachedShown",
     "config": "Settle.cfg"
   },
   {
     "name": "a copied put of a stored block with an unverified list marks it (F2, markStored)",
     "replace": [
       [
-        "       [] Present(b) ->\n            /\\ txns' = txns + 1\n            /\\ UNCHANGED <<gen, stored, verified, short, front, seeded, run, complete, parked, unmarked, root, fmt>>",
-        "       [] Present(b) ->\n            /\\ txns' = txns + 1\n            /\\ IF gen = \"open\" /\\ b \\notin verified\n                 THEN MarkCopied({b})\n                 ELSE UNCHANGED <<verified, short, front, run>>\n            /\\ UNCHANGED <<gen, stored, seeded, complete, parked, unmarked, root, fmt>>"
+        "       [] Present(b) ->\n            /\\ txns' = txns + 1\n            /\\ UNCHANGED <<gen, stored, verified, short, front, seeded, run, complete, parked, unmarked, root, fmt, owed>>",
+        "       [] Present(b) ->\n            /\\ txns' = txns + 1\n            /\\ IF gen = \"open\" /\\ b \\notin verified\n                 THEN MarkCopied({b})\n                 ELSE UNCHANGED <<verified, short, front, run>>\n            /\\ UNCHANGED <<gen, stored, seeded, complete, parked, unmarked, root, fmt, owed>>"
       ]
     ],
     "expect": "LiveStored",
@@ -157,8 +146,8 @@
     "name": "a copied put of a block not stored writes its list marked (F2, Land's birth)",
     "replace": [
       [
-        "            /\\ run' = run \\cup {b}\n            /\\ front' = front \\cup {b}\n            /\\ txns' = txns + 1\n            /\\ UNCHANGED <<gen, verified, short, seeded, complete, parked, unmarked, root, fmt>>",
-        "            /\\ MarkCopied({b})\n            /\\ txns' = txns + 1\n            /\\ UNCHANGED <<gen, seeded, complete, parked, unmarked, root, fmt>>"
+        "            /\\ run' = run \\cup {b}\n            /\\ front' = front \\cup {b}\n            /\\ txns' = txns + 1\n            /\\ UNCHANGED <<gen, verified, short, seeded, complete, parked, unmarked, root, fmt, owed>>",
+        "            /\\ MarkCopied({b})\n            /\\ txns' = txns + 1\n            /\\ UNCHANGED <<gen, seeded, complete, parked, unmarked, root, fmt, owed>>"
       ]
     ],
     "expect": "LiveStored",
@@ -267,8 +256,8 @@
     "name": "the recount counts before it drops the parks",
     "replace": [
       [
-        "  /\\ released' = {}\n  /\\ debt' = debt\n",
-        "  /\\ released' = {}\n  /\\ debt' = [k \\in Blocks |-> debt[k] + Cardinality({p \\in released : k \\in List(p)})]\n"
+        "  /\\ released' = {}\n  /\\ debt' = [k \\in Blocks |-> 0]\n",
+        "  /\\ released' = {}\n  /\\ debt' = [k \\in Blocks |-> Cardinality({p \\in released : k \\in List(p)})]\n"
       ]
     ],
     "expect": "HeldPresent",
@@ -280,6 +269,39 @@
       [
         "                     THEN Owed(UNION {List(p) : p \\in released})\n                          \\cup Unverified(",
         "                     THEN Unverified("
+      ]
+    ],
+    "expect": "LiveStored",
+    "config": "Settle.cfg"
+  },
+  {
+    "name": "an unpark of a released block owes no recount",
+    "replace": [
+      [
+        "  /\\ owed' = (owed \\/ b \\in released)\n",
+        "  /\\ owed' = owed\n"
+      ]
+    ],
+    "expect": "ReachedShown",
+    "config": "Settle.cfg"
+  },
+  {
+    "name": "the flip does not wait for an owed recount",
+    "replace": [
+      [
+        "  /\\ ~owed\n  /\\ \\A b \\in parked : Count(b) = 0\n  /\\ gen' = \"sweeping\"",
+        "  /\\ TRUE\n  /\\ \\A b \\in parked : Count(b) = 0\n  /\\ gen' = \"sweeping\""
+      ]
+    ],
+    "expect": "LiveStored",
+    "config": "Settle.cfg"
+  },
+  {
+    "name": "the walk pops while a recount is owed",
+    "replace": [
+      [
+        "     \\/ /\\ ~owed\n        /\\ Hidden(b)",
+        "     \\/ /\\ TRUE\n        /\\ Hidden(b)"
       ]
     ],
     "expect": "LiveStored",
