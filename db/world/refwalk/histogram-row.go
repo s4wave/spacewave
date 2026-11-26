@@ -41,6 +41,9 @@ type HistogramRow struct {
 	// Type is the block type's Go type, such as "*okra.Page", or empty for the
 	// total of every type.
 	Type string
+	// Unsure is set on the row of the blocks read as a guessed Type that the
+	// walk could not confirm, as Visit.Unsure describes: their type is unknown.
+	Unsure bool
 	// Blocks is the number of distinct blocks.
 	Blocks uint64
 	// Bytes is their stored size.
@@ -64,5 +67,18 @@ func (r *HistogramRow) add(size uint64, leaf bool) {
 	r.SizeBytes[class] += size
 	if leaf {
 		r.Leaves++
+	}
+}
+
+// remove uncounts one block of size bytes that add counted.
+func (r *HistogramRow) remove(size uint64, leaf bool) {
+	// Uncount it from the row and from its size class.
+	class := SizeClass(size)
+	r.Blocks--
+	r.Bytes -= size
+	r.Sizes[class]--
+	r.SizeBytes[class] -= size
+	if leaf {
+		r.Leaves--
 	}
 }

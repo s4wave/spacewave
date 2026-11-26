@@ -264,7 +264,8 @@ func TestDebugRefRepair(t *testing.T) {
 	before := sum()
 
 	// A dry run counts the missing edges and writes none, and its histogram
-	// counts each walked block once, with every stored byte.
+	// counts each stored block once, with every stored byte. The World root,
+	// guessed as a payload blob, counts as the World it is also walked as.
 	hist := refwalk.NewHistogram()
 	dry, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, refRepairOpts{histogram: hist}, nil)
 	if err != nil {
@@ -275,12 +276,15 @@ func TestDebugRefRepair(t *testing.T) {
 		t.Fatalf("dry run: %+v", dry)
 	}
 	total := hist.Total()
-	var typed refwalk.HistogramRow
+	var typed, unsure refwalk.HistogramRow
 	for _, row := range hist.Rows() {
 		typed.Blocks += row.Blocks
 		typed.Bytes += row.Bytes
+		if row.Unsure {
+			unsure.Blocks += row.Blocks
+		}
 	}
-	if total.Blocks == 0 || total.Blocks > dry.blocks || total.Bytes == 0 || total.Leaves == 0 || typed.Blocks != total.Blocks || typed.Bytes != total.Bytes {
+	if total.Blocks == 0 || total.Blocks > dry.blocks || unsure.Blocks != 0 || total.Bytes == 0 || total.Leaves == 0 || typed.Blocks != total.Blocks || typed.Bytes != total.Bytes {
 		t.Fatalf("histogram: total %+v, types %+v, walked %d", total, hist.Rows(), dry.blocks)
 	}
 

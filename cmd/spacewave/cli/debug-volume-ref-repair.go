@@ -374,8 +374,13 @@ func histogramFields(h *refwalk.Histogram) [][2]string {
 		})
 	}
 
-	// Print each type, most bytes first, with its blocks in each size class.
+	// Print each type, most bytes first, with its blocks in each size class,
+	// and mark the blocks only guessed to hold a type.
 	for _, row := range h.Rows() {
+		name := "Type " + row.Type
+		if row.Unsure {
+			name += ", unconfirmed"
+		}
 		var b strings.Builder
 		b.WriteString(strconv.FormatUint(row.Blocks, 10) + " blocks, " + strconv.FormatUint(row.Bytes, 10) + " bytes, " + strconv.FormatUint(row.Leaves, 10) + " leaves;")
 		for class := range refwalk.SizeClasses {
@@ -383,7 +388,7 @@ func histogramFields(h *refwalk.Histogram) [][2]string {
 				b.WriteString(" " + refwalk.SizeClassName(class) + " " + strconv.FormatUint(row.Sizes[class], 10))
 			}
 		}
-		fields = append(fields, [2]string{"Type " + row.Type, b.String()})
+		fields = append(fields, [2]string{name, b.String()})
 	}
 	return fields
 }
