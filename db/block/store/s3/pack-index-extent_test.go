@@ -5,8 +5,6 @@ package block_store_s3
 import (
 	"bytes"
 	"context"
-	"errors"
-	"net/http"
 	"strconv"
 	"sync/atomic"
 	"testing"
@@ -317,37 +315,51 @@ func TestWrongExtentReadsBlock(t *testing.T) {
 	}
 }
 
-// TestThrottledExtentReadReturnsError fails a read whose extent the bucket
-// throttles, without falling back to the pack readers, whose window and tail
-// reads would add load to the throttled bucket.
-func TestThrottledExtentReadReturnsError(t *testing.T) {
-	// Index three blocks, and retry at once so the test does not wait.
+// TestLongThrottleExtentReadWaits throttles the bucket for longer than 15
+// seconds under an interactive read, and checks that the read neither fails
+// nor falls back to the pack readers, whose window and tail reads would add
+// load to the throttled bucket, but returns the block once the throttle lifts,
+// having sent only the requests the gate's pauses let through.
+func TestLongThrottleExtentReadWaits(t *testing.T) {
+	// Index three blocks, and cap the gate's pauses at a second so the read
+	// ends soon after the throttle lifts.
 	ctx := t.Context()
 	bucket, client := newFakeBucket(t, nil)
 	kv := hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]())
 	s := newIndexedStore(t, client, kv)
 	refs := adoptBlocks(ctx, t, s, "t", 3)
-	delays := retryDelays
-	retryDelays = make([]time.Duration, len(delays))
-	t.Cleanup(func() { retryDelays = delays })
+	backoffMax := gateBackoffMax
+	gateBackoffMax = time.Second
+	t.Cleanup(func() { gateBackoffMax = backoffMax })
 
-	// Throttle the bucket and read a block.
+	// Throttle the bucket for 16 seconds and read a block meanwhile.
+	const throttleFor = 16 * time.Second
 	bucket.mtx.Lock()
 	bucket.throttle = true
 	bucket.mtx.Unlock()
-	_, found, err := s.GetBlock(ctx, refs[0])
+	lift := time.AfterFunc(throttleFor, func() {
+		bucket.mtx.Lock()
+		bucket.throttle = false
+		bucket.mtx.Unlock()
+	})
+	defer lift.Stop()
+	start := time.Now()
+	data, found, err := s.GetBlock(ctx, refs[0])
+	took := time.Since(start)
 	bucket.mtx.Lock()
 	throttled := bucket.throttled
 	bucket.mtx.Unlock()
 
-	// The read fails with the throttle, after the extent read's own retries
-	// alone.
-	var serr *StatusError
-	if !errors.As(err, &serr) || serr.StatusCode != http.StatusServiceUnavailable || found {
-		t.Fatalf("throttled read = %v, %v; want a 503 StatusError", found, err)
+	// The read returns the block after the throttle, having been refused
+	// about once per pause.
+	if err != nil || !found || string(data) != "t block 0" {
+		t.Fatalf("read = %q, %v, %v; want the block", data, found, err)
 	}
-	if want := len(retryDelays) + 1; throttled != want {
-		t.Fatalf("throttled read sent %d requests, want the extent read's %d", throttled, want)
+	if took < throttleFor || took > throttleFor+2*time.Second {
+		t.Fatalf("read took %v; want just over %v", took, throttleFor)
+	}
+	if throttled < 10 || throttled > 40 {
+		t.Fatalf("read was throttled %d times; want one refusal per pause", throttled)
 	}
 	if rc := s.ReadCounts(); rc.ExtentFetches != 1 || rc.WindowFetches != 0 || rc.TailFetches != 0 {
 		t.Fatalf("fetches = %d extent, %d window, %d tail; want 1, 0, 0", rc.ExtentFetches, rc.WindowFetches, rc.TailFetches)

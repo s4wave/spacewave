@@ -89,6 +89,57 @@ func TestPool(t *testing.T) {
 	}
 }
 
+// TestPoolSetLimit pauses a pool with a lane free, checks that every class
+// waits, then raises the limit one lane at a time and checks that the lanes
+// reach the urgent call first and that the reserve comes out of the limit.
+func TestPoolSetLimit(t *testing.T) {
+	ctx := context.Background()
+	refill := block.WithReadClass(ctx, block.ReadRefill)
+	urgent := block.WithReadClass(ctx, block.ReadUrgent)
+	p := New([]string{"a", "a", "a", "a"}, 1)
+
+	// Pause the pool and queue one call of each kind.
+	p.SetLimit(0)
+	bg := wait(p, refill, nil)
+	inter := wait(p, ctx, nil)
+	urg := wait(p, urgent, nil)
+	if st := p.Stats(); st.Limit != 0 || st.Held != 0 || st.Urgent != 1 || st.Interactive != 1 || st.Capped != 1 {
+		t.Fatalf("paused stats %+v", st)
+	}
+
+	// Each raise of the limit grants one lane, most urgent first.
+	p.SetLimit(1)
+	u := recv(t, urg)
+	p.SetLimit(2)
+	i := recv(t, inter)
+
+	// At a limit of two with a reserve of one, the refill may hold one lane,
+	// but the limit is held; at three it takes its lane.
+	select {
+	case <-bg:
+		t.Fatal("refill took a lane past the limit")
+	case <-time.After(20 * time.Millisecond):
+	}
+	p.SetLimit(3)
+	r := recv(t, bg)
+	if st := p.Stats(); st.Held != 3 {
+		t.Fatalf("held %d lanes; want 3", st.Held)
+	}
+
+	// A lowered limit waits for held lanes to return.
+	p.SetLimit(1)
+	p.Put(r.lease)
+	p.Put(i.lease)
+	late := wait(p, ctx, nil)
+	select {
+	case <-late:
+		t.Fatal("call took a lane past the lowered limit")
+	case <-time.After(20 * time.Millisecond):
+	}
+	p.Put(u.lease)
+	p.Put(recv(t, late).lease)
+}
+
 // granted is the result of a waiting Take.
 type granted struct {
 	lease *Lease[string]

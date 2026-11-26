@@ -22,12 +22,15 @@ const preferWindow = 8
 // at once, or the next lane released before any other class; an interactive
 // call comes next. Refill and background calls share the rest: they hold at
 // most capped lanes at once, leaving reserve lanes for the urgent and
-// interactive calls, and take a lane only while none of those waits. A
+// interactive calls, and take a lane only while none of those waits. The
+// pool's limit, which SetLimit moves, bounds the lanes all calls hold at
+// once, and the reserve comes out of the limit. A
 // waiting call whose context raises it (block.WithRaise) waits on as
 // interactive. Each class waits in arrival order, except that a released
 // lane goes to a waiter among the first few of its class that prefers it.
 //
-// Invariant: a free lane exists only while no waiter could take it.
+// Invariant: a free lane exists only while no waiter could take it, or while
+// the calls hold the limit.
 type Pool[T comparable] struct {
 	// mu guards the fields below.
 	mu sync.Mutex
@@ -35,8 +38,14 @@ type Pool[T comparable] struct {
 	free []T
 	// n is the number of lanes.
 	n int
-	// capped is the most lanes refill and background calls hold at once.
-	capped int
+	// reserve is how many lanes of the limit refill and background calls
+	// leave for urgent and interactive ones.
+	reserve int
+	// limit is the most lanes all calls hold at once, from zero, which
+	// pauses the pool, to n.
+	limit int
+	// held counts the lanes calls hold.
+	held int
 	// cappedHeld counts the lanes refill and background calls hold.
 	cappedHeld int
 	// queues holds the waiting calls of each kind, most urgent first.
@@ -89,7 +98,24 @@ type waiter[T comparable] struct {
 // but reserve lanes, and always at least one.
 func New[T comparable](lanes []T, reserve int) *Pool[T] {
 	n := len(lanes)
-	return &Pool[T]{free: slices.Clone(lanes), n: n, capped: max(n-reserve, 1)}
+	return &Pool[T]{free: slices.Clone(lanes), n: n, reserve: reserve, limit: n}
+}
+
+// SetLimit bounds the lanes all calls hold at once to n, clamped to zero and
+// the number of lanes. Zero pauses the pool: calls holding lanes keep them,
+// and every new call waits until a later SetLimit raises the limit. A lowered
+// limit takes effect as held lanes return.
+func (p *Pool[T]) SetLimit(n int) {
+	p.mu.Lock()
+	p.limit = min(max(n, 0), p.n)
+	p.grantLocked()
+	p.mu.Unlock()
+}
+
+// cappedLocked returns the most lanes refill and background calls may hold
+// at once: the limit less the reserve, and at least one.
+func (p *Pool[T]) cappedLocked() int {
+	return max(p.limit-p.reserve, 1)
 }
 
 // Len returns the number of lanes.
@@ -139,9 +165,10 @@ func (p *Pool[T]) Take(ctx context.Context, prefer func(T) bool) (*Lease[T], err
 // or returns nil when it must wait. By the invariant, a free lane means no
 // waiter of a kind that may take it.
 func (p *Pool[T]) takeFreeLocked(w *waiter[T]) *Lease[T] {
-	// Wait when no lane is free or the call's kind holds its cap.
+	// Wait when no lane is free, the calls hold the limit, or the call's
+	// kind holds its cap.
 	capped := w.kind == kindCapped
-	if len(p.free) == 0 || (capped && p.cappedHeld >= p.capped) {
+	if len(p.free) == 0 || p.held >= p.limit || (capped && p.cappedHeld >= p.cappedLocked()) {
 		return nil
 	}
 
@@ -155,6 +182,7 @@ func (p *Pool[T]) takeFreeLocked(w *waiter[T]) *Lease[T] {
 	}
 	lane := p.free[i]
 	p.free = slices.Delete(p.free, i, i+1)
+	p.held++
 	if capped {
 		p.cappedHeld++
 	}
@@ -165,6 +193,7 @@ func (p *Pool[T]) takeFreeLocked(w *waiter[T]) *Lease[T] {
 func (p *Pool[T]) Put(l *Lease[T]) {
 	// Free the lane and grant it to the next eligible waiter.
 	p.mu.Lock()
+	p.held--
 	if l.Capped {
 		p.cappedHeld--
 	}
@@ -192,11 +221,14 @@ func (p *Pool[T]) grantLocked() {
 // nextKindLocked returns the most urgent kind with a waiter that may take a
 // lane now, or -1.
 func (p *Pool[T]) nextKindLocked() kind {
+	if p.held >= p.limit {
+		return -1
+	}
 	for k := range kinds {
 		if len(p.queues[k]) == 0 {
 			continue
 		}
-		if k == kindCapped && p.cappedHeld >= p.capped {
+		if k == kindCapped && p.cappedHeld >= p.cappedLocked() {
 			continue
 		}
 		return k
@@ -252,4 +284,17 @@ func (p *Pool[T]) Held() (cappedHeld, cappedWaiting int) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	return p.cappedHeld, len(p.queues[kindCapped])
+}
+
+// Stats returns a snapshot of the pool, for status and metrics.
+func (p *Pool[T]) Stats() Stats {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return Stats{
+		Limit:       p.limit,
+		Held:        p.held,
+		Urgent:      len(p.queues[kindUrgent]),
+		Interactive: len(p.queues[kindInteractive]),
+		Capped:      len(p.queues[kindCapped]),
+	}
 }

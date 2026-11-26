@@ -1,6 +1,7 @@
 package block_store_s3
 
 import (
+	"cmp"
 	"fmt"
 	"io"
 	"maps"
@@ -35,6 +36,10 @@ type fakeBucket struct {
 	// counts those answers.
 	throttle  bool
 	throttled int
+	// throttleNext, when positive, throttles that many more requests.
+	throttleNext int
+	// retryAfter is the Retry-After of a throttled answer; empty is "0".
+	retryAfter string
 	// after, when set, runs after each request is answered and before the
 	// answer returns, so the client sees the bucket as it was before after.
 	after func(r *http.Request)
@@ -68,9 +73,10 @@ func (b *fakeBucket) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // serve answers one S3 request while the caller holds the bucket.
 func (b *fakeBucket) serve(w http.ResponseWriter, r *http.Request) {
 	// Refuse every request while throttled.
-	if b.throttle {
+	if b.throttle || b.throttleNext > 0 {
 		b.throttled++
-		w.Header().Set("Retry-After", "0")
+		b.throttleNext--
+		w.Header().Set("Retry-After", cmp.Or(b.retryAfter, "0"))
 		http.Error(w, "<Error><Code>SlowDown</Code></Error>", http.StatusServiceUnavailable)
 		return
 	}

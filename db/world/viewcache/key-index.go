@@ -2,12 +2,14 @@ package viewcache
 
 import (
 	"context"
+	"errors"
 	"maps"
 	"sync/atomic"
 	"time"
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 )
 
@@ -27,6 +29,14 @@ const (
 // read of the World's graph, seconds after a start. Absent never waits for
 // the first build, which takes seconds: the reader walks meanwhile.
 const keyIndexWait = 50 * time.Millisecond
+
+// keyIndexRetryFirst and keyIndexRetryMax bound the wait before a key index
+// pass that ran out of time runs again: it starts at the first and doubles up
+// to the second.
+const (
+	keyIndexRetryFirst = 5 * time.Second
+	keyIndexRetryMax   = time.Minute
+)
 
 // KeyIndex holds the object keys that have at least one edge of one predicate
 // on one side, such as every account with a current lobby membership, so a
@@ -193,20 +203,37 @@ func (k *KeyIndex) kick() {
 	}
 }
 
-// run builds or patches the index until no catch-up is pending. A failed pass
-// ends the run without retrying, so a lasting error, such as a closing
-// engine, never loops hot; the next catch-up starts it again.
+// run builds or patches the index until no catch-up is pending. Its reads
+// are background reads, which a throttled store serves last. A pass that ran
+// out of time, as one waiting on a throttled store does, runs again after a
+// backoff that doubles from keyIndexRetryFirst to keyIndexRetryMax. Any other
+// failure ends the run without retrying, so a lasting error, such as a
+// closing engine, never loops hot; the next catch-up starts it again.
 func (k *KeyIndex) run() {
+	wait := keyIndexRetryFirst
 	for {
 		for k.pending.Swap(false) {
-			ctx, cancel := context.WithTimeout(context.Background(), backgroundReadTimeout)
+			ctx, cancel := context.WithTimeout(block.WithBackground(context.Background()), backgroundReadTimeout)
 			err := k.pass(ctx)
 			cancel()
-			if err != nil {
-				logrus.WithError(err).WithField("predicate", k.filter.GetPredicate()).Warn("key index pass failed")
+			if err == nil {
+				wait = keyIndexRetryFirst
+				continue
+			}
+			le := logrus.WithError(err).WithField("predicate", k.filter.GetPredicate())
+			if !errors.Is(err, context.DeadlineExceeded) {
+				le.Warn("key index pass failed")
 				k.running.Store(false)
 				return
 			}
+
+			// Wait out the slow store, then pass again.
+			le.WithField("wait", wait.String()).Debug("key index pass ran out of time, retrying")
+			k.pending.Store(true)
+			// The wait backs off a slow store; it polls no state.
+			//gostyle:timer deadline
+			time.Sleep(wait)
+			wait = min(2*wait, keyIndexRetryMax)
 		}
 		k.running.Store(false)
 

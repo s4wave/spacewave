@@ -455,8 +455,9 @@ func (s *Store) Evict(
 	// Commit the pass ordered: it drops only values the remote holds, so a
 	// crash that loses its commits leaves values the next pass drops again,
 	// and its writes must not each wait on a flush that other writes share.
-	// Its writes wait behind every foreground writer.
-	ctx = kvtx.WithBackgroundWriteContext(kvtx.WithOrderedCommitContext(ctx))
+	// Its writes wait behind every foreground writer, and its confirming
+	// reads of the remote are background reads.
+	ctx = block.WithBackground(kvtx.WithBackgroundWriteContext(kvtx.WithOrderedCommitContext(ctx)))
 
 	// Serialize the pass with other passes.
 	var result EvictResult
