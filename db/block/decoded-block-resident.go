@@ -48,10 +48,8 @@ func (c *DecodedBlockCache) Resident() iter.Seq[DecodedBlockResident] {
 
 		// Walk the shards, copying out this scope's entries and yielding the
 		// live ones.
-		var buf []decodedBlockResidentCopy
-		for i := range c.pool.shards {
-			buf = c.pool.shards[i].copyScope(c.scope, buf[:0])
-			for _, e := range buf {
+		for copies := range c.pool.scopeCopies(c.scope) {
+			for _, e := range copies {
 				resident, ok := c.resident(e)
 				if ok && !yield(resident) {
 					return
@@ -75,6 +73,21 @@ func (c *DecodedBlockCache) resident(e decodedBlockResidentCopy) (DecodedBlockRe
 		return DecodedBlockResident{}, false
 	}
 	return DecodedBlockResident{RefKey: ref, TypeKey: typeKey, Cost: e.cost}, true
+}
+
+// scopeCopies yields, one shard at a time, copies of the pool's entries whose
+// pool key starts with scope. Each yielded slice is reused for the next shard,
+// so the consumer must not keep it.
+func (p *decodedBlockPool) scopeCopies(scope string) iter.Seq[[]decodedBlockResidentCopy] {
+	return func(yield func([]decodedBlockResidentCopy) bool) {
+		var buf []decodedBlockResidentCopy
+		for i := range p.shards {
+			buf = p.shards[i].copyScope(scope, buf[:0])
+			if !yield(buf) {
+				return
+			}
+		}
+	}
 }
 
 // copyScope appends the shard's entries whose pool key starts with scope to

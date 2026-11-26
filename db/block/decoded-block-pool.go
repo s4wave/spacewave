@@ -42,8 +42,6 @@ type decodedBlockPool struct {
 	seed maphash.Seed
 	// maxCost is the budget of the whole pool.
 	maxCost atomic.Int64
-	// nextScope allocates scope key prefixes.
-	nextScope atomic.Uint64
 	// off bypasses the shards from then on, as a disabled pool does.
 	off atomic.Bool
 	// budget, when set, is the shared read-cache budget the pool draws on. The
@@ -117,6 +115,12 @@ type decodedBlockQueue struct {
 	cost int64
 }
 
+// charge adds delta to the queue's total cost, for an entry of the queue whose
+// cost changed in place.
+func (q *decodedBlockQueue) charge(delta int64) {
+	q.cost += delta
+}
+
 // newDecodedBlockPoolShards returns a pool with one shard per
 // decodedBlockShardMinCost of maxCost, up to decodedBlockPoolMaxShards.
 func newDecodedBlockPoolShards(maxCost int64) *decodedBlockPool {
@@ -128,6 +132,16 @@ func newDecodedBlockPoolShards(maxCost int64) *decodedBlockPool {
 	}
 	pool.maxCost.Store(maxCost)
 	return pool
+}
+
+// joinBudget makes the pool draw on budget, the shared read-cache budget, and
+// joins it as the decoded-block member. A pool built disabled joins nothing.
+func (p *decodedBlockPool) joinBudget(budget *ReadCacheBudget) {
+	if p.shards == nil {
+		return
+	}
+	p.budget = budget
+	budget.Join(ReadCacheDecoded, p)
 }
 
 // setMaxCost sets the budget of the whole pool and the limit of the shared
@@ -243,7 +257,7 @@ func (p *decodedBlockPool) put(key, refKey string, value decodedBlockCacheEntry,
 	delta := cost
 	if existing {
 		delta -= e.cost
-		e.queue.cost += delta
+		e.queue.charge(delta)
 	}
 	if !existing {
 		e = &decodedBlockPoolEntry{key: key, cost: cost}
@@ -254,7 +268,7 @@ func (p *decodedBlockPool) put(key, refKey string, value decodedBlockCacheEntry,
 	// If backing was lost, undo the charge before it can evict another entry.
 	if refKey != "" && removedStripeSince(stripe, value.durableGen) {
 		if existing {
-			e.queue.cost -= delta
+			e.queue.charge(-delta)
 		}
 		if !existing {
 			e.queue.remove(e)
@@ -464,7 +478,7 @@ func (p *decodedBlockPool) attachReadDataLocked(key string, slot *decodedBlockRe
 
 	// Charge the complete metadata before exposing any memoized child slots.
 	entry.cost += cost
-	entry.queue.cost += cost
+	entry.queue.charge(cost)
 	s.retained.Add(cost)
 	s.costAdded.Add(cost)
 	s.readCost.Add(cost)

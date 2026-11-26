@@ -175,7 +175,7 @@ func (r ReadCursor) current(ctx context.Context) *decodedBlockReadData {
 		return nil
 	}
 	data := slot.data.Load()
-	if data == nil || data.cache != r.cache || data.epochs != r.cache.epochs(data.refKey) || removedSince(data.refKey, data.durableGen) {
+	if data == nil || data.scopeID != r.cache.id || data.epochs != r.cache.epochs(data.refKey) || removedSince(data.refKey, data.durableGen) {
 		return nil
 	}
 	slot.recent.Store(true)

@@ -27,8 +27,10 @@ type decodedBlockReadLink struct {
 type decodedBlockReadData struct {
 	// block is the pool's immutable decoded instance.
 	block Block
-	// cache owns the entry's exact storage and transform scope.
-	cache *DecodedBlockCache
+	// scopeID is the id of the cache scope that owns the entry's exact
+	// storage and transform. An id keeps a closed scope and its private pool
+	// unreachable from data that outlives them.
+	scopeID uint64
 	// refKey identifies the removal and invalidation stripe.
 	refKey string
 	// epochs is the scope state at durable admission.
@@ -46,9 +48,9 @@ type decodedBlockReadData struct {
 // newDecodedBlockReadData builds child metadata outside every cache shard lock.
 // Every nonempty reference gets a link; only a typed one can later hold a slot,
 // so a raw one is charged for its reference alone.
-func newDecodedBlockReadData(cache *DecodedBlockCache, key decodedBlockCacheKey, entry decodedBlockCacheEntry) (*decodedBlockReadData, int64) {
+func newDecodedBlockReadData(scopeID uint64, key decodedBlockCacheKey, entry decodedBlockCacheEntry) (*decodedBlockReadData, int64) {
 	// Preserve the exact cache identity and its durable-admission state.
-	data := &decodedBlockReadData{block: entry.block, cache: cache, refKey: key.ref, epochs: entry.epochs, durableGen: entry.durableGen}
+	data := &decodedBlockReadData{block: entry.block, scopeID: scopeID, refKey: key.ref, epochs: entry.epochs, durableGen: entry.durableGen}
 	cost := int64(128 + len(key.ref))
 	withRefs, ok := entry.block.(BlockWithRefs)
 	if !ok {
@@ -108,7 +110,7 @@ func (c *DecodedBlockCache) readSlot(key decodedBlockCacheKey) *decodedBlockRead
 	}
 
 	// Build metadata without holding the shard or invoking storage operations.
-	data, cost := newDecodedBlockReadData(c, key, entry)
+	data, cost := newDecodedBlockReadData(c.id, key, entry)
 	if data == nil || !c.pool.attachReadData(poolKey, entry.read, data, cost) {
 		return nil
 	}

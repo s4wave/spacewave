@@ -79,10 +79,7 @@ var sharedDecodedBlockPool = sync.OnceValue(func() *decodedBlockPool {
 	if err != nil {
 		panic(err)
 	}
-	if pool.shards != nil {
-		pool.budget = SharedReadCacheBudget()
-		pool.budget.Join(ReadCacheDecoded, pool)
-	}
+	pool.joinBudget(SharedReadCacheBudget())
 	return pool
 })
 
@@ -108,7 +105,10 @@ type DecodedBlockCache struct {
 	pool *decodedBlockPool
 	// ownsPool is set when Close must clear pool.
 	ownsPool bool
-	// scope prefixes every key of this owner.
+	// id identifies this scope among every scope in the process, so an entry
+	// or token naming it never names a scope of another pool.
+	id uint64
+	// scope prefixes every key of this owner: id in base 36 and a slash.
 	scope string
 	// closed disables lookups and stores after Close.
 	closed atomic.Bool
@@ -149,9 +149,10 @@ type decodedBlockCacheEntry struct {
 // decodedBlockCacheStoreToken captures the epochs at the start of a read so a
 // store after an intervening invalidation is skipped.
 type decodedBlockCacheStoreToken struct {
-	cache  *DecodedBlockCache
-	epochs decodedBlockCacheEpochs
-	ok     bool
+	// scopeID is the id of the cache scope the token was cut from.
+	scopeID uint64
+	epochs  decodedBlockCacheEpochs
+	ok      bool
 }
 
 // SetSharedDecodedBlockCacheMaxCost sets the budget of the process-wide pool
@@ -190,13 +191,18 @@ func NewDecodedBlockCacheWithOptions(opts DecodedBlockCacheOptions) (*DecodedBlo
 	return newDecodedBlockCacheScope(pool, true), nil
 }
 
+// decodedBlockScopeIDs allocates the id of every decoded-block cache scope in
+// the process, across all pools, starting at one.
+var decodedBlockScopeIDs atomic.Uint64
+
 // newDecodedBlockCacheScope allocates a scope in pool.
 func newDecodedBlockCacheScope(pool *decodedBlockPool, ownsPool bool) *DecodedBlockCache {
 	PrepareBlockRemovalTracking()
-	id := pool.nextScope.Add(1)
+	id := decodedBlockScopeIDs.Add(1)
 	return &DecodedBlockCache{
 		pool:     pool,
 		ownsPool: ownsPool,
+		id:       id,
 		scope:    strconv.FormatUint(id, 36) + "/",
 	}
 }
@@ -379,7 +385,7 @@ func (c *DecodedBlockCache) Store(
 	var epochs decodedBlockCacheEpochs
 	if c != nil {
 		epochs = c.epochs(key.ref)
-		if token.ok && (token.cache != c || token.epochs != epochs) {
+		if token.ok && (token.scopeID != c.id || token.epochs != epochs) {
 			return nil
 		}
 	}
@@ -495,7 +501,7 @@ func (c *DecodedBlockCache) storeToken(refKey string) decodedBlockCacheStoreToke
 	if c == nil || refKey == "" {
 		return decodedBlockCacheStoreToken{}
 	}
-	return decodedBlockCacheStoreToken{cache: c, epochs: c.epochs(refKey), ok: true}
+	return decodedBlockCacheStoreToken{scopeID: c.id, epochs: c.epochs(refKey), ok: true}
 }
 
 // refEpoch returns the invalidation epoch of the stripe refKey hashes to.
