@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
+	"maps"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -69,9 +70,7 @@ func (h *walkHiddenRefs) readSet() map[walkKey]int {
 	h.mtx.Lock()
 	defer h.mtx.Unlock()
 	out := make(map[walkKey]int, len(h.reads))
-	for k, n := range h.reads {
-		out[k] = n
-	}
+	maps.Copy(out, h.reads)
 	return out
 }
 

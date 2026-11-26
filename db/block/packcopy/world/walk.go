@@ -3,6 +3,7 @@ package packcopy_world
 import (
 	"context"
 	"crypto/sha256"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -426,8 +427,8 @@ func (w *Walk) Run(ctx context.Context) error {
 // pushRoots queues the pinned roots so the first is read first.
 func (w *Walk) pushRoots() {
 	heads := w.state.GetPin().GetHeads()
-	for i := len(heads) - 1; i >= 0; i-- {
-		root := heads[i].GetRootRef()
+	for _, head := range slices.Backward(heads) {
+		root := head.GetRootRef()
 		if root.GetEmpty() {
 			continue
 		}

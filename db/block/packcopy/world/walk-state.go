@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 	"time"
 
@@ -513,8 +514,8 @@ func (w *Walk) loadItem(p *loadNode, ref *block.BlockRef, typ any, stage uint8, 
 // each by its decode. It rebuilds every node.
 func (w *Walk) typeNodes(ctx context.Context, nodes []*loadNode) error {
 	// A needed node typed by its parent needs its parent too.
-	for i := len(nodes) - 1; i >= 0; i-- {
-		if n := nodes[i]; n.need && !n.typed {
+	for _, n := range slices.Backward(nodes) {
+		if n.need && !n.typed {
 			n.parent.need = true
 		}
 	}
