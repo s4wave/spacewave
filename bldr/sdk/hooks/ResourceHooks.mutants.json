@@ -1,0 +1,12 @@
+[
+  {
+    "name": "a stall drops the value",
+    "replace": [
+      [
+        "  /\\ UNCHANGED <<value, yielded>>",
+        "  /\\ value' = 0\n  /\\ UNCHANGED yielded"
+      ]
+    ],
+    "expect": "OwnFailureKeepsContent"
+  }
+]
