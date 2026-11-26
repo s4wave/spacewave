@@ -26,6 +26,9 @@ type ReadCounts struct {
 	BatchReads uint64
 	// BatchBytes counts the bytes those reads carried, wanted or not.
 	BatchBytes uint64
+	// Spanned counts the blocks cut from the spans a subtree walk read to
+	// its blocks' reaches, read again without a request.
+	Spanned uint64
 
 	// The other bytes the store downloaded from the bucket, by read mode:
 	// Window through the pack readers' range windows of block payloads, Tail

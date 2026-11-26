@@ -92,6 +92,9 @@ type PackStore struct {
 	// extentReads shares one range read among concurrent reads of a block
 	// whose h row holds its extent.
 	extentReads fetchGroup[*block.StoredBlock]
+	// spans holds the bytes of subtree walks' reach reads for their next
+	// reads.
+	spans *spanBuffer
 	// client stores the objects.
 	client ObjectStore
 	// bucket is the bucket holding the objects.
@@ -231,6 +234,7 @@ func NewPackStore(le *logrus.Entry, client ObjectStore, bucket, prefix string, o
 		indexOnly:       opts.IndexOnly && opts.Index != nil,
 		exactReads:      opts.ExactReads,
 		readCache:       opts.ReadCache,
+		spans:           newSpanBuffer(readBatchBytes),
 		linger:          cmp.Or(max(opts.Linger, 0), packLinger),
 		mergeTailBytes:  max(opts.MergeTailBytes, 0),
 		maxPackBytes:    cmp.Or(max(opts.MaxPackBytes, 0), writer.DefaultMaxPackBytes),
@@ -585,6 +589,8 @@ type readCounters struct {
 	// batchBlocks counts the blocks ReadBatch read, and batchReads the range
 	// reads it made for them.
 	batchBlocks, batchReads atomic.Uint64
+	// spanned counts the blocks cut from the span buffer's reach reads.
+	spanned atomic.Uint64
 	// bytes counts the bytes downloaded from the bucket by read mode.
 	bytes [readModes]atomic.Uint64
 	// fetches counts the pack readers' range reads by read mode.
@@ -609,6 +615,7 @@ func (s *PackStore) ReadCounts() ReadCounts {
 		Packs:         s.reads.packs.Load(),
 		BatchBlocks:   s.reads.batchBlocks.Load(),
 		BatchReads:    s.reads.batchReads.Load(),
+		Spanned:       s.reads.spanned.Load(),
 		BatchBytes:    s.reads.bytes[readBatch].Load(),
 		WindowBytes:   s.reads.bytes[readWindow].Load(),
 		TailBytes:     s.reads.bytes[readTail].Load(),
@@ -745,6 +752,14 @@ func (s *PackStore) readExtent(ctx context.Context, ref *block.BlockRef) (*block
 // cachedBlock returns the block from the read cache's copy of its extent, or
 // nil when the cache holds no copy or a copy that does not hold the block.
 func (s *PackStore) cachedBlock(ctx context.Context, ref *block.BlockRef, id string, off int64, size int) *block.StoredBlock {
+	// Cut the block from a held span of a subtree walk's reach read.
+	if data, ok := s.spans.read(id, off, size); ok {
+		if stored, err := verifiedBlock(ref, bytes.Clone(data)); err == nil {
+			s.reads.spanned.Add(1)
+			return stored
+		}
+	}
+
 	// Read the copy, if the cache holds one, and check it holds the block.
 	if s.readCache == nil {
 		return nil

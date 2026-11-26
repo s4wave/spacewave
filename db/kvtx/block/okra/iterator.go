@@ -491,7 +491,9 @@ func (w *leafWalk[P, C]) enter(ctx context.Context, depth int, page P, cursor C,
 	for i := lo; i < hi; i++ {
 		w.r.aheadPage(ctx, &b, w.r.childAt(page, cursor, i))
 	}
-	answers, err := b.Read(ctx)
+
+	// The scan goes on through each child's subtree, so it marks the read.
+	answers, err := b.Read(block.WithSubtreeRead(ctx))
 	if err != nil {
 		return ctx, err
 	}

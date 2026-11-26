@@ -595,6 +595,7 @@ func extentValues(tail []byte, size uint64, num uint32, keys [][]byte) [][]byte 
 			off:    ie.GetOffset(),
 			size:   uint32(ie.GetSize()), //nolint:gosec // checked against MaxUint32 above.
 			extent: true,
+			reach:  entryReach(ie),
 		}
 		return nil
 	})
@@ -682,8 +683,13 @@ func (x *packIndex) writeSlice(ctx context.Context, entry *packfile.PackfileEntr
 
 // hashValueExtentBytes is the length of an h row value that holds its
 // block's extent: the pack number, then the block's offset and size in that
-// pack. A row of only the pack number is four bytes.
-const hashValueExtentBytes = 16
+// pack. A row of only the pack number is four bytes. hashValueReachBytes is
+// the length of one that also holds its block's reach, as the span's length
+// from the block's offset.
+const (
+	hashValueExtentBytes = 16
+	hashValueReachBytes  = 20
+)
 
 // hashValue is a decoded h row value.
 type hashValue struct {
@@ -694,10 +700,15 @@ type hashValue struct {
 	size uint32
 	// extent reports that off and size hold the block's extent.
 	extent bool
+	// reach is the length from off to the block's reach in a pack written in
+	// graph order, the bytes holding its subtree's structure, or 0 for none.
+	// Only a row with an extent holds one.
+	reach uint32
 }
 
 // parseHashValue decodes an h row value; ok is false for a malformed one.
 func parseHashValue(value []byte) (v hashValue, ok bool) {
+	// Read the pack number, then the extent and the reach a longer row holds.
 	if len(value) < 4 {
 		return hashValue{}, false
 	}
@@ -707,17 +718,34 @@ func parseHashValue(value []byte) (v hashValue, ok bool) {
 		v.size = binary.BigEndian.Uint32(value[12:16])
 		v.extent = true
 	}
+	if len(value) >= hashValueReachBytes {
+		v.reach = binary.BigEndian.Uint32(value[16:20])
+	}
 	return v, true
 }
 
 // marshal encodes the value, with its extent when it has one.
 func (v hashValue) marshal() []byte {
-	b := binary.BigEndian.AppendUint32(make([]byte, 0, hashValueExtentBytes), v.num)
+	b := binary.BigEndian.AppendUint32(make([]byte, 0, hashValueReachBytes), v.num)
 	if v.extent {
 		b = binary.BigEndian.AppendUint64(b, v.off)
 		b = binary.BigEndian.AppendUint32(b, v.size)
+		if v.reach != 0 {
+			b = binary.BigEndian.AppendUint32(b, v.reach)
+		}
 	}
 	return b
+}
+
+// entryReach returns the reach of index entry ie as an h row holds it: its
+// length from the entry's offset, or 0 when the entry has none, ends before
+// the block does, or spans more than a row holds.
+func entryReach(ie *kvfile.IndexEntry) uint32 {
+	reach, off := ie.GetReach(), ie.GetOffset()
+	if reach < off+ie.GetSize() || reach-off > math.MaxUint32 {
+		return 0
+	}
+	return uint32(reach - off) //nolint:gosec // checked against MaxUint32 above.
 }
 
 // hashRowKey returns the h row key of a block key.

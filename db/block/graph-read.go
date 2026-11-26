@@ -77,11 +77,15 @@ func (r *graphReader[N]) fill(ctx context.Context, queue []N) []N {
 
 // read reads batch from src and sends each block, then the batch's end.
 func (r *graphReader[N]) read(ctx context.Context, batch []N) {
+	// Name each node's block.
 	refs := make([]*BlockRef, len(batch))
 	for i, node := range batch {
 		refs[i] = r.ref(node)
 	}
-	err := GetStoredBlockBatch(withEachReads(ctx, len(refs)), r.src, refs, func(i int, stored *StoredBlock, err error) error {
+
+	// Read the batch, marked as a walk of every subtree it reaches.
+	ctx = WithSubtreeRead(withEachReads(ctx, len(refs)))
+	err := GetStoredBlockBatch(ctx, r.src, refs, func(i int, stored *StoredBlock, err error) error {
 		r.results <- graphRead[N]{node: batch[i], stored: stored, err: graphBlockErr(refs[i], stored, err)}
 		return nil
 	})

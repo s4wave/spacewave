@@ -407,6 +407,7 @@ func planTailUpgrades(ctx context.Context, tx kvtx.Tx, id string, num uint32, ta
 
 		// Plan the extent's write.
 		row.off, row.size, row.extent = ie.GetOffset(), uint32(ie.GetSize()), true //nolint:gosec // checked against MaxUint32 above.
+		row.reach = entryReach(ie)
 		plan = append(plan, tailUpgrade{key: rowKey, old: bytes.Clone(value), value: row.marshal()})
 		return nil
 	})

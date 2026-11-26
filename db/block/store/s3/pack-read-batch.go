@@ -5,6 +5,7 @@ import (
 	"context"
 	"math"
 	"slices"
+	"sort"
 	"sync"
 	"time"
 
@@ -69,6 +70,9 @@ type batchExtent struct {
 	// off and size are its bytes in the pack.
 	off  int64
 	size int
+	// reach is the end of its subtree's structure in the pack, past its own
+	// end, or 0 when its row records none.
+	reach int64
 	// claim is its index in the batch's claim on the shared extent reads.
 	claim int
 }
@@ -82,6 +86,9 @@ type batchRun struct {
 	off, end int64
 	// extents are the blocks in the span, by offset.
 	extents []batchExtent
+	// keep reports a span of a reach read, whose bytes the span buffer keeps
+	// for the walk's next reads.
+	keep bool
 }
 
 // GetStoredBlockBatch reads refs as GetStoredBlock reads each, with one range
@@ -244,7 +251,14 @@ func (s *PackStore) readRuns(ctx context.Context, extents []batchExtent, reads i
 	eg.SetLimit(reads)
 	budget := semaphore.NewWeighted(readBatchBytes)
 	var stopped error
-	for run := range batchRuns(extents, s.batchGap) {
+
+	// Read a subtree walk's batch to the reaches of its structure blocks, and
+	// any other batch by its extents' runs.
+	runs := batchRuns(extents, s.batchGap)
+	if block.IsSubtreeRead(ctx) {
+		runs = reachRuns(extents, s.batchGap)
+	}
+	for run := range runs {
 		weight := min(run.end-run.off, readBatchBytes)
 		if budget.Acquire(egCtx, weight) != nil {
 			stopped = context.Cause(egCtx)
@@ -283,8 +297,15 @@ func (s *PackStore) readRuns(ctx context.Context, extents []batchExtent, reads i
 // when that holds every block, so a batch asks the cache once per run, and
 // otherwise reads the span from the bucket.
 func (s *PackStore) readRun(ctx context.Context, run batchRun) ([]*block.StoredBlock, error) {
-	// Take the cache's copy only when it holds every block of the run.
+	// Take a held span or the cache's copy only when it holds every block of
+	// the run.
 	size := int(run.end - run.off)
+	if data, ok := s.spans.read(run.id, run.off, size); ok {
+		if blocks, whole := runBlocks(data, run); whole {
+			s.reads.spanned.Add(uint64(len(blocks)))
+			return blocks, nil
+		}
+	}
 	if s.readCache != nil {
 		if data, ok := s.readCache.ReadCached(ctx, run.id, run.off, size); ok {
 			if blocks, whole := runBlocks(data, run); whole {
@@ -303,8 +324,13 @@ func (s *PackStore) readRun(ctx context.Context, run batchRun) ([]*block.StoredB
 	if err != nil {
 		return nil, err
 	}
+
+	// Count the read, and hold a reach read's span for the walk's next reads.
 	s.reads.batchReads.Add(1)
 	s.reads.downloaded(readBatch, len(data))
+	if run.keep {
+		s.spans.add(run.id, run.off, data)
+	}
 	blocks, _ := runBlocks(data, run)
 	for _, stored := range blocks {
 		if stored != nil {
@@ -371,6 +397,68 @@ func batchRuns(extents []batchExtent, gap int64) func(yield func(batchRun) bool)
 	}
 }
 
+// reachRuns yields the runs of a subtree walk's extents: each extent whose row
+// records a reach reads to it, the spans of one pack merging as batchRuns
+// merges extents and cut into pieces of at most readBatchRun bytes, which the
+// span buffer keeps. An extent a piece holds whole is answered from it; the
+// rest, such as leaves and blocks of packs written in key order, read in runs
+// as batchRuns yields them.
+func reachRuns(extents []batchExtent, gap int64) func(yield func(batchRun) bool) {
+	return func(yield func(batchRun) bool) {
+		// Merge the spans to their reaches, by pack and offset.
+		var spans []batchRun
+		for _, e := range extents {
+			if e.reach > e.off+int64(e.size) {
+				spans = append(spans, batchRun{id: e.id, off: e.off, end: e.reach, keep: true})
+			}
+		}
+		slices.SortFunc(spans, func(a, b batchRun) int {
+			return cmp.Or(cmp.Compare(a.id, b.id), cmp.Compare(a.off, b.off))
+		})
+		var merged []batchRun
+		for _, sp := range spans {
+			if last := len(merged) - 1; last >= 0 && merged[last].id == sp.id && sp.off <= merged[last].end+gap {
+				merged[last].end = max(merged[last].end, sp.end)
+				continue
+			}
+			merged = append(merged, sp)
+		}
+
+		// Cut each into pieces of at most readBatchRun bytes.
+		var pieces []batchRun
+		for _, sp := range merged {
+			for off := sp.off; off < sp.end; off += readBatchRun {
+				pieces = append(pieces, batchRun{id: sp.id, off: off, end: min(off+readBatchRun, sp.end), keep: true})
+			}
+		}
+
+		// Give each extent to the piece holding it whole, or to the rest.
+		var rest []batchExtent
+		for _, e := range extents {
+			at := sort.Search(len(pieces), func(i int) bool {
+				return cmp.Or(cmp.Compare(pieces[i].id, e.id), cmp.Compare(pieces[i].off, e.off)) > 0
+			}) - 1
+			if at >= 0 && pieces[at].id == e.id && e.off+int64(e.size) <= pieces[at].end {
+				pieces[at].extents = append(pieces[at].extents, e)
+			} else {
+				rest = append(rest, e)
+			}
+		}
+
+		// Read the pieces, then the rest, all in the same round.
+		for _, p := range pieces {
+			if !yield(p) {
+				return
+			}
+		}
+		for run := range batchRuns(rest, gap) {
+			if !yield(run) {
+				return
+			}
+		}
+	}
+}
+
 // locateExtents returns the extent of each ref whose h row holds one and
 // names a pack the table holds, reading every row in one snapshot. As with
 // locateExtent, a pack sharing its number with another may be the wrong one,
@@ -404,7 +492,11 @@ func (x *packIndex) locateExtents(ctx context.Context, refs []*block.BlockRef) (
 		}
 		x.mtx.RUnlock()
 		if id != "" {
-			extents = append(extents, batchExtent{i: i, ref: ref, id: id, off: int64(row.off), size: int(row.size)}) // #nosec G115 -- the check above bounds off.
+			e := batchExtent{i: i, ref: ref, id: id, off: int64(row.off), size: int(row.size)} // #nosec G115 -- the check above bounds off.
+			if row.reach != 0 && row.off <= math.MaxInt64-uint64(row.reach) {
+				e.reach = e.off + int64(row.reach)
+			}
+			extents = append(extents, e)
 		}
 	}
 	return extents, nil
