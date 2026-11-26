@@ -95,7 +95,9 @@ func (s *Scanner) inventory(ctx context.Context) error {
 			if err := tx.Bucket([]byte("state")).Put([]byte("reach-incomplete"), []byte{1}); err != nil {
 				return err
 			}
-			s.addGap("store format " + strconv.FormatUint(legacy-1, 10) + " keeps its named roots in legacy graph records, which are not read; non-reachability is unknown")
+			s.addGap("store format " + strconv.FormatUint(legacy-1, 10) +
+				" keeps its named roots in legacy graph records, which are" +
+				" not read; non-reachability is unknown")
 		}
 		if key == nil {
 			s.result.Table++

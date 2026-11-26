@@ -53,7 +53,9 @@ type sqlBatchReader struct {
 // log.
 func (r *sqlBatchReader) next(ctx context.Context) (*packBatch, error) {
 	batch := &packBatch{frame: frame{kind: framePending}}
-	for examined := 0; examined < maxExamined && batch.bytes < uint64(r.packBytes) && len(batch.puts) < int(writer.DefaultMaxBlocksPerPack); { //nolint:gosec // the policy is positive.
+	for examined := 0; examined < maxExamined &&
+		batch.bytes < uint64(r.packBytes) && //nolint:gosec // the policy is positive.
+		len(batch.puts) < int(writer.DefaultMaxBlocksPerPack); {
 		// List the next rows.
 		keys, err := r.rows.ListHashes(ctx, r.after, r.end, sqlListBlocks)
 		if err != nil {
