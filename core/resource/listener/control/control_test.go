@@ -56,7 +56,7 @@ func TestShutdownRoundTrip(t *testing.T) {
 	ctx := t.Context()
 
 	// Bind the daemon socket and remove its path when the test ends.
-	dir := t.TempDir()
+	dir := makeShortTakeoverDir(t, "")
 	sock := filepath.Join(dir, "daemon.sock")
 	lis, err := net.Listen("unix", sock)
 	if err != nil {
@@ -117,7 +117,7 @@ func TestShutdownRoundTrip(t *testing.T) {
 func TestYieldRequiresYieldPolicy(t *testing.T) {
 	// Listen on the daemon socket.
 	ctx := t.Context()
-	sock := filepath.Join(t.TempDir(), "daemon.sock")
+	sock := filepath.Join(makeShortTakeoverDir(t, ""), "daemon.sock")
 	lis, err := net.Listen("unix", sock)
 	if err != nil {
 		t.Fatalf("listen: %v", err)
@@ -225,7 +225,7 @@ func TestShutdownDenyPropagates(t *testing.T) {
 	ctx := t.Context()
 
 	// Bind the daemon socket and remove its path when the test ends.
-	dir := t.TempDir()
+	dir := makeShortTakeoverDir(t, "")
 	sock := filepath.Join(dir, "daemon.sock")
 	lis, err := net.Listen("unix", sock)
 	if err != nil {

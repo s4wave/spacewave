@@ -206,7 +206,7 @@ func testPrepareDaemonRuntimeWaitsForYieldedLease(t *testing.T, claim runtimeCla
 	holderExited := make(chan struct{})
 	go func() {
 		defer close(holderExited)
-		<-control.ShutdownComplete()
+		_ = control.WaitShutdownComplete(t.Context())
 		_ = holder.Process.Kill()
 		_ = holder.Wait()
 	}()

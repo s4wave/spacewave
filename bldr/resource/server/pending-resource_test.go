@@ -105,10 +105,8 @@ func TestResourceRPCUndeliveredChildReturnsCountToBaseline(t *testing.T) {
 			case <-ctx.Done():
 				t.Fatal("resource release callback did not run")
 			}
-			select {
-			case <-client.Done():
+			if client.Retired() {
 				t.Fatal("client generation retired during cleanup")
-			default:
 			}
 		})
 	}

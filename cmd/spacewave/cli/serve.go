@@ -302,8 +302,6 @@ func runServeCommand(
 	}
 
 	// Native hosts supply the same plugin-host services as a distribution bus.
-	var releasePluginHost func()
-	var nativeHostRoot *plugin_host_root.Root
 	if nativeCore {
 		pluginRoot := filepath.Join(resolved, "plugin")
 		pluginStateRoot := filepath.Join(pluginRoot, "state")
@@ -313,7 +311,7 @@ func runServeCommand(
 				return err
 			}
 		}
-		pluginHost, release, err := plugin_host_default.StartPluginHost(
+		_, release, err := plugin_host_default.StartPluginHost(
 			serveCtx,
 			cliBus.GetBus(),
 			pluginStateRoot,
@@ -323,9 +321,7 @@ func runServeCommand(
 		if err != nil {
 			return err
 		}
-		releasePluginHost = release
-		nativeHostRoot = pluginHost.ProcessHost.GetHostRoot()
-		defer releasePluginHost()
+		defer release()
 
 		// Serve the files of local app builds imported into the daemon
 		// World, for bound web listeners. The scheduler leaves every other
@@ -365,17 +361,14 @@ func runServeCommand(
 	}
 
 	// Tie background projections and remote services to the serving lifetime.
-	// Find the native plugin host root when no native core plugin host owns it.
-	if nativeHostRoot == nil {
-		var hostRef directive.Reference
-		nativeHostRoot, _, hostRef, err = plugin_host_root.ExLookupRootByPlatform(
-			serveCtx, cliBus.GetBus(), false, (&bldr_platform.NativePlatform{}).GetPlatformID(), nil,
-		)
-		if err != nil {
-			return err
-		}
-		defer hostRef.Release()
+	// Find the native plugin host root on the bus, whichever host serves it.
+	nativeHostRoot, _, hostRef, err := plugin_host_root.ExLookupRootByPlatform(
+		serveCtx, cliBus.GetBus(), false, (&bldr_platform.NativePlatform{}).GetPlatformID(), nil,
+	)
+	if err != nil {
+		return err
 	}
+	defer hostRef.Release()
 
 	// Give the host root the Forge Worker declaration the Reconciler accepts.
 	forgeWorker := device_flowgraph.NewForgeWorkerWatch()
@@ -441,33 +434,22 @@ func runServeCommand(
 	// Retain desktop demand independently of the connection that opens it.
 	// The os.system services route to a placed os/system node, for the
 	// console of a Device running Spacewave OS.
+	// A requested shutdown stops admission by closing the listener. A daemon
+	// started for a command also yields to a manual start.
+	controlHandler := newDaemonControlHandler(func() { _ = lis.Close() })
+	if launcher == daemon.LauncherCommand {
+		controlHandler.SetYieldPolicy(listener_control.AutoAllowPolicy)
+	}
+
+	// Route desktop Quit through the same shutdown request.
 	mux := srpc.NewMux(invoker, os_system.NewInvoker(cliBus.GetBus()))
-	desktopControl := newDaemonDesktopControl(serveCtx, cliBus.GetBus(), idleTracker)
+	desktopControl := newDaemonDesktopControl(serveCtx, cliBus.GetBus(), idleTracker, controlHandler.requestDesktopQuit)
 	defer desktopControl.close()
 	if err := desktop_control.SRPCRegisterDesktopControlService(mux, desktopControl); err != nil {
 		return err
 	}
 
 	// Register local controls before allowing clients onto the listener.
-	shutdownCtx, shutdownCancel := context.WithCancel(serveCtx)
-	defer shutdownCancel()
-	shutdownCh := shutdownCtx.Done()
-	controlHandler := newDaemonControlHandler(func() {
-		shutdownCancel()
-		lis.Close()
-	})
-
-	// A daemon started for a command yields to a manual start.
-	if launcher == daemon.LauncherCommand {
-		controlHandler.SetYieldPolicy(listener_control.AutoAllowPolicy)
-	}
-
-	// Route desktop Quit through the same shutdown and register the controls.
-	desktopControl.shutdown = func(requester *trackedConn) {
-		controlHandler.desktopQuitConn.Store(requester)
-		shutdownCancel()
-		_ = lis.Close()
-	}
 	if err := mux.Register(controlHandler); err != nil {
 		return err
 	}
@@ -524,7 +506,7 @@ func runServeCommand(
 	}()
 
 	// Drain the claimed idle runtime before bus cleanup releases its state lease.
-	err = serveDaemonListener(serveCtx, serveCancel, lis, srv, controlHandler, shutdownCh, idleTracker)
+	err = serveDaemonListener(serveCtx, serveCancel, lis, srv, controlHandler, idleTracker)
 	if err != nil {
 		return err
 	}

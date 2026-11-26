@@ -294,7 +294,9 @@ func TestNestedAppRuntime(t *testing.T) {
 
 	// Release the persistent app client and both runtime attachments.
 	persistentClient.Release()
-	<-persistentClient.Done()
+	if err := persistentClient.Wait(ctx); err != nil {
+		t.Fatal(err)
+	}
 	releaseFirst()
 	releaseSecond()
 

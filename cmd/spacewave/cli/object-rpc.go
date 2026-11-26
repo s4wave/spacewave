@@ -101,9 +101,10 @@ func (a *objectRPCArgs) Run(c *cli.Context) error {
 
 // resourceEndError reports whether the daemon connection or the object ended.
 func (c *sdkClient) resourceEndError(objectDone <-chan struct{}, objectKey string) error {
-	select {
-	case <-c.resClient.Done():
+	if c.resClient.Retired() {
 		return errors.New("daemon connection closed")
+	}
+	select {
 	case <-objectDone:
 		return errors.New("object " + objectKey + " was released")
 	default:

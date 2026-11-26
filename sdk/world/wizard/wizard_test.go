@@ -83,7 +83,7 @@ func setupWizardRegistryClient(t *testing.T) (context.Context, *resource_client.
 	t.Cleanup(func() {
 		// Wait for wizard client shutdown before closing its transport.
 		client.Release()
-		<-client.Done()
+		_ = client.Wait(context.Background())
 		cancel()
 		clientPipe.Close()
 		serverPipe.Close()

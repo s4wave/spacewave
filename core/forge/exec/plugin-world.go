@@ -43,7 +43,7 @@ func (h *pluginExecHandler) openPluginResources(ctx context.Context, client SRPC
 		cause := context.Cause(openCtx)
 		if err == nil {
 			resources.Release()
-			<-resources.Done()
+			_ = resources.Wait(context.Background())
 		}
 		cancel(nil)
 		if fired && ctx.Err() == nil && cause != nil {
@@ -53,8 +53,9 @@ func (h *pluginExecHandler) openPluginResources(ctx context.Context, client SRPC
 	}
 
 	// Retire the open context with the client, which owns the stream from here.
+	// The wait also ends when ctx ends, which has already canceled openCtx.
 	go func() {
-		<-resources.Done()
+		_ = resources.Wait(openCtx)
 		cancel(nil)
 	}()
 	return resources, nil
@@ -85,7 +86,7 @@ func (h *pluginExecHandler) executeWithWorld(ctx context.Context, client SRPCPlu
 	}
 	defer func() {
 		resources.Release()
-		<-resources.Done()
+		_ = resources.Wait(context.Background())
 	}()
 	root := resources.AccessRootResource()
 	defer root.Release()

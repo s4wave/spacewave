@@ -96,10 +96,16 @@ func NewHandler(policy YieldPolicy, shutdown func()) *Handler {
 	}
 }
 
-// ShutdownComplete closes after the granted shutdown invocation finishes
-// writing its acknowledgement, including the final stream close attempt.
-func (h *Handler) ShutdownComplete() <-chan struct{} {
-	return h.shutdownComplete
+// WaitShutdownComplete waits until the granted shutdown invocation finishes
+// writing its acknowledgement, including the final stream close attempt, or
+// until ctx ends.
+func (h *Handler) WaitShutdownComplete(ctx context.Context) error {
+	select {
+	case <-h.shutdownComplete:
+		return nil
+	case <-ctx.Done():
+		return context.Cause(ctx)
+	}
 }
 
 // SetShutdownGrantedCallback sets fn to run after a Shutdown request passes
@@ -131,7 +137,7 @@ func (h *Handler) GetMethodIDs() []string {
 // InvokeMethod handles the Shutdown and Yield RPCs. The handler consults
 // the method's YieldPolicy and grants at most one caller. On approval it
 // notifies the granted-requester callback, releases the listener before
-// acknowledging the peer, then signals ShutdownComplete after
+// acknowledging the peer, then completes WaitShutdownComplete after
 // response-stream completion. On policy error or an already-claimed
 // handoff, it returns a wrapped denial to the peer.
 func (h *Handler) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bool, error) {

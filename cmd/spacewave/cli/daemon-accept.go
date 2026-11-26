@@ -34,6 +34,48 @@ type trackedConn struct {
 	onClose func()
 }
 
+// newTrackedConn wraps an accepted connection under its peer process name.
+func newTrackedConn(nc net.Conn) *trackedConn {
+	pid, peer := peerProcess(nc)
+	return &trackedConn{Conn: nc, peer: peer, pid: pid, done: make(chan struct{})}
+}
+
+// admit attaches the connection to idleTracker, which holds the daemon alive
+// until the connection closes. It reports false once shutdown is claimed. A nil
+// idleTracker admits every connection.
+func (c *trackedConn) admit(idleTracker *daemonIdleTracker) bool {
+	if idleTracker == nil {
+		return true
+	}
+	if !idleTracker.trackedClientAttached(c) {
+		return false
+	}
+	c.onClose = func() { idleTracker.trackedClientDetached(c) }
+	return true
+}
+
+// serve serves the connection's streams on srv until the connection ends,
+// then closes it and marks it done.
+func (c *trackedConn) serve(ctx context.Context, srv *srpc.Server, mc srpc.MuxedConn) {
+	defer close(c.done)
+	defer c.Close()
+	// Goroutines serving this client inherit the peer label, so a CPU profile
+	// attributes their work with -tagfocus=peer=name:pid.
+	pprof.Do(ctx, pprof.Labels("peer", c.profileLabel()), func(ctx context.Context) {
+		_ = srv.AcceptMuxedConn(ctx, mc)
+	})
+}
+
+// wait waits until the connection's serving goroutine exits or ctx ends.
+func (c *trackedConn) wait(ctx context.Context) error {
+	select {
+	case <-c.done:
+		return nil
+	case <-ctx.Done():
+		return context.Cause(ctx)
+	}
+}
+
 // describe names the connection to a person waiting on it.
 func (c *trackedConn) describe() string {
 	if c.peer == "" {
@@ -60,20 +102,16 @@ func (c *trackedConn) Close() error {
 
 // serveDaemonListener serves accepted daemon clients until an approved
 // daemon-control Shutdown, desktop Quit, or serveCtx cancellation closes the
-// accepting listener. On an approved Shutdown it waits for the control handler
-// acknowledgement. On desktop Quit it waits for the requester to read its RPC
-// reply and close. Only then does it drain remaining clients and cancel their
-// lifecycle. External serveCtx cancellation and accept errors still exit promptly.
-//
-// The shutdown callback registered on controlHandler must close only the
-// accepting listener and signal shutdownCh; it must not cancel serveCtx.
+// accepting listener. After a Shutdown or Quit it waits for the requester to
+// read its reply and close. Only then does it drain remaining clients and
+// cancel their lifecycle. External serveCtx cancellation and accept errors
+// still exit promptly.
 func serveDaemonListener(
 	serveCtx context.Context,
 	serveCancel context.CancelFunc,
 	lis net.Listener,
 	srv *srpc.Server,
 	controlHandler *daemonControlHandler,
-	shutdownCh <-chan struct{},
 	idleTracker *daemonIdleTracker,
 ) error {
 	// Stop accepting when the serving context ends.
@@ -82,34 +120,10 @@ func serveDaemonListener(
 		_ = lis.Close()
 	}()
 
-	// Preserve the shutdown acknowledgement before draining clients.
+	// Preserve the shutdown reply before draining clients.
 	closeClients, err := acceptDaemonListener(serveCtx, lis, srv, idleTracker)
 	serveCanceled := serveCtx.Err() != nil
-	select {
-	case <-shutdownCh:
-		// Preserve the desktop Quit stream until its requester receives the
-		// reply and closes, even if the shell exited during the RPC.
-		if requester := controlHandler.desktopQuitConn.Load(); requester != nil {
-			select {
-			case <-requester.done:
-			case <-serveCtx.Done():
-			}
-			break
-		}
-
-		// Explicit Shutdown has a separate acknowledgement fence.
-		select {
-		case <-controlHandler.ShutdownComplete():
-		case <-serveCtx.Done():
-		}
-		if requester := controlHandler.shutdownConn.Load(); requester != nil {
-			select {
-			case <-requester.done:
-			case <-serveCtx.Done():
-			}
-		}
-	default:
-	}
+	_ = controlHandler.waitReplied(serveCtx)
 
 	// Drain connections and normalize an expected listener shutdown.
 	closeClients()
@@ -158,45 +172,29 @@ func acceptDaemonListener(
 
 		// Admit the client under its peer process name, or reject it once
 		// shutdown is claimed.
-		pid, peer := peerProcess(nc)
-		tc := &trackedConn{
-			Conn: nc,
-			peer: peer,
-			pid:  pid,
-			done: make(chan struct{}),
+		tc := newTrackedConn(nc)
+		if !tc.admit(idleTracker) {
+			_ = nc.Close()
+			continue
 		}
-		if idleTracker != nil {
-			if !idleTracker.trackedClientAttached(tc) {
-				_ = nc.Close()
-				continue
-			}
-			tc.onClose = func() { idleTracker.trackedClientDetached(tc) }
-		}
-
 		mc, err := srpc.NewMuxedConn(tc, false, nil)
 		if err != nil {
 			_ = tc.Close()
 			continue
 		}
 
+		// Serve the client, dropping it from the drain set once it ends.
 		connsMtx.Lock()
 		conns[tc] = struct{}{}
 		connsMtx.Unlock()
-
 		connCtx := context.WithValue(ctx, daemonConnCtxKey{}, tc)
 		clients.Go(func() {
-			defer close(tc.done)
 			defer func() {
 				connsMtx.Lock()
 				delete(conns, tc)
 				connsMtx.Unlock()
 			}()
-			defer tc.Close()
-			// Goroutines serving this client inherit the peer label, so a CPU
-			// profile attributes their work with -tagfocus=peer=name:pid.
-			pprof.Do(connCtx, pprof.Labels("peer", tc.profileLabel()), func(ctx context.Context) {
-				_ = srv.AcceptMuxedConn(ctx, mc)
-			})
+			tc.serve(connCtx, srv, mc)
 		})
 	}
 }

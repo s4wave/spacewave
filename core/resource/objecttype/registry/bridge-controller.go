@@ -315,14 +315,7 @@ func openPluginResources(ctx context.Context, b bus.Bus, pluginID, instanceKey s
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	alive := func() bool {
-		select {
-		case <-resources.Client.Done():
-			return false
-		default:
-			return true
-		}
-	}
+	alive := func() bool { return !resources.Client.Retired() }
 	return resources.Client, resources.Release, alive, nil
 }
 

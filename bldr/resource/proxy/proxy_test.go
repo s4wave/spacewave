@@ -210,10 +210,8 @@ func TestProxyCarriesCallsAcrossRestart(t *testing.T) {
 	if msg, err := echo.NewSRPCEchoerClient(deviceClient).Echo(ctx, &echo.EchoMsg{Body: "device"}); err != nil || msg.GetBody() != "device" {
 		t.Fatalf("device echo: %v %v", msg, err)
 	}
-	select {
-	case <-client.Done():
+	if client.Retired() {
 		t.Fatal("generation ended across a restart")
-	default:
 	}
 }
 

@@ -110,10 +110,8 @@ func TestResourceRPCCanceledPublishedChildReturnsCountToBaseline(t *testing.T) {
 	releaseCtx, cancelRelease := context.WithTimeout(ctx, time.Second)
 	t.Cleanup(cancelRelease)
 	got := server.WaitTrackedResourceCount(releaseCtx, baseline)
-	select {
-	case <-client.Done():
+	if client.Retired() {
 		t.Fatal("client generation retired during child cleanup")
-	default:
 	}
 	if got != baseline {
 		t.Fatalf("resource count = %d, want baseline %d", got, baseline)

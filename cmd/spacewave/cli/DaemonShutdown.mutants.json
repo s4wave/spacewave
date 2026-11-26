@@ -1,0 +1,35 @@
+[
+  {
+    "name": "the serve loop drains without waiting for the requester to read its reply",
+    "replace": [
+      [
+        "  /\\ canceled \\/ (acked /\\ conn[requester] = \"closed\")\n",
+        "  /\\ TRUE\n"
+      ]
+    ],
+    "expect": "ReplyBeforeDrain",
+    "config": "DaemonShutdown.cfg"
+  },
+  {
+    "name": "the drain completes before every connection's goroutine exited",
+    "replace": [
+      [
+        "  /\\ \\A c \\in Conns : conn[c] \\in {\"idle\", \"closed\"}\n  /\\ phase' = \"complete\"",
+        "  /\\ phase' = \"complete\""
+      ]
+    ],
+    "expect": "DrainedBeforeComplete",
+    "config": "DaemonShutdown.cfg"
+  },
+  {
+    "name": "a shutdown request leaves the listener accepting",
+    "replace": [
+      [
+        "  /\\ requester' = c /\\ kind' = k /\\ listening' = FALSE\n  /\\ UNCHANGED <<conn, phase, acked, canceled, late>>",
+        "  /\\ requester' = c /\\ kind' = k\n  /\\ UNCHANGED <<conn, listening, phase, acked, canceled, late>>"
+      ]
+    ],
+    "expect": "NoLateAdmission",
+    "config": "DaemonShutdown.cfg"
+  }
+]

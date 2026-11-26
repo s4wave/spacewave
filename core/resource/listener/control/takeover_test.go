@@ -358,10 +358,8 @@ func startControlListener(t *testing.T, ctx context.Context, sock string) <-chan
 	serveCtx, serveCancel := context.WithCancel(ctx)
 	h := NewHandler(nil, func() { lis.Close() })
 	go func() {
-		select {
-		case <-h.ShutdownComplete():
+		if h.WaitShutdownComplete(serveCtx) == nil {
 			serveCancel()
-		case <-serveCtx.Done():
 		}
 	}()
 	mux := srpc.NewMux()

@@ -156,10 +156,8 @@ func TestTransaction(t *testing.T) {
 		// Release the mount and require the supplied engine to stay usable.
 		remote.Release()
 		client.Release()
-		select {
-		case <-client.Done():
-		case <-ctx.Done():
-			t.Fatal(ctx.Err())
+		if err := client.Wait(ctx); err != nil {
+			t.Fatal(err)
 		}
 		release()
 		if _, err := engine.World.GetSeqno(ctx); err != nil {

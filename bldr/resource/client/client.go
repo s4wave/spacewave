@@ -180,8 +180,27 @@ func (c *Client) Release() {
 	c.controls.finish()
 }
 
-// Done closes after this ResourceClient generation has drained and retired.
-func (c *Client) Done() <-chan struct{} { return c.done }
+// Wait waits until this ResourceClient generation has drained and retired, or
+// ctx ends.
+func (c *Client) Wait(ctx context.Context) error {
+	select {
+	case <-c.done:
+		return nil
+	case <-ctx.Done():
+		return context.Cause(ctx)
+	}
+}
+
+// Retired reports whether this ResourceClient generation has drained and
+// retired.
+func (c *Client) Retired() bool {
+	select {
+	case <-c.done:
+		return true
+	default:
+		return false
+	}
+}
 
 // attachSession manages the single ResourceAttach stream + yamux session.
 // One session serves all attached resources.

@@ -168,9 +168,7 @@ func TestResourceRouteFailureDecidesLifetimeByCode(t *testing.T) {
 	if err := callLifecycleTest(ctx, rootRef, "test.Root", "Ping", ""); err != nil {
 		t.Fatalf("root Ping after detach: %v", err)
 	}
-	select {
-	case <-client.Done():
+	if client.Retired() {
 		t.Fatal("client generation retired")
-	default:
 	}
 }

@@ -58,10 +58,18 @@ type daemonDesktopControl struct {
 }
 
 // newDaemonDesktopControl binds desktop loading to the daemon's PluginHost.
-func newDaemonDesktopControl(ctx context.Context, b bus.Bus, idleTracker *daemonIdleTracker) *daemonDesktopControl {
+// shutdown requests daemon shutdown for the connection whose Quit won the idle
+// tracker's stop claim.
+func newDaemonDesktopControl(
+	ctx context.Context,
+	b bus.Bus,
+	idleTracker *daemonIdleTracker,
+	shutdown func(*trackedConn),
+) *daemonDesktopControl {
 	return &daemonDesktopControl{
 		ctx:         ctx,
 		idleTracker: idleTracker,
+		shutdown:    shutdown,
 		load: func(ctx context.Context) (bldr_web_plugin.SRPCWebPluginClient, string, func(), error) {
 			// Let PluginHost finish selection, including a terminal idle result when no artifact exists.
 			running, _, probeRef, err := bldr_plugin.ExLoadPlugin(ctx, b, true, "web", nil)

@@ -605,7 +605,7 @@ func TestDesktopControlMissingWebPlugin(t *testing.T) {
 	// Bind desktop control to that bus.
 	idle := newDaemonIdleTracker(0, nil)
 	defer idle.close()
-	control := newDaemonDesktopControl(ctx, b, idle)
+	control := newDaemonDesktopControl(ctx, b, idle, nil)
 	defer control.close()
 
 	// Loading the desktop reports the fixed missing web plugin error.

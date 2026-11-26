@@ -500,9 +500,9 @@ func TestReleaseDrainsControlsBeforeCancelingGeneration(t *testing.T) {
 
 	// Close the response stream and verify the client generation retires.
 	close(events)
-	select {
-	case <-client.Done():
-	case <-time.After(time.Second):
+	waitCtx, waitCancel := context.WithTimeout(t.Context(), time.Second)
+	defer waitCancel()
+	if client.Wait(waitCtx) != nil {
 		t.Fatal("generation did not retire after the response stream closed")
 	}
 }

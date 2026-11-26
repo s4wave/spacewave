@@ -35,20 +35,13 @@ func TestServeDaemonListenerDesktopQuitAckCompletesBeforeDrain(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Wire the same listener callback and acknowledgement fence as serve.
-	// Cancel serve and shutdown together.
+	// Wire the same listener release and reply fence as serve.
 	serveCtx, serveCancel := context.WithCancel(t.Context())
 	defer serveCancel()
-	shutdownCtx, shutdownCancel := context.WithCancel(serveCtx)
-	defer shutdownCancel()
 
 	// Register the control and desktop Quit handlers.
-	controlHandler := newDaemonControlHandler(func() {})
-	quitHandler := &desktopQuitAckHandler{requestShutdown: func(requester *trackedConn) {
-		controlHandler.desktopQuitConn.Store(requester)
-		shutdownCancel()
-		_ = lis.Close()
-	}}
+	controlHandler := newDaemonControlHandler(func() { _ = lis.Close() })
+	quitHandler := &desktopQuitAckHandler{requestShutdown: controlHandler.requestDesktopQuit}
 	mux := srpc.NewMux()
 	if err := mux.Register(controlHandler); err != nil {
 		t.Fatal(err)
@@ -60,7 +53,7 @@ func TestServeDaemonListenerDesktopQuitAckCompletesBeforeDrain(t *testing.T) {
 	// Serve until the fake desktop Quit handler closes admission.
 	finished := make(chan error, 1)
 	go func() {
-		finished <- serveDaemonListener(serveCtx, serveCancel, lis, srpc.NewServer(mux), controlHandler, shutdownCtx.Done(), nil)
+		finished <- serveDaemonListener(serveCtx, serveCancel, lis, srpc.NewServer(mux), controlHandler, nil)
 	}()
 
 	// Read the reply after admission closes, then release the requesting socket.
@@ -91,8 +84,8 @@ func TestServeDaemonListenerDesktopQuitAckCompletesBeforeDrain(t *testing.T) {
 }
 
 // startDaemonListener wires a daemon-control handler exactly as runServeCommand
-// does: the Shutdown callback closes only the accepting listener and signals
-// shutdownCh, never canceling serveCtx. It starts serving and returns the socket
+// does: the Shutdown release closes only the accepting listener, never
+// canceling serveCtx. It starts serving and returns the socket
 // path plus a wait function that returns the serve result or fails on hang.
 func startDaemonListener(t *testing.T) (sock string, wait func() error) {
 	return startDaemonListenerWithPolicy(t, listener_control.AutoAllowPolicy)
@@ -118,12 +111,7 @@ func startDaemonListenerWithPolicy(
 	t.Cleanup(serveCancel)
 
 	// Register a control handler that closes admission.
-	shutdownCh := make(chan struct{})
-	var shutdownOnce sync.Once
-	controlHandler := newDaemonControlHandlerWithPolicy(policy, func() {
-		shutdownOnce.Do(func() { close(shutdownCh) })
-		lis.Close()
-	})
+	controlHandler := newDaemonControlHandlerWithPolicy(policy, func() { _ = lis.Close() })
 	mux := srpc.NewMux()
 	if err := mux.Register(controlHandler); err != nil {
 		t.Fatalf("register: %v", err)
@@ -133,7 +121,7 @@ func startDaemonListenerWithPolicy(
 	// Serve the daemon listener and return its wait function.
 	serveErrCh := make(chan error, 1)
 	go func() {
-		serveErrCh <- serveDaemonListener(serveCtx, serveCancel, lis, srv, controlHandler, shutdownCh, nil)
+		serveErrCh <- serveDaemonListener(serveCtx, serveCancel, lis, srv, controlHandler, nil)
 	}()
 	wait = func() error {
 		select {
@@ -185,15 +173,10 @@ func TestServeDaemonListenerWaitsForGrantedRequester(t *testing.T) {
 		t.Fatalf("listen: %v", err)
 	}
 
-	// Open serve and shutdown state.
+	// Open serve state and the control handler.
 	serveCtx, serveCancel := context.WithCancel(t.Context())
 	t.Cleanup(serveCancel)
-	shutdownCh := make(chan struct{})
-	var shutdownOnce sync.Once
-	controlHandler := newDaemonControlHandler(func() {
-		shutdownOnce.Do(func() { close(shutdownCh) })
-		_ = lis.Close()
-	})
+	controlHandler := newDaemonControlHandler(func() { _ = lis.Close() })
 
 	// Serve behind a signal invoker.
 	entered := make(chan struct{})
@@ -210,7 +193,6 @@ func TestServeDaemonListenerWaitsForGrantedRequester(t *testing.T) {
 			lis,
 			srv,
 			controlHandler,
-			shutdownCh,
 			nil,
 		)
 	}()
@@ -301,7 +283,6 @@ func TestServeDaemonListenerExternalCancelExitsPromptly(t *testing.T) {
 	}
 
 	// Register an empty control handler.
-	shutdownCh := make(chan struct{})
 	controlHandler := newDaemonControlHandler(func() {})
 	mux := srpc.NewMux()
 	if err := mux.Register(controlHandler); err != nil {
@@ -312,7 +293,7 @@ func TestServeDaemonListenerExternalCancelExitsPromptly(t *testing.T) {
 	// Serve the daemon listener.
 	serveErrCh := make(chan error, 1)
 	go func() {
-		serveErrCh <- serveDaemonListener(serveCtx, serveCancel, lis, srv, controlHandler, shutdownCh, nil)
+		serveErrCh <- serveDaemonListener(serveCtx, serveCancel, lis, srv, controlHandler, nil)
 	}()
 
 	// Dial the daemon socket.
@@ -345,12 +326,11 @@ func TestServeDaemonListenerAcceptErrorPropagates(t *testing.T) {
 	// Build a listener whose accept always fails.
 	sentinel := stderrors.New("accept boom")
 	lis := &fakeAcceptListener{acceptErr: sentinel}
-	shutdownCh := make(chan struct{})
 	controlHandler := newDaemonControlHandler(func() {})
 	srv := srpc.NewServer(srpc.NewMux())
 
 	// Require the sentinel accept error.
-	err := serveDaemonListener(serveCtx, serveCancel, lis, srv, controlHandler, shutdownCh, nil)
+	err := serveDaemonListener(serveCtx, serveCancel, lis, srv, controlHandler, nil)
 	if !stderrors.Is(err, sentinel) {
 		t.Fatalf("expected sentinel accept error, got %v", err)
 	}

@@ -241,10 +241,7 @@ func (c *Controller) serveOnce(
 	select {
 	case <-yieldCh:
 		yielded = true
-		select {
-		case <-controlHandler.ShutdownComplete():
-		case <-parentCtx.Done():
-		}
+		_ = controlHandler.WaitShutdownComplete(parentCtx)
 	default:
 	}
 

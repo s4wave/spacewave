@@ -264,27 +264,19 @@ func newSharedElectronDaemon(t *testing.T, app sharedElectronApp, opts sharedEle
 		t.Fatal(err)
 	}
 	serveCtx, serveCancel := context.WithCancel(ctx)
-	shutdownCtx, shutdownCancel := context.WithCancel(serveCtx)
 	d.idle = newDaemonIdleTracker(sharedElectronIdleTimeout, func() {
 		serveCancel()
 		_ = lis.Close()
 	})
 	t.Cleanup(d.idle.close)
-	controlHandler := newDaemonControlHandler(func() {
-		shutdownCancel()
-		_ = lis.Close()
-	})
+	controlHandler := newDaemonControlHandler(func() { _ = lis.Close() })
 
 	// Bind protected desktop control to the real web plugin capability.
 	d.control = &daemonDesktopControl{ctx: serveCtx, idleTracker: d.idle}
 	d.control.load = func(context.Context) (web_plugin.SRPCWebPluginClient, string, func(), error) {
 		return web_plugin.NewSRPCWebPluginClient(pluginClient), "fixture/" + opts.shape, func() {}, nil
 	}
-	d.control.shutdown = func(requester *trackedConn) {
-		controlHandler.desktopQuitConn.Store(requester)
-		shutdownCancel()
-		_ = lis.Close()
-	}
+	d.control.shutdown = controlHandler.requestDesktopQuit
 	t.Cleanup(d.control.close)
 
 	// Serve Resource and desktop control on the socket and to the in-process launcher.
@@ -296,7 +288,7 @@ func newSharedElectronDaemon(t *testing.T, app sharedElectronApp, opts sharedEle
 	d.desktop = desktop_control.NewSRPCDesktopControlServiceClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux))))
 	go func() {
 		defer close(d.exited)
-		_ = serveDaemonListener(serveCtx, serveCancel, lis, srpc.NewServer(mux), controlHandler, shutdownCtx.Done(), d.idle)
+		_ = serveDaemonListener(serveCtx, serveCancel, lis, srpc.NewServer(mux), controlHandler, d.idle)
 	}()
 
 	// Register the teardown that outlives the fixture state.

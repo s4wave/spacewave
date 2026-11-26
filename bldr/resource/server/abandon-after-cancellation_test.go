@@ -132,9 +132,7 @@ func TestResourceRPCAbandonAfterNestedCancellation(t *testing.T) {
 	case <-ctx.Done():
 		t.Fatal("abandoned child release callback did not run")
 	}
-	select {
-	case <-client.Done():
+	if client.Retired() {
 		t.Fatal("client generation retired during abandonment")
-	default:
 	}
 }

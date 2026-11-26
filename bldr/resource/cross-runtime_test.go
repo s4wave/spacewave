@@ -446,9 +446,7 @@ func TestGoClientResourceLifecycleAgainstPythonServer(t *testing.T) {
 
 	// Invalidate the server generation and confirm the client and stale reference fail.
 	server.send(t, "INVALIDATE")
-	select {
-	case <-client.Done():
-	case <-ctx.Done():
+	if client.Wait(ctx) != nil {
 		t.Fatal("timed out invalidating Go ResourceClient generation")
 	}
 	stale := client.AccessRootResource() //nolint:lostresource // The server has invalidated this generation; the test verifies the returned reference is already released.
@@ -624,10 +622,8 @@ func TestGoAttachedResourceTwoHopLifecycleAgainstTypeScriptServer(t *testing.T) 
 	}
 	server.send(t, "CHECK_LIVE")
 	server.waitLine(t, ctx, "ATTACHED_LIVE_NO_CANCEL")
-	select {
-	case <-client.Done():
+	if client.Retired() {
 		t.Fatal("ResourceClient generation retired after successful two-hop call")
-	default:
 	}
 
 	// Start the nested Block call and wait for the fake child to become active.
@@ -679,9 +675,7 @@ func TestGoAttachedResourceTwoHopLifecycleAgainstTypeScriptServer(t *testing.T) 
 	object.Release()
 	root.Release()
 	client.Release()
-	select {
-	case <-client.Done():
-	case <-ctx.Done():
+	if client.Wait(ctx) != nil {
 		t.Fatal("timed out ending Go ResourceClient generation")
 	}
 	if got := childReleaseCount.Load(); got != 1 {
