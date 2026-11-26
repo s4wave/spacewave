@@ -57,11 +57,11 @@ func watchWebListenerKeepalive(
 	defer client.close()
 
 	// Watch the daemon's web listener list.
-	watch, err := client.root.WatchWebListeners(ctx)
+	watch, releaseWatch, err := client.watchWebListeners(ctx)
 	if err != nil {
 		return err
 	}
-	defer watch.Close()
+	defer releaseWatch()
 
 	// Release every held listener on exit.
 	held := make(map[string]func())

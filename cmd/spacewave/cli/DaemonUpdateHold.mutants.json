@@ -1,0 +1,52 @@
+[
+  {
+    "name": "Acceptance without a lifetime hold can expire during preparation",
+    "replace": [
+      [
+        "owners' = IF owners = 0 THEN 1 ELSE owners",
+        "owners' = owners"
+      ]
+    ],
+    "expect": "AcceptedHasOwner"
+  },
+  {
+    "name": "Releasing the hold before the atomic claim creates an idle gap",
+    "replace": [
+      [
+        "UNCHANGED <<holds, owners, stopping>>\n\\* A stale",
+        "owners' = 0\n           /\\ UNCHANGED <<holds, stopping>>\n\\* A stale"
+      ]
+    ],
+    "expect": "AcceptedHasOwner"
+  },
+  {
+    "name": "Ignoring other services permits a busy handoff",
+    "replace": [
+      [
+        "holds \\ {\"desktop\"} = {} /\\ owners = 1",
+        "owners = 1"
+      ]
+    ],
+    "expect": "ClaimWaitsForOthers"
+  },
+  {
+    "name": "Reaccepting with a new hold leaks the previous identity",
+    "replace": [
+      [
+        "owners' = IF owners = 0 THEN 1 ELSE owners",
+        "owners' = owners + 1"
+      ]
+    ],
+    "expect": "AcceptedHasOwner"
+  },
+  {
+    "name": "Desktop quit excludes the update owner and interrupts preparation",
+    "replace": [
+      [
+        "/\\ owners = 0\n               /\\ stopping",
+        "/\\ TRUE\n               /\\ stopping"
+      ]
+    ],
+    "expect": "AcceptedKeepsDaemon"
+  }
+]

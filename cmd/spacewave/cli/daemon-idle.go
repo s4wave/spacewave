@@ -223,7 +223,7 @@ func (t *daemonIdleTracker) claimDesktopQuit(requester *trackedConn) (bool, daem
 	defer t.mu.Unlock()
 
 	// Snapshot the holds other than the desktop and the requester.
-	snapshot := t.otherHoldsLocked(requester)
+	snapshot := t.otherHoldsLocked(requester, nil)
 
 	// Reject the claim when stopping, when the desktop is gone, or while other
 	// holds remain.
@@ -238,16 +238,17 @@ func (t *daemonIdleTracker) claimDesktopQuit(requester *trackedConn) (bool, daem
 }
 
 // claimDaemonUpdate fences admission for an accepted update once every hold
-// except the desktop shell is released, or at once when restartNow is set.
+// except the desktop shell and the update owner is released, or at once when
+// restartNow is set. The owner keeps preparation alive through the atomic claim.
 // The handoff reopens the desktop. The snapshot counts only the other holds,
 // and the returned channel closes on the tracker's next change.
-func (t *daemonIdleTracker) claimDaemonUpdate(restartNow bool) (bool, daemonIdleSnapshot, <-chan struct{}) {
+func (t *daemonIdleTracker) claimDaemonUpdate(restartNow bool, owner *daemonServiceHold) (bool, daemonIdleSnapshot, <-chan struct{}) {
 	// Take the tracker lock for the claim decision.
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	// Snapshot the other holds and reject while they remain.
-	snapshot := t.otherHoldsLocked(nil)
+	snapshot := t.otherHoldsLocked(nil, owner)
 	if t.stopping || (!restartNow && (snapshot.clients != 0 || snapshot.services != 0)) {
 		return false, snapshot, t.changed
 	}
@@ -259,8 +260,9 @@ func (t *daemonIdleTracker) claimDaemonUpdate(restartNow bool) (bool, daemonIdle
 }
 
 // otherHoldsLocked returns the current state without the desktop hold and the
-// requester's connection, naming the holds that remain, while mu is held.
-func (t *daemonIdleTracker) otherHoldsLocked(requester *trackedConn) daemonIdleSnapshot {
+// requester's connection and excluded service, naming the remaining holds
+// while mu is held. Service exclusion uses identity, never its display name.
+func (t *daemonIdleTracker) otherHoldsLocked(requester *trackedConn, excluded *daemonServiceHold) daemonIdleSnapshot {
 	// Name the identified clients, then the connections admitted without one.
 	snapshot := t.snapshotLocked()
 	names := make([]string, 0, snapshot.clients+snapshot.services)
@@ -275,9 +277,9 @@ func (t *daemonIdleTracker) otherHoldsLocked(requester *trackedConn) daemonIdleS
 		names = append(names, unnamedClient)
 	}
 
-	// Name the services other than the desktop shell.
+	// Name the services other than the desktop shell and the claim owner.
 	for hold := range t.services {
-		if hold == t.desktop {
+		if hold == t.desktop || hold == excluded {
 			snapshot.services--
 			continue
 		}

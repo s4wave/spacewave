@@ -99,7 +99,7 @@ func runLoginFile(c *cli.Context, statePath, outputFormat, path string) error {
 	defer target.close()
 	aliasHash := sha256.Sum256([]byte(path))
 	aliasID := "file-" + hex.EncodeToString(aliasHash[:8])
-	_, err = target.root.UpsertSpaceRootAlias(ctx, &s4wave_root.SpaceRootAliasRecord{
+	_, err = target.upsertSpaceRootAlias(ctx, &s4wave_root.SpaceRootAliasRecord{
 		AliasId:     aliasID,
 		DisplayName: filepath.Base(path),
 		Kind:        s4wave_root.SpaceRootKind_SpaceRootKind_S4WAVE_FILE,
@@ -107,7 +107,7 @@ func runLoginFile(c *cli.Context, statePath, outputFormat, path string) error {
 		Native:      &s4wave_root.NativeSpaceRootMetadata{Path: path},
 	})
 	if err != nil {
-		return errors.Wrap(err, "add Session file")
+		return err
 	}
 
 	// Render the Sessions and source path for the selected output format.
@@ -154,9 +154,9 @@ func sessionsFromLoginFile(path string, entries []*core_session.SessionListEntry
 // usableFileSessions returns file Sessions that the source daemon can mount.
 func usableFileSessions(ctx context.Context, source *sdkClient, path string) ([]*core_session.SessionListEntry, error) {
 	// List usable sessions from the login file.
-	entries, err := source.root.ListSessions(ctx)
+	entries, err := source.listSessions(ctx, "list Sessions from file")
 	if err != nil {
-		return nil, errors.Wrap(err, "list Sessions from file")
+		return nil, err
 	}
 	entries = sessionsFromLoginFile(path, entries)
 	usable := make([]*core_session.SessionListEntry, 0, len(entries))

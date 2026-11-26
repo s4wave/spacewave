@@ -3,7 +3,6 @@
 package spacewave_cli
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -29,13 +28,13 @@ func TestDaemonUpdateChangedAfterAcceptanceReportsError(t *testing.T) {
 	t.Setenv(sharedDaemonUpdateTarget, stagedPath)
 	t.Setenv(sharedDaemonCorruptOnAccept, "1")
 
-	// Bound the whole failure/retry separately from each 15-second startup.
-	// Restoring and preparing the second artifact also copies a test binary.
+	// Keep each startup bounded while the runner budgets verification,
+	// restoration and the replacement together.
 	t.Setenv("SPACEWAVE_STATE_PATH", statePath)
 	t.Setenv("SPACEWAVE_SOCKET_PATH", "")
 	t.Setenv(daemonIdleTimeoutEnvVar, "30s")
 	t.Setenv(daemon.StartupTimeoutEnvVar, "15s")
-	ctx, cancel := context.WithTimeout(t.Context(), time.Minute)
+	ctx, cancel := newDaemonUpdateContext(t)
 	defer cancel()
 	started := time.Now()
 

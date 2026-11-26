@@ -31,17 +31,11 @@ import (
 
 // desktopSocket starts the protected daemon listener with Resource and desktop RPCs.
 func desktopSocket(t *testing.T, control *daemonDesktopControl, events <-chan struct{}) string {
+	// Mark the helper.
 	t.Helper()
 
-	// Bind an isolated protected socket for this test's daemon services. The
-	// system temp root keeps the path under the Unix socket length limit
-	// wherever the checkout lives.
-	dir, err := os.MkdirTemp("", "sw-desktop-")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = os.RemoveAll(dir) })
-	socket := filepath.Join(dir, socketName)
+	// Bind an isolated protected socket using the package's short socket paths.
+	socket := filepath.Join(shortSocketDir(t), socketName)
 
 	// Listen on the protected socket and require mode 0600.
 	lis, err := resource_listener.ListenProtectedUnix(socket, true)

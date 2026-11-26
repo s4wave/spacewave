@@ -83,15 +83,9 @@ func runLoginPair(c *cli.Context, statePath, code, label, outputFormat string) e
 	}
 
 	// Mount the pairing session and open it.
-	resourceID, err := client.root.MountSession(ctx, prepared.GetSessionRef())
+	sess, err := client.mountPairingSession(ctx, prepared.GetSessionRef())
 	if err != nil {
-		return errors.Wrap(err, "mount pairing session")
-	}
-	resourceRef := client.resClient.CreateResourceReference(resourceID)
-	sess, err := s4wave_session.NewSession(client.resClient, resourceRef)
-	if err != nil {
-		resourceRef.Release()
-		return errors.Wrap(err, "open pairing session")
+		return err
 	}
 	defer sess.Release()
 

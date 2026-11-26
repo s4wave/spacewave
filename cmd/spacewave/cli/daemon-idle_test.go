@@ -184,10 +184,12 @@ func TestDaemonUpdateClaimWaitsForOtherHolds(t *testing.T) {
 	if !tracker.trackedClientAttached(client) {
 		t.Fatal("initial client was rejected")
 	}
-	service := tracker.attachService("service")
+	owner := tracker.attachService("daemon update")
+	defer owner.release()
+	service := tracker.attachService("daemon update")
 
 	// Both other holds keep the old daemon serving.
-	claimed, others, changed := tracker.claimDaemonUpdate(false)
+	claimed, others, changed := tracker.claimDaemonUpdate(false, owner)
 	if claimed || others.clients != 1 || others.services != 1 || !others.desktop {
 		t.Fatalf("busy claim = %t, others = %+v", claimed, others)
 	}
@@ -197,14 +199,14 @@ func TestDaemonUpdateClaimWaitsForOtherHolds(t *testing.T) {
 	default:
 		t.Fatal("client release did not publish the owner event")
 	}
-	claimed, others, _ = tracker.claimDaemonUpdate(false)
+	claimed, others, _ = tracker.claimDaemonUpdate(false, owner)
 	if claimed || others.clients != 0 || others.services != 1 {
 		t.Fatalf("service claim = %t, others = %+v", claimed, others)
 	}
 
-	// The desktop hold alone does not block the handoff.
+	// Only the exact owner and desktop identities are excluded from the claim.
 	service.release()
-	claimed, others, _ = tracker.claimDaemonUpdate(false)
+	claimed, others, _ = tracker.claimDaemonUpdate(false, owner)
 	if !claimed || !others.desktop || !others.stopping {
 		t.Fatalf("desktop-only claim = %t, others = %+v", claimed, others)
 	}
@@ -223,14 +225,14 @@ func TestDaemonUpdateClaimRestartNow(t *testing.T) {
 		t.Fatal("client was rejected")
 	}
 	defer tracker.clientDetached()
-	claimed, others, _ := tracker.claimDaemonUpdate(true)
+	claimed, others, _ := tracker.claimDaemonUpdate(true, nil)
 	if !claimed || others.clients != 1 || others.desktop {
 		t.Fatalf("restart-now claim = %t, others = %+v", claimed, others)
 	}
 	if tracker.clientAttached() {
 		t.Fatal("client admitted after restart-now claim")
 	}
-	if claimed, _, _ := tracker.claimDaemonUpdate(true); claimed {
+	if claimed, _, _ := tracker.claimDaemonUpdate(true, nil); claimed {
 		t.Fatal("stopping daemon claimed the update twice")
 	}
 }
@@ -252,7 +254,7 @@ func TestDaemonUpdateClaimRacesClientAdmission(t *testing.T) {
 		go func() {
 			defer workers.Done()
 			<-start
-			claimed, _, _ = tracker.claimDaemonUpdate(false)
+			claimed, _, _ = tracker.claimDaemonUpdate(false, nil)
 		}()
 		close(start)
 		workers.Wait()

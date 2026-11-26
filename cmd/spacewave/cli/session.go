@@ -60,21 +60,10 @@ func runSessionList(c *cli.Context, statePath, outputFormat string) error {
 	}
 	defer client.close()
 
-	// List the registered Sessions.
-	sessions, err := client.root.ListSessions(ctx)
+	// List the registered Sessions with their stored display names.
+	sessions, names, err := client.listSessionsWithNames(ctx)
 	if err != nil {
-		return errors.Wrap(err, "list sessions")
-	}
-
-	// Read each Session's name: a Spacewave username, or the name given a
-	// local account.
-	names := make([]string, len(sessions))
-	for i, s := range sessions {
-		meta, _, err := client.root.GetSessionMetadata(ctx, s.GetSessionIndex())
-		if err != nil {
-			return errors.Wrap(err, "get session metadata")
-		}
-		names[i] = meta.GetDisplayName()
+		return err
 	}
 
 	// Print structured output: each list entry's fields and its name.
@@ -311,6 +300,7 @@ func sessionLogoutFlags(statePath *string, sessionIdx *uint, sessionID *string, 
 	)
 }
 
+// runSessionLogout signs out the selected account after confirmation.
 func runSessionLogout(c *cli.Context, statePath string, sessionIdx uint32, target sessionLogoutTarget, yes bool) error {
 	// Connect to the daemon.
 	ctx := c.Context
@@ -321,9 +311,9 @@ func runSessionLogout(c *cli.Context, statePath string, sessionIdx uint32, targe
 	defer client.close()
 
 	// List sessions on the daemon.
-	sessions, err := client.root.ListSessions(ctx)
+	sessions, err := client.listSessions(ctx, "list sessions")
 	if err != nil {
-		return errors.Wrap(err, "list sessions")
+		return err
 	}
 
 	// Resolve the session entry to sign out.
@@ -345,8 +335,8 @@ func runSessionLogout(c *cli.Context, statePath string, sessionIdx uint32, targe
 	}
 
 	// Delete the selected session.
-	if err := client.root.DeleteSession(ctx, entry.GetSessionIndex()); err != nil {
-		return errors.Wrap(err, "delete session")
+	if err := client.deleteSession(ctx, entry.GetSessionIndex()); err != nil {
+		return err
 	}
 
 	// Report the signed-out session index, session, and account.
@@ -469,9 +459,9 @@ func newSessionMoveCommand() *cli.Command {
 			defer client.close()
 
 			// Move the session and report where it went.
-			moved, err := client.root.MoveSession(ctx, uint32(from), uint32(to))
+			moved, err := client.moveSession(ctx, uint32(from), uint32(to))
 			if err != nil {
-				return errors.Wrap(err, "move session")
+				return err
 			}
 			ref := moved.GetSessionRef().GetProviderResourceRef()
 			os.Stdout.WriteString("moved session " + strconv.FormatUint(from, 10) + " to index " +

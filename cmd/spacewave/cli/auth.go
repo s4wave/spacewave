@@ -1145,9 +1145,9 @@ func runAuthUnlock(c *cli.Context, statePath string, sessionIdx uint32) error {
 	defer client.close()
 
 	// Unlock the session with the PIN.
-	err = client.root.UnlockSession(ctx, sessionIdx, []byte(pin))
+	err = client.unlockSession(ctx, sessionIdx, []byte(pin))
 	if err != nil {
-		return errors.Wrap(err, "unlock session")
+		return err
 	}
 
 	// Confirm the unlock on stdout.

@@ -21,6 +21,19 @@ import (
 	listener_control "github.com/s4wave/spacewave/core/resource/listener/control"
 )
 
+// daemonUpdateCleanupTimeout bounds the fixture's final shutdown handshake.
+const daemonUpdateCleanupTimeout = 10 * time.Second
+
+// newDaemonUpdateContext uses the runner's deadline while reserving the fixture's
+// final shutdown window. Startup deadlines remain local to each daemon start.
+func newDaemonUpdateContext(t *testing.T) (context.Context, context.CancelFunc) {
+	t.Helper()
+	if deadline, ok := t.Deadline(); ok {
+		return context.WithDeadline(t.Context(), deadline.Add(-daemonUpdateCleanupTimeout))
+	}
+	return context.WithCancel(t.Context())
+}
+
 // TestAcceptedDaemonUpdateRelaunchesAfterFinalClient crosses the real Resource
 // stream, state lease, and startup acknowledgement with controlled CLI copies.
 func TestAcceptedDaemonUpdateRelaunchesAfterFinalClient(t *testing.T) {
@@ -41,8 +54,9 @@ func testAcceptedDaemonUpdateRelaunchesAfterFinalClient(t *testing.T, mode strin
 	t.Setenv(daemonIdleTimeoutEnvVar, "30s")
 	t.Setenv(daemon.StartupTimeoutEnvVar, "15s")
 
-	// Two startups may each use 15 seconds, in addition to copying and handoff.
-	ctx, cancel := context.WithTimeout(t.Context(), time.Minute)
+	// Use the runner's workflow budget for copying and handoff; each startup
+	// keeps its own deadline.
+	ctx, cancel := newDaemonUpdateContext(t)
 	defer cancel()
 
 	// Watch the state directory and copy the fixture executables.
@@ -138,8 +152,9 @@ func TestDaemonUpdateRestartNowReplacesBusyDaemon(t *testing.T) {
 	t.Setenv(daemonIdleTimeoutEnvVar, "30s")
 	t.Setenv(daemon.StartupTimeoutEnvVar, "15s")
 
-	// Two startups may each use 15 seconds, in addition to copying and handoff.
-	ctx, cancel := context.WithTimeout(t.Context(), time.Minute)
+	// Use the runner's workflow budget for copying and handoff; each startup
+	// keeps its own deadline.
+	ctx, cancel := newDaemonUpdateContext(t)
 	defer cancel()
 
 	// Watch the state directory for the replacement daemon.
@@ -249,8 +264,15 @@ func cleanupDaemonUpdateFixture(t *testing.T, statePath string) {
 	t.Helper()
 	socketPath := filepath.Join(statePath, socketName)
 	t.Cleanup(func() {
+		// Preserve the last progress of a failed child before removing its state.
+		defer func() {
+			if t.Failed() {
+				logDaemonUpdateFixture(t, statePath)
+			}
+		}()
+
 		// Subscribe to the state root before requesting shutdown.
-		stopCtx, stopCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		stopCtx, stopCancel := context.WithTimeout(context.Background(), daemonUpdateCleanupTimeout)
 		defer stopCancel()
 		stopWatcher, err := fsnotify.NewWatcher()
 		if err != nil {
@@ -298,6 +320,42 @@ func cleanupDaemonUpdateFixture(t *testing.T, statePath string) {
 			}
 		}
 	})
+}
+
+// logDaemonUpdateFixture reports a bounded tail from each controlled child.
+func logDaemonUpdateFixture(t *testing.T, statePath string) {
+	// Find the child logs before the fixture directory is released.
+	t.Helper()
+	paths, err := filepath.Glob(filepath.Join(statePath, "fixture-*.log"))
+	if err != nil {
+		t.Log(err)
+		return
+	}
+
+	// Keep diagnostics bounded even when a child repeatedly reports a failure.
+	const limit = 64 << 10
+	for _, path := range paths {
+		input, err := os.Open(path)
+		if err != nil {
+			t.Log(err)
+			continue
+		}
+		info, err := input.Stat()
+		if err != nil {
+			_ = input.Close()
+			t.Log(err)
+			continue
+		}
+
+		// Read only the final log region and close the child file on every path.
+		data, err := io.ReadAll(io.NewSectionReader(input, max(0, info.Size()-limit), limit))
+		_ = input.Close()
+		if err != nil {
+			t.Log(err)
+			continue
+		}
+		t.Logf("daemon fixture %s:\n%s", filepath.Base(path), data)
+	}
 }
 
 // copyFixtureExecutable creates one controlled copy of this test binary.

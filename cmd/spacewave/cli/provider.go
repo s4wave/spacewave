@@ -54,9 +54,9 @@ func runProviderList(c *cli.Context, statePath, outputFormat string) error {
 	defer client.close()
 
 	// List providers.
-	providers, err := client.root.ListProviders(ctx)
+	providers, err := client.listProviders(ctx)
 	if err != nil {
-		return errors.Wrap(err, "list providers")
+		return err
 	}
 
 	// Emit the provider list as JSON or YAML when that output format was requested.

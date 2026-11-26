@@ -8,8 +8,12 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 
 	"github.com/aperturerobotics/cli"
+	"github.com/aperturerobotics/protobuf-go-lite/types/known/emptypb"
+	"github.com/aperturerobotics/protobuf-go-lite/types/known/structpb"
+	"github.com/aperturerobotics/protobuf-go-lite/types/known/wrapperspb"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/gitroot"
 	"github.com/pkg/errors"
@@ -17,7 +21,10 @@ import (
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	"github.com/s4wave/spacewave/core/daemon"
+	core_provider "github.com/s4wave/spacewave/core/provider"
+	core_session "github.com/s4wave/spacewave/core/session"
 	s4wave_account "github.com/s4wave/spacewave/sdk/account"
+	s4wave_cdn "github.com/s4wave/spacewave/sdk/cdn"
 	"github.com/s4wave/spacewave/sdk/cli/runner"
 	s4wave_mount "github.com/s4wave/spacewave/sdk/mount"
 	s4wave_provider "github.com/s4wave/spacewave/sdk/provider"
@@ -27,6 +34,7 @@ import (
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 	s4wave_sobject "github.com/s4wave/spacewave/sdk/sobject"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
+	s4wave_unixfs "github.com/s4wave/spacewave/sdk/unixfs"
 	sdk_engine "github.com/s4wave/spacewave/sdk/world/engine"
 )
 
@@ -51,7 +59,7 @@ const socketName = daemon.SocketName
 type sdkClient struct {
 	// conn carries connection-scoped daemon control operations.
 	conn net.Conn
-	// srpc exposes daemon services to command adapters.
+	// srpc carries daemon service invocations.
 	srpc srpc.Client
 	// resClient retains the initialized Resource stream.
 	resClient *resource_client.Client
@@ -651,4 +659,178 @@ func mountObjectChain(
 		return nil, err
 	}
 	return &objectMount{Object: obj, client: client}, nil
+}
+
+// listSessions reads the daemon catalog, reporting failures in the command's terms.
+func (c *sdkClient) listSessions(ctx context.Context, failure string) ([]*core_session.SessionListEntry, error) {
+	sessions, err := c.root.ListSessions(ctx)
+	return sessions, errors.Wrap(err, failure)
+}
+
+// listSessionsWithNames reads the catalog and each Session's stored display name.
+func (c *sdkClient) listSessionsWithNames(ctx context.Context) ([]*core_session.SessionListEntry, []string, error) {
+	// Read the registered Sessions in catalog order.
+	sessions, err := c.listSessions(ctx, "list sessions")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Read each Session's name without changing its position in the result.
+	names := make([]string, len(sessions))
+	for i, session := range sessions {
+		meta, _, err := c.root.GetSessionMetadata(ctx, session.GetSessionIndex())
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "get session metadata")
+		}
+		names[i] = meta.GetDisplayName()
+	}
+	return sessions, names, nil
+}
+
+// watchSessions opens the catalog stream and returns its release operation.
+func (c *sdkClient) watchSessions(ctx context.Context) (s4wave_root.SRPCRootResourceService_WatchSessionsClient, func() error, error) {
+	stream, err := c.root.WatchSessions(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	return stream, stream.Close, nil
+}
+
+// deleteSession removes the selected Session from the daemon catalog.
+func (c *sdkClient) deleteSession(ctx context.Context, index uint32) error {
+	return errors.Wrap(c.root.DeleteSession(ctx, index), "delete session")
+}
+
+// moveSession moves a Session to the requested free catalog index.
+func (c *sdkClient) moveSession(ctx context.Context, from, to uint32) (*core_session.SessionListEntry, error) {
+	entry, err := c.root.MoveSession(ctx, from, to)
+	return entry, errors.Wrap(err, "move session")
+}
+
+// unlockSession submits the PIN before the Session can be mounted.
+func (c *sdkClient) unlockSession(ctx context.Context, index uint32, pin []byte) error {
+	return errors.Wrap(c.root.UnlockSession(ctx, index, pin), "unlock session")
+}
+
+// listProviders reads the daemon's registered provider descriptions.
+func (c *sdkClient) listProviders(ctx context.Context) ([]*core_provider.ProviderInfo, error) {
+	providers, err := c.root.ListProviders(ctx)
+	return providers, errors.Wrap(err, "list providers")
+}
+
+// upsertSpaceRootAlias records the validated Session file in the target daemon.
+func (c *sdkClient) upsertSpaceRootAlias(ctx context.Context, record *s4wave_root.SpaceRootAliasRecord) (*s4wave_root.SpaceRootAliasRecord, error) {
+	stored, err := c.root.UpsertSpaceRootAlias(ctx, record)
+	return stored, errors.Wrap(err, "add Session file")
+}
+
+// mountPairingSession adopts the temporary Session prepared by the local provider.
+func (c *sdkClient) mountPairingSession(ctx context.Context, sessionRef *core_session.SessionRef) (*s4wave_session.Session, error) {
+	// Mount the prepared Session through the daemon root.
+	id, err := c.root.MountSession(ctx, sessionRef)
+	if err != nil {
+		return nil, errors.Wrap(err, "mount pairing session")
+	}
+
+	// Transfer the reference to its SDK wrapper, releasing it on failure.
+	ref := c.resClient.CreateResourceReference(id)
+	session, err := s4wave_session.NewSession(c.resClient, ref)
+	if err != nil {
+		ref.Release()
+		return nil, errors.Wrap(err, "open pairing session")
+	}
+	return session, nil
+}
+
+// accessWebListener retains a foreground listener until the release operation runs.
+// Background listeners remain owned by the daemon and return an empty release.
+func (c *sdkClient) accessWebListener(ctx context.Context, req *s4wave_root.AccessWebListenerRequest) (*s4wave_root.AccessWebListenerResponse, func(), error) {
+	// Create or reuse the daemon listener.
+	response, err := c.root.AccessWebListener(ctx, req)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "access web listener")
+	}
+
+	// Retain any returned resource for the command's lifetime.
+	release := func() {}
+	if id := response.GetResourceId(); id != 0 {
+		ref := c.resClient.CreateResourceReference(id)
+		release = ref.Release
+	}
+	return response, release, nil
+}
+
+// watchWebListeners opens the listener stream and returns its release operation.
+func (c *sdkClient) watchWebListeners(ctx context.Context) (s4wave_root.SRPCRootResourceService_WatchWebListenersClient, func() error, error) {
+	stream, err := c.root.WatchWebListeners(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	return stream, stream.Close, nil
+}
+
+// listWebListeners reads the listener snapshot with guidance for an older daemon.
+func (c *sdkClient) listWebListeners(ctx context.Context) ([]*s4wave_root.WebListenerInfo, error) {
+	listeners, err := c.root.ListWebListeners(ctx)
+	if err != nil && strings.Contains(err.Error(), "unimplemented") {
+		return nil, errors.New("the running Spacewave daemon is from an older build; run `spacewave stop` with the same --state-path, then rerun this command")
+	}
+	return listeners, errors.Wrap(err, "list web listeners")
+}
+
+// stopWebListener stops the daemon-owned listener selected by its ID.
+func (c *sdkClient) stopWebListener(ctx context.Context, id string) (bool, error) {
+	stopped, err := c.root.StopWebListener(ctx, id)
+	return stopped, errors.Wrap(err, "stop web listener")
+}
+
+// openResource adopts a resource's RPC client; the caller releases it on success.
+// A failed adoption releases its reference before returning.
+func (c *sdkClient) openResource(id uint32) (srpc.Client, func(), error) {
+	ref := c.resClient.CreateResourceReference(id)
+	client, err := ref.GetClient()
+	if err != nil {
+		ref.Release()
+		return nil, nil, err
+	}
+	return client, ref.Release, nil
+}
+
+// openFSHandle adopts a UnixFS handle returned by a resource operation.
+func (c *sdkClient) openFSHandle(id uint32) (s4wave_unixfs.SRPCFSHandleResourceServiceClient, func(), error) {
+	client, release, err := c.openResource(id)
+	if err != nil {
+		return nil, nil, err
+	}
+	return s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(client), release, nil
+}
+
+// accessCdn looks up a CDN and adopts its service until the caller releases it.
+func (c *sdkClient) accessCdn(ctx context.Context, id string) (s4wave_cdn.SRPCCdnResourceServiceClient, func(), error) {
+	// Look up the configured CDN in the daemon root.
+	response, err := c.root.GetCdn(ctx, id)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "get CDN")
+	}
+
+	// Adopt the returned resource for the image-copy operation.
+	client, release, err := c.openResource(response.GetResourceId())
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "CDN client")
+	}
+	return s4wave_cdn.NewSRPCCdnResourceServiceClient(client), release, nil
+}
+
+// setColdPackReads changes the daemon's runtime cold pack read switch.
+func (c *sdkClient) setColdPackReads(ctx context.Context, enabled bool) error {
+	return c.srpc.ExecCall(ctx, coldPackControlServiceID, coldPackSetReadsMethodID, wrapperspb.Bool(enabled), &emptypb.Empty{})
+}
+
+// coldPackStats reads the daemon's current cold pack counters.
+func (c *sdkClient) coldPackStats(ctx context.Context) (*structpb.Struct, error) {
+	var response structpb.Struct
+	if err := c.srpc.ExecCall(ctx, coldPackControlServiceID, coldPackStatsMethodID, &emptypb.Empty{}, &response); err != nil {
+		return nil, err
+	}
+	return &response, nil
 }

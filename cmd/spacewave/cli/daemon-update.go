@@ -40,6 +40,15 @@ func watchDaemonUpdate(
 	idle *daemonIdleTracker,
 	desktop *daemonDesktopControl,
 ) (*daemonUpdateHandoff, error) {
+	// Keep accepted intent alive through preparation and the atomic stop claim.
+	// The same hold spans launcher owner replacement until its next snapshot.
+	var updateHold *daemonServiceHold
+	defer func() {
+		if updateHold != nil {
+			updateHold.release()
+		}
+	}()
+
 	const ownerRPCTimeout = 5 * time.Second
 	for {
 		// The lookup waits for the plugin service rather than probing for it.
@@ -106,7 +115,7 @@ func watchDaemonUpdate(
 			// Claim the handoff once the other work finishes or restart is requested.
 			var idleChanged <-chan struct{}
 			if prepared != nil {
-				claimed, others, changed := idle.claimDaemonUpdate(restartNow)
+				claimed, others, changed := idle.claimDaemonUpdate(restartNow, updateHold)
 				if claimed {
 					handoff = prepared
 					if others.desktop {
@@ -151,12 +160,22 @@ func watchDaemonUpdate(
 			case info := <-infos:
 				state := info.GetDaemonUpdateState()
 				if state.GetPhase() != spacewave_launcher.UpdatePhase_UPDATE_PHASE_APPLYING {
+					if updateHold != nil {
+						updateHold.release()
+						updateHold = nil
+					}
 					observed, prepared, restartNow, reported = state.CloneVT(), nil, false, nil
 					continue
 				}
 				restartNow = info.GetDaemonUpdateWait().GetRestartNow()
 				if prepared != nil && state.EqualVT(observed) {
 					continue
+				}
+
+				// Retain the daemon before preparing either executable. Keep the
+				// hold until failure is recorded or the handoff fences admission.
+				if updateHold == nil {
+					updateHold = idle.attachService("daemon update")
 				}
 
 				// Prepare both executables before waiting for the handoff.
@@ -176,6 +195,8 @@ func watchDaemonUpdate(
 						break
 					}
 					if response.GetReported() {
+						updateHold.release()
+						updateHold = nil
 						le.WithError(failure).Warn("daemon update rejected before handoff claim")
 					}
 					continue

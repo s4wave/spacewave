@@ -54,9 +54,9 @@ func runAccountList(c *cli.Context, statePath, outputFormat string) error {
 	defer client.close()
 
 	// List all sessions from the daemon root.
-	sessions, err := client.root.ListSessions(ctx)
+	sessions, err := client.listSessions(ctx, "list sessions")
 	if err != nil {
-		return errors.Wrap(err, "list sessions")
+		return err
 	}
 
 	// Group sessions by account (provider_id + provider_account_id).

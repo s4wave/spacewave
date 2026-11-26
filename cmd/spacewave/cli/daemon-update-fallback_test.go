@@ -3,7 +3,6 @@
 package spacewave_cli
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -30,13 +29,15 @@ func TestDaemonUpdateFailedReadinessRestoresOldCLI(t *testing.T) {
 	t.Setenv(sharedDaemonUpdateTarget, stagedPath)
 	t.Setenv(sharedDaemonCorruptOnAccept, "")
 
-	// Bound the full old/failed/fallback workflow separately from each startup.
+	// Use the runner's full workflow budget while keeping each startup bounded.
 	t.Setenv(sharedDaemonFailSelected, "1")
 	t.Setenv("SPACEWAVE_STATE_PATH", statePath)
 	t.Setenv("SPACEWAVE_SOCKET_PATH", "")
 	t.Setenv(daemonIdleTimeoutEnvVar, "30s")
-	t.Setenv(daemon.StartupTimeoutEnvVar, "5s")
-	ctx, cancel := context.WithTimeout(t.Context(), time.Minute)
+	// The selected fixture reports initialization failure; valid fallback uses
+	// the deployed startup budget instead of sharing a forced failure timer.
+	t.Setenv(daemon.StartupTimeoutEnvVar, "")
+	ctx, cancel := newDaemonUpdateContext(t)
 	defer cancel()
 	started := time.Now()
 

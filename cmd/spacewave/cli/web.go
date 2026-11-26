@@ -138,14 +138,11 @@ func (a *webArgs) Run(c *cli.Context) error {
 	}
 
 	// Access the web listener and release its resource when the command returns.
-	resp, err := client.root.AccessWebListener(ctx, req)
+	resp, releaseListener, err := client.accessWebListener(ctx, req)
 	if err != nil {
-		return errors.Wrap(err, "access web listener")
+		return err
 	}
-	if resp.GetResourceId() != 0 {
-		ref := client.resClient.CreateResourceReference(resp.GetResourceId())
-		defer ref.Release()
-	}
+	defer releaseListener()
 
 	// Build the browser URL from the display path and component.
 	queryParts := make([]string, 0, 2)
@@ -225,6 +222,7 @@ func newWebStopCommand() *cli.Command {
 	}
 }
 
+// runWebList lists the daemon web listeners.
 func runWebList(c *cli.Context, statePath string) error {
 	// Connect to the daemon.
 	ctx := c.Context
@@ -235,12 +233,9 @@ func runWebList(c *cli.Context, statePath string) error {
 	defer client.close()
 
 	// List web listeners and print each one.
-	listeners, err := client.root.ListWebListeners(ctx)
+	listeners, err := client.listWebListeners(ctx)
 	if err != nil {
-		if strings.Contains(err.Error(), "unimplemented") {
-			return errors.New("the running Spacewave daemon is from an older build; run `spacewave stop` with the same --state-path, then rerun this command")
-		}
-		return errors.Wrap(err, "list web listeners")
+		return err
 	}
 	if len(listeners) == 0 {
 		os.Stdout.WriteString("No background Spacewave web listeners.\n")
@@ -252,6 +247,7 @@ func runWebList(c *cli.Context, statePath string) error {
 	return nil
 }
 
+// runWebStop stops the selected daemon web listener.
 func runWebStop(c *cli.Context, statePath string, listenerID string) error {
 	// Connect to the daemon.
 	ctx := c.Context
@@ -262,9 +258,9 @@ func runWebStop(c *cli.Context, statePath string, listenerID string) error {
 	defer client.close()
 
 	// Stop the web listener and report it.
-	stopped, err := client.root.StopWebListener(ctx, listenerID)
+	stopped, err := client.stopWebListener(ctx, listenerID)
 	if err != nil {
-		return errors.Wrap(err, "stop web listener")
+		return err
 	}
 	if !stopped {
 		return errors.Errorf("web listener not found: %s", listenerID)

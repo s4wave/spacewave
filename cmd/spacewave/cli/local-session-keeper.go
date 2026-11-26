@@ -69,14 +69,14 @@ func startLocalSessionKeeper(
 		defer client.close()
 
 		// Watch the daemon's session list.
-		watch, err := client.root.WatchSessions(ctx)
+		watch, releaseWatch, err := client.watchSessions(ctx)
 		if err != nil {
 			if ctx.Err() == nil {
 				le.WithError(err).Warn("local session keeper could not watch sessions")
 			}
 			return
 		}
-		defer watch.Close()
+		defer releaseWatch()
 
 		// Release every mounted session and the enrollment cleanup on exit.
 		mounted := make(map[uint32]localSessionMount)

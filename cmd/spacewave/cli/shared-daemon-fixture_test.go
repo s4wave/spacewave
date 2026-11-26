@@ -39,7 +39,7 @@ const sharedDaemonUpdateTarget = "SPACEWAVE_TEST_DAEMON_UPDATE_TARGET"
 // sharedDaemonCorruptOnAccept changes selected fixture bytes after acceptance.
 const sharedDaemonCorruptOnAccept = "SPACEWAVE_TEST_DAEMON_CORRUPT_ON_ACCEPT"
 
-// sharedDaemonFailSelected holds an unready selected fixture until startup stops it.
+// sharedDaemonFailSelected rejects selected fixture initialization before readiness.
 const sharedDaemonFailSelected = "SPACEWAVE_TEST_DAEMON_FAIL_SELECTED"
 
 // sharedDaemonFixtureBus keeps a real writable CLI bus while selecting the
@@ -74,17 +74,17 @@ func runSharedDaemonFixture() error {
 
 	// Read the state path and optional failure injection flag.
 	statePath := os.Args[2]
+	failSelected := false
 	if os.Getenv(sharedDaemonFailSelected) != "" {
 		executable, err := os.Executable()
 		if err != nil {
 			return err
 		}
-		if strings.HasSuffix(executable, ".sh") {
+		failSelected = strings.HasSuffix(executable, ".sh")
+		if failSelected {
 			if err := os.WriteFile(filepath.Join(statePath, "failed-new-pid"), []byte(strconv.Itoa(os.Getpid())), 0o600); err != nil {
 				return err
 			}
-			<-ctx.Done()
-			return ctx.Err()
 		}
 	}
 
@@ -112,6 +112,11 @@ func runSharedDaemonFixture() error {
 
 	// getBus is called only after production serve acquires the state lease.
 	getBus := func() cli_entrypoint.CliBus {
+		// Reject the selected composition through the real startup notifier.
+		if failSelected {
+			return nil
+		}
+
 		// Write the runtime identity marker with the process ID.
 		identity := strconv.Itoa(os.Getpid())
 		markerFlags := os.O_CREATE | os.O_EXCL | os.O_WRONLY

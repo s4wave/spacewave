@@ -59,11 +59,11 @@ func watchSyncKeepalive(
 		return err
 	}
 	defer client.close()
-	watch, err := client.root.WatchSessions(ctx)
+	watch, releaseWatch, err := client.watchSessions(ctx)
 	if err != nil {
 		return err
 	}
-	defer watch.Close()
+	defer releaseWatch()
 
 	// Stop every session watch on exit.
 	watches := make(map[uint32]func())

@@ -6,9 +6,6 @@ import (
 	"errors"
 
 	"github.com/aperturerobotics/cli"
-	"github.com/aperturerobotics/protobuf-go-lite/types/known/emptypb"
-	"github.com/aperturerobotics/protobuf-go-lite/types/known/structpb"
-	"github.com/aperturerobotics/protobuf-go-lite/types/known/wrapperspb"
 )
 
 // debugColdPacksArgs locates the running daemon for cold pack administration.
@@ -51,12 +48,12 @@ func (a *debugColdPacksArgs) Run(c *cli.Context) error {
 
 	// Apply an explicit runtime toggle, without changing startup configuration.
 	if action != "stats" {
-		return client.srpc.ExecCall(c.Context, coldPackControlServiceID, coldPackSetReadsMethodID, wrapperspb.Bool(action == "on"), &emptypb.Empty{})
+		return client.setColdPackReads(c.Context, action == "on")
 	}
 
 	// Print the admin snapshot as JSON for scripts.
-	var response structpb.Struct
-	if err := client.srpc.ExecCall(c.Context, coldPackControlServiceID, coldPackStatsMethodID, &emptypb.Empty{}, &response); err != nil {
+	response, err := client.coldPackStats(c.Context)
+	if err != nil {
 		return err
 	}
 	data, err := response.MarshalJSON()

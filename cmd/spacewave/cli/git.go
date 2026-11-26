@@ -765,18 +765,12 @@ func buildGitTreeCommand() *cli.Command {
 				return errors.Wrap(err, "get tree resource")
 			}
 
-			// Create a resource reference for the FSHandle.
-			ref := gc.client.resClient.CreateResourceReference(treeResp.GetResourceId())
-			defer ref.Release()
-
-			// Open the tree handle client from the resource reference.
-			childClient, err := ref.GetClient()
+			// Adopt the tree handle and release it when the command returns.
+			fsSvc, releaseTree, err := gc.client.openFSHandle(treeResp.GetResourceId())
 			if err != nil {
 				return errors.Wrap(err, "tree handle client")
 			}
-
-			// Wrap the tree handle as a UnixFS service.
-			fsSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(childClient)
+			defer releaseTree()
 
 			// Navigate to the requested path if specified.
 			var pathSvc s4wave_unixfs.SRPCFSHandleResourceServiceClient
@@ -786,14 +780,10 @@ func buildGitTreeCommand() *cli.Command {
 				if err != nil {
 					return errors.Wrap(err, "lookup path "+fsPath)
 				}
-				pathRef := gc.client.resClient.CreateResourceReference(lookupResp.GetResourceId())
-				pc, err := pathRef.GetClient()
+				pathSvc, pathCleanup, err = gc.client.openFSHandle(lookupResp.GetResourceId())
 				if err != nil {
-					pathRef.Release()
 					return errors.Wrap(err, "path handle client")
 				}
-				pathSvc = s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(pc)
-				pathCleanup = func() { pathRef.Release() }
 			} else {
 				pathSvc = fsSvc
 				pathCleanup = func() {}

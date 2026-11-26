@@ -20,9 +20,9 @@ import (
 // Session delays the listener until it unlocks.
 func serveUDPListener(ctx context.Context, le *logrus.Entry, client *sdkClient, addr string, peers []string) error {
 	// Select the one Session the listener speaks for.
-	sessions, err := client.root.ListSessions(ctx)
+	sessions, err := client.listSessions(ctx, "list sessions")
 	if err != nil {
-		return errors.Wrap(err, "list sessions")
+		return err
 	}
 	if len(sessions) != 1 {
 		return errors.Errorf("--udp-listen needs exactly one session, found %d", len(sessions))

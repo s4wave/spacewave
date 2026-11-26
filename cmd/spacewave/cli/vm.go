@@ -495,17 +495,11 @@ func copyV86ImageFromCdn(
 	}
 
 	// Open the CDN resource.
-	resp, err := client.root.GetCdn(ctx, cdnID)
+	cdnSvc, releaseCdn, err := client.accessCdn(ctx, cdnID)
 	if err != nil {
-		return errors.Wrap(err, "get CDN")
+		return err
 	}
-	cdnRef := client.resClient.CreateResourceReference(resp.GetResourceId())
-	defer cdnRef.Release()
-	cdnClient, err := cdnRef.GetClient()
-	if err != nil {
-		return errors.Wrap(err, "CDN client")
-	}
-	cdnSvc := s4wave_cdn.NewSRPCCdnResourceServiceClient(cdnClient)
+	defer releaseCdn()
 
 	// Copy the image into the Space and drain the progress stream.
 	strm, err := cdnSvc.CopyV86ImageToSpace(ctx, &s4wave_cdn.CopyV86ImageToSpaceRequest{

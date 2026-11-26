@@ -225,11 +225,26 @@ func (f *fixtureLauncher) restartWhenBusy(ctx context.Context) (*spacewave_launc
 
 // restore puts the originally verified fixture bytes back for an explicit retry.
 func (f *fixtureLauncher) restore() error {
-	original, err := os.ReadFile(filepath.Join(f.statePath, "old-spacewave"))
+	// Open the immutable original without collecting the executable in memory.
+	input, err := os.Open(filepath.Join(f.statePath, "old-spacewave"))
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(f.path, original, 0o700)
+	defer input.Close()
+
+	// Replace the rejected artifact with the original fixture bytes.
+	output, err := os.OpenFile(f.path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o700)
+	if err != nil {
+		return err
+	}
+
+	// Close the restored file even when copying failed, retaining the copy error.
+	_, copyErr := io.Copy(output, input)
+	closeErr := output.Close()
+	if copyErr != nil {
+		return copyErr
+	}
+	return closeErr
 }
 
 // fixtureUpdateTrigger routes a test-only Resource call to the launcher while

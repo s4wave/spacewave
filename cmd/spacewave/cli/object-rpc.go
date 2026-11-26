@@ -90,17 +90,25 @@ func (a *objectRPCArgs) Run(c *cli.Context) error {
 	err = srpc.NewServer(srpc.NewClientInvoker(mount.TypedClient)).AcceptMuxedConn(ctx, conn)
 
 	// Report why the object ended, or end cleanly when the peer closed stdin.
-	select {
-	case <-mount.client.resClient.Done():
-		return errors.New("daemon connection closed")
-	case <-mount.TypedRef.Done():
-		return errors.New("object " + mount.ObjectKey + " was released")
-	default:
+	if resourceErr := mount.client.resourceEndError(mount.TypedRef.Done(), mount.ObjectKey); resourceErr != nil {
+		return resourceErr
 	}
 	if err == io.EOF || conn.IsClosed() {
 		return nil
 	}
 	return err
+}
+
+// resourceEndError reports whether the daemon connection or the object ended.
+func (c *sdkClient) resourceEndError(objectDone <-chan struct{}, objectKey string) error {
+	select {
+	case <-c.resClient.Done():
+		return errors.New("daemon connection closed")
+	case <-objectDone:
+		return errors.New("object " + objectKey + " was released")
+	default:
+		return nil
+	}
 }
 
 // stdio is the process's stdin and stdout as one stream.

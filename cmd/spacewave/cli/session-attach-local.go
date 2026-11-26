@@ -115,9 +115,9 @@ func listUnattachedLocalAccounts(c *cli.Context, client *sdkClient, statePath st
 	if err != nil {
 		return errors.Wrap(err, "read state root")
 	}
-	sessions, err := client.root.ListSessions(c.Context)
+	sessions, err := client.listSessions(c.Context, "list Sessions")
 	if err != nil {
-		return errors.Wrap(err, "list Sessions")
+		return err
 	}
 	attached := make(map[string]struct{})
 	for _, entry := range sessions {
