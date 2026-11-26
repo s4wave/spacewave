@@ -128,10 +128,24 @@ type Collector struct {
 	// before it that were unverified when the build passed them have run
 	// entries, and no list turns unverified, so a stale one costs a rescan.
 	runFrom []byte
-	// sweptRun reports that a sweep pass from the start of the run reached
-	// its end, so the run holds no unmarked block and the next step drops
-	// it. A restart sweeps once more, finding only reborn entries.
-	sweptRun bool
+	// sweepFrom is the run key after which the sweep resumes, and sweptRun
+	// reports that the sweep reached the run's end, so the run holds no
+	// unmarked block and the drop, resuming after dropFrom, deletes it.
+	//
+	// Invariant: while Sweeping no run entry is added and none turns
+	// unmarked. The run's writers that add an entry or write one unmarked,
+	// the park, the unpark, the run build, the copied put and the walk's
+	// young lists, write only while Open, and a reopen only from Settled.
+	// While Sweeping an entry moves only from unmarked to reborn, by a put,
+	// or to swept, by the sweep, and the drop deletes it. So every entry
+	// behind sweepFrom stays swept or reborn, and a sweep that reaches the
+	// end from it has left no unmarked block, though it began mid-run; the
+	// drop likewise leaves no entry behind dropFrom. A restart begins both
+	// at the head, and the settle forgets both once the drop settles the
+	// Volume, so the next generation sweeps its whole run.
+	sweepFrom []byte
+	sweptRun  bool
+	dropFrom  []byte
 	// seedRoot is the root key after which the seeding resumes, seedDown the
 	// down sequence at which it resumes, and seededRoots and seeded
 	// report that it passed the last root and the last down page, as seed

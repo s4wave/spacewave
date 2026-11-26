@@ -412,13 +412,14 @@ func (c *Collector) settle(ctx context.Context, past func() bool, res *CollectRe
 		return false, err
 	}
 
-	// Sweep a flipped Volume: one pass from the start of the run that
-	// reaches its end deletes every unmarked block, since none is added
-	// while Sweeping, and then the run goes and the state settles.
+	// Sweep a flipped Volume, resuming where the last pass stopped: a sweep
+	// that reaches the run's end has deleted every unmarked block, since
+	// none is added or turns unmarked while Sweeping, as sweepFrom
+	// describes. Then the run goes and the state settles.
 	if gen == Generation_GENERATION_SWEEPING {
 		if !c.sweptRun {
 			var reached bool
-			more, err := eachSlice(ctx, c.update, []byte(nil), past, func(rec *Records, blocks block.StoreOps, from []byte) ([]byte, bool, error) {
+			more, err := resumeSlices(ctx, c.update, &c.sweepFrom, past, func(rec *Records, blocks block.StoreOps, from []byte) ([]byte, bool, error) {
 				next, more, end, err := c.sweepSlice(ctx, rec, blocks, res, from)
 				reached = end
 				return next, more, err
@@ -428,9 +429,13 @@ func (c *Collector) settle(ctx context.Context, past func() bool, res *CollectRe
 			}
 			c.sweptRun = true
 		}
-		return eachSlice(ctx, c.update, []byte(nil), past, func(rec *Records, _ block.StoreOps, from []byte) ([]byte, bool, error) {
+		more, err := resumeSlices(ctx, c.update, &c.dropFrom, past, func(rec *Records, _ block.StoreOps, from []byte) ([]byte, bool, error) {
 			return c.dropRunSlice(ctx, rec, res, from)
 		})
+		if err == nil && res.Settled {
+			c.restartSettle()
+		}
+		return more, err
 	}
 
 	// Build the run and seed the front, each resuming where the last pass
@@ -1074,7 +1079,6 @@ func (c *Collector) dropRunSlice(ctx context.Context, rec *Records, res *Collect
 	if err := rec.tx.Delete(ctx, rec.key(kindUnmarked, runComplete)); err != nil {
 		return from, false, err
 	}
-	c.restartSettle()
 	state.Generation = Generation_GENERATION_SETTLED
 	res.Settled = true
 	return from, false, rec.SetState(ctx, state)
@@ -1084,9 +1088,11 @@ func (c *Collector) dropRunSlice(ctx context.Context, rec *Records, res *Collect
 // a Volume a copied put reopens builds, seeds and scans its front from the
 // start, as at the collector's start. A position kept from the generation
 // before would skip work: a seeding done then names no block a copied put
-// stored since, and a finished sweep pass would drop the next run unswept.
+// stored since, a finished sweep would drop the next run unswept, and a
+// sweep or drop cursor would pass over the head of the next run. The settle
+// calls it once the drop's last slice committed.
 func (c *Collector) restartSettle() {
-	c.runFrom, c.sweptRun = nil, false
+	c.runFrom, c.sweepFrom, c.sweptRun, c.dropFrom = nil, nil, false, nil
 	c.seedRoot, c.seedDown, c.seededRoots, c.seeded = nil, 0, false, false
 	c.front, c.frontIdle, c.frontWake, c.frontAdoptAt = frontPos{}, false, 0, 0
 }

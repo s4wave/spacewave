@@ -8012,6 +8012,110 @@ func TestLivenessSettle(t *testing.T) {
 		requireAudit(t, v, 0)
 	})
 
+	t.Run("sweep resumes across passes", func(t *testing.T) {
+		// A sweep of a run larger than one pass resumes where the last pass
+		// stopped. Mid-sweep a put from content gives birth again to an
+		// unmarked block ahead of the cursor and to a swept one behind it,
+		// and a copied put of an unmarked block is refused: the sweep keeps
+		// both born blocks, deletes every other one, and drops the whole
+		// run. A copied put of N, whose key sorts before the old run's,
+		// then reopens the Volume, and the next sweep starts at the head of
+		// the new run, so a cursor kept from the old one cannot skip N.
+		tr := testTree{}
+		tr.add(t, "A")
+		var names []string
+		for i := range 12 {
+			name := "L" + strconv.Itoa(i)
+			tr.add(t, name)
+			names = append(names, name)
+		}
+		v, clk, store := oldStore(t, tr, "A", append([]string{"A"}, names...))
+		verify(t, v, tr, "A")
+		ctx := t.Context()
+		key := func(name string) []byte { return block_gc.BlockKey(tr[name].Ref) }
+		slices.SortFunc(names, func(a, b string) int { return bytes.Compare(key(a), key(b)) })
+
+		// c's every slice outlasts the pass's budget and the slice target,
+		// so each pass runs one slice and the pace shrinks the slices to
+		// their least, two run entries a sweep slice.
+		var n time.Duration
+		c := block_gc.NewCollector(collectorStore{v: v}, block_gc.CollectorOptions{
+			Frees:  true,
+			Budget: time.Nanosecond,
+			Now: func() time.Time {
+				n++
+				return clk.Now().Add(n * 3 * time.Millisecond)
+			},
+		})
+		var total block_gc.CollectResult
+		until := func(stop func(block_gc.CollectResult) bool) {
+			t.Helper()
+			for range 10000 {
+				clk.Add(block_gc.DefaultGrace + time.Second)
+				res, err := c.Collect(ctx)
+				if err != nil {
+					t.Fatal(err)
+				}
+				total.Swept += res.Swept
+				if stop(res) {
+					return
+				}
+			}
+			t.Fatalf("collection never reached the state wanted; the generation is %v", livenessGeneration(t, v))
+		}
+		until(flipped)
+		until(func(res block_gc.CollectResult) bool { return total.Swept >= 2 })
+		if total.Swept >= uint64(len(names)-2) || livenessGeneration(t, v) != block_gc.Generation_GENERATION_SWEEPING {
+			t.Fatalf("first sweep passes swept %d of %d, want part", total.Swept, len(names))
+		}
+
+		// Put the first block, swept, and the last, unmarked, from content,
+		// and refuse a copied put of one between.
+		behind, ahead, between := names[0], names[len(names)-1], names[len(names)-2]
+		roots := []block.NamedRoot{{Name: "behind", Ref: tr[behind].Ref}, {Name: "ahead", Ref: tr[ahead].Ref}}
+		if err := v.SetBucketRoots(ctx, "b", tr.entries(behind, ahead), roots); err != nil {
+			t.Fatal(err)
+		}
+		err := v.SetBucketRoots(ctx, "b", []*block.PutBatchEntry{copied(tr, between)}, []block.NamedRoot{{Name: "between", Ref: tr[between].Ref}})
+		if !errors.Is(err, block_gc.ErrSweeping) {
+			t.Fatalf("copied put of the unmarked %s err %v, want ErrSweeping", between, err)
+		}
+		total.Swept = 0
+		until(settled)
+		requireStored(t, v, tr, true, "A", behind, ahead)
+		requireStored(t, v, tr, false, names[1:len(names)-1]...)
+		if has(t, store, run, nil) {
+			t.Fatal("the drop left run entries")
+		}
+
+		// Reopen with a copied N that sorts first, then release it: the
+		// next sweep deletes it.
+		var name string
+		for i := 0; name == ""; i++ {
+			if i == 1000 {
+				t.Fatal("no candidate key sorts before the old run's")
+			}
+			cand := "N" + strconv.Itoa(i)
+			tr.add(t, cand)
+			if bytes.Compare(key(cand), key(names[0])) < 0 {
+				name = cand
+			}
+		}
+		if err := v.SetBucketRoots(ctx, "b", []*block.PutBatchEntry{copied(tr, name)}, []block.NamedRoot{{Name: "n", Ref: tr[name].Ref}}); err != nil {
+			t.Fatal(err)
+		}
+		requireReopened(t, v, store, tr, name)
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "n", Previous: tr[name].Ref}}); err != nil {
+			t.Fatal(err)
+		}
+		until(settled)
+		requireStored(t, v, tr, false, name)
+		if has(t, store, run, nil) {
+			t.Fatal("the second drop left run entries")
+		}
+		requireAudit(t, v, 0)
+	})
+
 	t.Run("reopen by a copied list lacking a child the sweep freed", func(t *testing.T) {
 		// The sweep frees the unreached U -> K. A copied put of U lacking K
 		// reopens the Volume. The walk decodes U and pushes the absent K,
