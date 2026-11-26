@@ -34,23 +34,28 @@ type Client struct {
 	secretKey  string
 	token      string
 	useSSL     bool
+	// gate admits the requests of the client's endpoint and access key.
+	gate *RequestGate
 }
 
 // BuildClient constructs an S3 client from the config.
 func BuildClient(conf *ClientConfig) (*Client, error) {
+	// Default the region, and share the account's request gate.
 	region := conf.GetRegion()
 	if region == "" {
 		region = "us-east-1"
 	}
 	creds := conf.GetCredentials()
+	endpoint := strings.TrimSuffix(conf.GetEndpoint(), "/")
 	return &Client{
 		httpClient: newHTTPClient(),
-		endpoint:   strings.TrimSuffix(conf.GetEndpoint(), "/"),
+		endpoint:   endpoint,
 		region:     region,
 		accessKey:  creds.GetAccessKeyId(),
 		secretKey:  creds.GetSecretAccessKey(),
 		token:      creds.GetToken(),
 		useSSL:     !conf.GetDisableSsl(),
+		gate:       requestGate(endpoint, creds.GetAccessKeyId()),
 	}, nil
 }
 
@@ -389,9 +394,11 @@ func visitElements(doc, name string, fn func(content string) error) error {
 }
 
 // retryDelays bound the waits before each retry of a request that failed in
-// transit or with a transient status. Each wait is drawn uniformly from zero
-// to its bound, so requests that a throttled bucket failed together come back
-// spread out rather than in step; the mean waits are 250 ms, 1 s and 3 s.
+// transit or with a transient fault other than a throttle. Each wait is drawn
+// uniformly from zero to its bound, so requests that failed together come
+// back spread out rather than in step; the mean waits are 250 ms, 1 s and
+// 3 s. A transient status keeps retrying at the last bound until the
+// request's context ends; a transport failure returns after the last retry.
 // Every request the client sends is idempotent: object writes are content
 // addressed.
 var retryDelays = []time.Duration{
@@ -404,22 +411,60 @@ var retryDelays = []time.Duration{
 // a long or malformed value cannot hold a read for minutes.
 const maxRetryAfter = 30 * time.Second
 
-// do builds, signs, and sends an S3 request, retrying transient failures. An
+// do builds, signs, and sends an S3 request through the client's gate. An
 // empty key addresses the bucket. query, data, and header may be nil.
+//
+// A request waits rather than fails while the service is throttled or
+// faulty: its only error then is its own context ending, so a passing fault's
+// status text never reaches the caller. Each attempt holds one of the gate's
+// lanes until the response headers arrive. A throttled answer, 429 or 503,
+// gives its lane back, tells the gate, and queues again in the request's
+// class. Another transient status retries after a jittered delay, and a
+// transport failure retries len(retryDelays) times and then returns.
 func (c *Client) do(ctx context.Context, method, bucket, key string, query url.Values, data []byte, header http.Header) (*http.Response, error) {
-	for attempt := 0; ; attempt++ {
-		// Send the request, returning anything but a transient failure.
+	for faults := 0; ; {
+		// Send the request on a lane, returning only the context's error
+		// once it ends.
+		lease, err := c.gate.pool.Take(ctx, nil)
+		if err != nil {
+			return nil, err
+		}
 		resp, err := c.send(ctx, method, bucket, key, query, data, header)
-		if attempt == len(retryDelays) || ctx.Err() != nil || !isTransient(resp, err) {
-			return resp, err
+		c.gate.pool.Put(lease)
+		if ctx.Err() != nil {
+			if resp != nil {
+				httpclient.DrainAndCloseResponseBody(resp)
+			}
+			return nil, context.Cause(ctx)
+		}
+
+		// A throttle pauses the gate and queues the request again.
+		if err == nil && throttleStatus(resp.StatusCode) {
+			c.gate.throttled(retryAfter(resp.Header.Get("Retry-After"), time.Now()))
+			httpclient.DrainAndCloseResponseBody(resp)
+			continue
+		}
+
+		// Return an answer that is not a transient fault, and a transport
+		// failure past its retries.
+		if !isTransient(resp, err) {
+			c.gate.answered()
+			return resp, nil
+		}
+		if err != nil && faults == len(retryDelays) {
+			return nil, err
 		}
 
 		// Wait out the response's Retry-After plus a jittered delay.
-		delay := jitter(retryDelays[attempt])
+		delay := jitter(retryDelays[min(faults, len(retryDelays)-1)])
+		faults++
+		c.gate.retried()
 		if resp != nil {
 			delay += retryAfter(resp.Header.Get("Retry-After"), time.Now())
 			httpclient.DrainAndCloseResponseBody(resp)
 		}
+		// The wait backs off a faulty service; it polls no state.
+		//gostyle:timer deadline
 		timer := time.NewTimer(delay)
 		select {
 		case <-ctx.Done():

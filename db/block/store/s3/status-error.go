@@ -3,7 +3,6 @@
 package block_store_s3
 
 import (
-	"errors"
 	"io"
 	"net/http"
 	"strconv"
@@ -27,16 +26,6 @@ type StatusError struct {
 	Message string
 }
 
-// IsTransient reports whether err holds a StatusError with a status the
-// service returns for a passing fault or overload, such as a throttled
-// bucket's 503 SlowDown, so the same request may succeed later. The client has
-// retried such a request before it returns the error, so a caller that sees
-// one meets a fault longer than those retries.
-func IsTransient(err error) bool {
-	var serr *StatusError
-	return errors.As(err, &serr) && transientStatus(serr.StatusCode)
-}
-
 // transientStatus reports whether status is one the service returns for a
 // passing fault or overload.
 func transientStatus(status int) bool {
@@ -49,6 +38,12 @@ func transientStatus(status int) bool {
 		return true
 	}
 	return false
+}
+
+// throttleStatus reports whether status is one the service returns when it
+// throttles the account, such as Backblaze B2's 503 SlowDown.
+func throttleStatus(status int) bool {
+	return status == http.StatusTooManyRequests || status == http.StatusServiceUnavailable
 }
 
 // newStatusError reads the S3 error document from a non-success response.

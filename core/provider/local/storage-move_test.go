@@ -809,8 +809,12 @@ func TestMoveSpaceStorageUnreachableBackend(t *testing.T) {
 	p.bucket.unavailable = true
 	p.bucket.mtx.Unlock()
 
-	// Require the failed move to keep the backend placement and remote objects.
-	if err := p.acc.MoveSpaceStorage(ctx, p.soID, "", p.record); err == nil {
+	// Require the failed move to keep the backend placement and remote
+	// objects. The bucket's reads wait out the outage until the move's
+	// context ends.
+	moveCtx, cancelMove := context.WithTimeout(ctx, time.Second)
+	defer cancelMove()
+	if err := p.acc.MoveSpaceStorage(moveCtx, p.soID, "", p.record); err == nil {
 		t.Fatal("move off an unreachable backend succeeded")
 	}
 	settings, err := p.acc.readAccountSettings(ctx)
