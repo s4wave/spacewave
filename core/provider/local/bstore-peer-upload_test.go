@@ -208,19 +208,23 @@ func testBackendHitsNeverQueue(t *testing.T, fallback, peerUpload, cache, front 
 }
 
 // TestPlacedFillsNeverQueue fills blocks the pack index places from the
-// fallback, after the bucket failed, and from a peer, after a pack read
+// fallback, while the bucket throttles, and from a peer, after a pack read
 // missed. Neither queues an upload. A block only the peer holds still does.
 func TestPlacedFillsNeverQueue(t *testing.T) {
 	t.Run("fallback", func(t *testing.T) {
-		// Put a block in the packs and the fallback, then fail the bucket.
+		// Put a block in the packs and the fallback, then throttle the
+		// bucket.
 		f := newIndexedFallbackTest(t)
 		data := []byte("pack block the fallback holds")
 		ref := f.putUploaded(data, true)
 		f.putSQL(data)
 		f.bucket.setUnavailable(true)
 
-		// The fallback serves it and fills the disk without a marker.
+		// The fallback serves it during the pause. Its fill waits to ask the
+		// backend whether it holds the block, and once the bucket answers
+		// again it fills the disk without a marker.
 		f.read(ref, data)
+		f.bucket.setUnavailable(false)
 		f.waitFallback(func(st FallbackStatus) bool { return st.Filled == 1 })
 		f.waitHeld(ref)
 		if status := f.status(); status.Pending != 0 {
@@ -623,9 +627,9 @@ func TestIndexedEvictConfirmsLocally(t *testing.T) {
 
 	// With the bucket refusing every request, the pass drops only the block
 	// the index proves and refuses the others.
-	f.bucket.setUnavailable(true)
+	f.bucket.setRefusing(true)
 	result, err := f.p.evict(f.ctx, 1<<30)
-	f.bucket.setUnavailable(false)
+	f.bucket.setRefusing(false)
 	if err != nil {
 		t.Fatalf("evict: %v, want a pass that asks the bucket nothing", err)
 	}

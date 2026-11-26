@@ -20,6 +20,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/bloom"
+	block_store "github.com/s4wave/spacewave/db/block/store"
 	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/db/packfile/identity"
 	packfile_store "github.com/s4wave/spacewave/db/packfile/store"
@@ -1265,9 +1266,20 @@ func (t *rangeTransport) fetch(ctx context.Context, mode readMode, off int64, le
 	return data, err
 }
 
+// WatchPause reports whether the object store's requests are paused, and
+// returns a channel closed at the next change. An object store that never
+// pauses reports no pause and no change.
+func (s *PackStore) WatchPause() (bool, <-chan struct{}) {
+	if w, ok := s.client.(block_store.PauseWatcher); ok {
+		return w.WatchPause()
+	}
+	return false, nil
+}
+
 // _ is a type assertion
 var (
 	_ block.StoreOps                = (*PackStore)(nil)
 	_ block.BatchSizer              = (*PackStore)(nil)
+	_ block_store.PauseWatcher      = (*PackStore)(nil)
 	_ packfile_store.IndexTransport = (*rangeTransport)(nil)
 )

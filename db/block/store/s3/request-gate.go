@@ -200,6 +200,19 @@ func (g *RequestGate) State() (GateState, <-chan struct{}) {
 	return st, ch
 }
 
+// paused reports whether the gate is paused, and returns a channel closed at
+// its next change of limit or pause. It reads less than State, without the
+// lane pool's lock, as a read may watch it each time it waits.
+func (g *RequestGate) paused() (bool, <-chan struct{}) {
+	var paused bool
+	var ch <-chan struct{}
+	g.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		paused = !g.pausedUntil.IsZero()
+		ch = getWaitCh()
+	})
+	return paused, ch
+}
+
 // throttled records a throttled answer whose Retry-After asked for wait:
 // halves the limit unless it halved within gateDecreaseEvery, pauses the gate
 // until the longest of wait, gatePauseMin and a jittered backoff, and holds

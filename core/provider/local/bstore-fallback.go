@@ -85,29 +85,32 @@ func (p *placementState) readChains(
 	// Keep a peer's block served without refs once its reader decodes them.
 	peers = p.peerDecoded(peers)
 
+	// While the backend is paused a read races the sources below it, the
+	// fallback and then the peers, as pausedReads describes, each with the
+	// fill the chain gives it.
+	pause := watchBackendPause(remote)
+	localSrc := func() block.StoreOps { return local }
+
 	// Read the backend and then peers when the placement has no fallback.
 	if fallback == nil && p.cold == nil {
 		lower := block_store.NewStoreReadThrough(remote, peers, nil)
+		fill := p.fill
 		if p.cache != nil || p.peerUpload {
 			packs := p.packReads(recorded, remote)
-			reads = block_store.NewStoreReadThrough(
-				func() block.StoreOps { return packs },
-				peers,
-				p.peerFill(recorded),
-			)
+			fill = p.peerFill(recorded)
+			reads = block_store.NewStoreReadThrough(func() block.StoreOps { return packs }, peers, fill)
 		} else {
 			reads = block_store.NewStoreReadThrough(
 				func() block.StoreOps { return recorded },
 				func() block.StoreOps { return lower },
-				p.fill,
+				fill,
 			)
 		}
-		copyLower := block_store.NewStoreReadThrough(remote, p.linkedThen(peers), nil)
-		copies = block_store.NewStoreReadThrough(
-			func() block.StoreOps { return local },
-			func() block.StoreOps { return copyLower },
-			nil,
-		)
+		reads = newPausedReads(reads, pause, readSource(peerReadsWithFill(localSrc, peers, fill)))
+		copyPeers := p.linkedThen(peers)
+		copyLower := block_store.NewStoreReadThrough(remote, copyPeers, nil)
+		copies = block_store.NewStoreReadThrough(localSrc, func() block.StoreOps { return copyLower }, nil)
+		copies = newPausedReads(copies, pause, readSource(copyPeers))
 		return reads, copies
 	}
 
@@ -120,29 +123,49 @@ func (p *placementState) readChains(
 
 	// Cold hits must bypass both the backend and the SQL migration fill.
 	primary := p.withColdPacks(packs)
+	var fallbackHit readAlternate
 	if fallback != nil {
-		primary = &fallbackReads{
+		withFallback := &fallbackReads{
 			StoreOps: primary,
 			fallback: block.NewReadOnlyStore(fallback),
+			pause:    pause,
 			fills:    &p.fallbackFills,
 			fill:     p.fillFromFallback,
 		}
+		primary, fallbackHit = withFallback, withFallback.fallbackHit
 	}
-	reads = block_store.NewStoreReadThrough(
-		func() block.StoreOps { return primary },
-		peers,
-		p.peerFill(recorded),
+	fill := p.peerFill(recorded)
+	reads = newPausedReads(
+		block_store.NewStoreReadThrough(func() block.StoreOps { return primary }, peers, fill),
+		pause,
+		fallbackHit,
+		readSource(peerReadsWithFill(localSrc, peers, fill)),
 	)
 
 	// Copies use the same lower tiers as serving, then the linked files, with
 	// peers last.
-	copyPrimary := p.serveReads(local, remote, fallback)
-	copies = block_store.NewStoreReadThrough(
-		func() block.StoreOps { return copyPrimary },
-		p.linkedThen(peers),
-		nil,
+	copyServe, copyHit := p.serveSources(local, remote, fallback, pause)
+	copyPeers := p.linkedThen(peers)
+	copies = newPausedReads(
+		block_store.NewStoreReadThrough(func() block.StoreOps { return copyServe }, copyPeers, nil),
+		pause,
+		copyHit,
+		readSource(copyPeers),
 	)
 	return reads, copies
+}
+
+// peerReadsWithFill is the peer source of a read that races a paused backend:
+// it reads the local store, which missed, then peers, and fills a peer's
+// block with fill as the chain's own peer read does. local is the store
+// without its read recorder, since the chain it races already recorded any
+// hit.
+func peerReadsWithFill(local, peers block_store.StoreSource, fill block_store.Fill) block_store.StoreSource {
+	if peers == nil {
+		return nil
+	}
+	reads := block_store.NewStoreReadThrough(local, peers, fill)
+	return func() block.StoreOps { return reads }
 }
 
 // linkedThen returns the linked files over peers, for a copy that read every
@@ -174,8 +197,23 @@ func (p *placementState) withLinkedFiles(local block.StoreOps) block.StoreOps {
 // serveReads builds the reads that answer a peer's request for a block: the
 // local store, the backend, cold packs, then SQL. They never ask peers, so
 // two backends that read each other cannot ask in a loop, and they fill
-// nothing, so serving a peer adds nothing to the local store.
+// nothing, so serving a peer adds nothing to the local store. While the
+// backend is paused the fallback races it.
 func (p *placementState) serveReads(local block.StoreOps, remote block_store.StoreSource, fallback block.StoreOps) block.StoreOps {
+	pause := watchBackendPause(remote)
+	serve, hit := p.serveSources(local, remote, fallback, pause)
+	return newPausedReads(serve, pause, hit)
+}
+
+// serveSources builds the sources serveReads reads, and the fallback's read
+// that races them while pause reports the backend paused, or nil without a
+// fallback.
+func (p *placementState) serveSources(
+	local block.StoreOps,
+	remote block_store.StoreSource,
+	fallback block.StoreOps,
+	pause backendPause,
+) (block.StoreOps, readAlternate) {
 	// Serve resident and backend blocks before consulting cold packs.
 	reads := p.withColdPacks(block_store.NewStoreReadThrough(
 		func() block.StoreOps { return local },
@@ -185,9 +223,10 @@ func (p *placementState) serveReads(local block.StoreOps, remote block_store.Sto
 
 	// Serve legacy SQL blocks last without starting migration fills.
 	if fallback == nil {
-		return reads
+		return reads, nil
 	}
-	return &fallbackReads{StoreOps: reads, fallback: block.NewReadOnlyStore(fallback)}
+	serve := &fallbackReads{StoreOps: reads, fallback: block.NewReadOnlyStore(fallback), pause: pause}
+	return serve, serve.fallbackHit
 }
 
 // withColdPacks adds the cold read-only tier. A cold fill must never make the
@@ -531,11 +570,19 @@ func (f *fallbackFills) drain() {
 // The fallback answers when the sources miss or fail, so an unreachable bucket
 // does not hide a block the fallback holds. A failure is never an answer of
 // absence: when the fallback misses too, the read returns the error.
+//
+// A paused backend fails nothing: its reads wait out the pause. So a read of
+// the sources races the fallback while the backend is paused, as pausedReads
+// and raceAlternates describe, and the fallback serves a block it holds
+// without waiting for the backend.
 type fallbackReads struct {
 	// StoreOps is the placed store's own sources, which reject writes.
 	block.StoreOps
 	// fallback is the read-only fallback.
 	fallback block.StoreOps
+	// pause watches the backend below the sources, or holds nil for sources
+	// that never wait on a pause.
+	pause backendPause
 	// fills runs and counts the fills of the fallback's hits, or holds nil
 	// for a read that fills nothing.
 	fills *fallbackFills
@@ -555,7 +602,7 @@ func (r *fallbackReads) BeginReadOperation(ctx context.Context) (block.StoreOps,
 		releasePrimary()
 		return nil, nil, err
 	}
-	return &fallbackReads{StoreOps: primary, fallback: fallback, fills: r.fills, fill: r.fill}, func() {
+	return &fallbackReads{StoreOps: primary, fallback: fallback, pause: r.pause, fills: r.fills, fill: r.fill}, func() {
 		releaseFallback()
 		releasePrimary()
 	}, nil
@@ -601,8 +648,28 @@ func (r *fallbackReads) readFallback(ctx context.Context, ref *block.BlockRef, p
 		r.fills.recordPackError()
 	}
 
-	// Read the fallback and fill its hit. The fallback checks its own bytes;
-	// corrupt bytes are a failure, not a miss, and fill nothing.
+	// Read the fallback, filling its hit unless a corrupt local copy failed.
+	stored, err := r.readHit(ctx, ref, !errors.Is(primaryErr, block.ErrBlockCorrupt))
+	if err == nil && stored != nil {
+		return stored, nil
+	}
+	if primaryErr != nil && !errors.Is(err, block.ErrBlockCorrupt) {
+		return nil, primaryErr
+	}
+	return nil, err
+}
+
+// fallbackHit reads ref from the fallback and fills a hit, as a read racing a
+// paused backend asks it; see pausedReads. It returns nil on a miss.
+func (r *fallbackReads) fallbackHit(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	return r.readHit(ctx, ref, true)
+}
+
+// readHit reads ref from the fallback and, when fill is set, fills a hit. The
+// fallback checks its own bytes: corrupt bytes are a failure, not a miss, and
+// fill nothing.
+func (r *fallbackReads) readHit(ctx context.Context, ref *block.BlockRef, fill bool) (*block.StoredBlock, error) {
+	// Read the fallback, counting a corrupt block as a failed fill.
 	stored, err := r.fallback.GetStoredBlock(ctx, ref)
 	if errors.Is(err, block.ErrBlockCorrupt) {
 		if r.fills != nil {
@@ -610,16 +677,15 @@ func (r *fallbackReads) readFallback(ctx context.Context, ref *block.BlockRef, p
 		}
 		return nil, errors.Wrap(err, "read fallback block")
 	}
-	if err == nil && stored != nil {
-		if !errors.Is(primaryErr, block.ErrBlockCorrupt) {
-			r.fillHit(ctx, ref, stored)
-		}
-		return stored, nil
+	if err != nil || stored == nil {
+		return nil, err
 	}
-	if primaryErr != nil {
-		return nil, primaryErr
+
+	// Serve the block, filling it when asked.
+	if fill {
+		r.fillHit(ctx, ref, stored)
 	}
-	return nil, err
+	return stored, nil
 }
 
 // fillHit counts a fallback hit and stores it locally with its upload marker.
@@ -641,34 +707,71 @@ func (r *fallbackReads) fillHit(ctx context.Context, ref *block.BlockRef, stored
 
 // GetBlockExists checks the sources, then the fallback.
 func (r *fallbackReads) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
-	// Report a block the sources hold.
-	found, err := r.StoreOps.GetBlockExists(ctx, ref)
-	if err == nil && found {
+	// Report a block the sources hold, or the fallback confirmed in a pause.
+	res := raceAlternates(ctx, r.pause, func(ctx context.Context) (bool, error) {
+		return r.StoreOps.GetBlockExists(ctx, ref)
+	}, existsHit, func(ctx context.Context) (bool, error) {
+		return r.fallback.GetBlockExists(ctx, ref)
+	})
+	if res.fromAlternate || (res.err == nil && res.v) {
 		return true, nil
 	}
 
-	// Ask the fallback about a miss or a failure.
+	// Ask the fallback about a miss or a failure, unless the race did.
 	if ctx.Err() != nil {
 		return false, context.Cause(ctx)
 	}
-	fallbackFound, fallbackErr := r.fallback.GetBlockExists(ctx, ref)
-	if fallbackErr == nil && fallbackFound {
-		return true, nil
+	var fallbackErr error
+	if len(res.missed) != 0 {
+		fallbackErr = res.missed[0].err
+	} else {
+		var fallbackFound bool
+		fallbackFound, fallbackErr = r.fallback.GetBlockExists(ctx, ref)
+		if fallbackErr == nil && fallbackFound {
+			return true, nil
+		}
 	}
-	if err != nil {
-		return false, err
+	if res.err != nil {
+		return false, res.err
 	}
 	return false, fallbackErr
 }
 
 // GetBlockExistsBatch checks the sources for every ref, then asks the fallback
-// about the refs they did not confirm.
+// about the refs they did not confirm. While the backend is paused the
+// fallback is asked about every ref beside the sources and answers when it
+// confirms them all; a partial answer keeps the refs it confirmed, the
+// sources answer the rest, and the fallback is not asked again.
 func (r *fallbackReads) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
-	// Check the sources, treating a failure as no answer.
+	// Check the sources, racing the fallback in a pause, and treat a failure
+	// as no answer.
+	res := raceAlternates(ctx, r.pause, func(ctx context.Context) ([]bool, error) {
+		return r.StoreOps.GetBlockExistsBatch(ctx, refs)
+	}, allExistHit, func(ctx context.Context) ([]bool, error) {
+		return r.fallback.GetBlockExistsBatch(ctx, refs)
+	})
 	out := make([]bool, len(refs))
-	found, err := r.StoreOps.GetBlockExistsBatch(ctx, refs)
+	if res.fromAlternate {
+		copy(out, res.v)
+		return out, nil
+	}
+	err := res.err
 	if err == nil {
-		copy(out, found)
+		copy(out, res.v)
+	}
+
+	// Keep what the race's fallback answer confirmed; it answered for the
+	// fallback about every ref.
+	if len(res.missed) != 0 && res.missed[0].err == nil {
+		for i, ok := range res.missed[0].v {
+			if i < len(out) {
+				out[i] = out[i] || ok
+			}
+		}
+		if err != nil {
+			return nil, err
+		}
+		return out, nil
 	}
 
 	// Collect the refs the sources did not confirm.

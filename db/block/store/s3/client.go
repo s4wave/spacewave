@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	block_store "github.com/s4wave/spacewave/db/block/store"
 	"github.com/s4wave/spacewave/net/httpclient"
 )
 
@@ -591,3 +592,12 @@ func checkStatus(resp *http.Response, bucket, key, method string) error {
 	}
 	return serr
 }
+
+// WatchPause reports whether the client's request gate is paused, and returns
+// a channel closed at the gate's next change.
+func (c *Client) WatchPause() (bool, <-chan struct{}) {
+	return c.gate.paused()
+}
+
+// _ is a type assertion
+var _ block_store.PauseWatcher = (*Client)(nil)
