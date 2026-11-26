@@ -13,6 +13,10 @@ import (
 // writer iterator order.
 const ValueOrderIterator = "iterator"
 
+// ValueOrderGraph records that physical kvfile value order is PackGraph's:
+// the structure blocks depth first, then the leaves.
+const ValueOrderGraph = "graph"
+
 // DigestSortedKeys digests a pack's block keys independent of physical value
 // order.
 func DigestSortedKeys(keys [][]byte) []byte {

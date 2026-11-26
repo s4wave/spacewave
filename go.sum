@@ -34,6 +34,8 @@ github.com/aperturerobotics/cli v1.1.1-0.20261120062312-a99f7a253ca1 h1:mu8bU+ZH
 github.com/aperturerobotics/cli v1.1.1-0.20261120062312-a99f7a253ca1/go.mod h1:1SZzsdyfNK4sMviqdMDvKFukCrtTK6XLvtSfqaSE/s8=
 github.com/aperturerobotics/common v0.38.5-0.20261118225926-2d4f4f877a91 h1:PyfQFeourKBuI7y7aK3Ni+G0Eh9x4gjhlrfH/NjrN7A=
 github.com/aperturerobotics/common v0.38.5-0.20261118225926-2d4f4f877a91/go.mod h1:ScP6os8RpgAhrC+jvlv7m8p6MfBgWLkcNM25lPFq6rc=
+github.com/aperturerobotics/controllerbus v0.53.6-0.20261120055345-1386279dbbe9 h1:69yZZQiavBgIeTkSl6pIPAe/DU4Qp7qU11qRRaaH+To=
+github.com/aperturerobotics/controllerbus v0.53.6-0.20261120055345-1386279dbbe9/go.mod h1:60X5k6b9DYA+RmSwBmxrZ8O81CUrLojTzAld//Vz9xU=
 github.com/aperturerobotics/controllerbus v0.53.6-0.20261126012321-4690dc62c3aa h1:QW8FBnpKdc2MJI9iXAtlnM8BAMnSE68/snYYGpo4qek=
 github.com/aperturerobotics/controllerbus v0.53.6-0.20261126012321-4690dc62c3aa/go.mod h1:60X5k6b9DYA+RmSwBmxrZ8O81CUrLojTzAld//Vz9xU=
 github.com/aperturerobotics/controllerbus v0.53.6-0.20261126033724-3cc27165721b h1:QLf+OTc7/qQ9YcecHwGVV/3oWOnlioA3dqMrgOqafKA=
@@ -52,6 +54,8 @@ github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20261120085216-2f6b7c9523
 github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20261120085216-2f6b7c952356/go.mod h1:AbY5mLveXdjT5HjUkM8eTkXW9YfXzDFSBzCSTQ/cAWo=
 github.com/aperturerobotics/go-kvfile v0.10.1-0.20261024231416-0a1dc13010cd h1:Z3LLweX8o1U7aijo+PWRQCKZY9b1Fht0+2gyh8h3lQ0=
 github.com/aperturerobotics/go-kvfile v0.10.1-0.20261024231416-0a1dc13010cd/go.mod h1:Ehh/azNach7pdkFhPyfUEOkPUneuNh24bGuKBc9DSro=
+github.com/aperturerobotics/go-kvfile v0.10.1-0.20261126112843-3bfff9fe4b81 h1:xXyHZYrAVvcFmC4x43HaD9OMNZS+nZ9Vuh6oQEw39Ic=
+github.com/aperturerobotics/go-kvfile v0.10.1-0.20261126112843-3bfff9fe4b81/go.mod h1:Ehh/azNach7pdkFhPyfUEOkPUneuNh24bGuKBc9DSro=
 github.com/aperturerobotics/go-multiaddr v0.17.1-0.20260514224402-c193991c3ce5 h1:EXuhOPf4RVJirySH0z8j2NfI2YwLHD6tBRj+NGgE+Vs=
 github.com/aperturerobotics/go-multiaddr v0.17.1-0.20260514224402-c193991c3ce5/go.mod h1:qCrUDxkyS9ElQNb1LyV5wcRJwhdLgkHj19CDJBW60vs=
 github.com/aperturerobotics/go-multibase v0.4.0 h1:zYxJkOb6yIXvd2m4je/QfJeoWoWW/Sbl9/FoOfY7ptQ=

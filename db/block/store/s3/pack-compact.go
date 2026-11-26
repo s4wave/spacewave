@@ -143,8 +143,13 @@ func (s *PackStore) knowsAll(entries []*packfile.PackfileEntry) bool {
 	return known
 }
 
-// merge writes the blocks of inputs as one packfile, in key order, and replaces
-// the inputs with it. Returns ErrNotFound when an input is gone.
+// merge writes the blocks of inputs as one packfile, yielded in key order and
+// laid out as writePack chooses, and replaces the inputs with it. Returns
+// ErrNotFound when an input is gone.
+//
+// Invariant: the merged packfile holds exactly the blocks its inputs hold, so
+// the layout changes where a block sits and never whether it is kept; it is
+// listed before the inputs' entries and then their packfiles are deleted.
 func (s *PackStore) merge(ctx context.Context, inputs []*packfile.PackfileEntry) error {
 	// Read the inputs concurrently.
 	packs := make([]map[string][]byte, len(inputs))

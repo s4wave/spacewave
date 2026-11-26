@@ -7,6 +7,7 @@ import (
 	"cmp"
 	"context"
 	"io"
+	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -321,6 +322,9 @@ func (s *PackStore) GetBatchLimits() block.BatchLimits {
 // PutBlockBatch writes the batch as one packfile and its entry, or merges it
 // into the newest small packfile, as mergeTail describes.
 //
+// A caller streaming a walk, such as packcopy, writes each batch in walk
+// order, and a pack in graph order keeps the batch's trees in that order.
+//
 // The batch must fit one packfile: at most the store's MaxPackBytes.
 // Tombstones are rejected. Every block is written again, so none is reported
 // as existing.
@@ -380,13 +384,21 @@ func (s *PackStore) published(entry *packfile.PackfileEntry) {
 	})
 }
 
-// writePack writes the blocks next yields as one packfile, then its entry.
-// Returns nil when next yields no blocks.
+// writePack writes the blocks next yields as one packfile, laid out as
+// SetPackGraphOrder chooses, then its entry. Returns nil when next yields no
+// blocks.
+//
+// Invariant: the packfile holds exactly the blocks next yields, each once,
+// whichever layout writes it; a duplicate fails the write.
 func (s *PackStore) writePack(ctx context.Context, next writer.BlockIterator) (*packfile.PackfileEntry, error) {
 	// Pack the blocks in memory within the size limit.
+	pack := writer.PackBlocks
+	if packGraphOrder.Load() {
+		pack = writer.PackGraph
+	}
 	var buf bytes.Buffer
 	var keys [][]byte
-	result, err := writer.PackBlocks(&buf, func() (*hash.Hash, *block.StoredBlock, error) {
+	result, err := pack(&buf, func() (*hash.Hash, *block.StoredBlock, error) {
 		h, b, err := next()
 		if h != nil && s.index != nil {
 			keys = append(keys, packfile.BlockKey(h))
@@ -640,6 +652,7 @@ var extentReadsOn atomic.Bool
 
 func init() {
 	extentReadsOn.Store(true)
+	packGraphOrder.Store(os.Getenv("SPACEWAVE_PACK_GRAPH_ORDER") == "1")
 }
 
 // SetIndexExtentReads turns the extent read path of every PackStore on or
@@ -649,6 +662,21 @@ func init() {
 // held extents.
 func SetIndexExtentReads(on bool) {
 	extentReadsOn.Store(on)
+}
+
+// packGraphOrder makes every PackStore write its packs in graph order while
+// it holds true; see SetPackGraphOrder.
+var packGraphOrder atomic.Bool
+
+// SetPackGraphOrder chooses how every PackStore lays out the packs it writes:
+// uploads, compaction merges and tail merges. On, a pack holds its trees'
+// structure blocks depth first and then their leaves, with each structure
+// block's reach in its index entry, as writer.PackGraph describes; off, the
+// default, a pack holds its blocks in the order its writer yields them, which
+// for merges is key order. Either layout holds the same blocks. A process
+// started with SPACEWAVE_PACK_GRAPH_ORDER=1 starts with graph order on.
+func SetPackGraphOrder(on bool) {
+	packGraphOrder.Store(on)
 }
 
 // packExactReads makes the pack readers of every PackStore without
