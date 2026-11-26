@@ -1,6 +1,6 @@
 ---- MODULE PeerRetry ----
 EXTENDS Naturals
-(* peer-streams.go peerStreams: one SOSync owns a standing solicitation and,
+(* sync.go peerStreams: one SOSync owns a standing solicitation and,
    for each transport peer, the stream running with it and the renewal that
    reopens it.
    A stream that ends recoverably backs off and offers the protocol again to
