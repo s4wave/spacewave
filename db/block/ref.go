@@ -3,7 +3,6 @@ package block
 import (
 	"bytes"
 	"context"
-	"unsafe"
 
 	jsoniter "github.com/aperturerobotics/json-iterator-lite"
 	"github.com/aperturerobotics/protobuf-go-lite/json"
@@ -167,6 +166,10 @@ func (b *BlockRef) MarshalKey() ([]byte, error) {
 	return b.MarshalVT()
 }
 
+// mapKeyStackBytes bounds the marshaled reference MapKey builds on the stack:
+// a hash and its type fit with room to spare.
+const mapKeyStackBytes = 128
+
 // MapKey returns the marshaled reference as a string, for keying an in-memory
 // map. It costs one allocation and skips the base58 encoding MarshalString pays
 // for a printable form, so it suits a walk that keys every block it meets.
@@ -177,10 +180,17 @@ func (b *BlockRef) MapKey() string {
 		return ""
 	}
 
-	// The buffer is never written again, so the string may share it.
-	buf := make([]byte, n)
+	// Marshal into a stack buffer when the reference fits, so the string's
+	// copy is the one allocation.
+	var stack [mapKeyStackBytes]byte
+	var buf []byte
+	if n <= len(stack) {
+		buf = stack[:n]
+	} else {
+		buf = make([]byte, n)
+	}
 	_, _ = b.MarshalToSizedBufferVT(buf)
-	return unsafe.String(&buf[0], n)
+	return string(buf)
 }
 
 // MarshalString marshals the reference to a string form.
