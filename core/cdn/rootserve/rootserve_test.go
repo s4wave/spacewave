@@ -71,7 +71,7 @@ func TestOwnedPointerRevalidates(t *testing.T) {
 	if resp := get(t, url, etag); resp.StatusCode != http.StatusOK || resp.Header.Get("ETag") == etag {
 		t.Fatalf("after commit: %d %q", resp.StatusCode, resp.Header.Get("ETag"))
 	}
-	ptr, err := cdn_bstore.FetchRootPointer(t.Context(), nil, base, testSpaceID)
+	ptr, err := cdn_bstore.NewRootPointerFetcher(nil, base, testSpaceID).Fetch(t.Context())
 	if err != nil || ptr.GetConfigChainSeqno() != 2 {
 		t.Fatalf("reader: %v %v", ptr, err)
 	}
@@ -128,7 +128,7 @@ func TestForeignPointerKeepsLastCopy(t *testing.T) {
 	base := serve(t, h)
 	read := func(want uint64) {
 		t.Helper()
-		ptr, err := cdn_bstore.FetchRootPointer(t.Context(), nil, base, testSpaceID)
+		ptr, err := cdn_bstore.NewRootPointerFetcher(nil, base, testSpaceID).Fetch(t.Context())
 		if err != nil || ptr.GetConfigChainSeqno() != want {
 			t.Fatalf("read: %v %v", ptr, err)
 		}
@@ -156,7 +156,7 @@ func TestForeignPointerKeepsLastCopy(t *testing.T) {
 	// An origin that forgets the Space drops it.
 	status.Store(http.StatusNotFound)
 	clock = clock.Add(revalidateAfter)
-	if ptr, err := cdn_bstore.FetchRootPointer(t.Context(), nil, base, testSpaceID); err != nil || ptr != nil {
+	if ptr, err := cdn_bstore.NewRootPointerFetcher(nil, base, testSpaceID).Fetch(t.Context()); err != nil || ptr != nil {
 		t.Fatalf("origin forgot: %v %v", ptr, err)
 	}
 
