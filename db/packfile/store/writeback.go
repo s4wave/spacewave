@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"errors"
 
 	"github.com/s4wave/spacewave/db/block"
 )
@@ -104,10 +105,18 @@ func (e *PackReader) writeback(ctx context.Context, target block.StoreOps, block
 		entries = append(entries, &block.PutBatchEntry{Ref: b.ref, Data: stored.Data, Refs: stored.Refs, RefsKnown: stored.RefsSource.Asserted(), CacheFill: true})
 	}
 
-	// Persist the verified blocks in one target-store batch.
+	// Persist the verified blocks in one target-store batch. A target that
+	// keeps liveness drops a fill whose refs it does not trust; the dropped
+	// blocks stay published, since a later fetch carries the same refs, and a
+	// read that decodes one fills it through its own path.
 	var err error
+	written := uint64(len(entries))
 	if len(entries) != 0 {
 		_, err = target.PutBlockBatch(ctx, entries)
+		var dropped *block.FillsDroppedError
+		if errors.As(err, &dropped) {
+			err, written = nil, written-uint64(len(dropped.At))
+		}
 	}
 
 	// Publish writeback counters and release failed block reservations.
@@ -125,7 +134,7 @@ func (e *PackReader) writeback(ctx context.Context, target block.StoreOps, block
 				delete(e.published, b.key)
 			}
 		} else {
-			e.writebackCount += uint64(len(entries))
+			e.writebackCount += written
 		}
 		notify = e.statsChanged
 		broadcast()

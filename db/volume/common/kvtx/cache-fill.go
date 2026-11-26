@@ -196,7 +196,8 @@ func (v *Volume) prepareCacheFills(ctx context.Context, owner string, fills []*c
 // as a pack's neighbors, in one fill transaction, holding each block as
 // landFill does. The caller already batched the fills, so they skip the fill
 // queue; the batch runs with background admission, since a fill is a copy the
-// next read can redo.
+// next read can redo. When it drops some entries, it returns a
+// block.FillsDroppedError naming them with the other entries' results.
 func (v *Volume) prepareFillBatch(ctx context.Context, owner string, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Refuse new data below the disk reserve. RefillBlocks drops the copied
 	// entries of blocks the records do not list.
@@ -222,13 +223,18 @@ func (v *Volume) prepareFillBatch(ctx context.Context, owner string, entries []*
 		return err
 	})
 
-	// Count what was stored, dropped and refused.
-	if err == nil {
-		v.countPutBatch(putFill, withoutEntries(entries, drops.At), existed)
-		v.countDropped(putFill, drops)
-	}
+	// Count what was stored, dropped and refused. The dropped entries are the
+	// batch's result, as a dropped single fill's is block.ErrRefsUnknown.
 	v.countRefused(putFill, err)
-	return existed, err
+	if err != nil {
+		return existed, err
+	}
+	v.countPutBatch(putFill, withoutEntries(entries, drops.At), existed)
+	v.countDropped(putFill, drops)
+	if len(drops.At) != 0 {
+		return existed, &block.FillsDroppedError{At: drops.At}
+	}
+	return existed, nil
 }
 
 // withoutEntries returns entries with those at the indexes at, which are

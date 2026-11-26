@@ -2,6 +2,7 @@ package kvtx
 
 import (
 	"errors"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -17,8 +18,8 @@ import (
 // the storage, and its puts of blocks the volume held. On a settled Volume each
 // path stores a new block written without its references, the first reopening
 // the Volume, and a fill drops one, storing nothing, counting it and returning
-// block.ErrRefsUnknown; the path
-// logs its first caller once.
+// block.ErrRefsUnknown. A batch of fills drops such an entry alone and names it
+// in a block.FillsDroppedError. The path logs its first caller once.
 func TestFlowsCountNewBlocksByPath(t *testing.T) {
 	// A direct write counts once, and writing the same block again counts as
 	// existing.
@@ -132,13 +133,33 @@ func TestFlowsCountNewBlocksByPath(t *testing.T) {
 		t.Fatalf("the fill stored its dropped block: %v %v", found, err)
 	}
 
+	// A batch of fills stores the entry with its refs and drops the other,
+	// naming it by its index.
+	batchFill := []byte("batch filled block")
+	batchFillRef, err := block.BuildBlockRef(batchFill, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	droppedEntry := unknownEntry("batch fill")
+	droppedEntry.CacheFill = true
+	fills := []*block.PutBatchEntry{{Ref: batchFillRef, Data: batchFill, RefsKnown: true, CacheFill: true}, droppedEntry}
+	existed, err := v.PrepareOwnedBlockBatch(ctx, "bucket", fills)
+	var dropped *block.FillsDroppedError
+	if !errors.As(err, &dropped) || !errors.Is(err, block.ErrRefsUnknown) || !slices.Equal(dropped.At, []int{1}) || len(existed) != 2 || existed[0] {
+		t.Fatalf("fill batch = %v, %v; want entry 1 dropped and entry 0 new", existed, err)
+	}
+	held, err := v.GetBlockExistsBatch(ctx, []*block.BlockRef{batchFillRef, droppedEntry.Ref})
+	if err != nil || !held[0] || held[1] {
+		t.Fatalf("fill batch held = %v, %v; want the entry with refs alone", held, err)
+	}
+
 	// Each path reports exactly its own blocks and its repeated puts, or the
 	// fill's one drop.
 	size := func(path string) uint64 { return uint64(len(unknown(path))) }
 	want := []volume.PutFlow{
 		{Path: "direct", Blocks: 4, Bytes: uint64(len(direct)+len(batch[0].Data)) + size("direct") + size("batch"), Existing: 2},
 		{Path: "owned", Blocks: 2, Bytes: uint64(len(owned)) + size("owned")},
-		{Path: "fill", Blocks: 1, Bytes: uint64(len(fill)), Existing: 1, Dropped: 1},
+		{Path: "fill", Blocks: 2, Bytes: uint64(len(fill) + len(batchFill)), Existing: 1, Dropped: 2},
 		{Path: "staged", Blocks: 3, Bytes: uint64(staged) + size("staged")},
 		{Path: "roots", Blocks: 2, Bytes: uint64(len(rootData)) + size("roots")},
 	}

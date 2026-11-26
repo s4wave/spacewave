@@ -2,6 +2,7 @@ package volume_controller
 
 import (
 	"context"
+	"errors"
 	"slices"
 
 	"github.com/aperturerobotics/util/ccontainer"
@@ -280,7 +281,9 @@ func (b *bucketHandle) putReleasing(ctx context.Context, entries []*block.PutBat
 		}
 	}
 
-	// Store the puts under the stage or as the bucket's writes.
+	// Store the puts under the stage or as the bucket's writes. A batch of
+	// fills the Volume partly dropped stored the rest, so it still releases
+	// the tombstones and reports the drops by the caller's indexes.
 	vol := b.v
 	var stored []bool
 	var err error
@@ -290,6 +293,10 @@ func (b *bucketHandle) putReleasing(ctx context.Context, entries []*block.PutBat
 		stored, err = vol.PrepareStagedBlockBatch(ctx, b.stage, puts)
 	default:
 		stored, err = b.putOwned(ctx, puts)
+	}
+	var dropped *block.FillsDroppedError
+	if errors.As(err, &dropped) {
+		err = nil
 	}
 	if err != nil {
 		return nil, err
@@ -302,18 +309,33 @@ func (b *bucketHandle) putReleasing(ctx context.Context, entries []*block.PutBat
 		}
 	}
 	if len(puts) == len(entries) {
-		return stored, nil
+		return stored, droppedFills(dropped)
 	}
 
-	// Report each entry's result in the caller's order.
+	// Report each entry's result, and each dropped fill, in the caller's order.
 	existed := make([]bool, len(entries))
+	var at []int
 	for i, j := 0, 0; i < len(entries); i++ {
 		if !isTombstone(entries[i]) {
 			existed[i] = stored[j]
+			if dropped != nil && len(at) < len(dropped.At) && dropped.At[len(at)] == j {
+				at = append(at, i)
+			}
 			j++
 		}
 	}
-	return existed, nil
+	if dropped != nil {
+		dropped = &block.FillsDroppedError{At: at}
+	}
+	return existed, droppedFills(dropped)
+}
+
+// droppedFills returns dropped as the batch's error, or nil for none.
+func droppedFills(dropped *block.FillsDroppedError) error {
+	if dropped == nil {
+		return nil
+	}
+	return dropped
 }
 
 // putOwned stores puts as the bucket's writes, in one physical transaction
