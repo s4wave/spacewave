@@ -1,0 +1,7 @@
+[
+  {
+    "name": "the mount returns before its upload routine exits",
+    "replace": [["           /\\ uploadExited\n", ""]],
+    "expect": "ReplacementKeepsBackend"
+  }
+]

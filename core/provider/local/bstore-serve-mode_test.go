@@ -9,10 +9,10 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 )
 
-// TestServeModeMountWritesNothing remounts a placed store in serve mode after
-// its local blocks are gone: the backend, which serve mode opens for reads
-// alone, serves both blocks, and neither fills the local volume.
+// TestServeModeMountReadsBackendFillsNothing checks that a replacement mount
+// can read evicted blocks from the backend without filling the local volume.
 func TestServeModeMountReadsBackendFillsNothing(t *testing.T) {
+	// Bound both the remount and the backend reads.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
 
@@ -24,21 +24,14 @@ func TestServeModeMountReadsBackendFillsNothing(t *testing.T) {
 	SetServeOnly(true)
 	defer SetServeOnly(false)
 	p.acc.bstores.RestartRoutine(p.tkr.id)
-	var bs *BlockStore
-	for {
-		var err error
-		bs, err = p.tkr.bstoreCtr.WaitValue(ctx, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if bs != prev && bs.placement.serveOnly {
-			break
-		}
-		select {
-		case <-ctx.Done():
-			t.Fatal("store never remounted in serve mode")
-		case <-time.After(10 * time.Millisecond):
-		}
+	bs, err := p.tkr.bstoreCtr.WaitValueWithValidator(ctx, func(bs *BlockStore) (bool, error) {
+		return bs != nil && bs != prev, nil
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bs.placement.serveOnly {
+		t.Fatal("store remounted without serve mode")
 	}
 
 	// Read both blocks from the backend, filling nothing.

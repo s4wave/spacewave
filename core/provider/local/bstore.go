@@ -595,6 +595,9 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	}
 	placement.setPolicy(placed.GetCache())
 
+	// Release the tracker backend after the mount's upload routine exits.
+	defer t.swapRemote(nil)
+
 	// Open the SQL backend before the upload routine, which reuses it, when
 	// the account makes it the store's primary. An unreachable backend fails
 	// the mount.
@@ -606,7 +609,6 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		}
 		sqlStore = opened.store
 		t.swapRemote(opened)
-		defer t.swapRemote(nil)
 		placement.sqlPrimary = true
 	}
 	le.WithField("sql-primary", sqlStore != nil).Info("mounting bstore")
@@ -657,8 +659,13 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	})
 	upload.SetState(backend)
 	upload.SetContext(ctx, true)
-	defer t.swapRemote(nil)
-	defer upload.ClearContext()
+	defer func() {
+		// Join the routine before this mount returns. Its cancellation
+		// closes the tracker backend that the next mount will replace.
+		if exited, _, _ := upload.SetStateRoutine(nil); exited != nil {
+			<-exited
+		}
+	}()
 
 	// Read the local store first, then the linked files, the backend's
 	// bucket, cold packs, the SQL fallback, and peers. A linked file's block
