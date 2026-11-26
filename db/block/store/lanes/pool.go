@@ -59,6 +59,10 @@ type Pool[T comparable] struct {
 	probes int
 	// probeHeld counts the lanes probes hold.
 	probeHeld int
+	// floorLast is the capped kind that took the last lane granted below
+	// the capped floor; the next such grant goes to the other kind when it
+	// waits.
+	floorLast kind
 	// queues holds the waiting calls of each kind, most urgent first.
 	queues [kinds][]*waiter[T]
 }
@@ -283,11 +287,17 @@ func (p *Pool[T]) grantLocked() {
 
 // nextKindLocked returns the kind whose waiter takes the next lane, or -1
 // when no waiter may take one now: refill and background below their floor
-// first, then the most urgent kind.
+// first, alternating between them so neither starves the other, then the
+// most urgent kind.
 func (p *Pool[T]) nextKindLocked() kind {
 	if p.cappedHeld < p.cappedFloor {
-		for k := kindRefill; k < kinds; k++ {
+		first, second := kindRefill, kindBackground
+		if p.floorLast == kindRefill {
+			first, second = second, first
+		}
+		for _, k := range [2]kind{first, second} {
 			if ok, _ := p.admitLocked(k); ok && len(p.queues[k]) != 0 {
+				p.floorLast = k
 				return k
 			}
 		}

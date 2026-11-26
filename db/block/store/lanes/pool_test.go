@@ -291,3 +291,29 @@ func TestPoolDemandRaise(t *testing.T) {
 	default:
 	}
 }
+
+// TestPoolFloorAlternates keeps refill demand queued at the capped floor and
+// queues one background call, and checks that the background call takes one
+// of the next two lanes the floor grants: a steady refill load cannot starve
+// uploads.
+func TestPoolFloorAlternates(t *testing.T) {
+	// Hold every lane of a pool whose capped floor is all of it, with refill
+	// calls, and queue more refills ahead of one background call.
+	ctx := context.Background()
+	refill := block.WithReadClass(ctx, block.ReadRefill)
+	p := New(make([]string, 2), 0)
+	p.SetCappedFloor(2)
+	held := []*Lease[string]{take(t, p, refill, nil), take(t, p, refill, nil)}
+	refills := []<-chan granted{wait(p, refill, nil), wait(p, refill, nil)}
+	bg := wait(p, block.WithBackground(ctx), nil)
+
+	// Release two lanes; the background call takes one of them.
+	p.Put(held[0])
+	p.Put(held[1])
+	select {
+	case <-bg:
+	case <-time.After(time.Second):
+		t.Fatal("background call starved behind the refills")
+	}
+	recv(t, refills[0])
+}

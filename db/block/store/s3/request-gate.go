@@ -43,7 +43,8 @@ const (
 	// a clean run reset the backoff.
 	gatePauseMin = 250 * time.Millisecond
 	// gateProbeEvery is how long a pause waits after its last throttle
-	// before it lets one urgent request through as a probe.
+	// before it lets one urgent request through as a probe, when the
+	// throttle gave no Retry-After.
 	gateProbeEvery = time.Second
 )
 
@@ -62,8 +63,8 @@ var gateBackoffMax = 8 * time.Second
 // with each halving, up to gateBackoffMax, and resets after a clean run.
 // While paused, the throttled requests queue again in their class behind the
 // pause, so the account sees a quiet period and then a reduced rate. The one
-// exception is a probe: gateProbeEvery after the last throttle, one urgent
-// request may go, and a clean answer to it ends the pause early at the
+// exception is a probe: once the last throttle's Retry-After has passed, or
+// gateProbeEvery after it when it gave none, one urgent request may go, and a clean answer to it ends the pause early at the
 // current limit, while a throttle extends the pause as any other does.
 //
 // Lock order: bcast, then the pool's lock, which is a leaf.
@@ -202,7 +203,7 @@ func (g *RequestGate) State() (GateState, <-chan struct{}) {
 // throttled records a throttled answer whose Retry-After asked for wait:
 // halves the limit unless it halved within gateDecreaseEvery, pauses the gate
 // until the longest of wait, gatePauseMin and a jittered backoff, and holds
-// the next probe for gateProbeEvery.
+// the next probe for wait, or gateProbeEvery when wait is zero.
 func (g *RequestGate) throttled(wait time.Duration) {
 	g.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		// Halve the limit and double the backoff once per decrease window.
@@ -225,7 +226,7 @@ func (g *RequestGate) throttled(wait time.Duration) {
 			g.resume.Reset(pause)
 		}
 		g.pool.SetProbes(0)
-		g.probe.Reset(gateProbeEvery)
+		g.probe.Reset(cmp.Or(wait, gateProbeEvery))
 		broadcast()
 	})
 }
@@ -247,7 +248,7 @@ func (g *RequestGate) endPause() {
 	})
 }
 
-// openProbe runs gateProbeEvery after a pause's last throttle: it lets one
+// openProbe runs once the last throttle's probe wait has passed: it lets one
 // urgent request through while the pause lasts.
 func (g *RequestGate) openProbe() {
 	g.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
