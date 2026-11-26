@@ -74,34 +74,27 @@ func (a *ProviderAccount) SetResidentMarks(marks ResidentMarks) {
 	}
 }
 
-// setPolicy applies the cache settings of the placement under the account's
-// resident marks, recording them for SetResidentMarks until unregister.
-func (p *placementState) setPolicy(cache *account_settings.BlockStoreCache) {
-	// Apply the settings as they are when no account overrides them.
-	r := p.resident
-	if r == nil {
-		p.applyPolicy(uploadPolicy(cache))
-		return
-	}
-
-	// Record the settings and apply them under the account's marks.
+// place applies the cache settings of a mounted placement under the account's
+// resident marks, recording them for SetResidentMarks until remove.
+func (r *residentOverride) place(p *placementState, cache *account_settings.BlockStoreCache) {
+	// Record the settings, so a later SetResidentMarks applies over them.
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 	if r.placements == nil {
 		r.placements = make(map[*placementState]*account_settings.BlockStoreCache)
 	}
 	r.placements[p] = cache
+
+	// Apply them under the marks in force.
 	p.applyPolicy(r.marks.apply(uploadPolicy(cache)))
 }
 
-// unregister stops SetResidentMarks applying to the placement, at the end of
-// its mount.
-func (p *placementState) unregister() {
-	if r := p.resident; r != nil {
-		r.mtx.Lock()
-		delete(r.placements, p)
-		r.mtx.Unlock()
-	}
+// remove stops SetResidentMarks applying to the placement, at the end of its
+// mount.
+func (r *residentOverride) remove(p *placementState) {
+	r.mtx.Lock()
+	delete(r.placements, p)
+	r.mtx.Unlock()
 }
 
 // applyPolicy sets the store's policy. Reads are recorded from before the

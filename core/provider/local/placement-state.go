@@ -56,8 +56,6 @@ type placementState struct {
 	evictGate *csync.Mutex
 	// evictAdmit paces eviction passes, or holds nil.
 	evictAdmit *atomic.Pointer[block_store_writeback.EvictAdmit]
-	// resident is the account's resident mark override, or nil.
-	resident *residentOverride
 	// policyWake wakes the eviction loop when the policy changes; nil never.
 	policyWake chan struct{}
 	// evictLatch carries the eviction loop to the low mark across passes and
@@ -87,6 +85,35 @@ type placementState struct {
 	packed *block_store_writeback.PackedStore
 }
 
+// placementShared is the state a placement shares with the mounts of its
+// store before and after it, and with the account's other stores.
+type placementShared struct {
+	// remote is the store's open storage backend, which outlives each mount.
+	remote *atomic.Pointer[openBackend]
+	// remoteBcast publishes changes to remote and to each mount's backend.
+	remoteBcast *broadcast.Broadcast
+	// evictGate is held by each eviction pass and by a storage move.
+	evictGate *csync.Mutex
+	// evictAdmit paces the account's eviction passes, or holds nil.
+	evictAdmit *atomic.Pointer[block_store_writeback.EvictAdmit]
+	// budget bounds the queued fallback fill data across the Provider's
+	// stores.
+	budget *fillBudget
+	// children reports the blocks the volume keeps child lists for, or is nil
+	// when the volume keeps none.
+	children childListReader
+	// sqlPrimary reports that the account writes its placed stores to their SQL
+	// backends.
+	sqlPrimary bool
+	// fillCache is the account's registered fill cache, or nil.
+	fillCache FillCache
+	// front is the account's registered pack front, or nil.
+	front block.StoreOps
+	// peerSource returns the store's peer reads, counting their outcomes in
+	// counts.
+	peerSource func(le *logrus.Entry, counts *peerReadCounts) block_store.StoreSource
+}
+
 // placementMount is what one mount of a block store opened for its placement.
 type placementMount struct {
 	// wb queues the mount's writes for upload.
@@ -107,31 +134,29 @@ type placementMount struct {
 	serve bool
 }
 
-// newPlacementState builds the placement of one mount of t's store, which
-// ends when ctx does. It loads the saved block reads, starts the classifier of
-// the blocks peers serve, which runs until ctx ends, and publishes m.backend
-// to the waiters of t's backend.
-func newPlacementState(ctx context.Context, le *logrus.Entry, t *bstoreTracker, m placementMount) *placementState {
-	// Assemble the placement from the mount's stores and the tracker's
-	// cross-mount state.
+// newPlacementState builds the placement of one mount m of a store, sharing s
+// with the store's other mounts, which ends when ctx does. It loads the saved
+// block reads, starts the classifier of the blocks peers serve, which runs
+// until ctx ends, and publishes m.backend to the waiters of s.remoteBcast.
+func newPlacementState(ctx context.Context, le *logrus.Entry, s placementShared, m placementMount) *placementState {
+	// Assemble the placement from the mount's stores and the shared state.
 	p := &placementState{
 		wb:            m.wb,
 		local:         m.local,
-		remote:        &t.remote,
-		remoteBcast:   &t.remoteBcast,
+		remote:        s.remote,
+		remoteBcast:   s.remoteBcast,
+		tracker:       s.children,
 		done:          ctx.Done(),
 		serveOnly:     m.serve,
 		peerUpload:    !m.serve && peerFillsUpload.Load(),
-		evictGate:     &t.evictGate,
-		evictAdmit:    &t.a.evictAdmit,
-		resident:      &t.a.resident,
+		evictGate:     s.evictGate,
+		evictAdmit:    s.evictAdmit,
 		policyWake:    make(chan struct{}, 1),
-		sqlPrimary:    t.a.sqlPrimary.Load() && m.backend.GetSql() != nil,
-		fallbackFills: fallbackFills{ctx: ctx, budget: &t.a.t.p.fillBudget},
+		sqlPrimary:    s.sqlPrimary && m.backend.GetSql() != nil,
+		fallbackFills: fallbackFills{ctx: ctx, budget: s.budget},
 		cold:          m.cold,
 		fileSegments:  m.files,
 	}
-	p.tracker, _ = t.a.vol.(childListReader)
 	if m.packs != nil {
 		p.drain, p.packed = m.packs.drain, m.packs.packed
 	}
@@ -140,15 +165,15 @@ func newPlacementState(ctx context.Context, le *logrus.Entry, t *bstoreTracker, 
 	// fills the account's fill cache.
 	if m.backend != nil {
 		if !m.serve {
-			p.cache = t.fillCache()
+			p.cache = s.fillCache
 		}
-		p.front = t.packFront()
+		p.front = s.front
 	}
 
 	// Read peers, counting their outcomes, unless in serve mode.
 	p.peers = func() block.StoreOps { return nil }
 	if !m.serve {
-		p.peers = t.peerSource(le, &p.peerReads)
+		p.peers = s.peerSource(le, &p.peerReads)
 	}
 
 	// Keep the blocks the last mount read hot for eviction.

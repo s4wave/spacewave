@@ -275,6 +275,24 @@ func (t *bstoreTracker) bucketID() string {
 	)
 }
 
+// placementShared returns the state the store's placements share across its
+// mounts and with the account's other stores, read when a mount starts.
+func (t *bstoreTracker) placementShared() placementShared {
+	children, _ := t.a.vol.(childListReader)
+	return placementShared{
+		remote:      &t.remote,
+		remoteBcast: &t.remoteBcast,
+		evictGate:   &t.evictGate,
+		evictAdmit:  &t.a.evictAdmit,
+		budget:      &t.a.t.p.fillBudget,
+		children:    children,
+		sqlPrimary:  t.a.sqlPrimary.Load(),
+		fillCache:   t.fillCache(),
+		front:       t.packFront(),
+		peerSource:  t.peerSource,
+	}
+}
+
 // executeBlockStoreTracker mounts the block store and publishes its handle
 // until ctx ends.
 func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
@@ -439,7 +457,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 
 	// Track the store's placement, which places new writes, refills evicted
 	// blocks and reclaims backend storage.
-	placement := newPlacementState(ctx, le, t, placementMount{
+	placement := newPlacementState(ctx, le, t.placementShared(), placementMount{
 		wb:      wb,
 		local:   local,
 		packs:   packs,
@@ -448,8 +466,8 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		cold:    coldTier,
 		serve:   serveMode,
 	})
-	defer placement.unregister()
-	placement.setPolicy(placed.GetCache())
+	defer t.a.resident.remove(placement)
+	t.a.resident.place(placement, placed.GetCache())
 
 	// A bucket read fills the local store with every block of the window it
 	// fetched, as it fills the block asked for, unless a fill cache takes the
@@ -624,7 +642,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		placement.setPolicy(placed.GetCache())
+		t.a.resident.place(placement, placed.GetCache())
 		if sqlStore != nil && !next.EqualVT(backend) {
 			return errors.New("placement of an SQL primary store changed, remounting")
 		}

@@ -4,12 +4,13 @@ import (
 	"context"
 
 	"github.com/s4wave/spacewave/db/block"
+	block_store "github.com/s4wave/spacewave/db/block/store"
 	"github.com/sirupsen/logrus"
 )
 
 // peerSource returns the store's peer reads, which count their outcomes in
 // counts.
-func (t *bstoreTracker) peerSource(le *logrus.Entry, counts *peerReadCounts) func() block.StoreOps {
+func (t *bstoreTracker) peerSource(le *logrus.Entry, counts *peerReadCounts) block_store.StoreSource {
 	// A store with no peers to ask reads none.
 	if conf := t.nodePushConfig(); conf != nil && conf.NoPeers {
 		return func() block.StoreOps { return nil }
