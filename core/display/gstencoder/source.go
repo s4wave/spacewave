@@ -26,8 +26,14 @@ type Source struct {
 	stop context.CancelCauseFunc
 	// pictures stays open for the final buffered packets after a child exit.
 	pictures *os.File
-	// packets reads pictures and sends commands over the helper's pipes.
-	packets *stream_packet.Session
+	// prefix is the single reader's reusable packet length buffer.
+	prefix [4]byte
+	// readDone identifies the reader lifetime currently bound to the source.
+	readDone <-chan struct{}
+	// readMtx serializes replacing and removing the cancellation registration.
+	readMtx sync.Mutex
+	// stopRead detaches the current reader from the source.
+	stopRead func() bool
 	// keyframe coalesces outstanding requests without blocking a viewer.
 	keyframe chan struct{}
 	// exited holds the helper's wait result after pipe cleanup.
@@ -91,10 +97,7 @@ func openSource(ctx context.Context, executable string, remotes []*os.File, capt
 	// Reap the helper before publishing the terminal result.
 	source := &Source{
 		ctx: ctx, stop: stop, pictures: pictures,
-		packets: stream_packet.NewSession(struct {
-			io.Reader
-			io.WriteCloser
-		}{pictures, commands}, MaxPacketSize),
+		readDone: ctx.Done(),
 		keyframe: make(chan struct{}, 1),
 		exited:   promise.NewPromise[struct{}](),
 	}
@@ -107,17 +110,22 @@ func (s *Source) CanRequestKeyframe() bool {
 	return true
 }
 
-// ReadFrame reads one AVC access unit. Canceling the read stops the source.
+// ReadFrame reads one AVC access unit. Use a single reader per source.
+// Canceling its context stops the source.
 func (s *Source) ReadFrame(ctx context.Context) (*frametrack.GroupHeader, *frametrack.Frame, error) {
-	// Bind the pipe read to both the track and helper lifetime.
-	stop := context.AfterFunc(ctx, func() { s.stop(context.Cause(ctx)) })
-	defer stop()
+	// Bind the track's lifetime once for all reads made with that context.
+	if cause := context.Cause(ctx); cause != nil {
+		s.stop(cause)
+		return nil, nil, cause
+	}
+	if done := ctx.Done(); done != s.readDone {
+		s.bindReader(ctx, done)
+	}
 
 	// Skip queued deltas when a viewer is waiting to start a new group.
 	for {
 		// Report deliberate shutdown or the encoder's terminal failure.
-		packet := new(frametrack.FramePacket)
-		err := s.packets.RecvMsg(packet)
+		header, frame, err := readPicture(s.pictures, &s.prefix)
 		if ctx.Err() != nil {
 			cause := context.Cause(ctx)
 			s.stop(cause)
@@ -133,7 +141,6 @@ func (s *Source) ReadFrame(ctx context.Context) (*frametrack.GroupHeader, *frame
 		}
 
 		// Do not let buffered deltas enter the track after a keyframe request.
-		frame := packet.GetFrame()
 		s.mtx.Lock()
 		if frame.GetKeyframe() {
 			s.waitingIDR = false
@@ -141,8 +148,23 @@ func (s *Source) ReadFrame(ctx context.Context) (*frametrack.GroupHeader, *frame
 		deliver := !s.waitingIDR
 		s.mtx.Unlock()
 		if deliver {
-			return packet.GetHeader(), frame, nil
+			return header, frame, nil
 		}
+	}
+}
+
+// bindReader replaces the cancellation registration when the reader changes context.
+func (s *Source) bindReader(ctx context.Context, done <-chan struct{}) {
+	// Keep a departing track from canceling the source after the reader moves on.
+	s.readMtx.Lock()
+	defer s.readMtx.Unlock()
+	if s.stopRead != nil {
+		s.stopRead()
+		s.stopRead = nil
+	}
+	s.readDone = done
+	if done != nil && done != s.ctx.Done() && s.ctx.Err() == nil {
+		s.stopRead = context.AfterFunc(ctx, func() { s.stop(context.Cause(ctx)) })
 	}
 }
 
@@ -167,6 +189,14 @@ func (s *Source) Close() error {
 	s.stop(context.Canceled)
 	_, _ = s.exited.Await(context.Background())
 	closePipe(s.pictures)
+
+	// Release the reader registration even if its context outlives capture.
+	s.readMtx.Lock()
+	defer s.readMtx.Unlock()
+	if s.stopRead != nil {
+		s.stopRead()
+		s.stopRead = nil
+	}
 	return nil
 }
 
@@ -176,7 +206,7 @@ func (s *Source) run(cmd *exec.Cmd, commands *os.File, capture *Capture) {
 	commandsDone := make(chan struct{})
 	go func() {
 		defer close(commandsDone)
-		s.sendCommands(capture)
+		s.sendCommands(commands, capture)
 	}()
 
 	// Retire the writer after exit. The reader can drain stdout through EOF.
@@ -188,9 +218,13 @@ func (s *Source) run(cmd *exec.Cmd, commands *os.File, capture *Capture) {
 }
 
 // sendCommands forwards coalesced requests until the pipe or source ends.
-func (s *Source) sendCommands(capture *Capture) {
+func (s *Source) sendCommands(commands *os.File, capture *Capture) {
 	// Select the input before GStreamer opens any device or remote.
-	if err := s.packets.SendMsg(capture); err != nil {
+	packets := stream_packet.NewSession(struct {
+		io.Reader
+		io.WriteCloser
+	}{WriteCloser: commands}, MaxPacketSize)
+	if err := packets.SendMsg(capture); err != nil {
 		s.stop(ErrEncoderFailed)
 		return
 	}
@@ -202,7 +236,7 @@ func (s *Source) sendCommands(capture *Capture) {
 		case <-s.ctx.Done():
 			return
 		case <-s.keyframe:
-			if err := s.packets.SendMsg(cmd); err != nil {
+			if err := packets.SendMsg(cmd); err != nil {
 				s.stop(ErrEncoderFailed)
 				return
 			}

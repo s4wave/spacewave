@@ -110,20 +110,67 @@ func checkIDR(t *testing.T, header *frametrack.GroupHeader, frame *frametrack.Fr
 // TestSourceRecovery covers a queued delta, a crash, and a stalled shutdown.
 func TestSourceRecovery(t *testing.T) {
 	// Resume from an IDR after the encoder or its old pictures become unusable.
+	t.Run("PictureWire", checkPictureWire)
 	t.Run("QueuedDelta", checkSourceQueuedDelta)
 	t.Run("Crash", checkSourceCrash)
 	t.Run("Stalled", checkSourceStalled)
+}
+
+// checkPictureWire verifies the split writer against the generated protobuf.
+func checkPictureWire(t *testing.T) {
+	// Send one group-opening picture through the helper's actual pipe writer.
+	t.Helper()
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = r.Close(); _ = w.Close() })
+	writer := NewPictureWriter(int(w.Fd()))
+	packet := &frametrack.FramePacket{
+		Header: &frametrack.GroupHeader{Codec: frametrack.Codec_CODEC_H264_AVC, DecoderDescription: []byte{1, 2}},
+		Frame:  &frametrack.Frame{Keyframe: true, Data: []byte{3, 4}},
+	}
+	if err := writer.WriteFrame(packet.Header, packet.Frame); err != nil {
+		t.Fatal(err)
+	}
+	_ = w.Close()
+
+	// Require the same bytes as the protobuf generator's whole-message encoder.
+	encoded, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, err := packet.MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(encoded) < 4 || int(binary.LittleEndian.Uint32(encoded)) != len(want) || !bytes.Equal(encoded[4:], want) {
+		t.Fatalf("split protobuf = %x, want %x with length prefix", encoded, want)
+	}
+
+	// Decoding leaves the immutable packet's access unit in its original buffer.
+	header, frame, err := decodePicture(encoded[4:])
+	if err != nil || !packet.Header.EqualVT(header) || !packet.Frame.EqualVT(frame) {
+		t.Fatalf("decoded packet = %v, %v, error %v", header, frame, err)
+	}
+	if &frame.Data[0] != &encoded[len(encoded)-len(frame.Data)] {
+		t.Fatal("decoded access unit did not borrow packet bytes")
+	}
 }
 
 // checkSourceQueuedDelta checks that the next delivered picture is an IDR.
 func checkSourceQueuedDelta(t *testing.T) {
 	// Buffer a delta that the helper wrote before it could receive the request.
 	t.Helper()
-	var pipe bytes.Buffer
+	input, output, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = input.Close(); _ = output.Close() })
 	packets := stream_packet.NewSession(struct {
-		*bytes.Buffer
-		io.Closer
-	}{&pipe, nil}, MaxPacketSize)
+		io.Reader
+		io.WriteCloser
+	}{WriteCloser: output}, MaxPacketSize)
 	if err := packets.SendMsgs(
 		&frametrack.FramePacket{Frame: &frametrack.Frame{Data: []byte{1}}},
 		&frametrack.FramePacket{Frame: &frametrack.Frame{Keyframe: true, Data: []byte{2}}},
@@ -134,7 +181,7 @@ func checkSourceQueuedDelta(t *testing.T) {
 	// Exercise the actual source reader, including the request issued after the delta.
 	ctx, stop := context.WithCancelCause(t.Context())
 	defer stop(nil)
-	source := &Source{ctx: ctx, stop: stop, keyframe: make(chan struct{}, 1), packets: packets}
+	source := &Source{ctx: ctx, stop: stop, keyframe: make(chan struct{}, 1), pictures: input}
 	source.RequestKeyframe()
 	_, frame, err := source.ReadFrame(t.Context())
 	if err != nil || !frame.GetKeyframe() || !bytes.Equal(frame.GetData(), []byte{2}) {

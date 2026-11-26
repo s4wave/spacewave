@@ -68,7 +68,7 @@ func run() error {
 	go func() { commands <- readCommands(pipeline, packets) }()
 
 	// Close stdin and join the command worker before releasing the C pipeline.
-	err := writePictures(pipeline, packets)
+	err := writePictures(pipeline, gstencoder.NewPictureWriter(int(os.Stdout.Fd())))
 	_ = input.Close()
 	commandErr := <-commands
 	if errors.Is(err, syscall.EPIPE) {
@@ -101,10 +101,16 @@ func readCommands(pipeline *C.Pipeline, packets *stream_packet.Session) error {
 }
 
 // writePictures forwards each completed access unit as one length-prefixed packet.
-func writePictures(pipeline *C.Pipeline, packets *stream_packet.Session) error {
+func writePictures(pipeline *C.Pipeline, writer *gstencoder.PictureWriter) error {
+	// Reuse both the cgo mapping and the protobuf metadata across frames.
+	picture := encoderPicture{}
+	picture.frame.CapturedAt = &picture.captured
+	picture.header.Codec = frametrack.Codec_CODEC_H264_AVC
+	var failure *C.GError
+
+	// Forward each completed sample before releasing its GStreamer reference.
 	for {
 		// The bus wakes on a new sample, pipeline failure, or closed command pipe.
-		var failure *C.GError
 		sample := C.read_sample(pipeline, &failure)
 		if failure != nil {
 			return gstError(failure)
@@ -114,7 +120,7 @@ func writePictures(pipeline *C.Pipeline, packets *stream_packet.Session) error {
 		}
 
 		// Hold the sample until its bytes have been serialized.
-		err := writePicture(pipeline, sample, packets)
+		err := picture.write(pipeline, sample, writer)
 		C.gst_sample_unref(sample)
 		if err != nil {
 			return err
@@ -122,37 +128,46 @@ func writePictures(pipeline *C.Pipeline, packets *stream_packet.Session) error {
 	}
 }
 
-// writePicture borrows GStreamer memory through the synchronous protobuf write.
-func writePicture(pipeline *C.Pipeline, sample *C.GstSample, packets *stream_packet.Session) error {
-	// Map the coded access unit and, for an IDR, the caps' decoder description.
-	var pic C.Picture
-	if C.map_picture(pipeline, sample, &pic) == 0 {
+// encoderPicture owns the metadata reused by the encoder's single writer.
+type encoderPicture struct {
+	// mapped borrows one GStreamer sample during its synchronous write.
+	mapped C.Picture
+	// header carries the decoder configuration for a keyframe.
+	header frametrack.GroupHeader
+	// frame points into mapped for the duration of the write.
+	frame frametrack.Frame
+	// captured holds the timestamp referenced by frame.
+	captured timestamp.Timestamp
+}
+
+// write borrows the coded picture and AVC description through the pipe write.
+func (p *encoderPicture) write(pipeline *C.Pipeline, sample *C.GstSample, writer *gstencoder.PictureWriter) error {
+	// Reset the map so a delta cannot inherit the previous frame's description.
+	p.mapped = C.Picture{}
+	if C.map_picture(pipeline, sample, &p.mapped) == 0 {
 		return errors.New("map GStreamer picture or AVC decoder description")
 	}
-	defer C.unmap_picture(&pic)
+	defer func() {
+		p.frame.Data = nil
+		p.header.DecoderDescription = nil
+		C.unmap_picture(&p.mapped)
+	}()
 
-	// Carry capture time and enough information for a decoder to start at this IDR.
-	keyframe := pic.keyframe != 0
-	frame := &frametrack.Frame{
-		CapturedAt: timestamp.New(time.Now().Add(-time.Duration(pic.age))),
-		Keyframe:   keyframe,
-		Data:       unsafe.Slice((*byte)(pic.bytes.data), int(pic.bytes.size)),
-	}
-	packet := &frametrack.FramePacket{Frame: frame}
-	if keyframe {
-		packet.Header = &frametrack.GroupHeader{
-			Codec:              frametrack.Codec_CODEC_H264_AVC,
-			Width:              uint32(pic.width),
-			Height:             uint32(pic.height),
-			DecoderDescription: unsafe.Slice((*byte)(pic.avcc.data), int(pic.avcc.size)),
-		}
+	// Write the current picture and its capture time in the reusable metadata.
+	at := time.Now().Add(-time.Duration(p.mapped.age))
+	p.captured.Seconds = at.Unix()
+	p.captured.Nanos = int32(at.Nanosecond()) //nolint:gosec // The subsecond nanosecond count fits int32.
+	p.frame.Keyframe = p.mapped.keyframe != 0
+	p.frame.Data = unsafe.Slice((*byte)(p.mapped.bytes.data), int(p.mapped.bytes.size))
+	if !p.frame.Keyframe {
+		return writer.WriteFrame(nil, &p.frame)
 	}
 
-	// The helper and frame track share the same bound on access units.
-	if packet.SizeVT() > gstencoder.MaxPacketSize {
-		return stream_packet.ErrMessageTooLarge
-	}
-	return packets.SendMsg(packet)
+	// A keyframe carries the decoder configuration until the pipe accepts it.
+	p.header.Width = uint32(p.mapped.width)
+	p.header.Height = uint32(p.mapped.height)
+	p.header.DecoderDescription = unsafe.Slice((*byte)(p.mapped.avcc.data), int(p.mapped.avcc.size))
+	return writer.WriteFrame(&p.header, &p.frame)
 }
 
 // gstError copies the pipeline's diagnostic and frees its C allocation.
