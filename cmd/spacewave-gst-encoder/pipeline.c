@@ -56,8 +56,9 @@ Pipeline *open_pipeline(guint32 node_id, GError **error) {
   if (node_id != 0) {
     /* The portal remote is inherited as fd 3. The path names a node ID. */
     /* The portal ends capture. Let PipeWire replace buffers on caps changes. */
+    /* Repeat the last buffer on idle outputs so a joining viewer gets an IDR. */
     source = g_strdup_printf(
-        "pipewiresrc fd=3 path=%u ! "
+        "pipewiresrc fd=3 path=%u keepalive-time=250 ! "
         "switchbin name=capture-route num-paths=2",
         node_id);
   } else {
