@@ -182,11 +182,11 @@ const (
 // and records the block each root it moves held when the adoption began, as
 // Adopt reads.
 //
-// Cost per call: the state record and, when an entry has no list, whether
-// the Volume records any hole; one batched read of the entries' child list
+// Cost per call: the state record and, when an entry has no list, the
+// holes-clear mark, one point read; one batched read of the entries' child list
 // records and one of the count records of those without a list and, on a
 // Volume that keeps the logs, of the stored blocks it holds, and, for
-// one without a list in a Volume that records a hole, its hole record; one
+// one without a list while that mark is absent, its hole record; one
 // batched read of the child list records of the distinct children the born
 // blocks name outside the batch and, when any is unlisted, one batched block
 // existence read, with one up per naming; per moved root, its entry and its
@@ -198,8 +198,9 @@ const (
 // record and, for a zero one, its parked key; while Sweeping, one run entry
 // read per unverified list it meets. On an adopted Volume, one queue delete
 // per stored block it holds at zero, then one up page and one down page per
-// logPageKeys keys, and the state record. Nothing in it scans: every read is
-// a point read or a batch.
+// logPageKeys keys, and the state record. While Open, a call that pushes a
+// block onto the front reads and writes the add revision once. Nothing in it
+// scans: every read is a point read or a batch.
 // A move that requires its blocks held adds the reads requireTree describes.
 func Land(
 	ctx context.Context,
@@ -728,7 +729,9 @@ func classifyPuts(
 	}
 
 	// Sort each block by its list, then by whether it is a recorded hole or
-	// unmarked, leaving the rest to their counts.
+	// unmarked, leaving the rest to their counts. A block with no list reads
+	// its hole key only while the holes-clear mark is absent, so a put of
+	// new blocks reads one key for the batch, and no seek under the writer.
 	kinds := make([]putKind, len(puts))
 	counted := reads[:0]
 	var countedAt []int
@@ -741,7 +744,7 @@ func classifyPuts(
 			continue
 		}
 		if !holesRead {
-			if holes, err = rec.anyKey(ctx, rec.key(kindHole)); err != nil {
+			if holes, err = rec.holesOpen(ctx); err != nil {
 				return err
 			}
 			holesRead = true
@@ -1180,7 +1183,7 @@ func (l *lander) holdListed(ctx context.Context, ref *block.BlockRef, key []byte
 	if marked || l.gen != Generation_GENERATION_OPEN {
 		return nil
 	}
-	return l.rec.tx.Set(ctx, l.rec.key(kindFront, key), nil)
+	return l.rec.addFront(ctx, key)
 }
 
 // requireListed refuses the first of refs listed reports without a child

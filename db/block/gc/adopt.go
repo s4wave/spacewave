@@ -179,7 +179,7 @@ func markAdopting(ctx context.Context, store Store, run string, now func() time.
 		state.Adoption = Adoption_ADOPTION_ADOPTING
 		state.AdoptionRun = run
 		state.AdoptCursor = &AdoptCursor{Run: run}
-		state.UpCursor = state.GetUpSeq()
+		state.UpCursor, state.DownCursor = state.GetUpSeq(), state.GetDownSeq()
 		state.AdoptAtUnixMilli = now().UnixMilli()
 		return rec.SetState(ctx, state)
 	})
@@ -826,7 +826,7 @@ func (a *adoption) hold(ctx context.Context, rec *Records, h holds) error {
 	}
 	for i, key := range opened {
 		if listed[i] && !listMarked(lists[i]) {
-			if err := rec.tx.Set(ctx, rec.key(kindFront, []byte(key)), nil); err != nil {
+			if err := rec.addFront(ctx, []byte(key)); err != nil {
 				return err
 			}
 		}
@@ -881,66 +881,81 @@ func clearRun(ctx context.Context, store Store, run string) error {
 	if err != nil {
 		return err
 	}
-	_, err = eachSlice(ctx, store.Update, []byte(nil), nil, func(rec *Records, _ block.StoreOps, after []byte) ([]byte, bool, error) {
-		state, err := rec.GetState(ctx)
-		if err != nil || !claimed(state) {
-			return nil, false, err
+	for _, kind := range []byte{kindParked, kindReleased} {
+		err := eachPage(ctx, store, kind, func(rec *Records, page *keyPage) (bool, error) {
+			state, err := rec.GetState(ctx)
+			if err != nil || !claimed(state) || state.GetGeneration() != Generation_GENERATION_OPEN {
+				return true, err
+			}
+			return false, rec.unrunParked(ctx, kind, page)
+		})
+		if err != nil {
+			return err
 		}
-		return rec.unrunParked(ctx, kindParked, after)
-	})
-	if err != nil {
-		return err
-	}
-	_, err = eachSlice(ctx, store.Update, []byte(nil), nil, func(rec *Records, _ block.StoreOps, after []byte) ([]byte, bool, error) {
-		state, err := rec.GetState(ctx)
-		if err != nil || !claimed(state) {
-			return nil, false, err
-		}
-		return rec.unrunParked(ctx, kindReleased, after)
-	})
-	if err != nil {
-		return err
 	}
 
 	// Clear the adoption's records.
 	return clearKinds(ctx, store, claimed, adoptionKinds...)
 }
 
-// clearKinds deletes every record of the kinds, sliceRecords per
-// transaction, yielding to waiting writers between transactions. With keep
-// set it stops, deleting nothing more, at the first transaction whose state
-// keep refuses.
+// clearKinds deletes every record of the kinds, a page of sliceRecords
+// keys per transaction, as eachPage reads them, with the kind's empty key,
+// a completion or mark record, after the last page. With keep set it stops,
+// deleting nothing more, at the first transaction whose state keep
+// refuses. Nothing writes the kinds while the adoption clears them, as
+// clearRun and Adopt describe.
 func clearKinds(ctx context.Context, store Store, keep func(*LivenessState) bool, kinds ...byte) error {
 	for _, kind := range kinds {
-		var stop bool
-		_, err := eachSlice(ctx, store.Update, []byte(nil), nil, func(rec *Records, _ block.StoreOps, after []byte) ([]byte, bool, error) {
-			// Stop at a state keep refuses, then delete the records of the
-			// kind from the last key the slice before reached.
-			stop = false
+		err := eachPage(ctx, store, kind, func(rec *Records, page *keyPage) (bool, error) {
 			if keep != nil {
 				state, err := rec.GetState(ctx)
-				if err != nil {
-					return nil, false, err
-				}
-				if stop = !keep(state); stop {
-					return nil, false, nil
+				if err != nil || !keep(state) {
+					return true, err
 				}
 			}
-			recs, err := rec.scanAfter(ctx, kind, after, sliceRecords)
-			if err != nil {
-				return nil, false, err
+			err := page.each(func(key []byte) error {
+				return rec.tx.Delete(ctx, rec.key(kind, key))
+			})
+			if err != nil || page.full {
+				return false, err
 			}
-			for _, r := range recs {
-				if err := rec.tx.Delete(ctx, rec.key(kind, r.key)); err != nil {
-					return nil, false, err
-				}
-				after = r.key
-			}
-			return after, len(recs) == sliceRecords, nil
+			return false, rec.tx.Delete(ctx, rec.key(kind))
 		})
-		if err != nil || stop {
+		if err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// eachPage calls slice with each page of up to sliceRecords keys of kind,
+// in key order, one write transaction per page, until slice reports stop
+// or a page reaches the kind's end. A read snapshot fills each page from
+// the last key the one before read, stepping over the deleted keys before
+// it without holding the writer; slice decides each key from point reads.
+// It yields to waiting writers between transactions.
+//
+// Cost: per page, one snapshot read of up to sliceRecords keys, and what
+// slice reads and writes for them.
+func eachPage(ctx context.Context, store Store, kind byte, slice func(rec *Records, page *keyPage) (bool, error)) error {
+	var page keyPage
+	var after []byte
+	for {
+		err := store.View(ctx, func(rec *Records) error {
+			return rec.readKeys(ctx, &page, kind, after, sliceRecords, nil)
+		})
+		if err != nil {
+			return err
+		}
+		var stop bool
+		err = store.Update(ctx, func(rec *Records, _ block.StoreOps) error {
+			var err error
+			stop, err = slice(rec, &page)
+			return err
+		})
+		if err != nil || stop || !page.full {
+			return err
+		}
+		after = page.resume(after)
+	}
 }

@@ -161,6 +161,23 @@ const (
 	// log's end once the recount is done, past every ripe sequence the
 	// recount gave, as Adopt describes. The flip deletes it.
 	kindPopMark byte = 'k'
+	// kindAddRev is one record, with no key past the kind, whose value is
+	// the big-endian add revision: every transaction that writes a front
+	// or hole key raises it once, through Records.addFront or
+	// Records.addHole, the only writers of either kind. A reader that found
+	// no front and no hole key in a read snapshot at revision n knows a
+	// later transaction that reads n finds none either, from that one point
+	// read, without seeking the prefixes over their deleted keys, as
+	// flipProof describes. An absent record is revision zero.
+	kindAddRev byte = 'v'
+	// kindHolesClear is one record, with no key past the kind and no
+	// value, present only while no hole key exists: the collector writes
+	// it from a read snapshot that found no hole key, under an add revision
+	// its transaction reads unchanged, and Records.addHole deletes it, so
+	// Land checks a new block for a hole record only while it is absent,
+	// as Records.holesOpen describes. An absent record claims nothing.
+	// Not 'h', which the old reference graph used and its sweep deletes.
+	kindHolesClear byte = 'z'
 )
 
 // LiveKinds are the kinds format 11 writes, one per constant above. No
@@ -170,7 +187,7 @@ var LiveKinds = []byte{
 	kindChildren, kindCount, kindRoot, kindUpLog, kindDownLog, kindQueue,
 	kindProof, kindState, kindLease, kindLeaseRoot, kindHole, kindParked, kindReleased,
 	kindFront, kindUnmarked, kindUnmarkedCount, kindAdoptBorn, kindAdoptRoot,
-	kindReleasePage, kindRewritten, kindPopMark,
+	kindReleasePage, kindRewritten, kindPopMark, kindAddRev, kindHolesClear,
 }
 
 // listMark begins a child list written from its block's content.
@@ -367,6 +384,9 @@ type Records struct {
 	// the order written, which the collector reads once it commits, as
 	// Collector.queueFrom describes.
 	queued []queuedBlock
+	// addRaised reports that the transaction raised the add revision, so a
+	// later front or hole key it writes raises it no further.
+	addRaised bool
 }
 
 // AssumeSettled tells the records that the Volume's generation is
@@ -802,7 +822,9 @@ func (r *Records) parkedAt(ctx context.Context, key []byte, ripe uint64) (bool, 
 }
 
 // AnyParked reports whether the free parked any block that waits for the
-// flip, reading at most two keys.
+// flip. It seeks the parked and released prefixes, so it steps over every
+// deleted key at their start; its one caller reads it once as the Volume
+// opens, in a read snapshot that holds no writer.
 func (r *Records) AnyParked(ctx context.Context) (bool, error) {
 	found, err := r.anyKey(ctx, r.key(kindParked))
 	if err != nil || found {
@@ -869,50 +891,41 @@ func (r *Records) unpark(ctx context.Context, state *LivenessState, key []byte, 
 	return r.tx.Delete(ctx, r.key(kindUnmarked, key))
 }
 
-// unrunParked takes each of up to a slice of parked blocks after the key
-// after of kind, kindParked or kindReleased, out of the run, as unpark does,
-// while the generation is Open, and returns the last key it read and whether
-// more may follow. A readoption calls it before it deletes the parked
-// records, and its recount then counts every stored list, a released one
-// too. A released list holds its children again once counted, and the walk
-// may have popped a child while the park left it at zero, so each child the
-// walk owes a decode returns to the front, absent ones too: the count
-// returns only stored children of marked lists. It reads one list record
-// per parked block, and one per child of a released one.
-func (r *Records) unrunParked(ctx context.Context, kind byte, after []byte) ([]byte, bool, error) {
-	// Read a slice of parked keys while Open.
-	if gen, err := r.generation(ctx); err != nil || gen != Generation_GENERATION_OPEN {
-		return after, false, err
-	}
-	recs, err := r.scanAfter(ctx, kind, after, sliceRecords)
-	if err != nil {
-		return after, false, err
-	}
-
+// unrunParked takes each parked block of kind, kindParked or kindReleased, that
+// page names and its transaction still reads, out of the run, as unpark does.
+// The caller calls it only while the generation is Open. A readoption calls it
+// before it deletes the parked records, and its recount then counts every
+// stored list, a released one too. A released list holds its children again
+// once counted, and the walk may have popped a child while the park left it at
+// zero, so each child the walk owes a decode returns to the front, absent ones
+// too: the count returns only stored children of marked lists. It reads one
+// list record per parked block, and one per child of a released one.
+func (r *Records) unrunParked(ctx context.Context, kind byte, page *keyPage) error {
 	// Take each marked one out of the run; an unverified one stays. Return
 	// a released one's owed children to the front.
-	for _, rec := range recs {
-		after = rec.key
-		if len(rec.key) < 8 {
-			return after, false, errBadBlockKey
+	return page.each(func(parked []byte) error {
+		// Skip a key taken out since the snapshot.
+		if len(parked) < 8 {
+			return errBadBlockKey
 		}
-		key := rec.key[8:]
+		if found, err := r.tx.Exists(ctx, r.key(kind, parked)); err != nil || !found {
+			return err
+		}
+		key := parked[8:]
 		list, listed, err := r.tx.Get(ctx, r.key(kindChildren, key))
 		if err != nil {
-			return after, false, err
+			return err
 		}
 		if listed && listMarked(list) {
 			if err := r.tx.Delete(ctx, r.key(kindUnmarked, key)); err != nil {
-				return after, false, err
+				return err
 			}
 		}
 		if listed && kind == kindReleased {
-			if err := r.pushChildren(ctx, listKeys(list), nil); err != nil {
-				return after, false, err
-			}
+			return r.pushChildren(ctx, listKeys(list), nil)
 		}
-	}
-	return after, len(recs) == sliceRecords, nil
+		return nil
+	})
 }
 
 // repark takes the parked block at key back from the free, while Open, so
@@ -1093,21 +1106,67 @@ func (r *Records) ScanRoots(ctx context.Context, fn func(bucketID, name string, 
 	})
 }
 
-// runSettled reports whether the unmarked run is complete and the front
-// and the recorded holes are empty, the flip's checks of the settle's own
-// records. It reads the run's completion entry and seeks two prefixes;
-// each seek steps over the deleted keys at its prefix's start.
-func (r *Records) runSettled(ctx context.Context) (bool, error) {
+// runIncomplete reports whether the unmarked run lacks its completion
+// entry. It reads one key.
+func (r *Records) runIncomplete(ctx context.Context) (bool, error) {
 	done, err := r.tx.Exists(ctx, r.key(kindUnmarked, runComplete))
-	if err != nil || !done {
-		return false, err
+	return !done, err
+}
+
+// addFront pushes the block at key onto the front, raising the add
+// revision, as kindAddRev describes. It is the one writer of a front key.
+func (r *Records) addFront(ctx context.Context, key []byte) error {
+	if err := r.raiseAddRev(ctx); err != nil {
+		return err
 	}
-	for _, kind := range []byte{kindFront, kindHole} {
-		if found, err := r.anyKey(ctx, r.key(kind)); err != nil || found {
-			return false, err
-		}
+	return r.tx.Set(ctx, r.key(kindFront, key), nil)
+}
+
+// addHole records the block at key as a hole, raising the add revision
+// and deleting the holes-clear mark, as kindAddRev and kindHolesClear
+// describe. It is the one writer of a hole key.
+func (r *Records) addHole(ctx context.Context, key []byte) error {
+	if err := r.raiseAddRev(ctx); err != nil {
+		return err
 	}
-	return true, nil
+	if err := r.tx.Delete(ctx, r.key(kindHolesClear)); err != nil {
+		return err
+	}
+	return r.tx.Set(ctx, r.key(kindHole, key), nil)
+}
+
+// raiseAddRev raises the add revision once per transaction. Cost: one point
+// read and one write, in a transaction that writes a front or hole key.
+func (r *Records) raiseAddRev(ctx context.Context) error {
+	// Raise it once, however many keys the transaction adds.
+	if r.addRaised {
+		return nil
+	}
+	rev, err := r.addRev(ctx)
+	if err != nil {
+		return err
+	}
+	r.addRaised = true
+	return r.tx.Set(ctx, r.key(kindAddRev), binary.BigEndian.AppendUint64(nil, rev+1))
+}
+
+// addRev reads the add revision. It reads one key.
+func (r *Records) addRev(ctx context.Context) (uint64, error) {
+	value, found, err := r.tx.Get(ctx, r.key(kindAddRev))
+	if err != nil || !found {
+		return 0, err
+	}
+	if len(value) != 8 {
+		return 0, errors.New("liveness add revision is malformed")
+	}
+	return binary.BigEndian.Uint64(value), nil
+}
+
+// holesOpen reports whether a hole key may exist: the holes-clear mark is
+// absent, as kindHolesClear describes. It reads one key.
+func (r *Records) holesOpen(ctx context.Context) (bool, error) {
+	clear, err := r.tx.Exists(ctx, r.key(kindHolesClear))
+	return !clear, err
 }
 
 // anyKey reports whether a key begins with prefix.
@@ -1210,10 +1269,10 @@ func (r *Records) scanDowns(ctx context.Context, from uint64, fn func(p downPage
 
 // downCursor returns the sequence of the first down page left, which every
 // down before it netted, or the down log's end when none is left, reading
-// one key.
+// one key from the state's down cursor.
 func (r *Records) downCursor(ctx context.Context, state *LivenessState) (uint64, error) {
 	cursor := state.GetDownSeq()
-	err := r.scanDowns(ctx, 0, func(p downPage) (bool, error) {
+	err := r.scanDowns(ctx, state.GetDownCursor(), func(p downPage) (bool, error) {
 		cursor = p.seq
 		return false, nil
 	})

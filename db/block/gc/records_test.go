@@ -92,6 +92,7 @@ func TestSettleWaitsForNetting(t *testing.T) {
 				tx.Set(ctx, rec.queueKey(5, key), nil),
 				tx.Set(ctx, rec.key(kindFront, key), nil),
 				tx.Set(ctx, rec.key(kindUnmarked, runComplete), nil),
+				tx.Set(ctx, rec.key(kindHolesClear), nil),
 			} {
 				if err != nil {
 					t.Fatal(err)
@@ -109,13 +110,13 @@ func TestSettleWaitsForNetting(t *testing.T) {
 			// Pop the front, park what the free finds, then try the flip.
 			c := NewCollector(nil, CollectorOptions{Frees: true})
 			var res CollectResult
-			if _, _, err := c.frontSlice(ctx, rec, nil, &res, frontPos{}); err != nil {
+			if _, _, err := c.frontSlice(ctx, rec, nil, &res, frontPos{}, pageIn(ctx, t, rec, kindFront)); err != nil {
 				t.Fatal(err)
 			}
 			if _, _, _, err := c.freeSlice(ctx, rec, nil, &res, queuedIn(ctx, t, rec)); err != nil {
 				t.Fatal(err)
 			}
-			if err := c.flip(ctx, rec, &res, headIn(ctx, t, rec)); err != nil {
+			if err := c.flip(ctx, rec, &res, proofIn(ctx, t, c, rec)); err != nil {
 				t.Fatal(err)
 			}
 			held := bc.block != nil
@@ -124,6 +125,92 @@ func TestSettleWaitsForNetting(t *testing.T) {
 			}
 			if !held && (res.Popped != 1 || !res.Flipped) {
 				t.Fatalf("with netting done, popped %d and flipped %v; want the pop and the flip", res.Popped, res.Flipped)
+			}
+		})
+	}
+}
+
+// TestFlipRefusesWriteAfterProof checks that the flip refuses a proof that a
+// writer outdated between the snapshot and the flip: a put pushing a block
+// onto the front, an audit recording a hole, and an adoption queueing a block
+// at zero, each run as the FlipProof spec's writers do. The flip's
+// transaction seeks none of those kinds, so only the add revision, the
+// holes-clear mark and the adoption mark can show the write; the spec's
+// mutants drop each. Each writer runs through its own Records, as its own
+// transaction would.
+func TestFlipRefusesWriteAfterProof(t *testing.T) {
+	ctx := context.Background()
+	ref, err := block.BuildBlockRef([]byte("written block"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	key := BlockKey(ref)
+	writers := []struct {
+		name  string
+		write func(rec *Records) error
+	}{
+		{"a put pushing onto the front", func(rec *Records) error {
+			return rec.addFront(ctx, key)
+		}},
+		{"a recorded hole", func(rec *Records) error {
+			return rec.addHole(ctx, key)
+		}},
+		{"an adoption queueing a block", func(rec *Records) error {
+			state, err := rec.GetState(ctx)
+			if err != nil {
+				return err
+			}
+			state.AdoptAtUnixMilli++
+			if err := rec.tx.Set(ctx, rec.queueKey(1, key), nil); err != nil {
+				return err
+			}
+			return rec.SetState(ctx, state)
+		}},
+		{"nothing", nil},
+	}
+	for _, w := range writers {
+		t.Run(w.name, func(t *testing.T) {
+			// An adopted Open Volume with the run complete, the holes-clear
+			// mark, an empty front and an empty free queue: ready to flip.
+			tx, err := store_kvtx_inmem.NewStore().NewTransaction(ctx, true)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer tx.Discard()
+			rec := NewRecords(tx, []byte("l/"))
+			state := &LivenessState{
+				Adoption:         Adoption_ADOPTION_ADOPTED,
+				Generation:       Generation_GENERATION_OPEN,
+				AdoptAtUnixMilli: 1,
+				UpCursor:         10,
+			}
+			for _, err := range []error{
+				tx.Set(ctx, rec.key(kindUnmarked, runComplete), nil),
+				tx.Set(ctx, rec.key(kindHolesClear), nil),
+				rec.SetState(ctx, state),
+			} {
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			// Read the proof, let the writer land, then flip.
+			c := NewCollector(nil, CollectorOptions{Frees: true})
+			proof := proofIn(ctx, t, c, rec)
+			if !proof.read {
+				t.Fatal("the snapshot found the flip's conditions unmet")
+			}
+			if w.write != nil {
+				if err := w.write(NewRecords(tx, []byte("l/"))); err != nil {
+					t.Fatal(err)
+				}
+			}
+			var res CollectResult
+			if err := c.flip(ctx, rec, &res, proof); err != nil {
+				t.Fatal(err)
+			}
+			if want := w.write == nil; res.Flipped != want {
+				t.Fatalf("after %s, flipped %v; want %v", w.name, res.Flipped, want)
 			}
 		})
 	}
@@ -265,17 +352,24 @@ func queuedIn(ctx context.Context, t *testing.T, rec *Records) []queuedBlock {
 	return queued
 }
 
-// headIn returns the free queue's head in rec, as readQueueHead's snapshot
-// finds it, for a test that flips within one transaction.
-func headIn(ctx context.Context, t *testing.T, rec *Records) queueHead {
+// pageIn reads the first page of kind's keys in rec, as viewSlices's
+// snapshot reads it, for a test that runs a slice within one transaction.
+func pageIn(ctx context.Context, t *testing.T, rec *Records, kind byte) *keyPage {
 	t.Helper()
-	state, err := rec.GetState(ctx)
+	page := &keyPage{}
+	if err := rec.readKeys(ctx, page, kind, nil, sliceRecords, nil); err != nil {
+		t.Fatal(err)
+	}
+	return page
+}
+
+// proofIn reads the flip's proof in rec, as readFlipProof's snapshot reads
+// it, for a test that flips within one transaction.
+func proofIn(ctx context.Context, t *testing.T, c *Collector, rec *Records) flipProof {
+	t.Helper()
+	proof, err := c.proveFlip(ctx, rec)
 	if err != nil {
 		t.Fatal(err)
 	}
-	head := queueHead{read: true, adoptAt: state.GetAdoptAtUnixMilli()}
-	if _, head.at, err = rec.ripeQueued(ctx, nil, 0); err != nil {
-		t.Fatal(err)
-	}
-	return head
+	return proof
 }

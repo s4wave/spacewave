@@ -218,10 +218,9 @@ type Collector struct {
 	// frontAdoptAt is the adoption mark under which the current or last
 	// front scan started; a new adoption ends the idle.
 	frontAdoptAt int64
-	// frontKeys and frontEnds are the front slice's scratch: the keys it
-	// read, packed end to end, and the end of each, reused across slices.
-	frontKeys []byte
-	frontEnds []int
+	// page is the scratch of the slices viewSlices runs, reused across
+	// slices.
+	page keyPage
 	// queueFrom is the free queue position from which the free's scan
 	// resumes, nil for the head, and queueBehind the entries that the
 	// collector's committed transactions wrote before it since, newest last.
@@ -407,8 +406,12 @@ func (c *Collector) Collect(ctx context.Context) (res CollectResult, err error) 
 	}()
 
 	// Release the roots of the lapsed leases.
-	_, err = eachSlice(ctx, c.update, "", nil, func(rec *Records, blocks block.StoreOps, from string) (string, bool, error) {
-		return c.sweepLeases(ctx, rec, blocks, &res, from)
+	var leaseFrom string
+	var lapsed lapsedPage
+	_, err = viewSlices(ctx, c, &leaseFrom, nil, &lapsed, func(rec *Records, page *lapsedPage, from string) error {
+		return page.read(ctx, rec, c.opts.Now(), from, c.share(sliceLeases))
+	}, func(rec *Records, blocks block.StoreOps, from string, page *lapsedPage) (string, bool, error) {
+		return c.sweepLeases(ctx, rec, blocks, &res, page)
 	})
 	if err != nil {
 		return res, err
@@ -463,8 +466,10 @@ func (c *Collector) freeStep(ctx context.Context, res *CollectResult, past func(
 	defer c.phase(PhaseSweep)()
 	if !c.requeued {
 		var reached bool
-		more, err := resumeSlices(ctx, c.update, &c.requeueFrom, past, func(rec *Records, _ block.StoreOps, from []byte) ([]byte, bool, error) {
-			next, more, end, err := c.requeueSlice(ctx, rec, res, from)
+		more, err := viewSlices(ctx, c, &c.requeueFrom, past, &c.page, func(rec *Records, page *keyPage, from []byte) error {
+			return rec.readKeys(ctx, page, kindParked, from, c.share(sliceFrees), nil)
+		}, func(rec *Records, _ block.StoreOps, from []byte, page *keyPage) ([]byte, bool, error) {
+			next, more, end, err := c.requeueSlice(ctx, rec, res, from, page)
 			reached = end
 			return next, more, err
 		})
@@ -721,56 +726,98 @@ func (c *Collector) phase(p Phase) func() {
 	return c.opts.Phase(p)
 }
 
-// sweepLeases releases up to sliceLeases roots of the leases that are not
-// live, from the lease from on in ID order, in one transaction, through
-// Land, so the down log records their release. It marks each lapsed lease
-// released before it releases a root of it, so no renewal brings it back and
-// no root joins it, and ends each lease it leaves with no root. It reports
-// whether it filled the slice, and the lease the next slice starts from.
-//
-// Cost: one read of each lease record from from on, which is one per running
-// or recently stopped process and per fill window of the last grace period;
-// per released root, its index record, its entry and what Land reads and
-// writes for it; per lease, one write to mark it and one to end it.
-func (c *Collector) sweepLeases(ctx context.Context, rec *Records, blocks block.StoreOps, res *CollectResult, from string) (string, bool, error) {
-	// Find the leases that are not live.
-	now := c.opts.Now()
-	limit := c.share(sliceLeases)
+// lapsedPage is a lease sweep slice's leases as a read snapshot found them:
+// the clock it read them at, the leases not live then from the slice's
+// position on, the roots the snapshot's index named for each, and whether
+// more may follow.
+type lapsedPage struct {
+	now    time.Time
+	leases []LapsedLease
+	roots  [][]LeasedRoot
+	more   bool
+}
+
+// read fills p in rec, a read snapshot, with up to limit roots of the
+// leases not live at now, from the lease from on in ID order. It reads each
+// lease record from from on, so it steps over every lease record deleted
+// since the last merge, which is why it runs in a snapshot that holds no
+// writer.
+func (p *lapsedPage) read(ctx context.Context, rec *Records, now time.Time, from string, limit int) error {
+	// Read the lapsed leases, then the roots each holds, up to limit.
 	leases, err := rec.LapsedLeases(ctx, from, now.UnixMilli(), limit)
 	if err != nil {
-		return "", false, err
+		return err
 	}
-
-	// List the roots of each, up to the slice's share, marking each lease
-	// released before its first release. A lease whose roots fit the share
-	// ends with the slice; the next slice resumes at the last lease read.
-	lapsed := make(map[string][]block.NamedRoot)
-	var ended []string
-	var next string
+	p.now, p.leases, p.roots = now, p.leases[:0], p.roots[:0]
 	left := limit
 	for _, lease := range leases {
 		if left == 0 {
 			break
 		}
+		roots, err := rec.ListLeaseRoots(ctx, lease.ID, left)
+		if err != nil {
+			return err
+		}
+		p.leases, p.roots = append(p.leases, lease), append(p.roots, roots)
+		left -= len(roots)
+	}
+	p.more = left == 0 || len(leases) == limit
+	return nil
+}
+
+// sweepLeases releases the roots of the leases page names, which a read
+// snapshot found not live, through Land, so the down log records their
+// release, and returns the lease the next slice starts from and whether more
+// may follow. It decides from point reads: it skips a lease its transaction
+// reads live again or gone, marks each lapsed lease released before it
+// releases a root of it, so no renewal brings it back and no root joins it,
+// and releases only a root whose entry still names the lease.
+//
+// It ends a lease only when the snapshot read it released and named no root
+// of it. The release committed before that snapshot, and Land refuses a
+// root onto a released lease, so no root joined it since. The next slice
+// starts at the first lease this one released, so each ends in a later
+// slice of the same pass.
+//
+// Cost: per lease, one point read and at most two writes; per released
+// root, its entry and what Land reads and writes for it. The snapshot read
+// steps over the deleted lease records, holding no writer.
+func (c *Collector) sweepLeases(ctx context.Context, rec *Records, blocks block.StoreOps, res *CollectResult, page *lapsedPage) (string, bool, error) {
+	// Confirm each lease still lapsed, mark it released, and gather the
+	// release of its roots.
+	lapsed := make(map[string][]block.NamedRoot)
+	var ended []string
+	var next, released string
+	more, now := page.more, page.now
+	for i, lease := range page.leases {
 		next = lease.ID
-		if lease.Expires != 0 {
+		expires, found, err := rec.GetLease(ctx, lease.ID)
+		if err != nil {
+			return "", false, err
+		}
+		if !found || expires > now.UnixMilli() {
+			continue
+		}
+		roots := page.roots[i]
+		if lease.Expires == 0 && len(roots) == 0 {
+			ended = append(ended, lease.ID)
+			continue
+		}
+		if expires != 0 {
 			if err := rec.ReleaseLease(ctx, lease.ID); err != nil {
 				return "", false, err
 			}
 		}
-		roots, err := rec.ListLeaseRoots(ctx, lease.ID, left)
-		if err != nil {
-			return "", false, err
-		}
 		if err := releaseRoots(ctx, rec, lease.ID, roots, lapsed); err != nil {
 			return "", false, err
 		}
-		left -= len(roots)
-		if left > 0 {
-			ended = append(ended, lease.ID)
+		if released == "" {
+			released = lease.ID
 		}
 	}
-	more := left == 0 || len(leases) == limit
+	if released != "" {
+		next, more = released, true
+	}
 	return c.endLeases(ctx, rec, blocks, res, now, lapsed, ended, next, more)
 }
 
@@ -922,12 +969,16 @@ func (c *Collector) netLogs(ctx context.Context, n *netting, budget int) (bool, 
 	}
 	state.UpCursor = state.GetUpSeq()
 
-	// Net the aged down pages in order, restamping one stamped after the
-	// clock.
+	// Net the aged down pages in order from the down cursor, restamping one
+	// stamped after the clock. The cursor moves to the first page left, so
+	// the next slice's seek lands on it, past the pages this one deletes.
 	horizon := now - c.opts.Grace.Milliseconds()
-	err = rec.scanDowns(ctx, 0, func(p downPage) (bool, error) {
+	from := state.GetDownCursor()
+	state.DownCursor = state.GetDownSeq()
+	err = rec.scanDowns(ctx, from, func(p downPage) (bool, error) {
 		// Restamp a page stamped after the clock, and stop at one not aged
 		// and one that might pass the budget unless it is the first.
+		state.DownCursor = p.seq
 		if p.at > now {
 			return false, rec.restampDown(ctx, p, now)
 		}
@@ -948,6 +999,7 @@ func (c *Collector) netLogs(ctx context.Context, n *netting, budget int) (bool, 
 			return false, err
 		}
 		n.res.Netted++
+		state.DownCursor = p.seq + 1
 		return true, rec.deleteDown(ctx, p)
 	})
 	return full, err
@@ -1025,18 +1077,22 @@ func (c *Collector) freeSlice(ctx context.Context, rec *Records, blocks block.St
 	return took, done, f.gave, nil
 }
 
-// requeueSlice moves up to a slice of parked blocks back onto the free queue
-// once the generation flipped, from the parked key position from, and
-// reports whether the slice was full and whether it reached the parked
-// keys' end. It reads only kindParked keys: a released park gave its downs
-// already, so it stays for the sweep, which deletes its key and gives none.
-// Each keeps its ripe sequence, which the cursor passed before the free
-// parked it, so the free step that follows takes it, checking it is still
-// at zero at that sequence, and drops an unmarked one, which the sweep
-// deletes. While the generation is Open, or the Volume is not adopted, it
-// moves nothing, and an Open one resets the requeue's position, as
-// Collector.requeued describes.
-func (c *Collector) requeueSlice(ctx context.Context, rec *Records, res *CollectResult, from []byte) ([]byte, bool, bool, error) {
+// requeueSlice moves the parked blocks page names, read after the parked key
+// position from in a read snapshot, back onto the free queue once the
+// generation flipped, and reports whether the page was full and whether it
+// reached the parked keys' end. It moves only a key its transaction still reads
+// parked, since a Land that stored the block again since the snapshot unparked
+// it. It reads only kindParked keys: a released park gave its downs already, so
+// it stays for the sweep, which deletes its key and gives none. Each keeps its
+// ripe sequence, which the cursor passed before the free parked it, so the free
+// step that follows takes it, checking it is still at zero at that sequence,
+// and drops an unmarked one, which the sweep deletes. While the generation is
+// Open, or the Volume is not adopted, it moves nothing, and an Open one resets
+// the requeue's position, as Collector.requeued describes.
+//
+// Cost: per key, one point read, and for a key still parked, its delete and
+// enqueue.
+func (c *Collector) requeueSlice(ctx context.Context, rec *Records, res *CollectResult, from []byte, page *keyPage) ([]byte, bool, bool, error) {
 	// Requeue only once an adopted Volume's generation flipped.
 	state, err := rec.GetState(ctx)
 	if err != nil {
@@ -1049,34 +1105,29 @@ func (c *Collector) requeueSlice(ctx context.Context, rec *Records, res *Collect
 		return from, false, false, nil
 	}
 
-	// Take the next parked keys, then move each.
-	var keys [][]byte
-	full, budget := false, c.share(sliceFrees)
-	err = rec.scan(ctx, rec.key(kindParked), from, func(key []byte, _ func() ([]byte, error)) (bool, error) {
-		if len(keys) == budget {
-			full = true
-			return false, nil
+	// Move each key still parked.
+	err = page.each(func(key []byte) error {
+		// Skip a key a Land took since the snapshot.
+		if len(key) < 8 {
+			return errBadBlockKey
 		}
-		keys = append(keys, slices.Clone(key))
-		return true, nil
+		parked, err := rec.tx.Exists(ctx, rec.key(kindParked, key))
+		if err != nil || !parked {
+			return err
+		}
+		if err := rec.tx.Delete(ctx, rec.key(kindParked, key)); err != nil {
+			return err
+		}
+		if err := rec.enqueue(ctx, binary.BigEndian.Uint64(key), key[8:]); err != nil {
+			return err
+		}
+		res.Requeued++
+		return nil
 	})
 	if err != nil {
 		return from, false, false, err
 	}
-	for _, key := range keys {
-		if len(key) < 8 {
-			return from, false, false, errBadBlockKey
-		}
-		if err := rec.tx.Delete(ctx, rec.key(kindParked, key)); err != nil {
-			return from, false, false, err
-		}
-		if err := rec.enqueue(ctx, binary.BigEndian.Uint64(key), key[8:]); err != nil {
-			return from, false, false, err
-		}
-		res.Requeued++
-		from = key
-	}
-	return from, full, !full, nil
+	return page.resume(from), page.full, !page.full, nil
 }
 
 // freeable reports whether the free may run under state: the Volume is
@@ -1092,9 +1143,10 @@ func (c *Collector) freeable(state *LivenessState) bool {
 
 // freeBlock frees one block at zero, q, ripe at q.ripe: its bytes, child
 // list, queue entry, proof and count record, and gives each child its down
-// through f. The caller read q's entry in this transaction. It deletes only the queue entry when the entry is stale: the block has no
-// child list or no zero record at its ripe sequence, or it is unmarked,
-// which the sweep deletes. While the generation is Open it deletes nothing,
+// through f. The caller read q's entry in this transaction. It deletes
+// only the queue entry when the entry is stale: the block has no child list
+// or no zero record at its ripe sequence, or it is unmarked, which the sweep
+// deletes. While the generation is Open it deletes nothing,
 // and parks the block instead, as invariants 9 and 10 describe: a park
 // gives the children their downs as a free does, unless ParkKeepsHolds
 // keeps them. When the list does not fit the moves f has left after an

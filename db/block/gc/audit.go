@@ -283,7 +283,7 @@ func logTail(ctx context.Context, rec *Records, state *LivenessState) (map[strin
 	if err != nil {
 		return nil, err
 	}
-	err = rec.scanDowns(ctx, 0, func(p downPage) (bool, error) {
+	err = rec.scanDowns(ctx, state.GetDownCursor(), func(p downPage) (bool, error) {
 		return true, add(p.keys, -1)
 	})
 	return delta, err
@@ -389,7 +389,7 @@ func recordHole(ctx context.Context, rec *Records, h holeCount, res *AuditResult
 	}
 
 	// Record it.
-	if err := rec.tx.Set(ctx, rec.key(kindHole, BlockKey(h.ref)), nil); err != nil {
+	if err := rec.addHole(ctx, BlockKey(h.ref)); err != nil {
 		return err
 	}
 	res.Holes++

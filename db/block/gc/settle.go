@@ -187,7 +187,7 @@ func (r *Records) pushOwed(ctx context.Context, key []byte) (bool, error) {
 	if err != nil || marked {
 		return false, err
 	}
-	return true, r.tx.Set(ctx, r.key(kindFront, key), nil)
+	return true, r.addFront(ctx, key)
 }
 
 // pushChildren pushes each child in packed, block keys as a list holds
@@ -248,7 +248,7 @@ func (r *Records) putCopied(ctx context.Context, ref *block.BlockRef, children [
 	if err := r.tx.Set(ctx, r.key(kindUnmarked, key), nil); err != nil {
 		return err
 	}
-	return r.tx.Set(ctx, r.key(kindFront, key), nil)
+	return r.addFront(ctx, key)
 }
 
 // reopen moves a Settled Volume back to Open for a copied put of a block it
@@ -312,7 +312,7 @@ func (r *Records) keepParked(ctx context.Context, key []byte) error {
 	if err := r.tx.Set(ctx, r.key(kindUnmarked, key), nil); err != nil {
 		return err
 	}
-	return r.tx.Set(ctx, r.key(kindFront, key), nil)
+	return r.addFront(ctx, key)
 }
 
 // mergeList writes the union of the list value of the block at key and
@@ -431,8 +431,10 @@ func (c *Collector) settle(ctx context.Context, past func() bool, res *CollectRe
 	if gen == Generation_GENERATION_SWEEPING {
 		if !c.sweptRun {
 			var reached bool
-			more, err := resumeSlices(ctx, c.update, &c.sweepFrom, past, func(rec *Records, blocks block.StoreOps, from []byte) ([]byte, bool, error) {
-				next, more, end, err := c.sweepSlice(ctx, rec, blocks, res, from)
+			more, err := viewSlices(ctx, c, &c.sweepFrom, past, &c.page, func(rec *Records, page *keyPage, from []byte) error {
+				return rec.readKeys(ctx, page, kindUnmarked, from, c.share(sliceFrees), nil)
+			}, func(rec *Records, blocks block.StoreOps, from []byte, page *keyPage) ([]byte, bool, error) {
+				next, more, end, err := c.sweepSlice(ctx, rec, blocks, res, from, page)
 				reached = end
 				return next, more, err
 			})
@@ -441,15 +443,22 @@ func (c *Collector) settle(ctx context.Context, past func() bool, res *CollectRe
 			}
 			c.sweptRun = true
 		}
-		return resumeSlices(ctx, c.update, &c.dropFrom, past, func(rec *Records, _ block.StoreOps, from []byte) ([]byte, bool, error) {
-			return c.dropRunSlice(ctx, rec, res, from)
+		return viewSlices(ctx, c, &c.dropFrom, past, &c.page, func(rec *Records, page *keyPage, from []byte) error {
+			return rec.readKeys(ctx, page, kindUnmarked, from, c.share(sliceRecords), nil)
+		}, func(rec *Records, _ block.StoreOps, from []byte, page *keyPage) ([]byte, bool, error) {
+			return c.dropRunSlice(ctx, rec, res, from, page)
 		})
 	}
 
 	// Build the run and seed the front, each resuming where the last pass
 	// stopped.
-	more, err := resumeSlices(ctx, c.update, &c.runFrom, past, func(rec *Records, _ block.StoreOps, from []byte) ([]byte, bool, error) {
-		return c.runSlice(ctx, rec, res, from)
+	more, err := viewSlices(ctx, c, &c.runFrom, past, &c.page, func(rec *Records, page *keyPage, from []byte) error {
+		return rec.readKeys(ctx, page, kindChildren, from, c.share(sliceRecords), func(value func() ([]byte, error)) (bool, error) {
+			v, err := value()
+			return err == nil && !listMarked(v), err
+		})
+	}, func(rec *Records, _ block.StoreOps, from []byte, page *keyPage) ([]byte, bool, error) {
+		return c.runSlice(ctx, rec, res, from, page)
 	})
 	if err != nil || more {
 		return more, err
@@ -465,61 +474,142 @@ func (c *Collector) settle(ctx context.Context, past func() bool, res *CollectRe
 	if more, err := c.scanFront(ctx, state, past, res); err != nil || more {
 		return more, err
 	}
-	head, err := c.readQueueHead(ctx)
+	if err := c.clearHoles(ctx); err != nil {
+		return false, err
+	}
+	proof, err := c.readFlipProof(ctx)
 	if err != nil {
 		return false, err
 	}
 	return false, c.update(ctx, func(rec *Records, _ block.StoreOps) error {
-		return c.flip(ctx, rec, res, head)
+		return c.flip(ctx, rec, res, proof)
 	})
 }
 
-// queueHead is where a read snapshot found the free queue's first entry,
-// for the flip's check of the queue, as flip describes.
-type queueHead struct {
-	// read reports that the snapshot read the head; without it the flip
-	// does not run in this pass.
+// flipProof is what a read snapshot found of the flip's conditions, which
+// the flip's transaction confirms with point reads, as flip describes.
+//
+// Invariant: between the snapshot and the flip's transaction the free
+// queue gains no entry while the adoption mark stands, and the front and
+// the holes gain no key while the add revision stands. Only the collector's
+// transactions and the adoption write queue entries, as Collector.queueFrom
+// describes; the collector runs one step at a time, and the settle runs
+// nothing between the snapshot and the flip; an adoption stamps a new
+// AdoptAtUnixMilli, which the flip compares. A Land only deletes queue
+// entries. Every front and hole key is written through Records.addFront or
+// Records.addHole, which raise the add revision in the same transaction.
+// FlipProof.tla models the writers, and its mutants drop each check.
+type flipProof struct {
+	// read reports that the snapshot found the flip's conditions holding
+	// but the queue's: Open, freeable, no recount owed, the run complete,
+	// no front key and the holes-clear mark. Without it the flip does not
+	// run in this pass.
 	read bool
-	// at is the first entry's position, nil when the queue was empty.
-	at []byte
+	// rev is the add revision the snapshot read.
+	rev uint64
 	// adoptAt is the adoption mark the snapshot read.
 	adoptAt int64
+	// popped reports that the snapshot read a pop mark.
+	popped bool
+	// upTo is the bound the snapshot read for a ripe queued block: the
+	// lower of the pop mark and the up cursor, when popped.
+	upTo uint64
+	// ripe reports that the snapshot's free queue held a block ripe at or
+	// below upTo. Deleting a queue entry never makes the queue riper, so
+	// the flip relies on it while upTo and the adoption mark stand, as the
+	// adoption is the one writer outside the collector that queues a block.
+	ripe bool
 }
 
-// readQueueHead finds the free queue's first entry in a read snapshot,
-// which holds no writer, stepping over the entries deleted before it. It
-// reads the head only when the same snapshot shows every other condition
-// of the flip holding: Open, freeable, no recount owed, the run complete,
-// no front or hole key, and a pop mark. Otherwise it returns a head not
-// read, and the flip does not run in this pass.
+// readFlipProof reads the flip's conditions in a read snapshot, which holds
+// no writer, and returns them as a proof the flip's transaction confirms.
+// It seeks the front's prefix, stepping over its deleted keys, and, only
+// when a pop mark asks for the queue's check, reads the free queue's first
+// entry, stepping over the entries deleted before it, to decide whether a
+// block is ripe at or below the mark.
 //
-// Cost: per pass that reaches the flip, the state, the recount mark and
-// the flip's other checks in a snapshot; and, only when they all pass, one
-// walk over the deleted entries before the queue's first.
-func (c *Collector) readQueueHead(ctx context.Context) (queueHead, error) {
-	var head queueHead
+// Cost: per pass that reaches the flip, the state, the recount mark, the
+// run's completion entry, the holes-clear mark, the add revision and the
+// pop mark, then one seek of the front and one of the queue, all in a
+// snapshot.
+func (c *Collector) readFlipProof(ctx context.Context) (flipProof, error) {
+	var proof flipProof
 	err := c.store.View(ctx, func(rec *Records) error {
-		// Require every other condition of the flip.
-		state, err := rec.GetState(ctx)
-		if err != nil || state.GetGeneration() != Generation_GENERATION_OPEN || !c.freeable(state) {
-			return err
-		}
-		if owed, err := rec.recountOwed(ctx); err != nil || owed {
-			return err
-		}
-		if settled, err := rec.runSettled(ctx); err != nil || !settled {
-			return err
-		}
-		if _, popped, err := rec.popMark(ctx); err != nil || !popped {
-			return err
-		}
-
-		// Read the head under the adoption mark the snapshot holds.
-		head.read, head.adoptAt = true, state.GetAdoptAtUnixMilli()
-		_, head.at, err = rec.ripeQueued(ctx, nil, 0)
+		var err error
+		proof, err = c.proveFlip(ctx, rec)
 		return err
 	})
-	return head, err
+	return proof, err
+}
+
+// proveFlip reads the flip's proof from rec, as readFlipProof describes.
+func (c *Collector) proveFlip(ctx context.Context, rec *Records) (flipProof, error) {
+	// Require every condition of the flip but the queue's.
+	var proof flipProof
+	state, err := rec.GetState(ctx)
+	if err != nil || state.GetGeneration() != Generation_GENERATION_OPEN || !c.freeable(state) {
+		return proof, err
+	}
+	for _, check := range []func(context.Context) (bool, error){rec.recountOwed, rec.runIncomplete, rec.holesOpen} {
+		if fails, err := check(ctx); err != nil || fails {
+			return proof, err
+		}
+	}
+	if fronted, err := rec.anyKey(ctx, rec.key(kindFront)); err != nil || fronted {
+		return proof, err
+	}
+	if proof.rev, err = rec.addRev(ctx); err != nil {
+		return proof, err
+	}
+	proof.read, proof.adoptAt = true, state.GetAdoptAtUnixMilli()
+
+	// Read the queue's head when a pop mark asks for its check.
+	mark, popped, err := rec.popMark(ctx)
+	if err != nil || !popped {
+		return proof, err
+	}
+	proof.popped, proof.upTo = true, min(mark, state.GetUpCursor())
+	proof.ripe, _, err = rec.ripeQueued(ctx, nil, proof.upTo)
+	return proof, err
+}
+
+// clearHoles writes the holes-clear mark when a read snapshot finds no hole
+// key, in a transaction that reads the snapshot's add revision unchanged,
+// as kindHolesClear describes.
+//
+// Cost: per pass, one point read; while the mark is absent, one seek of the
+// hole prefix in a snapshot, and, when it finds none, one transaction of a
+// point read and a write.
+func (c *Collector) clearHoles(ctx context.Context) error {
+	// Read the mark, and without it the hole prefix and the revision.
+	var write bool
+	var rev uint64
+	err := c.store.View(ctx, func(rec *Records) error {
+		// Find the mark gone, no hole, and the revision to match.
+		open, err := rec.holesOpen(ctx)
+		if err != nil || !open {
+			return err
+		}
+		holes, err := rec.anyKey(ctx, rec.key(kindHole))
+		if err != nil || holes {
+			return err
+		}
+		rev, err = rec.addRev(ctx)
+		write = err == nil
+		return err
+	})
+	if err != nil || !write {
+		return err
+	}
+
+	// Write the mark unless a hole may have been recorded since.
+	return c.update(ctx, func(rec *Records, _ block.StoreOps) error {
+		now, err := rec.addRev(ctx)
+		if err != nil || now != rev {
+			return err
+		}
+		return rec.tx.Set(ctx, rec.key(kindHolesClear), nil)
+	})
 }
 
 // scanFront scans the front in slices from where the last pass stopped,
@@ -528,8 +618,9 @@ func (c *Collector) readQueueHead(ctx context.Context) (queueHead, error) {
 // reports whether it stopped at past with work left.
 //
 // Cost: per pass with the front idle, nothing; per event, one scan of the
-// whole front, each slice holding the writer for at most sliceRecords
-// entries and up to five point reads per entry. While a damaged entry
+// whole front in read snapshots, each slice then holding the writer for at
+// most sliceRecords entries and up to six point reads per entry, whatever
+// the deleted front keys. While a damaged entry
 // stands, every pass that reaches the settle scans, as before the idle.
 func (c *Collector) scanFront(ctx context.Context, state *LivenessState, past func() bool, res *CollectResult) (bool, error) {
 	// Skip an idle front no event woke.
@@ -544,8 +635,10 @@ func (c *Collector) scanFront(ctx context.Context, state *LivenessState, past fu
 		c.frontIdle, c.frontWake, c.frontAdoptAt = false, 0, adoptAt
 		c.front = frontPos{}
 	}
-	more, err := resumeSlices(ctx, c.update, &c.front, past, func(rec *Records, blocks block.StoreOps, from frontPos) (frontPos, bool, error) {
-		return c.frontSlice(ctx, rec, blocks, res, from)
+	more, err := viewSlices(ctx, c, &c.front, past, &c.page, func(rec *Records, page *keyPage, from frontPos) error {
+		return rec.readKeys(ctx, page, kindFront, from.key, c.share(sliceRecords), nil)
+	}, func(rec *Records, blocks block.StoreOps, from frontPos, page *keyPage) (frontPos, bool, error) {
+		return c.frontSlice(ctx, rec, blocks, res, from, page)
 	})
 	if err != nil || more || !c.front.done {
 		return more, err
@@ -599,8 +692,10 @@ func (c *Collector) seed(ctx context.Context, past func() bool, res *CollectResu
 		return false, nil
 	}
 	if !c.seededRoots {
-		more, err := resumeSlices(ctx, c.update, &c.seedRoot, past, func(rec *Records, _ block.StoreOps, from []byte) ([]byte, bool, error) {
-			return c.seedRootSlice(ctx, rec, res, from)
+		more, err := viewSlices(ctx, c, &c.seedRoot, past, &c.page, func(rec *Records, page *keyPage, from []byte) error {
+			return rec.readKeys(ctx, page, kindRoot, from, c.share(sliceRecords), nil)
+		}, func(rec *Records, _ block.StoreOps, from []byte, page *keyPage) ([]byte, bool, error) {
+			return c.seedRootSlice(ctx, rec, res, from, page)
 		})
 		if err != nil || more {
 			return more, err
@@ -639,38 +734,147 @@ func resumeSlices[P any](
 	return more, err
 }
 
-// seedRootSlice pushes the block of each of up to a slice of named roots
-// after the root key from onto the front when the walk owes it a decode,
-// while the generation is Open, and returns the last root key it read and
-// whether more may follow.
-func (c *Collector) seedRootSlice(ctx context.Context, rec *Records, res *CollectResult, from []byte) ([]byte, bool, error) {
-	// Read a slice of roots while Open.
+// keyPage is a slice's keys as a read snapshot found them, packed end to
+// end so a slice allocates nothing per key: the keys the slice decides, the
+// last key the read passed, and whether more follow it.
+type keyPage struct {
+	packed []byte
+	ends   []int
+	last   []byte
+	full   bool
+}
+
+// each calls fn with each key of p, which aliases p's buffer.
+func (p *keyPage) each(fn func(key []byte) error) error {
+	start := 0
+	for _, end := range p.ends {
+		if err := fn(p.packed[start:end:end]); err != nil {
+			return err
+		}
+		start = end
+	}
+	return nil
+}
+
+// resume returns the position a slice that decided p resumes from: a copy
+// of the last key p's read passed, or from when it passed none.
+func (p *keyPage) resume(from []byte) []byte {
+	if len(p.last) == 0 {
+		return from
+	}
+	return bytes.Clone(p.last)
+}
+
+// readKeys reads into p up to n records of kind after the key position
+// from, nil for the kind's start, passing over the empty key of a kind's
+// completion entry: the key of each whose value keep reports, or of every
+// one when keep is nil, the last key read, and whether more follow. It
+// reuses p's buffers. It steps over every deleted key before the first it
+// reads, so a collector calls it only in a read snapshot, as viewSlices
+// does.
+func (r *Records) readKeys(ctx context.Context, p *keyPage, kind byte, from []byte, n int, keep func(value func() ([]byte, error)) (bool, error)) error {
+	// Seek past from.
+	seek := from
+	if from != nil {
+		seek = append(bytes.Clone(from), 0)
+	}
+	p.packed, p.ends, p.last, p.full = p.packed[:0], p.ends[:0], p.last[:0], false
+
+	// Read until the page fills.
+	read := 0
+	return r.scan(ctx, r.key(kind), seek, func(key []byte, value func() ([]byte, error)) (bool, error) {
+		// Skip the completion key, and stop once the page holds n.
+		if len(key) == 0 {
+			return true, nil
+		}
+		if read == n {
+			p.full = true
+			return false, nil
+		}
+		read++
+		p.last = append(p.last[:0], key...)
+		if keep != nil {
+			if kept, err := keep(value); err != nil || !kept {
+				return err == nil, err
+			}
+		}
+		p.packed = append(p.packed, key...)
+		p.ends = append(p.ends, len(p.packed))
+		return true, nil
+	})
+}
+
+// viewSlices runs slice as resumeSlices does, each slice in two steps: read
+// fills page in a read snapshot, which holds no writer, from the position
+// the slice starts at, and slice then decides each entry of the page in a
+// write transaction from point reads. A slice so holds the
+// writer for its keys' point reads however many deleted keys lie before
+// them, as after a restart, which starts every position at its kind's
+// start, or once earlier slices deleted the keys they read. A key a writer
+// adds between the snapshot and the transaction waits for a later scan, as
+// one added behind the position does; one it deletes the slice's point read
+// finds gone.
+//
+// Cost: per slice, one snapshot read of up to the page's keys, stepping
+// over the deleted keys before them, and the write transaction's point
+// reads.
+func viewSlices[P, S any](
+	ctx context.Context,
+	c *Collector,
+	pos *P,
+	past func() bool,
+	page *S,
+	read func(rec *Records, page *S, from P) error,
+	slice func(rec *Records, blocks block.StoreOps, from P, page *S) (P, bool, error),
+) (bool, error) {
+	at := *pos
+	update := func(ctx context.Context, fn func(*Records, block.StoreOps) error) error {
+		if err := c.store.View(ctx, func(rec *Records) error { return read(rec, page, at) }); err != nil {
+			return err
+		}
+		return c.update(ctx, fn)
+	}
+	return resumeSlices(ctx, update, pos, past, func(rec *Records, blocks block.StoreOps, from P) (P, bool, error) {
+		next, more, err := slice(rec, blocks, from, page)
+		at = next
+		return next, more, err
+	})
+}
+
+// seedRootSlice pushes onto the front the block of each named root page
+// names, read after the root key from in a read snapshot, when the walk
+// owes it a decode, while the generation is Open, and returns the last root
+// key the page read and whether more may follow. It reads each root's entry
+// in its transaction and skips a root deleted since the snapshot; a root a
+// Land moved since pushes its new block itself, as seed describes.
+func (c *Collector) seedRootSlice(ctx context.Context, rec *Records, res *CollectResult, from []byte, page *keyPage) ([]byte, bool, error) {
+	// Seed only while Open.
 	gen, err := rec.generation(ctx)
 	if err != nil || gen != Generation_GENERATION_OPEN {
 		return from, false, err
 	}
-	budget := c.share(sliceRecords)
-	roots, err := rec.scanAfter(ctx, kindRoot, from, budget)
-	if err != nil {
-		return from, false, err
-	}
 
 	// Push each root's block when the walk owes it a decode.
-	for _, root := range roots {
-		from = root.key
+	err = page.each(func(key []byte) error {
+		// Skip a root deleted since the snapshot.
+		value, found, err := rec.tx.Get(ctx, rec.key(kindRoot, key))
+		if err != nil || !found {
+			return err
+		}
 		entry := &RootEntry{}
-		if err := entry.UnmarshalVT(root.value); err != nil {
-			return from, false, err
+		if err := entry.UnmarshalVT(value); err != nil {
+			return err
 		}
 		pushed, err := rec.pushOwed(ctx, entry.GetRef())
-		if err != nil {
-			return from, false, err
-		}
 		if pushed {
 			res.Seeded++
 		}
+		return err
+	})
+	if err != nil {
+		return from, false, err
 	}
-	return from, len(roots) == budget, nil
+	return page.resume(from), page.full, nil
 }
 
 // seedDownSlice pushes onto the front each block the walk owes a decode
@@ -680,11 +884,13 @@ func (c *Collector) seedRootSlice(ctx context.Context, rec *Records, res *Collec
 // names a block a root or list let go of within Grace, which a reader may
 // still pin.
 func (c *Collector) seedDownSlice(ctx context.Context, rec *Records, res *CollectResult, from uint64) (uint64, bool, error) {
-	// Read only while Open.
-	gen, err := rec.generation(ctx)
-	if err != nil || gen != Generation_GENERATION_OPEN {
+	// Read only while Open, from no earlier than the down cursor, before
+	// which every page is netted and deleted.
+	state, err := rec.GetState(ctx)
+	if err != nil || state.GetGeneration() != Generation_GENERATION_OPEN {
 		return from, false, err
 	}
+	from = max(from, state.GetDownCursor())
 
 	// Push the owed blocks each page names.
 	budget, n := c.share(sliceRecords), 0
@@ -705,9 +911,12 @@ func (c *Collector) seedDownSlice(ctx context.Context, rec *Records, res *Collec
 	return from, n == budget, err
 }
 
-// runSlice adds a run entry for each unverified list of up to a slice of
-// child list records after the key position from, while the generation is
-// Open, and writes the run's completion entry once it passes the last.
+// runSlice adds a run entry for each list page names that its transaction
+// still reads unverified, the unmarked lists a read snapshot found among a
+// slice of child list records after the key position from, while the
+// generation is Open, and writes the run's completion entry once page
+// reached the last. A list marked or freed since the snapshot needs no
+// entry; one stored unmarked since then wrote its own, as follows.
 //
 // Invariant: every write while Open that stores an unmarked list enters the
 // block in the run in the same transaction, so a list unmarked at the flip
@@ -719,9 +928,9 @@ func (c *Collector) seedDownSlice(ctx context.Context, rec *Records, res *Collec
 // whose kept list is unmarked. A writer that stores an unmarked list while
 // Open without its run entry breaks the run.
 //
-// Cost: one sequential read of the list records, values included, and one
-// write per unverified list, once per Volume.
-func (c *Collector) runSlice(ctx context.Context, rec *Records, res *CollectResult, from []byte) ([]byte, bool, error) {
+// Cost: one sequential snapshot read of the list records, values included,
+// and per unverified list one point read and one write, once per Volume.
+func (c *Collector) runSlice(ctx context.Context, rec *Records, res *CollectResult, from []byte, page *keyPage) ([]byte, bool, error) {
 	// Build only while Open, and once.
 	gen, err := rec.generation(ctx)
 	if err != nil || gen != Generation_GENERATION_OPEN {
@@ -732,48 +941,21 @@ func (c *Collector) runSlice(ctx context.Context, rec *Records, res *CollectResu
 		return from, false, err
 	}
 
-	// Take the next lists within the slice's budget, noting each unmarked
-	// list's key, packed end to end, and the last key read, so a slice
-	// allocates nothing per list.
-	seek := from
-	if from != nil {
-		seek = append(bytes.Clone(from), 0)
-	}
-	budget, n, full := c.share(sliceRecords), 0, false
-	var last, unverified []byte
-	var ends []int
-	err = rec.scan(ctx, rec.key(kindChildren), seek, func(key []byte, value func() ([]byte, error)) (bool, error) {
-		// Stop at a full slice; note each unmarked list.
-		if n == budget {
-			full = true
-			return false, nil
+	// Enter each list still unmarked in the run, and complete the run once
+	// the page reached the last.
+	err = page.each(func(key []byte) error {
+		list, found, err := rec.tx.Get(ctx, rec.key(kindChildren, key))
+		if err != nil || !found || listMarked(list) {
+			return err
 		}
-		n++
-		last = append(last[:0], key...)
-		v, err := value()
-		if err == nil && !listMarked(v) {
-			unverified = append(unverified, key...)
-			ends = append(ends, len(unverified))
-		}
-		return true, err
+		res.Unmarked++
+		return rec.tx.Set(ctx, rec.key(kindUnmarked, key), nil)
 	})
 	if err != nil {
 		return from, false, err
 	}
-	if n != 0 {
-		from = last
-	}
-
-	// Enter each unmarked list in the run, and complete the run past the last.
-	start := 0
-	for _, end := range ends {
-		if err := rec.tx.Set(ctx, rec.key(kindUnmarked, unverified[start:end]), nil); err != nil {
-			return from, false, err
-		}
-		start = end
-	}
-	res.Unmarked += uint64(len(ends))
-	if full {
+	from = page.resume(from)
+	if page.full {
 		return from, true, nil
 	}
 	return from, false, rec.tx.Set(ctx, rec.key(kindUnmarked, runComplete), nil)
@@ -793,8 +975,9 @@ type frontPos struct {
 	done    bool
 }
 
-// frontSlice takes off the front each of up to a slice of entries after the
-// position pos, whose block the free proof holds for, and returns the
+// frontSlice takes off the front each entry of page, the entries a read
+// snapshot found after the position pos, that is still on the front and
+// whose block the free proof holds for, and returns the
 // position the next slice resumes at, done once it read the front's end, and
 // whether more may follow. It pops only while the
 // generation is Open, and only a block at zero and queued or parked at a
@@ -825,7 +1008,7 @@ type frontPos struct {
 // find, and it pops at zero with a ripe sequence the cursor passed, without
 // its queue entry, which the free deletes as stale once the list is gone, so
 // damage cannot keep the generation Open.
-func (c *Collector) frontSlice(ctx context.Context, rec *Records, blocks block.StoreOps, res *CollectResult, pos frontPos) (frontPos, bool, error) {
+func (c *Collector) frontSlice(ctx context.Context, rec *Records, blocks block.StoreOps, res *CollectResult, pos frontPos, page *keyPage) (frontPos, bool, error) {
 	// Pop only while Open, and while the free proof can hold.
 	state, err := rec.GetState(ctx)
 	if err != nil || state.GetGeneration() != Generation_GENERATION_OPEN {
@@ -838,39 +1021,22 @@ func (c *Collector) frontSlice(ctx context.Context, rec *Records, blocks block.S
 		return pos, false, err
 	}
 
-	// Read the next entries' keys into the scratch, packed end to end, so a
-	// slice allocates nothing per entry.
-	var seek []byte
-	if pos.key != nil {
-		seek = append(bytes.Clone(pos.key), 0)
-	}
-	budget, full := c.share(sliceRecords), false
-	packed, ends := c.frontKeys[:0], c.frontEnds[:0]
-	err = rec.scan(ctx, rec.key(kindFront), seek, func(key []byte, _ func() ([]byte, error)) (bool, error) {
-		if len(ends) == budget {
-			full = true
-			return false, nil
-		}
-		packed = append(packed, key...)
-		ends = append(ends, len(packed))
-		return true, nil
-	})
-	c.frontKeys, c.frontEnds = packed, ends
-	if err != nil {
-		return pos, false, err
-	}
-	res.FrontScanned += uint64(len(ends))
-
-	// Pop each the proof holds for.
+	// Pop each entry still on the front that the proof holds for.
+	res.FrontScanned += uint64(len(page.ends))
 	cursor := state.GetUpCursor()
 	var poppedRipe uint64
-	popped, start, last, kept, wake, damaged := false, 0, 0, pos.kept, pos.wake, pos.damaged
-	for _, end := range ends {
-		key := packed[start:end:end]
-		last, start = start, end
+	popped, kept, wake, damaged := false, pos.kept, pos.wake, pos.damaged
+	err = page.each(func(key []byte) error {
+		// Skip a key popped since the snapshot.
+		fronted, err := rec.tx.Exists(ctx, rec.key(kindFront, key))
+		if err != nil || !fronted {
+			return err
+		}
+
+		// Keep one the proof does not pop, noting when it ripens.
 		proof, ripe, err := c.frontProven(ctx, rec, blocks, cursor, key)
 		if err != nil {
-			return pos, false, err
+			return err
 		}
 		if proof != frontPop {
 			kept++
@@ -880,26 +1046,31 @@ func (c *Collector) frontSlice(ctx context.Context, rec *Records, blocks block.S
 			case frontDamaged:
 				damaged = true
 			}
-			continue
+			return nil
 		}
+
+		// Pop the rest.
 		if err := rec.tx.Delete(ctx, rec.key(kindFront, key)); err != nil {
-			return pos, false, err
+			return err
 		}
 		popped, poppedRipe = true, max(poppedRipe, ripe)
 		res.Popped++
+		return nil
+	})
+	if err != nil {
+		return pos, false, err
 	}
 
-	// Resume after the last key, copied out of the scratch, or at the head
-	// once the scan reached the front's end. Then raise the pop mark past
-	// what this slice popped.
-	next := frontPos{kept: kept, wake: wake, damaged: damaged, done: !full}
-	if full {
-		next.key = bytes.Clone(packed[last:])
+	// Resume after the last key read, or at the head once the read reached
+	// the front's end. Then raise the pop mark past what this slice popped.
+	next := frontPos{kept: kept, wake: wake, damaged: damaged, done: !page.full}
+	if page.full {
+		next.key = bytes.Clone(page.last)
 	}
 	if !popped {
-		return next, full, nil
+		return next, page.full, nil
 	}
-	return next, full, rec.raisePopMark(ctx, poppedRipe)
+	return next, page.full, rec.raisePopMark(ctx, poppedRipe)
 }
 
 // frontProof is a front entry's free proof as frontProven reads it. Only
@@ -976,18 +1147,21 @@ func (c *Collector) frontProven(ctx context.Context, rec *Records, blocks block.
 // Volume to unadopted. The settle calls it only once seed is done, so the
 // empty front covers every seed.
 //
-// head is where a read snapshot found the free queue's first entry, which
-// the queue's check reads from, as queueHead.ripe describes. A pass
-// without a head read under the current adoption mark does not flip: the
-// flip never walks the queue from its head under the writer, and the next
-// pass reads a fresh head. A ripe entry there means the free's position
-// missed it, so the flip forgets the position and the next free scans from
-// the queue's head.
+// proof is what a read snapshot found of the flip's conditions, as
+// readFlipProof reads them. The flip seeks no key under the writer: it
+// confirms the snapshot's empty front and the absent holes from point
+// reads of the add revision and the holes-clear mark, and the snapshot's
+// finding of the queue from the adoption mark and the pop mark, as
+// flipProof describes. A pass whose proof the point reads do not confirm
+// does not flip, and the next pass reads a fresh one. A ripe entry at the
+// head means the free's position missed it, so the flip forgets the
+// position and the next free scans from the queue's head.
 //
-// Cost: point reads of the run's completion entry and the pop mark and up
-// to four prefix seeks, in one transaction, once per collector pass until
-// the flip.
-func (c *Collector) flip(ctx context.Context, rec *Records, res *CollectResult, head queueHead) error {
+// Cost: in one transaction, once per collector pass until the flip, point
+// reads of the state, the recount mark, the run's completion entry, the
+// holes-clear mark, the add revision and the pop mark. None of it grows
+// with the deleted keys of any kind.
+func (c *Collector) flip(ctx context.Context, rec *Records, res *CollectResult, proof flipProof) error {
 	// Require an Open Volume the free may run in: adopted Grace ago, so a
 	// head a reader saw before the mark, which the walk does not seed, is
 	// unmarked only once it is Grace old, and with no paged release left.
@@ -1016,8 +1190,17 @@ func (c *Collector) flip(ctx context.Context, rec *Records, res *CollectResult, 
 		return rec.SetState(ctx, state)
 	}
 
-	// Require the run complete, the front empty and no recorded hole.
-	if settled, err := rec.runSettled(ctx); err != nil || !settled {
+	// Require the run complete, no recorded hole and the front the
+	// snapshot found empty.
+	if !proof.read || proof.adoptAt != state.GetAdoptAtUnixMilli() {
+		return nil
+	}
+	for _, check := range []func(context.Context) (bool, error){rec.runIncomplete, rec.holesOpen} {
+		if fails, err := check(ctx); err != nil || fails {
+			return err
+		}
+	}
+	if rev, err := rec.addRev(ctx); err != nil || rev != proof.rev {
 		return err
 	}
 
@@ -1027,21 +1210,18 @@ func (c *Collector) flip(ctx context.Context, rec *Records, res *CollectResult, 
 	// it would revive its list over children the sweep deletes. A queued
 	// block above the mark names no popped child, so a block that dies
 	// later cannot hold the flip.
+	// The snapshot decided it from the queue's head; the flip confirms the
+	// bound it used still stands, so it seeks no queue key.
 	mark, popped, err := rec.popMark(ctx)
 	if err != nil {
 		return err
 	}
-	if popped {
-		if !head.valid(state) {
-			return nil
-		}
-		ripe, err := head.ripe(ctx, rec, min(mark, state.GetUpCursor()))
-		if err != nil || ripe {
-			if ripe {
-				c.forgetQueue()
-			}
-			return err
-		}
+	if popped != proof.popped || popped && min(mark, state.GetUpCursor()) != proof.upTo {
+		return nil
+	}
+	if proof.ripe {
+		c.forgetQueue()
+		return nil
 	}
 
 	// Flip.
@@ -1053,21 +1233,20 @@ func (c *Collector) flip(ctx context.Context, rec *Records, res *CollectResult, 
 	return rec.SetState(ctx, state)
 }
 
-// sweepSlice deletes each unmarked block of up to a slice of run entries
-// after the key position from, while the generation is Sweeping and the
-// Volume adopted: its bytes, list and proof, with one down for each child
-// its old list still holds, as releaseOld decides, and marks its run entry
-// swept. Its count keeps the
-// holders it gained since the flip, as a free keeps a block's netted
-// holders. It skips a reborn or swept entry. A child inside the run at the
-// flip keeps no holder from the old list, so the sweep of an unmarked
-// parent releases nothing to it, even after a put stored it again. It
-// reports whether it reached the run's end.
+// sweepSlice deletes each unmarked block of the run entries page names, read
+// after the key position from in a read snapshot, while the generation is
+// Sweeping and the Volume adopted: its bytes, list and proof, with one down for
+// each child its old list still holds, as releaseOld decides, and marks its run
+// entry swept. Its count keeps the holders it gained since the flip, as a free
+// keeps a block's netted holders. It skips a reborn or swept entry. A child
+// inside the run at the flip keeps no holder from the old list, so the sweep of
+// an unmarked parent releases nothing to it, even after a put stored it again.
+// It reports whether it reached the run's end.
 //
-// Cost: per unmarked block, its two count reads, its list read, the
-// deletes, and one run entry read per child; per slice, one down page and
-// the state write.
-func (c *Collector) sweepSlice(ctx context.Context, rec *Records, blocks block.StoreOps, res *CollectResult, from []byte) ([]byte, bool, bool, error) {
+// Cost: per entry, one point read of the entry; per unmarked block, its two
+// count reads, its list read, the deletes, and one run entry read per
+// child; per slice, one down page and the state write.
+func (c *Collector) sweepSlice(ctx context.Context, rec *Records, blocks block.StoreOps, res *CollectResult, from []byte, page *keyPage) ([]byte, bool, bool, error) {
 	// Sweep only an adopted Volume, since the downs need its logs.
 	state, err := rec.GetState(ctx)
 	if err != nil || state.GetGeneration() != Generation_GENERATION_SWEEPING {
@@ -1077,69 +1256,73 @@ func (c *Collector) sweepSlice(ctx context.Context, rec *Records, blocks block.S
 		return from, false, false, nil
 	}
 
-	// Take the next entries.
-	keys, unmarked, full, err := c.runEntries(ctx, rec, from, sliceFrees)
-	if err != nil {
-		return from, false, false, err
-	}
-
-	// Delete each unmarked block, and log the release of its children.
+	// Delete each entry's block that is still unmarked, and log the release
+	// of its children.
 	var down [][]byte
-	for i, key := range keys {
-		from = key
-		if !unmarked[i] {
-			continue
+	err = page.each(func(key []byte) error {
+		// Skip a key marked or swept since the snapshot.
+		value, found, err := rec.tx.Get(ctx, rec.key(kindUnmarked, key))
+		if err != nil || !found || len(value) != 0 {
+			return err
 		}
+
+		// Release its children, then delete its bytes, list and proof.
 		ref, _, err := ParseBlockKey(key)
 		if err != nil {
-			return from, false, false, err
+			return err
 		}
 		children, err := rec.releaseOld(ctx, key)
 		if err != nil {
-			return from, false, false, err
+			return err
 		}
 		down = append(down, children...)
 		if err := blocks.RmBlock(ctx, ref); err != nil {
-			return from, false, false, err
+			return err
 		}
 		for _, del := range []func(context.Context, *block.BlockRef) error{rec.DeleteChildren, rec.DeleteProof} {
 			if err := del(ctx, ref); err != nil {
-				return from, false, false, err
+				return err
 			}
 		}
+
+		// Mark it swept, so a later page skips it.
 		if err := rec.tx.Set(ctx, rec.key(kindUnmarked, key), runSwept); err != nil {
-			return from, false, false, err
+			return err
 		}
 		res.Swept++
+		return nil
+	})
+	if err != nil {
+		return from, false, false, err
 	}
+	from = page.resume(from)
 	if len(down) != 0 {
-		return from, full, !full, rec.appendDowns(ctx, state, c.opts.Now(), down)
+		return from, page.full, !page.full, rec.appendDowns(ctx, state, c.opts.Now(), down)
 	}
-	return from, full, !full, rec.SetState(ctx, state)
+	return from, page.full, !page.full, rec.SetState(ctx, state)
 }
 
-// dropRunSlice deletes up to a slice of run entries after the key position
-// from, once a sweep pass left no unmarked block, and, past the last,
-// deletes the completion entry and settles the generation.
-func (c *Collector) dropRunSlice(ctx context.Context, rec *Records, res *CollectResult, from []byte) ([]byte, bool, error) {
+// dropRunSlice deletes the run entries page names, read after the key
+// position from in a read snapshot, once a sweep pass left no unmarked
+// block, and, when page reached the run's last entry, deletes the
+// completion entry and settles the generation. No entry joins the run while
+// Sweeping, so a page that reached the end in the snapshot still does.
+func (c *Collector) dropRunSlice(ctx context.Context, rec *Records, res *CollectResult, from []byte, page *keyPage) ([]byte, bool, error) {
 	// Drop only while Sweeping.
 	state, err := rec.GetState(ctx)
 	if err != nil || state.GetGeneration() != Generation_GENERATION_SWEEPING {
 		return from, false, err
 	}
 
-	// Delete the next entries.
-	keys, _, full, err := c.runEntries(ctx, rec, from, sliceRecords)
+	// Delete the page's entries.
+	err = page.each(func(key []byte) error {
+		return rec.tx.Delete(ctx, rec.key(kindUnmarked, key))
+	})
 	if err != nil {
 		return from, false, err
 	}
-	for _, key := range keys {
-		from = key
-		if err := rec.tx.Delete(ctx, rec.key(kindUnmarked, key)); err != nil {
-			return from, false, err
-		}
-	}
-	if full {
+	from = page.resume(from)
+	if page.full {
 		return from, true, nil
 	}
 
@@ -1150,32 +1333,6 @@ func (c *Collector) dropRunSlice(ctx context.Context, rec *Records, res *Collect
 	state.Generation = Generation_GENERATION_SETTLED
 	res.Settled = true
 	return from, false, rec.SetState(ctx, state)
-}
-
-// valid reports whether the flip may check the queue from h under state,
-// the state the flip's transaction read: the snapshot read the head, under
-// the same adoption mark.
-//
-// Invariant: the queue gains no entry before h.at between h's snapshot and
-// the flip's transaction. Only the collector's transactions and the
-// adoption write queue entries, as Collector.queueFrom describes. The
-// collector runs one step at a time, and the settle runs nothing between
-// the snapshot and the flip; an adoption stamps a new AdoptAtUnixMilli,
-// which makes h invalid. A Land only deletes entries.
-func (h queueHead) valid(state *LivenessState) bool {
-	return h.read && h.adoptAt == state.GetAdoptAtUnixMilli()
-}
-
-// ripe reports whether the free queue holds a block at a ripe sequence no
-// later than upTo, for a valid h. It reads one entry from h.at, the queue's
-// first entry in h's snapshot, so it steps over no entry deleted before it,
-// and reads nothing when the snapshot found the queue empty.
-func (h queueHead) ripe(ctx context.Context, rec *Records, upTo uint64) (bool, error) {
-	if h.at == nil {
-		return false, nil
-	}
-	ripe, _, err := rec.ripeQueued(ctx, h.at, upTo)
-	return ripe, err
 }
 
 // restartSettle forgets the settle's positions once the Volume settles, so
@@ -1193,36 +1350,6 @@ func (c *Collector) restartSettle() {
 	c.seedRoot, c.seedDown, c.seededRoots, c.seeded = nil, 0, false, false
 	c.front, c.frontIdle, c.frontWake, c.frontAdoptAt = frontPos{}, false, 0, 0
 	c.requeueFrom, c.requeued = nil, false
-}
-
-// runEntries returns the block keys of up to a slice of base run entries
-// after the key position from, past the completion entry, whether each is
-// still unmarked, neither reborn nor swept, and whether the slice was full.
-func (c *Collector) runEntries(ctx context.Context, rec *Records, from []byte, base int) ([][]byte, []bool, bool, error) {
-	// Scan past from, skipping the completion entry, until the slice fills.
-	seek := from
-	if from != nil {
-		seek = append(bytes.Clone(from), 0)
-	}
-	budget := c.share(base)
-	var keys [][]byte
-	var unmarked []bool
-	full := false
-	err := rec.scan(ctx, rec.key(kindUnmarked), seek, func(key []byte, value func() ([]byte, error)) (bool, error) {
-		// Skip the completion entry, stop at a full slice, and take the entry.
-		if len(key) == 0 {
-			return true, nil
-		}
-		if len(keys) == budget {
-			full = true
-			return false, nil
-		}
-		v, err := value()
-		keys = append(keys, bytes.Clone(key))
-		unmarked = append(unmarked, len(v) == 0)
-		return true, err
-	})
-	return keys, unmarked, full, err
 }
 
 // appendDowns appends down, block keys losing one holder each, to the down

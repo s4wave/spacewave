@@ -55,10 +55,105 @@ func (c *testClock) Add(d time.Duration) {
 }
 
 // newLivenessVolume opens an empty Volume, adopted from birth, with the
-// collector's frees set and a clock the test moves.
+// collector's frees set and a clock the test moves. Its store fails a
+// write transaction that seeks a bare liveness kind, as seekGuard
+// describes.
 func newLivenessVolume(t *testing.T, frees bool) (*Volume, *testClock) {
 	t.Helper()
-	return openLivenessVolume(t, store_kvtx_inmem.NewStore(), frees)
+	return openLivenessVolume(t, newSeekGuard(t, store_kvtx_inmem.NewStore()), frees)
+}
+
+// seekGuard is an in-memory store that fails, and reports to the test, a
+// seek of a write transaction to the start of a liveness kind outside an
+// adoption's count. A store such as s4db keeps a deleted key until a merge,
+// so a seek to a kind's start steps over every deleted key at its head,
+// and one under the writer holds the writer for as long as deletes went
+// before it. The collector and Land therefore read such a range in a read
+// snapshot and decide in the write transaction from point reads, or seek
+// from a key they know is live. The adoption's count passes still seek
+// their first slice from a kind's start under the writer, so the guard
+// passes a Volume that is adopting.
+type seekGuard struct {
+	*store_kvtx_inmem.Store
+	t *testing.T
+}
+
+// newSeekGuard returns a seekGuard over store.
+func newSeekGuard(t *testing.T, store *store_kvtx_inmem.Store) *seekGuard {
+	return &seekGuard{Store: store, t: t}
+}
+
+// NewTransaction opens a transaction whose seeks a write one checks.
+func (s *seekGuard) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	tx, err := s.Store.NewTransaction(ctx, write)
+	if err != nil || !write {
+		return tx, err
+	}
+	return &seekGuardTx{Tx: tx, s: s}, nil
+}
+
+// seekGuardTx is a write transaction of a seekGuard.
+type seekGuardTx struct {
+	kvtx.Tx
+	s *seekGuard
+}
+
+// check fails a seek to key when key is the start of a liveness kind and
+// the Volume is not adopting.
+func (t *seekGuardTx) check(ctx context.Context, key []byte) error {
+	if len(key) != 2 || key[0] != livenessPrefix[0] {
+		return nil
+	}
+	value, _, err := t.Get(ctx, livenessStateKey)
+	if err != nil {
+		return err
+	}
+	state := &block_gc.LivenessState{}
+	if err := state.UnmarshalVT(value); err != nil {
+		return err
+	}
+	if state.GetAdoption() == block_gc.Adoption_ADOPTION_ADOPTING {
+		return nil
+	}
+	err = errors.New("write transaction seeks the start of liveness kind " + strconv.QuoteRune(rune(key[1])))
+	t.s.t.Error(err)
+	return err
+}
+
+// Iterate returns an iterator whose seeks check.
+func (t *seekGuardTx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvtx.Iterator {
+	return &seekGuardIterator{Iterator: t.Tx.Iterate(ctx, prefix, sort, reverse), ctx: ctx, t: t}
+}
+
+// ScanPrefix checks the scan's start, then scans.
+func (t *seekGuardTx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value []byte) error) error {
+	if err := t.check(ctx, prefix); err != nil {
+		return err
+	}
+	return t.Tx.ScanPrefix(ctx, prefix, cb)
+}
+
+// ScanPrefixKeys checks the scan's start, then scans.
+func (t *seekGuardTx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []byte) error) error {
+	if err := t.check(ctx, prefix); err != nil {
+		return err
+	}
+	return t.Tx.ScanPrefixKeys(ctx, prefix, cb)
+}
+
+// seekGuardIterator is an iterator of a seekGuardTx.
+type seekGuardIterator struct {
+	kvtx.Iterator
+	ctx context.Context
+	t   *seekGuardTx
+}
+
+// Seek checks k, then seeks.
+func (i *seekGuardIterator) Seek(k []byte) error {
+	if err := i.t.check(i.ctx, k); err != nil {
+		return err
+	}
+	return i.Iterator.Seek(k)
 }
 
 // openLivenessVolume opens a Volume over store, as newLivenessVolume does.
@@ -8951,9 +9046,9 @@ func requireOneLease(t *testing.T, v *Volume) {
 	t.Helper()
 	ctx := t.Context()
 	var leases []block_gc.LapsedLease
-	err := v.withDirectAtomic(ctx, func(p *physicalTx) error {
+	err := v.readRecords(ctx, func(rec *block_gc.Records) error {
 		var err error
-		leases, err = p.rec.LapsedLeases(ctx, "", math.MaxInt64, 16)
+		leases, err = rec.LapsedLeases(ctx, "", math.MaxInt64, 16)
 		return err
 	})
 	if err != nil {

@@ -84,10 +84,11 @@ message LivenessState {
   // FreesMark is a hash of the record's other known fields, salted with
   // the build's frees epoch, which every write of this format computes. A
   // build that raises the epoch reads every earlier mark as stale, so it
-  // counts again at the next switch-on after a defect only a recount fixes. A build that predates it keeps it as an
-  // unknown field and cannot recompute it, so any state write by such a
-  // build leaves it stale, and the record then reads as frees off: the next
-  // switch-on counts again after a writer that knew nothing of the switch.
+  // counts again at the next switch-on after a defect only a recount fixes.
+  // A build that predates it keeps it as an unknown field and cannot
+  // recompute it, so any state write by such a build leaves it stale, and
+  // the record then reads as frees off: the next switch-on counts again
+  // after a writer that knew nothing of the switch.
   // It sees every write a recount would correct, because Land is the one
   // writer of holders: a Land that adds or drops a holder outside the blocks
   // its own batch stores first writes a log page and this record, while a
@@ -125,6 +126,14 @@ message LivenessState {
   // transaction that writes the slice's counts, so a run that takes the
   // Volume over continues strictly after the last key it names.
   AdoptCursor adopt_cursor = 23;
+  // DownCursor is the sequence of the first down page the netting has not
+  // deleted. The netting deletes down pages only from the log's head, in
+  // order, and writes the cursor in the same transaction, and an adoption
+  // that clears the log sets it to down_seq, so a read of the down log
+  // starts from it at a live page or the log's end and steps over no
+  // deleted page. A Volume written before it reads zero until its first
+  // netting.
+  uint64 down_cursor = 24;
 }
 
 // AdoptPhase is the pass an adoption is in. The passes run in this order.
