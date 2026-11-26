@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math"
 	"os"
 	"syscall"
 
@@ -49,11 +50,17 @@ func ofdWrite(f *os.File, start, n int64) error {
 
 // punchRanges releases each range's blocks, keeping the file size.
 func punchRanges(f *os.File, h header, rs []pageRange) error {
-	fd := int(f.Fd())
+	// Fd returns an unsigned sentinel for a closed file.
+	fd := f.Fd()
+	if fd > math.MaxInt {
+		return errors.Errorf("file descriptor %d does not fit in int", fd)
+	}
+
+	// Each range describes whole pages already checked against the file.
 	for _, r := range rs {
-		off := int64(r.start-1) * h.pageSize
-		n := int64(r.count) * h.pageSize
-		if err := unix.Fallocate(fd, unix.FALLOC_FL_PUNCH_HOLE|unix.FALLOC_FL_KEEP_SIZE, off, n); err != nil {
+		off := h.pageBytes(r.start - 1)
+		n := h.pageBytes(r.count)
+		if err := unix.Fallocate(int(fd), unix.FALLOC_FL_PUNCH_HOLE|unix.FALLOC_FL_KEEP_SIZE, off, n); err != nil {
 			return errors.Wrapf(err, "pages %d+%d", r.start, r.count)
 		}
 	}

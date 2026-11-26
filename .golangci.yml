@@ -174,11 +174,6 @@ linters:
       - linters: [gosec]
         path: '^plugin/wasivm/kernel/'
         text: G115
-      # world-punch reads SQLite's file format, whose header bounds every
-      # page number to 32 bits and every size to the file.
-      - linters: [gosec]
-        path: '^cmd/world-punch/'
-        text: G115
     paths:
       - '(^|/)node_modules($|/)'
       - '(^|/)prototypes($|/)'

@@ -1,9 +1,11 @@
 package main
 
 import (
+	"cmp"
 	"encoding/binary"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"slices"
 	"strconv"
@@ -85,7 +87,7 @@ type ccResult struct {
 	reached     uint64
 	free        uint64
 	lockPage    uint64
-	unaccounted uint64
+	unaccounted int64
 	kinds       [numKinds]uint64
 	leafCells   uint64
 	firstOfKind [numKinds]uint32
@@ -95,23 +97,24 @@ type ccResult struct {
 	readBytes   int64
 	elapsed     time.Duration
 	unaccPages  []uint32
-	unaccFreed  uint64 // unaccounted pages on a later freelist snapshot
-	freeTrunks  uint64
-	freeLeaves  uint64
+	unaccFreed  int64 // unaccounted pages on a later freelist snapshot
+	freeTrunks  int
+	freeLeaves  int
 	byType      map[byte]uint64
 	startFree   uint32 // header freelist counts
 	endFree     uint32
 	endPages    uint32
 
 	lateRoots        int
-	lateReached      int
+	lateReached      uint64
 	leftoverInterior int // leftover pages that read as interior pages
 	leftoverLeaf     int // leftover leaf, overflow or other pages
 	leftoverUnparse  int
 	leftoverByType   map[string]int
 }
 
-func (r *ccResult) unaccUnexplained() uint64 { return r.unaccounted - r.unaccFreed }
+// unaccUnexplained counts unaccounted pages absent from every freelist snapshot.
+func (r *ccResult) unaccUnexplained() int64 { return r.unaccounted - r.unaccFreed }
 
 func (r *ccResult) badFreed() int {
 	n := 0
@@ -139,6 +142,7 @@ func (r *ccResult) unexplained() int {
 	return n
 }
 
+// print reports the pages the crosscheck could and could not account for.
 func (r *ccResult) print(out io.Writer) {
 	// Report the page totals and how the walk accounts for each page.
 	sum := r.reached + r.free + r.lockPage
@@ -146,7 +150,7 @@ func (r *ccResult) print(out io.Writer) {
 		r.reached, r.free, r.lockPage, sum, r.dbPages, sum == uint64(r.dbPages), r.leafCells)
 	fmt.Fprintf(out, "header pages start %d end %d; header freelist count start %d end %d\n", r.dbPages, r.endPages, r.startFree, r.endFree)
 	fmt.Fprintf(out, "pages walked %d (main walk %d + late walk %d, late roots not counted) = table interior %d + table leaf %d + index interior %d + index leaf %d + overflow %d\n",
-		r.reached+uint64(r.lateReached), r.reached, r.lateReached, r.byType[0x05], r.byType[0x0d], r.byType[0x02], r.byType[0x0a], r.kinds[kindOverflow])
+		r.reached+r.lateReached, r.reached, r.lateReached, r.byType[0x05], r.byType[0x0d], r.byType[0x02], r.byType[0x0a], r.kinds[kindOverflow])
 	fmt.Fprintf(out, "free at start %d = trunks %d + leaves %d\n", r.free, r.freeTrunks, r.freeLeaves)
 
 	// Report the unaccounted pages, with the first few listed.
@@ -217,7 +221,7 @@ func (r *ccResult) print(out io.Writer) {
 
 	// Report the freelist growth, the verdict and the read cost.
 	fmt.Fprintf(out, "freed-during-walk %d (unaccounted %d + bad %d) against freelist growth %d (end %d - start %d)\n",
-		r.unaccFreed+uint64(r.badFreed()), r.unaccFreed, r.badFreed(), int64(r.endFree)-int64(r.startFree), r.endFree, r.startFree)
+		r.unaccFreed+int64(r.badFreed()), r.unaccFreed, r.badFreed(), int64(r.endFree)-int64(r.startFree), r.endFree, r.startFree)
 	fmt.Fprintf(out, "unexplained conflicts %d\n", r.unexplained())
 	fmt.Fprintf(out, "result: %s\n", map[bool]string{true: "FAIL (unexplained conflicts or bad pages)", false: "PASS (leftovers, if any, do not fail)"}[r.failed()])
 	fmt.Fprintf(out, "read %d bytes in %s (%.1f MB/s)\n", r.readBytes, r.elapsed.Round(time.Second), float64(r.readBytes)/1e6/r.elapsed.Seconds())
@@ -273,7 +277,7 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 	res.startFree = h.freeCount
 	free, fw := freeSet(f, h)
 	res.freeTorn = fw.torn
-	res.freeTrunks, res.freeLeaves = uint64(len(fw.trunks)), uint64(len(fw.leaves))
+	res.freeTrunks, res.freeLeaves = len(fw.trunks), len(fw.leaves)
 
 	// everFree gathers every page any freelist snapshot shows free.
 	everFree := newBitset(h.dbPages)
@@ -335,11 +339,11 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 	var readBytes, readPages int64
 	var reported int64
 	round := 0
-	countRead := func(n int) {
+	countRead := func(n uint32) {
 		// Add the read to the totals.
 		mu.Lock()
 		defer mu.Unlock()
-		readBytes += int64(n) * h.pageSize
+		readBytes += h.pageBytes(n)
 		readPages += int64(n)
 
 		// Report once each further percent of the pages is read.
@@ -398,10 +402,12 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 		}
 		return append(next, it)
 	}
+
+	// Process each round in page order so adjacent reads can be merged.
 	runWalk := func(queue []ccItem) {
 		for len(queue) > 0 {
 			round++
-			slices.SortFunc(queue, func(a, b ccItem) int { return int(a.pg) - int(b.pg) })
+			slices.SortFunc(queue, func(a, b ccItem) int { return cmp.Compare(a.pg, b.pg) })
 			bulk := o.bulk
 			if bulk == nil {
 				bulk = f
@@ -421,7 +427,7 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 				if k != kindOverflow {
 					res.byType[r.ptype]++
 				}
-				res.leafCells += uint64(r.leafCells)
+				res.leafCells += r.leafCells
 				if res.firstOfKind[k] == 0 && r.item.pg != 1 {
 					res.firstOfKind[k] = r.item.pg
 				}
@@ -435,6 +441,8 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 			queue = next
 		}
 	}
+
+	// Walk from the schema tree and resolve the types of conflicting pages.
 	runWalk(enqueue(nil, ccItem{pg: 1, kind: kindTree, schema: true}))
 	for i := range res.conflicts {
 		if k, ok := kindOf[res.conflicts[i].page]; ok {
@@ -444,8 +452,9 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 	res.readBytes = readBytes
 
 	// Count pages reached, free and neither.
-	lockPg := uint32(pendingByte/h.pageSize + 1)
-	for pg := uint32(1); pg <= h.dbPages; pg++ {
+	lockPg := h.lockPage()
+	for pg := uint32(0); pg < h.dbPages; {
+		pg++
 		r, fr := reached.has(pg), free.has(pg)
 		switch {
 		case r:
@@ -498,7 +507,7 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 		for _, pg := range cands {
 			tried.set(pg)
 			lr := lateRead{pg: pg, kind: "unparsable"}
-			if _, err := f.ReadAt(page, int64(pg-1)*h.pageSize); err == nil {
+			if _, err := f.ReadAt(page, h.pageBytes(pg-1)); err == nil {
 				lr.r = parsePage(h, ccItem{pg: pg, kind: kindTree}, page)
 				if lr.r.bad == "" {
 					lr.kind = map[byte]string{0x05: "table interior", 0x0d: "table leaf", 0x02: "index interior", 0x0a: "index leaf"}[lr.r.ptype]
@@ -548,7 +557,7 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 			} else {
 				res.kinds[lr.r.tree]++
 				res.byType[lr.r.ptype]++
-				res.leafCells += uint64(lr.r.leafCells)
+				res.leafCells += lr.r.leafCells
 			}
 		}
 		// Candidates no root reached (a cycle among them) stay leftover.
@@ -559,6 +568,8 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 			}
 		}
 	}
+
+	// Classify any conflicts that the late walk uncovered.
 	for i := range res.conflicts {
 		if k, ok := kindOf[res.conflicts[i].page]; ok {
 			res.conflicts[i].kind = k
@@ -670,11 +681,13 @@ func recheck(f io.ReaderAt, h header, o ccOpts, dbWatch *fileWatch, res *ccResul
 		if free.has(parent) {
 			return false
 		}
-		if _, err := f.ReadAt(page, int64(parent-1)*h.pageSize); err != nil {
+		if _, err := f.ReadAt(page, h.pageBytes(parent-1)); err != nil {
 			return true
 		}
 		return pointsTo(h, parent, ov, page, target)
 	}
+
+	// Retry until every conflict is explained or the reread budget runs out.
 	var last bitset
 	for try := 0; try < max(o.retries, 1); try++ {
 		changed := dbWatch.changed()
@@ -740,14 +753,15 @@ type pageResult struct {
 	item      ccItem
 	tree      pageKind
 	ptype     byte
-	leafCells int
+	leafCells uint64
 	children  []ccItem
 	bad       string
 }
 
 // readRound reads the sorted queue with readers workers, merging runs of
 // adjacent pages into reads of up to 32 pages, and parses each page.
-func readRound(f io.ReaderAt, h header, queue []ccItem, readers int, lim *limiter, done func(int)) []pageResult {
+func readRound(f io.ReaderAt, h header, queue []ccItem, readers int, lim *limiter, done func(uint32)) []pageResult {
+	// Give each reader a buffer large enough for the largest run.
 	type run struct{ lo, hi int } // queue[lo:hi]
 	runs := make(chan run, readers*2)
 	results := make([][]pageResult, readers)
@@ -756,25 +770,27 @@ func readRound(f io.ReaderAt, h header, queue []ccItem, readers int, lim *limite
 		wg.Add(1)
 		go func(w int) {
 			defer wg.Done()
-			buf := alignedBuf(int(32 * h.pageSize))
+			buf := alignedBuf(32 * h.pageSize)
 			for r := range runs {
 				first := queue[r.lo].pg
-				n := int(queue[r.hi-1].pg-first) + 1
-				b := buf[:int64(n)*h.pageSize]
+				n := queue[r.hi-1].pg - first + 1
+				b := buf[:n*h.pageSize]
 				lim.wait(len(b))
-				_, err := f.ReadAt(b, int64(first-1)*h.pageSize)
+				_, err := f.ReadAt(b, h.pageBytes(first-1))
 				done(n)
 				for _, it := range queue[r.lo:r.hi] {
 					if err != nil && err != io.EOF {
 						results[w] = append(results[w], pageResult{item: it, bad: "read: " + err.Error()})
 						continue
 					}
-					off := int64(it.pg-first) * h.pageSize
+					off := (it.pg - first) * h.pageSize
 					results[w] = append(results[w], parsePage(h, it, b[off:off+h.pageSize]))
 				}
 			}
 		}(w)
 	}
+
+	// Group consecutive pages into runs that fit a reader's buffer.
 	for lo := 0; lo < len(queue); {
 		hi := lo + 1
 		for hi < len(queue) && queue[hi].pg == queue[hi-1].pg+1 && queue[hi].pg-queue[lo].pg < 32 {
@@ -783,6 +799,8 @@ func readRound(f io.ReaderAt, h header, queue []ccItem, readers int, lim *limite
 		runs <- run{lo, hi}
 		lo = hi
 	}
+
+	// Collect results after the workers finish reading every run.
 	close(runs)
 	wg.Wait()
 	var all []pageResult
@@ -792,13 +810,14 @@ func readRound(f io.ReaderAt, h header, queue []ccItem, readers int, lim *limite
 	return all
 }
 
-func alignedBuf(n int) []byte {
+// alignedBuf allocates n bytes beginning at a 4096-byte boundary.
+func alignedBuf(n uint32) []byte {
+	// Leave room to advance to the next boundary.
 	b := make([]byte, n+4096)
-	off := 0
-	if r := int(uintptrOf(b) % 4096); r != 0 {
-		off = 4096 - r
-	}
-	return b[off : off+n]
+
+	// Keep the address remainder in uintptr when slicing to the boundary.
+	off := (4096 - uintptrOf(b)%4096) % 4096
+	return b[off:][:n]
 }
 
 // parsePage reads one page as its item's kind and returns the pages it
@@ -827,15 +846,15 @@ func parsePage(h header, it ccItem, p []byte) pageResult {
 	}
 
 	// Read the b-tree page header, after the file header on page 1.
-	hoff := 0
+	var hoff uint32
 	if it.pg == 1 {
 		hoff = 100
 	}
-	u := int(h.usable)
+	u := h.usable
 	t := p[hoff]
 
 	// The page type sets the header length; any other type is a bad page.
-	var hlen int
+	var hlen uint32
 	switch t {
 	case 0x0d, 0x0a:
 		hlen = 8
@@ -855,15 +874,15 @@ func parsePage(h header, it ccItem, p []byte) pageResult {
 	child := func(pg uint32) {
 		r.children = append(r.children, ccItem{pg: pg, parent: it.pg, kind: kindTree, schema: it.schema})
 	}
-	n := int(binary.BigEndian.Uint16(p[hoff+3:]))
+	n := uint32(binary.BigEndian.Uint16(p[hoff+3:]))
 	if hoff+hlen+2*n > u {
 		r.bad = fmt.Sprintf("%d cells do not fit", n)
 		return r
 	}
 
 	// Walk the cells for child pages, schema roots and overflow chains.
-	for i := 0; i < n; i++ {
-		off := int(binary.BigEndian.Uint16(p[hoff+hlen+2*i:]))
+	for i := uint32(0); i < n; i++ {
+		off := uint32(binary.BigEndian.Uint16(p[hoff+hlen+2*i:]))
 		if off < hoff+hlen || off+4 > u {
 			r.bad = fmt.Sprintf("cell %d offset %d", i, off)
 			return r
@@ -876,9 +895,11 @@ func parsePage(h header, it ccItem, p []byte) pageResult {
 		if t == 0x05 {
 			continue
 		}
-		r.leafCells += boolInt(t == 0x0d || t == 0x0a)
-		size, k := varint(c)
-		if k == 0 || size > maxPayload {
+		if t == 0x0d || t == 0x0a {
+			r.leafCells++
+		}
+		size, k := sizeVarint(c)
+		if k == 0 {
 			r.bad = fmt.Sprintf("cell %d payload size", i)
 			return r
 		}
@@ -891,8 +912,10 @@ func parsePage(h header, it ccItem, p []byte) pageResult {
 			}
 			c = c[k:]
 		}
-		local := localPayload(u, int64(size), t == 0x0d)
-		if int64(len(c)) < local+4 && int64(size) > local || int64(len(c)) < local {
+		local := localPayload(u, size, t == 0x0d)
+		localBytes := int64(local)
+		available := int64(len(c))
+		if available < localBytes || size > local && available < localBytes+4 {
 			r.bad = fmt.Sprintf("cell %d payload %d runs past the page", i, size)
 			return r
 		}
@@ -911,9 +934,9 @@ func parsePage(h header, it ccItem, p []byte) pageResult {
 				r.children = append(r.children, ccItem{pg: root, parent: 0, kind: kindTree})
 			}
 		}
-		if int64(size) > local {
-			pages := (int64(size) - local + int64(u-4) - 1) / int64(u-4)
-			r.children = append(r.children, ccItem{pg: binary.BigEndian.Uint32(c[local:]), parent: it.pg, kind: kindOverflow, left: uint32(pages)})
+		if size > local {
+			pages := (size - local + (u - 4) - 1) / (u - 4)
+			r.children = append(r.children, ccItem{pg: binary.BigEndian.Uint32(c[local:]), parent: it.pg, kind: kindOverflow, left: pages})
 		}
 	}
 
@@ -924,17 +947,21 @@ func parsePage(h header, it ccItem, p []byte) pageResult {
 	return r
 }
 
-// localPayload is how many payload bytes of a cell sit on its b-tree page.
-func localPayload(u int, p int64, table bool) int64 {
-	x := int64(u - 35)
+// localPayload returns how many payload bytes of a cell sit on its b-tree
+// page. The caller supplies the usable size from a validated header.
+func localPayload(u, p uint32, table bool) uint32 {
+	// A payload within the page type's local limit fits in full.
+	x := u - 35
 	if !table {
-		x = int64((u-12)*64/255 - 23)
+		x = (u-12)*64/255 - 23
 	}
 	if p <= x {
 		return p
 	}
-	m := int64((u-12)*32/255 - 23)
-	k := m + (p-m)%int64(u-4)
+
+	// Prefer a local byte count that fills the final overflow page.
+	m := (u-12)*32/255 - 23
+	k := m + (p-m)%(u-4)
 	if k <= x {
 		return k
 	}
@@ -947,18 +974,19 @@ func localPayload(u int, p int64, table bool) int64 {
 // table owns no tree.
 func schemaRoot(rec []byte) (uint32, bool) {
 	// Read the record header's serial types.
-	hsize, k := varint(rec)
-	if k == 0 || hsize > uint64(len(rec)) {
+	hsize, k := sizeVarint(rec)
+	end := int64(hsize)
+	if k == 0 || end > int64(len(rec)) {
 		return 0, false
 	}
 	var types []uint64
-	for pos := k; pos < int(hsize); {
-		st, n := varint(rec[pos:])
+	for pos := int64(k); pos < end; {
+		st, n := varint(rec[pos:end])
 		if n == 0 {
 			return 0, false
 		}
 		types = append(types, st)
-		pos += n
+		pos += int64(n)
 	}
 	if len(types) < 5 {
 		return 0, false
@@ -967,28 +995,33 @@ func schemaRoot(rec []byte) (uint32, bool) {
 	// Find the body offset of the type, rootpage and sql columns. The
 	// columns before sql lie on the page; sql may run on into overflow, so
 	// recText bounds its length.
-	off := [5]int{int(hsize)}
+	off := [5]int64{end}
+	recordLen := int64(len(rec))
 	for i := 0; i < 4; i++ {
 		l := serialLen(types[i])
-		if l < 0 || l > len(rec) {
+		if l < 0 || l > recordLen-off[i] {
 			return 0, false
 		}
 		off[i+1] = off[i] + l
 	}
 
-	// Read the rootpage column.
-	if off[4] > len(rec) {
-		return 0, false
-	}
+	// Read the signed rootpage column, which must fit an SQLite page number.
 	var root uint32
 	switch types[3] {
 	case 8:
 	case 9:
 		root = 1
-	case 1, 2, 3, 4:
+	case 1, 2, 3, 4, 5, 6:
+		b := rec[off[3]:off[4]]
+		if b[0]&0x80 != 0 {
+			return 0, false
+		}
 		var v uint64
-		for _, b := range rec[off[3]:off[4]] {
-			v = v<<8 | uint64(b)
+		for _, x := range b {
+			v = v<<8 | uint64(x)
+		}
+		if v > math.MaxUint32 {
+			return 0, false
 		}
 		root = uint32(v)
 	default:
@@ -1006,7 +1039,7 @@ func schemaRoot(rec []byte) (uint32, bool) {
 		return 0, true
 	case "table":
 		const vt = "CREATE VIRTUAL TABLE "
-		sql, _ := recText(rec, off[4], types[4], len(vt))
+		sql, _ := recText(rec, off[4], types[4], int64(len(vt)))
 		return 0, strings.EqualFold(sql, vt)
 	}
 	return 0, false
@@ -1015,11 +1048,15 @@ func schemaRoot(rec []byte) (uint32, bool) {
 // recText reads up to max bytes of the text column at body offset off with
 // serial type st, as far as rec holds them. It reports false for a column
 // that is not text.
-func recText(rec []byte, off int, st uint64, max int) (string, bool) {
-	if st < 13 || st%2 == 0 || off > len(rec) {
+func recText(rec []byte, off int64, st uint64, max int64) (string, bool) {
+	// Only text serial types describe bytes that can be read as a string.
+	recordLen := int64(len(rec))
+	if st < 13 || st%2 == 0 || off > recordLen {
 		return "", false
 	}
-	n := min(serialLen(st), max, len(rec)-off)
+
+	// The requested prefix must stay within the record's local bytes.
+	n := min(serialLen(st), max, recordLen-off)
 	if n < 0 {
 		return "", false
 	}
@@ -1032,24 +1069,36 @@ const maxPayload = 1<<31 - 1
 
 // serialLen is the body length of a column of serial type st, or -1 when
 // that length would exceed maxPayload.
-func serialLen(st uint64) int {
-	if st >= 12 && (st-12)/2 > maxPayload {
-		return -1
-	}
+func serialLen(st uint64) int64 {
+	// Fixed-width serial types encode integers, floats and NULL.
 	switch {
 	case st <= 4:
-		return int(st)
+		return int64(st)
 	case st == 5:
 		return 6
 	case st == 6 || st == 7:
 		return 8
 	case st < 12:
 		return 0
-	case st%2 == 0:
-		return int(st-12) / 2
-	default:
-		return int(st-13) / 2
 	}
+
+	// Blob and text serial types encode twice the length plus 12 or 13.
+	n := (st - 12) / 2
+	if n > maxPayload {
+		return -1
+	}
+	return int64(n)
+}
+
+// sizeVarint decodes a SQLite byte count, returning 0 bytes if the varint
+// is cut off or exceeds the maximum payload size.
+func sizeVarint(b []byte) (uint32, int) {
+	// Bound the decoded count before using it in page arithmetic.
+	v, n := varint(b)
+	if v > maxPayload {
+		return 0, 0
+	}
+	return uint32(v), n
 }
 
 // varint decodes an SQLite varint, returning 0 bytes if it is cut off.
@@ -1067,11 +1116,5 @@ func varint(b []byte) (uint64, int) {
 	return 0, 0
 }
 
-func boolInt(b bool) int {
-	if b {
-		return 1
-	}
-	return 0
-}
-
+// uintptrOf returns the address of the first byte for alignment arithmetic.
 func uintptrOf(b []byte) uintptr { return uintptr(unsafe.Pointer(&b[0])) }

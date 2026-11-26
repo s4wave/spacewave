@@ -146,17 +146,21 @@ func fileHeader(t *testing.T, path string) (header, *walk) {
 	return h, w
 }
 
+// readPages reads each requested whole page in the supplied order.
 func readPages(t *testing.T, path string, h header, pages []uint32) [][]byte {
+	// Use one reader for the file's page offsets.
 	t.Helper()
 	f, err := os.Open(path)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer f.Close()
+
+	// Save each page in its own buffer for comparison across a punch.
 	var out [][]byte
 	for _, p := range pages {
 		b := make([]byte, h.pageSize)
-		if _, err := f.ReadAt(b, int64(p-1)*h.pageSize); err != nil {
+		if _, err := f.ReadAt(b, h.pageBytes(p-1)); err != nil {
 			t.Fatal(err)
 		}
 		out = append(out, b)
@@ -179,23 +183,26 @@ func equalPages(a, b [][]byte) bool {
 // TestPunchProof punches a synthetic World and checks rows, integrity,
 // trunks, released blocks and reuse afterwards.
 func TestPunchProof(t *testing.T) {
+	// Record the fixture's rows before touching its free pages.
 	needLinux(t)
 	path := makeWorld(t, 4096, 12000)
 	db := openDB(t, path)
 	before := rowHash(t, db)
 	db.Close()
 
+	// Keep a copy of every freelist page that must survive the punch.
 	h, w := fileHeader(t, path)
 	if len(w.trunks) < 4 {
 		t.Fatalf("fixture has %d trunks, want several", len(w.trunks))
 	}
 	trunksBefore := readPages(t, path, h, w.trunks)
 	keptBefore := readPages(t, path, h, w.leaves[:w.perTrunk[0]])
-	reserve := int64(w.perTrunk[0]) * h.pageSize // keeps the head trunk's leaves
+	reserve := h.pageBytes(w.perTrunk[0]) // keeps the head trunk's leaves
 	sha, out := dryRun(t, path, reserve)
 	t.Log(out)
 	stBefore, _ := os.Stat(path)
 
+	// Use the dry run's hash to release the free blocks and check the file size.
 	var pout bytes.Buffer
 	if err := runLocked(&pout, opts{path: path, reserve: reserve, rangeSHA: sha}); err != nil {
 		t.Fatalf("punch: %v", err)
@@ -205,11 +212,16 @@ func TestPunchProof(t *testing.T) {
 	if stAfter.Size() != stBefore.Size() {
 		t.Fatalf("size changed %d -> %d", stBefore.Size(), stAfter.Size())
 	}
-	p := makePlan(w, h, reserve)
+
+	// Check allocation and page contents against the plan.
+	p, err := makePlan(w, h, reserve)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if p.keptTrunks != 1 || p.punchPages == 0 {
 		t.Fatalf("plan kept %d trunks, punches %d pages", p.keptTrunks, p.punchPages)
 	}
-	if got, want := allocated(stBefore)-allocated(stAfter), int64(p.punchPages)*h.pageSize; got < want*9/10 {
+	if got, want := allocated(stBefore)-allocated(stAfter), h.pageBytes(p.punchPages); got < want*9/10 {
 		t.Fatalf("released %d bytes, want about %d", got, want)
 	}
 	if !equalPages(trunksBefore, readPages(t, path, h, w.trunks)) {
@@ -227,12 +239,14 @@ func TestPunchProof(t *testing.T) {
 		}
 	}
 
+	// SQLite must still read the same rows from the punched file.
 	db = openDB(t, path)
 	defer db.Close()
 	integrity(t, db)
 	if after := rowHash(t, db); after != before {
 		t.Fatalf("row hash %s after punch, %s before", after, before)
 	}
+
 	// Reuse the punched pages, free some, and rebuild the file.
 	var free0, free1 int
 	db.QueryRow("PRAGMA freelist_count").Scan(&free0)
@@ -343,16 +357,22 @@ func TestRefusals(t *testing.T) {
 // TestNeverTrunk builds a walk whose trunks sit between leaves and checks
 // no range covers a trunk or a kept-back leaf.
 func TestNeverTrunk(t *testing.T) {
+	// Reserve the first trunk's leaves in a walk with interleaved page numbers.
 	h := header{pageSize: 4096, usable: 4096, dbPages: 100}
 	w := &walk{
 		trunks:   []uint32{10, 20, 30},
 		leaves:   []uint32{11, 12, 9, 19, 21, 22, 29, 31, 32},
-		perTrunk: []int{3, 3, 3},
+		perTrunk: []uint32{3, 3, 3},
 	}
-	p := makePlan(w, h, 1) // keeps trunk 10's leaves 11, 12, 9
+	p, err := makePlan(w, h, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if p.keptTrunks != 1 || p.keptPages != 3 {
 		t.Fatalf("kept %d trunks %d pages", p.keptTrunks, p.keptPages)
 	}
+
+	// The punched ranges contain only the leaves outside the reserve.
 	want := []pageRange{{19, 1}, {21, 2}, {29, 1}, {31, 2}}
 	if len(p.ranges) != len(want) {
 		t.Fatalf("ranges %v, want %v", p.ranges, want)
@@ -362,7 +382,13 @@ func TestNeverTrunk(t *testing.T) {
 			t.Fatalf("ranges %v, want %v", p.ranges, want)
 		}
 	}
-	if p0 := makePlan(w, h, 0); p0.punchPages != 9 || p0.sha == p.sha {
+
+	// Dropping the reserve makes all nine leaves punchable.
+	p0, err := makePlan(w, h, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p0.punchPages != 9 || p0.sha == p.sha {
 		t.Fatalf("reserve 0: %d pages, sha %s", p0.punchPages, p0.sha)
 	}
 
@@ -371,7 +397,10 @@ func TestNeverTrunk(t *testing.T) {
 	kept := &walk{trunks: w.trunks, leaves: append([]uint32{11, 12, 8}, w.leaves[3:]...), perTrunk: w.perTrunk}
 	chain := &walk{trunks: []uint32{10, 20, 33}, leaves: w.leaves, perTrunk: w.perTrunk}
 	for name, w2 := range map[string]*walk{"kept leaf": kept, "trunk": chain} {
-		p2 := makePlan(w2, h, 1)
+		p2, err := makePlan(w2, h, 1)
+		if err != nil {
+			t.Fatal(err)
+		}
 		if len(p2.ranges) != len(p.ranges) {
 			t.Fatalf("%s: ranges %v, want %v", name, p2.ranges, p.ranges)
 		}
@@ -384,17 +413,21 @@ func TestNeverTrunk(t *testing.T) {
 // TestWalkFaults checks the strict walk refuses a broken chain and the
 // tolerant walk keeps what it read before the fault.
 func TestWalkFaults(t *testing.T) {
+	// Use a fixture where the walk can complete the head trunk.
 	path := makeWorld(t, 4096, 3000)
 	h, w := fileHeader(t, path)
 	if len(w.trunks) < 2 {
 		t.Fatalf("fixture has %d trunks", len(w.trunks))
 	}
+
+	// Point the second trunk's first leaf at the head trunk to list it twice.
 	f, _ := os.OpenFile(path, os.O_RDWR, 0)
 	defer f.Close()
-	// Point the second trunk's first leaf at the head trunk: listed twice.
 	var b [4]byte
 	binary.BigEndian.PutUint32(b[:], w.trunks[0])
-	f.WriteAt(b[:], int64(w.trunks[1]-1)*h.pageSize+8)
+	f.WriteAt(b[:], h.pageBytes(w.trunks[1]-1)+8)
+
+	// Verify that strict and tolerant walks stop at the same fault.
 	if _, err := walkFreelist(f, h, false); err == nil || !strings.Contains(err.Error(), "listed twice") {
 		t.Fatalf("strict walk: %v", err)
 	}
