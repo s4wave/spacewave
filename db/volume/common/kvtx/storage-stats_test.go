@@ -7,7 +7,6 @@ import (
 
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
-	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	"github.com/s4wave/spacewave/db/volume"
 )
 
@@ -57,7 +56,7 @@ func TestStorageStatsSnapshotWakesOnDirectBlockMutations(t *testing.T) {
 	// Create a Volume backed by an in-memory block store.
 	store := store_kvtx.NewKVTx(
 		store_kvkey.NewDefaultKVKey(),
-		store_kvtx_inmem.NewStore(),
+		newGuardedStore(t),
 		nil,
 	)
 	vol := &Volume{Store: store}

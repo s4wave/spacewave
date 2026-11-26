@@ -26,7 +26,7 @@ func TestCacheFillOptimistic(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	v, err := NewVolume(ctx, "test/fill", store_kvkey.NewDefaultKVKey(), db, &store_kvtx.Config{}, false, false, nil, nil)
+	v, err := NewVolume(ctx, "test/fill", store_kvkey.NewDefaultKVKey(), newOrderedSeekGuard(t, db), &store_kvtx.Config{}, false, false, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

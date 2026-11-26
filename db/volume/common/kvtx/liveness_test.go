@@ -26,7 +26,6 @@ import (
 	"github.com/s4wave/spacewave/db/s4db"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
-	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	store_kvtx_sqlite "github.com/s4wave/spacewave/db/store/kvtx/sqlite"
 	"github.com/s4wave/spacewave/db/volume"
 	"google.golang.org/protobuf/encoding/protowire"
@@ -55,105 +54,10 @@ func (c *testClock) Add(d time.Duration) {
 }
 
 // newLivenessVolume opens an empty Volume, adopted from birth, with the
-// collector's frees set and a clock the test moves. Its store fails a
-// write transaction that seeks a bare liveness kind, as seekGuard
-// describes.
+// collector's frees set and a clock the test moves.
 func newLivenessVolume(t *testing.T, frees bool) (*Volume, *testClock) {
 	t.Helper()
-	return openLivenessVolume(t, newSeekGuard(t, store_kvtx_inmem.NewStore()), frees)
-}
-
-// seekGuard is an in-memory store that fails, and reports to the test, a
-// seek of a write transaction to the start of a liveness kind outside an
-// adoption's count. A store such as s4db keeps a deleted key until a merge,
-// so a seek to a kind's start steps over every deleted key at its head,
-// and one under the writer holds the writer for as long as deletes went
-// before it. The collector and Land therefore read such a range in a read
-// snapshot and decide in the write transaction from point reads, or seek
-// from a key they know is live. The adoption's count passes still seek
-// their first slice from a kind's start under the writer, so the guard
-// passes a Volume that is adopting.
-type seekGuard struct {
-	*store_kvtx_inmem.Store
-	t *testing.T
-}
-
-// newSeekGuard returns a seekGuard over store.
-func newSeekGuard(t *testing.T, store *store_kvtx_inmem.Store) *seekGuard {
-	return &seekGuard{Store: store, t: t}
-}
-
-// NewTransaction opens a transaction whose seeks a write one checks.
-func (s *seekGuard) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
-	tx, err := s.Store.NewTransaction(ctx, write)
-	if err != nil || !write {
-		return tx, err
-	}
-	return &seekGuardTx{Tx: tx, s: s}, nil
-}
-
-// seekGuardTx is a write transaction of a seekGuard.
-type seekGuardTx struct {
-	kvtx.Tx
-	s *seekGuard
-}
-
-// check fails a seek to key when key is the start of a liveness kind and
-// the Volume is not adopting.
-func (t *seekGuardTx) check(ctx context.Context, key []byte) error {
-	if len(key) != 2 || key[0] != livenessPrefix[0] {
-		return nil
-	}
-	value, _, err := t.Get(ctx, livenessStateKey)
-	if err != nil {
-		return err
-	}
-	state := &block_gc.LivenessState{}
-	if err := state.UnmarshalVT(value); err != nil {
-		return err
-	}
-	if state.GetAdoption() == block_gc.Adoption_ADOPTION_ADOPTING {
-		return nil
-	}
-	err = errors.New("write transaction seeks the start of liveness kind " + strconv.QuoteRune(rune(key[1])))
-	t.s.t.Error(err)
-	return err
-}
-
-// Iterate returns an iterator whose seeks check.
-func (t *seekGuardTx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvtx.Iterator {
-	return &seekGuardIterator{Iterator: t.Tx.Iterate(ctx, prefix, sort, reverse), ctx: ctx, t: t}
-}
-
-// ScanPrefix checks the scan's start, then scans.
-func (t *seekGuardTx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value []byte) error) error {
-	if err := t.check(ctx, prefix); err != nil {
-		return err
-	}
-	return t.Tx.ScanPrefix(ctx, prefix, cb)
-}
-
-// ScanPrefixKeys checks the scan's start, then scans.
-func (t *seekGuardTx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []byte) error) error {
-	if err := t.check(ctx, prefix); err != nil {
-		return err
-	}
-	return t.Tx.ScanPrefixKeys(ctx, prefix, cb)
-}
-
-// seekGuardIterator is an iterator of a seekGuardTx.
-type seekGuardIterator struct {
-	kvtx.Iterator
-	ctx context.Context
-	t   *seekGuardTx
-}
-
-// Seek checks k, then seeks.
-func (i *seekGuardIterator) Seek(k []byte) error {
-	if err := i.t.check(i.ctx, k); err != nil {
-		return err
-	}
-	return i.Iterator.Seek(k)
+	return openLivenessVolume(t, newGuardedStore(t), frees)
 }
 
 // openLivenessVolume opens a Volume over store, as newLivenessVolume does.
@@ -628,7 +532,7 @@ func measureLivenessPaths(t *testing.T, n int) livenessCosts {
 	// Open the Volume over a counting store.
 	t.Helper()
 	ctx := t.Context()
-	cs := kvtx_kvtest.NewCountingStore(store_kvtx_inmem.NewStore())
+	cs := kvtx_kvtest.NewCountingStore(newGuardedStore(t))
 	v, err := NewVolume(ctx, "test/scaling", store_kvkey.NewDefaultKVKey(), cs, &store_kvtx.Config{CollectorFrees: true}, false, false, nil, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -1013,7 +917,7 @@ func measureWideFree(t *testing.T, children int, waiting bool) (uint64, time.Dur
 	// Store the block and its leaves, then release it.
 	t.Helper()
 	ctx := t.Context()
-	cs := kvtx_kvtest.NewCountingStore(store_kvtx_inmem.NewStore())
+	cs := kvtx_kvtest.NewCountingStore(newGuardedStore(t))
 	v, err := NewVolume(ctx, "test/wide-free", store_kvkey.NewDefaultKVKey(), cs, &store_kvtx.Config{CollectorFrees: true}, false, false, nil, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -1068,7 +972,7 @@ func measureReplacedPage(t *testing.T, shared int) (net, free kvtx_kvtest.Counts
 	// Store the page under main and net it.
 	t.Helper()
 	ctx := t.Context()
-	cs := kvtx_kvtest.NewCountingStore(store_kvtx_inmem.NewStore())
+	cs := kvtx_kvtest.NewCountingStore(newGuardedStore(t))
 	v, err := NewVolume(ctx, "test/replaced-page", store_kvkey.NewDefaultKVKey(), cs, &store_kvtx.Config{CollectorFrees: true}, false, false, nil, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -2277,7 +2181,7 @@ func TestLivenessAdversarial(t *testing.T) {
 			// parked, and no pass reports why. A commit that names P again
 			// after the lapse, and later puts C, refills the hole, keeps
 			// both, and lets the generation settle.
-			store := store_kvtx_inmem.NewStore()
+			store := newGuardedStore(t)
 			tr := testTree{}
 			tr.add(t, "A")
 			writeLegacyStore(t, store, store_kvkey.NewDefaultKVKey(), tr, "A", true, "A")
@@ -2372,7 +2276,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		// holder back. The adoption treats F as born and leaves it to the
 		// logs. A root r then moves onto F: F stays while r holds it, and
 		// once r is released F goes and C stays under main.
-		store := store_kvtx_inmem.NewStore()
+		store := newGuardedStore(t)
 		setUnadopted(t, store)
 		v, clk := openUnadoptedVolume(t, store)
 		ctx := t.Context()
@@ -2426,7 +2330,7 @@ func TestLivenessAdversarial(t *testing.T) {
 	} {
 		t.Run("cache fill "+at.name, func(t *testing.T) {
 			// Store P naming the missing B under main.
-			store := store_kvtx_inmem.NewStore()
+			store := newGuardedStore(t)
 			setUnadopted(t, store)
 			v, clk := openUnadoptedVolume(t, store)
 			ctx := t.Context()
@@ -2474,7 +2378,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		// An unadopted Volume holding main -> R -> X and an unheld G opens
 		// with frees on and adopts itself in the background: R and X stay
 		// and G goes after the grace period.
-		store := store_kvtx_inmem.NewStore()
+		store := newGuardedStore(t)
 		setUnadopted(t, store)
 		v1, _ := openUnadoptedVolume(t, store)
 		ctx := t.Context()
@@ -2507,7 +2411,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		// Volume lacks. While an adoption runs, before it settles, a read
 		// fills B. The adoption counts P's holder of B and leaves B to the
 		// fill's logs, so after the grace period B keeps P's holder.
-		store := store_kvtx_inmem.NewStore()
+		store := newGuardedStore(t)
 		setUnadopted(t, store)
 		v, clk := openUnadoptedVolume(t, store)
 		ctx := t.Context()
@@ -2580,7 +2484,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		// slices once it ages, so no collector transaction does as much work
 		// as the record has pairs or reads half of its bytes.
 		ctx := t.Context()
-		cs := kvtx_kvtest.NewCountingStore(store_kvtx_inmem.NewStore())
+		cs := kvtx_kvtest.NewCountingStore(newGuardedStore(t))
 		v, err := NewVolume(ctx, "test/wide", store_kvkey.NewDefaultKVKey(), cs, &store_kvtx.Config{CollectorFrees: true}, false, false, nil, nil)
 		if err != nil {
 			t.Fatal(err)
@@ -3005,7 +2909,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		// it to unadopted, as its reset of an adoption in progress or a list
 		// rebuild does, and closes. A restarts with frees on: its open
 		// counts the Volume again, and G goes while R and X stay.
-		store := store_kvtx_inmem.NewStore()
+		store := newGuardedStore(t)
 		a, _ := openLivenessVolume(t, store, true)
 		observePuts(a)
 		waitAdopted(t, a)
@@ -3041,7 +2945,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		// runs. Reopened with frees on, which writes nothing since the
 		// switch is on already, it counts again before any free, and G
 		// goes while R and X stay.
-		store := store_kvtx_inmem.NewStore()
+		store := newGuardedStore(t)
 		v1, _ := openUnadoptedVolume(t, store)
 		ctx := t.Context()
 		tr := testTree{}
@@ -3077,8 +2981,8 @@ func TestLivenessAdversarial(t *testing.T) {
 		// and frees nothing, and records frees off. Restarted with them on
 		// again, it returns to unadopted and counts every holder again
 		// before its first free, then frees D and E and keeps R and X.
-		store := store_kvtx_inmem.NewStore()
-		v1, _ := openLivenessVolume(t, store, true)
+		store := newGuardedStore(t)
+		v1, clk1 := openLivenessVolume(t, store, true)
 		ctx := t.Context()
 		tr := testTree{}
 		tr.add(t, "X")
@@ -3089,10 +2993,52 @@ func TestLivenessAdversarial(t *testing.T) {
 		if err := v1.SetBucketRoots(ctx, "b", tr.entries("X", "R", "E", "D"), roots); err != nil {
 			t.Fatal(err)
 		}
+		// Net a prefix of the down log, leaving its deleted pages in the store
+		// guard. Reopening with the old state encoding must skip that prefix.
+		for range maxWriteTombstones + 1 {
+			temporary := []block.NamedRoot{{Name: "temporary", Ref: r}}
+			if err := v1.SetBucketRoots(ctx, "b", nil, temporary); err != nil {
+				t.Fatal(err)
+			}
+			temporary = []block.NamedRoot{{Name: "temporary", Previous: r}}
+			if err := v1.SetBucketRoots(ctx, "b", nil, temporary); err != nil {
+				t.Fatal(err)
+			}
+		}
+		clk1.Add(block_gc.DefaultGrace + time.Second)
+		netAll(t, v1)
+
+		// Leave a live down at the end of the old, deleted prefix.
 		if err := v1.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "d", Previous: d}}); err != nil {
 			t.Fatal(err)
 		}
+		// Reproduce a Volume written before it kept the down cursor and the
+		// holes-clear mark, retaining its live down and all earlier deletes.
 		if err := v1.Close(); err != nil {
+			t.Fatal(err)
+		}
+		clear := slices.Concat(livenessPrefix, []byte{'z'})
+		tx, err := store.NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer tx.Discard()
+		rec := block_gc.NewRecords(tx, livenessPrefix)
+		state, err := rec.GetState(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if state.GetDownCursor() <= maxWriteTombstones || state.GetDownCursor() >= state.GetDownSeq() {
+			t.Fatalf("want a deleted down prefix and a live page, got cursor %d and end %d", state.GetDownCursor(), state.GetDownSeq())
+		}
+		state.DownCursor = 0
+		if err := rec.SetState(ctx, state); err != nil {
+			t.Fatal(err)
+		}
+		if err := tx.Delete(ctx, clear); err != nil {
+			t.Fatal(err)
+		}
+		if err := tx.Commit(ctx); err != nil {
 			t.Fatal(err)
 		}
 
@@ -3109,6 +3055,16 @@ func TestLivenessAdversarial(t *testing.T) {
 		if state := livenessState(t, v2); state.GetFrees() {
 			t.Fatal("an open with frees off left them recorded on")
 		}
+		// The frees-off pass must establish the hole proof and net the live
+		// page beyond the deleted prefix.
+		if n := countPrefix(t, store, clear); n != 1 {
+			t.Fatalf("holes-clear records after collection with frees off = %d, want 1", n)
+		}
+		state = livenessState(t, v2)
+		if state.GetDownCursor() != state.GetDownSeq() {
+			t.Fatalf("down cursor after netting = %d, want log end %d", state.GetDownCursor(), state.GetDownSeq())
+		}
+
 		requireStored(t, v2, tr, true, "X", "R", "E", "D")
 		if err := v2.Close(); err != nil {
 			t.Fatal(err)
@@ -3138,7 +3094,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		// records the hole. Turning frees on recounts, which counts C one
 		// holder more than P, its namer, so a put of C alone leaves it held
 		// by P and it outlives the grace.
-		store := store_kvtx_inmem.NewStore()
+		store := newGuardedStore(t)
 		v1, _ := openLivenessVolume(t, store, true)
 		waitAdopted(t, v1)
 		if err := v1.Close(); err != nil {
@@ -3211,7 +3167,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		// list for X, so C counts aux alone. An audit then records X's hole,
 		// and a put refills it: the refill gives C back X's holder, so C
 		// matches a clean recount and outlives aux.
-		store := store_kvtx_inmem.NewStore()
+		store := newGuardedStore(t)
 		v1, _ := openLivenessVolume(t, store, true)
 		waitAdopted(t, v1)
 		if err := v1.Close(); err != nil {
@@ -3277,7 +3233,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		// C waits ripe on the queue at zero. A put refills X between that
 		// net and the free step: the refill names C, so it takes C off the
 		// queue with the up it logs, and the free leaves C to X.
-		store := store_kvtx_inmem.NewStore()
+		store := newGuardedStore(t)
 		off, _ := openLivenessVolume(t, store, false)
 		ctx := t.Context()
 		tr := testTree{}
@@ -3334,7 +3290,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		// and moves next_seq. Opened again with frees on, the stale mark
 		// reads as frees off, so the open returns the Volume to unadopted
 		// and counts again before any free.
-		store := store_kvtx_inmem.NewStore()
+		store := newGuardedStore(t)
 		v1, _ := openLivenessVolume(t, store, true)
 		first := waitAdopted(t, v1)
 		if err := v1.Close(); err != nil {
@@ -3383,7 +3339,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		// stale. Opened again with frees on, the Volume recounts before any
 		// free: R2, P and C read after collections past the grace, and R,
 		// which nothing names, frees.
-		store := store_kvtx_inmem.NewStore()
+		store := newGuardedStore(t)
 		ctx := t.Context()
 		tr := testTree{}
 		tr.add(t, "C")
@@ -3791,7 +3747,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		// the live S and C, the owed releases would move C down twice, and
 		// the rerun carry meets a record already carried: none may free a
 		// block a root reaches or leave a dead one with an invented holder.
-		store := store_kvtx_inmem.NewStore()
+		store := newGuardedStore(t)
 		keys := store_kvkey.NewDefaultKVKey()
 		tr := format9Owed(t)
 		writeFormat9Owed(t, store, keys, tr)
@@ -4595,7 +4551,7 @@ func TestLivenessAdversarial(t *testing.T) {
 
 	t.Run("unadopted", func(t *testing.T) {
 		// A Volume that predates adoption logs and frees nothing.
-		store := store_kvtx_inmem.NewStore()
+		store := newGuardedStore(t)
 		setUnadopted(t, store)
 		v, clk := openUnadoptedVolume(t, store)
 		ctx := t.Context()
@@ -4732,7 +4688,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		// records, and the settle frees only N.
 		ctx := t.Context()
 		keys := store_kvkey.NewDefaultKVKey()
-		store := store_kvtx_inmem.NewStore()
+		store := newGuardedStore(t)
 		tr := testTree{}
 		tr.add(t, "Z")
 		p := tr.add(t, "P", "Z")
@@ -4847,7 +4803,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		// still add C, or C has no holder and the settle frees it.
 		ctx := t.Context()
 		keys := store_kvkey.NewDefaultKVKey()
-		store := store_kvtx_inmem.NewStore()
+		store := newGuardedStore(t)
 		tr := testTree{}
 		tr.add(t, "C")
 		x := tr.add(t, "X", "C")
@@ -4902,7 +4858,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		// zero, the free parks it, and Q still reaches it.
 		ctx := t.Context()
 		keys := store_kvkey.NewDefaultKVKey()
-		store := store_kvtx_inmem.NewStore()
+		store := newGuardedStore(t)
 		tr := testTree{}
 		tr.add(t, "P")
 		q := tr.add(t, "Q", "P")
@@ -4969,7 +4925,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		// keeps X.
 		ctx := t.Context()
 		keys := store_kvkey.NewDefaultKVKey()
-		store := store_kvtx_inmem.NewStore()
+		store := newGuardedStore(t)
 		tr := testTree{}
 		tr.add(t, "X")
 		tr.add(t, "R", "X")
@@ -5013,7 +4969,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		// alone.
 		ctx := t.Context()
 		keys := store_kvkey.NewDefaultKVKey()
-		store := store_kvtx_inmem.NewStore()
+		store := newGuardedStore(t)
 		tr := testTree{}
 		tr.add(t, "A")
 		tr.add(t, "F")
@@ -5084,7 +5040,7 @@ func TestLivenessAdversarial(t *testing.T) {
 			// the front on its parked key. With C, the put gives birth to C
 			// again under P, and the sweep deletes nothing.
 			ctx := t.Context()
-			store := store_kvtx_inmem.NewStore()
+			store := newGuardedStore(t)
 			tr := testTree{}
 			tr.add(t, "C")
 			tr.add(t, "P", "C")
@@ -5164,7 +5120,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		// keeps F under C.
 		ctx := t.Context()
 		keys := store_kvkey.NewDefaultKVKey()
-		store := store_kvtx_inmem.NewStore()
+		store := newGuardedStore(t)
 		tr := testTree{}
 		tr.add(t, "A")
 		tr.add(t, "F")
@@ -5243,7 +5199,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		// which nothing names, and F keeps its holder.
 		ctx := t.Context()
 		keys := store_kvkey.NewDefaultKVKey()
-		store := store_kvtx_inmem.NewStore()
+		store := newGuardedStore(t)
 		tr := testTree{}
 		tr.add(t, "A")
 		tr.add(t, "F")
@@ -5314,7 +5270,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		// marks the Volume adopting and counts the roots; B clears A's
 		// counts and dies before it marks. A must not settle the cleared
 		// counts: B's claim superseded it, and nothing main reaches is freed.
-		store := store_kvtx_inmem.NewStore()
+		store := newGuardedStore(t)
 		setUnadopted(t, store)
 		v, clk := openUnadoptedVolume(t, store)
 		ctx := t.Context()
@@ -5374,7 +5330,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		// holders, and before it settles them a second adoption B takes A's
 		// run over and finishes it. A must not settle the counts again: it
 		// refuses, B's adoption stands, and nothing main reaches is freed.
-		store := store_kvtx_inmem.NewStore()
+		store := newGuardedStore(t)
 		setUnadopted(t, store)
 		v, clk := openUnadoptedVolume(t, store)
 		ctx := t.Context()
@@ -5413,7 +5369,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		seed := uint64(time.Now().UnixNano())
 		rng := rand.New(rand.NewPCG(seed, 0))
 		t.Logf("seed %d", seed)
-		store := store_kvtx_inmem.NewStore()
+		store := newGuardedStore(t)
 		setUnadopted(t, store)
 		v, clk := openLivenessVolume(t, store, true)
 		waitAdopted(t, v)
@@ -5541,7 +5497,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		// commits and before the settle's first resumes at the settle: the
 		// taken-over run counts no child list again, so its counts equal a
 		// clean adoption's.
-		store := store_kvtx_inmem.NewStore()
+		store := newGuardedStore(t)
 		setUnadopted(t, store)
 		v, _ := openUnadoptedVolume(t, store)
 		ctx := t.Context()
@@ -5601,7 +5557,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		// keeping the field it does not know and clearing the counts. An
 		// Adopt finding that cursor under a run it does not name starts over
 		// from a claim instead of settling the empty counts.
-		store := store_kvtx_inmem.NewStore()
+		store := newGuardedStore(t)
 		setUnadopted(t, store)
 		v, _ := openUnadoptedVolume(t, store)
 		ctx := t.Context()
@@ -5670,7 +5626,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		// to X under a new root, marking X born. The stale cleanup must
 		// leave that mark, or the newer run's settle counts X as an old
 		// block no list names and queues it.
-		store := store_kvtx_inmem.NewStore()
+		store := newGuardedStore(t)
 		setUnadopted(t, store)
 		v, _ := openUnadoptedVolume(t, store)
 		ctx := t.Context()
@@ -5727,7 +5683,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		// lists while X has none, and a put refills X before the settle:
 		// X's list gives C a holder the scan never counted, so the refill
 		// logs it, and the adoption agrees with a clean recount.
-		store := store_kvtx_inmem.NewStore()
+		store := newGuardedStore(t)
 		setUnadopted(t, store)
 		v, vclk := openUnadoptedVolume(t, store)
 		ctx := t.Context()
@@ -5911,7 +5867,7 @@ func TestLivenessSettle(t *testing.T) {
 	// oldStore is oldStoreOn over a new in-memory store.
 	oldStore := func(t *testing.T, tr testTree, root string, listed []string, cut ...string) (*Volume, *testClock, kvtx.Store) {
 		t.Helper()
-		store := store_kvtx_inmem.NewStore()
+		store := newGuardedStore(t)
 		v, clk := oldStoreOn(t, store, tr, root, listed, cut...)
 		return v, clk, store
 	}
@@ -6100,7 +6056,7 @@ func TestLivenessSettle(t *testing.T) {
 					leaked = 1
 				}
 				requireAudit(t, v, leaked)
-				scratch, err := store_kvtx_sqlite.Open(t.Context(), filepath.Join(t.TempDir(), "walk.db"), "walk")
+				scratch, err := openAuditScratch(t, "walk.db")
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -6174,7 +6130,7 @@ func TestLivenessSettle(t *testing.T) {
 		// settle keeps N, C and D.
 		tr := testTree{}
 		listed, cut := pairs(t, tr, 150)
-		store := store_kvtx_inmem.NewStore()
+		store := newGuardedStore(t)
 		v1, _ := adoptOldStore(t, store, tr, "A", listed, cut...)
 		verify(t, v1, tr, "A")
 		if gen := livenessGeneration(t, v1); gen != block_gc.Generation_GENERATION_OPEN {
@@ -6890,7 +6846,7 @@ func TestLivenessSettle(t *testing.T) {
 						stop = keys[255]
 					}
 				}
-				store := store_kvtx_inmem.NewStore()
+				store := newGuardedStore(t)
 				v, clk := openLivenessVolume(t, store, true)
 				all := append(names, "X", "A")
 				if err := v.SetBucketRoots(ctx, "b", tr.entries(all...), []block.NamedRoot{{Name: "main", Ref: tr["A"].Ref}}); err != nil {
@@ -6957,7 +6913,7 @@ func TestLivenessSettle(t *testing.T) {
 						stop = keys[255]
 					}
 				}
-				store := store_kvtx_inmem.NewStore()
+				store := newGuardedStore(t)
 				v, _ := openLivenessVolume(t, store, false)
 				all := append(listed, "P", "A")
 				if err := v.SetBucketRoots(ctx, "b", tr.entries(all...), []block.NamedRoot{{Name: "main", Ref: tr["A"].Ref}}); err != nil {
@@ -7037,7 +6993,7 @@ func TestLivenessSettle(t *testing.T) {
 			tr.add(t, "K")
 			tr.add(t, "U", "K")
 			tr.add(t, "W")
-			store := store_kvtx_inmem.NewStore()
+			store := newGuardedStore(t)
 			v, clk := openLivenessVolume(t, store, true)
 			waitAdopted(t, v)
 			return v, clk, store, tr
@@ -7178,7 +7134,7 @@ func TestLivenessSettle(t *testing.T) {
 			t.Run("before="+strconv.FormatBool(before), func(t *testing.T) {
 				v, clk, store, tr := oldU(t, false)
 				openRO := func() *Volume {
-					ro, err := NewVolume(t.Context(), "test/liveness", store_kvkey.NewDefaultKVKey(), readOnlyStore{store.(*store_kvtx_inmem.Store)}, &store_kvtx.Config{}, true, true, nil, nil)
+					ro, err := NewVolume(t.Context(), "test/liveness", store_kvkey.NewDefaultKVKey(), readOnlyStore{store.(*seekGuard)}, &store_kvtx.Config{}, true, true, nil, nil)
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -7997,7 +7953,7 @@ func TestLivenessSettle(t *testing.T) {
 		})
 		tr := testTree{}
 		listed, cut := pairs(t, tr, 150)
-		v, clk := oldStoreOn(t, store, tr, "A", listed, cut...)
+		v, clk := oldStoreOn(t, newOrderedSeekGuard(t, store), tr, "A", listed, cut...)
 		verify(t, v, tr, "A")
 		reached := func(b int) []string {
 			s := strconv.Itoa(b)
@@ -8513,7 +8469,7 @@ func TestLivenessSettle(t *testing.T) {
 		// nothing else holds, reopens the Volume. No root or down names H,
 		// so only H's front entry makes the walk decode it: without it the
 		// flip counts H's copied list and the sweep frees X, which H names.
-		store := store_kvtx_inmem.NewStore()
+		store := newGuardedStore(t)
 		v, clk := openLivenessVolume(t, store, true)
 		observePuts(v)
 		tr := testTree{}
@@ -8538,7 +8494,7 @@ func TestLivenessSettle(t *testing.T) {
 		// on, reopened. The recount finds K at zero, and the free parks it
 		// until the walk decodes P. P's list then gains K, a rewrite the
 		// flip recounts before it flips, and K stays.
-		store := store_kvtx_inmem.NewStore()
+		store := newGuardedStore(t)
 		v, _ := openLivenessVolume(t, store, false)
 		if gen := livenessGeneration(t, v); gen != block_gc.Generation_GENERATION_SETTLED {
 			t.Fatalf("a new Volume's generation is %v, want Settled", gen)
@@ -8662,7 +8618,7 @@ func TestLivenessSettle(t *testing.T) {
 		tr := testTree{}
 		tr.add(t, "A")
 		tr.add(t, "U")
-		store := store_kvtx_inmem.NewStore()
+		store := newGuardedStore(t)
 		writeLegacyStore(t, store, store_kvkey.NewDefaultKVKey(), tr, "A", true, "A", "U")
 		v, clk := openLivenessVolume(t, store, false)
 		if _, err := v.Adopt(t.Context()); err != nil {
@@ -8842,7 +8798,7 @@ func livenessAdoption(t *testing.T, v *Volume) block_gc.Adoption {
 // s4db opened for reading does, so a Volume over it starts no writer. It
 // keeps the store's atomic commits, which a Volume needs for liveness.
 type readOnlyStore struct {
-	*store_kvtx_inmem.Store
+	*seekGuard
 }
 
 // ReadOnly reports that the store refuses every write transaction.
@@ -8888,7 +8844,7 @@ func copyAll(t *testing.T, store kvtx.Store) kvtx.Store {
 		t.Fatal(err)
 	}
 	defer src.Discard()
-	cp := store_kvtx_inmem.NewStore()
+	cp := newGuardedStore(t)
 	dst, err := cp.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
@@ -9277,7 +9233,7 @@ func TestFormatUpgradeCarriesLiveness(t *testing.T) {
 	// holding R1, and old graph records.
 	ctx := t.Context()
 	keys := store_kvkey.NewDefaultKVKey()
-	store := store_kvtx_inmem.NewStore()
+	store := newGuardedStore(t)
 	tr := testTree{}
 	tr.add(t, "C")
 	r1 := tr.add(t, "R1", "C")
@@ -9293,7 +9249,7 @@ func TestFormatUpgradeCarriesLiveness(t *testing.T) {
 	if version, err := readFormatVersion(ctx, store, keys); err != nil || version != 6 {
 		t.Fatalf("version after a refused upgrade = %d err %v, want 6", version, err)
 	}
-	openConfVolume(t, store_kvtx_inmem.NewStore(), refuse)
+	openConfVolume(t, newGuardedStore(t), refuse)
 
 	// Open it: the lists and the root carry over, and it is unadopted.
 	v, _ := openUnadoptedVolume(t, store)
@@ -9337,7 +9293,7 @@ func TestFormatUpgradeCarriesLiveness(t *testing.T) {
 
 	// A store whose root names a block stored without a child list refuses
 	// adoption and stays unadopted.
-	store2 := store_kvtx_inmem.NewStore()
+	store2 := newGuardedStore(t)
 	writeLegacyStore(t, store2, keys, tr, "R1", false)
 	v2, _ := openUnadoptedVolume(t, store2)
 	setGeneration(t, v2, block_gc.Generation_GENERATION_SETTLED)
@@ -9350,7 +9306,7 @@ func TestFormatUpgradeCarriesLiveness(t *testing.T) {
 
 	// A format 6 store opened with frees on adopts in the background with
 	// its lists unverified, which the generation rule makes safe.
-	store4 := store_kvtx_inmem.NewStore()
+	store4 := newGuardedStore(t)
 	writeLegacyStore(t, store4, keys, tr, "R1", true, "C", "R1")
 	v4, _ := openLivenessVolume(t, store4, true)
 	waitAdopted(t, v4)
@@ -9358,7 +9314,7 @@ func TestFormatUpgradeCarriesLiveness(t *testing.T) {
 	// An adopted format 7 store where main holds B, which a fill stored
 	// naming C with a fill mark and no holder for C, opens unadopted, its
 	// adoption counts C under B, and the obsolete sweep deletes the mark.
-	store3 := store_kvtx_inmem.NewStore()
+	store3 := newGuardedStore(t)
 	tr3 := testTree{}
 	tr3.add(t, "C")
 	b := tr3.add(t, "B", "C")
@@ -9392,7 +9348,7 @@ func TestFormatUpgradeCarriesLiveness(t *testing.T) {
 	// as it was, since its records are format 12's: the version is what
 	// keeps a build whose sweep gives a released park's downs again off it.
 	t.Run("format 11 stamped", func(t *testing.T) {
-		store := store_kvtx_inmem.NewStore()
+		store := newGuardedStore(t)
 		writeLegacyStore(t, store, keys, tr, "R1", true, "C", "R1")
 		v, err := NewVolume(ctx, "test/liveness", keys, store, &store_kvtx.Config{}, false, false, nil, nil)
 		if err != nil {
@@ -9439,7 +9395,7 @@ func TestFormatUpgradeCarriesLiveness(t *testing.T) {
 	// again, and the collection frees the dead P, G and H2 and keeps every
 	// block a root reaches, whatever the stale queue entries name.
 	t.Run("format 9 with owed releases", func(t *testing.T) {
-		store := store_kvtx_inmem.NewStore()
+		store := newGuardedStore(t)
 		tr := format9Owed(t)
 		writeFormat9Owed(t, store, keys, tr)
 		v, clk := openLivenessVolume(t, store, true)
@@ -9701,6 +9657,19 @@ func blockHolders(t *testing.T, v *Volume, tr testTree, name string) (uint64, ui
 	return holders, ripe
 }
 
+// openAuditScratch opens a test walk's SQLite scratch with the audit
+// command's disposable scratch settings.
+func openAuditScratch(t *testing.T, name string) (store_kvtx_sqlite.Store, error) {
+	return store_kvtx_sqlite.OpenWithPragmas(t.Context(), filepath.Join(t.TempDir(), name), "walk", store_kvtx_sqlite.Pragmas{
+		Sync:               store_kvtx_sqlite.SyncOff,
+		CacheSize:          -2048,
+		DisableMmap:        true,
+		TempStore:          1,
+		WithoutRowID:       true,
+		WALCheckpointBytes: 8 << 20,
+	})
+}
+
 // testAuditWalk runs the streaming audit while a writer moves roots onto new
 // trees and collects with frees on. main -> R -> H, and the store loses H
 // with its list: a hole a held root reaches. main2 -> R2 -> H2, whose hole a
@@ -9758,7 +9727,7 @@ func testAuditWalk(t *testing.T) {
 	<-started
 
 	// Walk, landing C while the walk waits out its delay.
-	scratch, err := store_kvtx_sqlite.Open(ctx, filepath.Join(t.TempDir(), "walk.db"), "walk")
+	scratch, err := openAuditScratch(t, "walk.db")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -9798,7 +9767,7 @@ func testAuditWalk(t *testing.T) {
 	}
 
 	// A walk of the quiet Volume checks the wide X soundly.
-	quiet, err := store_kvtx_sqlite.Open(ctx, filepath.Join(t.TempDir(), "quiet.db"), "walk")
+	quiet, err := openAuditScratch(t, "quiet.db")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -9858,7 +9827,7 @@ func testAuditWalk(t *testing.T) {
 		}
 		return nil
 	}
-	cycledScratch, err := store_kvtx_sqlite.Open(ctx, filepath.Join(t.TempDir(), "cycled.db"), "walk")
+	cycledScratch, err := openAuditScratch(t, "cycled.db")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -9913,8 +9882,9 @@ func testAuditWalkStalled(t *testing.T) {
 
 	// Walk without netting. The copy of the up log ends within 20 views, so
 	// a walk still behind at its 40th wait reads S's copies against the
-	// budget; stop it there.
-	scratch, err := store_kvtx_sqlite.Open(ctx, filepath.Join(t.TempDir(), "stalled.db"), "walk")
+	// budget; stop it there. Use the audit walk's disposable scratch
+	// settings so each check does not flush its scratch writes to disk.
+	scratch, err := openAuditScratch(t, "stalled.db")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -10096,7 +10066,7 @@ func BenchmarkLandCommit(b *testing.B) {
 // armed and runs hook before each after the first, so a test acts between the
 // slices of a staged batch.
 type sliceStore struct {
-	*store_kvtx_inmem.Store
+	*seekGuard
 	// armed counts the write transactions while set.
 	armed bool
 	// opened counts the write transactions since the store was armed.
@@ -10120,7 +10090,7 @@ func (s *sliceStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, e
 			}
 		}
 	}
-	return s.Store.NewTransaction(ctx, write)
+	return s.seekGuard.NewTransaction(ctx, write)
 }
 
 // sliceMode is what testStageSlices does with a staged batch.
@@ -10151,7 +10121,7 @@ const (
 // without a retry, leaves the landed blocks to the collector. A batch ordered
 // parent first, or under StageOneTransaction, lands in one transaction.
 func testStageSlices(t *testing.T, mode sliceMode) {
-	store := &sliceStore{Store: store_kvtx_inmem.NewStore()}
+	store := &sliceStore{seekGuard: newGuardedStore(t)}
 	v, clk := openConfVolume(t, store, &store_kvtx.Config{
 		CollectorFrees:      true,
 		StageOneTransaction: mode == sliceOneTransaction,
@@ -10197,8 +10167,8 @@ func testStageSlices(t *testing.T, mode sliceMode) {
 	testStageSliceResult(t, mode, store.opened, err)
 
 	// A cancelled batch leaves the first slice held by the stage, and a retry
-	// finds it. A release while the second slice is open is carried by that
-	// slice's transaction, and refuses the third.
+	// finds it. A release before the second slice enters the writer refuses
+	// that slice and leaves the first slice's roots for deferred release.
 	if mode == sliceCancelRetry || mode == sliceCancelRelease {
 		advanceRenewing(t, v, clk, block_gc.DefaultGrace+time.Second)
 		collectAll(t, v)

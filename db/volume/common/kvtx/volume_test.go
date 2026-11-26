@@ -93,7 +93,7 @@ func TestVolumeForwardsBatchPut(t *testing.T) {
 		ctx,
 		"hydra/test-volume",
 		kvKey,
-		&blockDomain{Store: store_kvtx_inmem.NewStore(), blocks: inner},
+		&blockDomain{Store: newGuardedStore(t), blocks: inner},
 		&store_kvtx.Config{},
 		false,
 		false,
@@ -147,7 +147,7 @@ func TestVolumeEmbedsInMemoryCoordinator(t *testing.T) {
 		ctx,
 		"hydra/test-volume",
 		store_kvkey.NewDefaultKVKey(),
-		store_kvtx_inmem.NewStore(),
+		newGuardedStore(t),
 		&store_kvtx.Config{},
 		false,
 		false,
@@ -182,7 +182,7 @@ func TestVolumeEmbedsInMemoryCoordinator(t *testing.T) {
 func TestVolumeCoordinatorConformance(t *testing.T) {
 	conformance.Check(t, func(tb testing.TB) (coord.Coordinator, coord.Coordinator) {
 		// Open the first Volume handle on the shared in-memory store.
-		store := store_kvtx_inmem.NewStore()
+		store := newGuardedStore(t)
 		kvkey := store_kvkey.NewDefaultKVKey()
 		volA, err := NewVolume(
 			context.Background(),
@@ -230,7 +230,7 @@ func TestVolumeCoordinatorConformance(t *testing.T) {
 func TestCoordinatorLeaseDoesNotOpenBackendTransaction(t *testing.T) {
 	// Open a Volume whose store counts backend transactions.
 	ctx := context.Background()
-	store := &countingTxStore{Store: store_kvtx_inmem.NewStore()}
+	store := &countingTxStore{Store: newGuardedStore(t)}
 	vol, err := NewVolume(
 		ctx,
 		"hydra/test-volume",

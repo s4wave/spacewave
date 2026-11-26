@@ -171,16 +171,17 @@ const (
 	// flipProof describes. An absent record is revision zero.
 	kindAddRev byte = 'v'
 	// kindHolesClear is one record, with no key past the kind and no
-	// value, present only while no hole key exists: the collector writes
-	// it from a read snapshot that found no hole key, under an add revision
-	// its transaction reads unchanged, and Records.addHole deletes it, so
+	// value, present only while no hole key exists. Each collector pass
+	// checks it, even before adoption or with frees off. The collector
+	// writes it when a snapshot found no hole and the add revision still
+	// matches. Records.addHole deletes it, so
 	// Land checks a new block for a hole record only while it is absent,
 	// as Records.holesOpen describes. An absent record claims nothing.
 	// Not 'h', which the old reference graph used and its sweep deletes.
 	kindHolesClear byte = 'z'
 )
 
-// LiveKinds are the kinds format 11 writes, one per constant above. No
+// LiveKinds are the kinds format 12 writes, one per constant above. No
 // kind a format upgrade deletes may be among them, or the upgrade would
 // delete live records.
 var LiveKinds = []byte{

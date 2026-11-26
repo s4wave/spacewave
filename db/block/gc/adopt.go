@@ -905,14 +905,23 @@ func clearRun(ctx context.Context, store Store, run string) error {
 // refuses. Nothing writes the kinds while the adoption clears them, as
 // clearRun and Adopt describe.
 func clearKinds(ctx context.Context, store Store, keep func(*LivenessState) bool, kinds ...byte) error {
+	// Clear each kind in pages while the adoption still owns the records.
+	var refused bool
 	for _, kind := range kinds {
 		err := eachPage(ctx, store, kind, func(rec *Records, page *keyPage) (bool, error) {
+			// End the clear at the first page the adoption no longer owns.
 			if keep != nil {
 				state, err := rec.GetState(ctx)
-				if err != nil || !keep(state) {
+				if err != nil {
 					return true, err
 				}
+				if !keep(state) {
+					refused = true
+					return true, nil
+				}
 			}
+
+			// Delete this page, including any bare kind key at the end.
 			err := page.each(func(key []byte) error {
 				return rec.tx.Delete(ctx, rec.key(kind, key))
 			})
@@ -921,7 +930,7 @@ func clearKinds(ctx context.Context, store Store, keep func(*LivenessState) bool
 			}
 			return false, rec.tx.Delete(ctx, rec.key(kind))
 		})
-		if err != nil {
+		if err != nil || refused {
 			return err
 		}
 	}

@@ -58,7 +58,7 @@ func openWaitVolume(t *testing.T, grace string) *Volume {
 		t.Fatal(err)
 	}
 	conf := &store_kvtx.Config{CollectorFrees: true, CollectorGraceDur: grace}
-	v, err := NewVolume(t.Context(), "test/wait", store_kvkey.NewDefaultKVKey(), db, conf, false, false, nil, nil)
+	v, err := NewVolume(t.Context(), "test/wait", store_kvkey.NewDefaultKVKey(), newOrderedSeekGuard(t, db), conf, false, false, nil, nil)
 	if err != nil {
 		_ = db.Close()
 		t.Fatal(err)
@@ -323,7 +323,7 @@ func measureCheckpointRunThrough(t *testing.T, d time.Duration) {
 // its flushes and its runs per level.
 func s4dbWaits(t *testing.T, v *Volume) string {
 	t.Helper()
-	st, err := v.kvtxStore.(*s4db.DB).Stats(t.Context())
+	st, err := v.kvtxStore.(*orderedSeekGuard).Store.(*s4db.DB).Stats(t.Context())
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -417,15 +417,37 @@ func (c *Collector) Collect(ctx context.Context) (res CollectResult, err error) 
 		return res, err
 	}
 
-	// Net and free only an adopted Volume.
+	// Establish that Land and the flip can skip the hole search even when
+	// the Volume is unadopted or this pass does not free.
+	if err := c.clearHoles(ctx); err != nil {
+		return res, err
+	}
+
+	// Net and free only an adopted Volume. Find an unset down cursor's
+	// floor in the snapshot so the writer need not seek over old pages.
 	var adopted bool
+	var downFloor uint64
 	err = c.store.View(ctx, func(rec *Records) error {
+		// Skip a Volume that cannot net or already has a down cursor.
 		state, err := rec.GetState(ctx)
 		adopted = state.GetAdoption() == Adoption_ADOPTION_ADOPTED
+		if err != nil || !adopted || state.GetDownCursor() != 0 || state.GetDownSeq() == 0 {
+			return err
+		}
+
+		// Read the first live page's sequence, or the log's end.
+		downFloor, err = rec.downCursor(ctx, state)
 		return err
 	})
 	if err != nil || !adopted {
 		return res, err
+	}
+
+	// Record a floor beyond zero before any netting takes the writer.
+	if downFloor != 0 {
+		if err := c.setDownFloor(ctx, downFloor); err != nil {
+			return res, err
+		}
 	}
 
 	// Net, then free. A free gives its children their downs, so once a free
@@ -441,6 +463,25 @@ func (c *Collector) Collect(ctx context.Context) (res CollectResult, err error) 
 			return res, err
 		}
 	}
+}
+
+// setDownFloor initializes the down cursor to the floor read in a snapshot.
+// No live page has a smaller sequence: appendLogs only appends at rising
+// sequences, netLogs only deletes pages, and a readoption clears the log before
+// it restarts both cursors at their ends. A cursor written since the snapshot
+// already carries its own floor.
+func (c *Collector) setDownFloor(ctx context.Context, floor uint64) error {
+	return c.update(ctx, func(rec *Records, _ block.StoreOps) error {
+		// Keep a cursor another pass or an adoption has already advanced.
+		state, err := rec.GetState(ctx)
+		if err != nil || state.GetAdoption() != Adoption_ADOPTION_ADOPTED || state.GetDownCursor() != 0 {
+			return err
+		}
+
+		// Publish the floor before the first writer seek.
+		state.DownCursor = floor
+		return rec.SetState(ctx, state)
+	})
 }
 
 // netStep nets the logs in slices, and reports whether it stopped at past

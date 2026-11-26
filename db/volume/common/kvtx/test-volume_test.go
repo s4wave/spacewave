@@ -11,7 +11,6 @@ import (
 	db_kvtx "github.com/s4wave/spacewave/db/kvtx"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
-	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 )
 
 type testGate struct {
@@ -166,7 +165,7 @@ func (t *testStoreTx) Commit(ctx context.Context) error {
 func newTestVolume(t *testing.T) (*Volume, *testStore) {
 	// Create an atomic publication Volume with transaction fault injection.
 	t.Helper()
-	s := &testStore{Store: store_kvtx_inmem.NewStore()}
+	s := &testStore{Store: newGuardedStore(t)}
 	v, err := NewVolume(t.Context(), "test/volume", store_kvkey.NewDefaultKVKey(), s, &store_kvtx.Config{}, false, false, nil, nil)
 	if err != nil {
 		t.Fatal(err)

@@ -474,9 +474,6 @@ func (c *Collector) settle(ctx context.Context, past func() bool, res *CollectRe
 	if more, err := c.scanFront(ctx, state, past, res); err != nil || more {
 		return more, err
 	}
-	if err := c.clearHoles(ctx); err != nil {
-		return false, err
-	}
 	proof, err := c.readFlipProof(ctx)
 	if err != nil {
 		return false, err
@@ -498,7 +495,8 @@ func (c *Collector) settle(ctx context.Context, past func() bool, res *CollectRe
 // AdoptAtUnixMilli, which the flip compares. A Land only deletes queue
 // entries. Every front and hole key is written through Records.addFront or
 // Records.addHole, which raise the add revision in the same transaction.
-// FlipProof.tla models the writers, and its mutants drop each check.
+// FlipProof.tla models the writers, the pop bound and the point checks
+// that confirm the proof.
 type flipProof struct {
 	// read reports that the snapshot found the flip's conditions holding
 	// but the queue's: Open, freeable, no recount owed, the run complete,
@@ -573,9 +571,11 @@ func (c *Collector) proveFlip(ctx context.Context, rec *Records) (flipProof, err
 	return proof, err
 }
 
-// clearHoles writes the holes-clear mark when a read snapshot finds no hole
-// key, in a transaction that reads the snapshot's add revision unchanged,
-// as kindHolesClear describes.
+// clearHoles writes the holes-clear mark during each collector pass that
+// finds it absent and finds no hole key in a read snapshot, even with frees
+// off or before adoption. Its write requires the snapshot's add revision
+// unchanged, as kindHolesClear describes. A flip without the mark waits for
+// the next pass to establish it.
 //
 // Cost: per pass, one point read; while the mark is absent, one seek of the
 // hole prefix in a snapshot, and, when it finds none, one transaction of a
