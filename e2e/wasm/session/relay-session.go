@@ -58,6 +58,40 @@ func (rs *relaySession) Recv(ctx context.Context) ([]byte, error) {
 	}
 }
 
+// deliver queues a copy of a message from the Go test until the stream ends.
+func (rs *relaySession) deliver(ctx context.Context, msg []byte) error {
+	msg = slices.Clone(msg)
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case rs.incoming <- msg:
+		return nil
+	}
+}
+
+// nextOutgoing waits for the next message to the Go test or the stream to end.
+func (rs *relaySession) nextOutgoing(ctx context.Context) ([]byte, error) {
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case msg := <-rs.outgoing:
+		return msg, nil
+	}
+}
+
+// presence reports one presence epoch until the relay ends.
+func (rs *relaySession) presence() (epoch uint64, changed <-chan struct{}) {
+	if rs.ctx.Err() != nil {
+		return 0, nil
+	}
+	return 1, rs.ctx.Done()
+}
+
+// registryKey derives the registry's lookup key from the remote peer ID.
+func (rs *relaySession) registryKey() string {
+	return string(rs.remotePeer)
+}
+
 // Close cancels the relay session.
 func (rs *relaySession) Close() {
 	rs.cancel()
@@ -77,11 +111,11 @@ func newRelayRegistry() *relayRegistry {
 // register adds a relay session for the given remote peer. Returns an error
 // if a session for that peer already exists.
 func (r *relayRegistry) register(rs *relaySession) error {
-	key := string(rs.remotePeer)
+	key := rs.registryKey()
 	var err error
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		if _, exists := r.sessions[key]; exists {
-			err = errors.Errorf("relay session already exists for peer %s", rs.remotePeer.String())
+			err = errors.Errorf("relay session already exists for peer %s", peer.ID(key).String())
 			return
 		}
 		r.sessions[key] = rs

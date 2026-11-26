@@ -2,7 +2,6 @@ package e2e_wasm_session
 
 import (
 	"context"
-	"slices"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -186,11 +185,10 @@ func (c *Controller) SignalRelay(strm SRPCSignalRelayService_SignalRelayStream) 
 	defer di.Close()
 	defer dirRef.Release()
 
-	// Bidirectional forwarding: read from stream into incoming channel,
-	// read from outgoing channel into stream.
+	// Collect the result from either direction of the relay.
 	errCh := make(chan error, 2)
 
-	// Stream -> incoming (messages from Go test to SignalPeer resolver)
+	// Deliver messages from the Go test to the signaling peer.
 	go func() {
 		for {
 			msg, err := strm.Recv()
@@ -202,31 +200,29 @@ func (c *Controller) SignalRelay(strm SRPCSignalRelayService_SignalRelayStream) 
 			if data == nil {
 				continue
 			}
-			data = slices.Clone(data)
-			select {
-			case <-ctx.Done():
-				errCh <- ctx.Err()
+			if err := rs.deliver(ctx, data); err != nil {
+				errCh <- err
 				return
-			case rs.incoming <- data:
 			}
 		}
 	}()
 
-	// Outgoing -> stream (messages from SignalPeer resolver to Go test)
+	// Forward messages from the signaling peer to the Go test.
 	go func() {
 		for {
-			select {
-			case <-ctx.Done():
-				errCh <- ctx.Err()
+			// Take the next message while the stream is open.
+			data, err := rs.nextOutgoing(ctx)
+			if err != nil {
+				errCh <- err
 				return
-			case data := <-rs.outgoing:
-				err := strm.Send(&SignalRelayMessage{
-					Body: &SignalRelayMessage_Data{Data: data},
-				})
-				if err != nil {
-					errCh <- err
-					return
-				}
+			}
+
+			// Send the message over the stream.
+			if err := strm.Send(&SignalRelayMessage{
+				Body: &SignalRelayMessage_Data{Data: data},
+			}); err != nil {
+				errCh <- err
+				return
 			}
 		}
 	}()

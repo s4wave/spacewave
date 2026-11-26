@@ -43,10 +43,7 @@ func (s *signalPeerSession) Recv(ctx context.Context) ([]byte, error) {
 // GetPresence reports the remote peer present while the relay is open. Each
 // relay carries one presence epoch: a returning peer opens a new relay.
 func (s *signalPeerSession) GetPresence() (epoch uint64, changed <-chan struct{}) {
-	if s.relay.ctx.Err() != nil {
-		return 0, nil
-	}
-	return 1, s.relay.ctx.Done()
+	return s.relay.presence()
 }
 
 // signalPeerResolver resolves SignalPeer directives by looking up the relay
