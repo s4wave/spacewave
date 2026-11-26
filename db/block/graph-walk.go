@@ -18,7 +18,7 @@ func WalkGraph(ctx context.Context, src StoreOps, roots []*BlockRef, reads int, 
 	seen := make(map[string]struct{})
 	var queue []*BlockRef
 	push := func(ref *BlockRef) {
-		key := ref.MarshalString()
+		key := ref.MapKey()
 		if _, ok := seen[key]; ok || ref.GetEmpty() {
 			return
 		}

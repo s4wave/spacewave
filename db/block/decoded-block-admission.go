@@ -277,7 +277,7 @@ func withBlockReadMarks(ctx context.Context, refs []*BlockRef) (context.Context,
 	batch := &blockReadMark{batch: make(map[string]*blockReadMark, len(refs))}
 	marks := make([]*blockReadMark, len(refs))
 	for i, ref := range refs {
-		key := ref.MarshalString()
+		key := ref.MapKey()
 		mark := batch.batch[key]
 		if mark == nil {
 			mark = &blockReadMark{ref: ref}
@@ -296,7 +296,7 @@ func blockReadMarkFor(ctx context.Context, ref *BlockRef) *blockReadMark {
 	case mark == nil:
 		return nil
 	case mark.batch != nil:
-		return mark.batch[ref.MarshalString()]
+		return mark.batch[ref.MapKey()]
 	case mark.ref.EqualsRef(ref):
 		return mark
 	default:

@@ -68,7 +68,7 @@ func takeBatchAnswer(ctx context.Context, ref *BlockRef) *batchAnswer {
 	}
 
 	// Take the answer from the newest batch that holds one.
-	key := ref.MarshalString()
+	key := ref.MapKey()
 	for ; link != nil; link = link.parent {
 		answers := link.answers
 		answers.mtx.Lock()

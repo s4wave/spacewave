@@ -130,7 +130,7 @@ func (c *graphCopy) run(ctx context.Context, root *BlockRef) error {
 
 	// Copy blocks depth first until the queue drains.
 	rootNode := &graphCopyNode{ref: root}
-	c.nodes[root.MarshalString()] = rootNode
+	c.nodes[root.MapKey()] = rootNode
 	c.queue = append(c.queue, rootNode)
 	ctx, cancel := context.WithCancel(ctx)
 	reader := newGraphReader(c.src, c.opts.Reads, func(node *graphCopyNode) *BlockRef { return node.ref })
@@ -201,7 +201,7 @@ func (c *graphCopy) expand(ctx context.Context, node *graphCopyNode, data []byte
 		if ref.GetEmpty() {
 			continue
 		}
-		key := ref.MarshalString()
+		key := ref.MapKey()
 		if child := c.nodes[key]; child != nil {
 			if !child.done && !slices.Contains(child.parents, node) {
 				child.parents = append(child.parents, node)
@@ -312,7 +312,7 @@ func (c *graphCopy) finish(node *graphCopyNode) []*graphCopyNode {
 // forget drops a finished node from the seen set when the copy forgets.
 func (c *graphCopy) forget(node *graphCopyNode) {
 	if c.opts.Forget {
-		delete(c.nodes, node.ref.MarshalString())
+		delete(c.nodes, node.ref.MapKey())
 	}
 }
 

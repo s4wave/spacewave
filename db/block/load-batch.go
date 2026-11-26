@@ -151,7 +151,7 @@ func readBatchRefs(ctx context.Context, store StoreOps, refs []*BlockRef) (*Batc
 	answers := &BatchAnswers{answers: make(map[string]*batchAnswer, len(refs))}
 	started := time.Now()
 	err := GetStoredBlockBatch(batchCtx, store, refs, func(i int, stored *StoredBlock, err error) error {
-		answers.answers[refs[i].MarshalString()] = &batchAnswer{stored: stored, err: err, mark: marks[i]}
+		answers.answers[refs[i].MapKey()] = &batchAnswer{stored: stored, err: err, mark: marks[i]}
 		return nil
 	})
 	if err != nil {

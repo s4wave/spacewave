@@ -528,11 +528,8 @@ func decodedBlockCacheRefKey(ref *BlockRef) (string, bool) {
 	if ref == nil || ref.GetEmpty() {
 		return "", false
 	}
-	refKey, err := ref.MarshalKey()
-	if err != nil || len(refKey) == 0 {
-		return "", false
-	}
-	return string(refKey), true
+	refKey := ref.MapKey()
+	return refKey, refKey != ""
 }
 
 // decodedBlockHitObserver is called with the ref of each block a read takes
