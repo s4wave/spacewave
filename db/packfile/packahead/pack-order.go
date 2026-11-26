@@ -1,6 +1,10 @@
 package packahead
 
-import "container/list"
+import (
+	"container/list"
+	"context"
+	"time"
+)
 
 // locationBatchSize bounds a background pass over locations under bcast.
 const locationBatchSize = 64
@@ -124,5 +128,79 @@ func (l *Log) GetPacks() ([]PackInfo, <-chan struct{}) {
 		if !restart {
 			return infos, waitCh
 		}
+	}
+}
+
+// DrainStatus counts a Drain's finalized local packs.
+type DrainStatus struct {
+	// Pending counts the packs not yet known uploaded.
+	Pending int
+	// PendingBytes is the size of the pending packs.
+	PendingBytes int64
+	// LocalBytes is the size of every finalized pack still local, uploaded
+	// or not.
+	LocalBytes int64
+	// Oldest is when the oldest pending pack's first batch was written, zero
+	// with none pending or for a pack loaded at Open.
+	Oldest time.Time
+	// Written counts the packs this Drain wrote to the remote.
+	Written uint64
+	// WrittenBytes is their size.
+	WrittenBytes uint64
+	// Listed counts the packs this Drain found the remote listed already,
+	// such as one uploaded before a restart, and wrote nothing for.
+	Listed uint64
+	// Failures counts the Run calls that failed other than by their context.
+	Failures uint64
+}
+
+// watchDrainStatus reports the finalized pack totals and the next Log notification.
+func (l *Log) watchDrainStatus() (DrainStatus, <-chan struct{}) {
+	var changed <-chan struct{}
+	var st DrainStatus
+	l.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		st.Pending, st.PendingBytes, st.LocalBytes = l.pending.Len(), l.pendingBytes, l.finalBytes
+		if oldest := l.pending.Front(); oldest != nil {
+			st.Oldest = oldest.Value.(*pack).firstAt
+		}
+		changed = getWaitCh()
+	})
+	return st, changed
+}
+
+// drainStep uploads the oldest pending pack, evicts the oldest finalized pack
+// when the log exceeds a positive retention budget, or waits for a Log change.
+func (l *Log) drainStep(ctx context.Context, keepBytes int64, upload func(PackInfo) error) error {
+	// Select one upload or eviction, or watch for the next pack.
+	var pending PackInfo
+	var haveUpload bool
+	var evict *pack
+	var changed <-chan struct{}
+	l.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		if oldest := l.pending.Front(); oldest != nil {
+			pending, haveUpload = packInfo(oldest.Value.(*pack)), true
+			return
+		}
+		if keepBytes > 0 && l.finalBytes > keepBytes {
+			evict = l.finals.Front().Value.(*pack)
+			return
+		}
+		changed = getWaitCh()
+	})
+
+	// Run disk and network work outside bcast.
+	if haveUpload {
+		return upload(pending)
+	}
+	if evict != nil {
+		return l.Evict(ctx, evict.seq)
+	}
+
+	// A watch closes on the next change to the drained Log.
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-changed:
+		return nil
 	}
 }
