@@ -15,7 +15,7 @@ import (
 // context ends attaches nothing.
 func TestBodyHostAttachesOneBody(t *testing.T) {
 	// Attach a first body.
-	h := NewBodyHost(logrus.NewEntry(logrus.New()), nil, nil)
+	h := NewBodyHost(logrus.NewEntry(logrus.New()), nil, nil, nil)
 	first, second := &testBody{}, &testBody{}
 	_, release, err := h.SetBody(t.Context(), first)
 	if err != nil {
@@ -77,7 +77,7 @@ func TestBodyHostStopRetainsClaim(t *testing.T) {
 	state, _ := newTestSOState(t, peers)
 	so := &ackTestObject{t: t, priv: keys[0], state: state, ctr: ccontainer.NewCContainer[SharedObjectStateSnapshot](nil)}
 	so.publish()
-	h := NewBodyHost(logrus.NewEntry(logrus.New()), so, nil)
+	h := NewBodyHost(logrus.NewEntry(logrus.New()), so, nil, nil)
 	body := &heldInstallBody{entered: make(chan struct{}), canceled: make(chan struct{}), finish: make(chan struct{})}
 	stop, release, err := h.SetBody(t.Context(), body)
 	if err != nil {

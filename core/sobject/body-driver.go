@@ -9,9 +9,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	block_transform "github.com/s4wave/spacewave/db/block/transform"
-	"github.com/s4wave/spacewave/db/kvtx"
-	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/sirupsen/logrus"
 )
 
@@ -52,7 +49,7 @@ type BodyDriver struct {
 	report func(*BodyReport)
 	// checkpointer signs this device's checkpoints, or is nil for a device
 	// that signs none.
-	checkpointer *bodyCheckpointer
+	checkpointer *BodyCheckpointer
 	// wake asks Execute to step again without a state change.
 	wake chan error
 
@@ -93,28 +90,19 @@ type BodyDriver struct {
 }
 
 // NewBodyDriver returns the driver of body on so. report receives what the
-// health shows of the replay, and may be nil.
-func NewBodyDriver(le *logrus.Entry, so SharedObject, body Body, report func(*BodyReport)) *BodyDriver {
+// health shows of the replay, and may be nil. checkpointer signs the
+// checkpoints this device owes, or is nil for a device that signs none.
+func NewBodyDriver(le *logrus.Entry, so SharedObject, body Body, report func(*BodyReport), checkpointer *BodyCheckpointer) *BodyDriver {
 	return &BodyDriver{
-		le:      le,
-		so:      so,
-		body:    body,
-		report:  report,
-		applied: make(map[string]struct{}),
-		wake:    make(chan error, 1),
-		replay:  replayOpening,
+		le:           le,
+		so:           so,
+		body:         body,
+		report:       report,
+		checkpointer: checkpointer,
+		applied:      make(map[string]struct{}),
+		wake:         make(chan error, 1),
+		replay:       replayOpening,
 	}
-}
-
-// SetCheckpointer has the driver sign, through host as privKey, the
-// checkpoints this device owes: as the checkpointer of an owner-controlled
-// Space, a checkpoint over the stable prefix once MinCheckpointOperations
-// operations are stable, or once the first stable one has waited deadline. A
-// zero deadline checkpoints at MinCheckpointOperations only. The body's Root
-// holds the state each one carries. sfs builds the key epoch transforms that
-// encrypt it. Call it before Execute.
-func (d *BodyDriver) SetCheckpointer(host *SOHost, privKey crypto.PrivKey, sfs *block_transform.StepFactorySet, deadline time.Duration) {
-	d.checkpointer = &bodyCheckpointer{host: host, privKey: privKey, sfs: sfs, deadline: deadline}
 }
 
 // Execute steps the body to each state of so until ctx ends. After an error
@@ -363,7 +351,7 @@ func (d *BodyDriver) checkpoint(ctx context.Context, ev *OrderEvent) error {
 // checkpointDue reports whether c owes a checkpoint over ev's stable prefix:
 // MinCheckpointOperations operations are stable, or the first stable one has
 // waited c's deadline. Before the deadline it arms the step's wake for it.
-func (d *BodyDriver) checkpointDue(c *bodyCheckpointer, ev *OrderEvent) bool {
+func (d *BodyDriver) checkpointDue(c *BodyCheckpointer, ev *OrderEvent) bool {
 	// Nothing is stable above the checkpoint.
 	if ev.Stable == 0 {
 		d.stableSince = time.Time{}
@@ -393,13 +381,11 @@ func (d *BodyDriver) checkpointDue(c *bodyCheckpointer, ev *OrderEvent) bool {
 // then signs and adopts it on the held state with refused, the operations of
 // prefix the body refused, and wakes the driver to step again. It runs beside
 // the driver's apply loop.
-func (d *BodyDriver) storeCheckpoint(ctx context.Context, c *bodyCheckpointer, store func(context.Context) error, prefix, refused [][]byte, data []byte, height uint64) {
+func (d *BodyDriver) storeCheckpoint(ctx context.Context, c *BodyCheckpointer, store func(context.Context) error, prefix, refused [][]byte, data []byte, height uint64) {
 	// Store the state, then sign and adopt the checkpoint.
 	err := store(ctx)
 	if err == nil {
-		err = c.host.UpdateSOState(kvtx.WithOrderedCommitContext(ctx), func(state *SOState) error {
-			return c.adopt(ctx, d.le, d.so, state, prefix, refused, data, height)
-		})
+		err = c.adoptHeld(ctx, d.le, d.so, prefix, refused, data, height)
 	}
 	if err != nil && !errors.Is(err, errCheckpointStale) && ctx.Err() == nil {
 		d.le.WithError(err).Warn("checkpoint stopped before it was adopted")

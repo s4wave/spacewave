@@ -161,7 +161,7 @@ func TestBodyDriverCutsSkippedAppliedOperation(t *testing.T) {
 	so := &testDriverSharedObject{peerID: peers[0].GetPeerID()}
 	le := logrus.New().WithField("test", t.Name())
 	warm := &testBody{}
-	dw := NewBodyDriver(le, so, warm, nil)
+	dw := NewBodyDriver(le, so, warm, nil, nil)
 	if err := dw.Step(t.Context(), testHandle(t, state, keys[0], genesis)); err != nil {
 		t.Fatal(err)
 	}
@@ -172,7 +172,7 @@ func TestBodyDriverCutsSkippedAppliedOperation(t *testing.T) {
 	// The owner skips w1. Both drivers step and reach the same state.
 	applyTestSkip(t, state, keys[0], testSkip(t, state, w1, ""))
 	cold := &testBody{}
-	dc := NewBodyDriver(le, so, cold, nil)
+	dc := NewBodyDriver(le, so, cold, nil, nil)
 	for _, d := range []*BodyDriver{dw, dc} {
 		if err := d.Step(t.Context(), testHandle(t, state, keys[0], genesis)); err != nil {
 			t.Fatal(err)

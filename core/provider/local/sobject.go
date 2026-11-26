@@ -695,8 +695,7 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 		localPid:     localPeerID,
 		joinRequests: ccontainer.NewCContainer(joinRequests),
 	}
-	so.body = sobject.NewBodyHost(le, so, so.showReplay)
-	so.body.SetSigner(soHost, localPriv, t.a.t.p.sfs, t.a.t.p.checkpointDeadline)
+	so.body = sobject.NewBodyHost(le, so, so.showReplay, sobject.NewBodyCheckpointer(soHost, localPriv, t.a.t.p.sfs, t.a.t.p.checkpointDeadline))
 	so.body.SetContext(ctx)
 
 	// A mounted local SharedObject is ready only after LocalSOHost publishes its

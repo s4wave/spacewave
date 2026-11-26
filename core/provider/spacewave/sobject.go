@@ -307,8 +307,7 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 		privKey:  sessionPriv,
 		localPid: sessionPeerID,
 	}
-	so.body = sobject.NewBodyHost(le, so, so.showReplay)
-	so.body.SetSigner(host.GetSOHost(), sessionPriv, t.a.sfs, sobject.CheckpointDeadline)
+	so.body = sobject.NewBodyHost(le, so, so.showReplay, sobject.NewBodyCheckpointer(host.GetSOHost(), sessionPriv, t.a.sfs, sobject.CheckpointDeadline))
 	so.body.SetContext(ctx)
 	defer t.sobjectProm.SetPromise(nil)
 	err = host.execute(ctx, func(ctx context.Context) error {

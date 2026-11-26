@@ -43,7 +43,7 @@ type Provider struct {
 	// block store mounts. An account's SetPackahead overrides it.
 	packs atomic.Pointer[PackaheadConfig]
 	// checkpointDeadline is the deadline of the checkpoints this device
-	// signs, as BodyDriver.SetCheckpointer describes. Set before any mount.
+	// signs, as NewBodyCheckpointer describes. Set before any mount.
 	checkpointDeadline time.Duration
 	// info is the provider info
 	info *provider.ProviderInfo

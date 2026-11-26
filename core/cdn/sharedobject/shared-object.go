@@ -73,7 +73,7 @@ func NewCdnSharedObject(opts CdnSharedObjectOptions) (*CdnSharedObject, error) {
 		discard.SetOutput(io.Discard)
 		le = logrus.NewEntry(discard)
 	}
-	so.body = sobject.NewBodyHost(le.WithField("cdn-space-id", opts.SpaceID), so, nil)
+	so.body = sobject.NewBodyHost(le.WithField("cdn-space-id", opts.SpaceID), so, nil, nil)
 	so.setHealth(nil)
 	return so, nil
 }

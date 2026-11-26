@@ -66,7 +66,7 @@ func replayOnce(
 	}
 	release := a.replay.stage.end
 	defer a.replay.close()
-	err = sobject.NewBodyDriver(le, so, a, nil).Step(ctx, snap)
+	err = sobject.NewBodyDriver(le, so, a, nil, nil).Step(ctx, snap)
 	a.waitBackground()
 	if err != nil {
 		release()

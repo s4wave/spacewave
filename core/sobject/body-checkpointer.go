@@ -8,6 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/sirupsen/logrus"
 )
@@ -16,8 +17,10 @@ import (
 // a checkpoint was built for.
 var errCheckpointStale = errors.New("held state moved past the stable point")
 
-// bodyCheckpointer signs a BodyDriver's checkpoints through the state host.
-type bodyCheckpointer struct {
+// BodyCheckpointer signs a BodyDriver's checkpoints through the state host as
+// the local participant. It is fixed for the life of the driver or host that
+// takes it.
+type BodyCheckpointer struct {
 	// host holds the state.
 	host *SOHost
 	// privKey signs as the checkpointer.
@@ -30,12 +33,31 @@ type bodyCheckpointer struct {
 	deadline time.Duration
 }
 
+// NewBodyCheckpointer returns the checkpointer that signs, through host as
+// privKey, the checkpoints a device owes: as the checkpointer of an
+// owner-controlled Space, a checkpoint over the stable prefix once
+// MinCheckpointOperations operations are stable, or once the first stable one
+// has waited deadline. A zero deadline checkpoints at MinCheckpointOperations
+// only. The body's Root holds the state each one carries. sfs builds the key
+// epoch transforms that encrypt it.
+func NewBodyCheckpointer(host *SOHost, privKey crypto.PrivKey, sfs *block_transform.StepFactorySet, deadline time.Duration) *BodyCheckpointer {
+	return &BodyCheckpointer{host: host, privKey: privKey, sfs: sfs, deadline: deadline}
+}
+
+// adoptHeld adopts the checkpoint covering prefix into the held state, in an
+// ordered commit, as adopt describes.
+func (c *BodyCheckpointer) adoptHeld(ctx context.Context, le *logrus.Entry, so SharedObject, prefix, refused [][]byte, data []byte, height uint64) error {
+	return c.host.UpdateSOState(kvtx.WithOrderedCommitContext(ctx), func(state *SOState) error {
+		return c.adopt(ctx, le, so, state, prefix, refused, data, height)
+	})
+}
+
 // adopt signs the checkpoint covering prefix with the body state data after
 // it, encrypted with state's current key epoch, and the outcomes of prefix:
 // refused lists the operations of prefix the body refused. It adopts the
 // checkpoint into state. It returns errCheckpointStale when state no longer
 // holds the checkpoint at height or prefix is no longer its stable prefix.
-func (c *bodyCheckpointer) adopt(ctx context.Context, le *logrus.Entry, so SharedObject, state *SOState, prefix, refused [][]byte, data []byte, height uint64) error {
+func (c *BodyCheckpointer) adopt(ctx context.Context, le *logrus.Entry, so SharedObject, state *SOState, prefix, refused [][]byte, data []byte, height uint64) error {
 	// The held checkpoint is unchanged and prefix is still stable.
 	current, err := state.GetCheckpointInner()
 	if err != nil {
@@ -76,18 +98,18 @@ func (c *bodyCheckpointer) adopt(ctx context.Context, le *logrus.Entry, so Share
 // host's verifier, which checks only the signatures of operations it has not
 // verified before: the held ones were verified when the host's state took
 // them, so a checkpoint or a vote checks none of them again.
-func (c *bodyCheckpointer) verified(state *SOState) (*SOOperationSet, error) {
+func (c *BodyCheckpointer) verified(state *SOState) (*SOOperationSet, error) {
 	return c.host.GetOperationVerifier().OperationSet(state)
 }
 
 // handle returns the local participant's view of state.
-func (c *bodyCheckpointer) handle(le *logrus.Entry, so SharedObject, state *SOState) *SOStateParticipantHandle {
+func (c *BodyCheckpointer) handle(le *logrus.Entry, so SharedObject, state *SOState) *SOStateParticipantHandle {
 	return NewSOStateParticipantHandle(le, c.sfs, so.GetSharedObjectID(), state, c.privKey, so.GetPeerID()).
 		WithGrantKeyring(c.host.GetGrantKeyring())
 }
 
 // encrypt encrypts body state data with state's current key epoch.
-func (c *bodyCheckpointer) encrypt(ctx context.Context, le *logrus.Entry, so SharedObject, state *SOState, data []byte) ([]byte, error) {
+func (c *BodyCheckpointer) encrypt(ctx context.Context, le *logrus.Entry, so SharedObject, state *SOState, data []byte) ([]byte, error) {
 	xfrm, err := c.handle(le, so, state).GetTransformer(ctx)
 	if err != nil {
 		return nil, err
@@ -96,6 +118,6 @@ func (c *bodyCheckpointer) encrypt(ctx context.Context, le *logrus.Entry, so Sha
 }
 
 // decode returns inner with its state data decoded by state's keys.
-func (c *bodyCheckpointer) decode(le *logrus.Entry, so SharedObject, state *SOState, inner *SOCheckpointInner) (*SOCheckpointInner, error) {
+func (c *BodyCheckpointer) decode(le *logrus.Entry, so SharedObject, state *SOState, inner *SOCheckpointInner) (*SOCheckpointInner, error) {
 	return c.handle(le, so, state).DecodeCheckpoint(inner)
 }

@@ -52,7 +52,7 @@ func TestAdapterStartupFailureRetainsClaim(t *testing.T) {
 	defer unlock()
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
-	so := &stoppingSpace{host: sobject.NewBodyHost(logrus.NewEntry(logrus.New()), nil, nil), cancel: cancel, stopped: make(chan struct{})}
+	so := &stoppingSpace{host: sobject.NewBodyHost(logrus.NewEntry(logrus.New()), nil, nil, nil), cancel: cancel, stopped: make(chan struct{})}
 	a.so = so
 	doneStore, ok := a.startBackground()
 	if !ok {

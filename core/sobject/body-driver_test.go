@@ -178,7 +178,7 @@ func TestBodyDriverRunThrough(t *testing.T) {
 	var reports []*BodyReport
 	so := &testDriverSharedObject{peerID: peers[0].GetPeerID()}
 	le := logrus.New().WithField("test", t.Name())
-	d := NewBodyDriver(le, so, body, func(r *BodyReport) { reports = append(reports, r) })
+	d := NewBodyDriver(le, so, body, func(r *BodyReport) { reports = append(reports, r) }, nil)
 	step := func() *OrderEvent {
 		t.Helper()
 		snap := testHandle(t, state, keys[0])
@@ -305,7 +305,7 @@ func TestBodyDriverRunThrough(t *testing.T) {
 	for _, n := range []int{10, 100} {
 		state, _ := newTestSOState(t, peers)
 		body := &testBody{}
-		d := NewBodyDriver(le, so, body, nil)
+		d := NewBodyDriver(le, so, body, nil, nil)
 		for i := range n {
 			writeTestOp(t, state, keys[i%len(keys)], "x")
 		}
@@ -342,7 +342,7 @@ func TestBodyDriverDropsOperationsACutRemoves(t *testing.T) {
 	so := &testDriverSharedObject{peerID: peers[0].GetPeerID()}
 	le := logrus.New().WithField("test", t.Name())
 	warm := &testBody{}
-	dw := NewBodyDriver(le, so, warm, nil)
+	dw := NewBodyDriver(le, so, warm, nil, nil)
 	if err := dw.Step(t.Context(), testHandle(t, state, keys[0], genesis)); err != nil {
 		t.Fatal(err)
 	}
@@ -367,7 +367,7 @@ func TestBodyDriverDropsOperationsACutRemoves(t *testing.T) {
 
 	// Both drivers step under the cut and reach the same state, without w2.
 	cold := &testBody{}
-	dc := NewBodyDriver(le, so, cold, nil)
+	dc := NewBodyDriver(le, so, cold, nil, nil)
 	for _, d := range []*BodyDriver{dw, dc} {
 		if err := d.Step(t.Context(), testHandle(t, state, keys[0], genesis)); err != nil {
 			t.Fatal(err)
@@ -394,8 +394,7 @@ func TestBodyDriverCheckpoints(t *testing.T) {
 	body := &testBody{}
 	so := &testDriverSharedObject{peerID: peers[0].GetPeerID()}
 	le := logrus.New().WithField("test", t.Name())
-	d := NewBodyDriver(le, so, body, nil)
-	d.SetCheckpointer(g.host, keys[0], testStepFactorySet(), 0)
+	d := NewBodyDriver(le, so, body, nil, NewBodyCheckpointer(g.host, keys[0], testStepFactorySet(), 0))
 
 	// Below the threshold the driver signs nothing.
 	held := g.ctr.GetValue().Clone()

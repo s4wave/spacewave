@@ -2,20 +2,17 @@ package sobject
 
 import (
 	"context"
-	"time"
 
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/routine"
-	block_transform "github.com/s4wave/spacewave/db/block/transform"
-	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
 
 // BodyHost runs the BodyDriver of the body a SharedObject carries, for the
 // provider that hosts the SharedObject. The provider implements SetBody with
-// it. With a signer it also checkpoints as the driver owes, and votes in the
-// group's decisions with the driver as the checkpoint judge.
+// it. With a checkpointer it also checkpoints as the driver owes, and votes in
+// the group's decisions with the driver as the checkpoint judge.
 type BodyHost struct {
 	// le is the logger.
 	le *logrus.Entry
@@ -23,14 +20,9 @@ type BodyHost struct {
 	so SharedObject
 	// report receives what the health shows of the replay, or is nil.
 	report func(*BodyReport)
-	// host holds the state, or is nil for a host that signs nothing.
-	host *SOHost
-	// privKey signs as the local participant when host is set.
-	privKey crypto.PrivKey
-	// sfs builds the key epoch transforms when host is set.
-	sfs *block_transform.StepFactorySet
-	// deadline is the checkpointer's deadline when host is set.
-	deadline time.Duration
+	// checkpointer signs as the local participant, or is nil for a host that
+	// signs nothing.
+	checkpointer *BodyCheckpointer
 	// rc runs the driver of the current body.
 	rc *routine.StateRoutineContainer[Body]
 	// bcast guards body and wakes the attaches waiting for its release.
@@ -40,22 +32,17 @@ type BodyHost struct {
 }
 
 // NewBodyHost returns the body host of so. report receives what the health
-// shows of the replay, and may be nil.
-func NewBodyHost(le *logrus.Entry, so SharedObject, report func(*BodyReport)) *BodyHost {
-	h := &BodyHost{le: le, so: so, report: report}
+// shows of the replay, and may be nil. checkpointer signs and votes as the
+// local participant for the host's life, or is nil for a host that signs
+// nothing.
+func NewBodyHost(le *logrus.Entry, so SharedObject, report func(*BodyReport), checkpointer *BodyCheckpointer) *BodyHost {
+	h := &BodyHost{le: le, so: so, report: report, checkpointer: checkpointer}
 	h.rc = routine.NewStateRoutineContainer[Body](
 		func(a, b Body) bool { return a == b },
 		routine.WithExitLogger(le.WithField("routine", "body-driver")),
 	)
 	h.rc.SetStateRoutine(h.execute)
 	return h
-}
-
-// SetSigner has the host checkpoint and vote as the participant privKey,
-// through host, checkpointing with the deadline BodyDriver.SetCheckpointer
-// describes. Call it before SetContext.
-func (h *BodyHost) SetSigner(host *SOHost, privKey crypto.PrivKey, sfs *block_transform.StepFactorySet, deadline time.Duration) {
-	h.host, h.privKey, h.sfs, h.deadline = host, privKey, sfs, deadline
 }
 
 // SetContext runs the body's driver under ctx, until the next SetContext or
@@ -137,14 +124,13 @@ func (h *BodyHost) SetBody(ctx context.Context, body Body) (stop, release func()
 // execute drives body, and votes with it as the judge when the host signs.
 func (h *BodyHost) execute(ctx context.Context, body Body) error {
 	// Build the driver.
-	d := NewBodyDriver(h.le, h.so, body, h.report)
-	if h.host == nil {
+	d := NewBodyDriver(h.le, h.so, body, h.report, h.checkpointer)
+	if h.checkpointer == nil {
 		return d.Execute(ctx)
 	}
-	d.SetCheckpointer(h.host, h.privKey, h.sfs, h.deadline)
 
 	// Vote in the group's decisions beside it, and join both before returning.
-	control, err := newControl(h.le, h.host, h.privKey, d)
+	control, err := newControl(h.le, h.checkpointer.host, h.checkpointer.privKey, d)
 	if err != nil {
 		return err
 	}
