@@ -2,7 +2,6 @@ package block
 
 import (
 	"context"
-	"slices"
 
 	"github.com/pkg/errors"
 )
@@ -203,7 +202,9 @@ func (c *graphCopy) expand(ctx context.Context, node *graphCopyNode, data []byte
 		}
 		key := ref.MapKey()
 		if child := c.nodes[key]; child != nil {
-			if !child.done && !slices.Contains(child.parents, node) {
+			// A node expands once, so a child it already linked has it as
+			// the last parent: a repeated ref costs no scan of the parents.
+			if !child.done && (len(child.parents) == 0 || child.parents[len(child.parents)-1] != node) {
 				child.parents = append(child.parents, node)
 				node.waiting++
 			}
