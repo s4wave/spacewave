@@ -2104,7 +2104,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/dex/solicit": {
-      "hash": "50752494a68a0007aa596467e6415107227a91a8e0042ab7cab0e7af8b0de757",
+      "hash": "4c2212982f2d2e201ff61b901ca56e6e4f724d114b8de52e770e6c7e258f389f",
       "generatedFiles": [
         "db/dex/solicit/config.pb.go",
         "db/dex/solicit/config.pb.ts",

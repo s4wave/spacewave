@@ -64,9 +64,9 @@ export interface DexMessage {
    */
   cancel?: boolean
   /**
-   * Denied marks an error answer that rejected the requester's read
-   * authority rather than failed a lookup of the block (response only). It
-   * says nothing of whether the responder holds the block.
+   * Denied answers a request whose requester lacks read access, with the
+   * reason in error (response only). It says nothing of whether the
+   * responder holds the block, so a grant makes the same request servable.
    */
   denied?: boolean
 }
@@ -85,6 +85,6 @@ export const DexMessage: MessageType<DexMessage> =
       [8, 'refs', 11, 1, BlockRef.codec],
       [9, 'refs_known', 8],
       [10, 'cancel', 8],
-      [11, 'denied', 8],
+      [13, 'denied', 8],
     ],
   )

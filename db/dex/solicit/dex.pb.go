@@ -48,10 +48,10 @@ type DexMessage struct {
 	// handling it and sends no response. A cancel for a request that already
 	// completed is ignored.
 	Cancel bool `protobuf:"varint,10,opt,name=cancel,proto3" json:"cancel,omitempty"`
-	// Denied marks an error answer that rejected the requester's read
-	// authority rather than failed a lookup of the block (response only). It
-	// says nothing of whether the responder holds the block.
-	Denied bool `protobuf:"varint,11,opt,name=denied,proto3" json:"denied,omitempty"`
+	// Denied answers a request whose requester lacks read access, with the
+	// reason in error (response only). It says nothing of whether the
+	// responder holds the block, so a grant makes the same request servable.
+	Denied bool `protobuf:"varint,13,opt,name=denied,proto3" json:"denied,omitempty"`
 }
 
 func (x *DexMessage) Reset() {
@@ -392,7 +392,7 @@ func (m *DexMessage) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.Denied {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Denied)
 		i--
-		dAtA[i] = 0x58
+		dAtA[i] = 0x68
 	}
 	if m.Cancel {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Cancel)
@@ -672,7 +672,7 @@ func (m *DexMessage) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Cancel = bool(v)
-		case 11:
+		case 13:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Denied", wireType)
 			}
