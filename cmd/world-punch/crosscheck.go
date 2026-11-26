@@ -61,17 +61,21 @@ type ccOpts struct {
 	mbps    float64
 	retries int
 	retryIn time.Duration
-	every   time.Duration // progress interval, 0 for none
-	// mbpsFile, if set, is reread every second; a number in it replaces
+	// progress prints a line each time the walk has read another percent
+	// of the file's pages.
+	progress bool
+	// mbpsFile, if set, is reread on each change; a number in it replaces
 	// the cap.
 	mbpsFile string
 	out      io.Writer
 	// bulk, if set, serves the tree walk's reads (an O_DIRECT descriptor
 	// that does not fill the page cache); its buffers are 4096-aligned.
 	bulk io.ReaderAt
-	// snapEvery, if set, walks the freelist this often during the tree
-	// walk; a page on any snapshot was freed during the walk.
-	snapEvery time.Duration
+	// path, if set, is the database file. The freelist is walked again
+	// after each change to it during the tree walk, and a page on any of
+	// those snapshots was freed during the walk; a recheck waits for its
+	// next change, up to retryIn.
+	path string
 	// freelistOverride lets tests edit the free set of a walk.
 	freelistOverride func(free bitset, recheck bool)
 }
@@ -232,12 +236,17 @@ func (l *limiter) set(mbps float64) {
 	l.mu.Unlock()
 }
 
+// wait blocks until the start of the slot a read of n bytes takes at the
+// capped rate.
 func (l *limiter) wait(n int) {
+	// An uncapped limiter never waits.
 	l.mu.Lock()
 	if l.rate <= 0 {
 		l.mu.Unlock()
 		return
 	}
+
+	// Reserve the next slot, then sleep until it starts.
 	now := time.Now()
 	if l.next.Before(now) {
 		l.next = now
@@ -245,23 +254,28 @@ func (l *limiter) wait(n int) {
 	at := l.next
 	l.next = l.next.Add(time.Duration(float64(n) / l.rate * float64(time.Second)))
 	l.mu.Unlock()
-	time.Sleep(time.Until(at))
+	time.Sleep(time.Until(at)) //gostyle:timer deadline the start of this read's slot at the capped rate
 }
 
 // crosscheck walks every b-tree from page 1 and the roots in sqlite_master,
 // through interior and leaf pages and overflow chains, and checks that no
 // reached page is on the freelist or reached twice. It only reads.
 func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
+	// Start the clock and default the reader count.
 	start := time.Now()
 	res := ccResult{dbPages: h.dbPages}
 	if o.readers <= 0 {
 		o.readers = 8
 	}
+
+	// Take the starting freelist snapshot for accounting and conflict checks.
 	res.byType = map[byte]uint64{}
 	res.startFree = h.freeCount
 	free, fw := freeSet(f, h)
 	res.freeTorn = fw.torn
 	res.freeTrunks, res.freeLeaves = uint64(len(fw.trunks)), uint64(len(fw.leaves))
+
+	// everFree gathers every page any freelist snapshot shows free.
 	everFree := newBitset(h.dbPages)
 	var everMu sync.Mutex
 	addFree := func(b bitset) {
@@ -274,23 +288,33 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 	if o.freelistOverride != nil {
 		o.freelistOverride(free, false)
 	}
+
+	// Track the first reach of each page and its parent.
 	reached := newBitset(h.dbPages)
 	kindOf := map[uint32]pageKind{} // kinds of conflicting pages only
 	parents := make([]uint32, uint64(h.dbPages)+1)
 	fromOv := newBitset(h.dbPages)
 	lim := &limiter{rate: o.mbps * 1e6}
 
+	// Walk the freelist again on each change to the file, and follow the
+	// rate cap file.
 	stop := make(chan struct{})
 	defer close(stop)
-	if o.snapEvery > 0 {
+	var dbWatch *fileWatch
+	if o.path != "" {
+		w, err := watchFile(o.path)
+		if err != nil {
+			return res, err
+		}
+		defer w.Close()
+		dbWatch = w
 		go func() {
-			tk := time.NewTicker(o.snapEvery)
-			defer tk.Stop()
 			for {
+				changed := dbWatch.changed()
 				select {
 				case <-stop:
 					return
-				case <-tk.C:
+				case <-changed:
 					b, _ := freeSet(f, h)
 					addFree(b)
 				}
@@ -298,35 +322,41 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 		}()
 	}
 	if o.mbpsFile != "" {
-		go watchMbps(o.mbpsFile, o.mbps, lim, o.out, stop)
-	}
-	var mu sync.Mutex
-	var readBytes, readPages int64
-	round := 0
-	if o.every > 0 && o.out != nil {
-		go func() {
-			tk := time.NewTicker(o.every)
-			defer tk.Stop()
-			for {
-				select {
-				case <-stop:
-					return
-				case <-tk.C:
-					mu.Lock()
-					b, p, r := readBytes, readPages, round
-					mu.Unlock()
-					el := time.Since(start).Seconds()
-					fmt.Fprintf(o.out, "progress %s: round %d, read %d pages (%.1f%% of %d), %.0f MB at %.1f MB/s\n",
-						time.Now().UTC().Format("15:04:05Z"), r, p, 100*float64(p)/float64(h.dbPages), h.dbPages, float64(b)/1e6, float64(b)/1e6/el)
-				}
-			}
-		}()
+		w, err := watchFile(o.mbpsFile)
+		if err != nil {
+			return res, err
+		}
+		defer w.Close()
+		go watchMbps(w, o.mbpsFile, o.mbps, lim, o.out, stop)
 	}
 
-	cur, late := free, false
+	// Count the reads, and report each percent of the pages read.
+	var mu sync.Mutex
+	var readBytes, readPages int64
+	var reported int64
+	round := 0
+	countRead := func(n int) {
+		// Add the read to the totals.
+		mu.Lock()
+		defer mu.Unlock()
+		readBytes += int64(n) * h.pageSize
+		readPages += int64(n)
+
+		// Report once each further percent of the pages is read.
+		pct := readPages * 100 / int64(max(h.dbPages, 1))
+		if !o.progress || o.out == nil || pct <= reported {
+			return
+		}
+		reported = pct
+		el := time.Since(start).Seconds()
+		fmt.Fprintf(o.out, "progress %s: round %d, read %d pages (%d%% of %d), %.0f MB at %.1f MB/s\n",
+			time.Now().UTC().Format("15:04:05Z"), round, readPages, pct, h.dbPages, float64(readBytes)/1e6, float64(readBytes)/1e6/el)
+	}
+
 	// lateRoot holds late-walk roots: marked reached so the walk does not
 	// re-read them, but claimed without a dup when a walked page points
 	// to one, since then it was not a root at all.
+	cur, late := free, false
 	lateRoot := newBitset(h.dbPages)
 	enqueue := func(next []ccItem, it ccItem) []ccItem {
 		if it.pg < 1 || it.pg > h.dbPages {
@@ -376,12 +406,7 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 			if bulk == nil {
 				bulk = f
 			}
-			results := readRound(bulk, h, queue, o.readers, lim, func(n int) {
-				mu.Lock()
-				readBytes += int64(n) * h.pageSize
-				readPages += int64(n)
-				mu.Unlock()
-			})
+			results := readRound(bulk, h, queue, o.readers, lim, countRead)
 			var next []ccItem
 			for _, r := range results {
 				if r.bad != "" {
@@ -438,7 +463,8 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 		}
 	}
 
-	final := recheck(f, h, o, &res, addFree)
+	// Recheck conflicts against a fresh freelist before the late walk.
+	final := recheck(f, h, o, dbWatch, &res, addFree)
 
 	// Late walk: an unaccounted or bad page not on the final freelist is
 	// read again and, if it parses, walked as a root against the final
@@ -539,7 +565,7 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 		}
 	}
 	if res.lateReached > 0 {
-		recheck(f, h, o, &res, addFree)
+		recheck(f, h, o, dbWatch, &res, addFree)
 	}
 
 	// A page neither reached nor free at the start, or that read as a bad
@@ -556,6 +582,8 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 			res.bad[i].freed = true
 		}
 	}
+
+	// Count the leftovers no freelist snapshot explains, by kind.
 	res.leftoverByType = map[string]int{}
 	for _, lr := range leftovers {
 		if everFree.has(lr.pg) {
@@ -572,6 +600,8 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 		}
 	}
 	everMu.Unlock()
+
+	// Record the final header counters to show how much the database changed.
 	var hb [100]byte
 	if _, err := f.ReadAt(hb[:], 0); err == nil {
 		res.endPages = binary.BigEndian.Uint32(hb[28:32])
@@ -581,17 +611,18 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 	return res, nil
 }
 
-// watchMbps rereads path every second. A number in it sets the cap in
-// MB/s; a missing or unreadable file restores the -mbps cap.
-func watchMbps(path string, base float64, lim *limiter, out io.Writer, stop <-chan struct{}) {
+// watchMbps reads path now and on each change w reports. A number in it sets
+// the cap in MB/s; a missing or unreadable file restores the -mbps cap.
+func watchMbps(w *fileWatch, path string, base float64, lim *limiter, out io.Writer, stop <-chan struct{}) {
 	cur := base
-	tk := time.NewTicker(time.Second)
-	defer tk.Stop()
-	for {
-		select {
-		case <-stop:
-			return
-		case <-tk.C:
+	for first := true; ; first = false {
+		changed := w.changed()
+		if !first {
+			select {
+			case <-stop:
+				return
+			case <-changed:
+			}
 		}
 		want := base
 		if b, err := os.ReadFile(path); err == nil {
@@ -623,13 +654,15 @@ func freeSet(f io.ReaderAt, h header) (bitset, *walk) {
 }
 
 // recheck rereads the freelist and each conflict's parents, up to
-// o.retries times. A conflict is explained when its page has left the
-// freelist, or a parent is now free or no longer points to the page: a live
-// write changed it after the walk read it.
-func recheck(f io.ReaderAt, h header, o ccOpts, res *ccResult, addFree func(bitset)) bitset {
-	page := make([]byte, h.pageSize)
+// o.retries times. Each try after the first waits for the next change dbWatch
+// reports, or o.retryIn, whichever comes first; a nil dbWatch waits o.retryIn.
+// A conflict is explained when its page has left the freelist, or a parent is
+// now free or no longer points to the page: a live write changed it after the
+// walk read it.
+func recheck(f io.ReaderAt, h header, o ccOpts, dbWatch *fileWatch, res *ccResult, addFree func(bitset)) bitset {
 	// points reports whether parent (0 for a root from sqlite_master,
 	// which is not reread) still points to target.
+	page := make([]byte, h.pageSize)
 	points := func(free bitset, parent uint32, ov bool, target uint32) bool {
 		if parent == 0 {
 			return true
@@ -644,8 +677,14 @@ func recheck(f io.ReaderAt, h header, o ccOpts, res *ccResult, addFree func(bits
 	}
 	var last bitset
 	for try := 0; try < max(o.retries, 1); try++ {
+		changed := dbWatch.changed()
 		if try > 0 {
-			time.Sleep(o.retryIn)
+			deadline := time.NewTimer(o.retryIn) //gostyle:timer deadline the longest a try waits for the file to change
+			select {
+			case <-changed:
+			case <-deadline.C:
+			}
+			deadline.Stop()
 		}
 		open := 0
 		free, _ := freeSet(f, h)

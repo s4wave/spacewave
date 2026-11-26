@@ -33,14 +33,17 @@ type opts struct {
 }
 
 func main() {
+	// Declare the flags.
 	var o opts
 	flag.Int64Var(&o.reserve, "reserve", 1<<30, "bytes of leaves to keep unpunched, taken whole trunks from the head of the chain")
 	flag.StringVar(&o.rangeSHA, "range-sha", "", "punch, if a fresh walk gives this range sha256 from a dry run")
 	flag.BoolVar(&o.live, "live", false, "read a running database read-only: estimates only, no locks, cannot punch")
 	flag.BoolVar(&o.cross, "crosscheck", false, "read-only: walk every b-tree and overflow chain and check none of their pages is on the freelist; no locks, cannot punch")
 	flag.Float64Var(&o.mbps, "mbps", 100, "-crosscheck read cap in MB/s, 0 for none")
-	flag.StringVar(&o.mbpsFile, "mbps-file", "", "-crosscheck: reread every second; a number in it replaces the -mbps cap")
+	flag.StringVar(&o.mbpsFile, "mbps-file", "", "-crosscheck: reread on each change; a number in it replaces the -mbps cap")
 	flag.IntVar(&o.readers, "readers", 8, "-crosscheck parallel readers")
+
+	// Parse them and the one database path.
 	flag.Usage = func() {
 		fmt.Fprintln(os.Stderr, "usage: world-punch [-live | -crosscheck [-mbps N] [-mbps-file PATH] | -range-sha HASH] [-reserve BYTES] DB")
 		flag.PrintDefaults()
@@ -51,6 +54,8 @@ func main() {
 		os.Exit(2)
 	}
 	o.path = flag.Arg(0)
+
+	// Run the one mode the flags select.
 	var err error
 	switch {
 	case (o.live || o.cross) && o.rangeSHA != "":
@@ -107,11 +112,14 @@ func runLive(out io.Writer, o opts) error {
 // runCrosscheck walks a possibly running file read-only. It reports true
 // when an unexplained conflict remains.
 func runCrosscheck(out io.Writer, o opts) (bool, error) {
+	// Open the file read-only.
 	f, err := os.Open(o.path)
 	if err != nil {
 		return false, err
 	}
 	defer f.Close()
+
+	// Read its header; a usable header with a warning still walks.
 	st, err := f.Stat()
 	if err != nil {
 		return false, err
@@ -124,7 +132,9 @@ func runCrosscheck(out io.Writer, o opts) (bool, error) {
 	if herr != nil {
 		fmt.Fprintln(out, "header warning:", herr)
 	}
-	co := ccOpts{readers: o.readers, mbps: o.mbps, mbpsFile: o.mbpsFile, retries: 3, retryIn: 5 * time.Second, every: time.Minute, snapEvery: 10 * time.Second, out: out}
+
+	// Walk the file, reading the trees through O_DIRECT when it opens.
+	co := ccOpts{readers: o.readers, mbps: o.mbps, mbpsFile: o.mbpsFile, retries: 3, retryIn: 5 * time.Second, progress: true, path: o.path, out: out}
 	if d, err := openDirect(o.path); err == nil {
 		defer d.Close()
 		co.bulk = d
