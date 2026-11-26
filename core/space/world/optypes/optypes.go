@@ -16,6 +16,7 @@ import (
 	forge_execution "github.com/s4wave/spacewave/forge/execution"
 	forge_job "github.com/s4wave/spacewave/forge/job"
 	forge_pass "github.com/s4wave/spacewave/forge/pass"
+	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_task "github.com/s4wave/spacewave/forge/task"
 	"github.com/s4wave/spacewave/identity"
 	s4wave_alarm "github.com/s4wave/spacewave/sdk/alarm"
@@ -48,6 +49,7 @@ var schema = world.NewSchema(
 	forge_execution.ExecutionTypes,
 	forge_job.JobTypes,
 	forge_pass.PassTypes,
+	forge_target.TargetTypes,
 	forge_task.TaskTypes,
 	identity.IdentityTypes,
 	bldr_manifest.ManifestTypes,
