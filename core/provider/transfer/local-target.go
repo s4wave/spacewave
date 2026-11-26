@@ -10,16 +10,21 @@ import (
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/sirupsen/logrus"
 )
 
 // LocalTransferTarget implements TransferTarget for a local provider account.
 type LocalTransferTarget struct {
-	account    *provider_local.ProviderAccount
+	// account is the provider account behind this endpoint.
+	account *provider_local.ProviderAccount
+	// providerID identifies the provider in transferred references.
 	providerID string
-	accountID  string
-	b          bus.Bus
+	// accountID identifies the account in transferred references.
+	accountID string
+	// b mounts transfer stores on the endpoint bus.
+	b bus.Bus
 }
 
 // NewLocalTransferTarget creates a new LocalTransferTarget.
@@ -36,9 +41,9 @@ func NewLocalTransferTarget(
 	}
 }
 
-// GetAccount returns the underlying local provider account.
-func (t *LocalTransferTarget) GetAccount() *provider_local.ProviderAccount {
-	return t.account
+// GetVolume returns the Volume whose identity this endpoint transfers.
+func (t *LocalTransferTarget) GetVolume() volume.Volume {
+	return t.account.GetVolume()
 }
 
 // GetBlockStore returns the block store ops for writing blocks to the target.
@@ -115,7 +120,8 @@ func (t *LocalTransferTarget) ReadSharedObject(ctx context.Context, le *logrus.E
 	if err != nil {
 		return nil, err
 	}
-	if !bytes.Equal(head, src.GetSourceHead()) || membershipChanged(stored.State) || again.Entry.GetGeneration() != stored.Entry.GetGeneration() || !bytes.Equal(again.State, stored.State) {
+	if !bytes.Equal(head, src.GetSourceHead()) || membershipChanged(stored.State) ||
+		again.Entry.GetGeneration() != stored.Entry.GetGeneration() || !bytes.Equal(again.State, stored.State) {
 		return &TargetSpace{Holds: TargetHoldsOther, Expect: stored}, nil
 	}
 	return written, nil
@@ -146,7 +152,12 @@ func (t *LocalTransferTarget) replayHead(ctx context.Context, le *logrus.Entry, 
 
 // AddSharedObject lists the Space arriving from origin and reads what the
 // account then holds.
-func (t *LocalTransferTarget) AddSharedObject(ctx context.Context, ref *sobject.SharedObjectRef, meta *sobject.SharedObjectMeta, origin *TransferOrigin) (*TargetSpace, error) {
+func (t *LocalTransferTarget) AddSharedObject(
+	ctx context.Context,
+	ref *sobject.SharedObjectRef,
+	meta *sobject.SharedObjectMeta,
+	origin *TransferOrigin,
+) (*TargetSpace, error) {
 	// List the Space with its origin.
 	soID := ref.GetProviderResourceRef().GetId()
 	src, err := origin.MarshalVT()
@@ -168,7 +179,15 @@ func (t *LocalTransferTarget) AddSharedObject(ctx context.Context, ref *sobject.
 // WriteSharedObjectState replaces the state and config history of the Space
 // and records origin as its source, in one transaction that requires the
 // generation and state expect read.
-func (t *LocalTransferTarget) WriteSharedObjectState(ctx context.Context, le *logrus.Entry, sharedObjectID string, owner crypto.PrivKey, stateData []byte, origin *TransferOrigin, expect *TargetSpace) error {
+func (t *LocalTransferTarget) WriteSharedObjectState(
+	ctx context.Context,
+	le *logrus.Entry,
+	sharedObjectID string,
+	owner crypto.PrivKey,
+	stateData []byte,
+	origin *TransferOrigin,
+	expect *TargetSpace,
+) error {
 	// Write only over a listed Space this target read.
 	stored, ok := expect.GetExpect().(*provider_local.StoredSharedObject)
 	if !ok || stored.Entry == nil {
@@ -191,5 +210,5 @@ func (t *LocalTransferTarget) WriteSharedObjectState(ctx context.Context, le *lo
 	return err
 }
 
-// _ is a type assertion
+// _ verifies the endpoint contracts.
 var _ TransferTarget = (*LocalTransferTarget)(nil)

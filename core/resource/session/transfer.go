@@ -237,7 +237,7 @@ func (r *SessionResource) StartTransfer(
 	// inaccessible).
 	var srcLinkedCloudAccountID string
 	if mode == provider_transfer.TransferMode_TransferMode_MERGE || mode == provider_transfer.TransferMode_TransferMode_MIGRATE {
-		srcLinkedCloudAccountID, err = readLinkedCloudAccountID(ctx, r.b, srcEntry, source)
+		srcLinkedCloudAccountID, err = readLinkedCloudAccountID(ctx, srcEntry, source)
 		if err != nil {
 			return nil, errors.Wrap(err, "read linked-cloud account id")
 		}
@@ -565,9 +565,9 @@ func transferOwnerKey(
 func getTransferSourceVolume(source provider_transfer.TransferSource) volume.Volume {
 	switch s := source.(type) {
 	case *provider_transfer.LocalTransferSource:
-		return s.GetAccount().GetVolume()
+		return s.GetVolume()
 	case *provider_transfer.SpacewaveTransferSource:
-		return s.GetAccount().GetVolume()
+		return s.GetVolume()
 	}
 	return nil
 }
@@ -576,9 +576,9 @@ func getTransferSourceVolume(source provider_transfer.TransferSource) volume.Vol
 func getTransferTargetVolume(target provider_transfer.TransferTarget) volume.Volume {
 	switch t := target.(type) {
 	case *provider_transfer.LocalTransferTarget:
-		return t.GetAccount().GetVolume()
+		return t.GetVolume()
 	case *provider_transfer.SpacewaveTransferTarget:
-		return t.GetAccount().GetVolume()
+		return t.GetVolume()
 	}
 	return nil
 }
@@ -587,7 +587,7 @@ func getTransferTargetVolume(target provider_transfer.TransferTarget) volume.Vol
 // session's ObjectStore. Returns empty string if the session is not local or
 // has no cloud link. Uses the transfer source's volume ID to avoid the raw
 // StorageVolumeID which may not match the proxy volume on the plugin bus.
-func readLinkedCloudAccountID(ctx context.Context, b bus.Bus, entry *session.SessionListEntry, source provider_transfer.TransferSource) (string, error) {
+func readLinkedCloudAccountID(ctx context.Context, entry *session.SessionListEntry, source provider_transfer.TransferSource) (string, error) {
 	// Read a linked-cloud account only from a local session.
 	provRef := entry.GetSessionRef().GetProviderResourceRef()
 	provID := provRef.GetProviderId()
@@ -601,36 +601,8 @@ func readLinkedCloudAccountID(ctx context.Context, b bus.Bus, entry *session.Ses
 		return "", nil
 	}
 
-	// Locate the local session object store.
-	accountID := provRef.GetProviderAccountId()
-	sessionID := provRef.GetId()
-	objectStoreID := provider_local.SessionObjectStoreID(provID, accountID)
-	volID := localSrc.GetAccount().GetVolume().GetID()
-
-	// Open that object store.
-	objStoreHandle, _, diRef, err := volume.ExBuildObjectStoreAPI(ctx, b, false, objectStoreID, volID, nil)
-	if err != nil {
-		return "", errors.Wrap(err, "mount session object store")
-	}
-	defer diRef.Release()
-
-	// Open a read transaction on the object store.
-	otx, err := objStoreHandle.GetObjectStore().NewTransaction(ctx, false)
-	if err != nil {
-		return "", errors.Wrap(err, "new read transaction")
-	}
-	defer otx.Discard()
-
-	// Return the linked-cloud account ID, or empty when none is stored.
-	key := provider_local.LinkedCloudKey(sessionID)
-	data, found, err := otx.Get(ctx, key)
-	if err != nil {
-		return "", errors.Wrap(err, "read linked-cloud key")
-	}
-	if !found {
-		return "", nil
-	}
-	return string(data), nil
+	// Ask the local source to read its session association.
+	return localSrc.ReadLinkedCloudAccountID(ctx, provRef.GetProviderAccountId(), provRef.GetId())
 }
 
 // cleanupLinkedCloudRef removes the cloud-side linked-local reference for a

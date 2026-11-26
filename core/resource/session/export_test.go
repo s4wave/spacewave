@@ -3,14 +3,13 @@ package resource_session
 import (
 	"context"
 
-	"github.com/aperturerobotics/controllerbus/bus"
 	provider_transfer "github.com/s4wave/spacewave/core/provider/transfer"
 	"github.com/s4wave/spacewave/core/session"
 )
 
 // ReadLinkedCloudAccountID exports readLinkedCloudAccountID for testing.
-func ReadLinkedCloudAccountID(ctx context.Context, b bus.Bus, entry *session.SessionListEntry, source provider_transfer.TransferSource) (string, error) {
-	return readLinkedCloudAccountID(ctx, b, entry, source)
+func ReadLinkedCloudAccountID(ctx context.Context, entry *session.SessionListEntry, source provider_transfer.TransferSource) (string, error) {
+	return readLinkedCloudAccountID(ctx, entry, source)
 }
 
 // WaitTransferDone waits for the transfer goroutine to finish completely

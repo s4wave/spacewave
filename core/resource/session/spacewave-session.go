@@ -1,12 +1,9 @@
 package resource_session
 
 import (
-	"bytes"
 	"context"
 	cryptorand "crypto/rand"
 	"encoding/base64"
-	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -25,7 +22,6 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/net/crypto"
-	"github.com/s4wave/spacewave/net/httpclient"
 	"github.com/s4wave/spacewave/net/peer"
 	s4wave_org "github.com/s4wave/spacewave/sdk/org"
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
@@ -571,7 +567,10 @@ func (r *SpacewaveSessionResource) ReactivateSubscription(
 }
 
 // SetBillingSpendingLimit updates the selected payer's recurring operation budget.
-func (r *SpacewaveSessionResource) SetBillingSpendingLimit(ctx context.Context, req *s4wave_provider_spacewave.SetBillingSpendingLimitRequest) (*s4wave_provider_spacewave.SetBillingSpendingLimitResponse, error) {
+func (r *SpacewaveSessionResource) SetBillingSpendingLimit(
+	ctx context.Context,
+	req *s4wave_provider_spacewave.SetBillingSpendingLimitRequest,
+) (*s4wave_provider_spacewave.SetBillingSpendingLimitResponse, error) {
 	// Resolve the payer's account before changing its recurring budget.
 	baID, err := r.resolveBillingAccountID(ctx, req.GetBillingAccountId())
 	if err != nil {
@@ -1371,7 +1370,9 @@ func (r *SpacewaveSessionResource) AcceptOrganizationTargetedInvitation(
 	}
 
 	// Join the organization.
-	acceptResp, err := r.swAcc.GetSessionClient().AcceptTargetedOrganizationInvitation(ctx, envelope.GetContextId(), &api.AcceptTargetedOrganizationInvitationRequest{Id: req.GetId()})
+	acceptResp, err := r.swAcc.GetSessionClient().AcceptTargetedOrganizationInvitation(
+		ctx, envelope.GetContextId(), &api.AcceptTargetedOrganizationInvitationRequest{Id: req.GetId()},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -2413,32 +2414,8 @@ func (r *SpacewaveSessionResource) EnrollForHandoff(
 		AccountId:     registration.GetAccountId(),
 		EntityId:      registration.GetEntityId(),
 	}
-	completionData, err := completion.MarshalVT()
-	if err != nil {
-		return nil, errors.Wrap(err, "marshal handoff completion")
-	}
-
-	// Build the relay request. The endpoint may be the serving origin "/",
-	// so join rather than concatenate.
-	endpoint := r.swAcc.GetProvider().GetEndpoint()
-	completeURL, err := url.JoinPath(endpoint, "/api/auth/session", nonce, "complete")
-	if err != nil {
-		return nil, errors.Wrap(err, "build completion URL")
-	}
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, completeURL, bytes.NewReader(completionData))
-	if err != nil {
-		return nil, errors.Wrap(err, "build completion request")
-	}
-	httpReq.Header.Set("Content-Type", "application/octet-stream")
-
-	// Relay the completion to the waiting client's auth session.
-	httpResp, err := r.swAcc.GetProvider().GetHTTPClient().Do(httpReq)
-	if err != nil {
-		return nil, errors.Wrap(err, "relay handoff completion")
-	}
-	defer httpclient.DrainAndCloseResponseBody(httpResp)
-	if httpResp.StatusCode != http.StatusOK {
-		return nil, errors.Errorf("handoff completion relay failed: %d", httpResp.StatusCode)
+	if err := r.swAcc.GetProvider().RelayHandoffCompletion(ctx, nonce, completion); err != nil {
+		return nil, err
 	}
 
 	return &s4wave_provider_spacewave.EnrollForHandoffResponse{

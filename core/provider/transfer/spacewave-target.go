@@ -10,15 +10,19 @@ import (
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/sirupsen/logrus"
 )
 
 // SpacewaveTransferTarget implements TransferTarget for a spacewave cloud account.
 type SpacewaveTransferTarget struct {
-	account    *provider_spacewave.ProviderAccount
+	// account is the provider account behind this endpoint.
+	account *provider_spacewave.ProviderAccount
+	// providerID identifies the provider in transferred references.
 	providerID string
-	accountID  string
+	// accountID identifies the account in transferred references.
+	accountID string
 }
 
 // NewSpacewaveTransferTarget creates a new SpacewaveTransferTarget.
@@ -33,9 +37,9 @@ func NewSpacewaveTransferTarget(
 	}
 }
 
-// GetAccount returns the underlying spacewave provider account.
-func (t *SpacewaveTransferTarget) GetAccount() *provider_spacewave.ProviderAccount {
-	return t.account
+// GetVolume returns the Volume whose identity this endpoint transfers.
+func (t *SpacewaveTransferTarget) GetVolume() volume.Volume {
+	return t.account.GetVolume()
 }
 
 // GetBlockStore returns the block store ops for writing blocks to the target.
@@ -167,7 +171,12 @@ func (t *SpacewaveTransferTarget) replayHead(ctx context.Context, le *logrus.Ent
 // AddSharedObject creates the Space on the cloud. The cloud lists it with
 // no config. A Space the cloud lists already returns
 // sobject.ErrSharedObjectExists.
-func (t *SpacewaveTransferTarget) AddSharedObject(ctx context.Context, ref *sobject.SharedObjectRef, meta *sobject.SharedObjectMeta, _ *TransferOrigin) (*TargetSpace, error) {
+func (t *SpacewaveTransferTarget) AddSharedObject(
+	ctx context.Context,
+	ref *sobject.SharedObjectRef,
+	meta *sobject.SharedObjectMeta,
+	_ *TransferOrigin,
+) (*TargetSpace, error) {
 	// Create the Space, refusing an id the cloud lists.
 	soID := ref.GetProviderResourceRef().GetId()
 	err := t.account.GetSessionClient().CreateSharedObject(ctx, soID, "", meta.GetBodyType(), "", "", meta.GetAccountPrivate())
@@ -184,7 +193,15 @@ func (t *SpacewaveTransferTarget) AddSharedObject(ctx context.Context, ref *sobj
 // and key epoch, then its checkpoint. The cloud refuses a genesis config on a
 // Space that has one, which this returns as ErrTargetChanged, so the write
 // is a compare-and-set on a Space with no config.
-func (t *SpacewaveTransferTarget) WriteSharedObjectState(ctx context.Context, le *logrus.Entry, sharedObjectID string, owner crypto.PrivKey, stateData []byte, _ *TransferOrigin, _ *TargetSpace) error {
+func (t *SpacewaveTransferTarget) WriteSharedObjectState(
+	ctx context.Context,
+	le *logrus.Entry,
+	sharedObjectID string,
+	owner crypto.PrivKey,
+	stateData []byte,
+	_ *TransferOrigin,
+	_ *TargetSpace,
+) error {
 	// Build the genesis.
 	state, genesis, err := sobject.BuildGenesisSOState(le, t.account.GetStepFactorySet(), sharedObjectID, owner, stateData)
 	if err != nil {
@@ -208,5 +225,5 @@ func (t *SpacewaveTransferTarget) WriteSharedObjectState(ctx context.Context, le
 	return cli.PostCheckpoint(ctx, sharedObjectID, state.GetCheckpoint())
 }
 
-// _ is a type assertion
+// _ verifies the endpoint contracts.
 var _ TransferTarget = (*SpacewaveTransferTarget)(nil)

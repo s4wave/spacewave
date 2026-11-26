@@ -10,15 +10,20 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/volume"
 	"github.com/sirupsen/logrus"
 )
 
 // SpacewaveTransferSource implements TransferSource for a spacewave cloud account.
 type SpacewaveTransferSource struct {
-	account    *provider_spacewave.ProviderAccount
+	// account is the provider account behind this endpoint.
+	account *provider_spacewave.ProviderAccount
+	// providerID identifies the provider in transferred references.
 	providerID string
-	accountID  string
-	b          bus.Bus
+	// accountID identifies the account in transferred references.
+	accountID string
+	// b mounts transfer stores on the endpoint bus.
+	b bus.Bus
 }
 
 // NewSpacewaveTransferSource creates a new SpacewaveTransferSource.
@@ -46,9 +51,9 @@ func (s *SpacewaveTransferSource) LeavesSharedObjects() bool {
 	return false
 }
 
-// GetAccount returns the underlying spacewave provider account.
-func (s *SpacewaveTransferSource) GetAccount() *provider_spacewave.ProviderAccount {
-	return s.account
+// GetVolume returns the Volume whose identity this endpoint transfers.
+func (s *SpacewaveTransferSource) GetVolume() volume.Volume {
+	return s.account.GetVolume()
 }
 
 // GetSharedObjectList returns the list of shared objects from the cloud.
@@ -81,5 +86,5 @@ func (s *SpacewaveTransferSource) GetBlockStore(ctx context.Context, ref *sobjec
 	return bs, rel, nil
 }
 
-// _ is a type assertion
+// _ verifies the endpoint contracts.
 var _ TransferSource = (*SpacewaveTransferSource)(nil)
