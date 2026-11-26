@@ -20,9 +20,9 @@ func TestEvictPaceBacksOffSlowFlushes(t *testing.T) {
 	p := &Pace{
 		le:    logrus.NewEntry(logrus.New()),
 		stats: func() (Stats, bool) { return st, true },
-		sleep: func(_ context.Context, d time.Duration) error {
+		sleep: func(_ context.Context, d time.Duration, _ <-chan struct{}) (bool, error) {
 			slept += d
-			return nil
+			return false, nil
 		},
 	}
 	p.SetFlushMax(50 * time.Millisecond)
@@ -82,9 +82,9 @@ func TestEvictPaceCapsRate(t *testing.T) {
 	p := &Pace{
 		le:    logrus.NewEntry(logrus.New()),
 		stats: func() (Stats, bool) { return Stats{}, false },
-		sleep: func(_ context.Context, d time.Duration) error {
+		sleep: func(_ context.Context, d time.Duration, _ <-chan struct{}) (bool, error) {
 			slept += d
-			return nil
+			return false, nil
 		},
 	}
 	p.SetBytesPerSecond(1 << 20)
@@ -112,6 +112,36 @@ func TestEvictPaceCapsRate(t *testing.T) {
 	if err := p.Admit(pctx, 0); err == nil {
 		t.Fatal("paused admit ran")
 	}
+}
+
+// TestPaceRateChangeWakesWait checks that lifting a near-zero cap releases a
+// batch already waiting on it, which would otherwise sleep for weeks.
+func TestPaceRateChangeWakesWait(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		// Hold a 3 MiB batch at one byte a millionth of a second.
+		p := New(logrus.NewEntry(logrus.New()), nil, Config{BytesPerSecond: 1e-6})
+		if err := p.Admit(t.Context(), 0); err != nil {
+			t.Fatal(err)
+		}
+		done := make(chan error, 1)
+		go func() { done <- p.Admit(t.Context(), 3<<20) }()
+		synctest.Wait()
+		select {
+		case err := <-done:
+			t.Fatalf("held admit returned %v", err)
+		default:
+		}
+
+		// Raising the cap to 2 MiB a second admits it after about 1.5 s.
+		start := time.Now()
+		p.SetBytesPerSecond(2 << 20)
+		if err := <-done; err != nil {
+			t.Fatal(err)
+		}
+		if waited := time.Since(start); waited > 2*time.Second {
+			t.Fatalf("raised cap admitted after %v", waited)
+		}
+	})
 }
 
 // TestPaceCancellation ends real rate and pressure waits when their pass ends.
