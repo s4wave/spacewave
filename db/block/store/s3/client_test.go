@@ -274,35 +274,109 @@ func TestBackgroundPutPassesForegroundLoad(t *testing.T) {
 	}
 }
 
-// TestUrgentProbeEndsPause throttles one interactive read with a ten second
-// Retry-After, lets the bucket recover, and checks that an urgent read
-// completes after one probe interval rather than at the pause's deadline,
-// and that its clean answer resumes the waiting interactive read too.
+// TestUrgentProbeEndsPause throttles one interactive read into a pause of at
+// least four seconds, lets the bucket recover, and checks that an urgent read
+// probes it after the throttle's Retry-After, or one probe interval when it
+// gave none, rather than at the pause's deadline, and that its clean answer
+// resumes the waiting interactive read too.
 func TestUrgentProbeEndsPause(t *testing.T) {
-	// Throttle the first request for ten seconds.
-	bucket, client := newFakeBucket(t, map[string]string{"a": "1", "b": "2"})
-	bucket.throttleNext = 1
-	bucket.retryAfter = "10"
+	for _, tc := range []struct {
+		name       string
+		retryAfter string
+		earliest   time.Duration
+	}{
+		{name: "no retry-after", retryAfter: "", earliest: gateProbeEvery},
+		{name: "retry-after", retryAfter: "2", earliest: 2 * time.Second},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// Throttle the first request, and start the backoff at its cap
+			// so the pause lasts at least half of it.
+			bucket, client := newFakeBucket(t, map[string]string{"a": "1", "b": "2"})
+			bucket.throttleNext = 1
+			bucket.retryAfter = tc.retryAfter
+			client.gate.backoff = gateBackoffMax
 
-	// The interactive read is throttled and waits in the pause.
-	start := time.Now()
-	inter := make(chan error, 1)
-	go func() { inter <- tagGet(client, t.Context(), "a", "inter") }()
-	waitQueued(t, client.gate, func(st GateState) bool { return !st.PausedUntil.IsZero() && st.QueuedInteractive == 1 })
+			// The interactive read is throttled and waits in the pause.
+			start := time.Now()
+			inter := make(chan error, 1)
+			go func() { inter <- tagGet(client, t.Context(), "a", "inter") }()
+			waitQueued(t, client.gate, func(st GateState) bool { return !st.PausedUntil.IsZero() && st.QueuedInteractive == 1 })
+			st, _ := client.gate.State()
+			if pause := st.PausedUntil.Sub(start); pause < gateBackoffMax/2 {
+				t.Fatalf("pause %v; want at least %v", pause, gateBackoffMax/2)
+			}
 
-	// An urgent read probes the recovered bucket and ends the pause.
-	urgent := block.WithReadClass(t.Context(), block.ReadUrgent)
-	if err := tagGet(client, urgent, "b", "urgent"); err != nil {
-		t.Fatal(err)
+			// An urgent read probes the recovered bucket once the probe
+			// wait passes, and ends the pause.
+			urgent := block.WithReadClass(t.Context(), block.ReadUrgent)
+			if err := tagGet(client, urgent, "b", "urgent"); err != nil {
+				t.Fatal(err)
+			}
+			if err := <-inter; err != nil {
+				t.Fatal(err)
+			}
+			if took := time.Since(start); took < tc.earliest || took > tc.earliest+900*time.Millisecond {
+				t.Fatalf("reads took %v; want the probe at %v", took, tc.earliest)
+			}
+			if st, _ := client.gate.State(); !st.PausedUntil.IsZero() || st.Throttles != 1 {
+				t.Fatalf("gate state %+v; want unpaused after one throttle", st)
+			}
+		})
 	}
-	if err := <-inter; err != nil {
-		t.Fatal(err)
+}
+
+// TestSharedFetchAllWaitersLeave starts a shared fetch the bucket holds,
+// cancels both of its waiters mid-send, and checks that the lane comes back,
+// the fetch's entry is removed, and the next caller starts a fresh fetch.
+func TestSharedFetchAllWaitersLeave(t *testing.T) {
+	// Hold the first request at the bucket, and count the requests.
+	bucket, client := newFakeBucket(t, map[string]string{"x": "v"})
+	hold := make(chan struct{})
+	t.Cleanup(func() { close(hold) })
+	var sent atomic.Int32
+	bucket.after = func(*http.Request) {
+		if sent.Add(1) == 1 {
+			<-hold
+		}
 	}
-	if took := time.Since(start); took > gateProbeEvery+time.Second {
-		t.Fatalf("reads took %v; want about one probe interval of %v", took, gateProbeEvery)
+	var g fetchGroup[string]
+	fetch := func(ctx context.Context) (string, error) {
+		data, err := client.GetObjectRange(ctx, "bucket", "x", 0, 8)
+		return string(data), err
 	}
-	if st, _ := client.gate.State(); !st.PausedUntil.IsZero() || st.Throttles != 1 {
-		t.Fatalf("gate state %+v; want unpaused after one throttle", st)
+
+	// Two waiters join the fetch, which reaches the bucket.
+	ctx, cancel := context.WithCancel(t.Context())
+	left := make(chan error, 2)
+	for range 2 {
+		go func() {
+			_, err := g.do(ctx, "x", fetch)
+			left <- err
+		}()
+	}
+	waitQueued(t, client.gate, func(st GateState) bool { return st.InFlight == 1 && sent.Load() == 1 })
+
+	// Both leave: each gets its cancel, the send ends, and the lane returns.
+	cancel()
+	for range 2 {
+		if err := <-left; !errors.Is(err, context.Canceled) {
+			t.Fatalf("waiter err = %v; want its cancel", err)
+		}
+	}
+	waitQueued(t, client.gate, func(st GateState) bool { return st.InFlight == 0 })
+	g.mtx.Lock()
+	entries := len(g.m)
+	g.mtx.Unlock()
+	if entries != 0 {
+		t.Fatalf("%d fetch entries left; want none", entries)
+	}
+
+	// The next caller starts a fresh fetch and gets the object.
+	if val, err := g.do(t.Context(), "x", fetch); err != nil || val != "v" {
+		t.Fatalf("fresh fetch got %q, %v; want the object", val, err)
+	}
+	if got := sent.Load(); got != 2 {
+		t.Fatalf("bucket saw %d requests; want a fresh second one", got)
 	}
 }
 
