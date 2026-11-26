@@ -3,8 +3,10 @@
 package block_store_s3
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"math/rand/v2"
 	"runtime"
 	"strings"
 	"testing"
@@ -138,4 +140,53 @@ func structureBlocks(depth, fanout int) int {
 		level *= fanout
 	}
 	return count
+}
+
+// TestSpanBufferHoldsTrueBytes adds random, overlapping spans of three packs
+// whose byte at each offset is known, to a buffer small enough to drop most
+// of them, and checks that every read it answers returns the pack's own bytes,
+// that the newest span still answers, and that the spans stay within the
+// limit and none lies inside another.
+func TestSpanBufferHoldsTrueBytes(t *testing.T) {
+	packByte := func(id string, off int64) byte { return byte(int64(id[0])*31 + off*7) }
+	span := func(id string, off int64, n int) []byte {
+		data := make([]byte, n)
+		for i := range data {
+			data[i] = packByte(id, off+int64(i))
+		}
+		return data
+	}
+	rng := rand.New(rand.NewPCG(1, 2))
+	ids := []string{"a", "b", "c"}
+	b := newSpanBuffer(64 << 10)
+	for range 20000 {
+		id := ids[rng.IntN(len(ids))]
+		off, n := rng.Int64N(1<<16), 1+rng.IntN(4096)
+		b.add(id, off, span(id, off, n))
+		if got, ok := b.read(id, off, n); !ok || !bytes.Equal(got, span(id, off, n)) {
+			t.Fatalf("newest span %s@%d+%d did not read back", id, off, n)
+		}
+
+		// Read a random range, which must be the pack's bytes when answered.
+		rid := ids[rng.IntN(len(ids))]
+		roff, rn := rng.Int64N(1<<16), 1+rng.IntN(512)
+		if got, ok := b.read(rid, roff, rn); ok && !bytes.Equal(got, span(rid, roff, rn)) {
+			t.Fatalf("read %s@%d+%d returned another pack's or offset's bytes", rid, roff, rn)
+		}
+	}
+
+	// Check the charge and that no span lies inside another of its pack.
+	held := 0
+	var prev *heldSpan
+	b.spans.Scan(func(sp *heldSpan) bool {
+		held += sp.cost()
+		if prev != nil && prev.id == sp.id && prev.end() >= sp.end() {
+			t.Errorf("span %s@%d lies inside %s@%d", sp.id, sp.off, prev.id, prev.off)
+		}
+		prev = sp
+		return true
+	})
+	if held != b.held || held > b.limit || b.order.Len() != b.spans.Len() {
+		t.Fatalf("held %d, counted %d, limit %d, %d in order, %d in tree", held, b.held, b.limit, b.order.Len(), b.spans.Len())
+	}
 }

@@ -5,7 +5,6 @@ import (
 	"context"
 	"math"
 	"slices"
-	"sort"
 	"sync"
 	"time"
 
@@ -372,9 +371,7 @@ func runBlock(data []byte, off int64, e batchExtent) *block.StoredBlock {
 // An extent larger than readBatchRun is a run of its own.
 func batchRuns(extents []batchExtent, gap int64) func(yield func(batchRun) bool) {
 	return func(yield func(batchRun) bool) {
-		slices.SortFunc(extents, func(a, b batchExtent) int {
-			return cmp.Or(cmp.Compare(a.id, b.id), cmp.Compare(a.off, b.off))
-		})
+		slices.SortFunc(extents, compareExtents)
 		var run batchRun
 		for i, e := range extents {
 			// Extend the run with an extent close enough to its end.
@@ -405,23 +402,19 @@ func batchRuns(extents []batchExtent, gap int64) func(yield func(batchRun) bool)
 // as batchRuns yields them.
 func reachRuns(extents []batchExtent, gap int64) func(yield func(batchRun) bool) {
 	return func(yield func(batchRun) bool) {
-		// Merge the spans to their reaches, by pack and offset.
-		var spans []batchRun
-		for _, e := range extents {
-			if e.reach > e.off+int64(e.size) {
-				spans = append(spans, batchRun{id: e.id, off: e.off, end: e.reach, keep: true})
-			}
-		}
-		slices.SortFunc(spans, func(a, b batchRun) int {
-			return cmp.Or(cmp.Compare(a.id, b.id), cmp.Compare(a.off, b.off))
-		})
+		// Sort the extents by pack and offset, so the spans to their reaches
+		// come out in order and merge in one pass.
+		slices.SortFunc(extents, compareExtents)
 		var merged []batchRun
-		for _, sp := range spans {
-			if last := len(merged) - 1; last >= 0 && merged[last].id == sp.id && sp.off <= merged[last].end+gap {
-				merged[last].end = max(merged[last].end, sp.end)
+		for _, e := range extents {
+			if e.reach <= e.off+int64(e.size) {
 				continue
 			}
-			merged = append(merged, sp)
+			if last := len(merged) - 1; last >= 0 && merged[last].id == e.id && e.off <= merged[last].end+gap {
+				merged[last].end = max(merged[last].end, e.reach)
+				continue
+			}
+			merged = append(merged, batchRun{id: e.id, off: e.off, end: e.reach, keep: true})
 		}
 
 		// Cut each into pieces of at most readBatchRun bytes.
@@ -432,12 +425,14 @@ func reachRuns(extents []batchExtent, gap int64) func(yield func(batchRun) bool)
 			}
 		}
 
-		// Give each extent to the piece holding it whole, or to the rest.
-		var rest []batchExtent
+		// Give each extent, in order, to the last piece starting at or before
+		// it when that piece holds it whole, or to the rest.
+		rest := make([]batchExtent, 0, len(extents))
+		at := -1
 		for _, e := range extents {
-			at := sort.Search(len(pieces), func(i int) bool {
-				return cmp.Or(cmp.Compare(pieces[i].id, e.id), cmp.Compare(pieces[i].off, e.off)) > 0
-			}) - 1
+			for at+1 < len(pieces) && comparePlace(pieces[at+1].id, pieces[at+1].off, e) <= 0 {
+				at++
+			}
 			if at >= 0 && pieces[at].id == e.id && e.off+int64(e.size) <= pieces[at].end {
 				pieces[at].extents = append(pieces[at].extents, e)
 			} else {
@@ -457,6 +452,16 @@ func reachRuns(extents []batchExtent, gap int64) func(yield func(batchRun) bool)
 			}
 		}
 	}
+}
+
+// compareExtents orders extents by pack and offset.
+func compareExtents(a, b batchExtent) int {
+	return comparePlace(a.id, a.off, b)
+}
+
+// comparePlace orders the place off in pack id against extent e's.
+func comparePlace(id string, off int64, e batchExtent) int {
+	return cmp.Or(cmp.Compare(id, e.id), cmp.Compare(off, e.off))
 }
 
 // locateExtents returns the extent of each ref whose h row holds one and

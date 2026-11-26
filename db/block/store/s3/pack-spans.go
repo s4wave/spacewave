@@ -1,34 +1,41 @@
 package block_store_s3
 
 import (
-	"slices"
-	"sort"
+	"cmp"
+	"container/list"
 	"sync"
+
+	"github.com/tidwall/btree"
 )
+
+// spanOverhead is the bytes the buffer charges each span beyond its data, for
+// its record, tree item and list element, so a buffer of many small spans
+// stays within its limit too.
+const spanOverhead = 128
 
 // spanBuffer holds the bytes of the reach reads a subtree walk made, so the
 // walk's next reads of the blocks inside them cut those blocks from memory
 // rather than read them again.
 //
-// Invariant: a span holds bytes read from its pack at its offset. A pack's
+// Invariants: a span holds bytes read from its pack at its offset. A pack's
 // bytes never change once written, and every block cut from a span is checked
-// against its hash, so a span outliving its pack or naming a reused pack
-// number answers nothing wrong; the buffer needs no invalidation. It holds at
-// most limit bytes, dropping the oldest span first.
+// against its hash, so a span outliving its pack answers nothing wrong; the
+// buffer needs no invalidation. No held span lies inside another of its pack,
+// so the spans of a pack, ordered by offset, end in the same order, and the
+// one starting nearest at or before an offset is the only one that can hold a
+// read from there. The spans and their overhead stay within limit bytes, the
+// oldest dropped first.
 type spanBuffer struct {
-	// limit bounds the bytes of the spans held.
+	// limit bounds the bytes the spans are charged.
 	limit int
 	// mtx guards the fields below.
 	mtx sync.Mutex
-	// packs holds each pack's spans by offset.
-	packs map[string][]*heldSpan
+	// spans holds every span by pack and offset.
+	spans *btree.BTreeG[*heldSpan]
 	// order holds every span, oldest first.
-	order []*heldSpan
-	// held is the bytes of the spans held.
+	order list.List
+	// held is the bytes the spans are charged.
 	held int
-	// longest is the length of the longest span added, so a read looks back
-	// only at spans that start close enough to reach it.
-	longest int
 }
 
 // heldSpan is one span of a pack's bytes.
@@ -39,79 +46,100 @@ type heldSpan struct {
 	off int64
 	// data is the span's bytes.
 	data []byte
+	// at is the span's element in order.
+	at *list.Element
+}
+
+// end returns the offset just past the span.
+func (sp *heldSpan) end() int64 {
+	return sp.off + int64(len(sp.data))
+}
+
+// cost returns the bytes the span is charged.
+func (sp *heldSpan) cost() int {
+	return len(sp.data) + spanOverhead
+}
+
+// spanLess orders spans by pack and offset.
+func spanLess(a, b *heldSpan) bool {
+	return cmp.Or(cmp.Compare(a.id, b.id), cmp.Compare(a.off, b.off)) < 0
 }
 
 // newSpanBuffer returns an empty buffer of at most limit bytes.
 func newSpanBuffer(limit int) *spanBuffer {
-	return &spanBuffer{limit: limit, packs: make(map[string][]*heldSpan)}
+	return &spanBuffer{limit: limit, spans: btree.NewBTreeGOptions(spanLess, btree.Options{NoLocks: true})}
 }
 
-// add holds data, the bytes of pack id from off, dropping the oldest spans to
-// stay within the limit. A span over the limit is not held.
+// add holds data, the bytes of pack id from off, dropping the spans it covers
+// and then the oldest spans to stay within the limit. A span another span
+// covers, or one over the limit, is not held.
 func (b *spanBuffer) add(id string, off int64, data []byte) {
 	// Hold nothing for an empty span or one the buffer cannot fit.
-	if len(data) == 0 || len(data) > b.limit {
+	sp := &heldSpan{id: id, off: off, data: data}
+	if len(data) == 0 || sp.cost() > b.limit {
 		return
 	}
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
 
-	// Drop the oldest spans until data fits.
-	for b.held+len(data) > b.limit && len(b.order) != 0 {
-		b.dropLocked(b.order[0])
-		b.order = b.order[1:]
+	// Skip a span the nearest one starting at or before it already covers.
+	if prev := b.nearestLocked(id, off); prev != nil && prev.end() >= sp.end() {
+		return
 	}
 
-	// Insert the span after the spans starting at or before it.
-	sp := &heldSpan{id: id, off: off, data: data}
-	spans := b.packs[id]
-	b.packs[id] = slices.Insert(spans, spansAfter(spans, off), sp)
-	b.order = append(b.order, sp)
-	b.held += len(data)
-	b.longest = max(b.longest, len(data))
+	// Drop the spans starting inside it that it covers; since ends follow
+	// starts, they run from off up to the first ending past it.
+	var covered []*heldSpan
+	b.spans.Ascend(sp, func(next *heldSpan) bool {
+		if next.id != id || next.end() > sp.end() {
+			return false
+		}
+		covered = append(covered, next)
+		return true
+	})
+	for _, next := range covered {
+		b.dropLocked(next)
+	}
+
+	// Drop the oldest spans until it fits, then hold it.
+	for b.held+sp.cost() > b.limit && b.order.Len() != 0 {
+		b.dropLocked(b.order.Front().Value.(*heldSpan))
+	}
+	b.spans.Set(sp)
+	sp.at = b.order.PushBack(sp)
+	b.held += sp.cost()
 }
 
-// dropLocked removes sp from its pack's spans. The caller removes it from
-// order and holds mtx.
+// dropLocked removes sp. The caller holds mtx.
 func (b *spanBuffer) dropLocked(sp *heldSpan) {
-	spans := b.packs[sp.id]
-	if i := slices.Index(spans, sp); i >= 0 {
-		spans = slices.Delete(spans, i, i+1)
-	}
-	if len(spans) == 0 {
-		delete(b.packs, sp.id)
-	} else {
-		b.packs[sp.id] = spans
-	}
-	b.held -= len(sp.data)
+	b.spans.Delete(sp)
+	b.order.Remove(sp.at)
+	b.held -= sp.cost()
 }
 
-// read returns the bytes of pack id from off to off+size when one span holds
+// read returns the bytes of pack id from off to off+size when a span holds
 // all of them, sharing the span's memory, or false.
 func (b *spanBuffer) read(id string, off int64, size int) ([]byte, bool) {
-	// Hold the buffer for the lookup.
+	// Only the span starting nearest at or before off can hold the read.
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
-
-	// Look at the spans starting at or before off, nearest first, back to
-	// the furthest a span could start and still reach off; spans of one pack
-	// may overlap, so an earlier one can reach further.
-	spans := b.packs[id]
-	for i := spansAfter(spans, off) - 1; i >= 0; i-- {
-		sp := spans[i]
-		start := off - sp.off
-		if start >= int64(b.longest) {
-			break
-		}
-		if start+int64(size) <= int64(len(sp.data)) {
-			return sp.data[start : start+int64(size)], true
-		}
+	sp := b.nearestLocked(id, off)
+	if sp == nil || off+int64(size) > sp.end() {
+		return nil, false
 	}
-	return nil, false
+	start := off - sp.off
+	return sp.data[start : start+int64(size)], true
 }
 
-// spansAfter returns the index of the first of spans, sorted by offset, that
-// starts after off.
-func spansAfter(spans []*heldSpan, off int64) int {
-	return sort.Search(len(spans), func(i int) bool { return spans[i].off > off })
+// nearestLocked returns the span of pack id starting nearest at or before off,
+// or nil. The caller holds mtx.
+func (b *spanBuffer) nearestLocked(id string, off int64) *heldSpan {
+	var found *heldSpan
+	b.spans.Descend(&heldSpan{id: id, off: off}, func(sp *heldSpan) bool {
+		if sp.id == id {
+			found = sp
+		}
+		return false
+	})
+	return found
 }
