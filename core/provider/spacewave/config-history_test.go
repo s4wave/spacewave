@@ -21,7 +21,19 @@ func TestCloudHostRejectsConfigChangesThroughStateWrite(t *testing.T) {
 	t.Cleanup(srv.Close)
 	priv, pid := generateTestKeypair(t)
 	client := NewSessionClient(srv.Client(), srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-	host := newCloudSOHost(nil, client, testSharedObjectID, "", nil, priv, pid, nil, nil, nil, nil, nil)
+	host := newCloudSOHost(
+		nil,
+		client,
+		testSharedObjectID,
+		"",
+		nil,
+		priv,
+		pid,
+		nil,
+		nil,
+		cloudSOHostHooks{},
+		nil,
+	)
 	initial := &sobject.SOState{Config: &sobject.SharedObjectConfig{Participants: []*sobject.SOParticipantConfig{{
 		PeerId: pid.String(), Role: sobject.SOParticipantRole_SOParticipantRole_OWNER,
 	}}}}

@@ -138,7 +138,7 @@ func (a *ProviderAccount) OpenFriendDM(
 	defer relSO()
 
 	// Read participant state before applying owner-authorized actions.
-	state, err := swSO.GetSOHost().GetHostState(ctx)
+	state, err := swSO.host.getHostState(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "read friend dm state")
 	}
@@ -385,7 +385,7 @@ func (s *SharedObject) reconcileFriendDmParticipants(
 	localPeerID string,
 ) error {
 	// Read the verified config and build the participant plan.
-	state, err := s.GetSOHost().GetHostState(ctx)
+	state, err := s.host.getHostState(ctx)
 	if err != nil {
 		return err
 	}

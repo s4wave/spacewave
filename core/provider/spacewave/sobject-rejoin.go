@@ -32,7 +32,7 @@ func (t *sobjectTracker) tryRecoverMissingSharedObjectPeer(
 	// recovered on the next config-chain re-verify, which still rotates the
 	// host into the new participant set.
 	if peerEnrolledInCurrentEpoch(so.host.GetKeyEpochs(), so.localPid.String()) {
-		if epoch := currentEpochWithFallback(so.host.stateCtr.GetValue(), so.host.GetKeyEpochs()); epoch != nil {
+		if epoch := currentEpochWithFallback(so.host.getCachedState(), so.host.GetKeyEpochs()); epoch != nil {
 			so.host.applyKeyEpoch(ctx, epoch)
 		}
 		t.a.le.WithField("sobject-id", t.id).
@@ -45,108 +45,140 @@ func (t *sobjectTracker) tryRecoverMissingSharedObjectPeer(
 	if err := so.host.ensureInitialState(ctx, SeedReasonRejoin); err != nil {
 		return errors.Wrap(err, "initial state pull")
 	}
-	relLock, err := so.host.writeMu.Lock(ctx)
-	if err != nil {
-		return err
-	}
-	defer relLock()
 
-	// Enroll against the latest config, retrying when another writer advances it.
-	for attempt := range maxWriteRetries {
-		state, currentCfg, epochs, err := so.loadLatestConfigState(ctx)
-		if err != nil {
-			return err
-		}
-		localPeerID := so.localPid.String()
-		localParticipant := participantConfigForPeer(currentCfg, localPeerID)
-		epoch := currentEpochWithFallback(state, epochs)
-		if epoch == nil {
-			return errSharedObjectCurrentKeyEpochMissing
-		}
-		if localParticipant != nil && epoch.FindGrant(localPeerID) != nil {
-			stateGrantExists := state != nil &&
-				state.CurrentKeyEpoch().FindGrant(localPeerID) != nil
-			if !peerEnrolledInCurrentEpoch(epochs, localPeerID) || !stateGrantExists {
-				so.host.applyKeyEpoch(ctx, epoch)
+	// Keep the enrollment retry loop inside the host's local write lock.
+	return so.host.withWriteLock(ctx, func() error {
+		// Enroll against the latest config, retrying when another writer advances it.
+		for attempt := range maxWriteRetries {
+			// Read the latest authority and reuse an existing grant when possible.
+			state, currentCfg, epochs, err := so.loadLatestConfigState(ctx)
+			if err != nil {
+				return err
 			}
-			return nil
-		}
+			localPeerID := so.localPid.String()
+			localParticipant := participantConfigForPeer(currentCfg, localPeerID)
+			epoch := currentEpochWithFallback(state, epochs)
+			if epoch == nil {
+				return errSharedObjectCurrentKeyEpochMissing
+			}
+			if localParticipant != nil && epoch.FindGrant(localPeerID) != nil {
+				stateGrantExists := state != nil &&
+					state.CurrentKeyEpoch().FindGrant(localPeerID) != nil
+				if !peerEnrolledInCurrentEpoch(epochs, localPeerID) || !stateGrantExists {
+					so.host.applyKeyEpoch(ctx, epoch)
+				}
+				return nil
+			}
 
-		role := readableParticipantRoleForEntity(currentCfg, t.a.accountID)
-		if !sobject.CanReadState(role) {
-			return sobject.ErrNotParticipant
-		}
+			// Require the entity to retain a readable role before enrolling its peer.
+			role := readableParticipantRoleForEntity(currentCfg, t.a.accountID)
+			if !sobject.CanReadState(role) {
+				return sobject.ErrNotParticipant
+			}
 
-		material, err := t.resolveRejoinRecoveryMaterial(
-			ctx,
-			ref,
-			so.GetSharedObjectID(),
-			cli,
-			epoch.GetEpoch(),
-		)
-		if err != nil {
-			return err
-		}
-		if material.GetGrantInner() == nil {
-			return errors.New("shared object recovery material is missing grant inner")
-		}
-
-		rejoinRole := material.GetRole()
-		if !sobject.CanReadState(rejoinRole) || role < rejoinRole {
-			rejoinRole = role
-		}
-
-		grant, err := sobject.BuildSelfEnrollPeerGrant(
-			so.privKey,
-			so.localPid,
-			so.GetSharedObjectID(),
-			material,
-		)
-		if err != nil {
-			return errors.Wrap(err, "build self-enroll grant")
-		}
-		epoch.Grants = append(epoch.GetGrants(), grant)
-
-		var entry *sobject.SOConfigChange
-		var entryData []byte
-		recoveryCfg := currentCfg
-		if localParticipant == nil {
-			entry, err = sobject.BuildSelfEnrollPeerConfigChange(
+			// Recover the current read key for this entity.
+			material, err := t.resolveRejoinRecoveryMaterial(
+				ctx,
+				ref,
 				so.GetSharedObjectID(),
-				currentCfg,
-				so.privKey,
-				localPeerID,
-				t.a.accountID,
-				rejoinRole,
+				cli,
+				epoch.GetEpoch(),
 			)
 			if err != nil {
-				return errors.Wrap(err, "build self-enroll config change")
+				return err
 			}
-			entryData, err = entry.MarshalVT()
-			if err != nil {
-				return errors.Wrap(err, "marshal self-enroll config change")
+			if material.GetGrantInner() == nil {
+				return errors.New("shared object recovery material is missing grant inner")
 			}
-			recoveryCfg, err = configWithConfigChangeHash(entry)
-			if err != nil {
-				return errors.Wrap(err, "build recovery config snapshot")
-			}
-		}
-		recoveryEnvelopes, err := buildSORecoveryEnvelopes(
-			ctx,
-			cli,
-			so.GetSharedObjectID(),
-			recoveryCfg,
-			epoch.GetEpoch(),
-			material.GetGrantInner(),
-		)
-		if err != nil {
-			return errors.Wrap(err, "build recovery envelopes")
-		}
 
-		if localParticipant != nil {
-			if err := cli.PostKeyEpoch(
+			// Limit the recovered role to the entity's current authority.
+			rejoinRole := material.GetRole()
+			if !sobject.CanReadState(rejoinRole) || role < rejoinRole {
+				rejoinRole = role
+			}
+
+			// Encrypt the current read key for the local peer.
+			grant, err := sobject.BuildSelfEnrollPeerGrant(
+				so.privKey,
+				so.localPid,
+				so.GetSharedObjectID(),
+				material,
+			)
+			if err != nil {
+				return errors.Wrap(err, "build self-enroll grant")
+			}
+			epoch.Grants = append(epoch.GetGrants(), grant)
+
+			// Build the signed participant change when the peer is absent.
+			var entry *sobject.SOConfigChange
+			var entryData []byte
+			recoveryCfg := currentCfg
+			if localParticipant == nil {
+				entry, err = sobject.BuildSelfEnrollPeerConfigChange(
+					so.GetSharedObjectID(),
+					currentCfg,
+					so.privKey,
+					localPeerID,
+					t.a.accountID,
+					rejoinRole,
+				)
+				if err != nil {
+					return errors.Wrap(err, "build self-enroll config change")
+				}
+				entryData, err = entry.MarshalVT()
+				if err != nil {
+					return errors.Wrap(err, "marshal self-enroll config change")
+				}
+				recoveryCfg, err = configWithConfigChangeHash(entry)
+				if err != nil {
+					return errors.Wrap(err, "build recovery config snapshot")
+				}
+			}
+			recoveryEnvelopes, err := buildSORecoveryEnvelopes(
+				ctx,
+				cli,
+				so.GetSharedObjectID(),
+				recoveryCfg,
+				epoch.GetEpoch(),
+				material.GetGrantInner(),
+			)
+			if err != nil {
+				return errors.Wrap(err, "build recovery envelopes")
+			}
+
+			// Publish only the missing grant when the participant already exists.
+			if localParticipant != nil {
+				if err := cli.PostKeyEpoch(
+					ctx,
+					so.GetSharedObjectID(),
+					epoch,
+					recoveryEnvelopes,
+				); err != nil {
+					var ce *cloudError
+					if !errors.As(err, &ce) || ce.StatusCode != 409 || attempt+1 == maxWriteRetries {
+						return err
+					}
+					// Exponential backoff: 100ms, 200ms, 400ms.
+					backoff := 100 * time.Millisecond << uint(attempt)
+					select {
+					case <-ctx.Done():
+						return ctx.Err()
+					//gostyle:timer backoff
+					case <-time.After(backoff):
+					}
+					continue
+				}
+				t.persistOwnRecoveryEnvelope(ctx, so.GetSharedObjectID(), recoveryEnvelopes)
+				so.host.applyKeyEpoch(ctx, epoch)
+				return nil
+			}
+
+			// Publish the participant change with its grant and recovery envelopes.
+			if err := cli.PostConfigState(
 				ctx,
 				so.GetSharedObjectID(),
+				entryData,
+				nil,
 				epoch,
 				recoveryEnvelopes,
 			); err != nil {
@@ -165,37 +197,12 @@ func (t *sobjectTracker) tryRecoverMissingSharedObjectPeer(
 				continue
 			}
 			t.persistOwnRecoveryEnvelope(ctx, so.GetSharedObjectID(), recoveryEnvelopes)
-			so.host.applyKeyEpoch(ctx, epoch)
-			return nil
+			return so.host.applyConfigMutation(ctx, entry, nil, epoch)
 		}
 
-		if err := cli.PostConfigState(
-			ctx,
-			so.GetSharedObjectID(),
-			entryData,
-			nil,
-			epoch,
-			recoveryEnvelopes,
-		); err != nil {
-			var ce *cloudError
-			if !errors.As(err, &ce) || ce.StatusCode != 409 || attempt+1 == maxWriteRetries {
-				return err
-			}
-			// Exponential backoff: 100ms, 200ms, 400ms.
-			backoff := 100 * time.Millisecond << uint(attempt)
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			//gostyle:timer backoff
-			case <-time.After(backoff):
-			}
-			continue
-		}
-		t.persistOwnRecoveryEnvelope(ctx, so.GetSharedObjectID(), recoveryEnvelopes)
-		return so.host.applyConfigMutation(ctx, entry, nil, epoch)
-	}
-
-	return errors.New("self-enroll recovery failed after max retries due to config conflicts")
+		// Report exhaustion of the existing conflict retry budget.
+		return errors.New("self-enroll recovery failed after max retries due to config conflicts")
+	})
 }
 
 // resolveRejoinRecoveryMaterial returns the decrypted recovery material for the

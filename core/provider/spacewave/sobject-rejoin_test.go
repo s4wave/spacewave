@@ -57,8 +57,7 @@ func TestTryRecoverMissingSharedObjectPeerSkipsWhenEnrolled(t *testing.T) {
 				}},
 			}},
 		},
-		nil,
-		nil,
+		cloudSOHostHooks{},
 		nil,
 	)
 	host.soHost.SetContext(context.Background())
@@ -159,8 +158,7 @@ func TestTryRecoverMissingSharedObjectPeerRefreshesCachedEpochGrants(t *testing.
 				Grants: []*sobject.SOGrant{validGrant},
 			}},
 		},
-		nil,
-		nil,
+		cloudSOHostHooks{},
 		nil,
 	)
 	host.soHost.SetContext(context.Background())
@@ -249,8 +247,7 @@ func TestTryRecoverMissingSharedObjectPeerAllowsReadOnlyLifecycle(t *testing.T) 
 		pid,
 		acc.sfs,
 		nil,
-		nil,
-		nil,
+		cloudSOHostHooks{},
 		nil,
 	)
 	host.soHost.SetContext(context.Background())
@@ -310,8 +307,7 @@ func TestTryRecoverMissingSharedObjectPeerSkipsPendingDeleteLifecycle(t *testing
 		pid,
 		acc.sfs,
 		nil,
-		nil,
-		nil,
+		cloudSOHostHooks{},
 		nil,
 	)
 	host.soHost.SetContext(context.Background())

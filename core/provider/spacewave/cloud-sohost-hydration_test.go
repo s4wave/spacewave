@@ -35,13 +35,21 @@ func TestCloudHostHydrationRefreshesState(t *testing.T) {
 
 	// Restore a verified checkpoint before starting the host routines.
 	le := logrus.New().WithField("test", t.Name())
-	host := newCloudSOHost(le,
+	host := newCloudSOHost(
+		le,
 		NewSessionClient(server.Client(), server.URL, DefaultSigningEnvPrefix, key, pid.String()),
-		testSharedObjectID, "", newTestWSTracker(le, func() *SessionClient { return nil }), key, pid, nil,
+		testSharedObjectID,
+		"",
+		newTestWSTracker(le, func() *SessionClient { return nil }),
+		key,
+		pid,
+		nil,
 		&api.VerifiedSOStateCache{
 			PeerState: initial.CloneVT(), CloudState: initial.CloneVT(), CurrentConfig: initial.GetConfig().CloneVT(),
 			VerifiedConfigChainHash: initial.GetConfig().GetConfigChainHash(), VerifiedConfigChainSeqno: initial.GetConfig().GetConfigChainSeqno(),
-		}, nil, nil, nil,
+		},
+		cloudSOHostHooks{},
+		nil,
 	)
 	if host.stateCtr.GetValue() == nil {
 		t.Fatal("verified checkpoint was not hydrated")

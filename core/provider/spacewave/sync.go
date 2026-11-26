@@ -161,6 +161,25 @@ func (e *heldError) Is(target error) bool {
 	return target == block.ErrBlockCorrupt
 }
 
+// initLanes constructs the remote pull routine, remote reader, and linked lane in order.
+func (s *syncController) initLanes(ctx context.Context, le *logrus.Entry, remote *publicReadRemote, linkedStore kvtx.Store) error {
+	// Construct the coalesced remote pull routine before binding its remote reader.
+	s.remotePullRoutine = newCoalescedTriggerRoutine(le, "bstore-remote-pull", s.pullRemoteOnTrigger)
+	if remote != nil {
+		s.remote = remote.Entries
+	}
+
+	// Open linked files after the remote pull machinery is ready.
+	var err error
+	s.linked, err = newLinkedLane(ctx, s, linkedStore)
+	return err
+}
+
+// wrapLinkedFiles places this controller's linked files behind the primary cache.
+func (s *syncController) wrapLinkedFiles(primary block.StoreOps) block.StoreOps {
+	return s.linked.wrapPrimary(primary)
+}
+
 // Init reads persisted queue accounting and runs the initial pull. Access-gated pull
 // failures are returned so callers can wait for account/resource invalidation
 // instead of retrying. Must be called before Execute.

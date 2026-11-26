@@ -140,7 +140,7 @@ func (s *SharedObject) SetBody(ctx context.Context, body sobject.Body) (func(), 
 // set. It returns the operation's local ID and position once the state
 // holding it is durably accepted for publication.
 func (s *SharedObject) QueueOperation(ctx context.Context, op []byte) (string, *sobject.SOOperationPosition, error) {
-	return s.host.GetSOHost().AddLocalOperation(ctx, s.tkr.a.le, s.tkr.a.sfs, s.privKey, op)
+	return s.host.addLocalOperation(ctx, s.tkr.a.le, s.tkr.a.sfs, s.privKey, op)
 }
 
 // sobjectTracker tracks a SharedObject in the ProviderAccount.
@@ -270,33 +270,34 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 		sessionPeerID,
 		t.a.sfs,
 		verifiedCache,
-		cacheWriter.write,
-		func(ctx context.Context, hash []byte) (*sobject.SOConfigChange, error) {
-			return t.a.readVerifiedSOHistoryEntry(ctx, sharedObjectID, hash)
+		cloudSOHostHooks{
+			persistVerifiedStateCache: cacheWriter.write,
+			readRetainedConfigChange: func(ctx context.Context, hash []byte) (*sobject.SOConfigChange, error) {
+				return t.a.readVerifiedSOHistoryEntry(ctx, sharedObjectID, hash)
+			},
+			refreshBlockManifest:  cloudBlkStore.RefreshRemote,
+			blockManifestSequence: cloudBlkStore.RemoteSequence,
+			stateObserved: func(state *sobject.SOState) {
+				// Ignore states without a readable checkpoint.
+				checkpoint, err := state.GetCheckpointInner()
+				if err != nil || checkpoint == nil {
+					return
+				}
+
+				// Project the accepted checkpoint height into block sync telemetry.
+				t.a.syncTelemetry.SetAcceptedCheckpoint(
+					sobjectRef.GetBlockStoreId(),
+					sharedObjectID,
+					checkpoint.GetHeight(),
+				)
+			},
 		},
 		cloudBlkStore.syncer,
 	)
 
-	// Wire the block store's manifest and publication to the host.
-	host.refreshBlockManifest = cloudBlkStore.RefreshRemote
-	host.blockManifestSequence = cloudBlkStore.RemoteSequence
-	if host.syncer != nil {
-		host.syncer.setPublication(host, host.pending)
-		defer host.syncer.setPublication(host, nil)
-	}
-
-	// Report each accepted checkpoint height to sync telemetry.
-	host.stateObserved = func(state *sobject.SOState) {
-		checkpoint, err := state.GetCheckpointInner()
-		if err != nil || checkpoint == nil {
-			return
-		}
-		t.a.syncTelemetry.SetAcceptedCheckpoint(
-			sobjectRef.GetBlockStoreId(),
-			sharedObjectID,
-			checkpoint.GetHeight(),
-		)
-	}
+	// Attach publication before starting the host and detach when the tracker returns.
+	detachPublication := host.attachPublication()
+	defer detachPublication()
 
 	// Run the host, publishing the SharedObject once its first state is ready.
 	so := &SharedObject{
@@ -307,7 +308,7 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 		privKey:  sessionPriv,
 		localPid: sessionPeerID,
 	}
-	so.body = sobject.NewBodyHost(le, so, so.showReplay, sobject.NewBodyCheckpointer(host.GetSOHost(), sessionPriv, t.a.sfs, sobject.CheckpointDeadline))
+	so.body = sobject.NewBodyHost(le, so, so.showReplay, host.newBodyCheckpointer(sessionPriv, t.a.sfs))
 	so.body.SetContext(ctx)
 	defer t.sobjectProm.SetPromise(nil)
 	err = host.execute(ctx, func(ctx context.Context) error {
@@ -420,7 +421,9 @@ func (a *ProviderAccount) AccessSharedObjectHealth(
 }
 
 // CreateSharedObject creates a new shared object with the given details.
-func (a *ProviderAccount) CreateSharedObject(ctx context.Context, id string, meta *sobject.SharedObjectMeta, ownerType, ownerID string) (*sobject.SharedObjectRef, error) {
+func (a *ProviderAccount) CreateSharedObject(
+	ctx context.Context, id string, meta *sobject.SharedObjectMeta, ownerType, ownerID string,
+) (*sobject.SharedObjectRef, error) {
 	// Resolve the owner and display fields from the metadata.
 	if err := meta.Validate(); err != nil {
 		return nil, err
@@ -473,7 +476,7 @@ func (a *ProviderAccount) CreateSharedObject(ctx context.Context, id string, met
 		}
 		defer release()
 		host := object.(*SharedObject).host
-		if host.stateCtr.GetValue().GetCheckpoint() == nil {
+		if host.getCachedState().GetCheckpoint() == nil {
 			if err := host.pullState(ctx, SeedReasonMutation); err != nil {
 				return nil, errors.Wrap(err, "publish initialized shared object")
 			}
@@ -846,12 +849,28 @@ func (s *SharedObject) AddParticipant(
 		return nil, 0, 0, err
 	}
 
-	// Serialize writes to this object and take a write session.
-	relLock, err := s.host.writeMu.Lock(ctx)
-	if err != nil {
-		return nil, 0, 0, err
-	}
-	defer relLock()
+	// Serialize the complete participant mutation with other local writes.
+	var grant *sobject.SOGrant
+	var outcome sobject.SOParticipantAddOutcome
+	var held sobject.SOParticipantRole
+	err := s.host.withWriteLock(ctx, func() error {
+		var err error
+		grant, outcome, held, err = s.addParticipantLocked(ctx, targetPeerIDStr, targetPub, role, entityID, username)
+		return err
+	})
+	return grant, outcome, held, err
+}
+
+// addParticipantLocked writes the participant mutation while the host holds its write lock.
+func (s *SharedObject) addParticipantLocked(
+	ctx context.Context,
+	targetPeerIDStr string,
+	targetPub crypto.PubKey,
+	role sobject.SOParticipantRole,
+	entityID string,
+	username string,
+) (*sobject.SOGrant, sobject.SOParticipantAddOutcome, sobject.SOParticipantRole, error) {
+	// Connect the write session after the host acquires its write lock.
 	cli, err := s.getReadyWriteSessionClient(ctx)
 	if err != nil {
 		return nil, 0, 0, err
@@ -898,11 +917,13 @@ func (s *SharedObject) AddParticipant(
 			return nil, 0, 0, errors.New("local grant not found")
 		}
 
+		// Decrypt the existing grant to obtain the key the new peer needs.
 		grantInner, err := localGrant.DecryptInnerData(s.privKey, s.GetSharedObjectID())
 		if err != nil {
 			return nil, 0, 0, errors.Wrap(err, "decrypt local grant")
 		}
 
+		// Build a participant change only when its authority or identity needs updating.
 		var entry *sobject.SOConfigChange
 		var entryData []byte
 		if !participantExists || participantNeedsUpdate {
@@ -942,6 +963,7 @@ func (s *SharedObject) AddParticipant(
 			}
 		}
 
+		// Create the target peer's grant only when it is missing.
 		var grant *sobject.SOGrant
 		if !grantExists {
 			grant, err = sobject.EncryptSOGrant(
@@ -956,11 +978,13 @@ func (s *SharedObject) AddParticipant(
 			epoch.Grants = append(epoch.GetGrants(), grant)
 		}
 
+		// Publish an epoch only when this attempt added a grant.
 		var postedEpoch *sobject.SOKeyEpoch
 		if !grantExists {
 			postedEpoch = epoch
 		}
 
+		// Seal recovery envelopes for the authority this attempt publishes.
 		recoveryCfg, err := recoveryConfigSnapshot(currentCfg, entry)
 		if err != nil {
 			return nil, 0, 0, errors.Wrap(err, "build recovery config snapshot")
@@ -991,6 +1015,7 @@ func (s *SharedObject) AddParticipant(
 			}
 		}
 
+		// Publish the participant change or the missing grant, retrying conflicts.
 		if entryData != nil {
 			if err := cli.PostConfigState(
 				ctx,
@@ -1028,9 +1053,11 @@ func (s *SharedObject) AddParticipant(
 			s.host.applyKeyEpoch(ctx, postedEpoch)
 		}
 
+		// Return the granted role and grant after local acceptance.
 		return grant, outcome, held, nil
 	}
 
+	// Report exhaustion of the existing conflict retry budget.
 	return nil, 0, 0, errors.New("add participant failed after max retries due to config conflicts")
 }
 
@@ -1188,7 +1215,7 @@ func (s *SharedObject) loadLatestConfigState(ctx context.Context) (*sobject.SOSt
 	if err := s.host.pullState(ctx, SeedReasonReconnect); err != nil {
 		return nil, nil, nil, errors.Wrap(err, "pull latest SO state")
 	}
-	state, err := s.host.GetSOHost().GetHostState(ctx)
+	state, err := s.host.getHostState(ctx)
 	if err != nil {
 		return nil, nil, nil, errors.Wrap(err, "get current SO state")
 	}
@@ -1200,14 +1227,7 @@ func (s *SharedObject) loadLatestConfigState(ctx context.Context) (*sobject.SOSt
 	}
 
 	// Snapshot the verified chain head and key epochs.
-	var lastHash []byte
-	var lastSeqno uint64
-	var epochs []*sobject.SOKeyEpoch
-	s.host.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		lastHash = bytes.Clone(s.host.lastConfigChainHash)
-		lastSeqno = s.host.verifiedConfigChainSeqno
-		epochs = cloneVTSlice(s.host.keyEpochs)
-	})
+	lastHash, lastSeqno, epochs := s.host.snapshotVerifiedConfig()
 
 	// Sync the chain when it is behind the state, then snapshot again.
 	currentHash := currentCfg.GetConfigChainHash()
@@ -1216,11 +1236,7 @@ func (s *SharedObject) loadLatestConfigState(ctx context.Context) (*sobject.SOSt
 		if err := s.host.syncConfigChain(ctx, currentHash); err != nil {
 			return nil, nil, nil, errors.Wrap(err, "sync config chain")
 		}
-		s.host.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-			lastHash = bytes.Clone(s.host.lastConfigChainHash)
-			lastSeqno = s.host.verifiedConfigChainSeqno
-			epochs = cloneVTSlice(s.host.keyEpochs)
-		})
+		lastHash, lastSeqno, epochs = s.host.snapshotVerifiedConfig()
 	}
 	if len(lastHash) != 0 {
 		currentCfg.ConfigChainHash = bytes.Clone(lastHash)
@@ -1239,81 +1255,85 @@ func (s *SharedObject) applyInviteMutation(
 	updateFn func(invites []*sobject.SOInvite) ([]*sobject.SOInvite, error),
 ) error {
 	// Serialize with local writes and connect a write session.
-	relLock, err := s.host.writeMu.Lock(ctx)
-	if err != nil {
-		return err
-	}
-	defer relLock()
-	cli, err := s.getReadyWriteSessionClient(ctx)
-	if err != nil {
-		return err
-	}
-
-	// Write against the latest config, retrying when another writer advances it.
-	for attempt := range maxWriteRetries {
-		state, currentCfg, epochs, err := s.loadLatestConfigState(ctx)
-		if err != nil {
-			return err
-		}
-		epoch := currentEpochWithFallback(state, epochs)
-
-		nextInvites, err := updateFn(cloneVTSlice(state.GetInvites()))
+	return s.host.withWriteLock(ctx, func() error {
+		// Connect the write session while the host holds its write lock.
+		cli, err := s.getReadyWriteSessionClient(ctx)
 		if err != nil {
 			return err
 		}
 
-		entry, err := sobject.BuildSOConfigChange(
-			s.GetSharedObjectID(),
-			currentCfg,
-			currentCfg,
-			changeType,
-			signerPrivKey,
-			nil,
-		)
-		if err != nil {
-			return errors.Wrap(err, "build config change")
-		}
-		entryData, err := entry.MarshalVT()
-		if err != nil {
-			return errors.Wrap(err, "marshal config change")
-		}
-
-		recoveryCfg, err := recoveryConfigSnapshot(currentCfg, entry)
-		if err != nil {
-			return errors.Wrap(err, "build recovery config snapshot")
-		}
-		recoveryEnvelopes, err := s.buildRecoveryEnvelopesForConfig(
-			ctx,
-			cli,
-			epoch,
-			recoveryCfg,
-			epoch.GetEpoch(),
-		)
-		if err != nil {
-			return err
-		}
-
-		if err := cli.PostConfigState(
-			ctx,
-			s.GetSharedObjectID(),
-			entryData,
-			nextInvites,
-			nil,
-			recoveryEnvelopes,
-		); err != nil {
-			var ce *cloudError
-			if !errors.As(err, &ce) || ce.StatusCode != 409 || attempt+1 == maxWriteRetries {
+		// Write against the latest config, retrying when another writer advances it.
+		for attempt := range maxWriteRetries {
+			// Read the latest configuration and key epoch for this attempt.
+			state, currentCfg, epochs, err := s.loadLatestConfigState(ctx)
+			if err != nil {
 				return err
 			}
-			continue
-		}
-		if err := s.host.applyConfigMutation(ctx, entry, nextInvites, nil); err != nil {
-			return err
-		}
-		return nil
-	}
+			epoch := currentEpochWithFallback(state, epochs)
 
-	return errors.New("invite mutation failed after max retries due to config conflicts")
+			// Apply the requested mutation to a copy of the current invites.
+			nextInvites, err := updateFn(cloneVTSlice(state.GetInvites()))
+			if err != nil {
+				return err
+			}
+
+			// Sign the invite mutation against the current configuration.
+			entry, err := sobject.BuildSOConfigChange(
+				s.GetSharedObjectID(),
+				currentCfg,
+				currentCfg,
+				changeType,
+				signerPrivKey,
+				nil,
+			)
+			if err != nil {
+				return errors.Wrap(err, "build config change")
+			}
+			entryData, err := entry.MarshalVT()
+			if err != nil {
+				return errors.Wrap(err, "marshal config change")
+			}
+
+			// Seal recovery envelopes for the configuration the change publishes.
+			recoveryCfg, err := recoveryConfigSnapshot(currentCfg, entry)
+			if err != nil {
+				return errors.Wrap(err, "build recovery config snapshot")
+			}
+			recoveryEnvelopes, err := s.buildRecoveryEnvelopesForConfig(
+				ctx,
+				cli,
+				epoch,
+				recoveryCfg,
+				epoch.GetEpoch(),
+			)
+			if err != nil {
+				return err
+			}
+
+			// Publish the invite change and retry only a configuration conflict.
+			if err := cli.PostConfigState(
+				ctx,
+				s.GetSharedObjectID(),
+				entryData,
+				nextInvites,
+				nil,
+				recoveryEnvelopes,
+			); err != nil {
+				var ce *cloudError
+				if !errors.As(err, &ce) || ce.StatusCode != 409 || attempt+1 == maxWriteRetries {
+					return err
+				}
+				continue
+			}
+			if err := s.host.applyConfigMutation(ctx, entry, nextInvites, nil); err != nil {
+				return err
+			}
+			return nil
+		}
+
+		// Report exhaustion of the existing conflict retry budget.
+		return errors.New("invite mutation failed after max retries due to config conflicts")
+	})
 }
 
 // CreateSOInviteOp creates a cloud-backed invite and returns the signed invite
@@ -1508,7 +1528,7 @@ func (s *SharedObject) ApproveConfigChange(ctx context.Context, hash []byte) err
 // GetProviderSequencer returns the peer ID Spacewave Cloud signs the shared
 // object's order with.
 func (s *SharedObject) GetProviderSequencer(ctx context.Context) (string, error) {
-	return s.host.client.GetSOSequencer(ctx, s.tkr.id)
+	return s.host.getProviderSequencer(ctx, s.tkr.id)
 }
 
 // isConfigConflict reports whether a config write lost a race with another

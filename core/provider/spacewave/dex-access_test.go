@@ -21,7 +21,7 @@ func TestCloudDEXRequestAuthorization(t *testing.T) {
 
 	// A current readable role authorizes the production DEX request interface.
 	access, err := account.authorizeDEXRequest(ctx, &dex_solicit.Config{
-		ProtocolContext: []byte(host.GetSOHost().GetSharedObjectID()),
+		ProtocolContext: []byte(host.soID),
 	}, requester)
 	if err != nil {
 		t.Fatal(err)
@@ -33,7 +33,7 @@ func TestCloudDEXRequestAuthorization(t *testing.T) {
 
 	// A peer absent from the current config cannot read through the same gate.
 	refused, err := account.authorizeDEXRequest(ctx, &dex_solicit.Config{
-		ProtocolContext: []byte(host.GetSOHost().GetSharedObjectID()),
+		ProtocolContext: []byte(host.soID),
 	}, absent)
 	if err != nil {
 		t.Fatal(err)
@@ -72,7 +72,7 @@ func TestCloudDEXRequestAccessStopsWithSource(t *testing.T) {
 
 	// Acquire access while the cloud SharedObject reports a readable role.
 	access, err := account.authorizeDEXRequest(ctx, &dex_solicit.Config{
-		ProtocolContext: []byte(host.GetSOHost().GetSharedObjectID()),
+		ProtocolContext: []byte(host.soID),
 	}, requester)
 	if err != nil {
 		t.Fatal(err)
@@ -128,8 +128,7 @@ func newCloudDEXAccessTestAccount(
 		owner,
 		account.sfs,
 		nil,
-		nil,
-		nil,
+		cloudSOHostHooks{},
 		nil,
 	)
 	host.soHost.SetContext(sourceCtx)

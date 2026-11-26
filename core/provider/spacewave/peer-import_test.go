@@ -63,7 +63,22 @@ func TestCloudPeerImportCommitsWithoutPublication(t *testing.T) {
 	read := func(ctx context.Context, hash []byte) (*sobject.SOConfigChange, error) {
 		return account.readVerifiedSOHistoryEntry(ctx, testSharedObjectID, hash)
 	}
-	host := newCloudSOHost(logrus.New().WithField("test", t.Name()), client, testSharedObjectID, "", nil, priv, pid, nil, cache, persist, read, nil)
+	host := newCloudSOHost(
+		logrus.New().WithField("test", t.Name()),
+		client,
+		testSharedObjectID,
+		"",
+		nil,
+		priv,
+		pid,
+		nil,
+		cache,
+		cloudSOHostHooks{
+			persistVerifiedStateCache: persist,
+			readRetainedConfigChange:  read,
+		},
+		nil,
+	)
 	host.stateCtr.SetValue(initial)
 	host.soHost.SetContext(ctx)
 	t.Cleanup(host.soHost.ClearContext)
@@ -100,7 +115,22 @@ func TestCloudPeerImportCommitsWithoutPublication(t *testing.T) {
 	}
 
 	// Reopen without HTTP seeding.
-	reopened := newCloudSOHost(logrus.New().WithField("test", t.Name()), client, testSharedObjectID, "", nil, priv, pid, nil, saved, persist, read, nil)
+	reopened := newCloudSOHost(
+		logrus.New().WithField("test", t.Name()),
+		client,
+		testSharedObjectID,
+		"",
+		nil,
+		priv,
+		pid,
+		nil,
+		saved,
+		cloudSOHostHooks{
+			persistVerifiedStateCache: persist,
+			readRetainedConfigChange:  read,
+		},
+		nil,
+	)
 	reopened.soHost.SetContext(ctx)
 	t.Cleanup(reopened.soHost.ClearContext)
 	got, err := reopened.soHost.GetHostState(ctx)

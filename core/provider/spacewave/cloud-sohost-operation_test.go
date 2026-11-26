@@ -504,7 +504,19 @@ func TestCloudConfigChangeRefusedWhileHeld(t *testing.T) {
 		t.Fatal(err)
 	}
 	syncer.upper = &corruptUpperStore{StoreOps: syncer.upper, bad: held.GetHash()}
-	host := newCloudSOHost(logrus.New().WithField("test", t.Name()), client, testSharedObjectID, "", nil, key, peerID, nil, nil, nil, nil, syncer)
+	host := newCloudSOHost(
+		logrus.New().WithField("test", t.Name()),
+		client,
+		testSharedObjectID,
+		"",
+		nil,
+		key,
+		peerID,
+		nil,
+		nil,
+		cloudSOHostHooks{},
+		syncer,
+	)
 	host.stateCtr.SetValue(initial)
 
 	// Write a configuration change through the host's state lock.

@@ -20,7 +20,7 @@ func (t *sobjectTracker) fillParticipantAccounts(
 	if !t.a.canAccessOwnerMailbox() {
 		return nil
 	}
-	state, err := so.GetSOHost().GetHostState(ctx)
+	state, err := so.host.getHostState(ctx)
 	if err != nil {
 		return err
 	}
@@ -73,90 +73,90 @@ func (s *SharedObject) FillParticipantAccounts(
 	accounts map[string]string,
 ) error {
 	// Serialize writes to this object and take a write session.
-	relLock, err := s.host.writeMu.Lock(ctx)
-	if err != nil {
-		return err
-	}
-	defer relLock()
-	cli, err := s.getReadyWriteSessionClient(ctx)
-	if err != nil {
-		return err
-	}
-
-	// Write the change against the latest config, retrying on a conflict.
-	for attempt := range maxWriteRetries {
-		// Fill the blank accounts in the latest config.
-		state, currentCfg, epochs, err := s.loadLatestConfigState(ctx)
+	return s.host.withWriteLock(ctx, func() error {
+		// Connect the write session while the host holds its write lock.
+		cli, err := s.getReadyWriteSessionClient(ctx)
 		if err != nil {
 			return err
 		}
-		nextCfg := currentCfg.CloneVT()
-		filled := make(map[string]struct{})
-		for _, participant := range nextCfg.GetParticipants() {
-			accountID := accounts[participant.GetPeerId()]
-			if participant.GetEntityId() == "" && accountID != "" {
-				participant.EntityId = accountID
-				filled[accountID] = struct{}{}
+
+		// Write the change against the latest config, retrying on a conflict.
+		for attempt := range maxWriteRetries {
+			// Fill the blank accounts in the latest config.
+			state, currentCfg, epochs, err := s.loadLatestConfigState(ctx)
+			if err != nil {
+				return err
 			}
-		}
-		if len(filled) == 0 {
-			return nil
-		}
+			nextCfg := currentCfg.CloneVT()
+			filled := make(map[string]struct{})
+			for _, participant := range nextCfg.GetParticipants() {
+				accountID := accounts[participant.GetPeerId()]
+				if participant.GetEntityId() == "" && accountID != "" {
+					participant.EntityId = accountID
+					filled[accountID] = struct{}{}
+				}
+			}
+			if len(filled) == 0 {
+				return nil
+			}
 
-		// Sign the change.
-		entry, err := sobject.BuildSOConfigChange(
-			s.GetSharedObjectID(),
-			currentCfg,
-			nextCfg,
-			sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT,
-			s.privKey,
-			nil,
-		)
-		if err != nil {
-			return errors.Wrap(err, "build config change")
-		}
-		entryData, err := entry.MarshalVT()
-		if err != nil {
-			return errors.Wrap(err, "marshal config change")
-		}
+			// Sign the change.
+			entry, err := sobject.BuildSOConfigChange(
+				s.GetSharedObjectID(),
+				currentCfg,
+				nextCfg,
+				sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT,
+				s.privKey,
+				nil,
+			)
+			if err != nil {
+				return errors.Wrap(err, "build config change")
+			}
+			entryData, err := entry.MarshalVT()
+			if err != nil {
+				return errors.Wrap(err, "marshal config change")
+			}
 
-		// Seal recovery envelopes for the new config's entities.
-		epoch := currentEpochWithFallback(state, epochs)
-		if epoch == nil {
-			return errSharedObjectCurrentKeyEpochMissing
-		}
-		recoveryCfg, err := configWithConfigChangeHash(entry)
-		if err != nil {
-			return errors.Wrap(err, "build recovery config snapshot")
-		}
-		recoveryEnvelopes, err := s.buildFilledRecoveryEnvelopes(
-			ctx,
-			cli,
-			epoch,
-			currentCfg,
-			recoveryCfg,
-			filled,
-		)
-		if err != nil {
+			// Seal recovery envelopes for the new config's entities.
+			epoch := currentEpochWithFallback(state, epochs)
+			if epoch == nil {
+				return errSharedObjectCurrentKeyEpochMissing
+			}
+			recoveryCfg, err := configWithConfigChangeHash(entry)
+			if err != nil {
+				return errors.Wrap(err, "build recovery config snapshot")
+			}
+			recoveryEnvelopes, err := s.buildFilledRecoveryEnvelopes(
+				ctx,
+				cli,
+				epoch,
+				currentCfg,
+				recoveryCfg,
+				filled,
+			)
+			if err != nil {
+				return err
+			}
+
+			// Post the change, retrying a config conflict.
+			err = cli.PostConfigState(
+				ctx,
+				s.GetSharedObjectID(),
+				entryData,
+				nil,
+				nil,
+				recoveryEnvelopes,
+			)
+			var ce *cloudError
+			if errors.As(err, &ce) && ce.StatusCode == 409 && attempt+1 < maxWriteRetries {
+				continue
+			}
 			return err
 		}
 
-		// Post the change, retrying a config conflict.
-		err = cli.PostConfigState(
-			ctx,
-			s.GetSharedObjectID(),
-			entryData,
-			nil,
-			nil,
-			recoveryEnvelopes,
-		)
-		var ce *cloudError
-		if errors.As(err, &ce) && ce.StatusCode == 409 && attempt+1 < maxWriteRetries {
-			continue
-		}
-		return err
-	}
-	return errors.New("fill participant accounts failed after max retries due to config conflicts")
+		// Report exhaustion of the existing conflict retry budget.
+		return errors.New("fill participant accounts failed after max retries due to config conflicts")
+	})
 }
 
 // buildFilledRecoveryEnvelopes seals the current grant for the entities of

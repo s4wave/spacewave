@@ -78,8 +78,7 @@ func TestColdMountBudget(t *testing.T) {
 				VerifiedConfigChainHash:  append([]byte(nil), warmHash...),
 				VerifiedConfigChainSeqno: 5,
 			},
-			nil,
-			nil,
+			cloudSOHostHooks{},
 			nil,
 		)
 		if err := host.pullState(context.Background(), SeedReasonColdSeed); err != nil {
@@ -132,8 +131,7 @@ func TestColdMountBudget(t *testing.T) {
 			pid,
 			nil,
 			nil,
-			nil,
-			nil,
+			cloudSOHostHooks{},
 			nil,
 		)
 		if err := host.pullState(context.Background(), SeedReasonColdSeed); err != nil {
@@ -205,8 +203,7 @@ func TestColdMountBudget(t *testing.T) {
 				VerifiedConfigChainHash:  append([]byte(nil), warmHash...),
 				VerifiedConfigChainSeqno: 5,
 			},
-			nil,
-			nil,
+			cloudSOHostHooks{},
 			nil,
 		)
 
@@ -324,8 +321,7 @@ func TestColdMountBudget(t *testing.T) {
 				VerifiedConfigChainHash:  append([]byte(nil), warmHash...),
 				VerifiedConfigChainSeqno: 5,
 			},
-			nil,
-			nil,
+			cloudSOHostHooks{},
 			nil,
 		)
 

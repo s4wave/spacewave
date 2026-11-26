@@ -39,7 +39,7 @@ func (s *SharedObject) leaveAsOwner(ctx context.Context, successor string) error
 		return err
 	}
 	host := s.GetSOHost()
-	state, err := host.GetHostState(ctx)
+	state, err := s.host.getHostState(ctx)
 	if err != nil {
 		return err
 	}
@@ -82,7 +82,7 @@ func (s *SharedObject) leaveAsOwner(ctx context.Context, successor string) error
 	// Consent binds the configuration head, so each attempt signs it anew.
 	return s.retryConfigConflicts(ctx, func() error {
 		// Sign consent at the current head.
-		state, err := host.GetHostState(ctx)
+		state, err := s.host.getHostState(ctx)
 		if err != nil {
 			return err
 		}

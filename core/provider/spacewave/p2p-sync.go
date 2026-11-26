@@ -362,7 +362,7 @@ func (a *ProviderAccount) startInviteServer(
 			if err != nil {
 				continue
 			}
-			soState, err := swSO.GetSOHost().GetHostState(ctx)
+			soState, err := swSO.host.getHostState(ctx)
 			if err != nil {
 				relSO()
 				continue

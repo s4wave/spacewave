@@ -21,15 +21,23 @@ import (
 
 // sessionTransportState holds a running SessionTransport for one Session.
 type sessionTransportState struct {
+	// sessionID identifies the Session whose transport runs here.
 	sessionID string
+	// transport owns the Session's peer connection and child bus.
 	transport *transport.SessionTransport
-	rc        *routine.RoutineContainer
-	readyRc   *routine.RoutineContainer
+	// rc runs the transport with startup retries.
+	rc *routine.RoutineContainer
+	// readyRc watches readiness while the transport is running.
+	readyRc *routine.RoutineContainer
 
-	bcast  broadcast.Broadcast
-	ready  bool
+	// bcast guards readiness, exit state, and notifications.
+	bcast broadcast.Broadcast
+	// ready records that the transport completed startup.
+	ready bool
+	// exited records that the transport stopped after startup or cancellation.
 	exited bool
-	err    error
+	// err retains the exit reason.
+	err error
 }
 
 // sessionTransportStatusError exposes the HTTP status of a cloud response.
@@ -45,6 +53,7 @@ func sessionTransportUnauthorized(err error) bool {
 	return errors.As(err, &statusErr) && statusErr.StatusCode() == http.StatusUnauthorized
 }
 
+// sessionTransportCleanupContext bounds cleanup independently of caller cancellation.
 func sessionTransportCleanupContext(ctx context.Context) (context.Context, context.CancelFunc) {
 	// Build a cleanup context that survives cancellation with a bounded deadline.
 	if ctx == nil {
@@ -86,33 +95,71 @@ func newSessionTransportState(
 	return sts
 }
 
+// handleSessionTransportExit retires a ready transport or reports a retryable startup failure.
 func (a *ProviderAccount) handleSessionTransportExit(
 	sessionID string,
 	sts *sessionTransportState,
 	err error,
 ) {
-	// A failed transport stops the retry with a nil result.
-	if err == nil {
-		err = sts.transport.Err()
-	}
-	var ready bool
-	sts.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		ready = sts.ready
-	})
+	// Keep a failed startup retry separate from a ready transport's final exit.
+	ready, err := sts.exitStatus(err)
 	if !ready {
 		if !errors.Is(err, context.Canceled) {
 			a.le.WithError(err).WithField("session-id", sessionID).Warn("session transport startup attempt failed")
 		}
 		return
 	}
-	sts.setExited(err)
-	sts.readyRc.ClearContext()
+	sts.finishExit(err)
+
+	// Remove only the transport that exited, preserving a replacement.
 	a.transportBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		if a.sessionTransports[sessionID] == sts {
 			delete(a.sessionTransports, sessionID)
 			broadcast()
 		}
 	})
+}
+
+// exitStatus resolves the transport error and snapshots whether startup completed.
+func (s *sessionTransportState) exitStatus(err error) (bool, error) {
+	// Preserve a transport's terminal error when its routine returned nil.
+	if err == nil {
+		err = s.transport.Err()
+	}
+
+	// Read readiness before deciding whether the routine may retry startup.
+	var ready bool
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		ready = s.ready
+	})
+	return ready, err
+}
+
+// finishExit publishes a ready transport's exit before stopping its readiness watcher.
+func (s *sessionTransportState) finishExit(err error) {
+	// Mark the transport exited before clearing the readiness routine's context.
+	s.setExited(err)
+	s.readyRc.ClearContext()
+}
+
+// getChildBus returns the transport's child bus unless the transport has exited.
+func (s *sessionTransportState) getChildBus() bus.Bus {
+	// Observe exit under the state lock before accessing the transport.
+	var exited bool
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		exited = s.exited
+	})
+	if exited || s.transport == nil {
+		return nil
+	}
+
+	// Read the live transport's child bus after releasing the state lock.
+	return s.transport.GetChildBus()
+}
+
+// awaitReady waits on the transport selected under the account's transport lock.
+func (s *sessionTransportState) awaitReady(ctx context.Context) error {
+	return s.transport.AwaitReady(ctx)
 }
 
 // Start binds both routines to ctx.
@@ -340,14 +387,7 @@ func (a *ProviderAccount) getSessionChildBusForSession(sessionID string) bus.Bus
 	if state == nil {
 		return nil
 	}
-	var exited bool
-	state.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		exited = state.exited
-	})
-	if exited || state.transport == nil {
-		return nil
-	}
-	return state.transport.GetChildBus()
+	return state.getChildBus()
 }
 
 // getSessionBusForSession returns the live child bus and falls back to the

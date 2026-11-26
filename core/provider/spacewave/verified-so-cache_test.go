@@ -96,8 +96,7 @@ func TestNewCloudSOHostHydratesVerifiedStateCache(t *testing.T) {
 		pid,
 		nil,
 		cache,
-		nil,
-		nil,
+		cloudSOHostHooks{},
 		nil,
 	)
 
@@ -319,8 +318,7 @@ func TestPullStateSkipsConfigChainOnWarmMount(t *testing.T) {
 			VerifiedConfigChainHash:  append([]byte(nil), warmHash...),
 			VerifiedConfigChainSeqno: 5,
 		},
-		nil,
-		nil,
+		cloudSOHostHooks{},
 		nil,
 	)
 	if err := host.pullState(context.Background(), SeedReasonColdSeed); err != nil {
@@ -372,8 +370,7 @@ func TestPullStateTriggersConfigChainOnColdMount(t *testing.T) {
 		pid,
 		nil,
 		nil, // cold cache: no hydration
-		nil,
-		nil,
+		cloudSOHostHooks{},
 		nil,
 	)
 	if err := host.pullState(context.Background(), SeedReasonColdSeed); err != nil {
@@ -412,8 +409,7 @@ func TestHandleSONotifyDeferToConfigChainOnInlineDelta(t *testing.T) {
 			VerifiedConfigChainHash:  append([]byte(nil), verifiedHash...),
 			VerifiedConfigChainSeqno: 5,
 		},
-		nil,
-		nil,
+		cloudSOHostHooks{},
 		nil,
 	)
 
@@ -458,8 +454,7 @@ func TestHandleSONotifyIgnoresMetadataOnly(t *testing.T) {
 		pid,
 		nil,
 		nil,
-		nil,
-		nil,
+		cloudSOHostHooks{},
 		nil,
 	)
 	queueAndApplySONotify(host, &api.SONotifyEventPayload{
@@ -494,8 +489,7 @@ func TestHandleSONotifyConfigChangedPullsState(t *testing.T) {
 		pid,
 		nil,
 		nil,
-		nil,
-		nil,
+		cloudSOHostHooks{},
 		nil,
 	)
 	queueAndApplySONotify(host, &api.SONotifyEventPayload{ChangeType: "configChanged"})
@@ -525,12 +519,13 @@ func TestApplyConfigMutationPersistsVerifiedStateCache(t *testing.T) {
 			VerifiedConfigChainHash:  []byte("old-hash"),
 			VerifiedConfigChainSeqno: 3,
 		},
-		func(_ context.Context, cache *api.VerifiedSOStateCache, changes []*sobject.SOConfigChange) error {
-			persisted = cache.CloneVT()
-			persistedChanges = changes
-			return nil
+		cloudSOHostHooks{
+			persistVerifiedStateCache: func(_ context.Context, cache *api.VerifiedSOStateCache, changes []*sobject.SOConfigChange) error {
+				persisted = cache.CloneVT()
+				persistedChanges = changes
+				return nil
+			},
 		},
-		nil,
 		nil,
 	)
 

@@ -365,7 +365,7 @@ func (a *ProviderAccount) readSpaceConfig(ctx context.Context, soID string) (*so
 	defer rel()
 
 	// Read its current configuration from the host state.
-	state, err := swSO.GetSOHost().GetHostState(ctx)
+	state, err := swSO.host.getHostState(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -415,7 +415,7 @@ func validateMailboxEntryForAccept(
 	}
 
 	// Find the redeemed invite in the current state.
-	state, err := swSO.GetSOHost().GetHostState(ctx)
+	state, err := swSO.host.getHostState(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "get current shared object state")
 	}

@@ -332,8 +332,7 @@ func newRejoinScenario(t *testing.T, opts rejoinOptions) *rejoinScenario {
 		newPID,
 		sc.acc.sfs,
 		nil,
-		nil,
-		nil,
+		cloudSOHostHooks{},
 		nil,
 	)
 	sc.host.soHost.SetContext(t.Context())

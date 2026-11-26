@@ -412,24 +412,15 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		gateBcast:  &t.a.accountBcast,
 		skipPull:   publicRemote != nil,
 	}
-	sc.remotePullRoutine = newCoalescedTriggerRoutine(
-		le,
-		"bstore-remote-pull",
-		sc.pullRemoteOnTrigger,
-	)
-	if publicRemote != nil {
-		sc.remote = publicRemote.Entries
-	}
 
 	// Serve linked files behind the upper cache, from an index beside the
 	// sync metadata, and upload their chunks through the linked lane. A file
 	// hit is the block's copy, so it fills no cache.
-	sc.linked, err = newLinkedLane(ctx, sc, kvtx_prefixer.NewPrefixer(objStore, []byte("linked-files/")))
-	if err != nil {
+	if err := sc.initLanes(ctx, le, publicRemote, kvtx_prefixer.NewPrefixer(objStore, []byte("linked-files/"))); err != nil {
 		return errors.Wrap(err, "opening linked file index")
 	}
 	files := sc.linked.files
-	filedUpper := files.Behind(sourceUpper)
+	filedUpper := sc.wrapLinkedFiles(sourceUpper)
 
 	// Wrap upper with dirty tracking for the sync controller, before any
 	// write can reach it.

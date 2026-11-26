@@ -103,6 +103,11 @@ func newLinkedLane(ctx context.Context, s *syncController, store kvtx.Store) (*l
 	return l, nil
 }
 
+// wrapPrimary places the linked files behind primary without copying file hits into its cache.
+func (l *linkedLane) wrapPrimary(primary block.StoreOps) block.StoreOps {
+	return l.files.Behind(primary)
+}
+
 // enqueue writes a queue entry for each gained ref and deletes the entry of
 // each lost ref in the index's write, and counts the entries it created and
 // deleted once it commits. It is the index's RefsHook; each ref costs one

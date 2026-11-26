@@ -29,19 +29,30 @@ func (a *ProviderAccount) EnrollMigratedSession(context.Context, *provider_migra
 // cloud account. The provider's accepted transition is the authority; a replayed
 // checkpoint cannot change any resource, credential, or account attachment.
 func (a *ProviderAccount) DeliverAccountTransition(ctx context.Context, checkpoint *pairing.SharedObject) (*provider_migration.AccountTransitionReceipt, error) {
+	// Identify the peer requesting a transition receipt.
 	stream, err := link.MustGetMountedStreamContext(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	// Snapshot the cloud account's accepted migration authority.
 	var accepted []*provider.AccountTransition
 	a.accountBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		accepted = a.state.info.GetAcceptedMigrations()
 	})
+
+	// Acknowledge only the source and peer named by an accepted transition.
 	for _, transition := range accepted {
-		if transition.GetDestination().GetProviderAccountId() == a.accountID && transition.GetDestinationEndpoint() == a.p.endpoint && transition.GetSource().GetId() == checkpoint.GetEntry().GetRef().GetProviderResourceRef().GetId() && (slices.Contains(transition.GetDestinationPeerIds(), stream.GetPeerID().String()) || slices.Contains(transition.GetSessionPeerIds(), stream.GetPeerID().String())) {
+		if transition.GetDestination().GetProviderAccountId() == a.accountID &&
+			transition.GetDestinationEndpoint() == a.p.endpoint &&
+			transition.GetSource().GetId() == checkpoint.GetEntry().GetRef().GetProviderResourceRef().GetId() &&
+			(slices.Contains(transition.GetDestinationPeerIds(), stream.GetPeerID().String()) ||
+				slices.Contains(transition.GetSessionPeerIds(), stream.GetPeerID().String())) {
 			return &provider_migration.AccountTransitionReceipt{}, nil
 		}
 	}
+
+	// Preserve refusal when cloud authority does not name this peer and source.
 	return nil, errors.New("cloud Session has not accepted this account transition")
 }
 
@@ -130,16 +141,18 @@ func (a *ProviderAccount) accountRecoveryCheckpoint(ctx context.Context, transit
 
 	// Return its host state and config lineage.
 	cloud := object.(*SharedObject)
-	state, err := cloud.GetSOHost().GetHostState(ctx)
+	state, err := cloud.host.getHostState(ctx)
 	if err != nil {
 		return nil, err
 	}
-	lineage, err := cloud.GetSOHost().ReadConfigLineage(ctx, state.GetConfig().GetConfigChainHash())
+	lineage, err := cloud.host.readConfigLineage(ctx, state.GetConfig().GetConfigChainHash())
 	if err != nil {
 		return nil, err
 	}
 	return &pairing.SharedObject{
-		Entry: &sobject.SharedObjectListEntry{Ref: ref, Meta: &sobject.SharedObjectMeta{BodyType: "account-settings", AccountPrivate: true}, Source: "migration-recovery"},
+		Entry: &sobject.SharedObjectListEntry{
+			Ref: ref, Meta: &sobject.SharedObjectMeta{BodyType: "account-settings", AccountPrivate: true}, Source: "migration-recovery",
+		},
 		State: state, ConfigLineage: lineage,
 	}, nil
 }

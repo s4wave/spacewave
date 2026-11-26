@@ -114,8 +114,7 @@ func TestFillParticipantAccounts(t *testing.T) {
 		ownerPID,
 		acc.sfs,
 		nil,
-		nil,
-		nil,
+		cloudSOHostHooks{},
 		nil,
 	)
 	host.soHost.SetContext(t.Context())

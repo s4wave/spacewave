@@ -41,8 +41,7 @@ func TestEnsureInitialStateReturnsTerminalErrorAfterRejectedPull(t *testing.T) {
 		clientPID,
 		nil,
 		nil,
-		nil,
-		nil,
+		cloudSOHostHooks{},
 		nil,
 	)
 	err := h.ensureInitialState(context.Background(), SeedReasonColdSeed)

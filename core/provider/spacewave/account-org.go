@@ -150,7 +150,7 @@ func (a *ProviderAccount) reconcileMemberSession(ctx context.Context, soID, acco
 		return err
 	}
 	defer rel()
-	state, err := swSO.GetSOHost().GetHostState(ctx)
+	state, err := swSO.host.getHostState(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get current SO state")
 	}
@@ -349,7 +349,7 @@ func (a *ProviderAccount) reconcileMountedOrganizationSpace(
 	memberRoles map[string]sobject.SOParticipantRole,
 ) error {
 	// Read the current state, before the enrollments below change it.
-	state, err := swSO.GetSOHost().GetHostState(ctx)
+	state, err := swSO.host.getHostState(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get current SO state")
 	}

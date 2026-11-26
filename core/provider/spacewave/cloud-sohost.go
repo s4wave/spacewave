@@ -22,6 +22,20 @@ import (
 // maxWriteRetries is the maximum number of retries on 409 write conflicts.
 const maxWriteRetries = 3
 
+// cloudSOHostHooks connects state acceptance to persistence, manifests, and telemetry.
+type cloudSOHostHooks struct {
+	// persistVerifiedStateCache retains accepted state and its configuration history.
+	persistVerifiedStateCache func(context.Context, *api.VerifiedSOStateCache, []*sobject.SOConfigChange) error
+	// readRetainedConfigChange reads a retained configuration change by hash.
+	readRetainedConfigChange func(context.Context, []byte) (*sobject.SOConfigChange, error)
+	// refreshBlockManifest refreshes pack metadata before state publication.
+	refreshBlockManifest func(context.Context) error
+	// blockManifestSequence reads the backing manifest's pull cursor.
+	blockManifestSequence func(context.Context) (uint64, error)
+	// stateObserved reports each accepted state to sync telemetry.
+	stateObserved func(*sobject.SOState)
+}
+
 // cloudSOHost implements the shared object state management via the wsTracker.
 type cloudSOHost struct {
 	// le is the logger.
@@ -127,8 +141,7 @@ func newCloudSOHost(
 	peerID peer.ID,
 	sfs *block_transform.StepFactorySet,
 	verifiedCache *api.VerifiedSOStateCache,
-	persistVerifiedStateCache func(context.Context, *api.VerifiedSOStateCache, []*sobject.SOConfigChange) error,
-	readRetainedConfigChange func(context.Context, []byte) (*sobject.SOConfigChange, error),
+	hooks cloudSOHostHooks,
 	syncer *syncController,
 ) *cloudSOHost {
 	// Construct state containers and background routines before exposing the host.
@@ -143,8 +156,11 @@ func newCloudSOHost(
 		tracker:                   tracker,
 		stateCtr:                  ccontainer.NewCContainer[*sobject.SOState](nil),
 		snapCtr:                   ccontainer.NewCContainer[sobject.SharedObjectStateSnapshot](nil),
-		persistVerifiedStateCache: persistVerifiedStateCache,
-		readRetainedConfigChange:  readRetainedConfigChange,
+		persistVerifiedStateCache: hooks.persistVerifiedStateCache,
+		readRetainedConfigChange:  hooks.readRetainedConfigChange,
+		refreshBlockManifest:      hooks.refreshBlockManifest,
+		blockManifestSequence:     hooks.blockManifestSequence,
+		stateObserved:             hooks.stateObserved,
 		syncer:                    syncer,
 	}
 	h.pullRoutine = newCoalescedTriggerRoutine(le, "so-state-pull", h.pullOnTrigger)
@@ -198,6 +214,77 @@ func newCloudSOHost(
 	// Pass nil context; SetContext called in Execute.
 	h.soHost = sobject.NewSOHost(nil, watchFn, lockFn, soID, &sobject.SOHostSyncFuncs{Lock: h.peerImportLock, History: h.readConfigHistory, Entry: h.readConfigEntry})
 	return h
+}
+
+// attachPublication registers pending work until the returned detach function runs.
+func (h *cloudSOHost) attachPublication() func() {
+	// Leave hosts without a sync controller unattached.
+	if h.syncer == nil {
+		return func() {}
+	}
+
+	// Retain this host's pending work for its tracker lifetime.
+	h.syncer.setPublication(h, h.pending)
+	return func() { h.syncer.setPublication(h, nil) }
+}
+
+// getProviderSequencer reads the cloud's signing peer for the shared object.
+func (h *cloudSOHost) getProviderSequencer(ctx context.Context, soID string) (string, error) {
+	return h.client.GetSOSequencer(ctx, soID)
+}
+
+// addLocalOperation signs and durably queues an operation through the state host.
+func (h *cloudSOHost) addLocalOperation(
+	ctx context.Context, le *logrus.Entry, sfs *block_transform.StepFactorySet, key crypto.PrivKey, op []byte,
+) (string, *sobject.SOOperationPosition, error) {
+	return h.soHost.AddLocalOperation(ctx, le, sfs, key, op)
+}
+
+// getHostState reads the current state through the state host's readiness gate.
+func (h *cloudSOHost) getHostState(ctx context.Context) (*sobject.SOState, error) {
+	return h.soHost.GetHostState(ctx)
+}
+
+// readConfigLineage reads the verified lineage through the state host.
+func (h *cloudSOHost) readConfigLineage(ctx context.Context, head []byte) ([]*sobject.SOConfigChange, error) {
+	return h.soHost.ReadConfigLineage(ctx, head)
+}
+
+// newBodyCheckpointer binds body checkpoints to this host's state lifecycle.
+func (h *cloudSOHost) newBodyCheckpointer(key crypto.PrivKey, sfs *block_transform.StepFactorySet) *sobject.BodyCheckpointer {
+	return sobject.NewBodyCheckpointer(h.soHost, key, sfs, sobject.CheckpointDeadline)
+}
+
+// getCachedState reads the accepted state without waiting for host readiness.
+func (h *cloudSOHost) getCachedState() *sobject.SOState {
+	return h.stateCtr.GetValue()
+}
+
+// snapshotVerifiedConfig copies the chain head and epochs under their broadcast lock.
+func (h *cloudSOHost) snapshotVerifiedConfig() ([]byte, uint64, []*sobject.SOKeyEpoch) {
+	// Read the trusted chain head and its key epochs as one snapshot.
+	var hash []byte
+	var seqno uint64
+	var epochs []*sobject.SOKeyEpoch
+	h.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		hash = bytes.Clone(h.lastConfigChainHash)
+		seqno = h.verifiedConfigChainSeqno
+		epochs = cloneVTSlice(h.keyEpochs)
+	})
+	return hash, seqno, epochs
+}
+
+// withWriteLock serializes fn with local state writers until fn returns.
+func (h *cloudSOHost) withWriteLock(ctx context.Context, fn func() error) error {
+	// Acquire the context-aware exclusive write lock for the entire callback.
+	release, err := h.writeMu.Lock(ctx)
+	if err != nil {
+		return err
+	}
+	defer release()
+
+	// Run the caller's original write span before releasing the lock.
+	return fn()
 }
 
 // Execute runs the cloudSOHost lifecycle.
@@ -1407,7 +1494,7 @@ func (h *cloudSOHost) GetKeyEpochs() []*sobject.SOKeyEpoch {
 	return epochs
 }
 
-// GetSOHost returns the underlying SOHost.
+// GetSOHost returns the underlying SOHost for SharedObject's public host interface.
 func (h *cloudSOHost) GetSOHost() *sobject.SOHost {
 	return h.soHost
 }
