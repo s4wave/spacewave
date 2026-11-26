@@ -266,7 +266,7 @@ func TestDocumentSessionOwnerIgnoresStaleDisconnect(t *testing.T) {
 func newTestDocumentManager() *DocumentManager {
 	log := logrus.New()
 	log.SetLevel(logrus.PanicLevel)
-	return NewDocumentManager(logrus.NewEntry(log))
+	return NewDocumentManager(logrus.NewEntry(log), nil)
 }
 
 func newTestMuxConn(ctx context.Context) *muxConn {

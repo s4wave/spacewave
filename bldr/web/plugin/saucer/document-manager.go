@@ -62,20 +62,17 @@ type DocumentManager struct {
 	server *srpc.Server
 }
 
-// NewDocumentManager constructs a new DocumentManager.
-func NewDocumentManager(le *logrus.Entry) *DocumentManager {
+// NewDocumentManager constructs a manager with a server for JS-initiated streams.
+// A nil server leaves those streams unserved.
+func NewDocumentManager(le *logrus.Entry, server *srpc.Server) *DocumentManager {
 	return &DocumentManager{
-		le: le,
+		le:     le,
+		server: server,
 		sessions: documentSessionOwner{
 			docs:        make(map[string]*documentState),
 			snapshotCtr: ccontainer.NewCContainerVT[*web_runtime.WebRuntimeStatus](nil),
 		},
 	}
-}
-
-// SetServer sets the SRPC server for handling JS-initiated RPC streams.
-func (dm *DocumentManager) SetServer(srv *srpc.Server) {
-	dm.server = srv
 }
 
 // GetWebRuntimeStatusCtr returns the status container.
@@ -387,75 +384,6 @@ func (dm *DocumentManager) ServeSaucerHTTP(rw http.ResponseWriter, req *http.Req
 	}
 }
 
-// muxConn bridges the mux read (GET streaming response) and mux write (POST data)
-// into a single io.ReadWriteCloser for yamux.
-type muxConn struct {
-	ctx    context.Context
-	cancel context.CancelFunc
-
-	// writeCh receives data from JS (POST bodies) to be read by yamux.
-	writeCh chan []byte
-
-	// flushCh receives data from yamux to be written to the JS response.
-	flushCh chan []byte
-
-	// pendingMu guards pending, which holds leftover data from a previous
-	// writeCh read.
-	pendingMu sync.Mutex
-	pending   []byte
-}
-
-// Read returns data posted by JS to the mux write endpoint.
-func (mc *muxConn) Read(p []byte) (int, error) {
-	// Drain bytes retained from the previous document POST before waiting.
-	mc.pendingMu.Lock()
-	if len(mc.pending) > 0 {
-		n := copy(p, mc.pending)
-		mc.pending = mc.pending[n:]
-		if len(mc.pending) == 0 {
-			mc.pending = nil
-		}
-		mc.pendingMu.Unlock()
-		return n, nil
-	}
-	mc.pendingMu.Unlock()
-
-	// Read the next document POST and retain bytes beyond the caller buffer.
-	select {
-	case <-mc.ctx.Done():
-		return 0, mc.ctx.Err()
-	case data, ok := <-mc.writeCh:
-		if !ok {
-			return 0, io.EOF
-		}
-		n := copy(p, data)
-		if n < len(data) {
-			mc.pendingMu.Lock()
-			mc.pending = data[n:]
-			mc.pendingMu.Unlock()
-		}
-		return n, nil
-	}
-}
-
-// Write sends data from yamux to JS via the streaming GET response.
-func (mc *muxConn) Write(p []byte) (int, error) {
-	data := make([]byte, len(p))
-	copy(data, p)
-	select {
-	case mc.flushCh <- data:
-		return len(p), nil
-	case <-mc.ctx.Done():
-		return 0, mc.ctx.Err()
-	}
-}
-
-// Close closes the mux connection.
-func (mc *muxConn) Close() error {
-	mc.cancel()
-	return nil
-}
-
 // handleMuxRead handles GET /b/saucer/{docId}/mux.
 // The GET response is a long-lived stream that carries yamux frames
 // from Go to JS.
@@ -468,12 +396,7 @@ func (dm *DocumentManager) handleMuxRead(rw http.ResponseWriter, req *http.Reque
 
 	// Allocate the document HTTP transport channels and cancellation scope.
 	muxCtx, muxCancel := context.WithCancel(req.Context())
-	mc := &muxConn{
-		ctx:     muxCtx,
-		cancel:  muxCancel,
-		writeCh: make(chan []byte, 64),
-		flushCh: make(chan []byte, 64),
-	}
+	mc := newMuxConn(muxCtx, muxCancel)
 
 	// JS is inbound (connects to Go), Go is outbound (opens streams to JS).
 	// In yamux terms: JS=client, Go=server. So Go side is outbound=false.
@@ -509,29 +432,14 @@ func (dm *DocumentManager) handleMuxRead(rw http.ResponseWriter, req *http.Reque
 	rw.Header().Set("Content-Type", "application/octet-stream")
 	rw.WriteHeader(200)
 
-	// Forward document mux frames until the HTTP transport closes.
-	for {
-		select {
-		case <-muxCtx.Done():
-			dm.sessions.disconnectMux(session)
-			return
-		case <-req.Context().Done():
-			muxCancel()
-			dm.sessions.disconnectMux(session)
-			return
-		case data, ok := <-mc.flushCh:
-			if !ok {
-				dm.sessions.disconnectMux(session)
-				return
-			}
-			if _, err := rw.Write(data); err != nil {
-				dm.le.WithField("doc-id", docID).WithError(err).Debug("mux read write error")
-				muxCancel()
-				dm.sessions.disconnectMux(session)
-				return
-			}
-		}
+	// Forward mux frames and cancel the transport if the HTTP response fails.
+	if err := mc.flushTo(req.Context(), rw); err != nil {
+		dm.le.WithField("doc-id", docID).WithError(err).Debug("mux read write error")
+		muxCancel()
 	}
+
+	// End the document session if it still owns this mux.
+	dm.sessions.disconnectMux(session)
 }
 
 // handleMuxWrite handles POST /b/saucer/{docId}/mux.
@@ -559,13 +467,13 @@ func (dm *DocumentManager) handleMuxWrite(rw http.ResponseWriter, req *http.Requ
 	}
 
 	// Queue the document frame or report that its transport has closed.
-	select {
-	case mc.writeCh <- body:
+	switch mc.queueInput(req.Context(), body) {
+	case muxInputQueued:
 		rw.WriteHeader(204)
-	case <-mc.ctx.Done():
+	case muxInputClosed:
 		rw.WriteHeader(503)
 		_, _ = rw.Write([]byte("mux closed"))
-	case <-req.Context().Done():
+	case muxInputCanceled:
 		return
 	}
 }
@@ -717,9 +625,6 @@ func (w *yamuxPacketWriter) Context() context.Context {
 	return w.ctx
 }
 
-// _ is a type assertion
-var _ srpc.PacketWriter = (*yamuxPacketWriter)(nil)
-
 // parseSaucerPath parses /b/saucer/{docId}/{remainder}.
 func parseSaucerPath(path string) (docID, remainder string, ok bool) {
 	// Require the Saucer endpoint prefix before parsing its document path.
@@ -834,5 +739,8 @@ func (dm *DocumentManager) WebWorkerRpc(_ web_runtime.SRPCWebRuntime_WebWorkerRp
 // _ is a type assertion
 var _ rpcstream.RpcStreamGetter = (*DocumentManager)(nil).HandleWebDocumentRpc
 
-// _ is a type assertion
-var _ web_runtime.SRPCWebRuntimeServer = (*DocumentManager)(nil)
+// _ holds the interface assertions.
+var (
+	_ srpc.PacketWriter                = (*yamuxPacketWriter)(nil)
+	_ web_runtime.SRPCWebRuntimeServer = (*DocumentManager)(nil)
+)

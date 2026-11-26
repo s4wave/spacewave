@@ -136,43 +136,20 @@ func (r *Controller) Execute(ctx context.Context) error {
 			// Use the Saucer process mux for the runtime transport.
 			mc := s.GetMuxedConn()
 
-			// Create the DocumentManager to handle document lifecycle.
-			docMgr := NewDocumentManager(le)
-
-			// Create a local SRPC mux with DocumentManager as the
-			// WebRuntime service. This registration allows Remote
-			// to call WatchWebRuntimeStatus/WebDocumentRpc on the
-			// DocumentManager.
-			mux := srpc.NewMux()
-			if err := web_runtime.SRPCRegisterWebRuntime(mux, docMgr); err != nil {
-				return nil, err
-			}
-			srv := srpc.NewServer(mux)
-			loopbackClient := srpc.NewClient(srpc.NewServerPipe(srv))
-
-			// Build a combined HTTP handler that routes /b/saucer/* to the
-			// DocumentManager and everything else to the runtime controller.
+			// Resolve the runtime controller that serves ServiceWorker requests.
 			rtCtrl, ok := handler.(*runtime_controller.Controller)
 			if !ok {
 				return nil, errors.Errorf("expected runtime controller handler, got %T", handler)
 			}
-			httpHandler := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-				if strings.HasPrefix(req.URL.Path, "/b/saucer/") {
-					docMgr.ServeSaucerHTTP(rw, req)
-					return
-				}
-				rtCtrl.ServeServiceWorkerHTTP(rw, req)
-			})
 
-			// Create the RequestHandler that accepts yamux streams from C++.
-			var bootstrapHTML, entrypointJS string
-			if r.saucerInit != nil {
-				bootstrapHTML = r.saucerInit.BootstrapHtml
-				entrypointJS = r.saucerInit.EntrypointJs
-			}
-			reqHandler := NewRequestHandler(le, docMgr, httpHandler, bootstrapHTML, entrypointJS)
+			// Give the Remote a loopback client for the document manager's WebRuntime service.
+			mux := srpc.NewMux()
+			srv := srpc.NewServer(mux)
+			loopbackClient := srpc.NewClient(srpc.NewServerPipe(srv))
 
-			// Construct the Remote with the loopback client and accept loop.
+			// Construct the Remote's WebRuntimeHost server. Its accept loop starts
+			// in Execute, after the document manager and request handler are wired.
+			var reqHandler *RequestHandler
 			remote, err := web_runtime.NewRemote(
 				le,
 				r.bus,
@@ -197,11 +174,30 @@ func (r *Controller) Execute(ctx context.Context) error {
 				return nil, err
 			}
 
-			// Set the Remote's SRPC server on the DocumentManager so
-			// JS-initiated RPC streams are handled locally (WebRuntimeHost).
-			docMgr.SetServer(remote.GetRpcServer())
+			// Connect document streams to WebRuntimeHost and serve the Remote's loopback RPCs.
+			docMgr := NewDocumentManager(le, remote.GetRpcServer())
+			if err := web_runtime.SRPCRegisterWebRuntime(mux, docMgr); err != nil {
+				return nil, err
+			}
 
-			// Publish the Saucer process after its Remote RPC server is installed.
+			// Route Saucer requests to the document manager and other requests to the runtime controller.
+			httpHandler := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+				if strings.HasPrefix(req.URL.Path, "/b/saucer/") {
+					docMgr.ServeSaucerHTTP(rw, req)
+					return
+				}
+				rtCtrl.ServeServiceWorkerHTTP(rw, req)
+			})
+
+			// Prepare the request handler before the Remote can accept Saucer streams.
+			var bootstrapHTML, entrypointJS string
+			if r.saucerInit != nil {
+				bootstrapHTML = r.saucerInit.BootstrapHtml
+				entrypointJS = r.saucerInit.EntrypointJs
+			}
+			reqHandler = NewRequestHandler(le, docMgr, httpHandler, bootstrapHTML, entrypointJS)
+
+			// Publish the Saucer process after its request handler is installed.
 			r.saucerCtr.SetValue(s)
 			return remote, nil
 		},
