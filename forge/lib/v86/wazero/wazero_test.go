@@ -441,7 +441,8 @@ func TestV86WazeroHost9PRootShell(t *testing.T) {
 	waitCtx, waitCancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer waitCancel()
 	if _, err := waitSerial(waitCtx, instance, rootShellPrompt); err != nil {
-		reqCount, lastType, notifies, availIdx, availLastIdx, configured := host9p.stats()
+		reqCount, lastType := host9p.requestStats()
+		notifies, availIdx, availLastIdx, configured := instance.host9p.queueStats()
 		t.Fatalf("host9p root shell prompt not reached: %v; host9p_requests=%d last_9p_type=%d notifies=%d queue_configured=%t avail_idx=%d avail_last_idx=%d serial_tail=%q io_counts=%s last_reads=%s last_writes=%s logs=%q",
 			err,
 			reqCount,

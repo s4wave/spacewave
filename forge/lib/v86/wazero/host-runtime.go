@@ -34,9 +34,12 @@ type MmapWriteFunc func(addr uint32, value uint32)
 
 // HostRuntime is an instantiated v86 wasm module and its Go-owned host surface.
 type HostRuntime struct {
+	// Runtime owns the wazero modules instantiated for the guest.
 	Runtime wazero.Runtime
-	Module  api.Module
-	Report  *ImportReport
+	// Module is the instantiated v86 guest.
+	Module api.Module
+	// Report describes the guest's wasm imports and exports.
+	Report *ImportReport
 
 	started           time.Time
 	random            atomic.Uint32
@@ -64,7 +67,12 @@ type HostRuntime struct {
 	haltEvents        atomic.Uint64
 	exceptions        atomic.Uint64
 	lastException     atomic.Uint32
-	Logs              []string
+
+	// Logs holds messages written by the guest through its wasm log callbacks.
+	Logs []string
+
+	// host9p is the registered 9P device, when present.
+	host9p *virtioHost9PDevice
 }
 
 // InstantiateHostRuntime compiles and instantiates the v86 wasm image

@@ -3,6 +3,7 @@ package v86_wazero
 import (
 	"context"
 	"encoding/binary"
+	"sync/atomic"
 )
 
 const (
@@ -25,9 +26,18 @@ type virtioHost9PDevice struct {
 	fs   *Host9PFS
 
 	queue *virtioQueue
+
+	// notifies counts queue drain attempts from status and notify writes.
+	notifies atomic.Uint64
+	// availIdx is the guest's available ring index sampled before draining.
+	availIdx atomic.Uint32
+	// availLastIdx is the consumed ring index sampled before draining.
+	availLastIdx atomic.Uint32
+	// queueConfigured reports whether the queue was configured before draining.
+	queueConfigured atomic.Bool
 }
 
-// registerHost9P exposes a Host9PFS to the guest as a virtio PCI device
+// registerHost9P exposes a Host9PFS to the guest as a virtio PCI device.
 func (h *HostRuntime) registerHost9P(fs *Host9PFS) {
 	// Require a PCI bus and filesystem before exposing the virtio host9p device.
 	if h.pci == nil || fs == nil {
@@ -48,7 +58,8 @@ func (h *HostRuntime) registerHost9P(fs *Host9PFS) {
 		sizeSupported: 32,
 	}
 
-	// Advertise the virtio host9p PCI device and its I/O BAR sizes.
+	// Attach the virtio host9p device and reserve its PCI I/O regions.
+	h.host9p = dev
 	h.pci.spaces[virtioHost9PPCIID] = newVirtioHost9PPCISpace()
 	h.pci.setBARSize(virtioHost9PPCIID, 0, 64, true)
 	h.pci.setBARSize(virtioHost9PPCIID, 1, 16, true)
@@ -125,18 +136,14 @@ func (d *virtioHost9PDevice) reset(ctx context.Context) {
 	d.lowerIRQ(ctx)
 }
 
-// handleQueue services one available-ring request: it publishes device
+// handleQueue drains available requests and publishes replies to the guest.
 func (d *virtioHost9PDevice) handleQueue(ctx context.Context) {
-	// Publish the virtio host9p notification and queue state to the filesystem.
+	// Record the queue state before consuming any guest descriptors.
 	queue := d.queue
-	d.fs.notifies.Add(1)
-	if queue.configured() {
-		d.fs.queueConfigured.Store(1)
-	} else {
-		d.fs.queueConfigured.Store(0)
-	}
-	d.fs.availIdx.Store(uint32(queue.availIdx()))
-	d.fs.availLastIdx.Store(uint32(queue.availLastIdx))
+	d.notifies.Add(1)
+	d.queueConfigured.Store(queue.configured())
+	d.availIdx.Store(uint32(queue.availIdx()))
+	d.availLastIdx.Store(uint32(queue.availLastIdx))
 
 	// Serve each available virtio host9p request and publish its reply.
 	for queue.configured() && queue.hasRequest() {
@@ -160,6 +167,14 @@ func (d *virtioHost9PDevice) handleQueue(ctx context.Context) {
 	// Arm virtio host9p queue notifications and flush completed replies.
 	queue.notifyMeAfter(0)
 	queue.flushReplies(ctx)
+}
+
+// queueStats reports drain attempts and the ring state sampled before draining.
+func (d *virtioHost9PDevice) queueStats() (uint64, uint32, uint32, bool) {
+	if d == nil {
+		return 0, 0, 0, false
+	}
+	return d.notifies.Load(), d.availIdx.Load(), d.availLastIdx.Load(), d.queueConfigured.Load()
 }
 
 // raiseIRQ asserts the fixed ISA interrupt line with ISR bits set.

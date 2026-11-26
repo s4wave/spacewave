@@ -58,15 +58,11 @@ const (
 
 // Host9PFS serves the Bun v86 fs.json + flat/ root image over 9P2000.L.
 type Host9PFS struct {
-	flatDir         string
-	inodes          []*host9pInode
-	fids            map[uint32]*host9pInode
-	requests        atomic.Uint64
-	lastType        atomic.Uint32
-	notifies        atomic.Uint64
-	availIdx        atomic.Uint32
-	availLastIdx    atomic.Uint32
-	queueConfigured atomic.Uint32
+	flatDir  string
+	inodes   []*host9pInode
+	fids     map[uint32]*host9pInode
+	requests atomic.Uint64
+	lastType atomic.Uint32
 }
 
 // host9pInode is one node of the exported tree: its stat metadata plus
@@ -213,17 +209,12 @@ func (fs *Host9PFS) Handle(req []byte) []byte {
 	}
 }
 
-// stats reports request, notify, and queue counters for diagnostics.
-func (fs *Host9PFS) stats() (uint64, byte, uint64, uint32, uint32, bool) {
+// requestStats reports the number and latest type of 9P requests.
+func (fs *Host9PFS) requestStats() (uint64, byte) {
 	if fs == nil {
-		return 0, 0, 0, 0, 0, false
+		return 0, 0
 	}
-	return fs.requests.Load(),
-		byte(fs.lastType.Load()), //nolint:gosec // lastType stores the fixed-width 9P message type byte.
-		fs.notifies.Load(),
-		fs.availIdx.Load(),
-		fs.availLastIdx.Load(),
-		fs.queueConfigured.Load() != 0
+	return fs.requests.Load(), byte(fs.lastType.Load()) //nolint:gosec // lastType stores the fixed-width 9P message type byte.
 }
 
 // handleVersion negotiates the 9P2000.L protocol version.
