@@ -688,14 +688,8 @@ func (s *PackStore) readExtent(ctx context.Context, ref *block.BlockRef) (*block
 	// Read and verify the block's bytes, once for every concurrent reader.
 	return s.extentReads.do(ctx, string(key), func(ctx context.Context) (*block.StoredBlock, error) {
 		// A cached copy saves the read; anything wrong with it costs only that.
-		if s.readCache != nil {
-			if data, ok := s.readCache.ReadCached(ctx, id, off, size); ok {
-				if stored, err := verifiedBlock(ref, data); err == nil {
-					s.reads.cached.Add(1)
-					return stored, nil
-				}
-				s.reads.cacheRejected.Add(1)
-			}
+		if stored := s.cachedBlock(ctx, ref, id, off, size); stored != nil {
+			return stored, nil
 		}
 
 		// Read the extent; a missing pack means the row named the wrong one.
@@ -718,6 +712,26 @@ func (s *PackStore) readExtent(ctx context.Context, ref *block.BlockRef) (*block
 		s.reads.bucket.Add(1)
 		return stored, nil
 	})
+}
+
+// cachedBlock returns the block from the read cache's copy of its extent, or
+// nil when the cache holds no copy or a copy that does not hold the block.
+func (s *PackStore) cachedBlock(ctx context.Context, ref *block.BlockRef, id string, off int64, size int) *block.StoredBlock {
+	// Read the copy, if the cache holds one, and check it holds the block.
+	if s.readCache == nil {
+		return nil
+	}
+	data, ok := s.readCache.ReadCached(ctx, id, off, size)
+	if !ok {
+		return nil
+	}
+	stored, err := verifiedBlock(ref, data)
+	if err != nil {
+		s.reads.cacheRejected.Add(1)
+		return nil
+	}
+	s.reads.cached.Add(1)
+	return stored
 }
 
 // GetBlockExists checks the packfiles for the block.

@@ -63,6 +63,8 @@ type batchExtent struct {
 	// off and size are its bytes in the pack.
 	off  int64
 	size int
+	// claim is its index in the batch's claim on the shared extent reads.
+	claim int
 }
 
 // batchRun is one range read of a batch: a span of one pack and the extents
@@ -82,6 +84,8 @@ type batchRun struct {
 // through GetStoredBlock. A failed range read reaches each block of its run as
 // that block's error, as a failed extent read does. A background batch keeps
 // readBatchReads range reads in flight, any other readBatchForegroundReads.
+// The batch shares its reads with concurrent reads of its blocks, as
+// readPlaced describes.
 func (s *PackStore) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
 	// Read every block alone without extents.
 	if s.index == nil || !extentReadsOn.Load() {
@@ -101,7 +105,7 @@ func (s *PackStore) GetStoredBlockBatch(ctx context.Context, refs []*block.Block
 		reads = readBatchReads
 	}
 	answered := make([]bool, len(refs))
-	err = s.readRuns(ctx, extents, reads, func(e batchExtent, stored *block.StoredBlock, err error) error {
+	err = s.readPlaced(ctx, extents, reads, func(e batchExtent, stored *block.StoredBlock, err error) error {
 		if stored == nil && err == nil {
 			return nil
 		}
@@ -149,7 +153,7 @@ func (s *PackStore) ReadBatch(ctx context.Context, refs []*block.BlockRef, fn fu
 	}
 
 	// Read the runs, passing on each block in them.
-	return s.readRuns(ctx, extents, readBatchReads, func(e batchExtent, stored *block.StoredBlock, err error) error {
+	return s.readPlaced(ctx, extents, readBatchReads, func(e batchExtent, stored *block.StoredBlock, err error) error {
 		if err != nil {
 			return err
 		}
@@ -158,6 +162,76 @@ func (s *PackStore) ReadBatch(ctx context.Context, refs []*block.BlockRef, fn fu
 		}
 		return fn(e.ref, stored)
 	})
+}
+
+// readPlaced reads extents as readRuns does, sharing the reads with
+// concurrent readers of the same blocks: a cached copy answers an extent
+// without a read, an extent another read is fetching waits for that read, and
+// a reader of a block the batch is fetching waits for the batch. Each
+// extent's answer reaches fn as readRuns gives it. A shared read that ends
+// without reading a block, as when its batch fails, answers neither a block
+// nor an error, so the caller reads that block alone.
+//
+// A foreground reader joining the batch raises every read of the batch to its
+// class, so a background batch never holds it behind the background lane.
+func (s *PackStore) readPlaced(ctx context.Context, extents []batchExtent, reads int, fn func(batchExtent, *block.StoredBlock, error) error) error {
+	// Answer the extents a cached copy holds.
+	pending := extents[:0]
+	for _, e := range extents {
+		if stored := s.cachedBlock(ctx, e.ref, e.id, e.off, e.size); stored != nil {
+			if err := fn(e, stored, nil); err != nil {
+				return err
+			}
+			continue
+		}
+		pending = append(pending, e)
+	}
+
+	// Join the reads already in flight, and claim the rest.
+	keys := make([]string, len(pending))
+	for j := range pending {
+		pending[j].claim = j
+		keys[j] = string(packfile.BlockKey(pending[j].ref.GetHash()))
+	}
+	c, rctx := s.extentReads.claim(ctx, keys)
+	defer c.release()
+	var owned, joined []batchExtent
+	for _, e := range pending {
+		if c.owned[e.claim] {
+			owned = append(owned, e)
+		} else {
+			joined = append(joined, e)
+		}
+	}
+
+	// Read the claimed extents, settling each for the readers that joined
+	// it. An answer of the batch's own end settles nothing, and release
+	// abandons it, so a joiner reads afresh rather than fail with it.
+	err := s.readRuns(rctx, owned, reads, func(e batchExtent, stored *block.StoredBlock, err error) error {
+		if err != nil && ctx.Err() != nil {
+			return context.Cause(ctx)
+		}
+		c.settle(e.claim, stored, err)
+		return fn(e, stored, err)
+	})
+	if err != nil {
+		return err
+	}
+
+	// Wait for the joined reads; one its batch abandoned answers nothing.
+	for _, e := range joined {
+		stored, err := c.wait(ctx, e.claim)
+		if errors.Is(err, errFetchAbandoned) {
+			stored, err = nil, nil
+		}
+		if err != nil && ctx.Err() != nil {
+			return context.Cause(ctx)
+		}
+		if err := fn(e, stored, err); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // readRuns reads extents in runs, as batchRuns merges them, with at most reads

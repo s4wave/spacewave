@@ -5,6 +5,8 @@ package block_store_s3
 import (
 	"bytes"
 	"context"
+	"errors"
+	"fmt"
 	"strconv"
 	"sync/atomic"
 	"testing"
@@ -370,4 +372,111 @@ func mustRef(t *testing.T, data []byte) *block.BlockRef {
 		t.Fatal(err)
 	}
 	return ref
+}
+
+// holdingObjects counts range reads and, while held, holds each until release
+// closes or its context ends.
+type holdingObjects struct {
+	ObjectStore
+	held    atomic.Bool
+	release chan struct{}
+	reads   atomic.Int64
+}
+
+func (h *holdingObjects) GetObjectRange(ctx context.Context, bucket, key string, off int64, length int) ([]byte, error) {
+	h.reads.Add(1)
+	if h.held.Load() {
+		select {
+		case <-h.release:
+		case <-ctx.Done():
+			return nil, context.Cause(ctx)
+		}
+	}
+	return h.ObjectStore.GetObjectRange(ctx, bucket, key, off, length)
+}
+
+// TestBatchSharesExtentReads reads a block alone while a batch reads it. The
+// single read joins the batch's range read and makes none of its own. When the
+// batch leaves before its read lands, the single read joined to it reads the
+// block afresh rather than fail with the batch's cancel.
+func TestBatchSharesExtentReads(t *testing.T) {
+	// Write four blocks, and open a reader whose range reads can be held.
+	ctx := t.Context()
+	_, client := newFakeBucket(t, nil)
+	kv := hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]())
+	refs := adoptBlocks(ctx, t, newIndexedStore(t, client, kv), "b", 4)
+	objs := &holdingObjects{ObjectStore: client}
+	s := NewPackStore(logrus.NewEntry(logrus.New()), objs, "bucket", "p/", &PackStoreOptions{KeepPacks: true, Index: kv, RefreshInterval: time.Hour})
+	t.Cleanup(s.Close)
+	if err := s.Preload(ctx); err != nil {
+		t.Fatal(err)
+	}
+	waiters := func(ref *block.BlockRef) int {
+		s.extentReads.mtx.Lock()
+		defer s.extentReads.mtx.Unlock()
+		f := s.extentReads.m[string(packfile.BlockKey(ref.GetHash()))]
+		if f == nil || !f.owned {
+			return -1
+		}
+		return f.waiters
+	}
+	readAlone := func(ref *block.BlockRef) <-chan string {
+		out := make(chan string, 1)
+		go func() {
+			stored, err := s.GetStoredBlock(ctx, ref)
+			if err != nil || stored == nil {
+				out <- fmt.Sprintf("read = %v, %v", stored, err)
+				return
+			}
+			out <- string(stored.Data)
+		}()
+		return out
+	}
+
+	// A single read of a block the batch is reading shares its range read.
+	objs.held.Store(true)
+	objs.release = make(chan struct{})
+	before := objs.reads.Load()
+	batchDone := make(chan error, 1)
+	go func() {
+		batchDone <- s.GetStoredBlockBatch(ctx, refs, func(i int, stored *block.StoredBlock, err error) error {
+			if err == nil && (stored == nil || string(stored.Data) != "b block "+strconv.Itoa(i)) {
+				err = fmt.Errorf("block %d = %v", i, stored)
+			}
+			return err
+		})
+	}()
+	waitFor(t, "the batch claims its blocks", func() bool { return waiters(refs[1]) == 0 })
+	alone := readAlone(refs[1])
+	waitFor(t, "the single read joins the batch", func() bool { return waiters(refs[1]) == 1 })
+	close(objs.release)
+	if err := <-batchDone; err != nil {
+		t.Fatal(err)
+	}
+	if got := <-alone; got != "b block 1" {
+		t.Fatalf("single read = %q, want b block 1", got)
+	}
+	if got := objs.reads.Load() - before; got != 1 {
+		t.Fatalf("batch and single read made %d range reads, want 1", got)
+	}
+
+	// A batch that leaves hands its joiner no error: the joiner reads afresh.
+	objs.release = make(chan struct{})
+	before = objs.reads.Load()
+	bctx, cancel := context.WithCancel(ctx)
+	go func() {
+		batchDone <- s.GetStoredBlockBatch(bctx, refs[2:3], func(int, *block.StoredBlock, error) error { return nil })
+	}()
+	waitFor(t, "the second batch claims its block", func() bool { return waiters(refs[2]) == 0 })
+	alone = readAlone(refs[2])
+	waitFor(t, "the single read joins the second batch", func() bool { return waiters(refs[2]) == 1 })
+	cancel()
+	if err := <-batchDone; !errors.Is(err, context.Canceled) {
+		t.Fatalf("cancelled batch = %v, want its cancel", err)
+	}
+	waitFor(t, "the single read starts its own range read", func() bool { return objs.reads.Load()-before == 2 })
+	close(objs.release)
+	if got := <-alone; got != "b block 2" {
+		t.Fatalf("single read after the batch left = %q, want b block 2", got)
+	}
 }
