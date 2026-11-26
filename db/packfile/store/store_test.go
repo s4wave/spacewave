@@ -1811,8 +1811,8 @@ func TestPackfileStoreServesAndWritesBackRefs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !stored.GetRefsKnown() || len(stored.GetRefs()) != len(leaves) {
-		t.Fatalf("root refs known=%v count=%d, want %d", stored.GetRefsKnown(), len(stored.GetRefs()), len(leaves))
+	if !stored.GetRefsSource().Recorded() || len(stored.GetRefs()) != len(leaves) {
+		t.Fatalf("root refs known=%v count=%d, want %d", stored.GetRefsSource().Recorded(), len(stored.GetRefs()), len(leaves))
 	}
 
 	// Wait for the packed graph to reach writeback and verify its references.

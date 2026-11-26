@@ -72,13 +72,13 @@ func randomGraph(t *testing.T, rng *rand.Rand, forest bool) []graphBlock {
 		if err != nil {
 			t.Fatal(err)
 		}
-		blocks[i] = graphBlock{h: h, stored: &block.StoredBlock{Data: data, RefsKnown: rng.IntN(10) != 0}}
+		blocks[i] = graphBlock{h: h, stored: &block.StoredBlock{Data: data, RefsSource: block.ListedIf(rng.IntN(10) != 0)}}
 	}
 
 	// Link each block with known refs to some later blocks.
 	parented := make([]bool, n)
 	for i := range blocks {
-		if !blocks[i].stored.RefsKnown {
+		if !blocks[i].stored.RefsSource.Recorded() {
 			continue
 		}
 		for range rng.IntN(4) {
@@ -140,7 +140,7 @@ func checkGraphPack(t *testing.T, seed uint64, data []byte, stream []graphBlock)
 		if err != nil {
 			t.Fatalf("seed %d: %v", seed, err)
 		}
-		if !bytes.Equal(got.Data, b.stored.Data) || got.RefsKnown != b.stored.RefsKnown || len(got.Refs) != len(b.stored.Refs) {
+		if !bytes.Equal(got.Data, b.stored.Data) || got.RefsSource.Recorded() != b.stored.RefsSource.Recorded() || len(got.Refs) != len(b.stored.Refs) {
 			t.Fatalf("seed %d: block %s read back changed", seed, b.h.MarshalString())
 		}
 		for i, ref := range got.Refs {

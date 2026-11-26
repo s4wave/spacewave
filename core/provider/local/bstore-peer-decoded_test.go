@@ -62,8 +62,8 @@ func TestPeerBlockWithoutRefsKeptOnDecode(t *testing.T) {
 	if err != nil || stored == nil {
 		t.Fatalf("kept pair = %v, %v", stored, err)
 	}
-	if !stored.RefsKnown || len(stored.Refs) != 2 {
-		t.Fatalf("kept pair refs known=%v refs=%d, want 2 known", stored.RefsKnown, len(stored.Refs))
+	if !stored.RefsSource.Recorded() || len(stored.Refs) != 2 {
+		t.Fatalf("kept pair refs known=%v refs=%d, want 2 known", stored.RefsSource.Recorded(), len(stored.Refs))
 	}
 	want := map[string]bool{left.MarshalString(): true, right.MarshalString(): true}
 	for _, r := range stored.Refs {

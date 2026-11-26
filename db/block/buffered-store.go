@@ -440,9 +440,9 @@ func (s *BufferedStore) GetStoredBlock(ctx context.Context, ref *BlockRef) (*Sto
 		}
 		MarkStagedRead(ctx)
 		return &StoredBlock{
-			Data:      bytes.Clone(pending.data),
-			Refs:      CloneBlockRefs(pending.refs),
-			RefsKnown: true,
+			Data:       bytes.Clone(pending.data),
+			Refs:       CloneBlockRefs(pending.refs),
+			RefsSource: AssertedIf(pending.refsKnown),
 		}, nil
 	}
 	return s.inner.GetStoredBlock(s.innerReadContext(ctx), ref)

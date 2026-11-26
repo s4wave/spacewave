@@ -102,7 +102,7 @@ func (s *volumeSource) GetStoredBlock(ctx context.Context, ref *block.BlockRef) 
 		return nil, err
 	}
 	defer tx.Discard()
-	stored.Refs, stored.RefsKnown, err = volume_kvtx.OpenRecords(tx).GetChildren(ctx, ref)
+	stored.Refs, stored.RefsSource, err = volume_kvtx.OpenRecords(tx).GetChildList(ctx, ref)
 	return stored, err
 }
 

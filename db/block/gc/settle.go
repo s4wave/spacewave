@@ -41,8 +41,11 @@ import (
 //     and holds the flip.
 //   - Once its completion entry exists, the unmarked run names every block
 //     whose list is unverified: the run build adds each, and every write that
-//     marks a list deletes the block's entry in the same transaction. No
-//     writer adds an unverified list, since PutChildren always marks.
+//     marks a list deletes the block's entry in the same transaction. One
+//     writer adds an unverified list: a Land of a copied put, whose refs the
+//     writer did not read from content, through Records.putCopied, which
+//     writes the block's run entry and front entry in the same transaction,
+//     so the run stays complete and the walk decodes the block.
 //
 // Before the flip the collector seeds the front, in slices: it pushes every
 // owed block a named root or a down page not netted yet names, as
@@ -209,6 +212,40 @@ func (r *Records) markedYoung(ctx context.Context, key, packed []byte, skip func
 		return err
 	}
 	return r.pushChildren(ctx, packed, skip)
+}
+
+// putCopied writes children, refs a put copied rather than read from the
+// content of ref, as its unverified list while the generation is Open, and
+// enters the block in the run and on the front in the same transaction: the
+// run then still names every unverified list, and the walk decodes the
+// block, marks its list from content and pushes what it lacks. It is the one
+// writer of an unmarked list, as the run's invariant describes.
+func (r *Records) putCopied(ctx context.Context, ref *block.BlockRef, children []*block.BlockRef) error {
+	key := BlockKey(ref)
+	if err := r.tx.Set(ctx, r.key(kindChildren, key), packChildren(nil, children)); err != nil {
+		return err
+	}
+	if err := r.tx.Set(ctx, r.key(kindUnmarked, key), nil); err != nil {
+		return err
+	}
+	return r.tx.Set(ctx, r.key(kindFront, key), nil)
+}
+
+// keepParked finishes a copied put of the parked block at key, after
+// Records.repark deleted its count, parked key, queue entry, front entry and
+// run entry, keeping its stored list: an unverified one goes back into the
+// run and onto the front, so the walk decodes it, and a marked one needs
+// neither. The block's count record is then absent, its implied holder,
+// which the put's holders or its down settle, as Land describes.
+func (r *Records) keepParked(ctx context.Context, key []byte) error {
+	listed, marked, err := r.listState(ctx, key)
+	if err != nil || !listed || marked {
+		return err
+	}
+	if err := r.tx.Set(ctx, r.key(kindUnmarked, key), nil); err != nil {
+		return err
+	}
+	return r.tx.Set(ctx, r.key(kindFront, key), nil)
 }
 
 // mergeList writes the union of the list value of the block at key and
@@ -481,12 +518,15 @@ func (c *Collector) seedDownSlice(ctx context.Context, rec *Records, res *Collec
 // child list records after the key position from, while the generation is
 // Open, and writes the run's completion entry once it passes the last.
 //
-// Invariant: no write while Open stores an unmarked list, so a list unmarked
-// at the flip was unmarked whenever the scan passed it, and the run at the
-// flip is every list still unmarked, whatever writes interleave with the
-// scan. Every writer of kindChildren while Open marks: PutChildren, the union
-// rewrite and ListRebuild. A writer that stores an unmarked list while Open
-// breaks the run.
+// Invariant: every write while Open that stores an unmarked list enters the
+// block in the run in the same transaction, so a list unmarked at the flip
+// is in the run whether or not the scan passed it, and the run at the flip is
+// every list still unmarked, whatever writes interleave with the scan.
+// PutChildren, the union rewrite and ListRebuild mark; the one writer of an
+// unmarked list, Records.putCopied for a Land's copied put, writes the run
+// entry with it, and Records.keepParked writes it back for a parked block
+// whose kept list is unmarked. A writer that stores an unmarked list while
+// Open without its run entry breaks the run.
 //
 // Cost: one sequential read of the list records, values included, and one
 // write per unverified list, once per Volume.

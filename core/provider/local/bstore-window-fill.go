@@ -43,7 +43,7 @@ func (w *windowFillOps) PutBlockBatch(ctx context.Context, entries []*block.PutB
 		if have[i] || e.Tombstone {
 			continue
 		}
-		stored := &block.StoredBlock{Data: e.Data, Refs: e.Refs, RefsKnown: e.RefsKnown}
+		stored := &block.StoredBlock{Data: e.Data, Refs: e.Refs, RefsSource: block.ListedIf(e.RefsKnown)}
 		if err := w.fill(ctx, w.StoreOps, e.Ref, stored); err != nil {
 			return nil, err
 		}

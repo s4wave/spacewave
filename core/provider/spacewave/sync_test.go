@@ -813,7 +813,7 @@ type syncTestBlockStore struct {
 func (s syncTestBlockStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	stored, err := block.GetBlockWithoutRefs(ctx, s.StoreOps, ref)
 	if stored != nil {
-		stored.RefsKnown = true
+		stored.RefsSource = block.RefsAsserted
 	}
 	return stored, err
 }
@@ -851,7 +851,7 @@ func newSyncTestLowerPackfileStore(t *testing.T, blocks map[string][]byte) *pack
 		}
 		item := items[idx]
 		idx++
-		return item.h, &block.StoredBlock{Data: item.data, RefsKnown: true}, nil
+		return item.h, &block.StoredBlock{Data: item.data, RefsSource: block.RefsAsserted}, nil
 	})
 	if err != nil {
 		t.Fatalf("pack lower blocks: %v", err)

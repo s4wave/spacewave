@@ -61,7 +61,7 @@ func (s *refsTestStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef)
 	if err != nil || !found {
 		return nil, err
 	}
-	return &block.StoredBlock{Data: data, Refs: s.getRefs(ref), RefsKnown: true}, nil
+	return &block.StoredBlock{Data: data, Refs: s.getRefs(ref), RefsSource: block.RefsAsserted}, nil
 }
 
 func (s *refsTestStore) getRefs(ref *block.BlockRef) []*block.BlockRef {
@@ -155,7 +155,7 @@ func TestStoreReadThroughByteOnlySourceSkipsFill(t *testing.T) {
 
 	// Verify that the stored block reports its references as unknown.
 	stored, err := store.GetStoredBlock(ctx, ref)
-	if err != nil || stored == nil || stored.RefsKnown {
+	if err != nil || stored == nil || stored.RefsSource.Recorded() {
 		t.Fatalf("GetStoredBlock = %v/%v, want bytes without refs", stored, err)
 	}
 

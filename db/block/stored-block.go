@@ -6,11 +6,12 @@ import "context"
 type StoredBlock struct {
 	// Data is the stored block data.
 	Data []byte
-	// Refs are the block's outgoing refs when RefsKnown is set.
+	// Refs are the block's outgoing refs when RefsSource records them.
 	Refs []*BlockRef
-	// RefsKnown is false when the source held the bytes without their refs,
-	// so a leaf cannot be told from a block whose edges were lost.
-	RefsKnown bool
+	// RefsSource says what the read knows of Refs. Only RefsAsserted refs may
+	// set the RefsKnown of a put into a store that marks lists from them, as
+	// RefsSource describes.
+	RefsSource RefsSource
 	// Linked is set by the linked files' copy tier (see the filesegment
 	// Store's GetCopyTier), which a copy chain reads after every Volume tier,
 	// so a file on this Device is the block's only copy here, and a changed
@@ -56,14 +57,18 @@ func (b *StoredBlock) GetRefs() []*BlockRef {
 	return b.Refs
 }
 
-// GetRefsKnown reports whether the refs are known, false for a nil block.
-func (b *StoredBlock) GetRefsKnown() bool {
-	return b != nil && b.RefsKnown
+// GetRefsSource returns what the read knows of the refs, RefsUnknown for a
+// nil block.
+func (b *StoredBlock) GetRefsSource() RefsSource {
+	if b == nil {
+		return RefsUnknown
+	}
+	return b.RefsSource
 }
 
-// PutOpts returns options that store the block under ref with its refs.
-// Refs are empty when they are unknown, so the caller decides whether a
-// block without known refs may be written.
+// PutOpts returns options that store the block under ref with its refs,
+// declaring them known only when they are asserted. Listed refs go with the
+// put as partial refs, which a store that marks lists treats as no list.
 func (b *StoredBlock) PutOpts(ref *BlockRef) *PutOpts {
-	return &PutOpts{ForceBlockRef: ref.Clone(), Refs: b.Refs, RefsKnown: b.RefsKnown}
+	return &PutOpts{ForceBlockRef: ref.Clone(), Refs: b.Refs, RefsKnown: b.RefsSource.Asserted()}
 }

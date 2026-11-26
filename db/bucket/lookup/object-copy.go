@@ -269,12 +269,15 @@ func copyObjectToBucket(
 			// Copy each block with its references. A decoded block, or a leaf
 			// type the walk did not decode, names them; a block without a
 			// constructor takes the refs its source stored, or the copy fails
-			// rather than store a block that hides its children.
+			// rather than store a block that hides its children. Only decoded
+			// refs, or a source's asserted ones, are declared known: a
+			// listed list may lack a child.
 			var refs []*block.BlockRef
+			source := block.RefsAsserted
 			if ent.Ctor != nil || ent.Blk != nil {
 				refs, err = block.ExtractBlockRefs(ent.Blk)
 			} else {
-				refs, err = ent.BlockRefs(ctx, readBkt)
+				refs, source, err = ent.BlockRefs(ctx, readBkt)
 			}
 			if err != nil {
 				return false, err
@@ -294,7 +297,7 @@ func copyObjectToBucket(
 				if len(ent.Data) > maxPendingBytes {
 					batchTarget = target
 				}
-				_, err = batchTarget.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ent.Ref, Data: ent.Data, Refs: refs, RefsKnown: true}})
+				_, err = batchTarget.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ent.Ref, Data: ent.Data, Refs: refs, RefsKnown: source.Asserted()}})
 			}
 			if err != nil && err != context.Canceled {
 				err = errors.Wrapf(err, "write ref %s", ent.Ref.MarshalString())

@@ -313,8 +313,8 @@ const (
 //     release, or its lease's expiry, lets the collector take what no parent
 //     names.
 func (v *Volume) prepareStaged(ctx context.Context, stage string, entries []*block.PutBatchEntry) ([]bool, error) {
-	// Require an open stage, atomic publication, room above the disk reserve
-	// and the child list of every block.
+	// Require an open stage, atomic publication and room above the disk
+	// reserve; Land decides what a block without its child list does.
 	if _, err := v.useStage(ctx, stage); err != nil {
 		return nil, err
 	}
@@ -322,9 +322,6 @@ func (v *Volume) prepareStaged(ctx context.Context, stage string, entries []*blo
 		return nil, block.ErrAtomicCommitUnsupported
 	}
 	if err := v.checkReserve(ctx, batchBytes(entries)); err != nil {
-		return nil, err
-	}
-	if err := requireRefsKnown(entries); err != nil {
 		return nil, err
 	}
 

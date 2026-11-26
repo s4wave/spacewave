@@ -432,6 +432,23 @@ func (r *Records) GetChildren(ctx context.Context, ref *block.BlockRef) ([]*bloc
 	return children, true, err
 }
 
+// GetChildList returns the children in the child list of ref and what the
+// list proves: RefsAsserted for a marked list, RefsListed for an unverified
+// one, which may lack a child, and RefsUnknown when the Volume does not store
+// ref.
+func (r *Records) GetChildList(ctx context.Context, ref *block.BlockRef) ([]*block.BlockRef, block.RefsSource, error) {
+	// Read the list, then say what its mark proves.
+	value, found, err := r.tx.Get(ctx, r.key(kindChildren, BlockKey(ref)))
+	if err != nil || !found {
+		return nil, block.RefsUnknown, err
+	}
+	children, err := DecodeChildren(value)
+	if listMarked(value) {
+		return children, block.RefsAsserted, err
+	}
+	return children, block.RefsListed, err
+}
+
 // HasChildren reports whether the child list of ref exists.
 func (r *Records) HasChildren(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	return r.listed(ctx, BlockKey(ref))

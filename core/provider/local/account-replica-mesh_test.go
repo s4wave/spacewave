@@ -296,11 +296,11 @@ func assertSameBlockGraph(ctx context.Context, t *testing.T, src, dst block.Stor
 		ref := queue[0]
 		queue = queue[1:]
 		want, err := src.GetStoredBlock(ctx, ref)
-		if err != nil || want == nil || !want.GetRefsKnown() {
+		if err != nil || want == nil || !want.GetRefsSource().Recorded() {
 			t.Fatalf("source block %s: stored=%v err=%v", ref.MarshalString(), want, err)
 		}
 		got, err := dst.GetStoredBlock(ctx, ref)
-		if err != nil || got == nil || !got.GetRefsKnown() {
+		if err != nil || got == nil || !got.GetRefsSource().Recorded() {
 			t.Fatalf("replica block %s: stored=%v err=%v", ref.MarshalString(), got, err)
 		}
 		if !bytes.Equal(got.GetData(), want.GetData()) || !sameRefs(got.GetRefs(), want.GetRefs()) {

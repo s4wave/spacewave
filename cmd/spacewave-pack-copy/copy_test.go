@@ -236,7 +236,7 @@ func TestCommandRunThrough(t *testing.T) {
 	}
 	for _, ref := range []*block.BlockRef{rootRef, childRef} {
 		stored, err := target.GetStoredBlock(ctx, ref)
-		if err != nil || stored == nil || !stored.RefsKnown {
+		if err != nil || stored == nil || !stored.RefsSource.Recorded() {
 			t.Fatalf("read %s: %v, %v", ref.MarshalString(), stored, err)
 		}
 	}
@@ -342,7 +342,7 @@ func TestCommandRunThrough(t *testing.T) {
 	if err != nil || stored == nil || len(stored.Refs) != 1 || !stored.Refs[0].EqualsRef(leafRef) {
 		t.Fatalf("parent from the Volume = %v, %v; want its leaf ref", stored, err)
 	}
-	if stored, err := target.GetStoredBlock(ctx, leafRef); err != nil || stored == nil || !stored.RefsKnown {
+	if stored, err := target.GetStoredBlock(ctx, leafRef); err != nil || stored == nil || !stored.RefsSource.Recorded() {
 		t.Fatalf("leaf from the Volume = %v, %v", stored, err)
 	}
 }

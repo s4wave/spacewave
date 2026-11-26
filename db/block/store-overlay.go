@@ -187,7 +187,7 @@ func (o *StoreOverlay) readFill(ctx context.Context, second, fill StoreOps, ref 
 	if err != nil || stored == nil {
 		return nil, err
 	}
-	if fill != nil && stored.RefsKnown {
+	if fill != nil && stored.RefsSource.Recorded() {
 		o.fill(fill, ref, stored)
 	}
 	return stored, nil
@@ -217,6 +217,7 @@ func (o *StoreOverlay) fill(target StoreOps, ref *BlockRef, stored *StoredBlock)
 	}
 	putOpts.ForceBlockRef = ref.Clone()
 	putOpts.Refs = CloneBlockRefs(stored.Refs)
+	putOpts.RefsKnown = stored.RefsSource.Asserted()
 
 	// Give the background writeback its own payload and cancellation cleanup.
 	// The caller receives stored.Data and may modify it during the writeback.

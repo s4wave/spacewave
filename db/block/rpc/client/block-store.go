@@ -235,9 +235,9 @@ func (v *BlockStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*
 	}
 
 	return &block.StoredBlock{
-		Data:      resp.GetData(),
-		Refs:      resp.GetRefs(),
-		RefsKnown: resp.GetRefsKnown(),
+		Data:       resp.GetData(),
+		Refs:       resp.GetRefs(),
+		RefsSource: block.ListedIf(resp.GetRefsKnown()),
 	}, nil
 }
 

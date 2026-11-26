@@ -80,7 +80,7 @@ func newPacker(w io.Writer) *packer {
 func (p *packer) add(h *hash.Hash, blk *block.StoredBlock) error {
 	// Encode the block and write it, keeping its key.
 	key := packfile.BlockKey(h)
-	value, err := block.EncodeBlockObject(blk.Data, blk.Refs, blk.GetRefsKnown())
+	value, err := block.EncodeBlockObject(blk.Data, blk.Refs, blk.GetRefsSource().Recorded())
 	if err != nil {
 		return errors.Wrap(err, "encoding block value")
 	}

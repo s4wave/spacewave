@@ -1323,7 +1323,7 @@ func TestBlockStoreSyncPushPull(t *testing.T) {
 		}
 		blk := blocks[idx]
 		idx++
-		return blk.hash, &block.StoredBlock{Data: blk.data, RefsKnown: true}, nil
+		return blk.hash, &block.StoredBlock{Data: blk.data, RefsSource: block.RefsAsserted}, nil
 	}
 
 	var packBuf bytes.Buffer

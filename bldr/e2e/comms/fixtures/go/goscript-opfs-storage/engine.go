@@ -393,7 +393,7 @@ func walkEngineGraph(ctx context.Context, tb *db_testbed.Testbed, head *bucket.O
 		if err != nil {
 			return err
 		}
-		if stored == nil || !stored.RefsKnown || len(stored.Data) == 0 {
+		if stored == nil || !stored.RefsSource.Recorded() || len(stored.Data) == 0 {
 			return errors.Errorf("%s: advertised root %s misses block %s", phase, head.GetRootRef().MarshalString(), ref.MarshalString())
 		}
 		if err := ref.VerifyData(stored.Data, true); err != nil {

@@ -215,7 +215,7 @@ func buildReleaseCDNFallbackPack(t *testing.T, id string, data []byte) *releaseC
 			return nil, nil, nil
 		}
 		wrote = true
-		return h, &block.StoredBlock{Data: data, RefsKnown: true}, nil
+		return h, &block.StoredBlock{Data: data, RefsSource: block.RefsAsserted}, nil
 	})
 	if err != nil {
 		t.Fatal(err.Error())

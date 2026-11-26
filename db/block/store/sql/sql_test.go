@@ -82,17 +82,17 @@ func TestStore(t *testing.T) {
 	if err != nil || stored == nil {
 		t.Fatalf("parent: %v %v", stored, err)
 	}
-	if !bytes.Equal(stored.Data, parentData) || !stored.RefsKnown || len(stored.Refs) != 1 || !stored.Refs[0].EqualVT(leaf) {
+	if !bytes.Equal(stored.Data, parentData) || !stored.RefsSource.Recorded() || len(stored.Refs) != 1 || !stored.Refs[0].EqualVT(leaf) {
 		t.Fatalf("parent read back as %+v", stored)
 	}
 
 	// The leaf has known empty refs, the loose block unknown refs.
 	stored, err = store.GetStoredBlock(ctx, leaf)
-	if err != nil || stored == nil || !stored.RefsKnown || len(stored.Refs) != 0 {
+	if err != nil || stored == nil || !stored.RefsSource.Recorded() || len(stored.Refs) != 0 {
 		t.Fatalf("leaf read back as %+v, %v", stored, err)
 	}
 	stored, err = store.GetStoredBlock(ctx, loose)
-	if err != nil || stored == nil || stored.RefsKnown {
+	if err != nil || stored == nil || stored.RefsSource.Recorded() {
 		t.Fatalf("loose block read back as %+v, %v", stored, err)
 	}
 

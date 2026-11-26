@@ -93,9 +93,9 @@ func (p *physicalTx) discard() {
 	}
 }
 
-// txBlocks serves a physical transaction's blocks. It refuses to store a block
-// without its references, as requireRefsKnown describes, marks the blocks of
-// the writes that asked, and records each block the transaction removes: the
+// txBlocks serves a physical transaction's blocks. It stores what Land and
+// RefillBlocks pass it, which decide what a block without its references
+// does, marks the blocks of the writes that asked, and records each block the transaction removes: the
 // sweeps, the block passes, the deferred edits and the publication tombstones
 // all remove through it.
 type txBlocks struct {
@@ -114,13 +114,9 @@ func (r *txBlocks) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	return r.StoreOps.RmBlock(ctx, ref)
 }
 
-// PutBlock refuses a block without its child list, writes the block and
-// marks it, also when it existed, for a write that asked for marking.
+// PutBlock writes the block and marks it, also when it existed, for a write
+// that asked for marking.
 func (r *txBlocks) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	// Refuse a block without its child list, then write it.
-	if err := requireRefKnown(data, opts); err != nil {
-		return nil, false, err
-	}
 	ref, existed, err := r.StoreOps.PutBlock(ctx, data, opts)
 	if err != nil || ref.GetEmpty() {
 		return ref, existed, err
@@ -131,15 +127,9 @@ func (r *txBlocks) PutBlock(ctx context.Context, data []byte, opts *block.PutOpt
 	return ref, existed, err
 }
 
-// PutBlockBatch refuses a batch holding a block without its child list,
-// then records the batch's tombstones, writes the batch and marks its blocks,
+// PutBlockBatch records the batch's tombstones, writes the batch and marks its blocks,
 // also those that existed, for a write that asked for marking.
 func (r *txBlocks) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
-	// Refuse a block without its child list.
-	if err := requireRefsKnown(entries); err != nil {
-		return nil, err
-	}
-
 	// Record the tombstones and collect the blocks to mark.
 	var marks []kvtx.BlockMark
 	asked := kvtx.GetBlockMarkRequest(ctx) != nil

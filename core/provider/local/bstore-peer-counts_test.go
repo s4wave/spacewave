@@ -199,7 +199,7 @@ func (s *putStore) PutBlock(context.Context, []byte, *block.PutOpts) (*block.Blo
 func TestPeerFillCounts(t *testing.T) {
 	p := &placementState{remote: &atomic.Pointer[openBackend]{}}
 	ref := block.NewBlockRef(nil)
-	stored := &block.StoredBlock{Data: []byte("served"), RefsKnown: true}
+	stored := &block.StoredBlock{Data: []byte("served"), RefsSource: block.RefsAsserted}
 	if err := p.peerFill(&putStore{err: errors.New("disk away")})(context.Background(), nil, ref, stored); err == nil {
 		t.Fatal("failed fill reported no error")
 	}

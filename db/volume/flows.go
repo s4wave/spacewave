@@ -7,8 +7,8 @@ import (
 )
 
 // PutFlow counts the blocks one write path stored that the volume did not
-// hold, its puts of blocks the volume held, and the puts it refused, since the
-// volume opened.
+// hold, its puts of blocks the volume held, the puts it refused, and the
+// copied entries it dropped, since the volume opened.
 type PutFlow struct {
 	// Path names the write path, such as "fill".
 	Path string
@@ -21,6 +21,13 @@ type PutFlow struct {
 	// Refused is the number of puts refused with block.ErrRefsUnknown for a
 	// new block written without its references.
 	Refused uint64
+	// Dropped is the number of copied entries, whose references the writer
+	// did not read from content, that a cache fill dropped rather than store
+	// as the child list of a block the volume does not list.
+	Dropped uint64
+	// DroppedHoles is the number of copied entries a cache fill dropped that
+	// put a hole the audit recorded, which only content refills.
+	DroppedHoles uint64
 }
 
 // ValueFlow counts the values the volume's storage stored outside its index

@@ -141,7 +141,7 @@ type leafStore struct {
 func (l *leafStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	stored, err := block.GetBlockWithoutRefs(ctx, l.StoreOps, ref)
 	if stored != nil {
-		stored.RefsKnown = true
+		stored.RefsSource = block.RefsAsserted
 	}
 	return stored, err
 }

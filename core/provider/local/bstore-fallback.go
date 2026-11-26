@@ -750,19 +750,29 @@ func (r *fallbackReads) hit(ctx context.Context, ref *block.BlockRef, fill bool,
 
 // fillHit counts a fallback hit and stores it locally with its upload marker.
 // A hit without its refs serves but is not stored, since the pack would keep it
-// as a leaf.
+// as a leaf. A hit with listed refs fills, and the local Volume stores only
+// what it can take without trusting them, such as the bytes of a block whose
+// list is already marked; so the hit is also kept once the reader decodes it.
 func (r *fallbackReads) fillHit(ctx context.Context, ref *block.BlockRef, stored *block.StoredBlock) {
 	// Count only hits on a read path that fills the local store.
 	if r.fills == nil || r.fill == nil {
 		return
 	}
-	r.fills.recordHit(stored.RefsKnown)
+	r.fills.recordHit(stored.RefsSource.Recorded())
 
 	// Leave a block without refs to serve until its reader decodes them.
-	if !stored.RefsKnown {
+	if !stored.RefsSource.Recorded() {
 		return
 	}
+
+	// Fill it, and refill it with asserted refs once the reader decodes it.
 	r.fills.start(ref, stored, r.fill)
+	if !stored.RefsSource.Asserted() {
+		fills, fill := r.fills, r.fill
+		block.KeepDecodedRefs(ctx, ref, stored.Data, func(_ context.Context, data []byte, refs []*block.BlockRef) {
+			fills.start(ref, &block.StoredBlock{Data: data, Refs: refs, RefsSource: block.RefsAsserted}, fill)
+		})
+	}
 }
 
 // GetBlockExists checks the sources, then the fallback.

@@ -188,7 +188,7 @@ func newPackedBlock(t *testing.T, data []byte, refs ...*block.BlockRef) packedBl
 	if err != nil {
 		t.Fatal(err)
 	}
-	testBlockData.Store(string(packfile.BlockKey(h)), &block.StoredBlock{Data: data, Refs: refs, RefsKnown: true})
+	testBlockData.Store(string(packfile.BlockKey(h)), &block.StoredBlock{Data: data, Refs: refs, RefsSource: block.RefsAsserted})
 	return packedBlock{ref: block.NewBlockRef(h), refs: refs, decoded: true}
 }
 

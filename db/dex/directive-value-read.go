@@ -16,7 +16,7 @@ func ReadLookupBlockFromNetworkValue(ctx context.Context, store block.StoreOps, 
 		return nil, err
 	case stored == nil:
 		return NewLookupBlockFromNetworkValue(nil, nil), nil
-	case stored.RefsKnown:
+	case stored.RefsSource.Recorded():
 		return NewLookupBlockFromNetworkValueWithRefs(stored.Data, stored.Refs), nil
 	default:
 		return NewLookupBlockFromNetworkValue(stored.Data, nil), nil

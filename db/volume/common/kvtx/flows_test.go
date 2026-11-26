@@ -14,8 +14,10 @@ import (
 
 // TestFlowsCountNewBlocksByPath proves each write path counts the blocks it
 // stored that the volume did not hold, so the flows name the caller that grows
-// the storage, and its puts of blocks the volume held. Each path refuses a new block written without its references,
-// stores nothing for it, counts the refusal, and logs its first caller once.
+// the storage, and its puts of blocks the volume held. On a settled Volume each
+// path refuses a new block written without its references, and a fill drops
+// one; either stores nothing for it and counts it, and the path logs its first
+// caller once.
 func TestFlowsCountNewBlocksByPath(t *testing.T) {
 	// A direct write counts once, and writing the same block again counts as
 	// existing.
@@ -31,10 +33,10 @@ func TestFlowsCountNewBlocksByPath(t *testing.T) {
 		}
 	}
 
-	// Writing the stored block again without its child list is refused: the
-	// refusal reads only the put.
-	if _, _, err := v.PutBlock(ctx, direct, nil); !errors.Is(err, block.ErrRefsUnknown) {
-		t.Fatalf("stored block put without references = %v; want refused", err)
+	// Writing the stored block again without its child list holds it again
+	// and keeps its list.
+	if _, _, err := v.PutBlock(ctx, direct, nil); err != nil {
+		t.Fatalf("stored block put without references = %v; want it held again", err)
 	}
 
 	// An owned write and a cache fill count under their own paths, and a
@@ -82,7 +84,8 @@ func TestFlowsCountNewBlocksByPath(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Each path refuses a block without its child list.
+	// Each path but the fill refuses a block without its child list, and the
+	// fill drops it.
 	unknown := func(path string) []byte { return []byte("unknown " + path) }
 	unknownEntry := func(path string) *block.PutBatchEntry {
 		ref, err := block.BuildBlockRef(unknown(path), nil)
@@ -105,10 +108,6 @@ func TestFlowsCountNewBlocksByPath(t *testing.T) {
 			_, _, err := v.PrepareOwnedBlock(ctx, "bucket", unknown("owned"), nil)
 			return err
 		},
-		"fill": func() error {
-			_, _, err := v.PrepareOwnedBlock(ctx, "bucket", unknown("fill"), &block.PutOpts{CacheFill: true})
-			return err
-		},
 		"staged": func() error {
 			_, _, err := v.PrepareStagedBlock(ctx, stage, unknown("staged"), nil)
 			return err
@@ -125,13 +124,19 @@ func TestFlowsCountNewBlocksByPath(t *testing.T) {
 			t.Fatalf("path %s stored its refused block: %v %v", path, found, err)
 		}
 	}
+	if _, _, err := v.PrepareOwnedBlock(ctx, "bucket", unknown("fill"), &block.PutOpts{CacheFill: true}); err != nil {
+		t.Fatalf("fill without references = %v; want it dropped", err)
+	}
+	if found, err := v.GetBlockExists(ctx, unknownEntry("fill").Ref); err != nil || found {
+		t.Fatalf("the fill stored its dropped block: %v %v", found, err)
+	}
 
 	// Each path reports exactly its own blocks, its repeated puts and one
-	// refusal.
+	// refusal, or the fill's one drop.
 	want := []volume.PutFlow{
-		{Path: "direct", Blocks: 2, Bytes: uint64(len(direct) + len(batch[0].Data)), Existing: 1, Refused: 3},
+		{Path: "direct", Blocks: 2, Bytes: uint64(len(direct) + len(batch[0].Data)), Existing: 2, Refused: 2},
 		{Path: "owned", Blocks: 1, Bytes: uint64(len(owned)), Refused: 1},
-		{Path: "fill", Blocks: 1, Bytes: uint64(len(fill)), Existing: 1, Refused: 1},
+		{Path: "fill", Blocks: 1, Bytes: uint64(len(fill)), Existing: 1, Dropped: 1},
 		{Path: "staged", Blocks: 2, Bytes: uint64(staged), Refused: 1},
 		{Path: "roots", Blocks: 1, Bytes: uint64(len(rootData)), Refused: 1},
 	}

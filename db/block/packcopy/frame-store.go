@@ -121,7 +121,7 @@ func (s *FrameStore) GetStoredBlock(_ context.Context, ref *block.BlockRef) (*bl
 	if err != nil {
 		return nil, err
 	}
-	stored.RefsKnown = place.known
+	stored.RefsSource = block.ListedIf(place.known)
 	return stored, nil
 }
 

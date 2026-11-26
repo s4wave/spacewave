@@ -78,7 +78,7 @@ func (s *localDEXTestStore) GetStoredBlock(ctx context.Context, ref *block.Block
 	if err != nil || !found {
 		return nil, err
 	}
-	return &block.StoredBlock{Data: data, RefsKnown: true}, nil
+	return &block.StoredBlock{Data: data, RefsSource: block.RefsAsserted}, nil
 }
 
 var _ block.StoreOps = (*localDEXTestStore)(nil)

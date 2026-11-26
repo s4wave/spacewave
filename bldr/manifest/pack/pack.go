@@ -68,14 +68,14 @@ func PackManifestBundle(
 					if _, ok := blocks[key]; ok {
 						return true, nil
 					}
-					children, err := entry.BlockRefs(ctx, bls.GetBucket())
+					children, source, err := entry.BlockRefs(ctx, bls.GetBucket())
 					if err != nil {
 						return false, err
 					}
 					graph.Add(entry.Ref, children)
 					blocks[key] = packBlock{
 						hash:   entry.Ref.GetHash().CloneVT(),
-						stored: &block.StoredBlock{Data: bytes.Clone(entry.Data), Refs: children, RefsKnown: true},
+						stored: &block.StoredBlock{Data: bytes.Clone(entry.Data), Refs: children, RefsSource: source},
 					}
 					return true, nil
 				},

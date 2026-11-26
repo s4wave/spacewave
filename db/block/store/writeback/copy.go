@@ -328,9 +328,11 @@ func (s *Store) copyStep(ctx context.Context, remote block.StoreOps, refs []*blo
 			counts.Corrupt++
 		case stored == nil:
 			counts.Gone++
-		case !stored.RefsKnown:
+		case !stored.RefsSource.Recorded():
 			counts.RefsUnknown++
 		default:
+			// The remote never marks a list and reads its refs back as
+			// listed, so recorded refs go in known.
 			read[i] = &block.PutBatchEntry{Ref: ref, Data: stored.Data, Refs: stored.Refs, RefsKnown: true}
 		}
 		return nil

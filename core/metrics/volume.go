@@ -75,6 +75,11 @@ var (
 		"Puts the volume refused for a new block written without its references, by write path, since it opened.",
 		[]string{volumeLabel, "path"}, nil,
 	)
+	volumePutDroppedDesc = prometheus.NewDesc(
+		"spacewave_volume_put_dropped_total",
+		"Copied entries a cache fill dropped rather than store as a child list, by write path and by whether the entry put a recorded hole, since the volume opened.",
+		[]string{volumeLabel, "path", "record"}, nil,
+	)
 	volumeValueWrittenBytesDesc = prometheus.NewDesc(
 		"spacewave_volume_value_written_bytes_total",
 		"Length of the values the volume's storage stored outside its index, by key family, since it opened.",
@@ -136,7 +141,7 @@ func (volumeCollector) Describe(ch chan<- *prometheus.Desc) {
 		volumeLiveValueBytesDesc, volumeFreeDiskBytesDesc, volumeSizesAgeSecondsDesc,
 		volumeWriteReserveDesc, volumeNotHeldRootBlocksDesc, volumeNotHeldChildBlocksDesc, volumeNotHeldPutBlocksDesc,
 		volumeReserveBytesDesc, volumePutBlocksDesc, volumePutBytesDesc, volumePutExistingDesc,
-		volumePutRefusedDesc, volumeValueWrittenBytesDesc, volumeValueFreedBytesDesc,
+		volumePutRefusedDesc, volumePutDroppedDesc, volumeValueWrittenBytesDesc, volumeValueFreedBytesDesc,
 		volumeBackgroundWaitMaxSecondsDesc, volumeCorruptReadsDesc, volumeCorruptRefsDesc,
 	} {
 		ch <- d
@@ -165,6 +170,8 @@ func collectFlows(ch chan<- prometheus.Metric, f *volume.VolumeFlows) {
 		ch <- prometheus.MustNewConstMetric(volumePutBytesDesc, prometheus.CounterValue, float64(p.Bytes), id, p.Path)
 		ch <- prometheus.MustNewConstMetric(volumePutExistingDesc, prometheus.CounterValue, float64(p.Existing), id, p.Path)
 		ch <- prometheus.MustNewConstMetric(volumePutRefusedDesc, prometheus.CounterValue, float64(p.Refused), id, p.Path)
+		ch <- prometheus.MustNewConstMetric(volumePutDroppedDesc, prometheus.CounterValue, float64(p.Dropped), id, p.Path, "block")
+		ch <- prometheus.MustNewConstMetric(volumePutDroppedDesc, prometheus.CounterValue, float64(p.DroppedHoles), id, p.Path, "hole")
 	}
 
 	// Report the stored values of each key family.

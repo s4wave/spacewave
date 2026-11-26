@@ -103,9 +103,9 @@ func TestCopyTyped(t *testing.T) {
 	for _, b := range []*typedBlock{leaf, deep, typed, opaque, untyped} {
 		src[b.ref.MarshalString()] = &block.StoredBlock{Data: b.data}
 	}
-	src[root.ref.MarshalString()] = &block.StoredBlock{Data: root.data, Refs: root.refs, RefsKnown: true}
+	src[root.ref.MarshalString()] = &block.StoredBlock{Data: root.data, Refs: root.refs, RefsSource: block.RefsAsserted}
 	// deep's store knows its refs, but its leaf child is typed only by deep.
-	src[deep.ref.MarshalString()] = &block.StoredBlock{Data: deep.data, Refs: deep.refs, RefsKnown: true}
+	src[deep.ref.MarshalString()] = &block.StoredBlock{Data: deep.data, Refs: deep.refs, RefsSource: block.RefsAsserted}
 
 	// Copy with the typer.
 	_, client := s3test.New(t)
@@ -141,7 +141,7 @@ func TestCopyTyped(t *testing.T) {
 		t.Fatalf("result %+v, want 4 read and incomplete", result)
 	}
 	stored, err := target.GetStoredBlock(ctx, typed.ref)
-	if err != nil || stored == nil || !stored.RefsKnown || len(stored.Refs) != 1 || !stored.Refs[0].EqualsRef(deep.ref) {
+	if err != nil || stored == nil || !stored.RefsSource.Recorded() || len(stored.Refs) != 1 || !stored.Refs[0].EqualsRef(deep.ref) {
 		t.Fatalf("typed block stored as %v, %v", stored, err)
 	}
 }

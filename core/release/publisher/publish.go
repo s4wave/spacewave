@@ -223,7 +223,7 @@ func (c *releaseClosure) read(ctx context.Context, eng world.Engine, fn func(rea
 			if err := entry.ref.VerifyData(stored.Data, true); err != nil {
 				return nil, err
 			}
-			return &block.StoredBlock{Data: stored.Data, Refs: entry.refs, RefsKnown: true}, nil
+			return &block.StoredBlock{Data: stored.Data, Refs: entry.refs, RefsSource: block.RefsListed}, nil
 		})
 	})
 }
@@ -417,8 +417,8 @@ func collectBlocks(ctx context.Context, eng world.Engine, metadata *release.Rele
 							return false, err
 						}
 						refs := stored.GetRefs()
-						if !stored.GetRefsKnown() {
-							refs, err = entry.BlockRefs(ctx, walk.GetBucket())
+						if !stored.GetRefsSource().Recorded() {
+							refs, _, err = entry.BlockRefs(ctx, walk.GetBucket())
 							if err != nil {
 								return false, err
 							}

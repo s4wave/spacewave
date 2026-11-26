@@ -125,13 +125,13 @@ func (a *archive) LookupStoredBlock(ctx context.Context, ref *block.BlockRef, _ 
 	}
 
 	// Read its child list in the same snapshot.
-	refs, known, err := volume_kvtx.OpenRecords(tx).GetChildren(ctx, ref)
+	refs, source, err := volume_kvtx.OpenRecords(tx).GetChildList(ctx, ref)
 	if err != nil {
 		le.WithError(err).Warn("read block refs; serving the bytes without them")
 		return &block.StoredBlock{Data: data}, nil
 	}
-	le.WithField("bytes", len(data)).WithField("refs", len(refs)).WithField("refs-known", known).Info("served block")
-	return &block.StoredBlock{Data: data, Refs: refs, RefsKnown: known}, nil
+	le.WithField("bytes", len(data)).WithField("refs", len(refs)).WithField("refs-source", source).Info("served block")
+	return &block.StoredBlock{Data: data, Refs: refs, RefsSource: source}, nil
 }
 
 // LookupBlockExistsBatch reports which blocks the file holds, in one

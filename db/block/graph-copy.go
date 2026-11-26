@@ -105,9 +105,11 @@ type graphCopy struct {
 // graphCopyNode is one block of the copy.
 type graphCopyNode struct {
 	ref *BlockRef
-	// data and refs hold the block read from src until it is written.
-	data []byte
-	refs []*BlockRef
+	// data and refs hold the block read from src until it is written, and
+	// source says whether the write may assert refs.
+	data   []byte
+	refs   []*BlockRef
+	source RefsSource
 	// waiting counts children not yet complete.
 	waiting int
 	// parents wait for this block to complete.
@@ -182,6 +184,7 @@ func (c *graphCopy) run(ctx context.Context, root *BlockRef) error {
 			}
 			continue
 		}
+		res.node.source = res.stored.RefsSource
 		if err := c.expand(ctx, res.node, res.stored.Data, res.stored.Refs); err != nil {
 			return err
 		}
@@ -258,7 +261,7 @@ func (c *graphCopy) complete(ctx context.Context, node *graphCopyNode) error {
 			Ref:       node.ref,
 			Data:      node.data,
 			Refs:      node.refs,
-			RefsKnown: true,
+			RefsKnown: node.source.Asserted(),
 		}})
 		if err != nil {
 			return errors.Wrap(err, node.ref.MarshalString())

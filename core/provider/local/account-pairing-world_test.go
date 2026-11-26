@@ -177,7 +177,7 @@ func logPairingStoredRoots(ctx context.Context, t *testing.T, tb *testbed.Testbe
 		if stored == nil {
 			t.Fatalf("advertised block %s: body=false", ref.MarshalString())
 		}
-		if !stored.RefsKnown {
+		if !stored.RefsSource.Recorded() {
 			t.Fatalf("advertised block %s: refsKnown=false", ref.MarshalString())
 		}
 		t.Logf("advertised block %s: body=true bytes=%d refsKnown=true children=%d", ref.MarshalString(), len(stored.Data), len(stored.Refs))
@@ -195,6 +195,6 @@ func logPairingStoredRoots(ctx context.Context, t *testing.T, tb *testbed.Testbe
 			t.Logf("derived root %s: body=false", ref.MarshalString())
 			continue
 		}
-		t.Logf("derived root %s: body=true bytes=%d refsKnown=%v children=%d", ref.MarshalString(), len(stored.Data), stored.RefsKnown, len(stored.Refs))
+		t.Logf("derived root %s: body=true bytes=%d refsKnown=%v children=%d", ref.MarshalString(), len(stored.Data), stored.RefsSource.Recorded(), len(stored.Refs))
 	}
 }

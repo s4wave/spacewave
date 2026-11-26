@@ -293,7 +293,7 @@ func (s *Store) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block
 		if stored.Refs, err = decodeRefs(refs); err != nil {
 			return nil, err
 		}
-		stored.RefsKnown = true
+		stored.RefsSource = block.RefsListed
 	}
 	block.MarkDurableRead(ctx, ref, gen)
 	return stored, nil
@@ -451,7 +451,7 @@ func (s *Store) passRows(ctx context.Context, rows *sql.Rows, refs []*block.Bloc
 			if stored.Refs, err = decodeRefs(encRefs); err != nil {
 				return errors.Wrap(err, "read blocks")
 			}
-			stored.RefsKnown = true
+			stored.RefsSource = block.RefsListed
 		}
 
 		// Pass it to each position that names it.

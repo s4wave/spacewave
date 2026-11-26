@@ -119,14 +119,14 @@ func testArchivePeerServes(t *testing.T, format string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got == nil || string(got.Data) != "parent" || !got.RefsKnown || len(got.Refs) != 1 || !got.Refs[0].EqualsRef(childRef) {
+	if got == nil || string(got.Data) != "parent" || got.RefsSource != block.RefsListed || len(got.Refs) != 1 || !got.Refs[0].EqualsRef(childRef) {
 		t.Fatalf("parent = %v; want its bytes and its child ref", got)
 	}
 	got, err = store.GetStoredBlock(ctx, leafRef)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got == nil || string(got.Data) != "leaf" || got.RefsKnown {
+	if got == nil || string(got.Data) != "leaf" || got.RefsSource.Recorded() {
 		t.Fatalf("leaf = %v; want its bytes with refs unknown", got)
 	}
 	missing, err := block.BuildBlockRef([]byte("missing"), nil)

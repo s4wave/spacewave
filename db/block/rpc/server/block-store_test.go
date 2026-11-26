@@ -73,9 +73,10 @@ func TestBlockStorePutBlockBatchForwardsRefs(t *testing.T) {
 	// Send a batch containing block data and outgoing references.
 	resp, err := server.PutBlockBatch(context.Background(), &block_rpc.PutBlockBatchRequest{
 		Entries: []*block_rpc.PutBlockBatchEntry{{
-			Ref:  ref,
-			Data: []byte("hello"),
-			Refs: []*block.BlockRef{outRef},
+			Ref:       ref,
+			Data:      []byte("hello"),
+			Refs:      []*block.BlockRef{outRef},
+			RefsKnown: true,
 		}},
 	})
 	if err != nil {
@@ -91,6 +92,12 @@ func TestBlockStorePutBlockBatchForwardsRefs(t *testing.T) {
 	}
 	if got := store.batchEntries[0].Refs; len(got) != 1 || got[0] != outRef {
 		t.Fatalf("expected refs to forward through batch request")
+	}
+
+	// The writer's assertion that it read the refs from content forwards
+	// too, so a Volume marks the list it writes.
+	if !store.batchEntries[0].RefsKnown {
+		t.Fatalf("expected the refs' assertion to forward through batch request")
 	}
 }
 

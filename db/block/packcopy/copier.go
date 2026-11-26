@@ -424,8 +424,9 @@ func (c *copier) addBlock(ref *block.BlockRef, stored *block.StoredBlock) {
 		c.flushes <- c.takeFlush()
 	}
 
-	// Hold the block for the next pack.
-	c.batch = append(c.batch, &block.PutBatchEntry{Ref: ref, Data: stored.Data, Refs: stored.Refs, RefsKnown: true})
+	// Hold the block for the next pack. A pack never marks a list and reads
+	// its refs back as listed, so recorded refs may be declared known.
+	c.batch = append(c.batch, &block.PutBatchEntry{Ref: ref, Data: stored.Data, Refs: stored.Refs, RefsKnown: stored.RefsSource.Recorded()})
 	c.batchBytes += size
 }
 

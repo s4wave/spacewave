@@ -34,6 +34,24 @@
 \* stored blocks below. An absent block no read resolves stays on the front
 \* while anything holds it, and so holds the flip.
 \*
+\* A put whose writer did not decode the block, such as a copy from another
+\* store, carries the source's list, which may be cut. Such a list is no
+\* proof, so the put never marks it. While Open it lands as an old block:
+\* not stored, it is stored with the unverified list and enters the run;
+\* parked, it leaves the park with its list and returns to the front; a
+\* marked one takes the put as a put from content does. Past Open it is
+\* refused unless the block's list is marked. short holds the blocks whose
+\* marked list is a copied one, which only a defect writes.
+\*
+\* The spec does not represent three things. Holes: an audit's recorded
+\* hole, which a copied put refuses and only a put from content refills.
+\* Fills: a fill drops each copied entry of a block the records do not
+\* list, which changes no record, so it is no action here. And the children
+\* a CopyWrite names: the spec requires each present, where Land refuses
+\* only a hidden one and lets an absent one join later, as a born block's
+\* child does; a copied list's children hold as Land's holdChildren counts
+\* them, which Liveness.tla covers.
+\*
 \* Counts here are derived from the stored lists, which hold until free
 \* makes exact; Liveness.tla models how the logs keep them. Callers found
 \* from source: the settle slices (db/block/gc/settle.go), the free and its
@@ -59,7 +77,8 @@ Cut == [r |-> {"a", "h"}, a |-> {}, b |-> {}, g |-> {}, n |-> {"a"},
 VARIABLES
   gen,       \* "open", "sweeping" or "settled"
   stored,    \* blocks with a child list, bytes or not
-  verified,  \* stored blocks whose list was written from content
+  verified,  \* stored blocks whose list is marked
+  short,     \* verified blocks whose marked list is a copied, cut one
   front,     \* blocks the walk still has to decode
   seeded,    \* the roots' blocks were pushed onto the front
   run,       \* the unmarked run: unverified and parked blocks
@@ -69,9 +88,9 @@ VARIABLES
   root,      \* the block the root names
   fmt,       \* the store format
   txns       \* Land transactions so far
-vars == <<gen, stored, verified, front, seeded, run, complete, parked, unmarked, root, fmt, txns>>
+vars == <<gen, stored, verified, short, front, seeded, run, complete, parked, unmarked, root, fmt, txns>>
 
-List(b) == IF b \in verified THEN True[b] ELSE Cut[b]
+List(b) == IF b \in verified \ short THEN True[b] ELSE Cut[b]
 
 \* The holders of b: the root and each stored list that names it.
 Count(b) ==
@@ -97,6 +116,7 @@ Init ==
   /\ gen = "open"
   /\ stored = {"r", "a", "b", "g", "k"}
   /\ verified = {}
+  /\ short = {}
   /\ front = {}
   /\ seeded = FALSE
   /\ run = {}
@@ -112,6 +132,7 @@ Init ==
 \* it still owes.
 Verify(V) ==
   /\ verified' = verified \cup V
+  /\ short' = short \ V
   /\ front' = (front \ V)
                \cup (IF gen = "open" THEN Owed(UNION {True[b] : b \in V}) \ V ELSE {})
   /\ run' = run \ (V \ parked)
@@ -129,6 +150,7 @@ Put(b) ==
             /\ UNCHANGED <<stored, parked, unmarked>>
        ELSE /\ stored' = stored \cup {b}
             /\ verified' = verified \cup {b}
+            /\ short' = short \ {b}
             /\ front' = (front \ {b})
                          \cup (IF gen = "open" THEN Owed(True[b]) ELSE {})
             /\ parked' = parked \ {b}
@@ -146,34 +168,70 @@ Move(t) ==
   /\ root' = t
   /\ front' = IF gen = "open" THEN front \cup Owed({t}) ELSE front
   /\ txns' = txns + 1
-  /\ UNCHANGED <<gen, stored, verified, seeded, run, complete, parked, unmarked, fmt>>
+  /\ UNCHANGED <<gen, stored, verified, short, seeded, run, complete, parked, unmarked, fmt>>
 
-Land == \E b \in Blocks : Put(b) \/ Move(b)
+\* MarkCopied marks the copied lists of V as Verify marks a decoded one,
+\* which only a defect does: the lists stay cut.
+MarkCopied(V) ==
+  /\ verified' = verified \cup V
+  /\ short' = short \cup V
+  /\ front' = (front \ V)
+               \cup (IF gen = "open" THEN Owed(UNION {Cut[b] : b \in V}) \ V ELSE {})
+  /\ run' = run \ (V \ parked)
+
+\* CopyWrite writes b with the list a copy carries, Cut[b], which it holds.
+\* A block whose list is marked takes it as a put from content does, and a
+\* stored one keeps its list. While Open, a block not stored is stored with
+\* the copied list unverified and enters the run and the front, and a parked
+\* one leaves the park with its list and returns to the front. Past Open, a
+\* block that reads absent is refused.
+CopyWrite(b) ==
+  /\ txns < MaxTxns
+  /\ \A k \in Cut[b] : Present(k)
+  /\ CASE b \in verified /\ ~Present(b) ->
+            Put(b)
+       [] Present(b) ->
+            /\ txns' = txns + 1
+            /\ UNCHANGED <<gen, stored, verified, short, front, seeded, run, complete, parked, unmarked, root, fmt>>
+       [] gen = "open" /\ b \notin stored ->
+            /\ stored' = stored \cup {b}
+            /\ run' = run \cup {b}
+            /\ front' = front \cup {b}
+            /\ txns' = txns + 1
+            /\ UNCHANGED <<gen, verified, short, seeded, complete, parked, unmarked, root, fmt>>
+       [] gen = "open" /\ b \in parked /\ b \notin verified ->
+            /\ parked' = parked \ {b}
+            /\ front' = front \cup {b}
+            /\ txns' = txns + 1
+            /\ UNCHANGED <<gen, stored, verified, short, seeded, run, complete, unmarked, root, fmt>>
+       [] OTHER -> FALSE
+
+Land == \E b \in Blocks : Put(b) \/ Move(b) \/ CopyWrite(b)
 
 Seed ==
   /\ gen = "open"
   /\ ~seeded
   /\ seeded' = TRUE
   /\ front' = front \cup Owed({root})
-  /\ UNCHANGED <<gen, stored, verified, run, complete, parked, unmarked, root, fmt, txns>>
+  /\ UNCHANGED <<gen, stored, verified, short, run, complete, parked, unmarked, root, fmt, txns>>
 
-\* Walk decodes a front block. A present block's list is verified. An
-\* absent block that a peer's read resolves gets its list from content
-\* without its bytes, while Open. A hidden block leaves, since the run holds it and an
-\* unpark returns it. A block nothing holds leaves as the free proof pops
+\* Walk takes a front block off the front. It decodes a present block, which
+\* verifies its list, and an absent block that a peer's read resolves, which
+\* gets its list from content without its bytes, while Open. A hidden block
+\* leaves, since the run holds it and an unpark returns it, and a block
+\* nothing holds may leave undecoded, present or not, as the free proof pops
 \* it; any other absent block stays.
 Walk(b) ==
   /\ b \in front
-  /\ CASE b \in stored /\ ~Hidden(b) ->
-            /\ Verify({b})
-            /\ UNCHANGED stored
-       [] gen = "open" /\ b \notin stored /\ ~(Lost /\ b = "h") ->
-            /\ stored' = stored \cup {b}
-            /\ Verify({b})
-       [] Hidden(b) \/ Count(b) = 0 ->
-            /\ front' = front \ {b}
-            /\ UNCHANGED <<stored, verified, run>>
-       [] OTHER -> FALSE
+  /\ \/ /\ b \in stored /\ ~Hidden(b)
+        /\ Verify({b})
+        /\ UNCHANGED stored
+     \/ /\ gen = "open" /\ b \notin stored /\ ~(Lost /\ b = "h")
+        /\ stored' = stored \cup {b}
+        /\ Verify({b})
+     \/ /\ Hidden(b) \/ Count(b) = 0
+        /\ front' = front \ {b}
+        /\ UNCHANGED <<stored, verified, short, run>>
   /\ UNCHANGED <<gen, seeded, complete, parked, unmarked, root, fmt, txns>>
 
 BuildRun ==
@@ -181,7 +239,7 @@ BuildRun ==
   /\ ~complete
   /\ complete' = TRUE
   /\ run' = run \cup Unverified(stored)
-  /\ UNCHANGED <<gen, stored, verified, front, seeded, parked, unmarked, root, fmt, txns>>
+  /\ UNCHANGED <<gen, stored, verified, short, front, seeded, parked, unmarked, root, fmt, txns>>
 
 \* Free deletes a block at zero holders, except that while Open it parks it.
 Free(b) ==
@@ -195,6 +253,7 @@ Free(b) ==
        ELSE /\ stored' = stored \ {b}
             /\ UNCHANGED <<parked, run>>
   /\ verified' = IF gen = "open" THEN verified ELSE verified \ {b}
+  /\ short' = IF gen = "open" THEN short ELSE short \ {b}
   /\ UNCHANGED <<gen, front, seeded, complete, unmarked, root, fmt, txns>>
 
 \* Unpark ends the park of a block that gained a holder. An unverified one
@@ -205,7 +264,7 @@ Unpark(b) ==
   /\ parked' = parked \ {b}
   /\ run' = IF b \in verified THEN run \ {b} ELSE run
   /\ front' = front \cup Owed({b})
-  /\ UNCHANGED <<gen, stored, verified, seeded, complete, unmarked, root, fmt, txns>>
+  /\ UNCHANGED <<gen, stored, verified, short, seeded, complete, unmarked, root, fmt, txns>>
 
 Flip ==
   /\ gen = "open"
@@ -216,12 +275,13 @@ Flip ==
   /\ gen' = "sweeping"
   /\ unmarked' = run
   /\ parked' = {}
-  /\ UNCHANGED <<stored, verified, front, seeded, run, complete, root, fmt, txns>>
+  /\ UNCHANGED <<stored, verified, short, front, seeded, run, complete, root, fmt, txns>>
 
 Sweep(b) ==
   /\ b \in unmarked
   /\ stored' = stored \ {b}
   /\ verified' = verified \ {b}
+  /\ short' = short \ {b}
   /\ unmarked' = unmarked \ {b}
   /\ UNCHANGED <<gen, front, seeded, run, complete, parked, root, fmt, txns>>
 
@@ -230,7 +290,7 @@ Settle ==
   /\ unmarked = {}
   /\ gen' = "settled"
   /\ run' = {}
-  /\ UNCHANGED <<stored, verified, front, seeded, complete, parked, unmarked, root, fmt, txns>>
+  /\ UNCHANGED <<stored, verified, short, front, seeded, complete, parked, unmarked, root, fmt, txns>>
 
 \* UpgradeFormat moves the store to format 10. It recounts, which the
 \* derived counts already are, and keeps the generation and its records.
@@ -238,7 +298,7 @@ UpgradeFormat ==
   /\ Upgrade
   /\ fmt = 9
   /\ fmt' = 10
-  /\ UNCHANGED <<gen, stored, verified, front, seeded, run, complete, parked, unmarked, root, txns>>
+  /\ UNCHANGED <<gen, stored, verified, short, front, seeded, run, complete, parked, unmarked, root, txns>>
 
 Next ==
   \/ Land \/ Seed \/ BuildRun \/ Flip \/ Settle \/ UpgradeFormat

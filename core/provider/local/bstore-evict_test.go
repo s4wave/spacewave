@@ -190,7 +190,7 @@ func TestEvictionPassLogIntervals(t *testing.T) {
 					if err != nil {
 						t.Fatal(err)
 					}
-					wb.Refill(ref, &block.StoredBlock{Data: []byte(data), RefsKnown: true})
+					wb.Refill(ref, &block.StoredBlock{Data: []byte(data), RefsSource: block.RefsAsserted})
 					synctest.Wait()
 				}
 				fill("first")

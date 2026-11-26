@@ -38,7 +38,7 @@ func (p *packs) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block
 	p.reads.Add(1)
 	stored, err := block.GetBlockWithoutRefs(ctx, p.StoreOps, ref)
 	if stored != nil {
-		stored.RefsKnown = !p.refsUnknown
+		stored.RefsSource = block.AssertedIf(!p.refsUnknown)
 	}
 	return stored, err
 }
@@ -127,7 +127,7 @@ func TestCacheServesFillsAfterReopen(t *testing.T) {
 			}
 			continue
 		}
-		if stored == nil || len(stored.Data) != 16<<10 || !stored.RefsKnown {
+		if stored == nil || len(stored.Data) != 16<<10 || !stored.RefsSource.Recorded() {
 			t.Fatalf("block %d after reopen = %+v, want its data with known refs", i, stored)
 		}
 	}
@@ -159,7 +159,7 @@ func TestCacheFillsBlocksWithUnknownRefs(t *testing.T) {
 	if n := src.reads.Load() - before; n != 0 {
 		t.Fatalf("second read touched the durable store %d times, want 0", n)
 	}
-	if stored.RefsKnown {
+	if stored.RefsSource.Recorded() {
 		t.Fatal("the cached block reports its refs known")
 	}
 }

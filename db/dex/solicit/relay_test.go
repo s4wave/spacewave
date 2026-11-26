@@ -115,8 +115,8 @@ func testThreeNodeRelay(t *testing.T, hops uint32, wantFound bool) {
 	if !bytes.Equal(stored.Data, data) {
 		t.Fatalf("relay lookup data = %q, want %q", stored.Data, data)
 	}
-	if !stored.RefsKnown || len(stored.Refs) != 1 || !stored.Refs[0].EqualsRef(child) {
-		t.Fatalf("relay lookup refs = %v known %v, want [%v]", stored.Refs, stored.RefsKnown, child)
+	if !stored.RefsSource.Recorded() || len(stored.Refs) != 1 || !stored.Refs[0].EqualsRef(child) {
+		t.Fatalf("relay lookup refs = %v known %v, want [%v]", stored.Refs, stored.RefsSource.Recorded(), child)
 	}
 }
 

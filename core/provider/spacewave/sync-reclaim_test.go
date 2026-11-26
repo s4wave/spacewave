@@ -28,7 +28,7 @@ func newReclaimTestBlock(t *testing.T, data []byte, refs ...*block.BlockRef) rec
 	if err != nil {
 		t.Fatal(err)
 	}
-	return reclaimTestBlock{ref: block.NewBlockRef(h), stored: &block.StoredBlock{Data: data, Refs: refs, RefsKnown: true}}
+	return reclaimTestBlock{ref: block.NewBlockRef(h), stored: &block.StoredBlock{Data: data, Refs: refs, RefsSource: block.RefsAsserted}}
 }
 
 // addReclaimTestPack commits blocks as pack id at sequence seq.

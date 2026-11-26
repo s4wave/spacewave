@@ -397,7 +397,7 @@ func TestIndexCache(t *testing.T) {
 			return nil, nil, nil
 		}
 		called = true
-		return h, &block.StoredBlock{Data: testData, RefsKnown: true}, nil
+		return h, &block.StoredBlock{Data: testData, RefsSource: block.RefsAsserted}, nil
 	})
 	if err != nil {
 		t.Fatal(err)

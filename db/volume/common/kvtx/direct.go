@@ -335,15 +335,15 @@ func (v *Volume) PrepareOwnedBlockBatch(ctx context.Context, bucketID string, en
 }
 
 // putEntries stores entries through direct, withDirectAtomic or
-// withDirectFill, after refusing a block without its child list and new data
-// below the disk reserve.
+// withDirectFill, after refusing new data below the disk reserve. Land
+// decides what a block without its child list does.
 func (v *Volume) putEntries(
 	ctx context.Context,
 	direct func(context.Context, func(*physicalTx) error) error,
 	entries []*block.PutBatchEntry,
 ) ([]bool, error) {
-	// Require atomic publication, refuse new data below the disk reserve and
-	// refuse a block without its child list.
+	// Require atomic publication and refuse new data below the disk reserve.
+	// Land decides what a block without its child list does.
 	if !v.HoldsRoots() {
 		return nil, block.ErrAtomicCommitUnsupported
 	}
@@ -351,9 +351,6 @@ func (v *Volume) putEntries(
 		if err := v.checkReserve(ctx, batchBytes(entries)); err != nil {
 			return nil, err
 		}
-	}
-	if err := requireRefsKnown(entries); err != nil {
-		return nil, err
 	}
 
 	// Store them in one transaction.

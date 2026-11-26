@@ -100,7 +100,7 @@ func (c *Cache) Reads(lower block_store.StoreSource) block_store.StoreSource {
 func (c *Cache) Fill(_ context.Context, ref *block.BlockRef, stored *block.StoredBlock) {
 	// Copy the block, so no reader's change to its slices reaches the cache.
 	key := cacheKey(ref)
-	copied := &block.StoredBlock{Data: slices.Clone(stored.Data), Refs: stored.Refs, RefsKnown: stored.RefsKnown}
+	copied := &block.StoredBlock{Data: slices.Clone(stored.Data), Refs: stored.Refs, RefsSource: stored.RefsSource}
 	size := int64(len(copied.Data)) + entryOverhead
 	if size > c.limit {
 		return
@@ -143,7 +143,7 @@ func (c *Cache) get(ref *block.BlockRef) *block.StoredBlock {
 
 	// Hand out a copy of the bytes, which the reader may change.
 	c.hits.Add(1)
-	return &block.StoredBlock{Data: slices.Clone(stored.Data), Refs: stored.Refs, RefsKnown: stored.RefsKnown}
+	return &block.StoredBlock{Data: slices.Clone(stored.Data), Refs: stored.Refs, RefsSource: stored.RefsSource}
 }
 
 // Stats returns the counts.

@@ -269,9 +269,9 @@ func (b *HTTPBlock) get(ctx context.Context, ref *block.BlockRef, withRefs bool)
 	}
 
 	return &block.StoredBlock{
-		Data:      data,
-		Refs:      getResp.GetRefs(),
-		RefsKnown: getResp.GetRefsKnown(),
+		Data:       data,
+		Refs:       getResp.GetRefs(),
+		RefsSource: block.ListedIf(getResp.GetRefsKnown()),
 	}, nil
 }
 

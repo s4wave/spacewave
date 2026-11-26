@@ -134,7 +134,7 @@ func (s *sessionLookupTestLower) GetBlock(ctx context.Context, ref *block.BlockR
 func (s *sessionLookupTestLower) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	stored, err := block.GetBlockWithoutRefs(ctx, s, ref)
 	if stored != nil {
-		stored.RefsKnown = s.refsKnown
+		stored.RefsSource = block.AssertedIf(s.refsKnown)
 	}
 	return stored, err
 }

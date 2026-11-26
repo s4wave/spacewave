@@ -75,7 +75,7 @@ func buildSinglePack(t *testing.T, id string, blocks map[string][]byte) testPack
 		}
 		e := items[idx]
 		idx++
-		return e.h, &block.StoredBlock{Data: e.data, RefsKnown: true}, nil
+		return e.h, &block.StoredBlock{Data: e.data, RefsSource: block.RefsAsserted}, nil
 	})
 	if err != nil {
 		t.Fatal(err)

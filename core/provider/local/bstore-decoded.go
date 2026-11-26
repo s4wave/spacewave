@@ -32,5 +32,5 @@ func (b *BlockStore) StoreDecodedRefs(ctx context.Context, ref *block.BlockRef, 
 	if _, err := ref.GetHash().VerifyData(data); err != nil {
 		return errors.Wrap(err, "verify decoded block")
 	}
-	return p.fillFromFallback(ctx, ref, &block.StoredBlock{Data: data, Refs: refs, RefsKnown: true})
+	return p.fillFromFallback(ctx, ref, &block.StoredBlock{Data: data, Refs: refs, RefsSource: block.RefsAsserted})
 }

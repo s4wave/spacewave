@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 
 	"github.com/s4wave/spacewave/db/block"
+	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/sirupsen/logrus"
@@ -45,6 +46,10 @@ type putCount struct {
 	// refused counts the path's puts refused for a block without its
 	// references.
 	refused atomic.Uint64
+	// dropped and droppedHoles count the copied entries the path dropped,
+	// of unlisted blocks and of recorded holes, as block_gc.FillDrops
+	// describes.
+	dropped, droppedHoles atomic.Uint64
 	// callerLogged records that the first caller putting a block without its
 	// references was logged.
 	callerLogged atomic.Bool
@@ -98,6 +103,9 @@ func (v *Volume) GetFlows() *volume.VolumeFlows {
 			Bytes:    c.bytes.Load(),
 			Existing: c.existing.Load(),
 			Refused:  c.refused.Load(),
+
+			Dropped:      c.dropped.Load(),
+			DroppedHoles: c.droppedHoles.Load(),
 		})
 	}
 
@@ -144,6 +152,17 @@ func (v *Volume) countPutBatch(path putPath, entries []*block.PutBatchEntry, exi
 	}
 	if existing != 0 {
 		c.existing.Add(existing)
+	}
+}
+
+// countDropped counts the copied entries a fill on path dropped.
+func (v *Volume) countDropped(path putPath, drops block_gc.FillDrops) {
+	c := &v.puts[path]
+	if drops.Blocks != 0 {
+		c.dropped.Add(uint64(drops.Blocks)) // #nosec G115 -- counts are not negative.
+	}
+	if drops.Holes != 0 {
+		c.droppedHoles.Add(uint64(drops.Holes)) // #nosec G115 -- counts are not negative.
 	}
 }
 

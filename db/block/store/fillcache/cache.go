@@ -137,9 +137,11 @@ func (c *Cache) Reads(lower block_store.StoreSource) block_store.StoreSource {
 }
 
 // Fill queues a block read from the durable store to be copied into the cache.
-// It returns before the write and drops the block when the queue is full.
+// It returns before the write and drops the block when the queue is full. The
+// cache never marks a list and reads its refs back as listed, so recorded
+// refs go in known.
 func (c *Cache) Fill(_ context.Context, ref *block.BlockRef, stored *block.StoredBlock) {
-	c.enqueue(&block.PutBatchEntry{Ref: ref, Data: stored.Data, Refs: stored.Refs, RefsKnown: stored.RefsKnown})
+	c.enqueue(&block.PutBatchEntry{Ref: ref, Data: stored.Data, Refs: stored.Refs, RefsKnown: stored.RefsSource.Recorded()})
 }
 
 // remove forgets the copy of a block that failed its hash.

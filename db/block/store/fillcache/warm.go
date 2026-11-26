@@ -41,7 +41,7 @@ func (c *Cache) WarmResident(ctx context.Context, scope string, read ReadBatch) 
 		counts.Missing += len(refs)
 		return read(ctx, refs, func(ref *block.BlockRef, stored *block.StoredBlock) error {
 			// Queue the block, and let the writer catch up at each mark.
-			c.enqueue(&block.PutBatchEntry{Ref: ref, Data: stored.Data, Refs: stored.Refs, RefsKnown: stored.RefsKnown})
+			c.enqueue(&block.PutBatchEntry{Ref: ref, Data: stored.Data, Refs: stored.Refs, RefsKnown: stored.RefsSource.Recorded()})
 			counts.Fetched++
 			queued += int64(len(stored.Data))
 			if queued < c.warmBytes {

@@ -124,7 +124,7 @@ func graphBlockErr(ref *BlockRef, stored *StoredBlock, err error) error {
 	if err == nil && stored == nil {
 		err = NotFoundError(ref)
 	}
-	if err == nil && !stored.RefsKnown {
+	if err == nil && !stored.RefsSource.Recorded() {
 		err = ErrRefsUnknown
 	}
 

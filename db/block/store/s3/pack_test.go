@@ -66,7 +66,7 @@ func TestPackStoreBatch(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if stored == nil || string(stored.Data) != "root" || !stored.RefsKnown ||
+		if stored == nil || string(stored.Data) != "root" || !stored.RefsSource.Recorded() ||
 			len(stored.Refs) != 1 || !stored.Refs[0].EqualsRef(childRef) {
 			t.Fatalf("stored root = %v; want its data and the child ref", stored)
 		}

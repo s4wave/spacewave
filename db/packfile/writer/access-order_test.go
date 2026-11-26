@@ -38,7 +38,7 @@ func TestWalkAccessOrder(t *testing.T) {
 		}
 
 		// Return the block with its children as refs.
-		stored := &block.StoredBlock{Data: []byte(name), RefsKnown: true}
+		stored := &block.StoredBlock{Data: []byte(name), RefsSource: block.RefsAsserted}
 		for _, child := range tree[name] {
 			stored.Refs = append(stored.Refs, refs[child])
 		}

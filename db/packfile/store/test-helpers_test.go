@@ -100,7 +100,7 @@ func packItems(t testing.TB, items []packItem) ([]byte, []byte) {
 		}
 		e := items[idx]
 		idx++
-		return e.h, &block.StoredBlock{Data: e.data, Refs: e.refs, RefsKnown: true}, nil
+		return e.h, &block.StoredBlock{Data: e.data, Refs: e.refs, RefsSource: block.RefsAsserted}, nil
 	})
 	if err != nil {
 		t.Fatal(err)

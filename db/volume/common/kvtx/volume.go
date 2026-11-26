@@ -683,30 +683,27 @@ func (v *Volume) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEnt
 		return v.PrepareOwnedBlockBatch(ctx, "", entries)
 	}
 
-	// Refuse new data below the disk reserve, and blocks without their child
-	// lists. A batch of tombstones only frees space, so it runs below the
-	// reserve too.
+	// Refuse new data below the disk reserve. A batch of tombstones only
+	// frees space, so it runs below the reserve too.
 	if !onlyTombstones(entries) {
 		if err := v.checkReserve(ctx, v.gateBytes(batchBytes(entries))); err != nil {
 			return nil, err
 		}
 	}
 	v.noteUnknownRefsBatch(putDirect, entries)
-	if err := requireRefsKnown(entries); err != nil {
-		v.countRefused(putDirect, err)
-		return nil, err
-	}
 
-	// Store the batch with its liveness, or as bytes alone on a store that
-	// keeps none.
+	// Store the batch with its liveness, where Land decides what a block
+	// without its child list does, or as bytes alone on a store that keeps
+	// none, which refuses one.
 	var existed []bool
 	var err error
 	if v.HoldsRoots() {
 		existed, err = v.putEntries(ctx, v.withDirectPlain, entries)
-	} else {
+	} else if err = requireRefsKnown(entries); err == nil {
 		existed, err = v.reader().PutBlockBatch(ctx, entries)
 	}
 	if err != nil {
+		v.countRefused(putDirect, err)
 		return nil, err
 	}
 	v.countPutBatch(putDirect, entries, existed)
@@ -731,19 +728,15 @@ func (v *Volume) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts)
 		return ref, existed, err
 	}
 
-	// Refuse new data below the disk reserve, and a block without its child
-	// list.
+	// Refuse new data below the disk reserve.
 	if err := v.checkReserve(ctx, v.gateBytes(len(data))); err != nil {
 		return nil, false, err
 	}
 	v.noteUnknownRefs(putDirect, data, putOpts)
-	if err := requireRefKnown(data, putOpts); err != nil {
-		v.countRefused(putDirect, err)
-		return nil, false, err
-	}
 
-	// Store the block with its liveness, or as bytes alone on a store that
-	// keeps none.
+	// Store the block with its liveness, where Land decides what a block
+	// without its child list does, or as bytes alone on a store that keeps
+	// none, which refuses one.
 	var ref *block.BlockRef
 	var exists bool
 	if v.HoldsRoots() {
@@ -753,10 +746,15 @@ func (v *Volume) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts)
 		}
 		existed, err := v.putEntries(ctx, v.withDirectPlain, []*block.PutBatchEntry{entry})
 		if err != nil {
+			v.countRefused(putDirect, err)
 			return nil, false, err
 		}
 		ref, exists = entry.Ref, existed[0]
 	} else {
+		if err := requireRefKnown(data, putOpts); err != nil {
+			v.countRefused(putDirect, err)
+			return nil, false, err
+		}
 		var err error
 		ref, exists, err = v.Store.PutBlock(ctx, data, putOpts)
 		if err != nil {

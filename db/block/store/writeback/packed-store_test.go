@@ -72,7 +72,7 @@ func TestPackedStore(t *testing.T) {
 	checkRead := func(s *Store, ref *block.BlockRef, data []byte, refs int) {
 		t.Helper()
 		stored, err := s.GetStoredBlock(ctx, ref)
-		if err != nil || stored == nil || !bytes.Equal(stored.Data, data) || len(stored.Refs) != refs || !stored.RefsKnown {
+		if err != nil || stored == nil || !bytes.Equal(stored.Data, data) || len(stored.Refs) != refs || !stored.RefsSource.Recorded() {
 			t.Fatalf("read %s: %v, %v", ref.MarshalString(), stored, err)
 		}
 		if found, err := s.GetBlockExists(ctx, ref); err != nil || !found {

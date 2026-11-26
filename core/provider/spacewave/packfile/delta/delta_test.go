@@ -73,7 +73,7 @@ func buildTestKvfile(t *testing.T, prefix string, n int, sizePerBlock int) (spec
 		}
 		s := specs[idx]
 		idx++
-		return blockRefFromKey(t, s.key).GetHash(), &block.StoredBlock{Data: s.data, RefsKnown: true}, nil
+		return blockRefFromKey(t, s.key).GetHash(), &block.StoredBlock{Data: s.data, RefsSource: block.RefsAsserted}, nil
 	}); err != nil {
 		t.Fatalf("pack blocks: %v", err)
 	}
@@ -487,7 +487,7 @@ func TestOpenMirrorUnionReadsRawPackKeys(t *testing.T) {
 			return nil, nil, nil
 		}
 		emitted = true
-		return h, &block.StoredBlock{Data: body, RefsKnown: true}, nil
+		return h, &block.StoredBlock{Data: body, RefsSource: block.RefsAsserted}, nil
 	}); err != nil {
 		t.Fatalf("PackBlocks: %v", err)
 	}
@@ -581,7 +581,7 @@ func TestMirrorUnionSkipsCorruptPack(t *testing.T) {
 			return nil, nil, nil
 		}
 		emitted = true
-		return h, &block.StoredBlock{Data: body, RefsKnown: true}, nil
+		return h, &block.StoredBlock{Data: body, RefsSource: block.RefsAsserted}, nil
 	}); err != nil {
 		t.Fatalf("PackBlocks: %v", err)
 	}

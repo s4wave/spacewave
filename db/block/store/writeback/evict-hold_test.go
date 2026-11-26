@@ -189,7 +189,7 @@ func TestEvictRefusedWriterHold(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				s.Refill(ref, &block.StoredBlock{Data: data, RefsKnown: true})
+				s.Refill(ref, &block.StoredBlock{Data: data, RefsSource: block.RefsAsserted})
 			}
 			waitStatus(t, s, func(st Status) bool { return st.Refills == evictBatchStartBlocks })
 
@@ -253,7 +253,7 @@ func TestEvictIndexWriterHold(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		fills = append(fills, fill{ref: ref, stored: &block.StoredBlock{Data: data, RefsKnown: true}})
+		fills = append(fills, fill{ref: ref, stored: &block.StoredBlock{Data: data, RefsSource: block.RefsAsserted}})
 		if len(marks) < 2*evictRetryCommitBlocks {
 			marks = append(marks, Mark{Hash: ref.GetHash(), Size: int64(len(data))})
 		}
@@ -378,7 +378,7 @@ func TestEvictIndexActivationFence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := s.writeFills(ctx, []fill{{ref: ref, stored: &block.StoredBlock{Data: data, RefsKnown: true}}}); err != nil {
+	if err := s.writeFills(ctx, []fill{{ref: ref, stored: &block.StoredBlock{Data: data, RefsSource: block.RefsAsserted}}}); err != nil {
 		t.Fatal(err)
 	}
 

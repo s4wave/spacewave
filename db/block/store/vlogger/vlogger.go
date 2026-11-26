@@ -118,7 +118,7 @@ func (s *VLoggerStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) 
 			time.Since(t1).String(),
 			len(stored.GetData()),
 			len(stored.GetRefs()),
-			stored.GetRefsKnown(),
+			stored.GetRefsSource(),
 			stored != nil,
 			err,
 		)

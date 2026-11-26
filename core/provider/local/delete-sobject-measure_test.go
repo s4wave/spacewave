@@ -911,7 +911,7 @@ func walkRehearsalRoots(ctx context.Context, t *testing.T, so *SharedObject, vol
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !stored.RefsKnown {
+		if !stored.RefsSource.Recorded() {
 			t.Fatalf("the volume holds %s without its refs", key)
 		}
 		stack = append(stack, stored.Refs...)

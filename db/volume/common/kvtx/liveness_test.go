@@ -598,7 +598,7 @@ func measureLivenessPaths(t *testing.T, n int) livenessCosts {
 	tr.add(t, "F")
 	measure("fill", func() error {
 		return v.withDirectFill(ctx, func(p *physicalTx) error {
-			_, err := v.landFill(ctx, p, "b", tr.entries("F"))
+			_, _, err := v.landFill(ctx, p, "b", tr.entries("F"))
 			return err
 		})
 	})
@@ -1711,7 +1711,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		fill := func(name string) {
 			t.Helper()
 			err := v.withDirectFill(ctx, func(p *physicalTx) error {
-				_, err := v.landFill(ctx, p, "b", tr.entries(name))
+				_, _, err := v.landFill(ctx, p, "b", tr.entries(name))
 				return err
 			})
 			if err != nil {
@@ -1760,7 +1760,7 @@ func TestLivenessAdversarial(t *testing.T) {
 			t.Fatalf("fill with no root returned %v, want ErrUnheldPut", err)
 		}
 		err = v.withDirectFill(ctx, func(p *physicalTx) error {
-			_, err := v.landFill(ctx, p, "b", tr.entries("E"))
+			_, _, err := v.landFill(ctx, p, "b", tr.entries("E"))
 			return err
 		})
 		if err != nil {
@@ -2269,7 +2269,7 @@ func TestLivenessAdversarial(t *testing.T) {
 						t.Errorf("adoption at position %d is %v, want %v", at.pos, got, at.state)
 					}
 					err := v.withDirectFill(ctx, func(px *physicalTx) error {
-						_, err := v.landFill(ctx, px, "b", tr.entries("B"))
+						_, _, err := v.landFill(ctx, px, "b", tr.entries("B"))
 						return err
 					})
 					if err != nil {
@@ -2345,7 +2345,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		probe := &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){
 			adoptSettle: func() {
 				err := v.withDirectFill(ctx, func(px *physicalTx) error {
-					_, err := v.landFill(ctx, px, "b", tr.entries("B"))
+					_, _, err := v.landFill(ctx, px, "b", tr.entries("B"))
 					return err
 				})
 				if err != nil {
@@ -3625,7 +3625,7 @@ func TestLivenessAdversarial(t *testing.T) {
 			if p == block_gc.PhaseSweep && !filled {
 				filled = true
 				err := v.withDirectFill(ctx, func(px *physicalTx) error {
-					_, err := v.landFill(ctx, px, "b", tr.entries("P"))
+					_, _, err := v.landFill(ctx, px, "b", tr.entries("P"))
 					return err
 				})
 				if err != nil {
@@ -5628,7 +5628,7 @@ func TestLivenessSettle(t *testing.T) {
 	fill := func(t *testing.T, v *Volume, tr testTree, names ...string) {
 		t.Helper()
 		err := v.withDirectFill(t.Context(), func(p *physicalTx) error {
-			_, err := v.landFill(t.Context(), p, "b", tr.entries(names...))
+			_, _, err := v.landFill(t.Context(), p, "b", tr.entries(names...))
 			return err
 		})
 		if err != nil {
@@ -7660,6 +7660,226 @@ func TestLivenessSettle(t *testing.T) {
 		requireAudit(t, v, 0)
 	})
 
+	// copied returns name's entry as a copier builds it from a store that
+	// recorded refs, which are listed and so not asserted unless the trust
+	// switch is set.
+	copied := func(tr testTree, name string, refs ...*block.BlockRef) *block.PutBatchEntry {
+		src := block.StoredBlock{Data: tr[name].Data, Refs: refs, RefsSource: block.RefsListed}
+		return &block.PutBatchEntry{Ref: tr[name].Ref, Data: src.Data, Refs: src.Refs, RefsKnown: src.RefsSource.Asserted()}
+	}
+	// trusting sets the switch that takes listed refs as asserted for the
+	// rest of t.
+	trusting := func(t *testing.T) {
+		prev := block.SetTrustListedRefs(true)
+		t.Cleanup(func() { block.SetTrustListedRefs(prev) })
+	}
+
+	// Each path a copy writes by takes a block P that names C with a copied
+	// list lacking C, into an adopted format 6 store holding C unreached.
+	// The walk decodes P and keeps C. With the trust switch the copy marks
+	// P's list as it read, and the sweep deletes C, which P still names.
+	mainOn := func(t *testing.T, v *Volume, tr testTree, name string) error {
+		return v.SetBucketRoots(t.Context(), "b", nil, []block.NamedRoot{{Name: "main", Ref: tr[name].Ref}})
+	}
+	copyPaths := []struct {
+		name string
+		put  func(t *testing.T, v *Volume, tr testTree, p *block.PutBatchEntry) error
+	}{
+		{"roots", func(t *testing.T, v *Volume, tr testTree, p *block.PutBatchEntry) error {
+			return v.SetBucketRoots(t.Context(), "b", []*block.PutBatchEntry{p}, []block.NamedRoot{{Name: "main", Ref: p.Ref}})
+		}},
+		{"batch", func(t *testing.T, v *Volume, tr testTree, p *block.PutBatchEntry) error {
+			if _, err := v.PutBlockBatch(t.Context(), []*block.PutBatchEntry{p}); err != nil {
+				return err
+			}
+			return mainOn(t, v, tr, "P")
+		}},
+		{"owned", func(t *testing.T, v *Volume, tr testTree, p *block.PutBatchEntry) error {
+			if _, err := v.PrepareOwnedBlockBatch(t.Context(), "b", []*block.PutBatchEntry{p}); err != nil {
+				return err
+			}
+			return mainOn(t, v, tr, "P")
+		}},
+		{"staged", func(t *testing.T, v *Volume, tr testTree, p *block.PutBatchEntry) error {
+			stage, release, err := v.OpenStage(t.Context())
+			if err != nil {
+				return err
+			}
+			defer release()
+			if _, err := v.PrepareStagedBlockBatch(t.Context(), stage, []*block.PutBatchEntry{p}); err != nil {
+				return err
+			}
+			return mainOn(t, v, tr, "P")
+		}},
+	}
+	for _, path := range copyPaths {
+		for _, trust := range []bool{false, true} {
+			t.Run("copied list lacking a child via "+path.name+" trust="+strconv.FormatBool(trust), func(t *testing.T) {
+				if trust {
+					trusting(t)
+				}
+				tr := testTree{}
+				tr.add(t, "C")
+				tr.add(t, "R0")
+				v, clk, store := oldStore(t, tr, "R0", []string{"C", "R0"})
+				tr.add(t, "P", "C")
+				if err := path.put(t, v, tr, copied(tr, "P")); err != nil {
+					t.Fatal(err)
+				}
+				if !trust && (!has(t, store, run, tr["P"].Ref) || !has(t, store, front, tr["P"].Ref)) {
+					t.Fatal("the copied P left the run or the front")
+				}
+				settleAll(t, v, clk, store, tr)
+				if trust {
+					requireStored(t, v, tr, false, "C")
+					return
+				}
+				requireReads(t, v, tr, "P", "C")
+			})
+		}
+	}
+
+	t.Run("copied fill of a block not listed", func(t *testing.T) {
+		// A fill drops the copied P, whose list lacks C, and counts it. A
+		// root onto P is then refused, as onto any block not stored, and C
+		// stays until the walk finds it unreached.
+		tr := testTree{}
+		tr.add(t, "C")
+		tr.add(t, "R0")
+		v, _, _ := oldStore(t, tr, "R0", []string{"C", "R0"})
+		tr.add(t, "P", "C")
+		p := copied(tr, "P")
+		p.CacheFill = true
+		if _, err := v.PrepareOwnedBlockBatch(t.Context(), "b", []*block.PutBatchEntry{p}); err != nil {
+			t.Fatal(err)
+		}
+		requireStored(t, v, tr, false, "P")
+		requireStored(t, v, tr, true, "C")
+		if fill := putFlow(t, v, "fill"); fill.Dropped != 1 || fill.Blocks != 0 {
+			t.Fatalf("fill flow = %+v, want P dropped and nothing stored", fill)
+		}
+	})
+
+	t.Run("mixed fill batch", func(t *testing.T) {
+		// A fill batch stores its asserted entry and drops its copied one.
+		v, _ := newLivenessVolume(t, true)
+		tr := testTree{}
+		tr.add(t, "A")
+		tr.add(t, "B")
+		a, b := *tr["A"], copied(tr, "B")
+		a.CacheFill, b.CacheFill = true, true
+		if _, err := v.PrepareOwnedBlockBatch(t.Context(), "b", []*block.PutBatchEntry{&a, b}); err != nil {
+			t.Fatal(err)
+		}
+		requireStored(t, v, tr, true, "A")
+		requireStored(t, v, tr, false, "B")
+		if fill := putFlow(t, v, "fill"); fill.Blocks != 1 || fill.Dropped != 1 || fill.DroppedHoles != 0 {
+			t.Fatalf("fill flow = %+v, want A stored and B dropped", fill)
+		}
+	})
+
+	t.Run("copied put of a stored unverified block while Open", func(t *testing.T) {
+		// U's list lacks K. A copied put of U lacking K too leaves the list
+		// unmarked, so the run build names U and the walk decodes it and
+		// keeps K.
+		v, clk, store, tr := oldU(t, true)
+		if err := v.SetBucketRoots(t.Context(), "b", []*block.PutBatchEntry{copied(tr, "U")}, []block.NamedRoot{{Name: "main", Ref: tr["U"].Ref}}); err != nil {
+			t.Fatal(err)
+		}
+		if _, src, err := v.GetChildList(t.Context(), tr["U"].Ref); err != nil || src != block.RefsListed {
+			t.Fatalf("U's list after the copied put = %v err %v, want listed", src, err)
+		}
+		settleAll(t, v, clk, store, tr)
+		requireReads(t, v, tr, "U", "K")
+		requireAudit(t, v, 0)
+	})
+
+	t.Run("copied put past Open", func(t *testing.T) {
+		// Once the generation flips, no walk is left to check a copied
+		// list: a copied put of a new block, and of the unmarked U, is
+		// refused, and the same put from content lands.
+		v, clk, _, tr := oldU(t, false)
+		collectUntil(t, v, clk, flipped)
+		tr.add(t, "N")
+		for _, name := range []string{"N", "U"} {
+			err := v.SetBucketRoots(t.Context(), "b", []*block.PutBatchEntry{copied(tr, name)}, []block.NamedRoot{{Name: name, Ref: tr[name].Ref}})
+			if !errors.Is(err, block.ErrRefsUnknown) {
+				t.Fatalf("copied put of %s err %v, want refused", name, err)
+			}
+		}
+		requireStored(t, v, tr, false, "N")
+		if err := rootOnto(t, v, tr, "N", "N"); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	for _, marked := range []bool{true, false} {
+		t.Run("copied put of a parked block marked="+strconv.FormatBool(marked), func(t *testing.T) {
+			// The free parks the unreached G -> X. A copied put of G
+			// lacking X keeps G's list: a marked one holds X as before, and
+			// an unverified one, cut to lack X, returns to the run and the
+			// front, where the walk decodes G and keeps X.
+			tr := testTree{}
+			tr.add(t, "A")
+			tr.add(t, "X")
+			tr.add(t, "G", "X")
+			var cut []string
+			if !marked {
+				cut = []string{"G"}
+			}
+			v, clk, store := oldStore(t, tr, "A", []string{"A", "X", "G"}, cut...)
+			if marked {
+				verify(t, v, tr, "G", "X")
+			}
+			clk.Add(block_gc.DefaultGrace + time.Second)
+			if res := collectAll(t, v); res.Parked == 0 || res.Freed != 0 {
+				t.Fatalf("collect while Open = %+v, want G parked", res)
+			}
+			if err := v.SetBucketRoots(t.Context(), "b", []*block.PutBatchEntry{copied(tr, "G")}, []block.NamedRoot{{Name: "main", Ref: tr["G"].Ref}}); err != nil {
+				t.Fatal(err)
+			}
+			if !marked && (!has(t, store, run, tr["G"].Ref) || !has(t, store, front, tr["G"].Ref)) {
+				t.Fatal("the copied put left the unverified G off the run or the front")
+			}
+			settleAll(t, v, clk, store, tr)
+			requireReads(t, v, tr, "G", "X")
+			requireAudit(t, v, 0)
+		})
+	}
+
+	t.Run("copied put of a recorded hole", func(t *testing.T) {
+		// The audit records the lost H as a hole. A copied put of H is
+		// refused and a copied fill dropped and counted, since only content
+		// refills a hole; the put from content refills it.
+		v, _ := newLivenessVolume(t, true)
+		tr := testTree{}
+		tr.add(t, "H")
+		tr.add(t, "D", "H")
+		if err := rootOnto(t, v, tr, "D", "H", "D"); err != nil {
+			t.Fatal(err)
+		}
+		punchHole(t, v, tr["H"].Ref)
+		if res, err := v.Audit(t.Context()); err != nil || res.Holes != 1 {
+			t.Fatalf("audit recorded %d holes err %v, want 1", res.Holes, err)
+		}
+		if err := v.SetBucketRoots(t.Context(), "b", []*block.PutBatchEntry{copied(tr, "H")}, nil); !errors.Is(err, block.ErrRefsUnknown) {
+			t.Fatalf("copied put of the hole err %v, want refused", err)
+		}
+		h := copied(tr, "H")
+		h.CacheFill = true
+		if _, err := v.PrepareOwnedBlockBatch(t.Context(), "b", []*block.PutBatchEntry{h}); err != nil {
+			t.Fatal(err)
+		}
+		requireStored(t, v, tr, false, "H")
+		if fill := putFlow(t, v, "fill"); fill.DroppedHoles != 1 || fill.Dropped != 0 {
+			t.Fatalf("fill flow = %+v, want the hole's fill dropped", fill)
+		}
+		if err := v.SetBucketRoots(t.Context(), "b", tr.entries("H"), nil); err != nil {
+			t.Fatal(err)
+		}
+		requireReads(t, v, tr, "D", "H")
+	})
+
 	t.Run("frees off", func(t *testing.T) {
 		// With frees off the collector runs none of the settle: the run is
 		// never built, nothing flips, and every block stays.
@@ -9220,4 +9440,16 @@ func testStageSliceResult(t *testing.T, mode sliceMode, writes int, err error) {
 	if writes != want {
 		t.Fatalf("batch opened %d write transactions, want %d", writes, want)
 	}
+}
+
+// putFlow returns v's flow for the write path named path.
+func putFlow(t *testing.T, v *Volume, path string) volume.PutFlow {
+	t.Helper()
+	for _, flow := range v.GetFlows().Puts {
+		if flow.Path == path {
+			return flow
+		}
+	}
+	t.Fatalf("no flow for the path %s", path)
+	return volume.PutFlow{}
 }

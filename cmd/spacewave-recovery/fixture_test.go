@@ -275,7 +275,7 @@ func makeFixtureWithConflict(t *testing.T, conflict bool) *fixture {
 			if stored == nil {
 				continue
 			}
-			if !stored.GetRefsKnown() {
+			if !stored.GetRefsSource().Recorded() {
 				t.Fatal("fixture writer did not record native refs")
 			}
 			seen[ref.MarshalString()] = true

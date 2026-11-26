@@ -77,10 +77,10 @@ func (b *BlockStore) localRootEntry(ctx context.Context, ref *block.BlockRef) (*
 	if stored == nil {
 		return nil, fmt.Errorf("local provider root: %w", block.NotFoundError(ref))
 	}
-	if !stored.RefsKnown {
+	if !stored.RefsSource.Recorded() {
 		return nil, errors.Wrap(block.ErrRefsUnknown, ref.MarshalString())
 	}
-	return &block.PutBatchEntry{Ref: ref, Data: stored.Data, Refs: stored.Refs, RefsKnown: true}, nil
+	return &block.PutBatchEntry{Ref: ref, Data: stored.Data, Refs: stored.Refs, RefsKnown: stored.RefsSource.Asserted()}, nil
 }
 
 // PinRoot forwards a reader pin to the underlying store.

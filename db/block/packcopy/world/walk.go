@@ -724,10 +724,10 @@ func (w *Walk) visit(ctx context.Context, it walkItem) bool {
 		switch {
 		case derr == nil && ok:
 			kids = typed
-			if !stored.RefsKnown && !w.keepDecoded(ctx, it, stored.Data, typed) {
+			if !stored.RefsSource.Recorded() && !w.keepDecoded(ctx, it, stored.Data, typed) {
 				return false
 			}
-		case !stored.RefsKnown:
+		case !stored.RefsSource.Recorded():
 			w.count(it, kind, stored)
 			reason := ""
 			if derr != nil {
@@ -736,7 +736,7 @@ func (w *Walk) visit(ctx context.Context, it walkItem) bool {
 			w.hole(it, HoleUndecodable, reason)
 			return true
 		}
-	} else if !stored.RefsKnown {
+	} else if !stored.RefsSource.Recorded() {
 		w.count(it, kind, stored)
 		w.mtx.Lock()
 		w.visited[keyOf(it.ref)] = walkUntyped
@@ -744,7 +744,7 @@ func (w *Walk) visit(ctx context.Context, it walkItem) bool {
 		w.hole(it, HoleUntyped, "")
 		return true
 	}
-	if stored.RefsKnown {
+	if stored.RefsSource.Recorded() {
 		kids = mergeStoredRefs(kids, stored.Refs)
 		if w.conf.KeepAll && !w.keepDecoded(ctx, it, stored.Data, kids) {
 			return false
@@ -798,7 +798,7 @@ func (w *Walk) count(it walkItem, kind string, stored *block.StoredBlock) {
 	if it.okraValue && kind != KindOkraPage {
 		st.OkraValues++
 	}
-	if !stored.RefsKnown {
+	if !stored.RefsSource.Recorded() {
 		st.RefsUnknown++
 	}
 }

@@ -182,8 +182,8 @@ func TestPackStoreDrain(t *testing.T) {
 		if err != nil || stored == nil || !bytes.Equal(stored.Data, datas[i]) {
 			t.Fatalf("block %d: %v, %v", i, stored, err)
 		}
-		if want := min(i, 1); len(stored.Refs) != want || !stored.RefsKnown {
-			t.Fatalf("block %d refs: %v known %v", i, stored.Refs, stored.RefsKnown)
+		if want := min(i, 1); len(stored.Refs) != want || !stored.RefsSource.Recorded() {
+			t.Fatalf("block %d refs: %v known %v", i, stored.Refs, stored.RefsSource.Recorded())
 		}
 	}
 

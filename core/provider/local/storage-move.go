@@ -264,11 +264,11 @@ func (a *ProviderAccount) fetchPlacedBlocks(
 					return errors.Wrapf(err, "fetch block %s", ref.MarshalString())
 				}
 				if stored != nil {
-					if !stored.RefsKnown {
+					if !stored.RefsSource.Recorded() {
 						// A verified body is not a proof that the block is a leaf.
 						return errors.Wrapf(block.ErrRefsUnknown, "fetch block %s", ref.MarshalString())
 					}
-					entries[i] = &block.PutBatchEntry{Ref: ref, Data: stored.Data, Refs: stored.Refs, RefsKnown: true}
+					entries[i] = &block.PutBatchEntry{Ref: ref, Data: stored.Data, Refs: stored.Refs, RefsKnown: stored.RefsSource.Asserted()}
 				}
 				return nil
 			})

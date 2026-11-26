@@ -163,11 +163,11 @@ func (r *sqlBatchReader) add(ctx context.Context, batch *packBatch, chunk []sqlR
 			batch.entries = append(batch.entries, logEntry{key: key, bad: true})
 			continue
 		}
-		if !row.RefsKnown {
+		if !row.RefsSource.Recorded() {
 			batch.untracked++
 		}
 		batch.entries = append(batch.entries, logEntry{key: key})
-		batch.puts = append(batch.puts, &block.PutBatchEntry{Ref: ref, Data: row.Data, Refs: row.Refs, RefsKnown: row.RefsKnown})
+		batch.puts = append(batch.puts, &block.PutBatchEntry{Ref: ref, Data: row.Data, Refs: row.Refs, RefsKnown: row.RefsSource.Recorded()})
 		batch.bytes += uint64(len(row.Data))
 	}
 	return nil

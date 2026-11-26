@@ -12,6 +12,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/pkg/errors"
 	storage_native "github.com/s4wave/spacewave/bldr/storage/native"
+	"github.com/s4wave/spacewave/db/block"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/sirupsen/logrus"
@@ -28,6 +29,9 @@ type CollectorFrees struct {
 	// volumes are the named Volumes, each as its file name without the
 	// extension.
 	volumes cli.StringSlice
+	// trustListed takes a source's recorded refs as read from content, as
+	// block.SetTrustListedRefs describes.
+	trustListed bool
 }
 
 // NewCollectorFrees constructs a CollectorFrees naming no Volume.
@@ -43,16 +47,33 @@ func (f *CollectorFrees) BuildFlags() []cli.Flag {
 			Usage:       "free unreachable blocks on the named volume (its file name without .s4wave); restart without it to turn frees off",
 			Destination: &f.volumes,
 		},
+		&cli.BoolFlag{
+			Name: "trust-listed-refs",
+			Usage: "copy blocks with the child lists their source recorded as if read from content, the old behavior; " +
+				"refused with --collector-frees, since such a list may lack a child a free would then take. " +
+				"Verify the copied lists with debug ref-repair before turning frees on",
+			Destination: &f.trustListed,
+		},
 	}
 }
 
 // Check logs the named Volumes and refuses a name with no Volume file under
 // root, the state root the bus opens its Volumes in, empty when the bus has
 // none: a mistyped name would otherwise leave every Volume's frees off while
-// the operator believes collection runs.
+// the operator believes collection runs. It refuses --trust-listed-refs with
+// any named Volume, and otherwise sets it for the process.
 func (f *CollectorFrees) Check(le *logrus.Entry, root string) error {
-	// Name no Volume, and check nothing, without the flag.
+	// Refuse trusting listed refs while any Volume frees, then set it.
 	names := f.volumes.Value()
+	if f.trustListed {
+		if len(names) != 0 {
+			return errors.New("trust-listed-refs: refused with collector-frees, since a copied list may lack a child a free would take")
+		}
+		block.SetTrustListedRefs(true)
+		le.Warn("trusting listed refs as read from content; verify copied lists with debug ref-repair before turning frees on")
+	}
+
+	// Name no Volume, and check nothing, without the flag.
 	if len(names) == 0 {
 		return nil
 	}

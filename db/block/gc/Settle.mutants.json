@@ -91,8 +91,8 @@
     "name": "an upgrade mid-Sweeping drops the run instead of finishing the sweep",
     "replace": [
       [
-        "  /\\ fmt' = 10\n  /\\ UNCHANGED <<gen, stored, verified, front, seeded, run, complete, parked, unmarked, root, txns>>",
-        "  /\\ fmt' = 10\n  /\\ gen' = IF gen = \"sweeping\" THEN \"settled\" ELSE gen\n  /\\ unmarked' = IF gen = \"sweeping\" THEN {} ELSE unmarked\n  /\\ run' = IF gen = \"sweeping\" THEN {} ELSE run\n  /\\ UNCHANGED <<stored, verified, front, seeded, complete, parked, root, txns>>"
+        "  /\\ fmt' = 10\n  /\\ UNCHANGED <<gen, stored, verified, short, front, seeded, run, complete, parked, unmarked, root, txns>>",
+        "  /\\ fmt' = 10\n  /\\ gen' = IF gen = \"sweeping\" THEN \"settled\" ELSE gen\n  /\\ unmarked' = IF gen = \"sweeping\" THEN {} ELSE unmarked\n  /\\ run' = IF gen = \"sweeping\" THEN {} ELSE run\n  /\\ UNCHANGED <<stored, verified, short, front, seeded, complete, parked, root, txns>>"
       ]
     ],
     "expect": "SelfRetiring",
@@ -124,8 +124,8 @@
     "name": "the walk pops an absent block no read resolves while it is held",
     "replace": [
       [
-        "       [] Hidden(b) \\/ Count(b) = 0 ->",
-        "       [] TRUE ->"
+        "     \\/ /\\ Hidden(b) \\/ Count(b) = 0\n",
+        "     \\/ /\\ Hidden(b) \\/ Count(b) = 0 \\/ b \\notin stored\n"
       ]
     ],
     "expect": "LiveStored",
@@ -135,8 +135,63 @@
     "name": "the walk passes an absent block without writing its list",
     "replace": [
       [
-        "            /\\ stored' = stored \\cup {b}\n            /\\ Verify({b})",
-        "            /\\ front' = front \\ {b}\n            /\\ UNCHANGED <<stored, verified, run>>"
+        "        /\\ stored' = stored \\cup {b}\n        /\\ Verify({b})",
+        "        /\\ front' = front \\ {b}\n        /\\ UNCHANGED <<stored, verified, short, run>>"
+      ]
+    ],
+    "expect": "LiveStored",
+    "config": "Settle.cfg"
+  },
+  {
+    "name": "a copied put of a stored block with an unverified list marks it (F2, markStored)",
+    "replace": [
+      [
+        "       [] Present(b) ->\n            /\\ txns' = txns + 1\n            /\\ UNCHANGED <<gen, stored, verified, short, front, seeded, run, complete, parked, unmarked, root, fmt>>",
+        "       [] Present(b) ->\n            /\\ txns' = txns + 1\n            /\\ IF gen = \"open\" /\\ b \\notin verified\n                 THEN MarkCopied({b})\n                 ELSE UNCHANGED <<verified, short, front, run>>\n            /\\ UNCHANGED <<gen, stored, seeded, complete, parked, unmarked, root, fmt>>"
+      ]
+    ],
+    "expect": "LiveStored",
+    "config": "Settle.cfg"
+  },
+  {
+    "name": "a copied put of a block not stored writes its list marked (F2, Land's birth)",
+    "replace": [
+      [
+        "            /\\ run' = run \\cup {b}\n            /\\ front' = front \\cup {b}\n            /\\ txns' = txns + 1\n            /\\ UNCHANGED <<gen, verified, short, seeded, complete, parked, unmarked, root, fmt>>",
+        "            /\\ MarkCopied({b})\n            /\\ txns' = txns + 1\n            /\\ UNCHANGED <<gen, seeded, complete, parked, unmarked, root, fmt>>"
+      ]
+    ],
+    "expect": "LiveStored",
+    "config": "Settle.cfg"
+  },
+  {
+    "name": "a copied put while Open does not enter the run",
+    "replace": [
+      [
+        "            /\\ run' = run \\cup {b}\n            /\\ front' = front \\cup {b}\n",
+        "            /\\ run' = run\n            /\\ front' = front \\cup {b}\n"
+      ]
+    ],
+    "expect": "SelfRetiring",
+    "config": "Settle.cfg"
+  },
+  {
+    "name": "a copied put past Open stores a block that reads absent",
+    "replace": [
+      [
+        "       [] gen = \"open\" /\\ b \\notin stored ->",
+        "       [] b \\notin stored ->"
+      ]
+    ],
+    "expect": "SelfRetiring",
+    "config": "Settle.cfg"
+  },
+  {
+    "name": "a copied put of a parked unverified block leaves the front",
+    "replace": [
+      [
+        "            /\\ parked' = parked \\ {b}\n            /\\ front' = front \\cup {b}\n",
+        "            /\\ parked' = parked \\ {b}\n            /\\ front' = front\n"
       ]
     ],
     "expect": "LiveStored",

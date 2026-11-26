@@ -146,7 +146,7 @@ func (s *Store) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block
 	if err != nil || !ok {
 		return nil, err
 	}
-	return &block.StoredBlock{Data: data, RefsKnown: true}, nil
+	return &block.StoredBlock{Data: data, RefsSource: block.RefsAsserted}, nil
 }
 
 // GetBlockExists reports an indexed range whose file stat is unchanged. It

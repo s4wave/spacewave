@@ -101,7 +101,7 @@ func packTestBlock(t *testing.T, packID string, data []byte) (*hash.Hash, []byte
 		if packData.Len() != 0 {
 			return nil, nil, nil
 		}
-		return blockHash, &block.StoredBlock{Data: data, RefsKnown: true}, nil
+		return blockHash, &block.StoredBlock{Data: data, RefsSource: block.RefsAsserted}, nil
 	})
 	if err != nil {
 		t.Fatal(err)

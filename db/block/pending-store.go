@@ -435,7 +435,7 @@ func (r pendingReads) GetStoredBlock(ctx context.Context, ref *BlockRef) (*Store
 	gen := DurableReadGeneration()
 	if e := r.s.lookup(ref); e != nil {
 		MarkDurableRead(ctx, ref, gen)
-		return &StoredBlock{Data: e.Data, Refs: e.Refs, RefsKnown: true}, nil
+		return &StoredBlock{Data: e.Data, Refs: e.Refs, RefsSource: AssertedIf(e.RefsKnown)}, nil
 	}
 	return r.StoreOps.GetStoredBlock(ctx, ref)
 }

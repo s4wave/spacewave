@@ -246,7 +246,7 @@ func TestFTPSPlacementAndFallback(t *testing.T) {
 		t.Fatalf("refills = %d, want only the tracked block read after eviction", status.Refills)
 	}
 	stored, err := f.local.GetStoredBlock(f.ctx, parent)
-	if err != nil || stored == nil || !stored.RefsKnown || len(stored.Refs) != 1 || !stored.Refs[0].GetHash().CompareHash(ref.GetHash()) {
+	if err != nil || stored == nil || !stored.RefsSource.Recorded() || len(stored.Refs) != 1 || !stored.Refs[0].GetHash().CompareHash(ref.GetHash()) {
 		t.Fatalf("cached parent = %+v, %v; want its child ref", stored, err)
 	}
 

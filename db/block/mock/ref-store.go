@@ -66,7 +66,9 @@ func (s *RefStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchE
 func (s *RefStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	stored, err := block.GetBlockWithoutRefs(ctx, s, ref)
 	if stored != nil {
-		stored.Refs, stored.RefsKnown = s.GetRefs(ref)
+		var known bool
+		stored.Refs, known = s.GetRefs(ref)
+		stored.RefsSource = block.AssertedIf(known)
 	}
 	return stored, err
 }

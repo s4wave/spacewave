@@ -78,7 +78,7 @@ func TestSetRootsBringsRemoteRootBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 	stored, err := vol.GetStoredBlock(ctx, root)
-	if err != nil || stored == nil || !stored.RefsKnown || len(stored.Refs) != 1 || !stored.Refs[0].EqualsRef(child) {
+	if err != nil || stored == nil || !stored.RefsSource.Recorded() || len(stored.Refs) != 1 || !stored.Refs[0].EqualsRef(child) {
 		t.Fatalf("local root block %v, %v; want it stored with its child", stored, err)
 	}
 

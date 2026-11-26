@@ -88,9 +88,9 @@ func (r storeReader) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*
 	}
 	block.MarkDurableRead(ctx, ref, gen)
 
-	// Fill in its child list.
-	if !stored.RefsKnown {
-		stored.Refs, stored.RefsKnown, err = r.volume.GetChildren(ctx, ref)
+	// Fill in its child list, asserted only when the list is marked.
+	if !stored.RefsSource.Recorded() {
+		stored.Refs, stored.RefsSource, err = r.volume.GetChildList(ctx, ref)
 	}
 	return stored, err
 }

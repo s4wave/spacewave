@@ -157,7 +157,7 @@ func (n pageNode) children(ctx context.Context, store block.StoreOps, xfrm block
 	}
 
 	// Walk any other page by its stored child list.
-	if !sb.RefsKnown {
+	if !sb.RefsSource.Recorded() {
 		return nil, nil
 	}
 	out := make([]pageNode, 0, len(sb.Refs))

@@ -197,7 +197,7 @@ func (s *Store) writeFills(ctx context.Context, batch []fill) error {
 				Ref:       f.ref,
 				Data:      f.stored.Data,
 				Refs:      f.stored.Refs,
-				RefsKnown: f.stored.RefsKnown,
+				RefsKnown: f.stored.RefsSource.Asserted(),
 			})
 		}
 	}

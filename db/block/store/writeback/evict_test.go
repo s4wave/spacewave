@@ -89,7 +89,7 @@ func TestEvictRefusedPartialCommitFailure(t *testing.T) {
 		}
 		size += int64(len(data))
 		refs = append(refs, ref)
-		s.Refill(ref, &block.StoredBlock{Data: data, RefsKnown: true})
+		s.Refill(ref, &block.StoredBlock{Data: data, RefsSource: block.RefsAsserted})
 	}
 	waitStatus(t, s, func(st Status) bool { return st.Refills == int64(len(refs)) })
 
@@ -431,7 +431,7 @@ func TestEvictPermanentRefusalDoesNotStarve(t *testing.T) {
 
 	// Let the normal refill producer land every local value and queue entry.
 	for _, entry := range entries {
-		s.Refill(entry.Ref, &block.StoredBlock{Data: entry.Data, RefsKnown: true})
+		s.Refill(entry.Ref, &block.StoredBlock{Data: entry.Data, RefsSource: block.RefsAsserted})
 	}
 	waitStatus(t, s, func(st Status) bool { return st.Refills == int64(len(entries)) })
 
@@ -856,7 +856,7 @@ func TestDroppedClearAfterFillKeepsEvictionCoverage(t *testing.T) {
 	if err := s.uploadChunk(ctx, remote, head.entries); err != nil || !head.entries[0].dropped {
 		t.Fatalf("upload = %v, dropped=%v", err, head.entries[0].dropped)
 	}
-	if err := s.writeFills(ctx, []fill{{ref: ref, stored: &block.StoredBlock{Data: data, RefsKnown: true}}}); err != nil {
+	if err := s.writeFills(ctx, []fill{{ref: ref, stored: &block.StoredBlock{Data: data, RefsSource: block.RefsAsserted}}}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -905,7 +905,7 @@ func TestFillQueueFailureCannotStrandValue(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			batch := []fill{{ref: ref, stored: &block.StoredBlock{Data: data, RefsKnown: true}, refill: refill}}
+			batch := []fill{{ref: ref, stored: &block.StoredBlock{Data: data, RefsSource: block.RefsAsserted}, refill: refill}}
 			failure := errors.New("fill queue commit failed")
 			s.markers = &evictCommitStore{Store: s.markers, err: failure}
 
@@ -991,7 +991,7 @@ func TestFillReservationExcludesEviction(t *testing.T) {
 	}}
 	filled := make(chan error, 1)
 	go func() {
-		filled <- s.writeFills(ctx, []fill{{ref: ref, stored: &block.StoredBlock{Data: data, RefsKnown: true}, refill: true}})
+		filled <- s.writeFills(ctx, []fill{{ref: ref, stored: &block.StoredBlock{Data: data, RefsSource: block.RefsAsserted}, refill: true}})
 	}()
 	select {
 	case <-entered:
@@ -1064,7 +1064,7 @@ func TestFillDuringEvictRemoteProbe(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		return fill{ref: ref, stored: &block.StoredBlock{Data: data, RefsKnown: true}, refill: true}
+		return fill{ref: ref, stored: &block.StoredBlock{Data: data, RefsSource: block.RefsAsserted}, refill: true}
 	}
 	first, second := fillOf([]byte("value the pass probes")), fillOf([]byte("value filled mid-pass"))
 	if err := s.writeFills(ctx, []fill{first}); err != nil {

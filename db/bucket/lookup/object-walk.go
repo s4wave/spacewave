@@ -62,28 +62,30 @@ type WalkObjectBlocksEntry struct {
 	XfrmData []byte
 }
 
-// BlockRefs returns the outgoing refs of the entry's block. A decoded block
-// yields the refs it holds. A block walked without a constructor, such as an
-// object root reached through an ObjectRef, yields the refs store holds for
-// it: its children exist even when the walk cannot decode them.
-func (e *WalkObjectBlocksEntry) BlockRefs(ctx context.Context, store block.StoreOps) ([]*block.BlockRef, error) {
+// BlockRefs returns the outgoing refs of the entry's block and what they
+// prove. A decoded block yields the refs it holds, asserted. A block walked
+// without a constructor, such as an object root reached through an ObjectRef,
+// yields the refs store holds for it, with the store's source: its children
+// exist even when the walk cannot decode them.
+func (e *WalkObjectBlocksEntry) BlockRefs(ctx context.Context, store block.StoreOps) ([]*block.BlockRef, block.RefsSource, error) {
 	// Prefer the refs of the decoded block.
 	if e.Blk != nil {
-		return block.ExtractBlockRefs(e.Blk)
+		refs, err := block.ExtractBlockRefs(e.Blk)
+		return refs, block.RefsAsserted, err
 	}
 
 	// Fall back to the refs stored with the undecoded block.
 	stored, err := store.GetStoredBlock(ctx, e.Ref)
 	if err != nil {
-		return nil, err
+		return nil, block.RefsUnknown, err
 	}
 	if stored == nil {
-		return nil, errors.Wrap(block.ErrNotFound, e.Ref.MarshalString())
+		return nil, block.RefsUnknown, errors.Wrap(block.ErrNotFound, e.Ref.MarshalString())
 	}
-	if !stored.RefsKnown {
-		return nil, errors.Wrap(block.ErrRefsUnknown, e.Ref.MarshalString())
+	if !stored.RefsSource.Recorded() {
+		return nil, block.RefsUnknown, errors.Wrap(block.ErrRefsUnknown, e.Ref.MarshalString())
 	}
-	return stored.Refs, nil
+	return stored.Refs, stored.RefsSource, nil
 }
 
 // NewWalkObjectBlocksWithRef constructs a new walk tree entry with a root ref.

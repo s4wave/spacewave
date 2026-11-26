@@ -160,7 +160,7 @@ func (h *HTTPBlockServer) ServeGetBlock(ctx context.Context, rw http.ResponseWri
 	case stored != nil && len(stored.Data) != 0:
 		resp.Data = stored.Data
 		resp.Refs = stored.Refs
-		resp.RefsKnown = stored.RefsKnown
+		resp.RefsKnown = stored.RefsSource.Recorded()
 	default:
 		resp.NotFound = true
 	}

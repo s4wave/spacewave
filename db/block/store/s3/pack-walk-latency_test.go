@@ -243,7 +243,7 @@ func (s *packWalkRefs) GetStoredBlock(ctx context.Context, ref *block.BlockRef) 
 	s.mtx.Lock()
 	refs, known := s.refs[ref.MapKey()]
 	s.mtx.Unlock()
-	return &block.StoredBlock{Data: data, Refs: refs, RefsKnown: known}, nil
+	return &block.StoredBlock{Data: data, Refs: refs, RefsSource: block.ListedIf(known)}, nil
 }
 
 // writePackWalkTree writes every block under root from src to dst, depth
@@ -268,7 +268,7 @@ func writePackWalkTree(t *testing.T, ctx context.Context, src block.StoreOps, ds
 		}
 		seen[key] = struct{}{}
 		stored, err := src.GetStoredBlock(ctx, ref)
-		if err != nil || stored == nil || !stored.RefsKnown {
+		if err != nil || stored == nil || !stored.RefsSource.Recorded() {
 			t.Fatalf("read %s: %v", ref.MarshalString(), err)
 		}
 		batch = append(batch, &block.PutBatchEntry{Ref: ref, Data: stored.Data, Refs: stored.Refs, RefsKnown: true})

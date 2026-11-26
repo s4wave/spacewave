@@ -51,23 +51,31 @@ func (v *Volume) readRecords(ctx context.Context, fn func(rec *block_gc.Records)
 // GetChildren returns the child list of a stored block and whether it is
 // known. A Volume that keeps no liveness knows none.
 func (v *Volume) GetChildren(ctx context.Context, ref *block.BlockRef) ([]*block.BlockRef, bool, error) {
+	children, source, err := v.GetChildList(ctx, ref)
+	return children, source.Recorded(), err
+}
+
+// GetChildList returns the child list of a stored block and what it proves,
+// as Records.GetChildList describes. A Volume that keeps no liveness knows
+// none.
+func (v *Volume) GetChildList(ctx context.Context, ref *block.BlockRef) ([]*block.BlockRef, block.RefsSource, error) {
 	// A Volume without liveness knows no lists.
 	if v == nil || !v.HoldsRoots() {
-		return nil, false, nil
+		return nil, block.RefsUnknown, nil
 	}
 
 	// Read the list, an empty one for a leaf.
 	var children []*block.BlockRef
-	var found bool
+	var source block.RefsSource
 	err := v.readRecords(ctx, func(rec *block_gc.Records) error {
 		var err error
-		children, found, err = rec.GetChildren(ctx, ref)
+		children, source, err = rec.GetChildList(ctx, ref)
 		return err
 	})
-	if found && children == nil {
+	if source.Recorded() && children == nil {
 		children = []*block.BlockRef{}
 	}
-	return children, found, err
+	return children, source, err
 }
 
 // HasChildLists reports, for each ref, whether the Volume keeps its child

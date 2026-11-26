@@ -37,7 +37,7 @@ type TypedRef struct {
 func (c *copier) typeBlock(ctx context.Context, n *node, stored *block.StoredBlock) (*block.StoredBlock, map[string]any, string, error) {
 	// An untyped block keeps what its store says.
 	if c.opts.Typer == nil || n.typ == nil {
-		if !stored.RefsKnown {
+		if !stored.RefsSource.Recorded() {
 			return nil, nil, ReasonRefsUnknown, nil
 		}
 		return stored, nil, "", nil
@@ -49,7 +49,7 @@ func (c *copier) typeBlock(ctx context.Context, n *node, stored *block.StoredBlo
 		return nil, nil, "", err
 	}
 	if !ok {
-		if !stored.RefsKnown {
+		if !stored.RefsSource.Recorded() {
 			return nil, nil, ReasonUndecodable, nil
 		}
 		return stored, nil, "", nil
@@ -60,7 +60,7 @@ func (c *copier) typeBlock(ctx context.Context, n *node, stored *block.StoredBlo
 			kids[t.Ref.MarshalString()] = t.Type
 		}
 	}
-	if stored.RefsKnown {
+	if stored.RefsSource.Recorded() {
 		return stored, kids, "", nil
 	}
 
@@ -71,5 +71,5 @@ func (c *copier) typeBlock(ctx context.Context, n *node, stored *block.StoredBlo
 			refs = append(refs, t.Ref)
 		}
 	}
-	return &block.StoredBlock{Data: stored.Data, Refs: refs, RefsKnown: true}, kids, "", nil
+	return &block.StoredBlock{Data: stored.Data, Refs: refs, RefsSource: block.RefsAsserted}, kids, "", nil
 }

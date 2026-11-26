@@ -79,7 +79,7 @@ func TestEvictIndexRebuildRestart(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		batch = append(batch, fill{ref: ref, stored: &block.StoredBlock{Data: data, RefsKnown: true}})
+		batch = append(batch, fill{ref: ref, stored: &block.StoredBlock{Data: data, RefsSource: block.RefsAsserted}})
 	}
 	if err := s.writeFills(ctx, batch); err != nil {
 		t.Fatal(err)
@@ -178,7 +178,7 @@ func TestEvictIndexDroppedClearSwitches(t *testing.T) {
 			}
 
 			// Restore the value while its marker covers it, then disable policy.
-			if err := s.writeFills(ctx, []fill{{ref: ref, stored: &block.StoredBlock{Data: data, RefsKnown: true}}}); err != nil {
+			if err := s.writeFills(ctx, []fill{{ref: ref, stored: &block.StoredBlock{Data: data, RefsSource: block.RefsAsserted}}}); err != nil {
 				t.Fatal(err)
 			}
 			if disable != "legacy" {
@@ -285,7 +285,7 @@ func TestEvictIndexWorkerLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fills := []fill{{ref: ref, stored: &block.StoredBlock{Data: data, RefsKnown: true}}}
+	fills := []fill{{ref: ref, stored: &block.StoredBlock{Data: data, RefsSource: block.RefsAsserted}}}
 	for range 2 {
 		if err := s.writeFills(ctx, fills); err != nil {
 			t.Fatal(err)
@@ -331,7 +331,7 @@ func TestEvictIndexMarkerAndClearFailures(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := s.writeFills(ctx, []fill{{ref: ref, stored: &block.StoredBlock{Data: data, RefsKnown: true}}}); err != nil {
+	if err := s.writeFills(ctx, []fill{{ref: ref, stored: &block.StoredBlock{Data: data, RefsSource: block.RefsAsserted}}}); err != nil {
 		t.Fatal(err)
 	}
 	marks := []Mark{{Hash: ref.GetHash(), Size: int64(len(data))}}
@@ -391,7 +391,7 @@ func TestEvictIndexQueuedRepairDoesNotHoldDisable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fills := []fill{{ref: ref, stored: &block.StoredBlock{Data: data, RefsKnown: true}}}
+	fills := []fill{{ref: ref, stored: &block.StoredBlock{Data: data, RefsSource: block.RefsAsserted}}}
 	if err := s.writeFills(ctx, fills); err != nil {
 		t.Fatal(err)
 	}
@@ -470,7 +470,7 @@ func TestEvictIndexInitiallyDisabledRepairs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fills := []fill{{ref: ref, stored: &block.StoredBlock{Data: data, RefsKnown: true}}}
+	fills := []fill{{ref: ref, stored: &block.StoredBlock{Data: data, RefsSource: block.RefsAsserted}}}
 	if err := s.writeFills(ctx, fills); err != nil {
 		t.Fatal(err)
 	}

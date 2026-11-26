@@ -511,7 +511,7 @@ func (s *peerSession) sendSubtree(ctx, requestCtx context.Context, h *handledReq
 			break
 		}
 		for i, blk := range stored[:len(chunk)] {
-			if blk != nil && blk.RefsKnown && !blk.Linked {
+			if blk != nil && blk.RefsSource.Recorded() && !blk.Linked {
 				top.held, top.heldRefs = append(top.held, blk), append(top.heldRefs, chunk[i])
 			}
 		}
@@ -890,7 +890,7 @@ func storedBlockMessage(stored *block.StoredBlock) *DexMessage {
 		Found:     true,
 		Data:      stored.Data,
 		Refs:      stored.Refs,
-		RefsKnown: stored.RefsKnown,
+		RefsKnown: stored.RefsSource.Recorded(),
 		Linked:    stored.Linked,
 	}
 }
@@ -1040,7 +1040,10 @@ func checkAnswer(ref *block.BlockRef, resp *DexMessage, linkedOK bool) (*DexMess
 // ends, or the stream breaks its contract. It keeps a block only under a ref
 // a kept block, or the ref's own, named, verified against that ref, with its
 // refs known, and drops a block it did not ask for, such as one sent before
-// its prune arrived. After each batch of responses it prunes the newly named
+// its prune arrived. A kept block's refs are the ones the peer listed, so its
+// entry is copied unless the process trusts listed refs, as
+// block.RefsSource.Asserted describes. After each batch of responses it
+// prunes the newly named
 // refs that sub.have reports held. It ends the stream at a block that fails
 // its hash or once the data passes sub.budget. It returns the kept blocks and
 // whether the request is still open.
@@ -1095,7 +1098,7 @@ func (s *peerSession) readSubtree(
 				Ref:       ref,
 				Data:      msg.GetData(),
 				Refs:      msg.GetRefs(),
-				RefsKnown: true,
+				RefsKnown: block.RefsListed.Asserted(),
 			})
 			name(msg.GetRefs())
 		}

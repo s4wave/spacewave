@@ -254,7 +254,7 @@ func (p *placedStoreTest) prepareColdMove(ctx context.Context, t *testing.T, bs 
 		}
 		ref := refs[i]
 		i++
-		stored := &block.StoredBlock{Data: dataByRef[ref], RefsKnown: true}
+		stored := &block.StoredBlock{Data: dataByRef[ref], RefsSource: block.RefsAsserted}
 		if ref == p.rootRef {
 			stored.Refs = refs[1:2]
 		}

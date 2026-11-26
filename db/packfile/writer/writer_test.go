@@ -46,7 +46,7 @@ func TestPackBlocks(t *testing.T) {
 		}
 		b := blocks[idx]
 		idx++
-		return b.hash, &block.StoredBlock{Data: b.data, Refs: b.refs, RefsKnown: true}, nil
+		return b.hash, &block.StoredBlock{Data: b.data, Refs: b.refs, RefsSource: block.RefsAsserted}, nil
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -183,7 +183,7 @@ func TestPackBlocks(t *testing.T) {
 		t.Fatalf("byte-only block = %v, %v", found, err)
 	}
 	_, stored, err := packfile.DecodeBlockValue(key, value)
-	if err != nil || stored.GetRefsKnown() || len(stored.GetRefs()) != 0 || !bytes.Equal(stored.GetData(), blocks[0].data) {
+	if err != nil || stored.GetRefsSource().Recorded() || len(stored.GetRefs()) != 0 || !bytes.Equal(stored.GetData(), blocks[0].data) {
 		t.Fatalf("byte-only block decoded = %+v, %v, want data with refs unknown", stored, err)
 	}
 }
@@ -216,7 +216,7 @@ func testPackBlocksFalsePositiveRate(t *testing.T, policy Policy, blockCount int
 		}
 		blocks = append(blocks, h)
 		idx++
-		return h, &block.StoredBlock{Data: data, RefsKnown: true}, nil
+		return h, &block.StoredBlock{Data: data, RefsSource: block.RefsAsserted}, nil
 	})
 	if err != nil {
 		t.Fatalf("pack blocks: %v", err)

@@ -278,7 +278,7 @@ func (s *StoreReadThrough) GetStoredBlockBatch(ctx context.Context, refs []*bloc
 		case stored == nil:
 			return fn(i, nil, missErr[j])
 		}
-		if missErr[j] == nil && s.fill != nil && primary != nil && stored.RefsKnown && !stored.Linked {
+		if missErr[j] == nil && s.fill != nil && primary != nil && stored.RefsSource.Recorded() && !stored.Linked {
 			_ = s.fill(context.WithoutCancel(ctx), primary, refs[i], stored)
 		}
 		return fn(i, stored, nil)
@@ -319,7 +319,7 @@ func (s *StoreReadThrough) readLower(ctx context.Context, primary, lower block.S
 	}
 	// A Linked block is never filled: a linked file's bytes stay out of the
 	// Volume, and a peer's linked answer carries no bytes at all.
-	if s.fill != nil && primary != nil && stored.RefsKnown && !stored.Linked {
+	if s.fill != nil && primary != nil && stored.RefsSource.Recorded() && !stored.Linked {
 		_ = s.fill(context.WithoutCancel(ctx), primary, ref, stored)
 	}
 	return stored, nil

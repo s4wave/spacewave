@@ -135,7 +135,7 @@ func newCompactTestController(t *testing.T, cloud *compactTestCloud, packs [][]s
 			data := []byte(datas[idx])
 			idx++
 			h, err := hash.Sum(hash.RecommendedHashType, data)
-			return h, &block.StoredBlock{Data: data, RefsKnown: true}, err
+			return h, &block.StoredBlock{Data: data, RefsSource: block.RefsAsserted}, err
 		})
 		if err != nil {
 			t.Fatalf("pack %d: %v", i, err)

@@ -39,7 +39,7 @@ func (d *durable) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*blo
 	if err != nil || !ok {
 		return nil, err
 	}
-	return &block.StoredBlock{Data: data, RefsKnown: !d.refsUnknown}, nil
+	return &block.StoredBlock{Data: data, RefsSource: block.AssertedIf(!d.refsUnknown)}, nil
 }
 
 // TestCacheServesBoundsAndIsolates reads blocks through a cache: a read fills
@@ -140,7 +140,7 @@ func TestCacheFillsBlocksWithUnknownRefs(t *testing.T) {
 	if n := lower.reads.Load() - before; n != 0 {
 		t.Fatalf("second read touched the durable store %d times, want 0", n)
 	}
-	if stored.RefsKnown {
+	if stored.RefsSource.Recorded() {
 		t.Fatal("the cached block reports its refs known")
 	}
 	if st := c.Stats(); st.Blocks != 1 || st.Fills != 1 || st.Hits != 1 {

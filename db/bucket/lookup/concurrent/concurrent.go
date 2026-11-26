@@ -315,7 +315,7 @@ func (c *LookupController) writeback(
 	subtree []*block.PutBatchEntry,
 ) error {
 	// Require enabled writeback and known edges before storing the block.
-	if !c.writesBack() || !res.RefsKnown {
+	if !c.writesBack() || !res.RefsSource.Recorded() {
 		return nil
 	}
 
@@ -324,7 +324,7 @@ func (c *LookupController) writeback(
 	// removes them unless a retained root reaches them. The buckets share
 	// the entries, which they only read.
 	entries := make([]*block.PutBatchEntry, 0, 1+len(subtree))
-	entries = append(entries, &block.PutBatchEntry{Ref: ref.Clone(), Data: res.Data, Refs: res.Refs, RefsKnown: true})
+	entries = append(entries, &block.PutBatchEntry{Ref: ref.Clone(), Data: res.Data, Refs: res.Refs, RefsKnown: res.RefsSource.Asserted()})
 	entries = append(entries, subtree...)
 	for _, e := range entries {
 		e.CacheFill = true
@@ -685,9 +685,9 @@ func (c *LookupController) lookupWithDirective(reqCtx context.Context, ref *bloc
 		return nil, nil, nil
 	}
 	return &block.StoredBlock{
-		Data:      lval.GetData(),
-		Refs:      lval.GetRefs(),
-		RefsKnown: lval.GetRefsKnown(),
+		Data:       lval.GetData(),
+		Refs:       lval.GetRefs(),
+		RefsSource: block.ListedIf(lval.GetRefsKnown()),
 	}, lval.GetSubtree(), nil
 }
 

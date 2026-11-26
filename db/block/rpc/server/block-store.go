@@ -128,7 +128,7 @@ func (s *BlockStore) GetBlock(
 		resp.Exists = true
 		resp.Data = stored.Data
 		resp.Refs = stored.Refs
-		resp.RefsKnown = stored.RefsKnown
+		resp.RefsKnown = stored.RefsSource.Recorded()
 	}
 	return resp, nil
 }

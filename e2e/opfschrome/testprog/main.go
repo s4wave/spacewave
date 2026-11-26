@@ -2043,7 +2043,7 @@ func packProbeDirtyBlocks(blocks []probeDirtyBlock) error {
 		}
 		dirty := blocks[idx]
 		idx++
-		return dirty.hash, &block.StoredBlock{Data: dirty.data, RefsKnown: true}, nil
+		return dirty.hash, &block.StoredBlock{Data: dirty.data, RefsSource: block.RefsAsserted}, nil
 	})
 	return errors.Wrap(err, "pack dirty blocks")
 }

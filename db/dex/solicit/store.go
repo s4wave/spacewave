@@ -108,12 +108,12 @@ func (s *Store) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block
 		return nil, err
 	}
 	if found.GetLinked() {
-		return &block.StoredBlock{Refs: found.GetRefs(), RefsKnown: true, Linked: true}, nil
+		return &block.StoredBlock{Refs: found.GetRefs(), RefsSource: block.RefsListed, Linked: true}, nil
 	}
 	return &block.StoredBlock{
-		Data:      found.GetData(),
-		Refs:      found.GetRefs(),
-		RefsKnown: found.GetRefsKnown(),
+		Data:       found.GetData(),
+		Refs:       found.GetRefs(),
+		RefsSource: block.ListedIf(found.GetRefsKnown()),
 	}, nil
 }
 

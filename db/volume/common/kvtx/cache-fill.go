@@ -3,6 +3,7 @@ package kvtx
 import (
 	"context"
 	"errors"
+	"slices"
 	"sync"
 
 	"github.com/aperturerobotics/util/ulid"
@@ -158,27 +159,29 @@ func (v *Volume) prepareCacheFills(ctx context.Context, owner string, fills []*c
 	if err := v.checkReserve(ctx, size); err != nil {
 		return err
 	}
-	if err := requireRefsKnown(entries); err != nil {
-		v.countRefused(putFill, err)
-		return err
-	}
 
 	// Store the fills, each through its caller's marker, without the store's
-	// writer unless one marks its block.
+	// writer unless one marks its block. A dropped fill stores nothing; its
+	// caller still gets its ref, as for any fill a later read can redo.
+	dropped := make([]block_gc.FillDrops, len(fills))
 	err := direct(ctx, func(p *physicalTx) error {
 		for i, fill := range fills {
-			existed, err := v.landFill(kvtx.WithBlockMarkRequest(ctx, fill.mark), p, owner, entries[i:i+1])
+			existed, drops, err := v.landFill(kvtx.WithBlockMarkRequest(ctx, fill.mark), p, owner, entries[i:i+1])
 			if err != nil {
 				return err
 			}
-			fill.ref, fill.existed = entries[i].Ref, existed[0]
+			fill.ref, fill.existed, dropped[i] = entries[i].Ref, existed[0], drops
 		}
 		return nil
 	})
 
-	// Count the blocks they stored, or the refusal.
+	// Count the blocks they stored and dropped, or the refusal.
 	if err == nil {
-		for _, fill := range fills {
+		for i, fill := range fills {
+			if len(dropped[i].At) != 0 {
+				v.countDropped(putFill, dropped[i])
+				continue
+			}
 			v.countPut(putFill, len(fill.data), fill.existed)
 		}
 	}
@@ -192,14 +195,10 @@ func (v *Volume) prepareCacheFills(ctx context.Context, owner string, fills []*c
 // queue; the batch runs with background admission, since a fill is a copy the
 // next read can redo.
 func (v *Volume) prepareFillBatch(ctx context.Context, owner string, entries []*block.PutBatchEntry) ([]bool, error) {
-	// Refuse new data below the disk reserve, and blocks without their child
-	// lists.
+	// Refuse new data below the disk reserve. RefillBlocks drops the copied
+	// entries of blocks the records do not list.
 	v.noteUnknownRefsBatch(putFill, entries)
 	if err := v.checkReserve(ctx, v.gateBytes(batchBytes(entries))); err != nil {
-		return nil, err
-	}
-	if err := requireRefsKnown(entries); err != nil {
-		v.countRefused(putFill, err)
 		return nil, err
 	}
 
@@ -210,17 +209,37 @@ func (v *Volume) prepareFillBatch(ctx context.Context, owner string, entries []*
 		direct = v.withDirectAtomic
 	}
 	ctx = block.WithBackground(ctx)
+
+	// Land the fills in one transaction, keeping the drops for the counts.
 	var existed []bool
+	var drops block_gc.FillDrops
 	err := direct(ctx, func(p *physicalTx) error {
 		var err error
-		existed, err = v.landFill(ctx, p, owner, entries)
+		existed, drops, err = v.landFill(ctx, p, owner, entries)
 		return err
 	})
+
+	// Count what was stored, dropped and refused.
 	if err == nil {
-		v.countPutBatch(putFill, entries, existed)
+		v.countPutBatch(putFill, withoutEntries(entries, drops.At), existed)
+		v.countDropped(putFill, drops)
 	}
 	v.countRefused(putFill, err)
 	return existed, err
+}
+
+// withoutEntries returns entries with those at the indexes at, which are
+// ascending, replaced by tombstones, which count as nothing stored. It
+// returns entries itself when at is empty.
+func withoutEntries(entries []*block.PutBatchEntry, at []int) []*block.PutBatchEntry {
+	if len(at) == 0 {
+		return entries
+	}
+	out := slices.Clone(entries)
+	for _, i := range at {
+		out[i] = &block.PutBatchEntry{Tombstone: true}
+	}
+	return out
 }
 
 // notCacheFill reports whether entry is not a cache fill.
@@ -241,17 +260,19 @@ const fillRootPrefix = "fill:"
 // with at least the collector's grace period left: the fill holds what it
 // gives birth to for a grace period, and the collector frees it once the
 // lease lapses unless something else holds it. It returns, for each entry,
-// whether blocks held its bytes before.
+// whether blocks held its bytes before, and the copied entries
+// RefillBlocks dropped.
 //
 // RefillBlocks reads each block's child list, and Land the state record and
 // the log positions, so an optimistic fill conflicts with each commit that
 // lands before it; the fill transaction falls back to the store's writer
 // after repeated conflicts.
-func (v *Volume) landFill(ctx context.Context, p *physicalTx, owner string, entries []*block.PutBatchEntry) ([]bool, error) {
-	// Refill the listed blocks' bytes.
-	rest, existed, err := block_gc.RefillBlocks(ctx, p.rec, p.blocks, entries)
+func (v *Volume) landFill(ctx context.Context, p *physicalTx, owner string, entries []*block.PutBatchEntry) ([]bool, block_gc.FillDrops, error) {
+	// Refill the listed blocks' bytes, dropping the copied entries of the
+	// others.
+	rest, existed, drops, err := block_gc.RefillBlocks(ctx, p.rec, p.blocks, entries)
 	if err != nil || len(rest) == 0 {
-		return existed, err
+		return existed, drops, err
 	}
 
 	// Join a fill lease with at least the fill hold left, when a block of
@@ -264,7 +285,7 @@ func (v *Volume) landFill(ctx context.Context, p *physicalTx, owner string, entr
 	var lease string
 	if len(refs) != 0 {
 		if lease, err = v.fillLease(ctx, p, hold); err != nil {
-			return nil, err
+			return nil, drops, err
 		}
 	}
 
@@ -276,7 +297,7 @@ func (v *Volume) landFill(ctx context.Context, p *physicalTx, owner string, entr
 	puts := block_gc.PutHold{Mode: v.heldMode, Observed: v.observeNotHeld, Partial: true}
 	landed, err := block_gc.Land(ctx, p.rec, p.blocks, v.now(), rest, puts, block_gc.BucketRoots{Roots: roots})
 	if err != nil {
-		return nil, err
+		return nil, drops, err
 	}
 
 	// Merge the landed entries' existence back in entry order.
@@ -287,7 +308,7 @@ func (v *Volume) landFill(ctx context.Context, p *physicalTx, owner string, entr
 			j++
 		}
 	}
-	return existed, nil
+	return existed, drops, nil
 }
 
 // unnamedRefs returns the refs of the entries no other entry names, once

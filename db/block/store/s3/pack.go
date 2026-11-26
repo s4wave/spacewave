@@ -363,7 +363,7 @@ func (s *PackStore) PutBlockBatch(ctx context.Context, batch []*block.PutBatchEn
 		}
 		entry := batch[i]
 		i++
-		return entry.Ref.GetHash(), &block.StoredBlock{Data: entry.Data, Refs: entry.Refs, RefsKnown: entry.RefsKnown}, nil
+		return entry.Ref.GetHash(), &block.StoredBlock{Data: entry.Data, Refs: entry.Refs, RefsSource: block.ListedIf(entry.RefsKnown)}, nil
 	})
 	if err != nil || entry == nil {
 		return nil, err

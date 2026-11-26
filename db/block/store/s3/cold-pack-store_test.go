@@ -708,7 +708,7 @@ func TestColdPackMoveKeepsUserTail(t *testing.T) {
 		t.Fatal(err)
 	}
 	stored, err := s.GetStoredBlockForMove(ctx, v[1].ref)
-	if err != nil || !stored.GetRefsKnown() || !bytes.Equal(stored.GetData(), v[1].data) || s.Stats().TailFetches != before {
+	if err != nil || !stored.GetRefsSource().Recorded() || !bytes.Equal(stored.GetData(), v[1].data) || s.Stats().TailFetches != before {
 		t.Fatalf("move did not reuse its verified tail: %v, %v, tails=%d", stored, err, s.Stats().TailFetches)
 	}
 }
@@ -1174,7 +1174,7 @@ func (f *coldFixture) addPack(t *testing.T, values []coldValue, falsePositive bo
 		v := values[i]
 		i++
 		f.keys = append(f.keys, packfile.BlockKey(v.ref.GetHash()))
-		return v.ref.GetHash(), &block.StoredBlock{Data: v.data, RefsKnown: true}, nil
+		return v.ref.GetHash(), &block.StoredBlock{Data: v.data, RefsSource: block.RefsAsserted}, nil
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -1412,7 +1412,7 @@ func assertColdBlock(t *testing.T, s *ColdPackStore, v coldValue) {
 	// Reject a data-only or unverified read of the written leaf.
 	t.Helper()
 	stored, err := s.GetStoredBlock(t.Context(), v.ref)
-	if err != nil || !bytes.Equal(stored.GetData(), v.data) || !stored.GetRefsKnown() || len(stored.GetRefs()) != 0 {
+	if err != nil || !bytes.Equal(stored.GetData(), v.data) || !stored.GetRefsSource().Recorded() || len(stored.GetRefs()) != 0 {
 		t.Fatalf("cold block = %v, %v; wanted leaf %q", stored, err, v.data)
 	}
 }

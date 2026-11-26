@@ -141,6 +141,29 @@ const (
 // again, as Records.rebirth describes: its old list's children outside the
 // run lose the holder it gave them, through downs.
 //
+// A list is marked only from refs the writer read from content: an entry
+// with RefsKnown. Another entry is copied: its refs came from a source's
+// stored list, which may lack a child. Land keeps these invariants for one:
+//
+//  1. A copied entry never writes or marks a list. Of a stored block it
+//     stores the bytes and holds the block as a put again; its list stays as
+//     it was, and markStored skips it, so its refs never join the list.
+//  2. While Open, a copied entry of a block without a list, or with a zero
+//     count and none, is born with its refs as an unverified list, through
+//     Records.putCopied, which enters it in the run and on the front in the
+//     same transaction. It joins the front at its birth whatever holds it,
+//     a root, a parent in the batch or a parent outside it, so the walk
+//     decodes it and pushes any child the copied refs lack before the flip.
+//  3. While Open, a copied entry of a parked block keeps its stored list,
+//     through Records.keepParked: repark's releases are not logged and the
+//     block gains no child, so the holders the list gives stay as they were.
+//     Its count is then absent, the implied holder; with no holder in the
+//     batch, the down appendLogs logs nets it to zero, which queues it.
+//  4. A copied entry of a recorded hole, and one of a block hidden or
+//     without a list past Open, refuses the Land with block.ErrRefsUnknown:
+//     no walk is left to check a copied list, and only content refills a
+//     hole.
+//
 // A Volume that is not adopted keeps no logs: Land writes the child lists
 // and roots and appends nothing, and an adoption counts every holder from
 // them. An adopting or adopted Volume refuses a block that names a child
@@ -287,6 +310,13 @@ type bornBlock struct {
 	// repark reports that the free parked the block, so the put gives birth
 	// to it again.
 	repark bool
+	// copied reports that the put named children it copied rather than
+	// read from content, so Land writes them as an unverified list the
+	// settle checks, as Land describes.
+	copied bool
+	// keep reports a copied put of a parked block, which keeps its stored
+	// list: children is nil, and the list gives its children no new holder.
+	keep bool
 	// written reports that its child list was written.
 	written bool
 }
@@ -409,26 +439,39 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 	if l.logs {
 		holds = &l.holds
 	}
-	err := classifyPuts(ctx, l.rec, l.blocks, entries, holds, func(entry *block.PutBatchEntry, kind putKind) {
+	err := classifyPuts(ctx, l.rec, l.blocks, entries, holds, func(entry *block.PutBatchEntry, kind putKind) error {
 		key := string(BlockKey(entry.Ref))
-		switch kind {
-		case putRefill:
+		copied := !entry.RefsKnown
+		switch {
+		case kind == putRefill && copied:
+			return errors.Wrapf(block.ErrRefsUnknown, "copied put of the hole %s", entry.Ref.MarshalString())
+		case kind == putRefill:
 			l.refills = append(l.refills, entry)
 			l.touched[key] = entry.Refs
-		case putStored:
-			l.stored = append(l.stored, entry)
+		case kind == putStored:
+			if !copied {
+				l.stored = append(l.stored, entry)
+			}
 			l.touched[key] = entry.Refs
+		case copied && kind == putParked:
+			b := &bornBlock{ref: entry.Ref, repark: true, keep: true}
+			l.born[key] = b
+			l.order = append(l.order, b)
+		case copied && l.gen != Generation_GENERATION_OPEN:
+			return errors.Wrapf(block.ErrRefsUnknown, "copied put of %s past the open generation", entry.Ref.MarshalString())
 		default:
 			b := &bornBlock{
 				ref:      entry.Ref,
 				children: normalizeChildren(entry.Refs),
 				counted:  kind == putCounted,
 				reborn:   kind == putReborn,
-				repark:   kind == putRepark,
+				repark:   kind == putRepark || kind == putParked,
+				copied:   copied,
 			}
 			l.born[key] = b
 			l.order = append(l.order, b)
 		}
+		return nil
 	})
 	if err != nil {
 		return nil, err
@@ -492,7 +535,7 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 			if err != nil {
 				return nil, err
 			}
-			if release {
+			if release && !b.keep {
 				l.down = append(l.down, released...)
 			}
 		}
@@ -506,10 +549,20 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 				l.down = append(l.down, released...)
 			}
 		}
-		if err := l.rec.PutChildren(ctx, b.ref, b.children); err != nil {
+		switch {
+		case b.keep:
+			// The stored list stays, and with it the holders it gives, so
+			// the put logs neither the downs repark released nor ups.
+			err = l.rec.keepParked(ctx, BlockKey(b.ref))
+		case b.copied:
+			err = l.rec.putCopied(ctx, b.ref, b.children)
+		default:
+			err = l.rec.PutChildren(ctx, b.ref, b.children)
+		}
+		if err != nil {
 			return nil, err
 		}
-		if l.adopting {
+		if l.adopting && !b.keep {
 			if err := l.rec.tx.Set(ctx, l.rec.key(kindAdoptBorn, BlockKey(b.ref)), nil); err != nil {
 				return nil, err
 			}
@@ -541,6 +594,10 @@ const (
 	// list left with a zero count: the put gives birth to it again, as
 	// Records.repark describes.
 	putRepark
+	// putParked is a block with a child list the free parked while Open:
+	// the put gives birth to it again, as Records.repark describes, and a
+	// copied put keeps its list.
+	putParked
 )
 
 // classifyPuts checks and names each put entry, building an empty ref from
@@ -563,7 +620,7 @@ func classifyPuts(
 	blocks block.StoreOps,
 	entries []*block.PutBatchEntry,
 	holds *zeroHolds,
-	fn func(entry *block.PutBatchEntry, kind putKind),
+	fn func(entry *block.PutBatchEntry, kind putKind) error,
 ) error {
 	// Check and name each entry, once per block.
 	seen := make(map[string]struct{}, len(entries))
@@ -575,9 +632,6 @@ func classifyPuts(
 		}
 		if len(entry.Data) == 0 {
 			return block.ErrEmptyBlock
-		}
-		if !entry.RefsKnown {
-			return errors.Wrap(block.ErrRefsUnknown, entry.Ref.MarshalString())
 		}
 		if entry.Ref.GetEmpty() {
 			ref, err := block.BuildBlockRef(entry.Data, &block.PutOpts{HashType: blocks.GetHashType()})
@@ -674,7 +728,9 @@ func classifyPuts(
 		}
 	}
 	for i, entry := range puts {
-		fn(entry, kinds[i])
+		if err := fn(entry, kinds[i]); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -827,7 +883,7 @@ func listedPut(ctx context.Context, rec *Records, ref *block.BlockRef) (putKind,
 	// A hidden one is parked while Open and unmarked otherwise.
 	gen, err := rec.generation(ctx)
 	if err == nil && gen == Generation_GENERATION_OPEN {
-		return putRepark, nil
+		return putParked, nil
 	}
 	return putReborn, err
 }
@@ -1311,7 +1367,7 @@ func (l *lander) requireTree(ctx context.Context, ref *block.BlockRef, staged st
 func (l *lander) carried(ref *block.BlockRef) ([]*block.BlockRef, bool) {
 	key := BlockKey(ref)
 	if b, ok := l.born[string(key)]; ok {
-		return b.children, true
+		return b.children, !b.keep
 	}
 	children, ok := l.touched[string(key)]
 	return children, ok

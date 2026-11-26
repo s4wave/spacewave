@@ -67,7 +67,7 @@ func (s *overlayBatchTestStore) PutBlock(ctx context.Context, data []byte, opts 
 func (s *overlayBatchTestStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	stored, err := s.StoreOps.GetStoredBlock(ctx, ref)
 	if stored != nil && s.leaves {
-		stored.RefsKnown = true
+		stored.RefsSource = block.RefsAsserted
 	}
 	return stored, err
 }

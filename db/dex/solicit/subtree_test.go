@@ -55,7 +55,7 @@ func newSubtreeTestTree(t *testing.T, depth, fanout, size int) (linkedServeStore
 		children[ref.MapKey()] = refs
 		all = append(all, ref)
 		total += len(data)
-		store.blocks[ref.MarshalString()] = &block.StoredBlock{Data: data, Refs: refs, RefsKnown: true}
+		store.blocks[ref.MarshalString()] = &block.StoredBlock{Data: data, Refs: refs, RefsSource: block.RefsAsserted}
 		return ref
 	}
 	root := build(0, 0)

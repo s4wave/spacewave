@@ -305,7 +305,7 @@ func (s *blockSink) PutBlockBatch(ctx context.Context, entries []*block.PutBatch
 	for _, e := range entries {
 		b := copiedBlock{
 			hash:   e.Ref.GetHash(),
-			stored: &block.StoredBlock{Data: e.Data, Refs: e.Refs, RefsKnown: e.RefsKnown},
+			stored: &block.StoredBlock{Data: e.Data, Refs: e.Refs, RefsSource: block.ListedIf(e.RefsKnown)},
 		}
 		select {
 		case s.out <- b:

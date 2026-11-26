@@ -79,9 +79,9 @@ func TestLinkedAnswersSkipOnlyLinkedBlocks(t *testing.T) {
 	linkedLeaf := testDexBlockRef(t, "linked-leaf")
 	root := testDexBlockRef(t, "root")
 	serve := linkedServeStore{blocks: map[string]*block.StoredBlock{
-		root.MarshalString():       {Data: []byte("root"), Refs: []*block.BlockRef{volumeLeaf, linkedLeaf}, RefsKnown: true},
-		volumeLeaf.MarshalString(): {Data: []byte("volume-leaf"), RefsKnown: true},
-		linkedLeaf.MarshalString(): {Data: []byte("linked-leaf"), RefsKnown: true, Linked: true},
+		root.MarshalString():       {Data: []byte("root"), Refs: []*block.BlockRef{volumeLeaf, linkedLeaf}, RefsSource: block.RefsAsserted},
+		volumeLeaf.MarshalString(): {Data: []byte("volume-leaf"), RefsSource: block.RefsAsserted},
+		linkedLeaf.MarshalString(): {Data: []byte("linked-leaf"), RefsSource: block.RefsAsserted, Linked: true},
 	}}
 	ownerCtrl := newTestDexSolicitController()
 	ownerCtrl.SetLocalSource(func() block.StoreOps { return serve })
