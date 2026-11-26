@@ -1399,7 +1399,6 @@ func (e *Engine) Close() error {
 
 	// Cancel the change watch comparison in flight and wake its watchers.
 	if w := e.changeWatch; w != nil {
-		w.cancel()
 		e.stopChangeWatchLocked(w)
 	}
 

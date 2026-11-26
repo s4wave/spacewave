@@ -7,6 +7,8 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/aperturerobotics/util/broadcast"
+
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
@@ -41,6 +43,16 @@ func (e *Engine) GetUnknownChangeCount() uint64 {
 // The Engine starts the watch for the first watcher and it exits when the last
 // watcher leaves or the Engine closes. Its fields are guarded by the Engine
 // bcast lock, except index, which indexMtx guards.
+//
+// Callers work on the watch only through its methods. A running watch takes
+// watchers (addWaiterLocked, addSubLocked, indexSub) and loses them
+// (removeWaiterLocked, removeSubLocked, unindexSub), and the last to leave
+// closes its idle channel. For each new head it advances its base
+// (advanceLocked) and hands the span out (handOut), and between heads it
+// waits (waitLocked). Once stopped (stopLocked) it cancels its comparisons
+// and wakes every watcher, and its loop releases the base (releaseBase). The
+// methods named Locked need bcast; the ones that take indexMtx must be called
+// without it.
 type engineChangeWatch struct {
 	// ctx cancels a comparison in flight when the Engine closes.
 	ctx context.Context
@@ -203,25 +215,14 @@ func (e *Engine) watchObjectKeyLocked(key string) (*engineChangeWatch, *objectKe
 	}
 
 	// Share one wake channel among the waiters of the same key.
-	wake := w.waiters[key]
-	if wake == nil {
-		wake = &objectKeyWake{}
-		wake.state.Store(&objectKeyState{ch: make(chan struct{})})
-		w.waiters[key] = wake
-	}
-	wake.refs++
-	return w, wake, nil
+	return w, w.addWaiterLocked(key), nil
 }
 
 // unwatchObjectKey removes a waiter registration from its change watch.
 func (e *Engine) unwatchObjectKey(w *engineChangeWatch, key string, wake *objectKeyWake) {
 	// Drop the waiter, and the key once no waiter shares it.
 	locked := e.bcast.Lock()
-	wake.refs--
-	if wake.refs == 0 {
-		delete(w.waiters, key)
-	}
-	w.checkIdleLocked()
+	w.removeWaiterLocked(key, wake)
 	locked.Unlock()
 }
 
@@ -237,21 +238,8 @@ func (e *Engine) startChangeWatchLocked() (*engineChangeWatch, error) {
 	}
 
 	// Start from the published head, held while it is the base.
-	ctx, cancel := context.WithCancel(context.Background())
 	base, release := e.holdHeadLocked()
-	w := &engineChangeWatch{
-		ctx:             ctx,
-		cancel:          cancel,
-		base:            base,
-		baseSeqno:       e.headSeqnoLocked(),
-		basePublication: e.published,
-		baseRelease:     release,
-		waiters:         make(map[string]*objectKeyWake),
-		subs:            make(map[*changeSubscriber]struct{}),
-		index:           world.NewChangeIndex[*changeSubscriber](),
-		idle:            make(chan struct{}),
-	}
-	w.handed.Store(w.baseSeqno)
+	w := newEngineChangeWatch(base, e.headSeqnoLocked(), e.published, release)
 	e.changeWatch = w
 	e.changeWatches++
 	go e.runChangeWatch(w)
@@ -268,8 +256,7 @@ func (e *Engine) runChangeWatch(w *engineChangeWatch) {
 		if e.closed || w.emptyLocked() {
 			e.stopChangeWatchLocked(w)
 			locked.Unlock()
-			w.cancel()
-			w.baseRelease()
+			w.releaseBase()
 
 			// Let Close release the stores only after the base is released.
 			locked = e.bcast.Lock()
@@ -281,13 +268,8 @@ func (e *Engine) runChangeWatch(w *engineChangeWatch) {
 
 		// Wait for a head the watch has not compared. A wakeup without a new
 		// head reports an observation failure, which watchers must see.
-		if e.head.root.GetRef().EqualsRef(w.base.GetRef()) {
-			wait, idle := e.headSignal.Load().changed, w.idle
-			locked.Unlock()
-			select {
-			case <-wait:
-			case <-idle:
-			}
+		if e.head.root.GetRef().EqualsRef(w.baseRefLocked()) {
+			w.waitLocked(&locked, e.headSignal.Load().changed)
 			continue
 		}
 
@@ -303,7 +285,7 @@ func (e *Engine) runChangeWatch(w *engineChangeWatch) {
 		case !skipped:
 			recorded = e.watchedHeads[len(e.watchedHeads)-1].changes
 		case listChanges:
-			plan = e.watchSpanPlanLocked(w.basePublication, w.base.GetRef().CloneVT(), nextHead)
+			plan = e.watchSpanPlanLocked(w.basePublication, w.baseRefLocked().CloneVT(), nextHead)
 		}
 		locked.Unlock()
 
@@ -339,7 +321,7 @@ func (e *Engine) runChangeWatch(w *engineChangeWatch) {
 		default:
 			changes = world.NewUnknownChangeSet()
 		}
-		if err != nil && w.ctx.Err() == nil {
+		if err != nil && compareCtx.Err() == nil {
 			e.le.WithError(err).Warn("world change comparison failed; waking every watcher")
 		}
 
@@ -360,35 +342,11 @@ func (e *Engine) runChangeWatch(w *engineChangeWatch) {
 			w.wakeAllLocked()
 		}
 		w.wakeKeysLocked(keys, nextHead, revs)
-		w.recordLocked(changeSpan{
-			after:    w.baseSeqno,
-			afterRef: w.base.GetRef().CloneVT(),
-			seqno:    nextSeqno,
-			changes:  changes,
-		}, listChanges && err == nil)
-		prevRelease := w.baseRelease
-		w.base, w.baseSeqno, w.basePublication, w.baseRelease = next, nextSeqno, nextHead, nextRelease
+		prevRelease := w.advanceLocked(next, nextSeqno, nextHead, nextRelease, changes, listChanges && err == nil)
 		locked.Unlock()
 
-		// Find the subscribers the changes name after the record. A
-		// subscriber indexes itself before it reads the base, so one missing
-		// from the index here reads a base at or past this span and merges it
-		// from the history or its catch-up instead.
-		w.indexMtx.Lock()
-		accepted, tested := w.index.Candidates(changes)
-		w.indexMtx.Unlock()
-
-		// Hand the changes to the subscribers a changed key names, and to the
-		// other named ones that accept them, testing those outside the locks.
-		for _, sub := range accepted {
-			sub.add(nextSeqno, changes)
-		}
-		for _, sub := range tested {
-			if sub.interest.Load().Accepts(changes) {
-				sub.add(nextSeqno, changes)
-			}
-		}
-		w.handed.Store(nextSeqno)
+		// Hand the span to its subscribers, then release the previous base.
+		w.handOut(nextSeqno, changes)
 		prevRelease()
 	}
 }
@@ -438,7 +396,7 @@ func (e *Engine) compareWatchedObjectKeys(
 ) ([]string, error) {
 	// Snapshot the watched keys under bcast, returning early when none wait.
 	locked := e.bcast.Lock()
-	watched := slices.Collect(maps.Keys(w.waiters))
+	watched := w.watchedKeysLocked()
 	locked.Unlock()
 	if len(watched) == 0 {
 		return []string{}, nil
@@ -457,9 +415,7 @@ func (e *Engine) compareWatchedObjectKeys(
 func (e *Engine) readWatchedRevs(ctx context.Context, w *engineChangeWatch, head *bucket_lookup.Cursor, keys []string) map[string]objectKeyState {
 	// Keep the changed keys that have waiters.
 	locked := e.bcast.Lock()
-	watched := slices.DeleteFunc(slices.Clone(keys), func(key string) bool {
-		return w.waiters[key] == nil
-	})
+	watched := w.watchedOfLocked(keys)
 	locked.Unlock()
 	if len(watched) == 0 {
 		return nil
@@ -486,19 +442,176 @@ func (e *Engine) readWatchedRevs(ctx context.Context, w *engineChangeWatch, head
 	return revs
 }
 
-// recordLocked records the span the watch compared when it listed the
-// changes, and otherwise forgets every span, since a span without its
+// newEngineChangeWatch returns a watch whose base is the held head base at
+// seqno and publication, which release lets go. The caller starts its loop.
+func newEngineChangeWatch(base *bucket_lookup.Cursor, seqno, publication uint64, release func()) *engineChangeWatch {
+	ctx, cancel := context.WithCancel(context.Background())
+	w := &engineChangeWatch{
+		ctx:             ctx,
+		cancel:          cancel,
+		base:            base,
+		baseSeqno:       seqno,
+		basePublication: publication,
+		baseRelease:     release,
+		waiters:         make(map[string]*objectKeyWake),
+		subs:            make(map[*changeSubscriber]struct{}),
+		index:           world.NewChangeIndex[*changeSubscriber](),
+		idle:            make(chan struct{}),
+	}
+	w.handed.Store(seqno)
+	return w
+}
+
+// baseRefLocked returns the reference of the base. The caller must hold
+// bcast.
+func (w *engineChangeWatch) baseRefLocked() *bucket.ObjectRef {
+	return w.base.GetRef()
+}
+
+// waitLocked releases the bcast lock the caller holds and waits until changed
+// closes or the last watcher leaves.
+func (w *engineChangeWatch) waitLocked(locked *broadcast.Locked, changed <-chan struct{}) {
+	idle := w.idle
+	locked.Unlock()
+	select {
+	case <-changed:
+	case <-idle:
+	}
+}
+
+// advanceLocked makes the held head next the base and returns the release of
+// the previous base, which the caller runs once it has handed the span out.
+// It records the span from the old base when listed reports its ChangeSet
+// complete, and otherwise forgets every span, since a span without its
 // ChangeSet breaks the chain from the earlier ones to the base. The caller
 // must hold bcast.
-func (w *engineChangeWatch) recordLocked(span changeSpan, listed bool) {
+func (w *engineChangeWatch) advanceLocked(
+	next *bucket_lookup.Cursor,
+	seqno, publication uint64,
+	release func(),
+	changes *world.ChangeSet,
+	listed bool,
+) func() {
+	// Record the span, evicting the oldest at capacity.
 	if !listed {
 		w.history = nil
-		return
+	} else {
+		if len(w.history) == changeWatchHeads {
+			w.history = slices.Delete(w.history, 0, 1)
+		}
+		w.history = append(w.history, changeSpan{
+			after:    w.baseSeqno,
+			afterRef: w.base.GetRef().CloneVT(),
+			seqno:    seqno,
+			changes:  changes,
+		})
 	}
-	if len(w.history) == changeWatchHeads {
-		w.history = slices.Delete(w.history, 0, 1)
+
+	// Advance the base.
+	prevRelease := w.baseRelease
+	w.base, w.baseSeqno, w.basePublication, w.baseRelease = next, seqno, publication, release
+	return prevRelease
+}
+
+// handOut hands the span reaching seqno to the subscribers a changed key
+// names, and to the other named ones that accept it, then marks it handed.
+// It runs after advanceLocked recorded the span: a subscriber indexes itself
+// before it reads the base, so one missing from the index here reads a base
+// at or past this span and merges it from the history or its catch-up
+// instead. The caller must not hold bcast.
+func (w *engineChangeWatch) handOut(seqno uint64, changes *world.ChangeSet) {
+	// Find the subscribers the changes name.
+	w.indexMtx.Lock()
+	accepted, tested := w.index.Candidates(changes)
+	w.indexMtx.Unlock()
+
+	// Hand the changes out, testing the merely named subscribers outside
+	// the locks.
+	for _, sub := range accepted {
+		sub.add(seqno, changes)
 	}
-	w.history = append(w.history, span)
+	for _, sub := range tested {
+		if sub.interest.Load().Accepts(changes) {
+			sub.add(seqno, changes)
+		}
+	}
+	w.handed.Store(seqno)
+}
+
+// handedSeqno returns the seqno of the last span handed to the subscribers.
+func (w *engineChangeWatch) handedSeqno() uint64 {
+	return w.handed.Load()
+}
+
+// releaseBase releases the retention hold on the base of a stopped watch.
+func (w *engineChangeWatch) releaseBase() {
+	w.baseRelease()
+}
+
+// addWaiterLocked registers a waiter on key and returns the wake it shares
+// with the key's other waiters. The caller must hold bcast.
+func (w *engineChangeWatch) addWaiterLocked(key string) *objectKeyWake {
+	wake := w.waiters[key]
+	if wake == nil {
+		wake = &objectKeyWake{}
+		wake.state.Store(&objectKeyState{ch: make(chan struct{})})
+		w.waiters[key] = wake
+	}
+	wake.refs++
+	return wake
+}
+
+// removeWaiterLocked drops a waiter registered on key with wake, and the key
+// once no waiter shares it, which may let w go idle. The caller must hold
+// bcast.
+func (w *engineChangeWatch) removeWaiterLocked(key string, wake *objectKeyWake) {
+	wake.refs--
+	if wake.refs == 0 {
+		delete(w.waiters, key)
+	}
+	w.checkIdleLocked()
+}
+
+// watchedKeysLocked returns the object keys some waiter watches. The caller
+// must hold bcast.
+func (w *engineChangeWatch) watchedKeysLocked() []string {
+	return slices.Collect(maps.Keys(w.waiters))
+}
+
+// watchedOfLocked returns, in a new slice, the keys of keys some waiter
+// watches. The caller must hold bcast.
+func (w *engineChangeWatch) watchedOfLocked(keys []string) []string {
+	return slices.DeleteFunc(slices.Clone(keys), func(key string) bool {
+		return w.waiters[key] == nil
+	})
+}
+
+// addSubLocked joins sub to w. The caller must hold bcast.
+func (w *engineChangeWatch) addSubLocked(sub *changeSubscriber) {
+	w.subs[sub] = struct{}{}
+}
+
+// removeSubLocked removes sub from w, which may let w go idle. The caller
+// must hold bcast.
+func (w *engineChangeWatch) removeSubLocked(sub *changeSubscriber) {
+	delete(w.subs, sub)
+	w.checkIdleLocked()
+}
+
+// indexSub indexes sub by the names in interest under indexMtx. The caller
+// must not hold bcast.
+func (w *engineChangeWatch) indexSub(sub *changeSubscriber, interest *world.ChangeInterest) {
+	w.indexMtx.Lock()
+	w.index.Add(sub, interest)
+	w.indexMtx.Unlock()
+}
+
+// unindexSub removes sub from the index under indexMtx. The caller must not
+// hold bcast.
+func (w *engineChangeWatch) unindexSub(sub *changeSubscriber) {
+	w.indexMtx.Lock()
+	w.index.Remove(sub)
+	w.indexMtx.Unlock()
 }
 
 // spansSinceLocked returns a copy of the recorded spans from the head at after
@@ -524,12 +637,13 @@ func mergeSpans(spans []changeSpan) *world.ChangeSet {
 }
 
 // stopChangeWatchLocked detaches w so the next watcher starts a fresh watch,
-// and wakes its watchers. The caller must hold bcast.
+// cancels its comparisons in flight, and wakes its watchers. The caller must
+// hold bcast.
 func (e *Engine) stopChangeWatchLocked(w *engineChangeWatch) {
 	if e.changeWatch == w {
 		e.changeWatch = nil
 	}
-	w.wakeAllLocked()
+	w.stopLocked()
 }
 
 // headSeqnoLocked returns the seqno of the published head. Every published
@@ -568,6 +682,13 @@ func (w *engineChangeWatch) wakeKeysLocked(keys []string, head uint64, revs map[
 		}
 		wake.publish(next)
 	}
+}
+
+// stopLocked cancels w's comparisons in flight and wakes every watcher. The
+// caller must hold bcast.
+func (w *engineChangeWatch) stopLocked() {
+	w.cancel()
+	w.wakeAllLocked()
 }
 
 // wakeAllLocked wakes every watcher. The caller must hold bcast.

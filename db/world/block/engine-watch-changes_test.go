@@ -984,9 +984,9 @@ func TestWatchIndexedChangesCovered(t *testing.T) {
 	locked := e.bcast.Lock()
 	w := e.changeWatch
 	locked.Unlock()
-	for deadline := time.Now().Add(10 * time.Second); w.handed.Load() != head; time.Sleep(time.Millisecond) {
+	for deadline := time.Now().Add(10 * time.Second); w.handedSeqno() != head; time.Sleep(time.Millisecond) {
 		if time.Now().After(deadline) {
-			t.Fatalf("watch handed out %d, want %d", w.handed.Load(), head)
+			t.Fatalf("watch handed out %d, want %d", w.handedSeqno(), head)
 		}
 	}
 	if covered := stop(); covered != head {

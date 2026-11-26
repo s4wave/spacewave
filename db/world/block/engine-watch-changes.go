@@ -251,7 +251,7 @@ func (e *Engine) subscribeChanges(ctx context.Context, interest *world.ChangeInt
 			sub = kept.sub
 		} else {
 			sub = &changeSubscriber{wake: make(chan struct{}, 1)}
-			w.subs[sub] = struct{}{}
+			w.addSubLocked(sub)
 		}
 	}
 	locked.Unlock()
@@ -284,9 +284,7 @@ func (e *Engine) subscribeChanges(ctx context.Context, interest *world.ChangeInt
 	// the caller reads the base, so the watch hands it every span it records
 	// past that base.
 	sub.interest.Store(interest)
-	w.indexMtx.Lock()
-	w.index.Add(sub, interest)
-	w.indexMtx.Unlock()
+	w.indexSub(sub, interest)
 
 	// End the call by keeping the subscriber in the slot, idle, or by leaving.
 	if slot == nil {
@@ -304,14 +302,11 @@ func (e *Engine) subscribeChanges(ctx context.Context, interest *world.ChangeInt
 // w go idle.
 func (e *Engine) leaveChangeWatch(w *engineChangeWatch, sub *changeSubscriber) {
 	// Leave the index first, under its own lock.
-	w.indexMtx.Lock()
-	w.index.Remove(sub)
-	w.indexMtx.Unlock()
+	w.unindexSub(sub)
 
 	// Then leave the watch.
 	locked := e.bcast.Lock()
-	delete(w.subs, sub)
-	w.checkIdleLocked()
+	w.removeSubLocked(sub)
 	locked.Unlock()
 }
 
@@ -466,7 +461,7 @@ func (s *changeSubscriber) add(seqno uint64, changes *world.ChangeSet) {
 // through w.
 func (s *changeSubscriber) coveredThrough(w *engineChangeWatch, afterSeqno uint64) uint64 {
 	// Load handed first: every span through it was added before the store.
-	handed := w.handed.Load()
+	handed := w.handedSeqno()
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	if s.changes != nil {

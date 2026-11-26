@@ -96,18 +96,8 @@ func (e *Engine) catchUpSubscriber(ctx context.Context, w *engineChangeWatch, su
 // subscribers. Close joins the resolution like a change watch. The caller must
 // hold bcast.
 func (e *Engine) startCatchUpLocked(w *engineChangeWatch, afterSeqno uint64, after *watchedHead) *changeCatchUp {
-	// Record the catch-up, evicting the oldest at capacity.
-	c := &changeCatchUp{
-		after:    afterSeqno,
-		afterRef: after.ref.CloneVT(),
-		seqno:    w.baseSeqno,
-		ref:      w.base.GetRef().CloneVT(),
-		done:     make(chan struct{}),
-	}
-	if len(w.catchUps) == changeWatchHeads {
-		w.catchUps = slices.Delete(w.catchUps, 0, 1)
-	}
-	w.catchUps = append(w.catchUps, c)
+	// Record the catch-up for later subscribers.
+	c := w.addCatchUpLocked(afterSeqno, after)
 
 	// Collect the span plan under bcast. Complete immediately when unknown or
 	// one recorded ChangeSet covers the span; otherwise merge and compare in
@@ -246,6 +236,24 @@ func (e *Engine) compareObjectRefs(ctx context.Context, before, after *bucket.Ob
 	_, beforeBcs := beforeCur.BuildTransactionWithStore(nil, e.writeBlockStore)
 	_, afterBcs := afterCur.BuildTransactionWithStore(nil, e.writeBlockStore)
 	return WorldChanges(ctx, beforeBcs, afterBcs, changeDiffLimit)
+}
+
+// addCatchUpLocked records a comparison from the recorded head after at
+// afterSeqno to the base, evicting the oldest at capacity, and returns it
+// unresolved. The caller must hold bcast.
+func (w *engineChangeWatch) addCatchUpLocked(afterSeqno uint64, after *watchedHead) *changeCatchUp {
+	c := &changeCatchUp{
+		after:    afterSeqno,
+		afterRef: after.ref.CloneVT(),
+		seqno:    w.baseSeqno,
+		ref:      w.base.GetRef().CloneVT(),
+		done:     make(chan struct{}),
+	}
+	if len(w.catchUps) == changeWatchHeads {
+		w.catchUps = slices.Delete(w.catchUps, 0, 1)
+	}
+	w.catchUps = append(w.catchUps, c)
+	return c
 }
 
 // findCatchUpLocked returns the recorded comparison from the head at after,
