@@ -1330,6 +1330,16 @@ func (a *Adapter) holdAdmitted(ctx context.Context, adm *spaceAdmission, stored 
 		return err
 	}
 	defer release()
+
+	// The move does not require the blocks it newly reaches held, as
+	// block.NamedRoot.RequireHeld would, because each is already kept by
+	// one of three: a kept page this move itself stores through the
+	// PendingStore's SetRoots; a page an open stage holds, the overflow
+	// stage until this returns or the writer's stage until its transaction
+	// ends; or a stored page of a live World, which runTrim holds in the
+	// same move that releases any World. Requiring them held would instead
+	// refuse a candidate over a boundary block revived from zero until its
+	// grace passes, and refuse the rebuilt candidate again.
 	return a.addRoot(ctx, &a.pendingWorlds, adm.candidate.Root)
 }
 
