@@ -29,6 +29,16 @@ func watchBackendPause(remote block_store.StoreSource) backendPause {
 	}
 }
 
+// racingKey marks the context of an alternate's read in raceAlternates.
+type racingKey struct{}
+
+// racingBackend reports whether ctx is an alternate's read that races a
+// paused backend, which has not answered yet: a miss there is not yet a miss
+// of every tier.
+func racingBackend(ctx context.Context) bool {
+	return ctx.Value(racingKey{}) != nil
+}
+
 // raceResult is the answer of raceAlternates.
 type raceResult[T any] struct {
 	// v and err are the answer: the primary read's, or an alternate's hit.
@@ -58,6 +68,7 @@ type raceAnswer[T any] struct {
 //
 // primary runs in its own goroutine under a context that ends when
 // raceAlternates returns, so a primary that lost the race returns soon after.
+// The alternates read under that context marked as racingBackend describes.
 func raceAlternates[T any](
 	ctx context.Context,
 	pause backendPause,
@@ -82,6 +93,7 @@ func raceAlternates[T any](
 
 	// Ask the next alternate while the backend is paused, and serve the
 	// first answer that counts.
+	altCtx := context.WithValue(ctx, racingKey{}, true)
 	var altDone chan raceAnswer[T]
 	var res raceResult[T]
 	for {
@@ -93,7 +105,7 @@ func raceAlternates[T any](
 				altDone = make(chan raceAnswer[T], 1)
 				alt := alternates[next]
 				go func() {
-					v, err := alt(ctx)
+					v, err := alt(altCtx)
 					altDone <- raceAnswer[T]{v, err}
 				}()
 				changed = nil
