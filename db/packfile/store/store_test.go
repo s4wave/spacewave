@@ -2356,6 +2356,78 @@ func TestPackfileStoreSharedReadCacheBudget(t *testing.T) {
 	}
 }
 
+// TestPackfileStoreSharedBudgetDropsIndexesOnLoad checks that index loads alone
+// enforce the shared read-cache budget without fetching spans.
+func TestPackfileStoreSharedBudgetDropsIndexesOnLoad(t *testing.T) {
+	// Build three packs with one block each.
+	ctx := t.Context()
+	packA, bloomA := buildTestPackOrdered(t, []struct{ Name, Data string }{{"a", "alpha"}})
+	packB, bloomB := buildTestPackOrdered(t, []struct{ Name, Data string }{{"b", "beta!!"}})
+	packC, bloomC := buildTestPackOrdered(t, []struct{ Name, Data string }{{"c", "gamma"}})
+	packs := map[string][]byte{"pack-a": packA, "pack-b": packB, "pack-c": packC}
+	opener := func(packID string, size int64) (*PackReader, error) {
+		return NewPackReader(packID, size, &bytesTransport{data: packs[packID]}), nil
+	}
+
+	// Publish the packs under a budget smaller than one index.
+	shared := block.NewReadCacheBudget(8)
+	store := NewPackfileStore(opener, newMemIndexCache())
+	t.Cleanup(store.JoinReadCacheBudget(shared))
+	store.UpdateManifest([]*packfile.PackfileEntry{
+		{Id: "pack-a", BloomFilter: bloomA, BlockCount: 1, SizeBytes: uint64(len(packA))},
+		{Id: "pack-b", BloomFilter: bloomB, BlockCount: 1, SizeBytes: uint64(len(packB))},
+		{Id: "pack-c", BloomFilter: bloomC, BlockCount: 1, SizeBytes: uint64(len(packC))},
+	})
+	t.Cleanup(store.Close)
+
+	// Load each pack index through an existence check that fetches no span.
+	for _, data := range []string{"alpha", "beta!!", "gamma"} {
+		h, _ := hash.Sum(hash.HashType_HashType_SHA256, []byte(data))
+		found, err := store.GetBlockExists(ctx, &block.BlockRef{Hash: h})
+		if err != nil || !found {
+			t.Fatalf("GetBlockExists(%s): found=%v err=%v", data, found, err)
+		}
+	}
+
+	// Wait for the index jobs to finish reclaiming after publishing their indexes.
+	store.mtx.Lock()
+	engines := store.snapshotEnginesLocked()
+	store.mtx.Unlock()
+	for _, engine := range engines {
+		if !waitFor(t, func() (bool, <-chan struct{}) {
+			var done bool
+			var waitCh <-chan struct{}
+			engine.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+				done = engine.workCount == 0
+				if !done {
+					waitCh = getWaitCh()
+				}
+			})
+			return done, waitCh
+		}) {
+			t.Fatalf("index work did not finish for %s", engine.packID)
+		}
+	}
+
+	// Verify that the shared budget evicted encoded bytes.
+	if shared.Evicted(block.ReadCacheEncoded) <= 0 {
+		t.Fatal("shared budget never evicted from the store")
+	}
+
+	// Count the indexes left after the budget reclaims down to one.
+	n := 0
+	for _, engine := range engines {
+		engine.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			if engine.indexLoaded {
+				n++
+			}
+		})
+	}
+	if n != 1 {
+		t.Fatalf("%d indexes resident, want 1", n)
+	}
+}
+
 func TestPackfileStoreCloseDrainsWritebackBeforeReleasingReferences(t *testing.T) {
 	// Gate the first block writeback in an initialized pack reader.
 	firstPut := make(chan struct{})
