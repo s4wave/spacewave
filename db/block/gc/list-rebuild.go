@@ -46,24 +46,29 @@ func rebuildable(state *LivenessState) error {
 // whatever refs their caller hands them, and the walker can verify one
 // block twice in a run, under two types: the first, short, marks the list,
 // and the second must still add the children it lacks. A marked list that
-// lacks a decoded child is rewritten as the union and notes the rewrite; one
-// that names every child is not written.
+// lacks a decoded child is rewritten as the union, still marked, and notes
+// the rewrite; one that names every child is not written.
 //
 // Invariant: after a walk that finishes with an empty front, every list a
-// root reaches through the walker and that it decoded was compared with its
-// block's content in this run. Outside it, and so reported rather than held
-// by the front: a marked list of a block the walker could not decode or
-// type with certainty (MarkedUndecodable), a marked list the merge refused
-// (MarkedRefused), a block no read resolves, and the blocks below a ref
-// whose type the walker cannot name.
+// root reaches through the walker and that it decoded names every child
+// this run decoded from its block's content. Outside it, and so reported
+// rather than held by the front: a marked list of a block the walker could
+// not decode or type with certainty (MarkedUndecodable), a block no read
+// resolves, and the blocks below a ref whose type the walker cannot name.
 //
 // Verify writes the union of the stored list and the refs, since a list may
-// lack a child and naming one more only keeps a block longer; refs that lack
-// a child the stored list names are refused, not written: a stored list can
-// only miss children, so such refs come from a wrong decoder, and the block
-// stays on the front. A list that gains a child logs no holder for it, so
-// on a Volume that keeps the logs the rewrite records that the counts owe a
-// recount, which the flip reads to return the Volume to unadopted first.
+// lack a child and naming one more only keeps a block longer. Refs that lack
+// a child an unverified stored list names are refused, not written: a stored
+// list can only miss children, so such refs come from a wrong decoder, and
+// the block stays on the front, which holds the flip. A marked list is past
+// the front, so a refusal would leave it lacking with nothing to hold the
+// flip, and the sweep would free the child it lacks: it takes the union
+// whatever else it names, and MarkedRefused reports the disagreement. A
+// child only a wrong decoder names has no marked list, so it joins the
+// front and holds the flip. A list that gains a child logs no holder for
+// it, so on a Volume that keeps the logs the rewrite records that the
+// counts owe a recount, which the flip reads to return the Volume to
+// unadopted first.
 //
 // The walker reads through the Volume's full read chain, peers included,
 // and fills nothing, so a block the Volume lacks, as a peer's cache lacks
@@ -275,11 +280,13 @@ func judgeList(value []byte, listed bool, refs []*block.BlockRef) (listVerdict, 
 		return listRewritten, nil
 	}
 
-	// A listed one is refused, kept, or rewritten as the union.
+	// An unverified one is refused when the refs drop a child it names.
 	old, encoded := listKeys(value), EncodeChildren(refs)
-	if !containsChildren(encoded, old) {
+	if !listMarked(value) && !containsChildren(encoded, old) {
 		return listDropped, nil
 	}
+
+	// A listed one is otherwise kept, or rewritten as the union.
 	union, err := unionChildren(old, encoded)
 	if err != nil || bytes.Equal(union, old) {
 		return listVerified, err
@@ -290,11 +297,12 @@ func judgeList(value []byte, listed bool, refs []*block.BlockRef) (listVerdict, 
 // verifyOne writes the list of the block entry names from its decoded refs,
 // marked, while the generation is Open, given its list value and whether it
 // is listed: a missing list from the refs, a listed one, unverified or a
-// marked one that lacks a child, as the union, as mergeList describes. A
-// missing list is written whether or not the Volume stores the bytes, and
-// ends the block's hole record, since the list now holds its children; the
-// audit walk counts such a block as ListedAbsent, the refill's input. A
-// refused list is left as it was, an unverified one on the front.
+// marked one that lacks a child, as the union, as mergeList describes,
+// strictly for an unverified list alone. A missing list is written whether
+// or not the Volume stores the bytes, and ends the block's hole record,
+// since the list now holds its children; the audit walk counts such a block
+// as ListedAbsent, the refill's input. A refused list is left as it was,
+// unverified and on the front.
 func verifyOne(ctx context.Context, rec *Records, entry *block.PutBatchEntry, value []byte, listed bool) (listVerdict, error) {
 	// Write a missing list from the refs, or merge a listed one.
 	key := BlockKey(entry.Ref)
@@ -311,7 +319,7 @@ func verifyOne(ctx context.Context, rec *Records, entry *block.PutBatchEntry, va
 	} else {
 		var gained, dropped bool
 		var err error
-		packed, gained, dropped, err = rec.mergeList(ctx, key, value, entry.Refs, true)
+		packed, gained, dropped, err = rec.mergeList(ctx, key, value, entry.Refs, !listMarked(value))
 		if err != nil || dropped {
 			return listDropped, err
 		}
@@ -326,10 +334,11 @@ func verifyOne(ctx context.Context, rec *Records, entry *block.PutBatchEntry, va
 
 // Finish writes the pending lists and reports the blocks the front still
 // holds: the unverified blocks a holder reaches that no Verify wrote, such
-// as a block the walker could not decode or one whose refs were refused. It
-// counts them in slices that each read sliceRecords front entries, so it
-// yields to writers on a live Volume. The settle flips once the front is
-// empty and the run is complete.
+// as a block the walker could not decode or one whose refs were refused. A
+// dry run wrote nothing, so it reports the front as it stood before any
+// rebuild, not what one would leave. It counts them in slices that each read
+// sliceRecords front entries, so it yields to writers on a live Volume. The
+// settle flips once the front is empty and the run is complete.
 func (r *ListRebuild) Finish(ctx context.Context) (ListRebuildResult, error) {
 	// Write what is pending.
 	if err := r.flush(ctx); err != nil {

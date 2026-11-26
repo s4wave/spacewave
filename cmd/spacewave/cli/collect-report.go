@@ -188,7 +188,10 @@ func settleCount(n int, more bool) string {
 // flipHeldBy names the first of the flip's checks, in the order
 // Collector.flip takes them, that holds the Open generation st describes,
 // given whether the collector frees, since the settle runs only with frees,
-// and whether st read the collector's grace period.
+// and whether st read the collector's grace period. The checks read what
+// the Volume stores. A collector also seeds the front from the roots once
+// before its first flip, which it keeps in memory and st cannot read, so
+// with every stored check clear the flip still waits on that seeding.
 func flipHeldBy(st *block_gc.SettleStatus, frees, graced bool) string {
 	switch state := st.State; {
 	case !frees:
@@ -210,6 +213,6 @@ func flipHeldBy(st *block_gc.SettleStatus, frees, graced bool) string {
 	case st.RipeQueued:
 		return "a ripe block queued to free, which the next free parks"
 	default:
-		return "nothing; the next pass with frees on flips"
+		return "nothing stored; the next pass with frees on seeds the front from the roots, and flips if that adds no block"
 	}
 }

@@ -9,18 +9,18 @@ type ListRebuildResult struct {
 	// Rewritten counts those written because they were missing or lacked
 	// children the decoded refs name.
 	Rewritten uint64
-	// Dropped counts the blocks whose decoded refs lack a child their stored
-	// list names. A stored list can only miss children, so every edge it holds
-	// is real, and such a report means a wrong constructor or a decoder bug:
-	// the rebuild keeps the stored list and leaves the block on the front,
-	// or, for a marked list the rebuild compared, marked, which MarkedRefused
-	// also counts.
+	// Dropped counts the blocks whose decoded refs lack a child their
+	// unverified stored list names. A stored list can only miss children, so
+	// every edge it holds is real, and such a report means a wrong
+	// constructor or a decoder bug: the rebuild keeps the stored list and
+	// leaves the block on the front.
 	Dropped uint64
 	// DroppedSample names up to sampleSize of them.
 	DroppedSample []*block.BlockRef
 	// Front counts the blocks on the settle's front when Finish returned:
-	// unverified blocks a holder reaches that no Verify wrote. Any keeps the
-	// old generation Open, so the collector frees nothing it holds.
+	// unverified blocks a holder reaches that no Verify wrote, or on a dry
+	// run the front before any rebuild. Any keeps the old generation Open,
+	// so the collector frees nothing it holds.
 	Front uint64
 	// FrontSample names up to sampleSize of them.
 	FrontSample []*block.BlockRef
@@ -37,10 +37,16 @@ type ListRebuildResult struct {
 	// first child it lacks.
 	MarkedLackingSample []MarkedListSample
 	// MarkedRefused counts the lacking marked lists that also name a child
-	// the content lacks, so the merge refuses them and leaves them lacking.
+	// the decoded refs lack, which a wrong decoder or a second type of the
+	// block explains. The rebuild writes their union too, since leaving a
+	// marked list lacking lets the sweep free the child.
 	MarkedRefused uint64
-	// MarkedUndecodable counts the marked lists of blocks the walker reached
-	// and could not decode, or not with certainty, which nothing compared.
+	// MarkedUndecodable counts the visits to a block with a marked list that
+	// the walker could not decode, or not with certainty, so that visit
+	// compared nothing. It is an upper bound on the lists left uncompared:
+	// a block the walk also reaches under a type that decodes, as a World
+	// root that an operation's payload names, is counted here and compared
+	// there.
 	MarkedUndecodable uint64
 	// MarkedUndecodableSample names up to sampleSize of them.
 	MarkedUndecodableSample []MarkedListSample
@@ -99,7 +105,7 @@ func (res *ListRebuildResult) compareMarked(p pendingList, value []byte) (bool, 
 		return false, nil
 	}
 
-	// Count and sample the lacking list, and a refusal of it.
+	// Count and sample the lacking list, and a disagreement with it.
 	res.MarkedLacking++
 	if !containsChildren(encoded, old) {
 		res.MarkedRefused++

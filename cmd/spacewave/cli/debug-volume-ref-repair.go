@@ -137,6 +137,12 @@ func (d dirBlocks) GetStoredBlock(_ context.Context, ref *block.BlockRef) (*bloc
 
 // refRepairFields formats the repair findings in the command's field table.
 func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string {
+	// A dry run wrote nothing, so its front is the one the volume has now.
+	owed := "Reached blocks the walk still owes"
+	if dryRun {
+		owed = "Front entries before a repair"
+	}
+
 	// Keep graph repairs separate from the volume-wide inventory.
 	fields := [][2]string{
 		{"Volume", path},
@@ -152,7 +158,7 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 		{"Child lists verified", strconv.FormatUint(res.rebuild.Verified, 10)},
 		{"Child lists written", strconv.FormatUint(res.rebuild.Rewritten, 10)},
 		{"Decoded lists refused for dropping a stored child", strconv.FormatUint(res.rebuild.Dropped, 10)},
-		{"Reached blocks the walk still owes", strconv.FormatUint(res.rebuild.Front, 10)},
+		{owed, strconv.FormatUint(res.rebuild.Front, 10)},
 		{"Payload roots read as blobs", strconv.FormatUint(res.payloadBlobs, 10)},
 		{"Payload roots that are not blobs", strconv.FormatUint(res.notBlob, 10)},
 		{"Old generation settled", strconv.FormatBool(res.verified)},
@@ -205,7 +211,7 @@ func markedFields(res block_gc.ListRebuildResult) [][2]string {
 		{"Marked lists read", strconv.FormatUint(res.MarkedRead, 10)},
 		{"Marked lists matching their content", strconv.FormatUint(res.MarkedMatched, 10)},
 		{"Marked lists lacking a decoded child", strconv.FormatUint(res.MarkedLacking, 10)},
-		{"Of those, refused for naming a child the content lacks", strconv.FormatUint(res.MarkedRefused, 10)},
+		{"Of those, naming a child the decode lacks", strconv.FormatUint(res.MarkedRefused, 10)},
 		{"Marked, not decodable", strconv.FormatUint(res.MarkedUndecodable, 10)},
 	}
 	for _, s := range res.MarkedLackingSample {
@@ -303,8 +309,8 @@ func newDebugRefRepairCommand(upgrade *FormatUpgrade) *cli.Command {
 		Description: "Walks the Worlds each Space's replay cursor retains, decoding each block by its type, " +
 			"and writes each block's child list from its decoded refs, marked as written from content, adding any child the stored list lacks. " +
 			"It reports the reached blocks it still owes: once none is owed, the collector settles the volume's old generation and may free older blocks. " +
-			"A block it cannot decode stays owed and is reported, and so does one whose decoded refs drop a child its stored list names. " +
-			"It compares lists already marked too, adds a child one lacks, and reports the marked lists it could not compare. " +
+			"A block it cannot decode stays owed and is reported, and so does one whose decoded refs drop a child its unmarked stored list names. " +
+			"It compares lists already marked too, adds a child one lacks whatever else the list names, and reports the marked lists it could not compare. " +
 			"An operation payload root that no walked World types is read as a blob only when it certainly is one; otherwise it is reported and verified for nothing. " +
 			"A volume whose old generation has settled is only walked and never repaired. " +
 			"A list that gains a child on an adopted volume makes the settle return it to unadopted, so an adoption recounts every list before anything more frees. " +

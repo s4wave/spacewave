@@ -430,16 +430,20 @@ func TestDebugRefRepair(t *testing.T) {
 		t.Fatal("the World root lists no children")
 	}
 	missing := children[0]
-	shortVol, err := openStoppedVolume(ctx, le, path, volumeWritable)
-	if err != nil {
-		t.Fatal(err)
+	writeStopped := func(fn func(rec *block_gc.Records) error) {
+		t.Helper()
+		stopped, err := openStoppedVolume(ctx, le, path, volumeWritable)
+		if err != nil {
+			t.Fatal(err)
+		}
+		writeRecords(t, stopped, fn)
+		if err := stopped.Close(); err != nil {
+			t.Fatal(err)
+		}
 	}
-	writeRecords(t, shortVol, func(rec *block_gc.Records) error {
+	writeStopped(func(rec *block_gc.Records) error {
 		return rec.PutChildren(ctx, rootRef, children[1:])
 	})
-	if err := shortVol.Close(); err != nil {
-		t.Fatal(err)
-	}
 
 	// A dry run counts it and writes nothing.
 	dryRe, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, refRepairStub{}, nil)
@@ -464,6 +468,41 @@ func TestDebugRefRepair(t *testing.T) {
 		!slices.ContainsFunc(lsChildren(t, path, rootRef), missing.EqualVT) {
 		t.Fatalf("repair of a short marked list: %+v", fixed.rebuild)
 	}
+
+	// A short marked list can also name a child the decode lacks, as a list
+	// a second type of the block marked does: give the root's short list a
+	// raw block its content does not name, whose own list is marked.
+	extra := tracked[1]
+	writeStopped(func(rec *block_gc.Records) error {
+		if err := rec.PutChildren(ctx, extra, nil); err != nil {
+			return err
+		}
+		return rec.PutChildren(ctx, rootRef, append(slices.Clone(children[1:]), extra))
+	})
+
+	// A dry run counts the disagreement and a rewrite, not a refusal.
+	dryMixed, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, refRepairStub{}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if re := dryMixed.rebuild; re.MarkedLacking != 1 || re.MarkedRefused != 1 || re.Rewritten != 1 || re.Dropped != 0 {
+		t.Fatalf("dry run over a short marked list naming another child: %+v", re)
+	}
+
+	// The repair writes the union: a refusal would leave the list short and
+	// marked, off the front, and the sweep would free the child it lacks.
+	mixed, err := repairVolumeRefs(ctx, le, path, "", false, space_world_optypes.LookupBlockType, refRepairStub{}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	union := lsChildren(t, path, rootRef)
+	if mixed.rebuild.MarkedRefused != 1 || mixed.rebuild.Rewritten != 1 || mixed.rebuild.Dropped != 0 || mixed.rebuild.Front != 0 ||
+		!slices.ContainsFunc(union, missing.EqualVT) || !slices.ContainsFunc(union, extra.EqualVT) {
+		t.Fatalf("repair of a short marked list naming another child: %+v", mixed.rebuild)
+	}
+	writeStopped(func(rec *block_gc.Records) error {
+		return rec.PutChildren(ctx, rootRef, children)
+	})
 
 	// Adoption refuses while a stored child list names a block stored
 	// without one: the raw block only a parent's list names.

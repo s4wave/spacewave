@@ -16,7 +16,11 @@ import (
 // TestPayloadNodeBlob checks that a payload root guessed as a blob is
 // confirmed when it is one: the walk keeps the decode and returns the refs of
 // a chunked blob's chunks, so ref-repair verifies its list. A walk that
-// refused real blobs would leave every payload blob unverified.
+// refused real blobs would leave every payload blob unverified. It then
+// checks the other side of the guess: bytes that decode as a valid blob and
+// also hold a field no blob type defines, at any level, are another type's
+// block, whose refs the blob decode skipped, so the walk reports them unsure
+// with no refs and a rebuild writes no short list from them.
 func TestPayloadNodeBlob(t *testing.T) {
 	// Write a blob of several chunks with the blob package's builder.
 	ctx := t.Context()
@@ -74,6 +78,59 @@ func TestPayloadNodeBlob(t *testing.T) {
 	for i, c := range chunks {
 		if !refs[c.GetDataRef().MarshalString()] {
 			t.Fatalf("root refs lack chunk %d", i)
+		}
+	}
+
+	// Build the same blob holding field 15, which no blob message defines,
+	// in the blob, in its chunk index and in a chunk.
+	encode := func(msg interface{ MarshalVT() ([]byte, error) }, suffix ...byte) []byte {
+		t.Helper()
+		data, err := msg.MarshalVT()
+		if err != nil {
+			t.Fatal(err)
+		}
+		return append(data, suffix...)
+	}
+	unknown := []byte{15 << 3, 1}
+	inIndex, inChunk := b.CloneVT(), b.CloneVT()
+	inIndex.ChunkIndex = &blob.ChunkIndex{}
+	if err := inIndex.ChunkIndex.UnmarshalVT(encode(b.GetChunkIndex(), unknown...)); err != nil {
+		t.Fatal(err)
+	}
+	inChunk.ChunkIndex.Chunks[0] = &blob.Chunk{}
+	if err := inChunk.ChunkIndex.Chunks[0].UnmarshalVT(encode(chunks[0], unknown...)); err != nil {
+		t.Fatal(err)
+	}
+	foreign := map[string][]byte{
+		"blob":        encode(b, unknown...),
+		"chunk index": encode(inIndex),
+		"chunk":       encode(inChunk),
+	}
+
+	// Each still names every chunk as a blob, and the walk trusts none.
+	for name, data := range foreign {
+		guessed := &blob.Blob{}
+		if err := guessed.UnmarshalVT(data); err != nil || guessed.Validate() != nil || len(guessed.GetChunkIndex().GetChunks()) != len(chunks) {
+			t.Fatalf("field in the %s: not a valid blob of %d chunks: %v", name, len(chunks), err)
+		}
+		foreignRef, _, err := store.PutBlock(ctx, data, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		node, ok, err := w.PayloadNode(&bucket.ObjectRef{}, foreignRef)
+		if err != nil || !ok {
+			t.Fatalf("field in the %s: payload node: ok %v, err %v", name, ok, err)
+		}
+		var got []Visit
+		err = w.Walk(ctx, node, func(_ context.Context, batch []Visit) error {
+			got = append(got, batch...)
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(got) != 1 || !got[0].Found || !got[0].Unsure || len(got[0].Refs) != 0 {
+			t.Fatalf("field in the %s: visits %+v, want one unsure visit with no refs", name, got)
 		}
 	}
 }

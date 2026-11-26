@@ -300,8 +300,9 @@ func (w *Walker) read(ctx context.Context, n Node) (Visit, error) {
 // form is a valid Blob's still pass, such as a block of another type whose
 // fields 1, 2 and 3 read as a raw blob's type, size and data. A stored child
 // list bounds that case, since the merge never shrinks it: a block whose own
-// writer listed its refs is reported as refused or dropped and is not
-// rewritten. A block with no stored list gets one from the guessed refs.
+// writer listed its refs keeps every child that list names, and a decode
+// that names fewer is reported. A block with no stored list gets one from
+// the guessed refs.
 func certain(blk any, data []byte) bool {
 	b, ok := blk.(*blob.Blob)
 	if !ok || b.Validate() != nil || b.IsEmpty() && len(data) != 0 {
