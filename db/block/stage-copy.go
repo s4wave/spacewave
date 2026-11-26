@@ -149,11 +149,17 @@ func (c *StageCopy) Flush(ctx context.Context) error {
 // the same transaction. Call it after the root that names roots lands and
 // before Release. A process that stalled past the stage's lease and the grace
 // period may have had the graph freed while nothing wrote through the stage.
-// The collector deletes a block's proof before it releases the block's
-// children (the netting's release in db/block/gc/netting.go) and with the
-// block when it frees it (freeBlock in db/block/gc/collector.go), so a graph
-// that lost any block has lost its proof, the check fails with
-// ErrStageReleased, and the caller copies again.
+// A block loses its children's holds only at its free or, while the
+// collector's generation is Open, at its park (freeBlock in
+// db/block/gc/collector.go). The free deletes the proof with the block; the
+// park keeps the bytes, the list and the proof, and gives the children their
+// downs, and a parked block reads absent, its proof too. A child reaches zero
+// only once every block that holds it was freed or parked, so a graph that
+// lost any block lost its root's proof, the check fails with
+// ErrStageReleased, and the caller copies again. An unpark
+// shows a released block's proof again before the recount it owes returns
+// its children's holds, so until that recount a child the park took to zero
+// may read absent under a root that reads complete; nothing deletes it first.
 func (c *StageCopy) CheckHeld(ctx context.Context, roots ...*BlockRef) error {
 	// Hold the roots again under their proofs, which fails on a lost stage.
 	if c.writes == nil {
