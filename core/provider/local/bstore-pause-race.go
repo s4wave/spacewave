@@ -2,6 +2,7 @@ package provider_local
 
 import (
 	"context"
+	"slices"
 
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
@@ -28,36 +29,44 @@ func watchBackendPause(remote block_store.StoreSource) backendPause {
 	}
 }
 
-// raceResult is the answer of raceFallback.
+// raceResult is the answer of raceAlternates.
 type raceResult[T any] struct {
-	// v and err are the answer: the primary read's, or the fallback's hit.
+	// v and err are the answer: the primary read's, or an alternate's hit.
 	v   T
 	err error
-	// fromFallback marks v as the fallback's hit.
-	fromFallback bool
-	// fallbackAsked reports that the fallback answered without a hit, with
-	// fallbackErr, so a caller need not ask it again.
-	fallbackAsked bool
-	fallbackErr   error
+	// fromAlternate marks v as an alternate's hit.
+	fromAlternate bool
+	// missed holds the answers of the alternates that answered without a
+	// hit, in order, so a caller need not ask them again.
+	missed []raceAnswer[T]
 }
 
-// raceFallback runs primary, a read that reaches the backend, and returns its
+// raceAnswer is one read's answer in a race.
+type raceAnswer[T any] struct {
+	v   T
+	err error
+}
+
+// raceAlternates runs primary, a read that reaches the backend, and returns its
 // answer. A backend whose requests are paused makes primary wait without
 // failing, so while primary waits and the backend is paused, or once it
-// pauses, raceFallback runs fallback beside it, once. A fallback hit, as hit
-// reports it, answers and cancels primary; a fallback miss or failure leaves
-// primary to answer. With the backend never paused, only primary runs.
+// pauses, raceAlternates asks alternates beside it, in order, each once: an
+// alternate starts only once the one before it answered without a hit, and
+// only while the backend is paused. An alternate's hit, as hit reports it,
+// answers and cancels primary; once every alternate missed, primary answers.
+// With the backend never paused, only primary runs.
 //
 // primary runs in its own goroutine under a context that ends when
-// raceFallback returns, so a primary that lost the race returns soon after.
-func raceFallback[T any](
+// raceAlternates returns, so a primary that lost the race returns soon after.
+func raceAlternates[T any](
 	ctx context.Context,
 	pause backendPause,
-	primary, fallback func(context.Context) (T, error),
+	primary func(context.Context) (T, error),
 	hit func(T) bool,
+	alternates ...func(context.Context) (T, error),
 ) raceResult[T] {
-	// Without a watch the primary answers alone.
-	if pause == nil {
+	// Without a watch or an alternate the primary answers alone.
+	if pause == nil || len(alternates) == 0 {
 		v, err := primary(ctx)
 		return raceResult[T]{v: v, err: err}
 	}
@@ -65,30 +74,27 @@ func raceFallback[T any](
 	// Run the primary read beside the watch.
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	type answer struct {
-		v   T
-		err error
-	}
-	primaryDone := make(chan answer, 1)
+	primaryDone := make(chan raceAnswer[T], 1)
 	go func() {
 		v, err := primary(ctx)
-		primaryDone <- answer{v, err}
+		primaryDone <- raceAnswer[T]{v, err}
 	}()
 
-	// Start the fallback once the backend is paused, and serve the first
-	// answer that counts.
-	var fallbackDone chan answer
+	// Ask the next alternate while the backend is paused, and serve the
+	// first answer that counts.
+	var altDone chan raceAnswer[T]
 	var res raceResult[T]
 	for {
 		var changed <-chan struct{}
-		if fallbackDone == nil && !res.fallbackAsked {
+		if next := len(res.missed); altDone == nil && next < len(alternates) {
 			var paused bool
 			paused, changed = pause()
 			if paused {
-				fallbackDone = make(chan answer, 1)
+				altDone = make(chan raceAnswer[T], 1)
+				alt := alternates[next]
 				go func() {
-					v, err := fallback(ctx)
-					fallbackDone <- answer{v, err}
+					v, err := alt(ctx)
+					altDone <- raceAnswer[T]{v, err}
 				}()
 				changed = nil
 			}
@@ -97,15 +103,119 @@ func raceFallback[T any](
 		case a := <-primaryDone:
 			res.v, res.err = a.v, a.err
 			return res
-		case a := <-fallbackDone:
+		case a := <-altDone:
 			if a.err == nil && hit(a.v) {
-				return raceResult[T]{v: a.v, fromFallback: true}
+				return raceResult[T]{v: a.v, fromAlternate: true, missed: res.missed}
 			}
-			fallbackDone = nil
-			res.fallbackAsked, res.fallbackErr = true, a.err
+			altDone = nil
+			res.missed = append(res.missed, a)
 		case <-changed:
 		}
 	}
+}
+
+// pausedReads serves reads from the read chain it embeds and, while the
+// backend is paused, from alternates in order, as raceAlternates describes.
+// Each alternate is a whole source with its own fill, such as the read
+// fallback or the peers, so a hit fills the local store as the chain would
+// have. Existence checks pass to the chain: the read fallback races its own,
+// and peers never answer them. A read under block.WithPeerReads never races,
+// since its backend read defers instead of waiting.
+type pausedReads struct {
+	// StoreOps is the read chain.
+	block.StoreOps
+	// pause watches the backend's pause.
+	pause backendPause
+	// alternates read a block from another source; nil is a miss.
+	alternates []readAlternate
+}
+
+// readAlternate reads ref from another source than the backend, returning
+// nil on a miss.
+type readAlternate func(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error)
+
+// newPausedReads wraps chain so its reads race alternates, leaving out the
+// nil ones, while pause reports the backend paused. Without a watch or an
+// alternate it returns chain.
+func newPausedReads(chain block.StoreOps, pause backendPause, alternates ...readAlternate) block.StoreOps {
+	alternates = slices.DeleteFunc(alternates, func(alt readAlternate) bool { return alt == nil })
+	if pause == nil || len(alternates) == 0 {
+		return chain
+	}
+	return &pausedReads{StoreOps: chain, pause: pause, alternates: alternates}
+}
+
+// readSource is a readAlternate of the store src returns, or a miss without
+// one. A nil src is no alternate.
+func readSource(src block_store.StoreSource) readAlternate {
+	if src == nil {
+		return nil
+	}
+	return func(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+		store := src()
+		if store == nil {
+			return nil, nil
+		}
+		return store.GetStoredBlock(ctx, ref)
+	}
+}
+
+// BeginReadOperation scopes the chain; the alternates read unscoped.
+func (r *pausedReads) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
+	scoped, release, err := r.StoreOps.BeginReadOperation(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	return &pausedReads{StoreOps: scoped, pause: r.pause, alternates: r.alternates}, release, nil
+}
+
+// GetStoredBlock reads the chain, racing the alternates in a pause.
+func (r *pausedReads) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	return r.read(ctx, ref, func(ctx context.Context) (*block.StoredBlock, error) {
+		return r.StoreOps.GetStoredBlock(ctx, ref)
+	})
+}
+
+// GetBlock reads the chain, racing the alternates in a pause.
+func (r *pausedReads) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	stored, err := r.read(ctx, ref, func(ctx context.Context) (*block.StoredBlock, error) {
+		data, found, err := r.StoreOps.GetBlock(ctx, ref)
+		if err != nil || !found {
+			return nil, err
+		}
+		return &block.StoredBlock{Data: data}, nil
+	})
+	return stored.GetData(), stored != nil, err
+}
+
+// StatBlock stats the block as GetBlock reads it.
+func (r *pausedReads) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
+	data, found, err := r.GetBlock(ctx, ref)
+	if err != nil || !found {
+		return nil, err
+	}
+	return &block.BlockStat{Ref: ref, Size: int64(len(data))}, nil
+}
+
+// read runs primary, racing the alternates while the backend is paused.
+func (r *pausedReads) read(
+	ctx context.Context,
+	ref *block.BlockRef,
+	primary func(context.Context) (*block.StoredBlock, error),
+) (*block.StoredBlock, error) {
+	// Race only a read whose backend read can wait on a pause.
+	pause := r.pause
+	if block.GetPeerReads(ctx) != nil {
+		pause = nil
+	}
+
+	// Bind each alternate to ref.
+	alternates := make([]func(context.Context) (*block.StoredBlock, error), len(r.alternates))
+	for i, alt := range r.alternates {
+		alternates[i] = func(ctx context.Context) (*block.StoredBlock, error) { return alt(ctx, ref) }
+	}
+	res := raceAlternates(ctx, pause, primary, storedHit, alternates...)
+	return res.v, res.err
 }
 
 // storedHit reports whether a read found the block.
@@ -127,3 +237,6 @@ func allExistHit(found []bool) bool {
 	}
 	return found != nil
 }
+
+// _ is a type assertion
+var _ block.StoreOps = (*pausedReads)(nil)

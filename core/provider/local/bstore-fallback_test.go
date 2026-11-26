@@ -456,22 +456,134 @@ func TestThrottledBucketServesFallback(t *testing.T) {
 		t.Fatal("the bucket was never throttled, so the read did not race a pause")
 	}
 
-	// A read under PeerReads defers its backend read, as a World write does.
+	// A read under PeerReads, as a World write reads, finds the backend
+	// paused, so its deferral reads the fallback at once.
 	deferData := []byte("deferred block only the fallback holds")
 	deferRef := f.putSQL(deferData)
 	peerReads := block.NewPeerReads()
 	deferCtx := block.WithPeerReads(f.ctx, peerReads)
-	if _, found, err := f.reads.GetBlock(deferCtx, deferRef); found || !errors.Is(err, block.ErrUnavailable) {
+	if data, found, err := f.reads.GetBlock(deferCtx, deferRef); err != nil || !found || !bytes.Equal(data, deferData) {
+		t.Fatalf("deferred read = %q, %v, %v; want the fallback's block", data, found, err)
+	}
+
+	// A block the fallback lacks defers, in a write's next PeerReads.
+	missRef, _, err := newLeafStore().PutBlock(f.ctx, []byte("block nobody holds"), &block.PutOpts{RefsKnown: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	peerReads = block.NewPeerReads()
+	deferCtx = block.WithPeerReads(f.ctx, peerReads)
+	if _, _, err := f.reads.GetBlock(deferCtx, missRef); !errors.Is(err, errBackendDeferred) {
+		t.Fatalf("deferred read of a missing block = %v, want the backend read deferred", err)
+	}
+
+	// Its fetch keeps waiting on the backend: the fallback's miss is not the
+	// backend's.
+	waitCtx, cancel := context.WithTimeout(f.ctx, 500*time.Millisecond)
+	defer cancel()
+	if ok, err := peerReads.Fetch(waitCtx); ok || !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("fetch of a missing block = %v, %v; want it waiting on the backend", ok, err)
+	}
+	if peerReads.Missed(missRef) {
+		t.Fatal("the fallback's miss was recorded as the backend's miss")
+	}
+}
+
+// TestDeferredFetchRacesFallback defers a read of a block only the fallback
+// holds before the backend pauses, then fetches it while the bucket throttles.
+// The fetch races the pause, and the fallback's hit ends it as a failure that
+// says nothing of the backend, never as the backend's miss, so the next
+// attempt reads the fallback.
+func TestDeferredFetchRacesFallback(t *testing.T) {
+	// Hold the block in the fallback alone, and throttle a pack store that
+	// has read nothing from the bucket yet, so nothing has paused.
+	f := newFallbackTest(t)
+	data := []byte("deferred block only the fallback holds")
+	ref := f.putSQL(data)
+	f.packs.Close()
+	f.packs = f.openPacks()
+	f.bucket.setUnavailable(true)
+
+	// The read defers, since the backend has not paused yet.
+	peerReads := block.NewPeerReads()
+	ctx := block.WithPeerReads(f.ctx, peerReads)
+	if _, found, err := f.reads.GetBlock(ctx, ref); found || !errors.Is(err, errBackendDeferred) {
 		t.Fatalf("deferred read = %v, %v; want the backend read deferred", found, err)
 	}
 
-	// Its fetch races the pause and ends as the backend's miss, so the next
-	// attempt reads the fallback.
-	if ok, err := peerReads.Fetch(f.ctx); !ok || err != nil {
-		t.Fatalf("fetch = %v, %v; want the deferred block answered", ok, err)
+	// The fetch's backend read pauses, and the fallback's hit ends it.
+	if ok, err := peerReads.Fetch(f.ctx); ok || !errors.Is(err, errBackendPaused) {
+		t.Fatalf("fetch = %v, %v; want the fetch ended by the fallback's hit", ok, err)
 	}
-	if data, found, err := f.reads.GetBlock(deferCtx, deferRef); err != nil || !found || !bytes.Equal(data, deferData) {
-		t.Fatalf("read after the fetch = %q, %v, %v; want the fallback's block", data, found, err)
+	if peerReads.Missed(ref) {
+		t.Fatal("the fallback's hit was recorded as the backend's miss")
+	}
+
+	// The next attempt sees the pause and reads the fallback.
+	if got, found, err := f.reads.GetBlock(ctx, ref); err != nil || !found || !bytes.Equal(got, data) {
+		t.Fatalf("read after the fetch = %q, %v, %v; want the fallback's block", got, found, err)
+	}
+}
+
+// TestThrottledBucketServesPeer reads a block only a peer holds, with no read
+// fallback, while the bucket answers every request with a throttle. The
+// backend read waits out the pause, so the peers race it and serve the block
+// within about one pause.
+func TestThrottledBucketServesPeer(t *testing.T) {
+	// Rebuild the reads with a peer and no fallback.
+	f := newFallbackTest(t)
+	peer := newLeafStore()
+	recorded := &readRecorder{StoreOps: f.local, reads: &f.p.reads}
+	f.reads, f.copies = f.p.readChains(
+		recorded,
+		f.local,
+		func() block.StoreOps { return f.packs },
+		func() block.StoreOps { return peer },
+		nil,
+	)
+
+	// Hold the block in the peer alone, and throttle a pack store that has
+	// read nothing from the bucket yet.
+	data := []byte("block only the peer holds, bucket throttled")
+	ref, _, err := peer.PutBlock(f.ctx, data, &block.PutOpts{RefsKnown: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.packs.Close()
+	f.packs = f.openPacks()
+	f.bucket.setUnavailable(true)
+
+	// The peer serves it while the bucket's read waits, with no deadline.
+	start := time.Now()
+	f.read(ref, data)
+	if took := time.Since(start); took > 2*time.Second {
+		t.Fatalf("read took %v, want about one pause", took)
+	}
+
+	// The bucket was asked and throttled, so the read raced its pause.
+	var throttles uint64
+	endpoint := strings.TrimPrefix(f.srv.URL, "http://")
+	block_store_s3.VisitRequestGates(func(st block_store_s3.GateState) {
+		if strings.Contains(st.Endpoint, endpoint) {
+			throttles += st.Throttles
+		}
+	})
+	if throttles == 0 {
+		t.Fatal("the bucket was never throttled, so the read did not race a pause")
+	}
+
+	// The copy path races the peer too.
+	copyData := []byte("copied block only the peer holds")
+	copyRef, _, err := peer.PutBlock(f.ctx, copyData, &block.PutOpts{RefsKnown: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	start = time.Now()
+	if got, found, err := f.copies.GetBlock(f.ctx, copyRef); err != nil || !found || !bytes.Equal(got, copyData) {
+		t.Fatalf("copy read = %q, %v, %v; want the peer's block", got, found, err)
+	}
+	if took := time.Since(start); took > 2*time.Second {
+		t.Fatalf("copy read took %v, want about one pause", took)
 	}
 }
 

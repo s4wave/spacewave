@@ -22,10 +22,14 @@ import (
 // unchanged, and is counted in the context's block.ReadCounter.
 //
 // A paused backend makes a deferred fetch wait instead of failing, so with a
-// read fallback the fetch races it while the backend is paused, as
-// raceFallback describes. A block the fallback holds ends the fetch as the
-// backend's miss, so the next attempt passes the backend and reads the
-// fallback; the fill cache never takes a block the backend did not serve.
+// read fallback the fetch races the fallback's existence check while the
+// backend is paused, as raceAlternates describes. A block the fallback holds
+// ends the fetch with errBackendPaused, a failed fetch that says nothing of
+// the backend: the caller's next attempt defers the block again, and the
+// fallback tier, seeing the pause, serves it from the fallback. A fallback
+// miss never ends the fetch, which keeps waiting for the backend, and the
+// fetch records only what the backend answered, so the fill cache takes only
+// blocks the backend served.
 type backendDefer struct {
 	// StoreOps is the backend store.
 	block.StoreOps
@@ -42,6 +46,10 @@ type backendDefer struct {
 // PeerReads. It is block.ErrUnavailable, so the read ends there and the tiers
 // below are not asked meanwhile.
 var errBackendDeferred = fmt.Errorf("%w: deferred to a backend fetch", block.ErrUnavailable)
+
+// errBackendPaused is the error of a deferred backend fetch that ended while
+// the backend was paused because the read fallback holds the block.
+var errBackendPaused = fmt.Errorf("%w: backend paused; the read fallback holds the block", block.ErrUnavailable)
 
 // deferBackendReads wraps remote so that reads under block.WithPeerReads defer,
 // as backendDefer describes, their fetches racing fallback, when not nil,
@@ -126,28 +134,38 @@ func recordBackendRead(ctx context.Context, started time.Time) {
 }
 
 // fetch returns the deferred read of ref from the unscoped backend, outside
-// the caller's PeerReads. A backend that is gone meanwhile misses the block,
-// and so does one paused while the fallback confirms it.
+// the caller's PeerReads. A backend that is gone meanwhile misses the block. A
+// fetch the backend's pause holds while the fallback confirms the block ends
+// with errBackendPaused.
 func (b *backendDefer) fetch(ref *block.BlockRef) block.PeerFetch {
 	return func(ctx context.Context) (*block.StoredBlock, error) {
-		// Read the backend, racing the fallback while the backend is paused.
+		// Fetch from the unscoped backend, outside the PeerReads.
 		store := b.remote()
 		if store == nil {
 			return nil, nil
 		}
 		ctx = block.WithPeerReads(ctx, nil)
-		res := raceFallback(ctx, b.pause, func(ctx context.Context) (*block.StoredBlock, error) {
-			return store.GetStoredBlock(ctx, ref)
-		}, func(ctx context.Context) (*block.StoredBlock, error) {
-			found, err := b.fallback.GetBlockExists(ctx, ref)
-			if err != nil || !found {
-				return nil, err
-			}
-			return &block.StoredBlock{}, nil
-		}, storedHit)
-		if res.fromFallback {
-			return nil, nil
+
+		// Race the backend against the fallback's existence check, which
+		// only a hit may win.
+		var fallback []func(context.Context) (bool, error)
+		if b.fallback != nil {
+			fallback = append(fallback, func(ctx context.Context) (bool, error) {
+				return b.fallback.GetBlockExists(ctx, ref)
+			})
 		}
-		return res.v, res.err
+		var stored *block.StoredBlock
+		res := raceAlternates(ctx, b.pause, func(ctx context.Context) (bool, error) {
+			var err error
+			stored, err = store.GetStoredBlock(ctx, ref)
+			return stored != nil, err
+		}, existsHit, fallback...)
+
+		// A fallback hit ends the fetch with errBackendPaused, so the next
+		// attempt reads the fallback, and never stands for the backend.
+		if res.fromAlternate {
+			return nil, fmt.Errorf("%w: block %s", errBackendPaused, ref.MarshalString())
+		}
+		return stored, res.err
 	}
 }
