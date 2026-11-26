@@ -205,9 +205,11 @@ func TestCollectCLIHandoffManifestRefsAcceptsReleaseBuildTypeAndRejectsDev(t *te
 	})
 
 	// Collect the release manifest references from the World.
-	refs, err := collectCLIHandoffManifestRefs(ctx, releaseWorld)
+	refs, err := selectCLIHandoffManifestRefs(bldr_manifest_world.CollectManifestsForManifestID(
+		ctx, releaseWorld, cliEntrypointManifestID, cliHandoffPlatformIDs, "devtool",
+	))
 	if err != nil {
-		t.Fatalf("collectCLIHandoffManifestRefs(release) error = %v", err)
+		t.Fatalf("selectCLIHandoffManifestRefs(release) error = %v", err)
 	}
 
 	// Verify the release references cover the CLI platforms in order.
@@ -233,11 +235,13 @@ func TestCollectCLIHandoffManifestRefsAcceptsReleaseBuildTypeAndRejectsDev(t *te
 	})
 
 	// Collect the CLI references from the mixed-build World.
-	_, err = collectCLIHandoffManifestRefs(ctx, devWorld)
+	_, err = selectCLIHandoffManifestRefs(bldr_manifest_world.CollectManifestsForManifestID(
+		ctx, devWorld, cliEntrypointManifestID, cliHandoffPlatformIDs, "devtool",
+	))
 
 	// Verify the development manifest prevents a release handoff.
 	if err == nil || !strings.Contains(err.Error(), "wrong build type: dev") {
-		t.Fatalf("collectCLIHandoffManifestRefs(dev) error = %v, want wrong build type rejection", err)
+		t.Fatalf("selectCLIHandoffManifestRefs(dev) error = %v, want wrong build type rejection", err)
 	}
 }
 

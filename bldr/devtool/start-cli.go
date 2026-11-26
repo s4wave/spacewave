@@ -10,6 +10,7 @@ import (
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
+	"github.com/s4wave/spacewave/db/bucket"
 	unixfs_sync "github.com/s4wave/spacewave/db/unixfs/sync"
 	"github.com/sirupsen/logrus"
 )
@@ -45,7 +46,6 @@ func (a *DevtoolArgs) ExecuteCliProject(ctx context.Context, manifestID string, 
 	// start the project controller
 	projWatcher, projWatcherRef, err := b.StartProjectController(
 		ctx,
-		b.GetBus(),
 		repoRoot,
 		a.ConfigPath,
 		"",
@@ -88,17 +88,7 @@ func (a *DevtoolArgs) ExecuteCliProject(ctx context.Context, manifestID string, 
 
 	// checkout the manifest to disk
 	le.Infof("checking out CLI binary to: %s", distPath)
-	manifest, err := bldr_manifest_world.CheckoutManifest(
-		ctx,
-		le,
-		b.GetWorldState().AccessWorldState,
-		manifestRef.GetManifestRef(),
-		distPath,
-		"",
-		unixfs_sync.DeleteMode_DeleteMode_BEFORE,
-		nil,
-		nil,
-	)
+	manifest, err := b.checkoutCLIManifest(ctx, le, manifestRef.GetManifestRef(), distPath)
 	if err != nil {
 		return err
 	}
@@ -152,7 +142,7 @@ func (a *DevtoolArgs) runCliSubprocess(
 		if a.Watch {
 			go func() {
 				// Wait for a rebuilt CLI manifest and forward watch failures.
-				watchErr := a.watchManifestChanges(runCtx, b, manifestID, platformID, &lastRev)
+				watchErr := b.watchManifestChanges(runCtx, manifestID, platformID, &lastRev)
 				if watchErr != nil {
 					if runCtx.Err() == nil {
 						le.WithError(watchErr).Warn("manifest watch error")
@@ -198,13 +188,7 @@ func (a *DevtoolArgs) runCliSubprocess(
 
 		// collect the updated manifest ref from the world
 		distPath := filepath.Dir(binaryPath)
-		manifests, _, err := bldr_manifest_world.CollectManifestsForManifestID(
-			ctx,
-			b.GetWorldState(),
-			manifestID,
-			[]string{platformID},
-			b.GetPluginHostObjectKey(),
-		)
+		manifests, _, err := b.CollectManifests(ctx, manifestID, []string{platformID})
 		if err != nil {
 			return err
 		}
@@ -215,17 +199,7 @@ func (a *DevtoolArgs) runCliSubprocess(
 
 		// re-checkout the updated manifest
 		le.Info("checking out updated CLI binary...")
-		manifest, err := bldr_manifest_world.CheckoutManifest(
-			ctx,
-			le,
-			b.GetWorldState().AccessWorldState,
-			manifests[0].ManifestRef,
-			distPath,
-			"",
-			unixfs_sync.DeleteMode_DeleteMode_BEFORE,
-			nil,
-			nil,
-		)
+		manifest, err := b.checkoutCLIManifest(ctx, le, manifests[0].ManifestRef, distPath)
 		if err != nil {
 			return err
 		}
@@ -240,28 +214,20 @@ func (a *DevtoolArgs) runCliSubprocess(
 
 // watchManifestChanges watches the world state for changes to a manifest.
 // Blocks until a new revision is detected or the context is canceled.
-func (a *DevtoolArgs) watchManifestChanges(
+func (d *DevtoolBus) watchManifestChanges(
 	ctx context.Context,
-	b *DevtoolBus,
 	manifestID, platformID string,
 	lastRev *uint64,
 ) error {
-	ws := b.GetWorldState()
-	objKey := b.GetPluginHostObjectKey()
-
 	for {
-		seqno, err := ws.GetSeqno(ctx)
+		// Take the current revision before collecting, so the wait sees intervening changes.
+		seqno, err := d.worldState.GetSeqno(ctx)
 		if err != nil {
 			return err
 		}
 
-		manifests, _, err := bldr_manifest_world.CollectManifestsForManifestID(
-			ctx,
-			ws,
-			manifestID,
-			[]string{platformID},
-			objKey,
-		)
+		// Read the latest manifest and return when its revision advances.
+		manifests, _, err := d.CollectManifests(ctx, manifestID, []string{platformID})
 		if err != nil {
 			return err
 		}
@@ -270,15 +236,24 @@ func (a *DevtoolArgs) watchManifestChanges(
 			rev := manifests[0].GetRev()
 			if *lastRev == 0 {
 				*lastRev = rev
-			} else if rev > *lastRev {
+			}
+			if rev > *lastRev {
 				*lastRev = rev
 				return nil // new version detected
 			}
 		}
 
-		// wait for world state to change
-		if _, err := ws.WaitSeqno(ctx, seqno+1); err != nil {
+		// Wait for the next World revision before collecting again.
+		if _, err := d.worldState.WaitSeqno(ctx, seqno+1); err != nil {
 			return err
 		}
 	}
+}
+
+// checkoutCLIManifest replaces the CLI dist tree with the selected manifest.
+func (d *DevtoolBus) checkoutCLIManifest(ctx context.Context, le *logrus.Entry, ref *bucket.ObjectRef, distPath string) (*bldr_manifest.Manifest, error) {
+	return bldr_manifest_world.CheckoutManifest(
+		ctx, le, d.worldState.AccessWorldState, ref, distPath, "",
+		unixfs_sync.DeleteMode_DeleteMode_BEFORE, nil, nil,
+	)
 }

@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/bldr/devtool"
 	devtool_web "github.com/s4wave/spacewave/bldr/devtool/web"
 	"github.com/s4wave/spacewave/net/link"
 	"github.com/s4wave/spacewave/net/peer"
@@ -26,23 +26,14 @@ type PeerWatcher struct {
 	rel     func()
 }
 
-// BrowserPeerObservation describes one browser peer mount event seen by the
-// devtool bus. A peer can reconnect with the same ID, so each observation has
-// its own monotonic sequence number.
-type BrowserPeerObservation struct {
-	PeerID     peer.ID
-	Sequence   uint64
-	ObservedAt time.Time
-}
-
 // NewPeerWatcher registers a HandleMountedStream handler on the bus filtering
 // for HostProtocolID and returns a PeerWatcher that tracks discovered peers.
-func NewPeerWatcher(b bus.Bus) (*PeerWatcher, error) {
+func NewPeerWatcher(d *devtool.DevtoolBus) (*PeerWatcher, error) {
 	// Register the peer watcher on the bus.
 	pw := &PeerWatcher{
 		pending: make(chan BrowserPeerObservation, 64),
 	}
-	rel, err := b.AddHandler(pw)
+	rel, err := d.AddHandler(pw)
 	if err != nil {
 		return nil, errors.Wrap(err, "add peer watcher handler")
 	}

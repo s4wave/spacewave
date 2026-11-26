@@ -9,11 +9,13 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/aperturerobotics/controllerbus/controller"
 	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	bldr "github.com/s4wave/spacewave/bldr"
 	"github.com/s4wave/spacewave/bldr/core"
@@ -35,6 +37,8 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
 	"github.com/s4wave/spacewave/net/peer"
+	"github.com/s4wave/spacewave/net/protocol"
+	stream_srpc "github.com/s4wave/spacewave/net/stream/srpc"
 	"github.com/sirupsen/logrus"
 )
 
@@ -184,16 +188,10 @@ func BuildDevtoolBus(
 	}
 	rels = append(rels, relStorageCtrl)
 
-	// Require at least one storage method.
-	storageMethods := storageCtrl.GetStorage()
-	if len(storageMethods) == 0 {
+	// Register the storage factories and require at least one storage method.
+	if !storageCtrl.RegisterFactories(b, sr) {
 		rel()
 		return nil, errors.New("no available storage methods")
-	}
-
-	// Register the storage method factories.
-	for _, storageMethod := range storageMethods {
-		storageMethod.AddFactories(b, sr)
 	}
 
 	// Start the devtool storage volume on the default storage controller.
@@ -374,24 +372,9 @@ func (d *DevtoolBus) SyncDistSources(bldrVersion, bldrSum, bldrSrcPath string) e
 	})
 }
 
-// GetContext returns the context.
-func (d *DevtoolBus) GetContext() context.Context {
-	return d.ctx
-}
-
-// GetBus returns the bus.
-func (d *DevtoolBus) GetBus() bus.Bus {
-	return d.b
-}
-
 // GetLogger returns the root logger.
 func (d *DevtoolBus) GetLogger() *logrus.Entry {
 	return d.le
-}
-
-// GetStaticResolver returns the static controller resolver.
-func (d *DevtoolBus) GetStaticResolver() *static.Resolver {
-	return d.sr
 }
 
 // GetStateRoot returns the root of the state tree.
@@ -402,21 +385,6 @@ func (d *DevtoolBus) GetStateRoot() string {
 // GetDistSrcDir returns the path to the redistribute sources checked out under StateRoot.
 func (d *DevtoolBus) GetDistSrcDir() string {
 	return d.distSrcRoot
-}
-
-// GetPluginsDistRoot returns the path to the plugins dist files dir.
-func (d *DevtoolBus) GetPluginsDistRoot() string {
-	return d.pluginsDistRoot
-}
-
-// GetPluginsStateRoot returns the path to the plugins state files dir.
-func (d *DevtoolBus) GetPluginsStateRoot() string {
-	return d.pluginsStateRoot
-}
-
-// GetVolume returns the storage volume in use.
-func (d *DevtoolBus) GetVolume() volume.Volume {
-	return d.vol
 }
 
 // GetVolumeInfo returns the storage volume info.
@@ -444,11 +412,6 @@ func (d *DevtoolBus) GetWorldEngine() world.Engine {
 	return d.worldEngine
 }
 
-// GetWorldState returns the world state handle.
-func (d *DevtoolBus) GetWorldState() world.WorldState {
-	return d.worldState
-}
-
 // GetStatusProducer returns the devtool status producer.
 func (d *DevtoolBus) GetStatusProducer() *devtool_status.BldrDevtoolStatusProducer {
 	return d.statusProducer
@@ -466,6 +429,43 @@ func (d *DevtoolBus) GetPluginHostObjectKey() string {
 	return d.pluginHostObjectKey
 }
 
+// NewProjectRemote describes the devtool manifest World for a project.
+func (d *DevtoolBus) NewProjectRemote() *bldr_project.RemoteConfig {
+	return &bldr_project.RemoteConfig{
+		EngineId:       d.worldEngineID,
+		PeerId:         d.peerID.String(),
+		ObjectKey:      d.pluginHostObjectKey,
+		LinkObjectKeys: []string{d.pluginHostObjectKey},
+	}
+}
+
+// StartConfiguredProjectController starts the supplied project configuration.
+// The caller retains the reference until the project is no longer needed.
+func (d *DevtoolBus) StartConfiguredProjectController(
+	ctx context.Context,
+	conf *bldr_project_controller.Config,
+) (*bldr_project_controller.Controller, directive.Reference, error) {
+	ctrl, _, ref, err := loader.WaitExecControllerRunningTyped[*bldr_project_controller.Controller](
+		ctx, d.b, resolver.NewLoadControllerWithConfig(conf), nil,
+	)
+	return ctrl, ref, err
+}
+
+// AddController runs a controller on the devtool bus until it is released.
+func (d *DevtoolBus) AddController(ctx context.Context, ctrl controller.Controller) (func(), error) {
+	return d.b.AddController(ctx, ctrl, nil)
+}
+
+// AddHandler registers a directive handler until it is released.
+func (d *DevtoolBus) AddHandler(handler directive.Handler) (func(), error) {
+	return d.b.AddHandler(handler)
+}
+
+// NewPeerStreamOpener opens SRPC streams to a peer on demand using any local peer and transport.
+func (d *DevtoolBus) NewPeerStreamOpener(protocolID protocol.ID, remote peer.ID) srpc.OpenStreamFunc {
+	return stream_srpc.NewOpenStreamFunc(d.b, protocolID, "", remote, 0)
+}
+
 // StartStorageVolume starts a storage volume.
 // The ID should be unique.
 func (d *DevtoolBus) StartStorageVolume(
@@ -473,7 +473,7 @@ func (d *DevtoolBus) StartStorageVolume(
 	storageVolumeID string,
 	ctrlConf *volume_controller.Config,
 ) (volume.Controller, directive.Reference, error) {
-	return storage_volume.ExecVolumeController(ctx, d.GetBus(), &storage_volume.Config{
+	return storage_volume.ExecVolumeController(ctx, d.b, &storage_volume.Config{
 		StorageId:       d.storageID,
 		StorageVolumeId: storageVolumeID,
 		VolumeConfig:    ctrlConf,
@@ -487,7 +487,6 @@ func (d *DevtoolBus) StartStorageVolume(
 // Returns the directive reference & controller.
 func (d *DevtoolBus) StartProjectController(
 	ctx context.Context,
-	b bus.Bus,
 	repoRoot,
 	configPath string,
 	startWithRemote string,
@@ -499,7 +498,6 @@ func (d *DevtoolBus) StartProjectController(
 ) {
 	return d.StartProjectControllerWithStartup(
 		ctx,
-		b,
 		repoRoot,
 		configPath,
 		startWithRemote,
@@ -511,7 +509,6 @@ func (d *DevtoolBus) StartProjectController(
 // StartProjectControllerWithStartup reads the config file and starts the project controller.
 func (d *DevtoolBus) StartProjectControllerWithStartup(
 	ctx context.Context,
-	b bus.Bus,
 	repoRoot,
 	configPath string,
 	startWithRemote string,
@@ -522,22 +519,43 @@ func (d *DevtoolBus) StartProjectControllerWithStartup(
 	directive.Reference,
 	error,
 ) {
-	return d.startProjectController(ctx, b, repoRoot, configPath, startWithRemote, extraPlugins, start, false, "", nil)
+	return d.startProjectController(ctx, repoRoot, configPath, startWithRemote, extraPlugins, start, false, "", nil)
 }
 
 // StartFrontendProjectController enables the retained graph for watched web startup.
-func (d *DevtoolBus) StartFrontendProjectController(ctx context.Context, b bus.Bus, repoRoot, configPath, startWithRemote string, extraPlugins []string, development bool) (*bldr_project_watcher.Controller, directive.Reference, error) {
-	return d.startProjectController(ctx, b, repoRoot, configPath, startWithRemote, extraPlugins, startWithRemote != "", development && d.watch, "", nil)
+func (d *DevtoolBus) StartFrontendProjectController(
+	ctx context.Context,
+	repoRoot, configPath, startWithRemote string,
+	extraPlugins []string,
+	development bool,
+) (*bldr_project_watcher.Controller, directive.Reference, error) {
+	return d.startProjectController(ctx, repoRoot, configPath, startWithRemote, extraPlugins, startWithRemote != "", development && d.watch, "", nil)
 }
 
 // StartProjectControllerWithRemote builds into an already-mounted World capability.
 // The caller retains the mount until the returned project reference is released.
-func (d *DevtoolBus) StartProjectControllerWithRemote(ctx context.Context, repoRoot, configPath, remoteID string, remote *bldr_project.RemoteConfig, frontendRoutePrefix string) (*bldr_project_watcher.Controller, directive.Reference, error) {
-	return d.startProjectController(ctx, d.b, repoRoot, configPath, remoteID, nil, false, frontendRoutePrefix != "" && d.watch, frontendRoutePrefix, map[string]*bldr_project.RemoteConfig{remoteID: remote})
+func (d *DevtoolBus) StartProjectControllerWithRemote(
+	ctx context.Context,
+	repoRoot, configPath, remoteID string,
+	remote *bldr_project.RemoteConfig,
+	frontendRoutePrefix string,
+) (*bldr_project_watcher.Controller, directive.Reference, error) {
+	return d.startProjectController(
+		ctx, repoRoot, configPath, remoteID, nil, false,
+		frontendRoutePrefix != "" && d.watch, frontendRoutePrefix,
+		map[string]*bldr_project.RemoteConfig{remoteID: remote},
+	)
 }
 
 // startProjectController selects the build mode before registering any builders.
-func (d *DevtoolBus) startProjectController(ctx context.Context, b bus.Bus, repoRoot, configPath, startWithRemote string, extraPlugins []string, start, frontendDevelopment bool, frontendRoutePrefix string, remotes map[string]*bldr_project.RemoteConfig) (*bldr_project_watcher.Controller, directive.Reference, error) {
+func (d *DevtoolBus) startProjectController(
+	ctx context.Context,
+	repoRoot, configPath, startWithRemote string,
+	extraPlugins []string,
+	start, frontendDevelopment bool,
+	frontendRoutePrefix string,
+	remotes map[string]*bldr_project.RemoteConfig,
+) (*bldr_project_watcher.Controller, directive.Reference, error) {
 	// Resolve a relative config path against the repository root.
 	absConfigPath := configPath
 	if configPath != "" && !filepath.IsAbs(configPath) {
@@ -566,12 +584,7 @@ func (d *DevtoolBus) startProjectController(ctx context.Context, b bus.Bus, repo
 	// Build the base project config with the devtool remote and extra plugins.
 	baseProjectConfig := &bldr_project.ProjectConfig{
 		Remotes: map[string]*bldr_project.RemoteConfig{
-			"devtool": {
-				EngineId:       d.worldEngineID,
-				PeerId:         d.peerID.String(),
-				ObjectKey:      d.pluginHostObjectKey,
-				LinkObjectKeys: []string{d.pluginHostObjectKey},
-			},
+			"devtool": d.NewProjectRemote(),
 		},
 	}
 	if len(extraPlugins) != 0 {
@@ -600,7 +613,7 @@ func (d *DevtoolBus) startProjectController(ctx context.Context, b bus.Bus, repo
 	// Start the project watcher controller and wait for it to run.
 	ctrl, _, ctrlRef, err := loader.WaitExecControllerRunning(
 		ctx,
-		b,
+		d.b,
 		resolver.NewLoadControllerWithConfig(projWatcherConfig),
 		nil,
 	)

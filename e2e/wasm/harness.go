@@ -22,8 +22,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aperturerobotics/controllerbus/controller/loader"
-	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/ccall"
 	"github.com/aperturerobotics/util/gitroot"
@@ -296,12 +294,7 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 	if projConfig.Remotes == nil {
 		projConfig.Remotes = make(map[string]*bldr_project.RemoteConfig)
 	}
-	projConfig.Remotes["devtool"] = &bldr_project.RemoteConfig{
-		EngineId:       d.GetWorldEngineID(),
-		PeerId:         d.GetVolume().GetPeerID().String(),
-		ObjectKey:      d.GetPluginHostObjectKey(),
-		LinkObjectKeys: []string{d.GetPluginHostObjectKey()},
-	}
+	projConfig.Remotes["devtool"] = d.NewProjectRemote()
 
 	// Apply caller config mutators.
 	for _, mut := range o.configMutators {
@@ -327,12 +320,7 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 	)
 	projCtrlConf.FetchManifestRemote = "devtool"
 	projCtrlConf.FrontendDevelopment = frontendDevelopment
-	projCtrl, _, projRef, err := loader.WaitExecControllerRunningTyped[*bldr_project_controller.Controller](
-		hctx,
-		d.GetBus(),
-		resolver.NewLoadControllerWithConfig(projCtrlConf),
-		nil,
-	)
+	projCtrl, projRef, err := d.StartConfiguredProjectController(hctx, projCtrlConf)
 	if err != nil {
 		return nil, errors.Wrap(err, "start project controller")
 	}
@@ -633,7 +621,8 @@ type manifestWait struct {
 // fail on the actual phase instead of canceling startup manifest publication.
 const defaultManifestBuildTimeout = 5 * time.Minute
 
-func (r manifestFetchRequest) directive() directive.Directive {
+// directive requests the manifest and selected platforms from the devtool bus.
+func (r manifestFetchRequest) directive() bldr_manifest.FetchManifest {
 	return bldr_manifest.NewFetchManifest(r.pluginID, r.buildTypes, r.platformIDs, 0)
 }
 
@@ -707,7 +696,6 @@ func findFreePort() (int, error) {
 
 func (h *Harness) assertStartupManifestFetches(ctx context.Context) error {
 	le := h.le.WithField("component", "harness")
-	b := h.devtool.GetBus()
 	for _, req := range h.startupManifestRequests() {
 		if _, ok := h.projConfig.GetManifests()[req.pluginID]; !ok {
 			return errors.Errorf("startup manifest %q not found in project config", req.pluginID)
@@ -716,7 +704,7 @@ func (h *Harness) assertStartupManifestFetches(ctx context.Context) error {
 		waitState := newManifestWaitState(req.pluginID)
 
 		le.WithFields(req.logFields()).Info("asserting manifest fetch")
-		di, ref, err := b.AddDirective(ctx, req.directive(), waitState.handler())
+		di, ref, err := h.devtool.AssertManifestFetch(ctx, req.directive(), waitState.handler())
 		if err != nil {
 			return errors.Wrapf(err, "assert manifest fetch for %s", req.pluginID)
 		}
@@ -822,7 +810,7 @@ func (h *Harness) preflightManifestFetch(ctx context.Context, req manifestFetchR
 	// Assert the lazy fetch and register its idle callback.
 	waitState := newManifestWaitState(req.pluginID)
 	h.le.WithFields(req.logFields()).Info("asserting lazy manifest fetch")
-	di, ref, err := h.devtool.GetBus().AddDirective(ctx, req.directive(), waitState.handler())
+	di, ref, err := h.devtool.AssertManifestFetch(ctx, req.directive(), waitState.handler())
 	if err != nil {
 		return "", errors.Wrapf(err, "assert manifest fetch for %s", req.pluginID)
 	}

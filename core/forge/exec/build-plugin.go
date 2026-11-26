@@ -194,7 +194,7 @@ func (h *buildPluginHandler) Execute(ctx context.Context) error {
 
 	// Compile directly into the accepted World, preserving child build results and DAG refs.
 	const engineID = "plugin-build-space"
-	releaseEngine, err := buildBus.GetBus().AddController(ctx, world.NewEngineController(engineID, h.engine), nil)
+	releaseEngine, err := buildBus.AddController(ctx, world.NewEngineController(engineID, h.engine))
 	if err != nil {
 		return err
 	}

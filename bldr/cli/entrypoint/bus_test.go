@@ -35,7 +35,7 @@ func TestReleaseClosesStorage(t *testing.T) {
 
 			// Verify on release that caller cleanup runs after storage closes.
 			b.AddRelease(func() {
-				if b.GetContext().Err() == nil {
+				if b.ctx.Err() == nil {
 					t.Error("caller cleanup ran before bus cancellation")
 				}
 				tx, err := db.NewTransaction(context.Background(), false)

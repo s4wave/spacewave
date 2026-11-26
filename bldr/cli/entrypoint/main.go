@@ -13,11 +13,9 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/cli"
-	"github.com/aperturerobotics/controllerbus/controller/configset"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
-	entrypoint_fatal "github.com/s4wave/spacewave/bldr/entrypoint/fatal"
 	"github.com/s4wave/spacewave/bldr/entrypoint/storagepath"
 	"github.com/s4wave/spacewave/bldr/storage"
 	"github.com/s4wave/spacewave/bldr/util/logfile"
@@ -83,49 +81,18 @@ func Main(
 			}
 			dtBus = b
 
-			// Register every discovered controller factory on the bus resolver.
-			for _, fn := range factories {
-				if fn == nil {
-					continue
-				}
-				for _, factory := range fn(b.GetBus()) {
-					b.GetStaticResolver().AddFactory(factory)
-				}
-			}
-
-			// Merge the config sets produced by every build function.
-			if len(configSets) == 0 {
-				return
-			}
-			var merged []configset.ConfigSet
-			for _, fn := range configSets {
-				cs, err := fn(ctx, b.GetBus(), le)
-				if err != nil {
-					dtBus.Release()
-					dtBus = nil
-					busInitErr = err
-					return
-				}
-				merged = append(merged, cs...)
-			}
-
-			// Apply the merged config set on the bus and retain its reference.
-			if len(merged) == 0 {
-				return
-			}
-			set := configset.MergeConfigSets(merged...)
-			_, ref, err := b.GetBus().AddDirective(
-				ctx,
-				configset.NewApplyConfigSet(set),
-				nil,
-			)
+			// Register the linked factories and retain their startup config set.
+			b.RegisterFactories(factories...)
+			ref, err := b.applyConfigSets(ctx, configSets)
 			if err != nil {
 				dtBus.Release()
 				dtBus = nil
 				busInitErr = err
 				return
 			}
-			configSetRefs = append(configSetRefs, ref)
+			if ref != nil {
+				configSetRefs = append(configSetRefs, ref)
+			}
 		})
 		return busInitErr
 	}
@@ -307,18 +274,7 @@ func Main(
 				if dtBus == nil {
 					return errors.New("bus not initialized")
 				}
-				dtBus.GetLogger().Info("started, press ctrl+c to stop")
-				select {
-				case <-dtBus.GetContext().Done():
-					return nil
-				case <-entrypoint_fatal.Chan():
-					// A controller reported a condition under which the
-					// daemon cannot serve, such as another live daemon
-					// owning the front-door socket. Exit with the error
-					// instead of blocking as a daemon without its
-					// front door.
-					return entrypoint_fatal.Err()
-				}
+				return dtBus.waitForServe()
 			})
 		},
 	})

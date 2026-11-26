@@ -14,8 +14,6 @@ import (
 	"time"
 
 	cb_controller "github.com/aperturerobotics/controllerbus/controller"
-	"github.com/aperturerobotics/controllerbus/controller/loader"
-	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/fastjson"
 	"github.com/aperturerobotics/util/gitroot"
@@ -187,12 +185,7 @@ func boot(ctx context.Context, le *logrus.Entry, config bootConfig) (_ *Harness,
 	if projConfig.Remotes == nil {
 		projConfig.Remotes = make(map[string]*bldr_project.RemoteConfig)
 	}
-	projConfig.Remotes["devtool"] = &bldr_project.RemoteConfig{
-		EngineId:       d.GetWorldEngineID(),
-		PeerId:         d.GetVolume().GetPeerID().String(),
-		ObjectKey:      d.GetPluginHostObjectKey(),
-		LinkObjectKeys: []string{d.GetPluginHostObjectKey()},
-	}
+	projConfig.Remotes["devtool"] = d.NewProjectRemote()
 	if err := projConfig.Validate(); err != nil {
 		return nil, errors.Wrap(err, "validate fixture project config")
 	}
@@ -201,12 +194,7 @@ func boot(ctx context.Context, le *logrus.Entry, config bootConfig) (_ *Harness,
 	// Start the project controller and retain its reference.
 	projCtrlConf := bldr_project_controller.NewConfig(repoRoot, stateRoot, projConfig, false, false)
 	projCtrlConf.FetchManifestRemote = "devtool"
-	_, _, ref, err := loader.WaitExecControllerRunning(
-		hctx,
-		d.GetBus(),
-		resolver.NewLoadControllerWithConfig(projCtrlConf),
-		nil,
-	)
+	_, ref, err := d.StartConfiguredProjectController(hctx, projCtrlConf)
 	if err != nil {
 		return nil, errors.Wrap(err, "start project controller")
 	}
@@ -214,7 +202,7 @@ func boot(ctx context.Context, le *logrus.Entry, config bootConfig) (_ *Harness,
 
 	// Start the blocking manifest preflight controller when configured.
 	if config.blockedManifestPreflight != nil {
-		releaseController, err := d.GetBus().AddController(hctx, config.blockedManifestPreflight, nil)
+		releaseController, err := d.AddController(hctx, config.blockedManifestPreflight)
 		if err != nil {
 			return nil, errors.Wrap(err, "start blocking manifest controller")
 		}
@@ -494,7 +482,8 @@ type manifestWait struct {
 	done <-chan error
 }
 
-func (r manifestFetchRequest) directive() directive.Directive {
+// directive requests the manifest and selected platforms from the devtool bus.
+func (r manifestFetchRequest) directive() bldr_manifest.FetchManifest {
 	return bldr_manifest.NewFetchManifest(r.pluginID, nil, r.platformIDs, 0)
 }
 
@@ -533,13 +522,12 @@ func (h *Harness) preflightStartupManifests(ctx context.Context) error {
 }
 
 func (h *Harness) assertStartupManifestFetches(ctx context.Context) error {
-	b := h.devtool.GetBus()
 	for _, req := range h.startupManifestRequests() {
 		if _, ok := h.projConfig.GetManifests()[req.pluginID]; !ok {
 			return errors.Errorf("startup manifest %q not found in project config", req.pluginID)
 		}
 		waitState := newManifestWaitState(req.pluginID)
-		di, ref, err := b.AddDirective(ctx, req.directive(), waitState.handler())
+		di, ref, err := h.devtool.AssertManifestFetch(ctx, req.directive(), waitState.handler())
 		if err != nil {
 			return errors.Wrapf(err, "assert manifest fetch for %s", req.pluginID)
 		}

@@ -176,7 +176,9 @@ func Run(ctx context.Context, args *Args) error {
 	if args.BrowserOnly && args.IncludeBrowser {
 		return errors.New("--browser-only and --include-browser cannot be combined")
 	}
-	if args.ManifestPackProduce && (args.BrowserOnly || args.IncludeBrowser || args.SkipBuild || args.SkipPackage || args.StageBuildInputs || args.PlatformsCSV != "") {
+	browserPackaging := args.BrowserOnly || args.IncludeBrowser
+	stagedBuild := args.SkipBuild || args.SkipPackage || args.StageBuildInputs
+	if args.ManifestPackProduce && (browserPackaging || stagedBuild || args.PlatformsCSV != "") {
 		return errors.New("--manifest-pack-produce cannot be combined with remote/browser/platform packaging flags")
 	}
 
@@ -579,7 +581,6 @@ func produceManifestPack(
 	// Start the project controller and wait for it to be ready.
 	projWatcher, projWatcherRef, err := busHandle.StartProjectController(
 		ctx,
-		busHandle.GetBus(),
 		repoDir,
 		configPath,
 		"devtool",
@@ -601,10 +602,7 @@ func produceManifestPack(
 	}
 
 	// Produce the manifest pack and close the file.
-	meta, produceErr := bldr_manifest_pack.ProduceManifestPack(ctx, &bldr_manifest_pack.ProducerConfig{
-		Bus:        busHandle.GetBus(),
-		WorldState: busHandle.GetWorldState(),
-		Sender:     busHandle.GetVolume().GetPeerID(),
+	meta, produceErr := busHandle.ProduceManifestPack(ctx, bldr_manifest_pack.ProducerConfig{
 		Tuple: &bldr_manifest_pack.ManifestTuple{
 			ManifestId:     manifestID,
 			PlatformId:     platformID,
@@ -673,11 +671,8 @@ func importManifestPacksIntoBus(ctx context.Context, busHandle *bldr_devtool.Dev
 		if err != nil {
 			return errors.Wrap(err, "read manifest pack")
 		}
-		if err := bldr_manifest_pack.ImportManifestPack(ctx, busHandle.GetWorldState(), busHandle.GetVolume().GetPeerID(), meta, packBytes); err != nil {
-			return errors.Wrap(err, "import manifest pack")
-		}
-		if err := bldr_manifest_pack.VerifyImportedManifests(ctx, busHandle.GetWorldState(), meta); err != nil {
-			return errors.Wrap(err, "verify imported manifest pack")
+		if err := busHandle.ImportManifestPack(ctx, meta, packBytes); err != nil {
+			return err
 		}
 	}
 	return nil

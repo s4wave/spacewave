@@ -7,19 +7,19 @@ import (
 	"os"
 	"slices"
 
-	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/pkg/errors"
-
 	devtool_status "github.com/s4wave/spacewave/bldr/devtool/status"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	bldr_plugin_admit "github.com/s4wave/spacewave/bldr/plugin/admit"
 	bldr_plugin_compiler_js "github.com/s4wave/spacewave/bldr/plugin/compiler/js"
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
+	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	bldr_web_plugin "github.com/s4wave/spacewave/bldr/web/plugin"
 	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
+	"github.com/sirupsen/logrus"
 )
 
 // ExecuteNativeProject starts the project as a native app.
@@ -83,7 +83,6 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) (err error) {
 	// the web plugin will start the appropriate runtime based on BLDR_WEB_RENDERER
 	projWatcher, projCtrlRef, err := b.StartProjectControllerWithStartup(
 		ctx,
-		b.GetBus(),
 		repoRoot,
 		a.ConfigPath,
 		a.Remote,
@@ -122,18 +121,8 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) (err error) {
 		}
 	}
 
-	// build the plugin scheduler
-	schedConf := plugin_host_default.NewNativeDesktopSchedulerConfig(
-		"",
-		b.GetWorldEngineID(),
-		b.GetPluginHostObjectKey(),
-		pluginVolumeID,
-		b.GetVolume().GetPeerID().String(),
-		true,
-		true,
-		true,
-		nativeDesktopQuickJSPluginIDs(projCtrl.GetConfig().GetProjectConfig()),
-	)
+	// Bind the scheduler to the devtool World and the project's startup plugins.
+	schedConf := b.newNativeSchedulerConfig(projCtrl.GetConfig().GetProjectConfig(), pluginVolumeID)
 
 	// Startup plugins may run their own plugins, such as a Space's, on the
 	// devtool's plugin hosts.
@@ -142,7 +131,7 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) (err error) {
 
 	// Ask the project's approvals owner about every root the scheduler loads.
 	if owner := projCtrl.GetConfig().GetProjectConfig().GetStart().GetAdmissionPluginId(); owner != "" {
-		relAdmit, err := b.GetBus().AddController(ctx, bldr_plugin_admit.NewController(le, b.GetBus(), owner), nil)
+		relAdmit, err := b.mountPluginAdmission(ctx, le, owner)
 		if err != nil {
 			return err
 		}
@@ -150,21 +139,14 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) (err error) {
 	}
 
 	// Start the plugin scheduler and attach its status to the devtool producer.
-	sched, relSched, err := plugin_host_default.StartPluginSchedulerWithConfig(ctx, b.GetBus(), schedConf)
+	relSched, err := b.startNativePluginScheduler(ctx, schedConf)
 	if err != nil {
 		return err
 	}
-	devtool_status.AttachPluginStatus(ctx, b.GetStatusProducer(), sched)
 	defer relSched()
 
-	// build the plugin host controller
-	_, relPluginHost, err := plugin_host_default.StartPluginHost(
-		ctx,
-		b.GetBus(),
-		b.GetPluginsStateRoot(),
-		b.GetPluginsDistRoot(),
-		"",
-	)
+	// Start the native plugin host with the devtool's state and dist roots.
+	relPluginHost, err := b.startNativePluginHost(ctx)
 	if err != nil {
 		return err
 	}
@@ -176,14 +158,51 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) (err error) {
 	projCtrl.StartStartup(ctx)
 	desktopErr := make(chan error, 1)
 	go func() {
-		desktopErr <- openDesktopWindow(ctx, b.GetBus())
+		desktopErr <- b.openDesktopWindow(ctx)
 	}()
 	b.setCommandRunningWithLogFile("start desktop", "desktop runtime active", commandLogFile)
 
 	// Block until the devtool bus context ends or the desktop window fails to
 	// open, since nothing else launches Electron.
+	return b.waitForDesktop(desktopErr)
+}
+
+// newNativeSchedulerConfig binds the desktop scheduler to the devtool World.
+func (d *DevtoolBus) newNativeSchedulerConfig(project *bldr_project.ProjectConfig, pluginVolumeID string) *plugin_host_scheduler.Config {
+	return plugin_host_default.NewNativeDesktopSchedulerConfig(
+		"", d.worldEngineID, d.pluginHostObjectKey, pluginVolumeID,
+		d.peerID.String(), true, true, true, nativeDesktopQuickJSPluginIDs(project),
+	)
+}
+
+// mountPluginAdmission lets the project's approval plugin admit loaded roots.
+func (d *DevtoolBus) mountPluginAdmission(ctx context.Context, le *logrus.Entry, owner string) (func(), error) {
+	return d.AddController(ctx, bldr_plugin_admit.NewController(le, d.b, owner))
+}
+
+// startNativePluginScheduler starts the scheduler and attaches its status.
+func (d *DevtoolBus) startNativePluginScheduler(ctx context.Context, conf *plugin_host_scheduler.Config) (func(), error) {
+	// Start the scheduler before subscribing to its status.
+	sched, release, err := plugin_host_default.StartPluginSchedulerWithConfig(ctx, d.b, conf)
+	if err != nil {
+		return nil, err
+	}
+
+	// Publish scheduler status through the devtool status producer.
+	devtool_status.AttachPluginStatus(ctx, d.statusProducer, sched)
+	return release, nil
+}
+
+// startNativePluginHost starts the host with the devtool's state and dist roots.
+func (d *DevtoolBus) startNativePluginHost(ctx context.Context) (func(), error) {
+	_, release, err := plugin_host_default.StartPluginHost(ctx, d.b, d.pluginsStateRoot, d.pluginsDistRoot, "")
+	return release, err
+}
+
+// waitForDesktop returns when the bus stops or opening the window fails.
+func (d *DevtoolBus) waitForDesktop(desktopErr <-chan error) error {
 	select {
-	case <-b.GetContext().Done():
+	case <-d.ctx.Done():
 		return nil
 	case err := <-desktopErr:
 		return err
@@ -194,9 +213,9 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) (err error) {
 // Electron starts only on demand, so the devtool supplies the demand and holds
 // the web plugin reference until ctx ends. It returns nil when ctx ends and an
 // error when the web plugin cannot load or open the window.
-func openDesktopWindow(ctx context.Context, b bus.Bus) error {
+func (d *DevtoolBus) openDesktopWindow(ctx context.Context) error {
 	// Wait for the web plugin to load and hold its client reference.
-	client, ref, err := bldr_plugin.ExPluginLoadWaitClient(ctx, b, "web", nil)
+	client, ref, err := bldr_plugin.ExPluginLoadWaitClient(ctx, d.b, "web", nil)
 	if err != nil {
 		if ctx.Err() != nil {
 			return nil

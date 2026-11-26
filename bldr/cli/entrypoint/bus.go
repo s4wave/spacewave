@@ -7,11 +7,14 @@ import (
 	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	cbc "github.com/aperturerobotics/controllerbus/core"
+	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/pkg/errors"
+	entrypoint_fatal "github.com/s4wave/spacewave/bldr/entrypoint/fatal"
 	entrypoint_state "github.com/s4wave/spacewave/bldr/entrypoint/state"
 	"github.com/s4wave/spacewave/bldr/storage"
 	default_storage "github.com/s4wave/spacewave/bldr/storage/default"
@@ -112,16 +115,10 @@ func BuildCliBus(rctx context.Context, le *logrus.Entry, projectID, stateRoot st
 	}
 	rels = append(rels, relStorageCtrl)
 
-	// Ensure there is at least one storage method.
-	storageMethods := storageCtrl.GetStorage()
-	if len(storageMethods) == 0 {
+	// Register the storage factories and require at least one storage method.
+	if !storageCtrl.RegisterFactories(b, sr) {
 		rel()
 		return nil, errors.New("no available storage methods")
-	}
-
-	// Add the storage method factories.
-	for _, storageMethod := range storageMethods {
-		storageMethod.AddFactories(b, sr)
 	}
 
 	// Start the storage volume.
@@ -191,11 +188,6 @@ func BuildCliBus(rctx context.Context, le *logrus.Entry, projectID, stateRoot st
 	}, nil
 }
 
-// GetContext returns the bus context.
-func (c *CliBusImpl) GetContext() context.Context {
-	return c.ctx
-}
-
 // GetBus returns the controller bus.
 func (c *CliBusImpl) GetBus() bus.Bus {
 	return c.b
@@ -206,9 +198,53 @@ func (c *CliBusImpl) GetLogger() *logrus.Entry {
 	return c.le
 }
 
-// GetStaticResolver returns the static controller resolver.
-func (c *CliBusImpl) GetStaticResolver() *static.Resolver {
-	return c.sr
+// RegisterFactories binds factory builders to the CLI bus and resolver.
+// Nil builders are skipped.
+func (c *CliBusImpl) RegisterFactories(builders ...AddFactoryFunc) {
+	for _, build := range builders {
+		if build == nil {
+			continue
+		}
+		for _, factory := range build(c.b) {
+			c.sr.AddFactory(factory)
+		}
+	}
+}
+
+// applyConfigSets applies the merged config sets and returns their reference.
+// It returns no reference when no sets are configured.
+func (c *CliBusImpl) applyConfigSets(ctx context.Context, builders []BuildConfigSetFunc) (directive.Reference, error) {
+	// Gather the config sets contributed by the linked packages.
+	var merged []configset.ConfigSet
+	for _, build := range builders {
+		sets, err := build(ctx, c.b, c.le)
+		if err != nil {
+			return nil, err
+		}
+		merged = append(merged, sets...)
+	}
+
+	// Assert the merged set and leave its cleanup to the caller.
+	if len(merged) == 0 {
+		return nil, nil
+	}
+	set := configset.MergeConfigSets(merged...)
+	_, ref, err := c.b.AddDirective(ctx, configset.NewApplyConfigSet(set), nil)
+	return ref, err
+}
+
+// waitForServe logs startup and waits for shutdown or a fatal controller error.
+func (c *CliBusImpl) waitForServe() error {
+	// Report that the CLI bus is ready.
+	c.le.Info("started, press ctrl+c to stop")
+
+	// Stop when the bus ends or a controller reports that it cannot serve.
+	select {
+	case <-c.ctx.Done():
+		return nil
+	case <-entrypoint_fatal.Chan():
+		return entrypoint_fatal.Err()
+	}
 }
 
 // GetVolume returns the volume used for state.

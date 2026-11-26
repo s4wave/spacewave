@@ -112,7 +112,6 @@ func (a *DevtoolArgs) executeWebProject(ctx context.Context, compilerName, goPlu
 	// Start the project controller and wait for it to run.
 	projCtrl, projCtrlRef, err := d.StartFrontendProjectController(
 		ctx,
-		d.GetBus(),
 		repoRoot,
 		a.ConfigPath,
 		a.Remote,
@@ -286,7 +285,7 @@ func (d *DevtoolBus) executeWebWasm(
 	wsPeerID := d.peerID.String()
 	wsCtrl, _, wsRef, err := loader.WaitExecControllerRunning(
 		ctx,
-		d.GetBus(),
+		d.b,
 		resolver.NewLoadControllerWithConfig(&transport_websocket.Config{
 			TransportPeerId: wsPeerID,
 		}),
@@ -306,10 +305,10 @@ func (d *DevtoolBus) executeWebWasm(
 	ws := tpt.(*transport_websocket.WebSocket)
 
 	// Start the hold-open controller to keep links open.
-	d.GetStaticResolver().AddFactory(link_holdopen_controller.NewFactory(d.GetBus()))
+	d.sr.AddFactory(link_holdopen_controller.NewFactory(d.b))
 	_, _, holdOpenRef, err := loader.WaitExecControllerRunning(
 		ctx,
-		d.GetBus(),
+		d.b,
 		resolver.NewLoadControllerWithConfig(&link_holdopen_controller.Config{}),
 		nil,
 	)
@@ -327,7 +326,7 @@ func (d *DevtoolBus) executeWebWasm(
 
 	// Handle incoming srpc requests.
 	rpcServer, err := stream_srpc_server.NewServer(
-		d.GetBus(),
+		d.b,
 		le,
 		controller.NewInfo(
 			"devtool/web/rpc-server",
@@ -343,12 +342,12 @@ func (d *DevtoolBus) executeWebWasm(
 			},
 			// handle ManifestFetch requests via bus ManifestFetch.
 			func(mux srpc.Mux) error {
-				pluginFetchViaBus := bldr_manifest.NewManifestFetchViaBus(le, d.GetBus())
+				pluginFetchViaBus := bldr_manifest.NewManifestFetchViaBus(le, d.b)
 				return bldr_manifest.SRPCRegisterManifestFetch(mux, pluginFetchViaBus)
 			},
 			func(mux srpc.Mux) error {
 				// Proxy the devtool host volume via RPC.
-				proxyVol := volume_rpc_server.NewProxyVolume(ctx, d.GetVolume(), false)
+				proxyVol := volume_rpc_server.NewProxyVolume(ctx, d.vol, false)
 				return volume_rpc_server.RegisterProxyVolumeWithPrefix(mux, proxyVol, devtool_web.HostVolumeServiceIDPrefix)
 			},
 			func(mux srpc.Mux) error {
@@ -364,7 +363,7 @@ func (d *DevtoolBus) executeWebWasm(
 	}
 
 	// Start handling incoming srpc requests.
-	relRpcServer, err := d.GetBus().AddController(ctx, rpcServer, nil)
+	relRpcServer, err := d.b.AddController(ctx, rpcServer, nil)
 	if err != nil {
 		return err
 	}
@@ -520,7 +519,7 @@ func (d *DevtoolBus) executeWebWasm(
 			if len(preflight.PlatformIDs) == 0 {
 				continue
 			}
-			_, ref, err := d.GetBus().AddDirective(
+			_, ref, err := d.b.AddDirective(
 				ctx,
 				bldr_manifest.NewFetchManifest(
 					preflight.PluginID,
@@ -548,10 +547,10 @@ func (d *DevtoolBus) startCachedManifestFetchController(ctx context.Context) (fu
 	}
 	ctrl := manifest_fetch_world.NewController(
 		d.GetLogger().WithField("source", "cached-devtool-manifests"),
-		d.GetBus(),
+		d.b,
 		conf,
 	)
-	return d.GetBus().AddController(ctx, ctrl, func(err error) {
+	return d.b.AddController(ctx, ctrl, func(err error) {
 		d.GetLogger().WithError(err).Error("cached manifest fetch controller failed")
 	})
 }

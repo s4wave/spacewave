@@ -1,8 +1,6 @@
 package cli_entrypoint
 
 import (
-	"context"
-
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -14,8 +12,6 @@ import (
 
 // CliBus is the common interface for CLI bus implementations.
 type CliBus interface {
-	// GetContext returns the bus context.
-	GetContext() context.Context
 	// GetBus returns the controller bus.
 	GetBus() bus.Bus
 	// GetLogger returns the root logger.

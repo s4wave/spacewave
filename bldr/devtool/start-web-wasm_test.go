@@ -41,7 +41,7 @@ func TestCachedManifestFetchControllerResolvesImportedExternalManifest(t *testin
 	meta := bldr_manifest.NewManifestMeta("gizmo-core", bldr_manifest.BuildType_DEV, "web/js/wasm", 7)
 	manifestRoot, _, err := world.AccessWorldObject(
 		ctx,
-		d.GetWorldState(),
+		d.worldState,
 		"test/gizmo-core-manifest-root",
 		true,
 		func(bcs *block.Cursor) error {
@@ -58,8 +58,8 @@ func TestCachedManifestFetchControllerResolvesImportedExternalManifest(t *testin
 	manifestKey := bldr_manifest.NewManifestKey(d.GetPluginHostObjectKey(), meta)
 	if err := bldr_manifest_world.ExStoreManifestOp(
 		ctx,
-		d.GetWorldState(),
-		d.GetVolume().GetPeerID(),
+		d.worldState,
+		d.peerID,
 		manifestKey,
 		[]string{d.GetPluginHostObjectKey()},
 		manifestRef,
@@ -70,7 +70,7 @@ func TestCachedManifestFetchControllerResolvesImportedExternalManifest(t *testin
 	// Wait for the cached resolver to return a manifest reference.
 	val, _, ref, err := bus.ExecWaitValue[*bldr_manifest.FetchManifestValue](
 		ctx,
-		d.GetBus(),
+		d.b,
 		bldr_manifest.NewFetchManifest("gizmo-core", nil, []string{"web/js/wasm"}, 0),
 		bus.ReturnWhenIdle(),
 		nil,
@@ -130,7 +130,7 @@ func TestCachedManifestFetchControllerDoesNotEmitEmptyManifestValue(t *testing.T
 		nil,
 		nil,
 	)
-	_, ref, err := d.GetBus().AddDirective(
+	_, ref, err := d.b.AddDirective(
 		ctx,
 		bldr_manifest.NewFetchManifest("missing-core", nil, []string{"web/js/wasm"}, 0),
 		handler,

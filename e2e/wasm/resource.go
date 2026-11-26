@@ -14,7 +14,6 @@ import (
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	"github.com/s4wave/spacewave/net/peer"
-	stream_srpc "github.com/s4wave/spacewave/net/stream/srpc"
 	s4wave_root "github.com/s4wave/spacewave/sdk/root"
 	"github.com/sirupsen/logrus"
 )
@@ -260,6 +259,7 @@ func newSessionResourceClientContext(ctx context.Context) (context.Context, *ses
 	return clientCtx, &sessionResourceClientContext{cancel: clientCancel}
 }
 
+// Cancel closes a resource connection attempt that the harness did not retain.
 func (c *sessionResourceClientContext) Cancel() {
 	if c.cancel == nil {
 		return
@@ -268,12 +268,14 @@ func (c *sessionResourceClientContext) Cancel() {
 	c.cancel = nil
 }
 
+// Retain transfers responsibility for closure to the connected resource client.
 func (c *sessionResourceClientContext) Retain() {
 	// The retained resource client owns its own child context; canceling this
 	// parent would close the session immediately instead of on Client.Release.
 	c.cancel = nil
 }
 
+// Release closes the root resource and its client in that order.
 func (c *sessionResourceConnection) Release() {
 	if c.root != nil {
 		c.root.Release()
@@ -322,13 +324,7 @@ func (h *Harness) tryConnectSessionWithTimeout(
 // tryConnectSession attempts a single resource connection on the TestSession.
 func (h *Harness) tryConnectSession(ctx context.Context, browserPeer peer.ID) (*sessionResourceConnection, error) {
 	// Open an SRPC client on the session stream.
-	openStreamFn := stream_srpc.NewOpenStreamFunc(
-		h.devtool.GetBus(),
-		browserProtocolID,
-		peer.ID(""), // any local peer
-		browserPeer,
-		0, // any transport
-	)
+	openStreamFn := h.devtool.NewPeerStreamOpener(browserProtocolID, browserPeer)
 	client := srpc.NewClient(openStreamFn)
 
 	// Open the plugin resource service.
@@ -374,7 +370,7 @@ func isBrowserPeerStartupErr(err error) bool {
 // call. The PeerWatcher tracks browser peers across sessions.
 func (h *Harness) getPeerWatcher() *PeerWatcher {
 	h.peerWatcherOnce.Do(func() {
-		pw, err := NewPeerWatcher(h.devtool.GetBus())
+		pw, err := NewPeerWatcher(h.devtool)
 		if err != nil {
 			panic("peer watcher: " + err.Error())
 		}

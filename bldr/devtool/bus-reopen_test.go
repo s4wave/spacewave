@@ -32,9 +32,9 @@ func TestBuildDevtoolBusReopenAfterInProcessOpen(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(first.Release)
-	firstID := first.GetVolume().GetID()
+	firstID := first.vol.GetID()
 	first.Release()
-	if err := first.GetContext().Err(); err != context.Canceled {
+	if err := first.ctx.Err(); err != context.Canceled {
 		t.Fatalf("released devtool context: %v, want cancellation", err)
 	}
 
@@ -66,7 +66,7 @@ func TestBuildDevtoolBusReopenAfterInProcessOpen(t *testing.T) {
 		t.Fatalf("reopen devtool after conflicting claim: %v", err)
 	}
 	t.Cleanup(second.Release)
-	if got := second.GetVolume().GetID(); got != firstID {
+	if got := second.vol.GetID(); got != firstID {
 		t.Fatalf("reopened volume id %q, want %q", got, firstID)
 	}
 

@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/cli"
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/srpc"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
@@ -148,9 +149,13 @@ func runSharedDaemonFixture() error {
 			return nil
 		}
 		for _, factory := range plugin_host_default.PluginHostControllerFactories {
-			cliBus.GetStaticResolver().AddFactory(factory(cliBus.GetBus()))
+			cliBus.RegisterFactories(func(b bus.Bus) []controller.Factory {
+				return []controller.Factory{factory(b)}
+			})
 		}
-		cliBus.GetStaticResolver().AddFactory(plugin_host_scheduler.NewFactory(cliBus.GetBus()))
+		cliBus.RegisterFactories(func(b bus.Bus) []controller.Factory {
+			return []controller.Factory{plugin_host_scheduler.NewFactory(b)}
+		})
 		if os.Getenv(sharedDaemonFixtureMode) == "distribution" {
 			pluginStateRoot := filepath.Join(statePath, "plugin", "state")
 			pluginDistRoot := filepath.Join(statePath, "plugin", "dist")

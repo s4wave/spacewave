@@ -14,7 +14,6 @@ import (
 	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
-	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"
 )
 
@@ -31,17 +30,28 @@ var cliHandoffPlatformIDs = []string{
 
 // CLIHandoffOptions carries inputs for writing a CLI release handoff.
 type CLIHandoffOptions struct {
-	RootDir             string
-	CLIArtifactsDir     string
+	// RootDir holds the staged handoff artifacts and manifest.
+	RootDir string
+	// CLIArtifactsDir holds the prepared native CLI archives.
+	CLIArtifactsDir string
+	// ManifestPackDirsCSV names directories containing the input manifest packs.
 	ManifestPackDirsCSV string
-	CLIRev              string
-	GitSHA              string
-	Tag                 string
-	ReleaseEnvironment  string
-	RunID               string
-	RunAttempt          string
-	SourceRepo          string
-	Workflow            string
+	// CLIRev identifies the CLI release revision.
+	CLIRev string
+	// GitSHA identifies the source commit.
+	GitSHA string
+	// Tag identifies the release tag.
+	Tag string
+	// ReleaseEnvironment selects the release environment.
+	ReleaseEnvironment string
+	// RunID identifies the producer workflow run.
+	RunID string
+	// RunAttempt identifies the attempt of that run.
+	RunAttempt string
+	// SourceRepo identifies the repository that produced the archives.
+	SourceRepo string
+	// Workflow names the producer workflow.
+	Workflow string
 }
 
 type cliHandoffManifest struct {
@@ -52,10 +62,14 @@ type cliHandoffManifest struct {
 }
 
 type cliHandoffManifestRef struct {
+	// ManifestID identifies the CLI manifest.
 	ManifestID string
+	// PlatformID identifies the platform the manifest targets.
 	PlatformID string
-	Rev        uint64
-	Ref        string
+	// Rev is the selected manifest revision.
+	Rev uint64
+	// Ref is the serialized manifest reference.
+	Ref string
 }
 
 // WriteCLIHandoffManifest writes a cli-handoff.v1 root from imported Manifest packs.
@@ -152,25 +166,20 @@ func importAndCollectCLIHandoffManifestRefs(
 	}
 
 	// Collect the release references from the imported devtool World.
-	refs, err := collectCLIHandoffManifestRefs(ctx, busHandle.GetWorldState())
+	refs, err := selectCLIHandoffManifestRefs(busHandle.CollectManifests(ctx, cliEntrypointManifestID, cliHandoffPlatformIDs))
 	if err != nil {
 		return nil, err
 	}
 	return refs, nil
 }
 
-func collectCLIHandoffManifestRefs(
-	ctx context.Context,
-	ws world.WorldState,
+// selectCLIHandoffManifestRefs selects the newest release manifest for each CLI platform.
+func selectCLIHandoffManifestRefs(
+	collected []*bldr_manifest_world.CollectedManifest,
+	manifestErrs []error,
+	err error,
 ) ([]*cliHandoffManifestRef, error) {
-	// Collect the CLI manifests for every supported release platform.
-	collected, manifestErrs, err := bldr_manifest_world.CollectManifestsForManifestID(
-		ctx,
-		ws,
-		cliEntrypointManifestID,
-		cliHandoffPlatformIDs,
-		"devtool",
-	)
+	// Reject an incomplete read of the CLI manifests.
 	if err != nil {
 		return nil, errors.Wrap(err, "collect cli handoff manifests")
 	}

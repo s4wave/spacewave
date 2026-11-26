@@ -227,16 +227,10 @@ func BuildDistBus(
 	}
 	rels.add(relStorageCtrl)
 
-	// ensure there is at least one storage method
-	storageMethods := storageCtrl.GetStorage()
-	if len(storageMethods) == 0 {
+	// Register the storage factories and require at least one storage method.
+	if !storageCtrl.RegisterFactories(b, sr) {
 		rel()
 		return nil, errors.New("no available storage methods")
-	}
-
-	// add storage factories
-	for _, st := range storageMethods {
-		st.AddFactories(b, sr)
 	}
 
 	// Read the embedded world root and object key from the dist metadata.

@@ -3,7 +3,9 @@ package storage_controller
 import (
 	"context"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/s4wave/spacewave/bldr/storage"
 )
@@ -27,9 +29,16 @@ func BuildStorageController(storageId string, storage []storage.Storage, info *c
 	}
 }
 
-// GetStorage returns the Storage objects.
-func (c *StorageController) GetStorage() []storage.Storage {
-	return c.storage
+// RegisterFactories adds the configured storage factories in storage order.
+// It reports whether the controller has any storage methods.
+func (c *StorageController) RegisterFactories(b bus.Bus, sr *static.Resolver) bool {
+	// Install each method on the process bus.
+	for _, method := range c.storage {
+		method.AddFactories(b, sr)
+	}
+
+	// Let the process builder enforce its storage requirement.
+	return len(c.storage) != 0
 }
 
 // GetControllerInfo returns information about the controller.

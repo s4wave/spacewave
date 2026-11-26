@@ -9,7 +9,6 @@ import (
 
 	devtool_store "github.com/s4wave/spacewave/bldr/devtool/store"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
-	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"
 )
 
@@ -51,7 +50,6 @@ func (a *DevtoolArgs) BuildProject(ctx context.Context) (err error) {
 	// targets. Builds need on-demand compilation without application startup.
 	projWatcher, projWatcherRef, err := b.StartProjectControllerWithStartup(
 		ctx,
-		b.GetBus(),
 		repoRoot,
 		a.ConfigPath,
 		a.Remote,
@@ -82,9 +80,8 @@ func (a *DevtoolArgs) BuildProject(ctx context.Context) (err error) {
 	// Hold the builders while watching or exporting.
 	var hold func(context.Context, []string) error
 	if a.Watch || a.ExportDir != "" {
-		ws := b.GetWorldState()
 		hold = func(ctx context.Context, manifestIDs []string) error {
-			return a.holdBuild(ctx, le, ws, manifestIDs)
+			return b.holdBuild(ctx, le, a.ExportDir, manifestIDs)
 		}
 	}
 
@@ -110,36 +107,36 @@ func (a *DevtoolArgs) BuildProject(ctx context.Context) (err error) {
 // directory, then, when the build watches, again after each World change that
 // moves one of their roots, until ctx ends. A watched export that fails is
 // logged and retried on the next change, leaving the previous export in place.
-func (a *DevtoolArgs) holdBuild(
+func (d *DevtoolBus) holdBuild(
 	ctx context.Context,
 	le *logrus.Entry,
-	ws world.WorldState,
+	exportDir string,
 	manifestIDs []string,
 ) error {
 	var exported string
 	for {
 		// Read the World's position before checking it, so no change is missed.
-		seqno, err := ws.GetSeqno(ctx)
+		seqno, err := d.worldState.GetSeqno(ctx)
 		if err != nil {
 			return err
 		}
 
 		// Export the sets when their roots moved.
-		if a.ExportDir != "" {
-			exported, err = a.exportChanged(ctx, le, ws, manifestIDs, exported)
-			if err != nil && !a.Watch {
+		if exportDir != "" {
+			exported, err = d.exportChanged(ctx, le, exportDir, manifestIDs, exported)
+			if err != nil && !d.watch {
 				return err
 			}
 			if err != nil {
 				le.WithError(err).Warn("export failed; previous export kept")
 			}
 		}
-		if !a.Watch {
+		if !d.watch {
 			return nil
 		}
 
 		// Wait for the next World change.
-		if _, err := ws.WaitSeqno(ctx, seqno+1); err != nil {
+		if _, err := d.worldState.WaitSeqno(ctx, seqno+1); err != nil {
 			if ctx.Err() != nil {
 				return nil
 			}
@@ -150,10 +147,10 @@ func (a *DevtoolArgs) holdBuild(
 
 // exportChanged exports the latest sets of manifestIDs when their roots differ
 // from prev, and returns the roots now exported.
-func (a *DevtoolArgs) exportChanged(
+func (d *DevtoolBus) exportChanged(
 	ctx context.Context,
 	le *logrus.Entry,
-	ws world.WorldState,
+	exportDir string,
 	manifestIDs []string,
 	prev string,
 ) (string, error) {
@@ -161,7 +158,7 @@ func (a *DevtoolArgs) exportChanged(
 	var refs []*bldr_manifest.ManifestRef
 	var roots strings.Builder
 	for _, id := range manifestIDs {
-		set, err := devtool_store.CollectLatestManifestSet(ctx, ws, id)
+		set, err := devtool_store.CollectLatestManifestSet(ctx, d.worldState, id)
 		if err != nil {
 			return prev, err
 		}
@@ -176,7 +173,7 @@ func (a *DevtoolArgs) exportChanged(
 	}
 
 	// Write the export and name each manifest it holds.
-	if err := devtool_store.ExportManifestSets(ctx, le, ws, refs, a.ExportDir); err != nil {
+	if err := devtool_store.ExportManifestSets(ctx, le, d.worldState, refs, exportDir); err != nil {
 		return prev, err
 	}
 	for _, ref := range refs {

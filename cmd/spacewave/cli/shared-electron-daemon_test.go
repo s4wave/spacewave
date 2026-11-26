@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
@@ -159,9 +160,13 @@ func newSharedElectronDaemon(t *testing.T, app sharedElectronApp, opts sharedEle
 	b := cliBus.GetBus()
 
 	// Load the production Session catalog and local provider against this bus.
-	cliBus.GetStaticResolver().AddFactory(session_controller.NewFactory(b))
-	cliBus.GetStaticResolver().AddFactory(provider_local.NewFactory(b))
-	cliBus.GetStaticResolver().AddFactory(space_sobject.NewFactory(b))
+	cliBus.RegisterFactories(func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{
+			session_controller.NewFactory(b),
+			provider_local.NewFactory(b),
+			space_sobject.NewFactory(b),
+		}
+	})
 	for _, conf := range []config.Config{
 		&session_controller.Config{VolumeId: cliBus.GetVolume().GetID()},
 		&space_sobject.Config{},

@@ -39,7 +39,6 @@ func (a *DevtoolArgs) PublishProject(ctx context.Context) error {
 	// execute the project controller
 	projWatcher, projWatcherRef, err := b.StartProjectController(
 		ctx,
-		b.GetBus(),
 		repoRoot,
 		a.ConfigPath,
 		"",

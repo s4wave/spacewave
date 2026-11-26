@@ -68,6 +68,7 @@ func main() {
 
 	// get the info from the devtool info endpoint
 	err = retry.Retry(ctx, le, func(ctx context.Context, success func()) error {
+		// Read the devtool connection information.
 		resp, err := http.Get(infoUrl)
 		if err != nil {
 			return err
@@ -83,11 +84,13 @@ func main() {
 		}
 		success()
 
+		// Start a fresh browser bus for this connection attempt.
 		b, sr, err := core.NewCoreBus(ctx, le)
 		if err != nil {
 			le.Fatal(err.Error())
 		}
 
+		// Register the factories that load manifests and browser plugins.
 		sr.AddFactory(manifest_fetch_plugin.NewFactory(b))
 		sr.AddFactory(manifest_fetch_rpc.NewFactory(b))
 		sr.AddFactory(plugin_host_web.NewFactory(b))
@@ -95,15 +98,19 @@ func main() {
 		sr.AddFactory(bldr_web_plugin_browser_controller.NewFactory(b))
 		sr.AddFactory(world_block_engine.NewFactory(b))
 
+		// Register the stream client and Volume RPC factories.
 		sr.AddFactory(stream_srpc_client_controller.NewFactory(b))
 		sr.AddFactory(volume_rpc_server.NewFactory(b))
 
+		// Register the WebSocket link factories.
 		sr.AddFactory(websocket.NewFactory(b))
 		sr.AddFactory(link_establish_controller.NewFactory(b))
 		sr.AddFactory(link_holdopen_controller.NewFactory(b))
 
+		// Register the bucket setup factory.
 		sr.AddFactory(bucket_setup.NewFactory(b))
 
+		// Attach the browser node controller.
 		nodeCtrl := node_controller.NewController(&node_controller.Config{}, le, b)
 		relNodeCtrl, err := b.AddController(ctx, nodeCtrl, nil)
 		if err != nil {
@@ -128,11 +135,10 @@ func main() {
 		}
 		defer relStorageCtrl()
 
-		// add storage factories
-		for _, st := range storageCtrl.GetStorage() {
-			st.AddFactories(b, sr)
-		}
+		// Register the configured storage factories.
+		storageCtrl.RegisterFactories(b, sr)
 
+		// Run the devtool entrypoint for the life of the connection.
 		ctrl := devtool_web_entrypoint_controller.NewController(
 			le,
 			b,

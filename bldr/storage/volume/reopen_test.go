@@ -139,9 +139,7 @@ func openStorageVolume(
 		return nil, nil, err
 	}
 	t.Cleanup(relStorage)
-	for _, method := range storageCtrl.GetStorage() {
-		method.AddFactories(b, sr)
-	}
+	storageCtrl.RegisterFactories(b, sr)
 
 	// Wait for the volume controller the devtool bus acquires.
 	return ExecVolumeController(ctx, b, &Config{

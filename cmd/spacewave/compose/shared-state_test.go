@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
@@ -36,7 +37,10 @@ func TestSharedSessionCatalogSurvivesEntrypointChange(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(cliBus.Release)
-	cliBus.GetStaticResolver().AddFactory(session_controller.NewFactory(cliBus.GetBus()))
+	sessionFactories := func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{session_controller.NewFactory(b)}
+	}
+	cliBus.RegisterFactories(sessionFactories)
 
 	// Register the CLI Session and release its mounted catalog.
 	cliSessions, releaseCLI := openSharedStateSessions(t, ctx, cliBus.GetBus())
@@ -98,7 +102,7 @@ func TestSharedSessionCatalogSurvivesEntrypointChange(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(reopened.Release)
-	reopened.GetStaticResolver().AddFactory(session_controller.NewFactory(reopened.GetBus()))
+	reopened.RegisterFactories(sessionFactories)
 	reopenedSessions, releaseReopened := openSharedStateSessions(t, ctx, reopened.GetBus())
 	t.Cleanup(releaseReopened)
 

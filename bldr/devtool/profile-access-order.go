@@ -19,10 +19,12 @@ import (
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
+	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	packfile_order "github.com/s4wave/spacewave/db/packfile/order"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
+	"github.com/sirupsen/logrus"
 )
 
 var dynamicImportPattern = regexp.MustCompile("import\\(\\s*[\"'`]([^\"'`]+)[\"'`]\\s*\\)")
@@ -86,13 +88,7 @@ func (a *DevtoolArgs) ExecuteProfileAccessOrder(ctx context.Context) (err error)
 	}
 
 	// Collect the built manifests matching the manifest and platform ids.
-	manifests, manifestErrs, err := bldr_manifest_world.CollectManifestsForManifestID(
-		ctx,
-		b.GetWorldState(),
-		manifestID,
-		[]string{platformID},
-		b.GetPluginHostObjectKey(),
-	)
+	manifests, manifestErrs, err := b.CollectManifests(ctx, manifestID, []string{platformID})
 	if err != nil {
 		return err
 	}
@@ -116,25 +112,7 @@ func (a *DevtoolArgs) ExecuteProfileAccessOrder(ctx context.Context) (err error)
 	}
 
 	// Record the startup access order for the first collected manifest.
-	collected := manifests[0]
-	var record *packfile_order.AccessOrderRecord
-	err = bldr_manifest_world.AccessManifest(
-		ctx,
-		le,
-		b.GetWorldState().AccessWorldState,
-		collected.ManifestRef,
-		func(
-			ctx context.Context,
-			bls *bucket_lookup.Cursor,
-			bcs *block.Cursor,
-			manifest *bldr_manifest.Manifest,
-			distFS *unixfs.FSHandle,
-			assetsFS *unixfs.FSHandle,
-		) error {
-			record, err = buildStartupAccessOrderRecord(ctx, bls, manifest, collected.ManifestRef.GetRootRef(), distFS, assetsFS)
-			return err
-		},
-	)
+	record, err := b.profileManifestAccessOrder(ctx, le, manifests[0].ManifestRef)
 	if err != nil {
 		return err
 	}
@@ -146,6 +124,32 @@ func (a *DevtoolArgs) ExecuteProfileAccessOrder(ctx context.Context) (err error)
 	return packfile_order.WriteAccessOrderRecordFile(outPath, record)
 }
 
+// profileManifestAccessOrder records startup reads from a manifest in the devtool World.
+func (d *DevtoolBus) profileManifestAccessOrder(ctx context.Context, le *logrus.Entry, ref *bucket.ObjectRef) (*packfile_order.AccessOrderRecord, error) {
+	// Read the manifest and record the startup access order of its files.
+	var record *packfile_order.AccessOrderRecord
+	err := bldr_manifest_world.AccessManifest(
+		ctx,
+		le,
+		d.worldState.AccessWorldState,
+		ref,
+		func(
+			ctx context.Context,
+			bls *bucket_lookup.Cursor,
+			bcs *block.Cursor,
+			manifest *bldr_manifest.Manifest,
+			distFS *unixfs.FSHandle,
+			assetsFS *unixfs.FSHandle,
+		) error {
+			next, err := buildStartupAccessOrderRecord(ctx, bls, manifest, ref.GetRootRef(), distFS, assetsFS)
+			record = next
+			return err
+		},
+	)
+	return record, err
+}
+
+// buildStartupAccessOrderRecord records the file and block accesses used at startup.
 func buildStartupAccessOrderRecord(
 	ctx context.Context,
 	bls *bucket_lookup.Cursor,
