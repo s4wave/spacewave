@@ -52,27 +52,34 @@ func LookupDeviceAvailability(ctx context.Context, ws world.WorldState, deviceOb
 	}
 
 	// Derive from the owner claim without consulting self-reported liveness.
-	return LookupForgeWorkerAvailability(ctx, ws, deviceObjectKey, dev)
+	availability, _, err := LookupForgeWorkerAvailability(ctx, ws, deviceObjectKey, dev)
+	return availability, err
 }
 
 // LookupForgeWorkerAvailability derives availability for a Device snapshot from
 // its linked Worker's claim. The caller may use a read transaction to read both
-// the Device and claim at one World revision.
-func LookupForgeWorkerAvailability(ctx context.Context, ws world.WorldState, deviceObjectKey string, dev *s4wave_device.Device) (DeviceAvailability, error) {
+// the Device and claim at one World revision. It also returns the capacity
+// record it derived from, or nil when the Worker has none.
+func LookupForgeWorkerAvailability(
+	ctx context.Context,
+	ws world.WorldState,
+	deviceObjectKey string,
+	dev *s4wave_device.Device,
+) (DeviceAvailability, *WorkerCapacity, error) {
 	// Locate the Worker even while its projected capability is draining or stale.
 	availability := DeviceAvailability{State: DeviceUnavailable}
 	workerKey := ForgeWorkerObjectKey(dev.FindCapabilityByKind(s4wave_device.DeviceCapabilityKindForgeWorker))
 	if workerKey == "" {
 		availability.Reason = "no forge worker declaration"
-		return availability, nil
+		return availability, nil, nil
 	}
 	capacity, err := LookupWorkerCapacity(ctx, ws, workerKey)
 	if errors.Is(err, ErrWorkerNotObserved) {
 		availability.Reason = "forge worker has no owner claim"
-		return availability, nil
+		return availability, nil, nil
 	}
 	if err != nil {
-		return DeviceAvailability{}, err
+		return DeviceAvailability{}, nil, err
 	}
 
 	// Preserve claim diagnostics even when the Device cannot accept work.
@@ -83,7 +90,7 @@ func LookupForgeWorkerAvailability(ctx context.Context, ws world.WorldState, dev
 	}
 	if capacity.OwnerDeviceObjectKey != deviceObjectKey {
 		availability.Reason = "forge worker claim belongs to device " + capacity.OwnerDeviceObjectKey
-		return availability, nil
+		return availability, capacity, nil
 	}
 
 	// The Worker claim, not Device liveness, determines expiry and drain.
@@ -97,7 +104,7 @@ func LookupForgeWorkerAvailability(ctx context.Context, ws world.WorldState, dev
 		availability.State = DeviceAvailable
 		availability.Reason = "forge worker owner claim is active"
 	}
-	return availability, nil
+	return availability, capacity, nil
 }
 
 // WatchDeviceAvailability emits the initial availability and each changed

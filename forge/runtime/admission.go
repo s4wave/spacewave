@@ -26,31 +26,10 @@ type WorkerClaimRef struct {
 	ClaimID string
 }
 
-// ReservationState describes whether capacity remains held and whether the
-// runtime outcome is known.
-type ReservationState uint8
-
-const (
-	// ReservationStateReserved holds debited capacity before a runtime claims it.
-	ReservationStateReserved ReservationState = iota + 1
-	// ReservationStateActive holds debited capacity for one claimed runtime generation.
-	ReservationStateActive
-	// ReservationStateUncertain holds debited capacity while the runtime outcome
-	// is unknown, for example after a Device disconnect. Capacity stays debited
-	// until the same fenced runtime reconnects or the lease expires.
-	ReservationStateUncertain
-	// ReservationStatePendingStop holds a fenced runtime whose stop has not
-	// been confirmed yet. Capacity release follows the expiry rule while the
-	// runtime outcome stays unknown until the stop is confirmed.
-	ReservationStatePendingStop
-	// ReservationStateReleased is terminal: cleanup is recorded and no
-	// capacity is held.
-	ReservationStateReleased
-)
-
 // Valid reports whether the state is a defined value.
 func (s ReservationState) Valid() bool {
-	return s >= ReservationStateReserved && s <= ReservationStateReleased
+	_, ok := ReservationState_name[int32(s)]
+	return ok
 }
 
 // Live reports whether the state may still transition before release.
@@ -60,7 +39,7 @@ func (s ReservationState) Live() bool {
 
 // Terminal reports whether the state releases capacity permanently.
 func (s ReservationState) Terminal() bool {
-	return s == ReservationStateReleased
+	return s == ReservationState_RESERVATION_STATE_RELEASED
 }
 
 // ReservationOutcome classifies a reservation for reconciliation after a
@@ -86,8 +65,14 @@ var (
 	// ErrStaleGeneration is returned when a call fences against an older
 	// generation, for example a late return from a replaced runtime.
 	ErrStaleGeneration = errors.New("stale reservation generation")
-	// ErrCapacityExhausted is returned when a worker cannot satisfy a request.
+	// ErrCapacityExhausted is returned when a request fits a Worker's declared
+	// totals but live reservations hold what it needs. A credit can admit it,
+	// so the caller waits for one.
 	ErrCapacityExhausted = errors.New("worker capacity exhausted")
+	// ErrCapacityNeverFits is returned when a Worker's declared totals could
+	// never hold a request, whatever is reserved, such as two cards on a
+	// one-card Worker. Waiting would never end, so the caller fails at once.
+	ErrCapacityNeverFits = errors.New("request exceeds worker capacity")
 	// ErrBackendUnsupported is returned when a worker does not declare the backend.
 	ErrBackendUnsupported = errors.New("backend unsupported by worker")
 	// ErrReservationTerminal is returned when a lease renewal hits a released
@@ -113,6 +98,7 @@ var (
 // refusals are the errors that refuse a request without changing the ledger.
 var refusals = [...]error{
 	ErrCapacityExhausted,
+	ErrCapacityNeverFits,
 	ErrBackendUnsupported,
 	ErrCapacityDraining,
 	ErrCapacityOwnerExpired,
@@ -132,14 +118,6 @@ func IsRefusal(err error) bool {
 	return false
 }
 
-// Cleanup reasons recorded on receipts.
-const (
-	// CleanupReasonStop records a caller-requested stop of a live runtime.
-	CleanupReasonStop = "stopped"
-	// CleanupReasonExpired records a lease-expiry release.
-	CleanupReasonExpired = "expired"
-)
-
 // RuntimeAdmission atomically reserves Worker capacity and reconciles fenced
 // backend runtimes. Forge owns this boundary; callers never keep their own
 // capacity ledger.
@@ -148,7 +126,7 @@ type RuntimeAdmission interface {
 	// Reserve is idempotent per Execution object key while the reservation is
 	// live. After release it reserves the next generation for the resumed
 	// attempt, fencing calls from the released runtime.
-	Reserve(ctx context.Context, workerObjectKey, executionObjectKey string, request ResourceRequest) (*Reservation, error)
+	Reserve(ctx context.Context, workerObjectKey, executionObjectKey string, request *ResourceRequest) (*Reservation, error)
 	// LookupReservation loads one persisted reservation. Reconcile after a
 	// restart reads the same object and resumes observation without relaunch.
 	LookupReservation(ctx context.Context, reservationObjectKey string) (*Reservation, error)

@@ -1,0 +1,97 @@
+---
+title: "Two runs, one graphics card: what each Execution shows"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: idle
+    lg1: busy
+    lg2: waiting
+  }
+  class lg0 teal
+  class lg1 blue
+  class lg2 orange
+  s0: A starting#59; B starting
+  s1: A running on the card#59; B starting
+  s2: A starting#59; B running on the card
+  s3: A running on the card#59; B waiting for a graphics card
+  s4: A stopping#59; B starting
+  s5: A Worker restarting, card held#59; B starting
+  s6: A starting#59; B stopping
+  s7: A starting#59; B Worker restarting, card held
+  s8: A waiting for a graphics card#59; B running on the card
+  s9: A stopping#59; B waiting for a graphics card
+  s10: A Worker restarting, card held#59; B waiting for a graphics card
+  s11: A waiting for a graphics card#59; B stopping
+  s12: A waiting for a graphics card#59; B Worker restarting, card held
+  s13: A complete#59; B starting
+  s14: A starting#59; B complete
+  s15: A running on the card#59; B complete
+  s16: A complete#59; B running on the card
+  s17: A complete#59; B waiting for a graphics card
+  s18: A waiting for a graphics card#59; B complete
+  s19: A stopping#59; B complete
+  s20: A Worker restarting, card held#59; B complete
+  s21: A complete#59; B stopping
+  s22: A complete#59; B Worker restarting, card held
+  s23: A complete#59; B complete
+  [*] --> s0
+  s0 --> s1: A gets the free card
+  s0 --> s2: B gets the free card
+  s1 --> s3: B finds the card busy
+  s1 --> s4: A container exits
+  s1 --> s5: A Worker restarts
+  s2 --> s6: B container exits
+  s2 --> s7: B Worker restarts
+  s2 --> s8: A finds the card busy
+  s3 --> s9: A container exits
+  s3 --> s10: A Worker restarts
+  s4 --> s9: B finds the card busy
+  s4 --> s13: A stop confirmed, card freed
+  s5 --> s4: A Worker stops the container
+  s5 --> s10: B finds the card busy
+  s6 --> s11: A finds the card busy
+  s6 --> s14: B stop confirmed, card freed
+  s7 --> s6: B Worker stops the container
+  s7 --> s12: A finds the card busy
+  s8 --> s11: B container exits
+  s8 --> s12: B Worker restarts
+  s9 --> s17: A stop confirmed, card freed
+  s10 --> s9: A Worker stops the container
+  s11 --> s18: B stop confirmed, card freed
+  s12 --> s11: B Worker stops the container
+  s13 --> s16: B gets the free card
+  s14 --> s15: A gets the free card
+  s15 --> s19: A container exits
+  s15 --> s20: A Worker restarts
+  s16 --> s21: B container exits
+  s16 --> s22: B Worker restarts
+  s17 --> s16: B gets the freed card
+  s18 --> s15: A gets the freed card
+  s19 --> s23: A stop confirmed, card freed
+  s20 --> s19: A Worker stops the container
+  s21 --> s23: B stop confirmed, card freed
+  s22 --> s21: B Worker stops the container
+  class s0 teal
+  class s1 blue
+  class s2 blue
+  class s3 orange
+  class s4 blue
+  class s5 blue
+  class s6 blue
+  class s7 blue
+  class s8 orange
+  class s9 orange
+  class s10 orange
+  class s11 orange
+  class s12 orange
+  class s13 teal
+  class s14 teal
+  class s15 blue
+  class s16 blue
+  class s17 orange
+  class s18 orange
+  class s19 blue
+  class s20 blue
+  class s21 blue
+  class s22 blue
+  class s23 teal

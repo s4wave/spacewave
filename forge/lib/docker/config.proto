@@ -1,6 +1,8 @@
 syntax = "proto3";
 package forge.lib.docker;
 
+import "github.com/s4wave/spacewave/sdk/device/device.proto";
+
 // Config configures the docker CLI exec controller.
 // Creates one container, starts it, waits for completion, and stops it on
 // execution cancellation.
@@ -52,6 +54,10 @@ message Config {
   // read-only. Each input, a UnixFS directory, is checked out to a private
   // host directory before the container is created and removed after it exits.
   map<string, string> input_mounts = 16;
+  // Cards asks for whole graphics cards. Admission reserves them with the CPU
+  // and memory request, and the container gets only the reserved cards' device
+  // nodes; a card's nodes are never listed in devices.
+  .s4wave.device.GraphicsCardRequest cards = 17;
 }
 
 // Mount configures one docker bind mount.

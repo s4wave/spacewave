@@ -68,7 +68,7 @@ func TestDeviceLabel(t *testing.T) {
 
 	// Read the human and machine output through the production Device show writers.
 	var shown bytes.Buffer
-	writeDeviceShow(&shown, key, device, forge_runtime.DeviceAvailability{})
+	writeDeviceShow(&shown, key, device, forge_runtime.DeviceAvailability{}, nil)
 	for _, value := range []string{"gpu", "ready", "kubernetes.io/hostname", "forge", "kubernetes.io/os", "linux", "amd64"} {
 		if !strings.Contains(shown.String(), value) {
 			t.Fatalf("Device show omitted %q: %s", value, shown.String())
@@ -76,7 +76,7 @@ func TestDeviceLabel(t *testing.T) {
 	}
 
 	// JSON includes the same effective selectors beside the stored label map.
-	data, err := marshalDeviceShow(key, device, forge_runtime.DeviceAvailability{})
+	data, err := marshalDeviceShow(key, device, forge_runtime.DeviceAvailability{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

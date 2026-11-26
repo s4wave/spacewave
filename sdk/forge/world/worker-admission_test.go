@@ -26,7 +26,7 @@ import (
 // admissionStopper records durable runtime stops at the Worker boundary.
 type admissionStopper struct {
 	// stopped records each Docker stop attempt.
-	stopped []forge_runtime.BackendRuntimeIdentity
+	stopped []*forge_runtime.BackendRuntimeIdentity
 	// failOnce returns one Docker stop error.
 	failOnce bool
 	// unconfirmedStops counts unconfirmed stops without an error.
@@ -38,7 +38,7 @@ type admissionStopper struct {
 }
 
 // StopRuntime confirms a stop and records the persisted runtime name.
-func (s *admissionStopper) StopRuntime(ctx context.Context, rt forge_runtime.BackendRuntimeIdentity) (bool, error) {
+func (s *admissionStopper) StopRuntime(ctx context.Context, rt *forge_runtime.BackendRuntimeIdentity) (bool, error) {
 	// Record the runtime stop and wait on any configured stop gate.
 	s.stopped = append(s.stopped, rt)
 	if s.entered != nil {
@@ -150,7 +150,7 @@ func TestWorkerAdmissionReleaseStopsAndCredits(t *testing.T) {
 	}
 
 	// Verify the requested Docker resources reached the reservation.
-	if reserved.Request.MilliCPU != 500 || reserved.Request.MemoryBytes != 1<<20 || reserved.Request.Backend != "docker" {
+	if reserved.Request.MilliCpu != 500 || reserved.Request.MemoryBytes != 1<<20 || reserved.Request.Backend != "docker" {
 		t.Fatalf("Docker request did not reach Reserve: %+v", reserved.Request)
 	}
 
@@ -164,7 +164,7 @@ func TestWorkerAdmissionReleaseStopsAndCredits(t *testing.T) {
 	}
 
 	// Verify the active runtime holds its capacity debit.
-	if before.MilliCPUReserved != 500 || before.MemoryBytesReserved != 1<<20 {
+	if before.MilliCpuReserved != 500 || before.MemoryBytesReserved != 1<<20 {
 		t.Fatalf("reservation debit missing: %+v", before)
 	}
 
@@ -183,10 +183,10 @@ func TestWorkerAdmissionReleaseStopsAndCredits(t *testing.T) {
 	}
 
 	// Verify cleanup credits capacity and stops the runtime exactly once.
-	if after.MilliCPUReserved != 0 || after.MemoryBytesReserved != 0 {
+	if after.MilliCpuReserved != 0 || after.MemoryBytesReserved != 0 {
 		t.Fatalf("reservation debit retained: %+v", after)
 	}
-	if len(stopper.stopped) != 1 || stopper.stopped[0].ID == "" {
+	if len(stopper.stopped) != 1 || stopper.stopped[0].Id == "" {
 		t.Fatalf("runtime stop count = %+v", stopper.stopped)
 	}
 }
@@ -252,7 +252,7 @@ func TestWorkerAdmissionPendingStopRetainsClaim(t *testing.T) {
 	}
 
 	// Verify the pending stop retains its claim and capacity debit.
-	if capacity.MilliCPUReserved != 500 || capacity.OwnerState != forge_runtime.CapacityOwnerStateDraining || admission.epoch == 0 {
+	if capacity.MilliCpuReserved != 500 || capacity.OwnerState != forge_runtime.CapacityOwnerState_CAPACITY_OWNER_STATE_DRAINING || admission.epoch == 0 {
 		t.Fatalf("unconfirmed stop lost owner or debit: %+v", capacity)
 	}
 
@@ -264,7 +264,7 @@ func TestWorkerAdmissionPendingStopRetainsClaim(t *testing.T) {
 	}
 
 	// Verify the unconfirmed reservation remains debited.
-	if res.State != forge_runtime.ReservationStatePendingStop || (res.Cleanup != nil && res.Cleanup.CapacityReleased) {
+	if res.State != forge_runtime.ReservationState_RESERVATION_STATE_PENDING_STOP || (res.Cleanup != nil && res.Cleanup.CapacityReleased) {
 		t.Fatalf("unconfirmed stop was credited: %+v", res)
 	}
 
@@ -359,7 +359,7 @@ func TestWorkerAdmissionDeclarationReductionStopsAndCredits(t *testing.T) {
 	}
 
 	// Verify the smaller declaration stopped the runtime and reopened admission.
-	if capacity.MilliCPUReserved != 0 || capacity.OwnerState != forge_runtime.CapacityOwnerStateActive {
+	if capacity.MilliCpuReserved != 0 || capacity.OwnerState != forge_runtime.CapacityOwnerState_CAPACITY_OWNER_STATE_ACTIVE {
 		t.Fatalf("lowered declaration retained debit or drain: %+v", capacity)
 	}
 	if len(stopper.stopped) != 1 {
@@ -403,7 +403,7 @@ func TestWorkerAdmissionBackendRemovalStopsAndCredits(t *testing.T) {
 	}
 
 	// Verify backend removal stops Docker and rejects new Docker reservations.
-	if capacity.MilliCPUReserved != 0 || capacity.MemoryBytesReserved != 0 || capacity.OwnerState != forge_runtime.CapacityOwnerStateActive {
+	if capacity.MilliCpuReserved != 0 || capacity.MemoryBytesReserved != 0 || capacity.OwnerState != forge_runtime.CapacityOwnerState_CAPACITY_OWNER_STATE_ACTIVE {
 		t.Fatalf("backend removal retained Docker debit: %+v", capacity)
 	}
 	if len(stopper.stopped) != 1 {
@@ -449,7 +449,7 @@ func TestWorkerAdmissionBackendRemovalWaitsForStop(t *testing.T) {
 	}
 
 	// Verify the unconfirmed stop keeps admission draining and debited.
-	if capacity.OwnerState != forge_runtime.CapacityOwnerStateDraining || capacity.MilliCPUReserved != 500 {
+	if capacity.OwnerState != forge_runtime.CapacityOwnerState_CAPACITY_OWNER_STATE_DRAINING || capacity.MilliCpuReserved != 500 {
 		t.Fatalf("unconfirmed stop reopened admission: %+v", capacity)
 	}
 
@@ -465,7 +465,7 @@ func TestWorkerAdmissionBackendRemovalWaitsForStop(t *testing.T) {
 	}
 
 	// Verify confirmed cleanup reopens capacity without the Docker debit.
-	if capacity.OwnerState != forge_runtime.CapacityOwnerStateActive || capacity.MilliCPUReserved != 0 {
+	if capacity.OwnerState != forge_runtime.CapacityOwnerState_CAPACITY_OWNER_STATE_ACTIVE || capacity.MilliCpuReserved != 0 {
 		t.Fatalf("confirmed stop did not reopen declaration: %+v", capacity)
 	}
 
@@ -640,7 +640,7 @@ func TestWorkerAdmissionLaunchFailureStopsNamedRuntime(t *testing.T) {
 			}
 
 			// Verify cleanup stops the exact runtime name once.
-			if len(stopper.stopped) != 1 || stopper.stopped[0].ID != name || name == "" {
+			if len(stopper.stopped) != 1 || stopper.stopped[0].Id != name || name == "" {
 				t.Fatalf("named runtime cleanup = %+v, want %q", stopper.stopped, name)
 			}
 
@@ -651,7 +651,7 @@ func TestWorkerAdmissionLaunchFailureStopsNamedRuntime(t *testing.T) {
 			}
 
 			// Verify the failed launch retains no capacity debit.
-			if capacity.MilliCPUReserved != 0 || capacity.MemoryBytesReserved != 0 {
+			if capacity.MilliCpuReserved != 0 || capacity.MemoryBytesReserved != 0 {
 				t.Fatalf("failed launch retained debit: %+v", capacity)
 			}
 		})
@@ -727,12 +727,93 @@ func TestWorkerAdmissionReclaimStopsPreviousRuntime(t *testing.T) {
 	}
 
 	// Verify reclaim advances the epoch and clears the stale debit.
-	if capacity.MilliCPUReserved != 0 || capacity.OwnerEpoch <= 1 {
+	if capacity.MilliCpuReserved != 0 || capacity.OwnerEpoch <= 1 {
 		t.Fatalf("reclaim retained stale debit or epoch: %+v", capacity)
 	}
 
 	// Verify late release of the previous reservation completes.
 	if err := grant.Release(ctx); err != nil {
 		t.Fatalf("late terminal release: %v", err)
+	}
+}
+
+// TestWorkerAdmissionCardWaits proves a busy card makes Reserve wait until the
+// holder's credit, a request the Worker could never hold fails at once, and
+// each grant carries its card's device nodes.
+func TestWorkerAdmissionCardWaits(t *testing.T) {
+	// Declare a Worker with one AMD card.
+	admission, _, _ := newWorkerAdmissionTestbed(t)
+	ctx := t.Context()
+	card := &s4wave_device.GraphicsCard{
+		Id:          "0000:03:00.0",
+		Vendor:      s4wave_device.GraphicsCardVendor_GRAPHICS_CARD_VENDOR_AMD,
+		MemoryBytes: 12 << 30,
+		DevicePaths: []string{"/dev/kfd", "/dev/dri/renderD128"},
+	}
+	if err := admission.ApplyDeclaration(ctx, "devices/self", &s4wave_device.ForgeWorkerDeclaration{
+		WorkerObjectKey: "worker/a", MilliCpu: 2000, MemoryBytes: 2 << 30, Backends: []string{"docker"},
+		Cards: []*s4wave_device.GraphicsCard{card},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	conf := func(count uint32) *forge_lib_docker.Config {
+		return &forge_lib_docker.Config{
+			Image: "img", MilliCpu: 500, MemoryBytes: 1 << 20,
+			Cards: &s4wave_device.GraphicsCardRequest{Count: count},
+		}
+	}
+
+	// The first Execution takes the card and its device nodes.
+	first, err := reserveDocker(t, admission, ctx, "exec/first", conf(1))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := first.Devices(); len(got) != 2 || got[0] != "/dev/kfd" || got[1] != "/dev/dri/renderD128" {
+		t.Fatalf("first grant devices %v", got)
+	}
+
+	// Two cards on a one-card Worker fail at once.
+	if _, err := reserveDocker(t, admission, ctx, "exec/two", conf(2)); !errors.Is(err, forge_runtime.ErrCapacityNeverFits) {
+		t.Fatalf("two-card request: %v", err)
+	}
+
+	// The second Execution waits while the first holds the card.
+	type result struct {
+		grant forge_lib_docker.Reservation
+		err   error
+	}
+	second := make(chan result, 1)
+	ws := world.NewEngineWorldState(admission.engine, true)
+	if _, err := forge_execution.CreateExecutionWithTarget(ctx, ws, admission.peerID, "exec/second", admission.peerID,
+		forge_target.NewValueSet(), &forge_target.Target{Exec: &forge_target.Exec{Disable: true}}, nil, timestamp.Now()); err != nil {
+		t.Fatal(err)
+	}
+	go func() {
+		grant, err := admission.Reserve(ctx, "exec/second", conf(1))
+		second <- result{grant, err}
+	}()
+	select {
+	case r := <-second:
+		t.Fatalf("second reservation did not wait: %v", r.err)
+	case <-time.After(200 * time.Millisecond):
+	}
+
+	// The first Execution's release wakes the second with the card.
+	if err := first.Launch(ctx, func(string) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+	if err := first.Release(ctx); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case r := <-second:
+		if r.err != nil {
+			t.Fatal(r.err)
+		}
+		if len(r.grant.Devices()) != 2 {
+			t.Fatalf("second grant devices %v", r.grant.Devices())
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("second reservation did not wake after the release")
 	}
 }

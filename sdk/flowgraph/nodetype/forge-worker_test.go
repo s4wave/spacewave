@@ -145,6 +145,8 @@ func TestForgeWorkerRejectsMalformedParameters(t *testing.T) {
 		"blank backend":      func(p map[string]string) { p["backends"] = "docker,," },
 		"spaced backend":     func(p map[string]string) { p["backends"] = "docker host" },
 		"duplicate backends": func(p map[string]string) { p["backends"] = "docker,docker" },
+		"blank card":         func(p map[string]string) { p["cards"] = "0000:03:00.0," },
+		"duplicate cards":    func(p map[string]string) { p["cards"] = "0000:03:00.0,0000:03:00.0" },
 	} {
 		parameters := maps.Clone(valid)
 		mutate(parameters)
@@ -155,5 +157,28 @@ func TestForgeWorkerRejectsMalformedParameters(t *testing.T) {
 		if _, err := (forgeWorker{}).GetCapability(t.Context(), nil, bad); err == nil {
 			t.Errorf("%s: GetCapability accepted the declaration", name)
 		}
+	}
+}
+
+// TestForgeWorkerCardSelection offers every detected card for "all" and refuses
+// a named card the host does not have, naming it.
+func TestForgeWorkerCardSelection(t *testing.T) {
+	detected := []*s4wave_device.GraphicsCard{{Id: "0000:03:00.0"}, {Id: "0000:04:00.0"}}
+	all, err := parseForgeWorkerCards("all")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if chosen, err := all.choose(detected); err != nil || len(chosen) != 2 {
+		t.Fatalf("all: %v, %v", chosen, err)
+	}
+	named, err := parseForgeWorkerCards("0000:04:00.0, 0000:09:00.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := named.choose(detected); err == nil || !strings.Contains(err.Error(), "0000:09:00.0") || strings.Contains(err.Error(), "0000:04:00.0") {
+		t.Fatalf("missing card: %v", err)
+	}
+	if none, err := parseForgeWorkerCards(" "); err != nil || none != nil {
+		t.Fatalf("unset: %v, %v", none, err)
 	}
 }

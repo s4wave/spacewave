@@ -102,7 +102,7 @@ func TestGiteaQEMUFlowgraph(t *testing.T) {
 	f.startRun(firstRun, "flowgraph/gitea")
 	f.waitReady(firstRun)
 	first := f.reservation(firstRun, "vm")
-	firstLogs := f.docker("logs", first.Runtime.ID)
+	firstLogs := f.docker("logs", first.Runtime.Id)
 	if !strings.Contains(firstLogs, "SPACEWAVE_OS_APP_STARTED pid=") {
 		t.Fatal("ready VM did not report application startup")
 	}
@@ -144,7 +144,7 @@ func TestGiteaQEMUFlowgraph(t *testing.T) {
 	})
 	buildTask := f.waitTask(firstRun, "build", true)
 	buildReservation := f.reservation(firstRun, "build")
-	if !strings.Contains(f.docker("logs", buildReservation.Runtime.ID), commit) {
+	if !strings.Contains(f.docker("logs", buildReservation.Runtime.Id), commit) {
 		t.Fatal("build did not use the pushed commit")
 	}
 	artifact := f.output(buildTask, "artifact")
@@ -171,9 +171,9 @@ func TestGiteaQEMUFlowgraph(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		return current.State == forge_runtime.ReservationStatePendingStop
+		return current.State == forge_runtime.ReservationState_RESERVATION_STATE_PENDING_STOP
 	})
-	if got := strings.TrimSpace(f.docker("inspect", "--format", "{{.State.Running}}", first.Runtime.ID)); got != "true" {
+	if got := strings.TrimSpace(f.docker("inspect", "--format", "{{.State.Running}}", first.Runtime.Id)); got != "true" {
 		t.Fatalf("uncertain stop lost live runtime: %s", got)
 	}
 	capacity, err := forge_runtime.LookupWorkerCapacity(f.ctx, f.tb.WorldState, harnessWorkerKey)
@@ -190,7 +190,7 @@ func TestGiteaQEMUFlowgraph(t *testing.T) {
 	}
 	f.waitTask(firstRun, "vm", true)
 	f.requireStopped(first)
-	stoppedLogs := f.docker("logs", first.Runtime.ID)
+	stoppedLogs := f.docker("logs", first.Runtime.Id)
 	f.requireGuestBindings(firstLogs, stoppedLogs)
 	if !strings.Contains(stoppedLogs, "SPACEWAVE_OS_APP_STOPPED status=0") || !strings.Contains(stoppedLogs, "SPACEWAVE_OS_PASS") {
 		t.Fatal("guest clean-stop receipt missing")
@@ -202,10 +202,10 @@ func TestGiteaQEMUFlowgraph(t *testing.T) {
 	f.startRun(secondRun, "flowgraph/gitea")
 	f.waitReady(secondRun)
 	second := f.reservation(secondRun, "vm")
-	if first.ExecutionObjectKey == second.ExecutionObjectKey || first.Runtime.ID == second.Runtime.ID {
+	if first.ExecutionObjectKey == second.ExecutionObjectKey || first.Runtime.Id == second.Runtime.Id {
 		t.Fatal("replacement reused its execution identity")
 	}
-	replacementLogs := f.docker("logs", second.Runtime.ID)
+	replacementLogs := f.docker("logs", second.Runtime.Id)
 	f.requireGuestBindings(firstLogs, replacementLogs)
 	if f.configDigest(stoppedLogs, "SPACEWAVE_OS_CONFIG_CLOSED") != f.configDigest(replacementLogs, "SPACEWAVE_OS_CONFIG_OPEN") {
 		t.Fatal("application configuration changed across replacement")
@@ -382,7 +382,7 @@ func (f *qemuGitea) reservation(run, node string) *forge_runtime.Reservation {
 		f.t.Fatalf("executions=%v err=%v", executions, err)
 	}
 	res, err := forge_runtime.LookupReservation(f.ctx, f.tb.WorldState, forge_runtime.BuildReservationObjectKey(executions[0]))
-	if err != nil || res.Runtime.ID == "" {
+	if err != nil || res.Runtime.Id == "" {
 		f.t.Fatalf("reservation=%+v err=%v", res, err)
 	}
 	return res
@@ -398,7 +398,7 @@ func (f *qemuGitea) requireStopped(res *forge_runtime.Reservation) {
 		}
 		return current.Cleanup.Complete()
 	})
-	if got := strings.TrimSpace(f.docker("inspect", "--format", "{{.State.Running}} {{.State.ExitCode}}", res.Runtime.ID)); got != "false 0" {
+	if got := strings.TrimSpace(f.docker("inspect", "--format", "{{.State.Running}} {{.State.ExitCode}}", res.Runtime.Id)); got != "false 0" {
 		f.t.Fatalf("stopped VM=%q", got)
 	}
 }

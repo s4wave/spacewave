@@ -1,0 +1,57 @@
+[
+  {
+    "name": "today's admission fails an Execution while the card is busy",
+    "replace": [
+      [
+        "IF Design = \"wait\" THEN \"waiting\" ELSE \"refused\"",
+        "IF Design = \"fail\" THEN \"waiting\" ELSE \"refused\""
+      ]
+    ],
+    "expect": "FitsNeverRefused",
+    "config": "CardAdmission.cfg"
+  },
+  {
+    "name": "the card is credited when the container exits, before the stop is confirmed",
+    "replace": [
+      [
+        "Exit(e) == st[e] = \"running\" /\\ st' = [st EXCEPT ![e] = \"stopping\"] /\\ UNCHANGED holder",
+        "Exit(e) == st[e] = \"running\" /\\ st' = [st EXCEPT ![e] = \"stopping\"] /\\ holder' = \"none\""
+      ]
+    ],
+    "expect": "OneHolder",
+    "config": "CardAdmission.cfg"
+  },
+  {
+    "name": "a reservation ignores the card's holder",
+    "replace": [
+      [
+        "/\\ e \\notin TooBig /\\ holder = \"none\"\n",
+        "/\\ e \\notin TooBig\n"
+      ]
+    ],
+    "expect": "OneHolder",
+    "config": "CardAdmission.cfg"
+  },
+  {
+    "name": "a restarted Worker credits an uncertain reservation without stopping its container",
+    "replace": [
+      [
+        "Recover(e) == st[e] = \"uncertain\" /\\ st' = [st EXCEPT ![e] = \"stopping\"] /\\ UNCHANGED holder",
+        "Recover(e) == st[e] = \"uncertain\" /\\ st' = [st EXCEPT ![e] = \"stopping\"] /\\ holder' = \"none\""
+      ]
+    ],
+    "expect": "OneHolder",
+    "config": "CardAdmission.cfg"
+  },
+  {
+    "name": "a request no card can meet waits for one",
+    "replace": [
+      [
+        "Refuse(e) == st[e] = \"pending\" /\\ e \\in TooBig\n  /\\ st' = [st EXCEPT ![e] = \"refused\"]",
+        "Refuse(e) == st[e] = \"pending\" /\\ e \\in TooBig\n  /\\ st' = [st EXCEPT ![e] = \"waiting\"]"
+      ]
+    ],
+    "expect": "WaitEnds",
+    "config": "CardAdmissionTooBig.cfg"
+  }
+]

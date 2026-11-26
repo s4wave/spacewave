@@ -3316,7 +3316,7 @@
           ]
         },
         "github.com/s4wave/spacewave/forge/lib/docker": {
-          "hash": "048f27723fd97efb3db8917f1ebbf5a64f61ab8c9a668eaec466f10afc75b009",
+          "hash": "834d642c0f1f5ac6a663064c0fc4b5653d9b4808b3d52a8bd657796b82f5504c",
           "generatedFiles": [
             "forge/lib/docker/config.pb.go",
             "forge/lib/docker/config.pb.ts"
@@ -3437,6 +3437,16 @@
           ],
           "protoFiles": [
             "forge/pass/tx/tx.proto"
+          ]
+        },
+        "github.com/s4wave/spacewave/forge/runtime": {
+          "hash": "383c89ad121b5cafc18f7410b8b11c9d9afd67970ff99d5dd8cb7db1338478d8",
+          "generatedFiles": [
+            "forge/runtime/runtime.pb.go",
+            "forge/runtime/runtime.pb.ts"
+          ],
+          "protoFiles": [
+            "forge/runtime/runtime.proto"
           ]
         },
         "github.com/s4wave/spacewave/forge/target": {
@@ -4510,7 +4520,7 @@
           ]
         },
         "github.com/s4wave/spacewave/sdk/device": {
-          "hash": "285c69b55eb412ba8c7c1789b11c1dcfb1f42955e9917ebedd7ea7c9f4009acb",
+          "hash": "b5635529cd9a4cf95ba49f7f80c68aa357347c81cb8623e84a1c8fb759304aff",
           "generatedFiles": [
             "sdk/device/device.pb.go",
             "sdk/device/device.pb.ts",

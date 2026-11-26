@@ -19,7 +19,7 @@ func TestReserveRejectsExpiredUnsweptIdempotentReturn(t *testing.T) {
 	}
 
 	// Publish the Worker resource totals for the test scenario.
-	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 2_000, 4<<30, []string{"docker"}); err != nil {
+	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 2_000, 4<<30, []string{"docker"}, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -97,7 +97,7 @@ func TestOldEpochMutationsFailAfterOwnerReclaim(t *testing.T) {
 	}
 
 	// Reject a Worker observation carrying the previous claim epoch.
-	if _, err := admission.ObserveWorker(ctx, "worker/a", ref, oldEpoch, 2_000, 4<<30, []string{"docker"}); err == nil {
+	if _, err := admission.ObserveWorker(ctx, "worker/a", ref, oldEpoch, 2_000, 4<<30, []string{"docker"}, nil); err == nil {
 		t.Fatal("old-epoch observe must fail")
 	}
 

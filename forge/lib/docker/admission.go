@@ -5,8 +5,9 @@ import "context"
 // Admission reserves Worker capacity before a Docker runtime is created.
 type Admission interface {
 	// Reserve debits the declared target request for one Execution attempt.
-	// It waits while the Worker admits no new work, and returns an error only
-	// for a failed request or an ended context.
+	// It waits while the Worker admits no new work or live reservations hold
+	// what the request needs, and returns an error only for a failed request,
+	// such as one the Worker could never hold, or an ended context.
 	Reserve(ctx context.Context, executionKey string, conf *Config) (Reservation, error)
 }
 
@@ -16,6 +17,9 @@ type Reservation interface {
 	// A drain that fences the launch returns forge_runtime.ErrCapacityDraining
 	// and voids the reservation; the caller releases it and reserves again.
 	Launch(ctx context.Context, createAndStart func(runtimeName string) error) error
+	// Devices returns the host device nodes of the graphics cards the
+	// reservation holds, each once, for the container to map.
+	Devices() []string
 	// Release stops the runtime and credits capacity once.
 	Release(ctx context.Context) error
 }

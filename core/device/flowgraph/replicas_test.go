@@ -88,7 +88,7 @@ func TestRequirementReplicas(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := admission.ObserveWorker(ctx, worker, ref, capacity.OwnerEpoch, 2000, 4294967296, []string{"docker"}); err != nil {
+		if _, err := admission.ObserveWorker(ctx, worker, ref, capacity.OwnerEpoch, 2000, 4294967296, []string{"docker"}, nil); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -258,8 +258,8 @@ func requireReplicaLedger(t *testing.T, ctx context.Context, engine world.Engine
 			if isPlacedOn(group, device) {
 				cpu, memory = 250, 1024
 			}
-			if capacity.MilliCPUReserved != cpu || capacity.MemoryBytesReserved != memory {
-				t.Fatalf("%s debit = %d/%d, want %d/%d", device, capacity.MilliCPUReserved, capacity.MemoryBytesReserved, cpu, memory)
+			if capacity.MilliCpuReserved != cpu || capacity.MemoryBytesReserved != memory {
+				t.Fatalf("%s debit = %d/%d, want %d/%d", device, capacity.MilliCpuReserved, capacity.MemoryBytesReserved, cpu, memory)
 			}
 			key := forge_runtime.BuildReservationObjectKey(s4wave_flowgraph.NodeCapacityHolderKey(testFlowgraphKey, "race", device))
 			res, err := forge_runtime.LookupReservation(ctx, ws, key)

@@ -181,6 +181,44 @@ message DeviceCheckoutRootCapability {
   bool write_available = 6;
 }
 
+// GraphicsCardVendor names the maker of a graphics card, which decides the
+// device nodes and drivers a container needs.
+enum GraphicsCardVendor {
+  // GRAPHICS_CARD_VENDOR_UNKNOWN is the zero value and never valid on a
+  // declared card.
+  GRAPHICS_CARD_VENDOR_UNKNOWN = 0;
+  // GRAPHICS_CARD_VENDOR_AMD is an AMD card, used through ROCm.
+  GRAPHICS_CARD_VENDOR_AMD = 1;
+  // GRAPHICS_CARD_VENDOR_NVIDIA is an NVIDIA card, used through CUDA.
+  GRAPHICS_CARD_VENDOR_NVIDIA = 2;
+}
+
+// GraphicsCard is one whole graphics card on a Device's host. Forge admission
+// reserves cards whole: consumer cards cannot partition their memory between
+// holders.
+message GraphicsCard {
+  // Id is the card's identifier, stable across reboots: its PCI address, such
+  // as "0000:03:00.0".
+  string id = 1;
+  // Vendor is the card's maker.
+  GraphicsCardVendor vendor = 2;
+  // MemoryBytes is the card's dedicated memory in bytes.
+  uint64 memory_bytes = 3;
+  // DevicePaths lists the host device nodes a container needs to use the card,
+  // such as "/dev/kfd" and "/dev/dri/renderD128" for an AMD card.
+  repeated string device_paths = 4;
+}
+
+// GraphicsCardRequest asks for whole graphics cards on one Worker.
+message GraphicsCardRequest {
+  // Count is the number of whole cards requested.
+  uint32 count = 1;
+  // Vendor limits the request to one maker; UNKNOWN accepts any vendor.
+  GraphicsCardVendor vendor = 2;
+  // MinMemoryBytes is the least dedicated memory each card must have.
+  uint64 min_memory_bytes = 3;
+}
+
 // ForgeWorkerDeclaration is the capacity envelope a Device declares for the
 // Forge Worker it hosts. A forge-worker Flowgraph node supplies it.
 message ForgeWorkerDeclaration {
@@ -192,6 +230,9 @@ message ForgeWorkerDeclaration {
   uint64 memory_bytes = 3;
   // Backends lists the runtime backends the Worker supports.
   repeated string backends = 4;
+  // Cards lists the host's graphics cards the Worker offers, detected on the
+  // host and selected by the node's cards parameter.
+  repeated GraphicsCard cards = 5;
 }
 
 // Device is the world-block state for a Spacewave-managed Device object.

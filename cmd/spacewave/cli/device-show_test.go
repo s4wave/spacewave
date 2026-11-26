@@ -31,21 +31,21 @@ func TestDeviceShowAvailability(t *testing.T) {
 			State:      forge_runtime.DeviceAvailable,
 			ClaimEpoch: 7,
 			ExpiresAt:  expiry,
-			OwnerState: forge_runtime.CapacityOwnerStateActive,
+			OwnerState: forge_runtime.CapacityOwnerState_CAPACITY_OWNER_STATE_ACTIVE,
 			Reason:     "forge worker owner claim is active",
 		},
 		{
 			State:      forge_runtime.DeviceDraining,
 			ClaimEpoch: 7,
 			ExpiresAt:  expiry,
-			OwnerState: forge_runtime.CapacityOwnerStateDraining,
+			OwnerState: forge_runtime.CapacityOwnerState_CAPACITY_OWNER_STATE_DRAINING,
 			Reason:     "forge worker owner claim is draining",
 		},
 		{
 			State:      forge_runtime.DeviceUnavailable,
 			ClaimEpoch: 7,
 			ExpiresAt:  expiry,
-			OwnerState: forge_runtime.CapacityOwnerStateActive,
+			OwnerState: forge_runtime.CapacityOwnerState_CAPACITY_OWNER_STATE_ACTIVE,
 			Reason:     "forge worker owner claim expired",
 		},
 		{
@@ -55,7 +55,7 @@ func TestDeviceShowAvailability(t *testing.T) {
 	} {
 		t.Run(availability.Reason, func(t *testing.T) {
 			// Preserve the generated Device fields while adding the derived summary.
-			data, err := marshalDeviceShow("devices/self", device, availability)
+			data, err := marshalDeviceShow("devices/self", device, availability, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -85,7 +85,7 @@ func TestDeviceShowAvailability(t *testing.T) {
 
 			// Render the production text writer and compare its aligned diagnostic rows.
 			var text bytes.Buffer
-			writeDeviceShow(&text, "devices/self", device, availability)
+			writeDeviceShow(&text, "devices/self", device, availability, nil)
 			for _, row := range []string{
 				"Availability:     " + string(availability.State),
 				"Claim epoch:      " + strconv.FormatUint(availability.ClaimEpoch, 10),

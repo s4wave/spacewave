@@ -109,7 +109,7 @@ func (w *WorkerAdmission) ApplyDeclaration(ctx context.Context, deviceKey string
 		return err
 	}
 	w.epoch = capacity.OwnerEpoch
-	if capacity.OwnerState == forge_runtime.CapacityOwnerStateDraining {
+	if capacity.OwnerState == forge_runtime.CapacityOwnerState_CAPACITY_OWNER_STATE_DRAINING {
 		ref, epoch := w.ref, w.epoch
 		w.mtx.Unlock()
 		_, err := w.admission.ReconcilePendingStops(ctx, ref)
@@ -164,11 +164,11 @@ func (w *WorkerAdmission) ApplyDeclaration(ctx context.Context, deviceKey string
 
 	// Observe the new Worker capacity and stop reservations if it remains draining.
 	capacity, err = w.admission.ObserveWorker(ctx, w.workerKey, w.ref, w.epoch,
-		declared.GetMilliCpu(), declared.GetMemoryBytes(), declared.GetBackends())
+		declared.GetMilliCpu(), declared.GetMemoryBytes(), declared.GetBackends(), declared.GetCards())
 	if err != nil {
 		return err
 	}
-	w.setActive(capacity.OwnerState == forge_runtime.CapacityOwnerStateActive)
+	w.setActive(capacity.OwnerState == forge_runtime.CapacityOwnerState_CAPACITY_OWNER_STATE_ACTIVE)
 	if !w.active {
 		ref, epoch := w.ref, w.epoch
 		w.mtx.Unlock()
@@ -181,7 +181,7 @@ func (w *WorkerAdmission) ApplyDeclaration(ctx context.Context, deviceKey string
 		if err != nil {
 			return err
 		}
-		w.setActive(capacity.OwnerState == forge_runtime.CapacityOwnerStateActive)
+		w.setActive(capacity.OwnerState == forge_runtime.CapacityOwnerState_CAPACITY_OWNER_STATE_ACTIVE)
 		if !w.active {
 			return ErrWorkerStopPending
 		}
@@ -209,7 +209,7 @@ func (w *WorkerAdmission) Renew(ctx context.Context) error {
 	}
 
 	// Reconcile draining capacity only when Docker launch permits cleanup.
-	if capacity.OwnerState != forge_runtime.CapacityOwnerStateDraining {
+	if capacity.OwnerState != forge_runtime.CapacityOwnerState_CAPACITY_OWNER_STATE_DRAINING {
 		return nil
 	}
 	if !w.launchMtx.TryLock() {
@@ -244,11 +244,11 @@ func (w *WorkerAdmission) Renew(ctx context.Context) error {
 
 	// Observe the retained declaration and reopen active admission.
 	capacity, err = w.admission.ObserveWorker(ctx, w.workerKey, w.ref, w.epoch,
-		w.declaration.GetMilliCpu(), w.declaration.GetMemoryBytes(), w.declaration.GetBackends())
+		w.declaration.GetMilliCpu(), w.declaration.GetMemoryBytes(), w.declaration.GetBackends(), w.declaration.GetCards())
 	if err != nil {
 		return err
 	}
-	w.setActive(capacity.OwnerState == forge_runtime.CapacityOwnerStateActive)
+	w.setActive(capacity.OwnerState == forge_runtime.CapacityOwnerState_CAPACITY_OWNER_STATE_ACTIVE)
 	if !w.active {
 		return ErrWorkerStopPending
 	}
@@ -315,9 +315,11 @@ func (w *WorkerAdmission) setActive(active bool) {
 }
 
 // Reserve debits the Docker target's explicit request under the current claim.
-// While the Worker is draining or undeclared it holds the reservation until
-// admission reopens, so the Execution waits instead of failing. It returns
-// only when the debit is made, the context ends, or the request fails.
+// While the Worker is draining or undeclared, or the request fits the Worker
+// but live reservations hold what it needs, it holds the reservation until
+// that changes, so the Execution waits instead of failing. It returns only
+// when the debit is made, the context ends, or the request fails, such as one
+// the Worker could never hold.
 func (w *WorkerAdmission) Reserve(ctx context.Context, executionKey string, conf *forge_lib_docker.Config) (forge_lib_docker.Reservation, error) {
 	// Read Execution placement from a scoped World transaction.
 	tx, err := w.engine.NewTransaction(ctx, false)
@@ -337,6 +339,40 @@ func (w *WorkerAdmission) Reserve(ctx context.Context, executionKey string, conf
 		return nil, errors.Errorf("execution %s is placed on Worker %s peer %s", executionKey, placement.GetWorkerObjectKey(), placement.GetPeerId())
 	}
 
+	// Retry while busy. Every debit and credit writes the capacity record, so
+	// its next revision after the read that preceded a busy try wakes the wait.
+	request := &forge_runtime.ResourceRequest{
+		MilliCpu:    conf.GetMilliCpu(),
+		MemoryBytes: conf.GetMemoryBytes(),
+		Backend:     "docker",
+		Cards:       conf.GetCards(),
+	}
+	ws := world.NewEngineWorldState(w.engine, false)
+	capacityKey := forge_runtime.BuildWorkerCapacityObjectKey(w.workerKey)
+	for {
+		rev, found, err := world.GetObjectRev(ctx, ws, capacityKey)
+		if err != nil {
+			return nil, err
+		}
+		grant, err := w.reserve(ctx, executionKey, request, conf)
+		if !errors.Is(err, forge_runtime.ErrCapacityExhausted) {
+			return grant, err
+		}
+		seen := &world.ObjectRootRef{ObjectKey: capacityKey, Rev: rev, Exists: found}
+		if err := world.WaitObjectChange(ctx, ws, seen); err != nil {
+			return nil, err
+		}
+	}
+}
+
+// reserve waits for the Worker to admit work and tries one debit under the
+// active claim.
+func (w *WorkerAdmission) reserve(
+	ctx context.Context,
+	executionKey string,
+	request *forge_runtime.ResourceRequest,
+	conf *forge_lib_docker.Config,
+) (*workerDockerReservation, error) {
 	// Wait for the Worker to admit work.
 	w.mtx.Lock()
 	for !w.active {
@@ -351,14 +387,51 @@ func (w *WorkerAdmission) Reserve(ctx context.Context, executionKey string, conf
 	}
 	defer w.mtx.Unlock()
 
-	// Reserve Docker capacity under the active Worker claim.
-	request := forge_runtime.ResourceRequest{MilliCPU: conf.GetMilliCpu(), MemoryBytes: conf.GetMemoryBytes(), Backend: "docker"}
+	// Reserve under the active Worker claim and name the runtime.
 	res, err := w.admission.ReserveForClaim(ctx, w.workerKey, executionKey, request, w.ref, w.epoch)
 	if err != nil {
 		return nil, err
 	}
+	devices, err := cardDevices(w.declaration.GetCards(), res.GetCardIds())
+	if err != nil {
+		return nil, err
+	}
 	name := "spacewave-" + path.Base(res.ObjectKey()) + "-" + strconv.FormatUint(res.Generation, 10)
-	return &workerDockerReservation{worker: w, key: res.ObjectKey(), generation: res.Generation, name: name, conf: conf.CloneVT()}, nil
+	return &workerDockerReservation{
+		worker:     w,
+		key:        res.ObjectKey(),
+		generation: res.Generation,
+		name:       name,
+		conf:       conf.CloneVT(),
+		devices:    devices,
+	}, nil
+}
+
+// cardDevices returns the host device nodes of the reserved cards, each once,
+// from the cards this Worker detected on its host.
+func cardDevices(cards []*s4wave_device.GraphicsCard, ids []string) ([]string, error) {
+	// Index the detected cards by id.
+	byID := make(map[string]*s4wave_device.GraphicsCard, len(cards))
+	for _, card := range cards {
+		byID[card.GetId()] = card
+	}
+
+	// Collect each reserved card's nodes; cards share /dev/kfd.
+	var devices []string
+	seen := make(map[string]struct{})
+	for _, id := range ids {
+		card, ok := byID[id]
+		if !ok {
+			return nil, errors.Errorf("reserved card %s is not on this host", id)
+		}
+		for _, device := range card.GetDevicePaths() {
+			if _, dup := seen[device]; !dup {
+				seen[device] = struct{}{}
+				devices = append(devices, device)
+			}
+		}
+	}
+	return devices, nil
 }
 
 // workerDockerReservation couples a durable reservation to one named runtime.
@@ -368,6 +441,12 @@ type workerDockerReservation struct {
 	generation uint64
 	name       string
 	conf       *forge_lib_docker.Config
+	devices    []string
+}
+
+// Devices returns the reserved cards' host device nodes.
+func (r *workerDockerReservation) Devices() []string {
+	return r.devices
 }
 
 // Launch records stop custody and holds the launch fence through create and start.
@@ -387,8 +466,8 @@ func (r *workerDockerReservation) Launch(ctx context.Context, createAndStart fun
 	if command == "" {
 		command = "docker"
 	}
-	identity := forge_runtime.BackendRuntimeIdentity{
-		Backend: "docker", ID: r.name, StopCommand: command,
+	identity := &forge_runtime.BackendRuntimeIdentity{
+		Backend: "docker", Id: r.name, StopCommand: command,
 		StopEnv: forge_lib_docker.BuildDockerEnv(r.conf), StopTimeoutSeconds: r.conf.GetStopTimeoutSeconds(),
 	}
 	if _, err := w.admission.ActivateForClaim(ctx, r.key, identity, w.ref, w.epoch); err != nil {

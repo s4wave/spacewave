@@ -4,7 +4,9 @@ import (
 	"context"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -19,6 +21,7 @@ import (
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_value "github.com/s4wave/spacewave/forge/value"
+	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 )
 
 // outputsHandle stores blocks in a test World and records the outputs set.
@@ -207,11 +210,11 @@ func TestExecuteRejectsUnreadableOutputs(t *testing.T) {
 	}
 }
 
-// TestDockerIntegrationStoresOutput runs a real container that writes one of
-// its two declared outputs. Set FORGE_DOCKER_INTEGRATION=1 to run it; the
-// image defaults to debian:sid and FORGE_DOCKER_IMAGE overrides it.
-func TestDockerIntegrationStoresOutput(t *testing.T) {
-	// Require explicit opt-in and a reachable Docker daemon.
+// dockerIntegration returns the runner, environment and image for a test
+// against the host's Docker daemon, skipping the test unless
+// FORGE_DOCKER_INTEGRATION=1 is set and the daemon answers. The image defaults
+// to debian:sid and FORGE_DOCKER_IMAGE overrides it.
+func dockerIntegration(t *testing.T) (DockerRunner, []string, string) {
 	if os.Getenv("FORGE_DOCKER_INTEGRATION") == "" {
 		t.Skip("set FORGE_DOCKER_INTEGRATION=1 to run docker daemon integration")
 	}
@@ -224,6 +227,14 @@ func TestDockerIntegrationStoresOutput(t *testing.T) {
 	if image == "" {
 		image = "debian:sid"
 	}
+	return runner, env, image
+}
+
+// TestDockerIntegrationStoresOutput runs a real container that writes one of
+// its two declared outputs, as dockerIntegration describes.
+func TestDockerIntegrationStoresOutput(t *testing.T) {
+	// Require explicit opt-in and a reachable Docker daemon.
+	runner, env, image := dockerIntegration(t)
 
 	// Configure a real container under a unique runtime name.
 	ctrl, handle := newOutputsController(t, nil)
@@ -254,4 +265,63 @@ func TestDockerIntegrationStoresOutput(t *testing.T) {
 	if string(data) != "/srv/flag" {
 		t.Fatalf("output data = %q", data)
 	}
+}
+
+// TestDockerIntegrationMapsCards runs a real container holding the host's
+// detected graphics cards, as the Worker's user, and requires it to see
+// exactly their render nodes and the compute interface. It runs as
+// dockerIntegration describes, on a host whose sysfs reports a card.
+func TestDockerIntegrationMapsCards(t *testing.T) {
+	// Require explicit opt-in, a Docker daemon and a card on this host.
+	runner, env, image := dockerIntegration(t)
+	cards, err := s4wave_device.DetectGraphicsCards(os.DirFS("/sys"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cards) == 0 {
+		t.Skip("no graphics card on this host")
+	}
+
+	// Map the cards' nodes, as a Worker grant does, and list what the container sees.
+	var devices, renderNodes []string
+	for _, card := range cards {
+		for _, device := range card.GetDevicePaths() {
+			if !slices.Contains(devices, device) {
+				devices = append(devices, device)
+			}
+			if dir, node := path.Split(device); dir == "/dev/dri/" {
+				renderNodes = append(renderNodes, node)
+			}
+		}
+	}
+	ctrl, handle := newOutputsController(t, nil)
+	name := "forge-docker-cards-test-" + strconv.FormatInt(time.Now().UnixNano(), 36)
+	ctrl.admission = &recordingAdmission{name: name, devices: devices}
+	ctrl.runner = runner
+	ctrl.conf.Image = image
+	ctrl.conf.MemoryBytes = 64 << 20
+	ctrl.conf.NetworkMode = "none"
+	ctrl.conf.DockerEnv = map[string]string{"PATH": os.Getenv("PATH")}
+	ctrl.conf.Cards = &s4wave_device.GraphicsCardRequest{Count: uint32(len(cards))} //nolint:gosec // a host has few cards.
+	ctrl.conf.Command = []string{"sh", "-c", "test -r /dev/kfd && test -w /dev/kfd && ls /dev/dri > /out/present"}
+	t.Cleanup(func() {
+		_, _ = runner.Run(context.Background(), "docker", []string{"rm", "-f", name}, env)
+	})
+	if err := ctrl.Execute(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+
+	// Require exactly the cards' render nodes inside the container.
+	if len(handle.outputs) != 1 {
+		t.Fatalf("outputs = %v, want only present", handle.outputs)
+	}
+	data, err := forge_target.LoadBlobValueToBytes(t.Context(), handle, handle.outputs[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	slices.Sort(renderNodes)
+	if got := strings.Fields(string(data)); !slices.Equal(got, renderNodes) {
+		t.Fatalf("container sees %v, want %v", got, renderNodes)
+	}
+	t.Logf("container sees %v and /dev/kfd", renderNodes)
 }

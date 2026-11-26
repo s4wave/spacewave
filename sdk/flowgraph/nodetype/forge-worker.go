@@ -2,6 +2,7 @@ package flowgraph_nodetype
 
 import (
 	"context"
+	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -28,7 +29,17 @@ const (
 	// forgeWorkerBackendsParameter names the parameter holding the comma
 	// separated runtime backends the Worker supports.
 	forgeWorkerBackendsParameter = "backends"
+	// forgeWorkerCardsParameter names the parameter selecting the host's
+	// graphics cards the Worker offers: a comma separated list of PCI
+	// addresses, or "all". Unset offers none, since lending a card is the
+	// operator's choice.
+	forgeWorkerCardsParameter = "cards"
+	// forgeWorkerAllCards selects every graphics card the host has.
+	forgeWorkerAllCards = "all"
 )
+
+// sysfsRoot is the host's sysfs, where graphics cards are detected.
+const sysfsRoot = "/sys"
 
 // forgeWorker declares the Forge Worker its Device hosts and the capacity the
 // Worker offers. It compiles to no entries: the Worker runs in the plugin
@@ -54,7 +65,10 @@ func (forgeWorker) GetConfigIDs() []string {
 
 // Compile validates the node's parameters and compiles to no entries.
 func (forgeWorker) Compile(_ context.Context, node *s4wave_flowgraph.PlacedFlowgraphNode) (map[string]config.Config, error) {
-	_, err := forgeWorkerDeclaration(node.Node)
+	if _, err := forgeWorkerDeclaration(node.Node); err != nil {
+		return nil, err
+	}
+	_, err := parseForgeWorkerCards(node.Node.GetParameters()[forgeWorkerCardsParameter])
 	return nil, err
 }
 
@@ -70,6 +84,22 @@ func (forgeWorker) GetCapability(
 	declaration, err := forgeWorkerDeclaration(node.Node)
 	if err != nil {
 		return nil, err
+	}
+
+	// Offer the host's cards the node selects. The Device's own reconciler
+	// calls this, so the detected cards are this host's.
+	selection, err := parseForgeWorkerCards(node.Node.GetParameters()[forgeWorkerCardsParameter])
+	if err != nil {
+		return nil, err
+	}
+	if selection != nil {
+		detected, err := s4wave_device.DetectGraphicsCards(os.DirFS(sysfsRoot))
+		if err != nil {
+			return nil, errors.Wrap(err, "detect graphics cards")
+		}
+		if declaration.Cards, err = selection.choose(detected); err != nil {
+			return nil, err
+		}
 	}
 
 	// Require the Worker to exist in a Cluster and to act as this Device's peer
@@ -141,6 +171,72 @@ func forgeWorkerDeclaration(node *s4wave_flowgraph.FlowgraphNode) (*s4wave_devic
 		MemoryBytes:     memoryBytes,
 		Backends:        backends,
 	}, nil
+}
+
+// forgeWorkerCards is the set of host cards a forge-worker node offers: every
+// card, or the cards with the listed PCI addresses.
+type forgeWorkerCards struct {
+	all bool
+	ids []string
+}
+
+// parseForgeWorkerCards parses the cards parameter, returning nil when it
+// offers no card.
+func parseForgeWorkerCards(value string) (*forgeWorkerCards, error) {
+	// Offer nothing when unset, and every card for "all".
+	value = strings.TrimSpace(value)
+	switch value {
+	case "":
+		return nil, nil
+	case forgeWorkerAllCards:
+		return &forgeWorkerCards{all: true}, nil
+	}
+
+	// Otherwise list each PCI address once.
+	var ids []string
+	for id := range strings.SplitSeq(value, ",") {
+		id = strings.TrimSpace(id)
+		if id == "" || strings.ContainsAny(id, " \t\r\n") {
+			return nil, errors.Errorf("parameter %q must be %q or PCI addresses separated by commas", forgeWorkerCardsParameter, forgeWorkerAllCards)
+		}
+		ids = append(ids, id)
+	}
+	slices.Sort(ids)
+	for i := 1; i < len(ids); i++ {
+		if ids[i] == ids[i-1] {
+			return nil, errors.Errorf("parameter %q lists card %q twice", forgeWorkerCardsParameter, ids[i])
+		}
+	}
+	return &forgeWorkerCards{ids: ids}, nil
+}
+
+// choose returns the detected cards the selection offers, or an error naming
+// each listed card the host does not have.
+func (c *forgeWorkerCards) choose(detected []*s4wave_device.GraphicsCard) ([]*s4wave_device.GraphicsCard, error) {
+	// Offer every detected card for "all".
+	if c.all {
+		return detected, nil
+	}
+
+	// Index the host's cards, then take each listed one.
+	byID := make(map[string]*s4wave_device.GraphicsCard, len(detected))
+	for _, card := range detected {
+		byID[card.GetId()] = card
+	}
+	var chosen []*s4wave_device.GraphicsCard
+	var missing []string
+	for _, id := range c.ids {
+		card, ok := byID[id]
+		if !ok {
+			missing = append(missing, id)
+			continue
+		}
+		chosen = append(chosen, card)
+	}
+	if len(missing) != 0 {
+		return nil, errors.Errorf("parameter %q names cards this host does not have: %s", forgeWorkerCardsParameter, strings.Join(missing, ", "))
+	}
+	return chosen, nil
 }
 
 // verifyForgeWorkerLink proves the declared Worker object exists, carries the

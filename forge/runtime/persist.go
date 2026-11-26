@@ -2,6 +2,7 @@ package forge_runtime
 
 import (
 	"context"
+	"slices"
 	"time"
 
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
@@ -94,10 +95,10 @@ func persistWorkerCapacity(ctx context.Context, ws world.WorldState, workerObjec
 
 // remainingMilliCPU returns the unreserved milli-cores of one capacity record.
 func remainingMilliCPU(capacity *WorkerCapacity) uint64 {
-	if capacity.MilliCPUReserved > capacity.MilliCPUTotal {
+	if capacity.MilliCpuReserved > capacity.MilliCpuTotal {
 		return 0
 	}
-	return capacity.MilliCPUTotal - capacity.MilliCPUReserved
+	return capacity.MilliCpuTotal - capacity.MilliCpuReserved
 }
 
 // remainingMemoryBytes returns the unreserved memory bytes of one capacity record.
@@ -108,18 +109,21 @@ func remainingMemoryBytes(capacity *WorkerCapacity) uint64 {
 	return capacity.MemoryBytesTotal - capacity.MemoryBytesReserved
 }
 
-// debitCapacity adds one reservation's request to the Worker's reserved totals
-// in the same transaction that creates the reservation.
-func debitCapacity(ctx context.Context, ws world.WorldState, workerObjectKey string, request ResourceRequest) error {
+// debitCapacity adds one reservation's request and cards to the Worker's
+// reserved totals in the same transaction that creates the reservation.
+func debitCapacity(ctx context.Context, ws world.WorldState, res *Reservation) error {
 	// Load the Worker capacity before applying its reservation debit.
+	workerObjectKey := res.GetWorkerObjectKey()
 	capacity, err := LookupWorkerCapacity(ctx, ws, workerObjectKey)
 	if err != nil {
 		return err
 	}
 
-	// Increase and validate the Worker reserved capacity totals.
-	capacity.MilliCPUReserved += request.MilliCPU
-	capacity.MemoryBytesReserved += request.MemoryBytes
+	// Increase and validate the Worker reserved capacity totals; validation
+	// refuses a card that is not offered or is already reserved.
+	capacity.MilliCpuReserved += res.GetRequest().GetMilliCpu()
+	capacity.MemoryBytesReserved += res.GetRequest().GetMemoryBytes()
+	capacity.ReservedCardIds = append(capacity.ReservedCardIds, res.GetCardIds()...)
 	capacity.Generation++
 	if err := capacity.Validate(); err != nil {
 		return errors.Wrapf(err, "debit worker %s", workerObjectKey)
@@ -127,30 +131,35 @@ func debitCapacity(ctx context.Context, ws world.WorldState, workerObjectKey str
 	return persistWorkerCapacity(ctx, ws, workerObjectKey, capacity)
 }
 
-// creditCapacity removes one released reservation's request from the Worker's
-// reserved totals exactly once per release. This is the only path that
-// reactivates a draining record whose declared backends remain: once the
+// creditCapacity removes one released reservation's request and cards from
+// the Worker's reserved totals exactly once per release. This is the only path
+// that reactivates a draining record whose declared backends remain: once the
 // remaining debits fit the declared totals, the claim returns to ACTIVE.
-func creditCapacity(ctx context.Context, ws world.WorldState, workerObjectKey string, request ResourceRequest) error {
+func creditCapacity(ctx context.Context, ws world.WorldState, res *Reservation) error {
 	// Load the Worker capacity and prevent a reservation credit underflow.
+	workerObjectKey := res.GetWorkerObjectKey()
 	capacity, err := LookupWorkerCapacity(ctx, ws, workerObjectKey)
 	if err != nil {
 		return err
 	}
 	switch {
-	case capacity.MilliCPUReserved < request.MilliCPU || capacity.MemoryBytesReserved < request.MemoryBytes:
-		return errors.Wrapf(ErrCapacityExhausted, "credit underflow for worker %s", workerObjectKey)
-	case capacity.MilliCPUReserved == 0 && capacity.MemoryBytesReserved == 0:
+	case !capacity.HoldsDebit(res):
+		return errors.Errorf("credit underflow for worker %s", workerObjectKey)
+	case capacity.MilliCpuReserved == 0 && capacity.MemoryBytesReserved == 0 && len(capacity.ReservedCardIds) == 0:
 		return nil
 	}
 
 	// Credit the reservation and reactivate capacity when its totals fit.
-	capacity.MilliCPUReserved -= request.MilliCPU
-	capacity.MemoryBytesReserved -= request.MemoryBytes
-	if capacity.OwnerState == CapacityOwnerStateDraining && len(capacity.Backends) > 0 &&
-		capacity.MilliCPUReserved <= capacity.MilliCPUTotal &&
-		capacity.MemoryBytesReserved <= capacity.MemoryBytesTotal {
-		capacity.OwnerState = CapacityOwnerStateActive
+	capacity.MilliCpuReserved -= res.GetRequest().GetMilliCpu()
+	capacity.MemoryBytesReserved -= res.GetRequest().GetMemoryBytes()
+	released := idSet(res.GetCardIds())
+	capacity.ReservedCardIds = slices.DeleteFunc(capacity.ReservedCardIds, func(id string) bool {
+		_, ok := released[id]
+		return ok
+	})
+	if capacity.OwnerState == CapacityOwnerState_CAPACITY_OWNER_STATE_DRAINING && len(capacity.Backends) > 0 &&
+		capacity.fitsTotals() {
+		capacity.OwnerState = CapacityOwnerState_CAPACITY_OWNER_STATE_ACTIVE
 	}
 
 	// Validate the credited Worker capacity generation.

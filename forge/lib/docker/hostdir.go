@@ -22,8 +22,6 @@ type hostDir struct {
 	outputDir string
 	// mounts bind outputDir and each input checkout into the container.
 	mounts []*Mount
-	// user is the Worker's user when the container writes outputs, or nil.
-	user *ContainerUser
 }
 
 // prepareHostDir creates the host directories the configured outputs and
@@ -49,10 +47,6 @@ func (c *Controller) prepareHostDir(ctx context.Context) (_ *hostDir, retErr err
 	// Create the output directory, which the container writes as the Worker's
 	// user, so the Worker can read every output and remove what is left.
 	if len(outputs) != 0 {
-		d.user, err = workerUser(c.conf.GetDevices())
-		if err != nil {
-			return nil, err
-		}
 		d.outputDir = filepath.Join(root, "out")
 		if err := os.Mkdir(d.outputDir, 0o700); err != nil {
 			return nil, err

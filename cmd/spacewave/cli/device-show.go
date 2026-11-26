@@ -88,14 +88,14 @@ func (a *deviceShowArgs) Run(c *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "read device state")
 	}
-	availability, err := forge_runtime.LookupForgeWorkerAvailability(c.Context, tx, mount.ObjectKey, device)
+	availability, capacity, err := forge_runtime.LookupForgeWorkerAvailability(c.Context, tx, mount.ObjectKey, device)
 	if err != nil {
 		return errors.Wrap(err, "read device availability")
 	}
 
 	// Print documents in the requested format.
 	if a.output == "json" || a.output == "yaml" {
-		data, err := marshalDeviceShow(mount.ObjectKey, device, availability)
+		data, err := marshalDeviceShow(mount.ObjectKey, device, availability, capacity)
 		if err != nil {
 			return errors.Wrap(err, "marshal device")
 		}
@@ -103,12 +103,17 @@ func (a *deviceShowArgs) Run(c *cli.Context) error {
 	}
 
 	// Print the derived availability beside the Device's diagnostic fields.
-	writeDeviceShow(os.Stdout, mount.ObjectKey, device, availability)
+	writeDeviceShow(os.Stdout, mount.ObjectKey, device, availability, capacity)
 	return nil
 }
 
 // marshalDeviceShow adds effective labels and availability without changing the stored Device schema.
-func marshalDeviceShow(objectKey string, device *s4wave_device.Device, availability forge_runtime.DeviceAvailability) ([]byte, error) {
+func marshalDeviceShow(
+	objectKey string,
+	device *s4wave_device.Device,
+	availability forge_runtime.DeviceAvailability,
+	capacity *forge_runtime.WorkerCapacity,
+) ([]byte, error) {
 	// Preserve the generated Device JSON representation.
 	data, err := device.MarshalJSON()
 	if err != nil {
@@ -138,13 +143,35 @@ func marshalDeviceShow(objectKey string, device *s4wave_device.Device, availabil
 	}
 	obj.Set("effectiveLabels", labels)
 
+	// List the Worker's graphics cards and whether a reservation holds each.
+	cards := arena.NewArray()
+	for i, card := range deviceShowCards(capacity) {
+		entry := arena.NewObject()
+		entry.Set("id", arena.NewString(card.id))
+		entry.Set("vendor", arena.NewString(card.vendor))
+		entry.Set("memoryBytes", arena.NewNumberString(strconv.FormatUint(card.memoryBytes, 10)))
+		held := arena.NewFalse()
+		if card.held {
+			held = arena.NewTrue()
+		}
+		entry.Set("held", held)
+		cards.SetArrayItem(i, entry)
+	}
+	claim.Set("cards", cards)
+
 	// Add the read-only summary without changing the stored Device representation.
 	obj.Set("availability", claim)
 	return obj.MarshalTo(nil), nil
 }
 
 // writeDeviceShow prints availability before the self-reported capabilities.
-func writeDeviceShow(w io.Writer, objectKey string, device *s4wave_device.Device, availability forge_runtime.DeviceAvailability) {
+func writeDeviceShow(
+	w io.Writer,
+	objectKey string,
+	device *s4wave_device.Device,
+	availability forge_runtime.DeviceAvailability,
+	capacity *forge_runtime.WorkerCapacity,
+) {
 	// Show the claim deadline separately from the last self-reported liveness.
 	writeFields(w, [][2]string{
 		{"Device", objectKey},
@@ -168,6 +195,20 @@ func writeDeviceShow(w io.Writer, objectKey string, device *s4wave_device.Device
 	}
 	writeTable(w, "  ", rows)
 
+	// Show the Worker's graphics cards and which a reservation holds.
+	if cards := deviceShowCards(capacity); len(cards) != 0 {
+		io.WriteString(w, "\nGRAPHICS CARDS:\n")
+		rows := [][]string{{"ID", "VENDOR", "MEMORY", "STATE"}}
+		for _, card := range cards {
+			state := "free"
+			if card.held {
+				state = "held"
+			}
+			rows = append(rows, []string{card.id, card.vendor, strconv.FormatUint(card.memoryBytes, 10), state})
+		}
+		writeTable(w, "  ", rows)
+	}
+
 	// Keep capability reports visible as diagnostics, not admission evidence.
 	if capabilities := device.GetCapabilities(); len(capabilities) != 0 {
 		io.WriteString(w, "\nCAPABILITIES:\n")
@@ -180,6 +221,38 @@ func writeDeviceShow(w io.Writer, objectKey string, device *s4wave_device.Device
 	}
 }
 
+// deviceShowCard is one graphics card row of device show.
+type deviceShowCard struct {
+	id          string
+	vendor      string
+	memoryBytes uint64
+	held        bool
+}
+
+// deviceShowCards lists the capacity record's offered cards, then any held card
+// that left the host, so a draining Worker still shows what it holds.
+func deviceShowCards(capacity *forge_runtime.WorkerCapacity) []deviceShowCard {
+	// Mark each offered card held or free.
+	held := make(map[string]bool, len(capacity.GetReservedCardIds()))
+	for _, id := range capacity.GetReservedCardIds() {
+		held[id] = true
+	}
+	var cards []deviceShowCard
+	for _, card := range capacity.GetCards() {
+		vendor := strings.ToLower(strings.TrimPrefix(card.GetVendor().String(), "GRAPHICS_CARD_VENDOR_"))
+		cards = append(cards, deviceShowCard{id: card.GetId(), vendor: vendor, memoryBytes: card.GetMemoryBytes(), held: held[card.GetId()]})
+		delete(held, card.GetId())
+	}
+
+	// Add held cards the Worker no longer offers.
+	for _, id := range capacity.GetReservedCardIds() {
+		if held[id] {
+			cards = append(cards, deviceShowCard{id: id, held: true})
+		}
+	}
+	return cards
+}
+
 // formatDeviceClaimExpiry renders an observed deadline or no claim.
 func formatDeviceClaimExpiry(expiry time.Time) string {
 	if expiry.IsZero() {
@@ -190,12 +263,8 @@ func formatDeviceClaimExpiry(expiry time.Time) string {
 
 // formatDeviceOwnerState names the stored claim state independently of expiry.
 func formatDeviceOwnerState(state forge_runtime.CapacityOwnerState) string {
-	switch state {
-	case forge_runtime.CapacityOwnerStateActive:
-		return "ACTIVE"
-	case forge_runtime.CapacityOwnerStateDraining:
-		return "DRAINING"
-	default:
+	if state == forge_runtime.CapacityOwnerState_CAPACITY_OWNER_STATE_UNKNOWN || !state.Valid() {
 		return "UNSPECIFIED"
 	}
+	return strings.TrimPrefix(state.String(), "CAPACITY_OWNER_STATE_")
 }

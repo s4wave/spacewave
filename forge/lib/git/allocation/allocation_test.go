@@ -135,7 +135,7 @@ func TestCreateOrReuseAllocationLinksForgeAndGitProvenance(t *testing.T) {
 		Generation:           2,
 		RuntimeStopped:       true,
 		CapacityReleased:     true,
-		Reason:               "cancelled",
+		Reason:               forge_runtime.CleanupReason_CLEANUP_REASON_STOPPED,
 	}
 	cleaned, cleanedRef, err := RecordCleanup(ctx, ws, objKey, receipt)
 	if err != nil {
@@ -157,7 +157,7 @@ func TestCreateOrReuseAllocationLinksForgeAndGitProvenance(t *testing.T) {
 	if reloaded.GetCleanup() == nil ||
 		reloaded.GetCleanup().RuntimeIdentity != "container-1" ||
 		reloaded.GetCleanup().Generation != 2 ||
-		reloaded.GetCleanup().Reason != "cancelled" ||
+		reloaded.GetCleanup().Reason != forge_runtime.CleanupReason_CLEANUP_REASON_STOPPED ||
 		reloaded.GetWorkdirObjectKey() != args.WorkdirObjectKey {
 		t.Fatalf("cleanup did not persist: %+v", reloaded)
 	}

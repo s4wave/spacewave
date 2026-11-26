@@ -8,11 +8,14 @@ import (
 	"testing"
 	"time"
 
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/coord"
 	hydra_testbed "github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
+	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	"github.com/sirupsen/logrus"
 )
 
@@ -28,17 +31,17 @@ func newTestStopper() *testStopper {
 	return &testStopper{stopped: make(map[string]int)}
 }
 
-func (s *testStopper) StopRuntime(_ context.Context, rt BackendRuntimeIdentity) (bool, error) {
+func (s *testStopper) StopRuntime(_ context.Context, rt *BackendRuntimeIdentity) (bool, error) {
 	// Count runtime stop calls under the test stopper lock.
 	s.calls.Add(1)
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
-	if rt.ID == s.failFor {
+	if rt.Id == s.failFor {
 		return false, s.stopErr
 	}
 
 	// Record the confirmed stop for this runtime identity.
-	s.stopped[rt.ID]++
+	s.stopped[rt.Id]++
 	return true, nil
 }
 
@@ -108,7 +111,7 @@ func TestWorldRuntimeAdmissionRetriesStaleWorldRoot(t *testing.T) {
 	}
 }
 
-var testRequest = ResourceRequest{MilliCPU: 1_000, MemoryBytes: 1 << 30, Backend: "docker"}
+var testRequest = &ResourceRequest{MilliCpu: 1_000, MemoryBytes: 1 << 30, Backend: "docker"}
 
 func TestReserveActivateStopRoundTrip(t *testing.T) {
 	// Start a World testbed and admission service for the Worker.
@@ -123,7 +126,7 @@ func TestReserveActivateStopRoundTrip(t *testing.T) {
 	}
 
 	// Publish the Worker resource totals for the test scenario.
-	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 2_000, 4<<30, []string{"docker", "v86"}); err != nil {
+	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 2_000, 4<<30, []string{"docker", "v86"}, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -132,7 +135,7 @@ func TestReserveActivateStopRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res.State != ReservationStateReserved || res.Generation != 1 || res.ObjectKey() != BuildReservationObjectKey("exec/1") {
+	if res.State != ReservationState_RESERVATION_STATE_RESERVED || res.Generation != 1 || res.ObjectKey() != BuildReservationObjectKey("exec/1") {
 		t.Fatalf("unexpected reservation: %+v", res)
 	}
 
@@ -147,12 +150,12 @@ func TestReserveActivateStopRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if capacity.MilliCPUReserved != 1_000 || capacity.MemoryBytesReserved != 1<<30 {
+	if capacity.MilliCpuReserved != 1_000 || capacity.MemoryBytesReserved != 1<<30 {
 		t.Fatalf("capacity not debited: %+v", capacity)
 	}
 
 	// Activate the reservation with a backend runtime identity.
-	rt := BackendRuntimeIdentity{Backend: "docker", ID: "container-1"}
+	rt := &BackendRuntimeIdentity{Backend: "docker", Id: "container-1"}
 	if _, err := admission.Activate(ctx, res.ObjectKey(), rt); err != nil {
 		t.Fatal(err)
 	}
@@ -162,7 +165,7 @@ func TestReserveActivateStopRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if loaded.State != ReservationStateActive || !reflect.DeepEqual(loaded.Runtime, rt) {
+	if loaded.State != ReservationState_RESERVATION_STATE_ACTIVE || !reflect.DeepEqual(loaded.Runtime, rt) {
 		t.Fatalf("unexpected active reservation: %+v", loaded)
 	}
 	if loaded.Outcome(time.Now()) != OutcomeActive {
@@ -174,7 +177,7 @@ func TestReserveActivateStopRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !receipt.Complete() || receipt.RuntimeIdentity != "container-1" || receipt.Reason != CleanupReasonStop {
+	if !receipt.Complete() || receipt.RuntimeIdentity != "container-1" || receipt.Reason != CleanupReason_CLEANUP_REASON_STOPPED {
 		t.Fatalf("unexpected receipt: %+v", receipt)
 	}
 	if stopper.count("container-1") != 1 {
@@ -195,7 +198,7 @@ func TestReserveActivateStopRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if capacity.MilliCPUReserved != 0 || capacity.MemoryBytesReserved != 0 {
+	if capacity.MilliCpuReserved != 0 || capacity.MemoryBytesReserved != 0 {
 		t.Fatalf("capacity not credited: %+v", capacity)
 	}
 
@@ -204,14 +207,14 @@ func TestReserveActivateStopRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if resumed.Generation != res.Generation+1 || resumed.State != ReservationStateReserved {
+	if resumed.Generation != res.Generation+1 || resumed.State != ReservationState_RESERVATION_STATE_RESERVED {
 		t.Fatalf("expected next reserved generation: %+v", resumed)
 	}
 	capacity, err = LookupWorkerCapacityEngine(ctx, eng, "worker/a")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if capacity.MilliCPUReserved != testRequest.MilliCPU || capacity.MemoryBytesReserved != testRequest.MemoryBytes {
+	if capacity.MilliCpuReserved != testRequest.MilliCpu || capacity.MemoryBytesReserved != testRequest.MemoryBytes {
 		t.Fatalf("resumed reservation not debited: %+v", capacity)
 	}
 
@@ -233,7 +236,7 @@ func TestReserveConcurrentOversubscribeRejected(t *testing.T) {
 	}
 
 	// Publish the Worker resource totals for the test scenario.
-	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 2_000, 2<<30, []string{"docker"}); err != nil {
+	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 2_000, 2<<30, []string{"docker"}, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -247,7 +250,7 @@ func TestReserveConcurrentOversubscribeRejected(t *testing.T) {
 		go func(i int) {
 			// Attempt one reservation and record its result for this caller.
 			defer wg.Done()
-			req := ResourceRequest{MilliCPU: 1_000, MemoryBytes: 1 << 30, Backend: "docker"}
+			req := &ResourceRequest{MilliCpu: 1_000, MemoryBytes: 1 << 30, Backend: "docker"}
 			_, err := admission.Reserve(ctx, "worker/a", "exec/concurrent-"+string(rune('a'+i)), req)
 			if err == nil {
 				successes.Add(1)
@@ -274,7 +277,7 @@ func TestReserveConcurrentOversubscribeRejected(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if capacity.MilliCPUReserved != 2_000 || capacity.MemoryBytesReserved != 2<<30 {
+	if capacity.MilliCpuReserved != 2_000 || capacity.MemoryBytesReserved != 2<<30 {
 		t.Fatalf("reserved counts wrong: %+v", capacity)
 	}
 }
@@ -292,7 +295,7 @@ func TestRestartReconcileResumesWithoutRelaunch(t *testing.T) {
 	}
 
 	// Publish the Worker resource totals for the test scenario.
-	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 4_000, 8<<30, []string{"docker"}); err != nil {
+	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 4_000, 8<<30, []string{"docker"}, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -303,7 +306,7 @@ func TestRestartReconcileResumesWithoutRelaunch(t *testing.T) {
 	}
 
 	// Activate the reservation with a backend runtime identity.
-	rt := BackendRuntimeIdentity{Backend: "docker", ID: "container-restart"}
+	rt := &BackendRuntimeIdentity{Backend: "docker", Id: "container-restart"}
 	if _, err := admission.Activate(ctx, res.ObjectKey(), rt); err != nil {
 		t.Fatal(err)
 	}
@@ -316,7 +319,7 @@ func TestRestartReconcileResumesWithoutRelaunch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if loaded.State != ReservationStateActive || !reflect.DeepEqual(loaded.Runtime, rt) || loaded.Generation != 1 {
+	if loaded.State != ReservationState_RESERVATION_STATE_ACTIVE || !reflect.DeepEqual(loaded.Runtime, rt) || loaded.Generation != 1 {
 		t.Fatalf("reconcile lost custody facts: %+v", loaded)
 	}
 	if loaded.Outcome(time.Now()) != OutcomeActive {
@@ -337,7 +340,7 @@ func TestUncertainRetainsDebitAndResumeRefencesGeneration(t *testing.T) {
 	}
 
 	// Publish the Worker resource totals for the test scenario.
-	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 2_000, 4<<30, []string{"docker"}); err != nil {
+	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 2_000, 4<<30, []string{"docker"}, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -348,7 +351,7 @@ func TestUncertainRetainsDebitAndResumeRefencesGeneration(t *testing.T) {
 	}
 
 	// Activate the reservation with a backend runtime identity.
-	rt := BackendRuntimeIdentity{Backend: "docker", ID: "container-u1"}
+	rt := &BackendRuntimeIdentity{Backend: "docker", Id: "container-u1"}
 	if _, err := admission.Activate(ctx, res.ObjectKey(), rt); err != nil {
 		t.Fatal(err)
 	}
@@ -372,12 +375,12 @@ func TestUncertainRetainsDebitAndResumeRefencesGeneration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if capacity.MilliCPUReserved != 1_000 {
+	if capacity.MilliCpuReserved != 1_000 {
 		t.Fatal("uncertain disconnect must retain the debit")
 	}
 
 	// The same fenced runtime reconnects: generation re-fences upward.
-	rt2 := BackendRuntimeIdentity{Backend: "docker", ID: "container-u2"}
+	rt2 := &BackendRuntimeIdentity{Backend: "docker", Id: "container-u2"}
 	if _, err := admission.ResumeFromUncertain(ctx, res.ObjectKey(), rt2); err != nil {
 		t.Fatal(err)
 	}
@@ -395,7 +398,7 @@ func TestUncertainRetainsDebitAndResumeRefencesGeneration(t *testing.T) {
 
 	// Read the Worker capacity and check its reserved totals or lifecycle state.
 	capacity, _ = lookupCapacityViaAdmission(ctx, admission, "worker/a")
-	if capacity.MilliCPUReserved != 1_000 {
+	if capacity.MilliCpuReserved != 1_000 {
 		t.Fatal("stale late-return must not credit capacity")
 	}
 
@@ -425,7 +428,7 @@ func TestExpiryFencesGenerationReleasesOnceAndStopsLateReturn(t *testing.T) {
 	}
 
 	// Publish the Worker resource totals for the test scenario.
-	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 2_000, 4<<30, []string{"docker"}); err != nil {
+	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 2_000, 4<<30, []string{"docker"}, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -440,7 +443,7 @@ func TestExpiryFencesGenerationReleasesOnceAndStopsLateReturn(t *testing.T) {
 	}
 
 	// Activate the reservation with a backend runtime identity.
-	rt := BackendRuntimeIdentity{Backend: "docker", ID: "container-exp"}
+	rt := &BackendRuntimeIdentity{Backend: "docker", Id: "container-exp"}
 	if _, err := admission.Activate(ctx, res.ObjectKey(), rt); err != nil {
 		t.Fatal(err)
 	}
@@ -464,7 +467,7 @@ func TestExpiryFencesGenerationReleasesOnceAndStopsLateReturn(t *testing.T) {
 
 	// The sweep fenced custody, confirmed the stop outside the Worker lock,
 	// then credited the debit exactly once in the finalizing transaction.
-	if r.Generation != 2 || r.Reason != CleanupReasonExpired || !r.Complete() {
+	if r.Generation != 2 || r.Reason != CleanupReason_CLEANUP_REASON_EXPIRED || !r.Complete() {
 		t.Fatalf("unexpected expiry receipt: %+v", r)
 	}
 
@@ -473,7 +476,7 @@ func TestExpiryFencesGenerationReleasesOnceAndStopsLateReturn(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if capacity.MilliCPUReserved != 0 {
+	if capacity.MilliCpuReserved != 0 {
 		t.Fatalf("confirmed expiry must credit the debit exactly once: %+v", capacity)
 	}
 
@@ -490,7 +493,7 @@ func TestExpiryFencesGenerationReleasesOnceAndStopsLateReturn(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if loaded.Generation != 2 || loaded.State != ReservationStateReleased || !loaded.Cleanup.Complete() {
+	if loaded.Generation != 2 || loaded.State != ReservationState_RESERVATION_STATE_RELEASED || !loaded.Cleanup.Complete() {
 		t.Fatalf("unexpected post-expiry record: %+v", loaded)
 	}
 	if loaded.Outcome(expiredAt) != OutcomeTerminal {
@@ -531,7 +534,7 @@ func TestExpiryWithFailingStopperKeepsPendingStopForReconcile(t *testing.T) {
 	}
 
 	// Publish the Worker resource totals for the test scenario.
-	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 1_000, 1<<30, []string{"docker"}); err != nil {
+	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 1_000, 1<<30, []string{"docker"}, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -546,7 +549,7 @@ func TestExpiryWithFailingStopperKeepsPendingStopForReconcile(t *testing.T) {
 	}
 
 	// Activate runtime custody for the reserved Execution.
-	if _, err := admission.Activate(ctx, res.ObjectKey(), BackendRuntimeIdentity{Backend: "docker", ID: "container-flaky"}); err != nil {
+	if _, err := admission.Activate(ctx, res.ObjectKey(), &BackendRuntimeIdentity{Backend: "docker", Id: "container-flaky"}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -561,7 +564,7 @@ func TestExpiryWithFailingStopperKeepsPendingStopForReconcile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if loaded.State != ReservationStatePendingStop || loaded.Cleanup == nil ||
+	if loaded.State != ReservationState_RESERVATION_STATE_PENDING_STOP || loaded.Cleanup == nil ||
 		loaded.Cleanup.RuntimeStopped || loaded.Cleanup.CapacityReleased {
 		t.Fatalf("partial receipt not durable: %+v", loaded)
 	}
@@ -571,7 +574,7 @@ func TestExpiryWithFailingStopperKeepsPendingStopForReconcile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if capacity.MilliCPUReserved != testRequest.MilliCPU {
+	if capacity.MilliCpuReserved != testRequest.MilliCpu {
 		t.Fatalf("debit must stay held while the stop is unconfirmed: %+v", capacity)
 	}
 
@@ -592,7 +595,7 @@ func TestExpiryWithFailingStopperKeepsPendingStopForReconcile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if final.State != ReservationStateReleased || !final.Cleanup.Complete() {
+	if final.State != ReservationState_RESERVATION_STATE_RELEASED || !final.Cleanup.Complete() {
 		t.Fatalf("reservation not finalized: %+v", final)
 	}
 
@@ -601,7 +604,7 @@ func TestExpiryWithFailingStopperKeepsPendingStopForReconcile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if capacity.MilliCPUReserved != 0 {
+	if capacity.MilliCpuReserved != 0 {
 		t.Fatalf("capacity credited twice or retained: %+v", capacity)
 	}
 }
@@ -621,7 +624,7 @@ func TestStopperErrorDuringGracefulStopKeepsReservationLive(t *testing.T) {
 	}
 
 	// Publish the Worker resource totals for the test scenario.
-	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 1_000, 1<<30, []string{"docker"}); err != nil {
+	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 1_000, 1<<30, []string{"docker"}, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -632,7 +635,7 @@ func TestStopperErrorDuringGracefulStopKeepsReservationLive(t *testing.T) {
 	}
 
 	// Activate runtime custody for the reserved Execution.
-	if _, err := admission.Activate(ctx, res.ObjectKey(), BackendRuntimeIdentity{Backend: "docker", ID: "container-graceful"}); err != nil {
+	if _, err := admission.Activate(ctx, res.ObjectKey(), &BackendRuntimeIdentity{Backend: "docker", Id: "container-graceful"}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -646,7 +649,7 @@ func TestStopperErrorDuringGracefulStopKeepsReservationLive(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if loaded.State != ReservationStatePendingStop {
+	if loaded.State != ReservationState_RESERVATION_STATE_PENDING_STOP {
 		t.Fatalf("expected durable pending-stop after failed stop, got %d", loaded.State)
 	}
 
@@ -655,7 +658,7 @@ func TestStopperErrorDuringGracefulStopKeepsReservationLive(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if capacity.MilliCPUReserved != 1_000 {
+	if capacity.MilliCpuReserved != 1_000 {
 		t.Fatal("capacity must stay debited until the stop confirms")
 	}
 
@@ -681,7 +684,7 @@ func TestObserveWorkerPreservesDebitsAndRejectsUnknownBackend(t *testing.T) {
 	}
 
 	// Publish the Worker resource totals for the test scenario.
-	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 2_000, 4<<30, []string{"docker"}); err != nil {
+	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 2_000, 4<<30, []string{"docker"}, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -691,16 +694,16 @@ func TestObserveWorkerPreservesDebitsAndRejectsUnknownBackend(t *testing.T) {
 	}
 
 	// Update Worker totals and check that reserved capacity survives.
-	updated, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 4_000, 8<<30, []string{"docker"})
+	updated, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 4_000, 8<<30, []string{"docker"}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if updated.MilliCPUReserved != 1_000 || updated.MilliCPUTotal != 4_000 {
+	if updated.MilliCpuReserved != 1_000 || updated.MilliCpuTotal != 4_000 {
 		t.Fatalf("observation clobbered debits: %+v", updated)
 	}
 
 	// Reject a reservation for an undeclared Worker backend.
-	if _, err := admission.Reserve(ctx, "worker/a", "exec/v86", ResourceRequest{MilliCPU: 100, MemoryBytes: 100, Backend: "v86"}); !errors.Is(err, ErrBackendUnsupported) {
+	if _, err := admission.Reserve(ctx, "worker/a", "exec/v86", &ResourceRequest{MilliCpu: 100, MemoryBytes: 100, Backend: "v86"}); !errors.Is(err, ErrBackendUnsupported) {
 		t.Fatalf("expected unsupported backend error, got %v", err)
 	}
 
@@ -748,7 +751,7 @@ func TestReserveDrainingRejectionOnIdempotentPath(t *testing.T) {
 	}
 
 	// Publish the Worker resource totals for the test scenario.
-	if _, err := admission.ObserveWorker(ctx, "worker/a", ref, capacity.OwnerEpoch, 2_000, 4<<30, []string{"docker"}); err != nil {
+	if _, err := admission.ObserveWorker(ctx, "worker/a", ref, capacity.OwnerEpoch, 2_000, 4<<30, []string{"docker"}, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -770,5 +773,213 @@ func TestReserveDrainingRejectionOnIdempotentPath(t *testing.T) {
 	// Reject reservations while the Worker capacity is draining.
 	if _, err := admission.Reserve(ctx, "worker/a", "exec/1", testRequest); !errors.Is(err, ErrCapacityDraining) {
 		t.Fatalf("expected draining rejection on idempotent path, got %v", err)
+	}
+}
+
+// rawBody is a stored body written byte for byte, to seed records in the
+// JSON form older releases wrote.
+type rawBody []byte
+
+// MarshalVT returns the body.
+func (b *rawBody) MarshalVT() ([]byte, error) { return *b, nil }
+
+// UnmarshalVT stores the body.
+func (b *rawBody) UnmarshalVT(data []byte) error {
+	*b = append((*b)[:0], data...)
+	return nil
+}
+
+// TestLegacyJSONRecordsCarryAcross verifies that a Worker whose capacity and
+// reservation records an older release wrote as JSON keeps its claim, its
+// debit and its runtime custody, and that the next write stores protobuf.
+func TestLegacyJSONRecordsCarryAcross(t *testing.T) {
+	// Seed a claimed capacity record and an active reservation as JSON.
+	ctx, eng, _ := newTestbed(t)
+	stopper := newTestStopper()
+	admission := NewWorldRuntimeAdmission(eng, stopper, time.Minute, time.Minute)
+	lease, err := timestamp.New(time.Now().Add(time.Hour)).MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	capacityJSON := rawBody(`{"workerObjectKey":"worker/a","ownerDeviceObjectKey":"devices/self","claimId":"claim-1",` +
+		`"ownerEpoch":5,"ownerLeaseExpiresAt":` + string(lease) + `,"ownerState":1,"milliCpuTotal":2000,` +
+		`"milliCpuReserved":1000,"memoryBytesTotal":4294967296,"memoryBytesReserved":1073741824,` +
+		`"backends":["docker"],"observedAt":` + string(lease) + `,"generation":3}`)
+	resKey := BuildReservationObjectKey("exec/legacy")
+	reservationJSON := rawBody(`{"workerObjectKey":"worker/a","executionObjectKey":"exec/legacy",` +
+		`"request":{"milliCpu":1000,"memoryBytes":1073741824,"backend":"docker"},"generation":1,` +
+		`"leaseExpiresAt":` + string(lease) + `,"state":2,"runtime":{"backend":"docker","id":"container-1",` +
+		`"stopCommand":"docker","stopEnv":["A=1"],"stopTimeoutSeconds":10}}`)
+	if err := admission.withTx(ctx, true, func(ctx context.Context, ws world.WorldState) error {
+		for key, body := range map[string]*rawBody{
+			BuildWorkerCapacityObjectKey("worker/a"): &capacityJSON,
+			resKey:                                   &reservationJSON,
+		} {
+			if _, _, err := world.AccessWorldObject(ctx, ws, key, true, func(bcs *block.Cursor) error {
+				bcs.SetBlock(body, true)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	// The same claim renews without a new epoch and keeps the debit.
+	claimed, err := admission.ClaimWorkerCapacity(ctx, "worker/a", selfRef)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if claimed.OwnerEpoch != 5 || claimed.MilliCpuReserved != 1000 || claimed.OwnerState != CapacityOwnerState_CAPACITY_OWNER_STATE_ACTIVE {
+		t.Fatalf("legacy claim not carried: %v", claimed)
+	}
+
+	// The reservation keeps its runtime custody.
+	res, err := admission.LookupReservation(ctx, resKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.State != ReservationState_RESERVATION_STATE_ACTIVE || res.GetRuntime().GetId() != "container-1" || res.GetRuntime().GetStopTimeoutSeconds() != 10 {
+		t.Fatalf("legacy reservation not carried: %v", res)
+	}
+
+	// Stopping the runtime credits the debit and stores both records as protobuf.
+	receipt, err := admission.StopAndRelease(ctx, selfRef, claimed.OwnerEpoch, resKey, res.Generation)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !receipt.Complete() || receipt.Reason != CleanupReason_CLEANUP_REASON_STOPPED {
+		t.Fatalf("receipt = %v", receipt)
+	}
+	if err := admission.withTx(ctx, false, func(ctx context.Context, ws world.WorldState) error {
+		for _, key := range []string{BuildWorkerCapacityObjectKey("worker/a"), resKey} {
+			data, _, err := world.LookupObjectBodyBytes(ctx, ws, key)
+			if err != nil {
+				return err
+			}
+			if len(data) == 0 || data[0] == '{' {
+				t.Errorf("%s still stored as JSON", key)
+			}
+		}
+		capacity, err := LookupWorkerCapacity(ctx, ws, "worker/a")
+		if err != nil {
+			return err
+		}
+		if capacity.MilliCpuReserved != 0 || capacity.MemoryBytesReserved != 0 {
+			t.Errorf("debit not credited: %v", capacity)
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestCapacityCardValidation verifies the card ledger rules: an ACTIVE record
+// reserves only cards it offers and never one twice, and a DRAINING record may
+// hold a card that left the host until its reservation credits it.
+func TestCapacityCardValidation(t *testing.T) {
+	now := timestamp.New(time.Now())
+	card := &s4wave_device.GraphicsCard{
+		Id:          "0000:03:00.0",
+		Vendor:      s4wave_device.GraphicsCardVendor_GRAPHICS_CARD_VENDOR_AMD,
+		MemoryBytes: 12_868_124_672,
+		DevicePaths: []string{"/dev/kfd", "/dev/dri/renderD128"},
+	}
+	record := func(state CapacityOwnerState, cards []*s4wave_device.GraphicsCard, reserved ...string) *WorkerCapacity {
+		return &WorkerCapacity{
+			WorkerObjectKey: "worker/a", Generation: 1, ObservedAt: now,
+			OwnerDeviceObjectKey: "devices/self", ClaimId: "claim-1", OwnerEpoch: 1,
+			OwnerLeaseExpiresAt: now, OwnerState: state, Cards: cards, ReservedCardIds: reserved,
+		}
+	}
+	active := CapacityOwnerState_CAPACITY_OWNER_STATE_ACTIVE
+	draining := CapacityOwnerState_CAPACITY_OWNER_STATE_DRAINING
+	for name, tc := range map[string]struct {
+		capacity *WorkerCapacity
+		valid    bool
+	}{
+		"offered and reserved":     {record(active, []*s4wave_device.GraphicsCard{card}, card.Id), true},
+		"reserved but not offered": {record(active, nil, card.Id), false},
+		"reserved twice":           {record(active, []*s4wave_device.GraphicsCard{card}, card.Id, card.Id), false},
+		"declared twice":           {record(active, []*s4wave_device.GraphicsCard{card, card}), false},
+		"draining after removal":   {record(draining, nil, card.Id), true},
+		"card without vendor":      {record(active, []*s4wave_device.GraphicsCard{{Id: card.Id, DevicePaths: card.DevicePaths}}), false},
+	} {
+		if err := tc.capacity.Validate(); (err == nil) != tc.valid {
+			t.Errorf("%s: Validate() = %v, want valid %v", name, err, tc.valid)
+		}
+	}
+}
+
+// TestCardAdmission reserves a whole card, reports a busy card as exhausted
+// and a request no offered card could meet as never fitting, and drains the
+// record while a reserved card has left the host until its credit lands.
+func TestCardAdmission(t *testing.T) {
+	// Claim a Worker that offers one AMD card.
+	ctx, eng, _ := newTestbed(t)
+	admission := NewWorldRuntimeAdmission(eng, newTestStopper(), time.Minute, time.Minute)
+	claimed, err := admission.ClaimWorkerCapacity(ctx, "worker/a", selfRef)
+	if err != nil {
+		t.Fatal(err)
+	}
+	card := &s4wave_device.GraphicsCard{
+		Id:          "0000:03:00.0",
+		Vendor:      s4wave_device.GraphicsCardVendor_GRAPHICS_CARD_VENDOR_AMD,
+		MemoryBytes: 12 << 30,
+		DevicePaths: []string{"/dev/kfd", "/dev/dri/renderD128"},
+	}
+	cards := []*s4wave_device.GraphicsCard{card}
+	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 4_000, 8<<30, []string{"docker"}, cards); err != nil {
+		t.Fatal(err)
+	}
+	request := func(cards *s4wave_device.GraphicsCardRequest) *ResourceRequest {
+		return &ResourceRequest{MilliCpu: 1_000, MemoryBytes: 1 << 30, Backend: "docker", Cards: cards}
+	}
+	amd := s4wave_device.GraphicsCardVendor_GRAPHICS_CARD_VENDOR_AMD
+
+	// Reserve the card whole for the first Execution.
+	res, err := admission.Reserve(ctx, "worker/a", "exec/a", request(&s4wave_device.GraphicsCardRequest{Count: 1, Vendor: amd, MinMemoryBytes: 8 << 30}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res.CardIds) != 1 || res.CardIds[0] != card.Id {
+		t.Fatalf("reserved cards %v", res.CardIds)
+	}
+
+	// A second card request fits the Worker but waits for the held card.
+	if _, err := admission.Reserve(ctx, "worker/a", "exec/b", request(&s4wave_device.GraphicsCardRequest{Count: 1})); !errors.Is(err, ErrCapacityExhausted) {
+		t.Fatalf("busy card: %v", err)
+	}
+
+	// Requests no offered card could meet are refused whatever is held.
+	for name, cards := range map[string]*s4wave_device.GraphicsCardRequest{
+		"two cards":   {Count: 2},
+		"nvidia card": {Count: 1, Vendor: s4wave_device.GraphicsCardVendor_GRAPHICS_CARD_VENDOR_NVIDIA},
+		"more memory": {Count: 1, MinMemoryBytes: 16 << 30},
+	} {
+		if _, err := admission.Reserve(ctx, "worker/a", "exec/"+name, request(cards)); !errors.Is(err, ErrCapacityNeverFits) {
+			t.Fatalf("%s: %v", name, err)
+		}
+	}
+
+	// The held card leaving the host drains the record until its credit.
+	drained, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 4_000, 8<<30, []string{"docker"}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if drained.OwnerState != CapacityOwnerState_CAPACITY_OWNER_STATE_DRAINING {
+		t.Fatalf("held card removal left state %v", drained.OwnerState)
+	}
+	if _, err := admission.StopAndRelease(ctx, selfRef, claimed.OwnerEpoch, res.ObjectKey(), res.Generation); err != nil {
+		t.Fatal(err)
+	}
+	credited, err := LookupWorkerCapacityEngine(ctx, eng, "worker/a")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if credited.OwnerState != CapacityOwnerState_CAPACITY_OWNER_STATE_ACTIVE || len(credited.ReservedCardIds) != 0 {
+		t.Fatalf("credit left %v holding %v", credited.OwnerState, credited.ReservedCardIds)
 	}
 }

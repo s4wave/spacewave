@@ -157,12 +157,31 @@ func (c *Controller) Execute(ctx context.Context) (retErr error) {
 	return c.storeOutputs(ctx, hd.outputDir)
 }
 
-// launch creates and starts the container under the reservation's runtime name.
+// launch creates and starts the container under the reservation's runtime
+// name, with the reserved cards' device nodes mapped. A container that writes
+// outputs runs as the Worker's user, with each mapped device's group added.
 func (c *Controller) launch(ctx context.Context, grant Reservation, hd *hostDir) (*Container, error) {
+	// Map the reserved cards beside the configured devices.
+	conf := c.conf
+	if cards := grant.Devices(); len(cards) != 0 {
+		conf = conf.CloneVT()
+		conf.Devices = append(conf.Devices, cards...)
+	}
+
+	// Run as the Worker's user when the container writes outputs.
+	var user *ContainerUser
+	if hd.outputDir != "" {
+		var err error
+		if user, err = workerUser(conf.GetDevices()); err != nil {
+			return nil, err
+		}
+	}
+
+	// Create and start the container under the reservation's fence.
 	var ctr *Container
 	err := grant.Launch(ctx, func(name string) error {
 		var err error
-		ctr, err = CreateContainer(ctx, c.runner, c.conf, name, hd.mounts, hd.user)
+		ctr, err = CreateContainer(ctx, c.runner, conf, name, hd.mounts, user)
 		if err != nil {
 			return err
 		}

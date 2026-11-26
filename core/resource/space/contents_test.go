@@ -781,7 +781,7 @@ func TestSpaceContentsResource_SetProcessBindingStartsForgeWorker(t *testing.T) 
 
 	// Observe the bound Worker's published capacity after the release.
 	capacity := waitBindingWorkerCapacity(t, ctx, tb.WorldState, "session-worker")
-	if capacity.MilliCPUTotal != 1000 || capacity.MemoryBytesTotal != 1<<30 ||
+	if capacity.MilliCpuTotal != 1000 || capacity.MemoryBytesTotal != 1<<30 ||
 		capacity.OwnerDeviceObjectKey != "devices/self" || !capacity.SupportsBackend("docker") {
 		t.Fatalf("observed Worker capacity = %#v", capacity)
 	}

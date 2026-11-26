@@ -22,6 +22,8 @@ type recordingAdmission struct {
 	reserves int
 	// releases counts the reservations released.
 	releases int
+	// devices are the reserved cards' device nodes the grant returns.
+	devices []string
 }
 
 // Reserve returns a deterministic named runtime grant.
@@ -39,6 +41,11 @@ func (a *recordingAdmission) Launch(_ context.Context, createAndStart func(strin
 		return forge_runtime.ErrCapacityDraining
 	}
 	return createAndStart(a.name)
+}
+
+// Devices returns the configured card device nodes.
+func (a *recordingAdmission) Devices() []string {
+	return a.devices
 }
 
 // Release records the configured stop effect when this test needs one.

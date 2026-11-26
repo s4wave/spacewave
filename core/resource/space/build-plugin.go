@@ -285,7 +285,7 @@ func checkPluginBuildCapacity(ctx context.Context, tx world.WorldState, workerKe
 	if err != nil {
 		return err
 	}
-	if milliCPU > capacity.MilliCPUTotal || memoryBytes > capacity.MemoryBytesTotal {
+	if milliCPU > capacity.MilliCpuTotal || memoryBytes > capacity.MemoryBytesTotal {
 		return errors.Errorf("worker %s cannot hold %d milli-cores and %d bytes", workerKey, milliCPU, memoryBytes)
 	}
 	return nil

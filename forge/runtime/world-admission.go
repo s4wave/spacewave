@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block/quad"
 	"github.com/s4wave/spacewave/db/world"
+	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 )
 
 // PlacementReservationPredicate indexes live standing grants by their Device.
@@ -21,7 +22,7 @@ const PlacementReservationPredicate = "<forge/runtime/placement>"
 type RuntimeStopper interface {
 	// StopRuntime stops the identified runtime.
 	// Returns true when the runtime was stopped or was already gone.
-	StopRuntime(ctx context.Context, rt BackendRuntimeIdentity) (bool, error)
+	StopRuntime(ctx context.Context, rt *BackendRuntimeIdentity) (bool, error)
 }
 
 // WorldRuntimeAdmission implements RuntimeAdmission over durable world objects.
@@ -147,7 +148,7 @@ func loadOwnedCapacity(
 		return nil, ErrCapacityOwned
 	case expired:
 		return nil, ErrCapacityOwnerExpired
-	case capacity.ClaimID != ref.ClaimID || capacity.OwnerEpoch != epoch:
+	case capacity.ClaimId != ref.ClaimID || capacity.OwnerEpoch != epoch:
 		return nil, ErrStaleGeneration
 	}
 	return capacity, nil
@@ -157,7 +158,7 @@ func loadOwnedCapacity(
 // reference and is unexpired. Sweeps use this variant: they carry no epoch
 // argument because the stored epoch is current for the live owner.
 func verifyLiveClaim(capacity *WorkerCapacity, ref WorkerClaimRef, now time.Time) error {
-	if capacity.OwnerDeviceObjectKey != ref.DeviceObjectKey || capacity.ClaimID != ref.ClaimID {
+	if capacity.OwnerDeviceObjectKey != ref.DeviceObjectKey || capacity.ClaimId != ref.ClaimID {
 		if capacity.OwnerLeaseExpiresAt == nil || !now.Before(capacity.OwnerLeaseExpiresAt.AsTime()) {
 			return ErrCapacityOwnerExpired
 		}
@@ -208,14 +209,14 @@ func (a *WorldRuntimeAdmission) ClaimWorkerCapacity(
 		if capacity == nil {
 			capacity = &WorkerCapacity{
 				WorkerObjectKey:      workerObjectKey,
-				MilliCPUTotal:        0,
+				MilliCpuTotal:        0,
 				MemoryBytesTotal:     0,
 				ObservedAt:           timestamp.New(now),
 				OwnerDeviceObjectKey: ref.DeviceObjectKey,
-				ClaimID:              ref.ClaimID,
+				ClaimId:              ref.ClaimID,
 				OwnerEpoch:           uint64(now.UnixMilli()),
 				OwnerLeaseExpiresAt:  timestamp.New(now.Add(a.ownerLease)),
-				OwnerState:           CapacityOwnerStateActive,
+				OwnerState:           CapacityOwnerState_CAPACITY_OWNER_STATE_ACTIVE,
 			}
 			capacity.Generation = 1
 		} else {
@@ -229,7 +230,7 @@ func (a *WorldRuntimeAdmission) ClaimWorkerCapacity(
 			// Renew the same Worker claim or replace its epoch.
 			sameClaim := live &&
 				capacity.OwnerDeviceObjectKey == ref.DeviceObjectKey &&
-				capacity.ClaimID == ref.ClaimID
+				capacity.ClaimId == ref.ClaimID
 			if sameClaim {
 				// Idempotent renew: extend the lease in place.
 				capacity.OwnerLeaseExpiresAt = timestamp.New(now.Add(a.ownerLease))
@@ -239,7 +240,7 @@ func (a *WorldRuntimeAdmission) ClaimWorkerCapacity(
 				// bump the epoch so stale instances fence out.
 				prevEpoch := capacity.OwnerEpoch
 				capacity.OwnerDeviceObjectKey = ref.DeviceObjectKey
-				capacity.ClaimID = ref.ClaimID
+				capacity.ClaimId = ref.ClaimID
 				capacity.OwnerEpoch = prevEpoch + 1
 				capacity.OwnerLeaseExpiresAt = timestamp.New(now.Add(a.ownerLease))
 			}
@@ -293,7 +294,7 @@ func (a *WorldRuntimeAdmission) RenewWorkerClaim(
 		if capacity.OwnerDeviceObjectKey != ref.DeviceObjectKey {
 			return ErrCapacityOwned
 		}
-		if capacity.ClaimID != ref.ClaimID {
+		if capacity.ClaimId != ref.ClaimID {
 			return ErrStaleGeneration
 		}
 
@@ -327,7 +328,9 @@ func (a *WorldRuntimeAdmission) RenewWorkerClaim(
 // every observation bumps the record generation and stamps ObservedAt.
 // Declared totals below current debits move the record to DRAINING until
 // credits land; fitting totals return it to ACTIVE. Empty backends are a
-// validation error: only BeginDrainCapacity empties the backend list.
+// validation error: only BeginDrainCapacity empties the backend list. cards
+// lists the graphics cards the Worker offers; a reserved card missing from it
+// drains the record, as shrunk CPU does.
 func (a *WorldRuntimeAdmission) ObserveWorker(
 	ctx context.Context,
 	workerObjectKey string,
@@ -335,6 +338,7 @@ func (a *WorldRuntimeAdmission) ObserveWorker(
 	epoch uint64,
 	milliCPUTotal, memoryBytesTotal uint64,
 	backends []string,
+	cards []*s4wave_device.GraphicsCard,
 ) (*WorkerCapacity, error) {
 	// Require a Worker key and at least one supported backend.
 	if workerObjectKey == "" {
@@ -358,15 +362,14 @@ func (a *WorldRuntimeAdmission) ObserveWorker(
 		}
 
 		// Update Worker totals and determine whether reserved capacity still fits.
-		capacity.MilliCPUTotal = milliCPUTotal
+		capacity.MilliCpuTotal = milliCPUTotal
 		capacity.MemoryBytesTotal = memoryBytesTotal
 		capacity.Backends = append([]string(nil), backends...)
-		fits := capacity.MilliCPUReserved <= capacity.MilliCPUTotal &&
-			capacity.MemoryBytesReserved <= capacity.MemoryBytesTotal
-		if fits {
-			capacity.OwnerState = CapacityOwnerStateActive
+		capacity.Cards = cards
+		if capacity.fitsTotals() {
+			capacity.OwnerState = CapacityOwnerState_CAPACITY_OWNER_STATE_ACTIVE
 		} else {
-			capacity.OwnerState = CapacityOwnerStateDraining
+			capacity.OwnerState = CapacityOwnerState_CAPACITY_OWNER_STATE_DRAINING
 		}
 
 		// Stamp and validate the Worker observation.
@@ -412,7 +415,7 @@ func (a *WorldRuntimeAdmission) BeginDrainCapacity(
 		}
 
 		// Block new reservations and validate the draining capacity.
-		capacity.OwnerState = CapacityOwnerStateDraining
+		capacity.OwnerState = CapacityOwnerState_CAPACITY_OWNER_STATE_DRAINING
 		capacity.Backends = nil
 		capacity.Generation++
 		if err := capacity.Validate(); err != nil {
@@ -470,7 +473,7 @@ func (a *WorldRuntimeAdmission) StopWorkerReservations(
 		if res.WorkerObjectKey != workerObjectKey || res.State.Terminal() || res.Placement != nil {
 			continue
 		}
-		if res.State == ReservationStatePendingStop {
+		if res.State == ReservationState_RESERVATION_STATE_PENDING_STOP {
 			continue
 		}
 		if _, err := a.StopAndRelease(ctx, ref, epoch, key, res.Generation); err != nil {
@@ -513,7 +516,7 @@ func (a *WorldRuntimeAdmission) CompleteDrainCapacity(
 		if err != nil {
 			return err
 		}
-		if capacity.OwnerState != CapacityOwnerStateDraining {
+		if capacity.OwnerState != CapacityOwnerState_CAPACITY_OWNER_STATE_DRAINING {
 			return errors.New("capacity record is not draining")
 		}
 
@@ -552,7 +555,7 @@ func (a *WorldRuntimeAdmission) ScanOwnedCapacity(
 			return err
 		}
 		for _, objKey := range keys {
-			capacity, err := world.LookupObjectBody[WorkerCapacity](ctx, ws, objKey)
+			capacity, err := lookupWorkerCapacityBody(ctx, ws, objKey)
 			if errors.Is(err, world.ErrObjectNotFound) {
 				continue
 			}
@@ -578,7 +581,7 @@ func (a *WorldRuntimeAdmission) ScanOwnedCapacity(
 func (a *WorldRuntimeAdmission) Reserve(
 	ctx context.Context,
 	workerObjectKey, executionObjectKey string,
-	request ResourceRequest,
+	request *ResourceRequest,
 ) (*Reservation, error) {
 	return a.reserve(ctx, workerObjectKey, executionObjectKey, request, nil, 0)
 }
@@ -588,7 +591,7 @@ func (a *WorldRuntimeAdmission) Reserve(
 func (a *WorldRuntimeAdmission) ReserveForClaim(
 	ctx context.Context,
 	workerObjectKey, executionObjectKey string,
-	request ResourceRequest,
+	request *ResourceRequest,
 	ref WorkerClaimRef,
 	epoch uint64,
 ) (*Reservation, error) {
@@ -601,7 +604,7 @@ func (a *WorldRuntimeAdmission) ReserveForClaim(
 func (a *WorldRuntimeAdmission) reserve(
 	ctx context.Context,
 	workerObjectKey, executionObjectKey string,
-	request ResourceRequest,
+	request *ResourceRequest,
 	ref *WorkerClaimRef,
 	epoch uint64,
 ) (*Reservation, error) {
@@ -635,7 +638,7 @@ func (a *WorldRuntimeAdmission) reserve(
 // lives until its edge is removed; a nil placement retains Forge's leased custody.
 func (a *WorldRuntimeAdmission) ReserveInTx(
 	ctx context.Context, ws world.WorldState,
-	workerObjectKey, holderObjectKey string, request ResourceRequest,
+	workerObjectKey, holderObjectKey string, request *ResourceRequest,
 	ref *WorkerClaimRef, epoch uint64, placement *quad.Quad,
 ) (*Reservation, error) {
 	// Validate the holder and request before mutating the shared capacity ledger.
@@ -657,7 +660,7 @@ func (a *WorldRuntimeAdmission) ReserveInTx(
 		switch {
 		case existing.LeaseExpired(a.now()):
 			return nil, ErrReservationExpired
-		case existing.WorkerObjectKey != workerObjectKey || existing.Request != request || !existing.Placement.EqualVT(placement):
+		case existing.WorkerObjectKey != workerObjectKey || !existing.GetRequest().EqualVT(request) || !existing.Placement.EqualVT(placement):
 			return nil, ErrRequestMismatch
 		}
 
@@ -677,10 +680,8 @@ func (a *WorldRuntimeAdmission) ReserveInTx(
 		if err := capacity.OwnerClaimActive(a.now()); err != nil {
 			return nil, err
 		}
-		if remainingMilliCPU(capacity)+existing.Request.MilliCPU < existing.Request.MilliCPU ||
-			capacity.MilliCPUReserved < existing.Request.MilliCPU ||
-			capacity.MemoryBytesReserved < existing.Request.MemoryBytes {
-			return nil, errors.Wrapf(ErrCapacityExhausted, "debit missing for %s", resKey)
+		if !capacity.HoldsDebit(existing) {
+			return nil, errors.Errorf("ledger holds no debit for live reservation %s", resKey)
 		}
 		return existing, nil
 	}
@@ -701,7 +702,8 @@ func (a *WorldRuntimeAdmission) ReserveInTx(
 	if err := capacity.OwnerClaimActive(a.now()); err != nil {
 		return nil, err
 	}
-	if err := capacity.Admits(request); err != nil {
+	cardIDs, err := capacity.Admits(request)
+	if err != nil {
 		return nil, errors.Wrapf(err, "worker %s", workerObjectKey)
 	}
 
@@ -715,7 +717,8 @@ func (a *WorldRuntimeAdmission) ReserveInTx(
 		Request:            request,
 		Generation:         1,
 		LeaseExpiresAt:     timestamp.New(now.Add(a.lease)),
-		State:              ReservationStateReserved,
+		State:              ReservationState_RESERVATION_STATE_RESERVED,
+		CardIds:            cardIDs,
 	}
 	persist := func() error { return persistNewReservation(ctx, ws, res) }
 	if existing != nil {
@@ -740,7 +743,7 @@ func (a *WorldRuntimeAdmission) ReserveInTx(
 			return nil, err
 		}
 	}
-	if err := debitCapacity(ctx, ws, workerObjectKey, request); err != nil {
+	if err := debitCapacity(ctx, ws, res); err != nil {
 		return nil, err
 	}
 	return res, nil
@@ -750,7 +753,7 @@ func (a *WorldRuntimeAdmission) ReserveInTx(
 func (a *WorldRuntimeAdmission) Activate(
 	ctx context.Context,
 	reservationObjectKey string,
-	rt BackendRuntimeIdentity,
+	rt *BackendRuntimeIdentity,
 ) (*Reservation, error) {
 	return a.activate(ctx, reservationObjectKey, rt, nil, 0)
 }
@@ -759,7 +762,7 @@ func (a *WorldRuntimeAdmission) Activate(
 func (a *WorldRuntimeAdmission) ActivateForClaim(
 	ctx context.Context,
 	reservationObjectKey string,
-	rt BackendRuntimeIdentity,
+	rt *BackendRuntimeIdentity,
 	ref WorkerClaimRef,
 	epoch uint64,
 ) (*Reservation, error) {
@@ -770,7 +773,7 @@ func (a *WorldRuntimeAdmission) ActivateForClaim(
 func (a *WorldRuntimeAdmission) activate(
 	ctx context.Context,
 	reservationObjectKey string,
-	rt BackendRuntimeIdentity,
+	rt *BackendRuntimeIdentity,
 	ref *WorkerClaimRef,
 	epoch uint64,
 ) (*Reservation, error) {
@@ -779,12 +782,12 @@ func (a *WorldRuntimeAdmission) activate(
 	}
 	return a.transitionReservationForClaim(ctx, reservationObjectKey, ref, epoch, func(res *Reservation) error {
 		// Require reserved capacity before recording runtime custody.
-		if res.State != ReservationStateReserved {
+		if res.State != ReservationState_RESERVATION_STATE_RESERVED {
 			return errors.Errorf("cannot activate from state %d", res.State)
 		}
 
 		// Activate the reservation and extend its custody lease.
-		res.State = ReservationStateActive
+		res.State = ReservationState_RESERVATION_STATE_ACTIVE
 		res.Runtime = rt
 		renewLease(res, a.now(), a.lease)
 		return nil
@@ -797,10 +800,10 @@ func (a *WorldRuntimeAdmission) activate(
 func (a *WorldRuntimeAdmission) MarkUncertain(ctx context.Context, reservationObjectKey string) (*Reservation, error) {
 	return a.transitionReservation(ctx, reservationObjectKey, func(res *Reservation) error {
 		switch res.State {
-		case ReservationStateUncertain:
+		case ReservationState_RESERVATION_STATE_UNCERTAIN:
 			return nil
-		case ReservationStateReserved, ReservationStateActive:
-			res.State = ReservationStateUncertain
+		case ReservationState_RESERVATION_STATE_RESERVED, ReservationState_RESERVATION_STATE_ACTIVE:
+			res.State = ReservationState_RESERVATION_STATE_UNCERTAIN
 			return nil
 		default:
 			return errors.Errorf("cannot mark uncertain from state %d", res.State)
@@ -814,21 +817,21 @@ func (a *WorldRuntimeAdmission) MarkUncertain(ctx context.Context, reservationOb
 func (a *WorldRuntimeAdmission) ResumeFromUncertain(
 	ctx context.Context,
 	reservationObjectKey string,
-	rt BackendRuntimeIdentity,
+	rt *BackendRuntimeIdentity,
 ) (*Reservation, error) {
 	if rt.IsZero() {
 		return nil, errors.New("runtime identity must be set")
 	}
 	return a.transitionReservation(ctx, reservationObjectKey, func(res *Reservation) error {
 		// Require uncertain custody before resuming the reservation.
-		if res.State != ReservationStateUncertain {
+		if res.State != ReservationState_RESERVATION_STATE_UNCERTAIN {
 			return errors.Errorf("cannot resume from state %d", res.State)
 		}
 
 		// Fence the resumed runtime and renew its active lease.
 		res.Generation++
 		res.Runtime = rt
-		res.State = ReservationStateActive
+		res.State = ReservationState_RESERVATION_STATE_ACTIVE
 		renewLease(res, a.now(), a.lease)
 		return nil
 	})
@@ -958,7 +961,8 @@ func (a *WorldRuntimeAdmission) StopAndRelease(
 		}
 		runtimeStopped = stopped
 	}
-	return a.finalizeStop(ctx, ref, ownerEpoch, res.ObjectKey(), res.WorkerObjectKey, res.ExecutionObjectKey, res.Runtime.ID, res.Generation, runtimeStopped, CleanupReasonStop, false)
+	return a.finalizeStop(ctx, ref, ownerEpoch, res.ObjectKey(), res.WorkerObjectKey, res.ExecutionObjectKey,
+		res.GetRuntime().GetId(), res.Generation, runtimeStopped, CleanupReason_CLEANUP_REASON_STOPPED, false)
 }
 
 // ExpireLeases fences every live reservation whose lease expired at or
@@ -1114,15 +1118,15 @@ func (a *WorldRuntimeAdmission) expireOne(ctx context.Context, ref WorkerClaimRe
 		// stays held until the stop confirms.
 		fenced := *res
 		fenced.Generation++
-		fenced.State = ReservationStatePendingStop
+		fenced.State = ReservationState_RESERVATION_STATE_PENDING_STOP
 		receipt := &CleanupReceipt{
 			ReservationObjectKey: objKey,
 			ExecutionObjectKey:   res.ExecutionObjectKey,
-			RuntimeIdentity:      res.Runtime.ID,
+			RuntimeIdentity:      res.GetRuntime().GetId(),
 			Generation:           fenced.Generation,
 			RuntimeStopped:       false,
 			CapacityReleased:     false,
-			Reason:               CleanupReasonExpired,
+			Reason:               CleanupReason_CLEANUP_REASON_EXPIRED,
 		}
 		if err := receipt.Validate(); err != nil {
 			return err
@@ -1191,14 +1195,16 @@ func (a *WorldRuntimeAdmission) beginStopLocked(
 		switch {
 		case current.Generation != generation:
 			return ErrStaleGeneration
-		case current.State == ReservationStatePendingStop:
+		case current.State == ReservationState_RESERVATION_STATE_PENDING_STOP:
 			// Crash recovery or a concurrent return for the same fenced
 			// generation: continue the pending stop.
 			out = current
 			return nil
-		case current.State == ReservationStateReserved || current.State == ReservationStateActive || current.State == ReservationStateUncertain:
+		case current.State == ReservationState_RESERVATION_STATE_RESERVED ||
+			current.State == ReservationState_RESERVATION_STATE_ACTIVE ||
+			current.State == ReservationState_RESERVATION_STATE_UNCERTAIN:
 			fenced := *current
-			fenced.State = ReservationStatePendingStop
+			fenced.State = ReservationState_RESERVATION_STATE_PENDING_STOP
 			if err := fenced.Validate(); err != nil {
 				return err
 			}
@@ -1234,7 +1240,7 @@ func (a *WorldRuntimeAdmission) finalizeStop(
 	objKey, workerObjectKey, executionObjectKey, runtimeIdentity string,
 	generation uint64,
 	runtimeStopped bool,
-	reason string,
+	reason CleanupReason,
 	benignOnFence bool,
 ) (*CleanupReceipt, error) {
 	// Serialize finalization of the Worker reservation.
@@ -1273,7 +1279,7 @@ func (a *WorldRuntimeAdmission) finalizeStop(
 func (a *WorldRuntimeAdmission) ReleaseInTx(
 	ctx context.Context, ws world.WorldState,
 	objKey, executionObjectKey, runtimeIdentity string, generation uint64,
-	runtimeStopped bool, reason string,
+	runtimeStopped bool, reason CleanupReason,
 ) (*CleanupReceipt, error) {
 	// Require the same pending reservation and Execution generation.
 	res, err := LookupReservation(ctx, ws, objKey)
@@ -1289,14 +1295,14 @@ func (a *WorldRuntimeAdmission) ReleaseInTx(
 	if res.State.Terminal() {
 		return res.Cleanup, nil
 	}
-	standing := res.Placement != nil && res.State == ReservationStateReserved && res.Runtime.IsZero()
-	if res.State != ReservationStatePendingStop && !standing {
+	standing := res.Placement != nil && res.State == ReservationState_RESERVATION_STATE_RESERVED && res.Runtime.IsZero()
+	if res.State != ReservationState_RESERVATION_STATE_PENDING_STOP && !standing {
 		return nil, errors.Errorf("cannot finalize from state %d", res.State)
 	}
 
 	// Preserve the cleanup reason from the pending-stop receipt.
 	prior := res.Cleanup
-	if prior != nil && prior.Reason != "" {
+	if prior != nil && prior.Reason != CleanupReason_CLEANUP_REASON_UNKNOWN {
 		reason = prior.Reason
 	}
 
@@ -1335,7 +1341,7 @@ func (a *WorldRuntimeAdmission) ReleaseInTx(
 		Reason:               reason,
 	}
 	finalized := *res
-	finalized.State = ReservationStateReleased
+	finalized.State = ReservationState_RESERVATION_STATE_RELEASED
 	finalized.Cleanup = receipt
 	if err := finalized.Validate(); err != nil {
 		return nil, err
@@ -1354,7 +1360,7 @@ func (a *WorldRuntimeAdmission) ReleaseInTx(
 			return nil, err
 		}
 	}
-	if err := creditCapacity(ctx, ws, res.WorkerObjectKey, res.Request); err != nil {
+	if err := creditCapacity(ctx, ws, res); err != nil {
 		return nil, err
 	}
 	return receipt, nil
@@ -1368,7 +1374,7 @@ func (a *WorldRuntimeAdmission) reconcilePendingStop(ctx context.Context, ref Wo
 	if err != nil {
 		return nil, err
 	}
-	if res.State != ReservationStatePendingStop {
+	if res.State != ReservationState_RESERVATION_STATE_PENDING_STOP {
 		return nil, nil
 	}
 
@@ -1393,12 +1399,12 @@ func (a *WorldRuntimeAdmission) reconcilePendingStop(ctx context.Context, ref Wo
 	}
 
 	// Preserve the original cleanup reason when completing the receipt.
-	priorReason := ""
+	priorReason := CleanupReason_CLEANUP_REASON_UNKNOWN
 	if res.Cleanup != nil {
 		priorReason = res.Cleanup.Reason
 	}
-	if priorReason == "" {
-		priorReason = CleanupReasonStop
+	if priorReason == CleanupReason_CLEANUP_REASON_UNKNOWN {
+		priorReason = CleanupReason_CLEANUP_REASON_STOPPED
 	}
 
 	// Finalize the receipt against the Worker claim used for the stop.
@@ -1409,7 +1415,7 @@ func (a *WorldRuntimeAdmission) reconcilePendingStop(ctx context.Context, ref Wo
 		objKey,
 		res.WorkerObjectKey,
 		res.ExecutionObjectKey,
-		res.Runtime.ID,
+		res.GetRuntime().GetId(),
 		res.Generation,
 		runtimeStopped,
 		priorReason,
@@ -1444,13 +1450,13 @@ func (a *WorldRuntimeAdmission) LookupWorkerCapacityAdmission(ctx context.Contex
 }
 
 // stopRuntimeChecked invokes the configured stopper and wraps failures.
-func (a *WorldRuntimeAdmission) stopRuntimeChecked(ctx context.Context, rt BackendRuntimeIdentity) (bool, error) {
+func (a *WorldRuntimeAdmission) stopRuntimeChecked(ctx context.Context, rt *BackendRuntimeIdentity) (bool, error) {
 	if a.stopper == nil {
 		return false, errors.New("runtime stopper not configured")
 	}
 	stopped, err := a.stopper.StopRuntime(ctx, rt)
 	if err != nil {
-		return false, errors.Wrapf(err, "stop runtime %s", rt.ID)
+		return false, errors.Wrapf(err, "stop runtime %s", rt.Id)
 	}
 	return stopped, nil
 }

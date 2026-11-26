@@ -79,7 +79,11 @@ func (r *Reconciler) claimRequirements(ctx context.Context, reads *world.ReadSet
 				}
 				requirements := node.GetRequirements()
 				overfull := len(copies) > int(requirements.ReplicaCount())
-				claim := r.claimable(node, policy, labels, copies) && capacity.Admits(placementRequest(requirements, capacity)) == nil
+				claim := r.claimable(node, policy, labels, copies)
+				if claim {
+					_, err := capacity.Admits(placementRequest(requirements, capacity))
+					claim = err == nil
+				}
 				if !overfull && !claim {
 					continue
 				}
@@ -169,7 +173,7 @@ func (r *Reconciler) claimNode(ctx context.Context, reads *world.ReadSet, graphK
 			capacity.WorkerObjectKey,
 			s4wave_flowgraph.NodeCapacityHolderKey(graphKey, nodeID, r.deviceKey),
 			placementRequest(requirements, capacity),
-			&forge_runtime.WorkerClaimRef{DeviceObjectKey: r.deviceKey, ClaimID: capacity.ClaimID},
+			&forge_runtime.WorkerClaimRef{DeviceObjectKey: r.deviceKey, ClaimID: capacity.ClaimId},
 			capacity.OwnerEpoch,
 			world.GraphQuadToQuad(edge),
 		)
@@ -216,12 +220,12 @@ func (r *Reconciler) claimable(node *s4wave_flowgraph.FlowgraphNode, policy *dev
 
 // placementRequest is the Worker request for one copy of a node. A node that
 // leaves the backend open takes the Worker's first declared backend.
-func placementRequest(requirements *s4wave_flowgraph.FlowgraphRequirements, capacity *forge_runtime.WorkerCapacity) forge_runtime.ResourceRequest {
+func placementRequest(requirements *s4wave_flowgraph.FlowgraphRequirements, capacity *forge_runtime.WorkerCapacity) *forge_runtime.ResourceRequest {
 	backend := requirements.GetRuntimeBackend()
 	if backend == "" && len(capacity.Backends) != 0 {
 		backend = capacity.Backends[0]
 	}
-	return forge_runtime.ResourceRequest{MilliCPU: requirements.GetMilliCpu(), MemoryBytes: requirements.GetMemoryBytes(), Backend: backend}
+	return &forge_runtime.ResourceRequest{MilliCpu: requirements.GetMilliCpu(), MemoryBytes: requirements.GetMemoryBytes(), Backend: backend}
 }
 
 // hostsWorker reports whether placed holds the forge-worker node for workerKey.
@@ -309,7 +313,7 @@ func (r *Reconciler) releasePlacement(ctx context.Context, key string) error {
 		}
 
 		// Commit the credit and terminal receipt in the same cleanup transaction.
-		if _, err := forge_runtime.NewTxAdmission(r.now).ReleaseInTx(ctx, ws, key, reservation.ExecutionObjectKey, "", reservation.Generation, true, forge_runtime.CleanupReasonStop); err != nil {
+		if _, err := forge_runtime.NewTxAdmission(r.now).ReleaseInTx(ctx, ws, key, reservation.ExecutionObjectKey, "", reservation.Generation, true, forge_runtime.CleanupReason_CLEANUP_REASON_STOPPED); err != nil {
 			return err
 		}
 

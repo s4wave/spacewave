@@ -12,8 +12,8 @@ import (
 func TestStopperUsesPersistedRuntimeIdentity(t *testing.T) {
 	// Stop the container through a runner that records its persisted CLI identity.
 	runner := &recordingRunner{}
-	stopped, err := NewStopper(runner).StopRuntime(t.Context(), forge_runtime.BackendRuntimeIdentity{
-		Backend: "docker", ID: "spacewave-runtime", StopCommand: "docker-test",
+	stopped, err := NewStopper(runner).StopRuntime(t.Context(), &forge_runtime.BackendRuntimeIdentity{
+		Backend: "docker", Id: "spacewave-runtime", StopCommand: "docker-test",
 		StopEnv: []string{"DOCKER_HOST=unix:///test.sock"}, StopTimeoutSeconds: 3,
 	})
 	if err != nil {

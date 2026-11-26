@@ -152,7 +152,7 @@ func setupPluginBuildSource(t *testing.T, tb *testbed.Testbed, peer peer.ID) *s4
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := admission.ObserveWorker(ctx, workerKey, ref, claimed.OwnerEpoch, 4000, 8<<30, []string{"docker"}); err != nil {
+	if _, err := admission.ObserveWorker(ctx, workerKey, ref, claimed.OwnerEpoch, 4000, 8<<30, []string{"docker"}, nil); err != nil {
 		t.Fatal(err)
 	}
 	return &s4wave_space.BuildSpacePluginRequest{

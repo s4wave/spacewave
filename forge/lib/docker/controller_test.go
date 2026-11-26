@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"slices"
 	"testing"
+
+	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 )
 
 // TestBuildCreateArgsPinsEnvMountsWorkdirImageCommand preserves explicit container options.
@@ -82,18 +84,26 @@ func TestBuildDockerEnvIsExplicit(t *testing.T) {
 // TestExecuteRejectsMissingRequestBeforeCreate keeps the Docker effect behind
 // the target's explicit capacity declaration.
 func TestExecuteRejectsMissingRequestBeforeCreate(t *testing.T) {
-	// Configure an offline Docker runner and execution admission grant.
-	runner := &recordingRunner{}
-	ctrl := NewController(nil, nil, &Config{Image: "img"}, &recordingAdmission{name: "unused"})
-	ctrl.runner = runner
-	ctrl.handle = noopExecHandle{}
+	for name, conf := range map[string]*Config{
+		"missing request": {Image: "img"},
+		"card node in devices": {
+			Image: "img", MilliCpu: 1000, MemoryBytes: 1 << 20,
+			Devices: []string{"/dev/kfd:/dev/kfd:rw"},
+		},
+	} {
+		// Configure an offline Docker runner and execution admission grant.
+		runner := &recordingRunner{}
+		ctrl := NewController(nil, nil, conf, &recordingAdmission{name: "unused"})
+		ctrl.runner = runner
+		ctrl.handle = noopExecHandle{}
 
-	// Reject execution before any Docker effect when admission data is absent.
-	if err := ctrl.Execute(t.Context()); err == nil {
-		t.Fatal("missing capacity request was accepted")
-	}
-	if len(runner.commands) != 0 {
-		t.Fatalf("Docker commands ran before request validation: %+v", runner.commands)
+		// Reject execution before any Docker effect.
+		if err := ctrl.Execute(t.Context()); err == nil {
+			t.Fatalf("%s: config was accepted", name)
+		}
+		if len(runner.commands) != 0 {
+			t.Fatalf("%s: Docker commands ran before validation: %+v", name, runner.commands)
+		}
 	}
 }
 
@@ -109,8 +119,9 @@ func TestExecuteRunsCreateStartWait(t *testing.T) {
 		},
 		stderr: []byte("warning\n"),
 	}
-	admission := &recordingAdmission{name: "test-runtime"}
+	admission := &recordingAdmission{name: "test-runtime", devices: []string{"/dev/kfd", "/dev/dri/renderD128"}}
 	ctrl := NewController(nil, nil, &Config{
+		Cards:       &s4wave_device.GraphicsCardRequest{Count: 1},
 		DockerPath:  "docker-test",
 		DockerEnv:   map[string]string{"DOCKER_HOST": "unix:///var/run/docker.sock"},
 		Image:       "ghbot:dev",
@@ -133,7 +144,8 @@ func TestExecuteRunsCreateStartWait(t *testing.T) {
 	if err := ctrl.Execute(t.Context()); err != nil {
 		t.Fatal(err.Error())
 	}
-	if admission.executionKey != "exec/test" || admission.request.GetMilliCpu() != 1000 || admission.request.GetMemoryBytes() != 1<<20 {
+	if admission.executionKey != "exec/test" || admission.request.GetMilliCpu() != 1000 || admission.request.GetMemoryBytes() != 1<<20 ||
+		admission.request.GetCards().GetCount() != 1 {
 		t.Fatalf("Docker request did not reach admission: key=%q request=%+v", admission.executionKey, admission.request)
 	}
 
@@ -145,6 +157,8 @@ func TestExecuteRunsCreateStartWait(t *testing.T) {
 				"create", "--name", "test-runtime", "--cpus", "1", "--memory", "1048576",
 				"--network", "host",
 				"--device", "/dev/kvm:/dev/kvm:rw",
+				"--device", "/dev/kfd",
+				"--device", "/dev/dri/renderD128",
 				"--workdir", "/work/repo",
 				"--env", "GHBOT_SOCKET=/run/ghbot.sock",
 				"--mount", "type=bind,source=/host/socket,target=/run/ghbot.sock",

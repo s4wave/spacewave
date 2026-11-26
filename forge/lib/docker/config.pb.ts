@@ -2,6 +2,7 @@
 // @generated from file github.com/s4wave/spacewave/forge/lib/docker/config.proto (package forge.lib.docker, syntax proto3)
 /* eslint-disable */
 
+import { GraphicsCardRequest } from '../../../sdk/device/device.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 
@@ -92,6 +93,12 @@ export interface Config {
    * host directory before the container is created and removed after it exits.
    */
   inputMounts?: { [key: string]: string }
+  /**
+   * Cards asks for whole graphics cards. Admission reserves them with the CPU
+   * and memory request, and the container gets only the reserved cards' device
+   * nodes; a card's nodes are never listed in devices.
+   */
+  cards?: GraphicsCardRequest
 }
 
 export const Config: MessageType<Config> =
@@ -112,6 +119,7 @@ export const Config: MessageType<Config> =
     [14, 'network_mode', 9],
     [15, 'devices', 9, 1],
     [16, 'input_mounts', 9, 584],
+    [17, 'cards', 11, 0, GraphicsCardRequest.codec],
   ])
 
 /**

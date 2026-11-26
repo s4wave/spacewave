@@ -252,7 +252,7 @@ func waitBindingWorkerCapacity(t *testing.T, ctx context.Context, ws world.World
 			t.Fatal(err)
 		}
 		capacity, err := forge_runtime.LookupWorkerCapacity(ctx, ws, workerKey)
-		if err == nil && capacity.MilliCPUTotal != 0 {
+		if err == nil && capacity.MilliCpuTotal != 0 {
 			return capacity
 		}
 		if err != nil && err != forge_runtime.ErrWorkerNotObserved {

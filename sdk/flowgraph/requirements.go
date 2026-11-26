@@ -34,7 +34,7 @@ func ReleaseNodeCapacity(ctx context.Context, ws world.WorldState, graphKey, nod
 	}
 
 	// Credit the same ledger entry as the placement edge disappears.
-	_, err = forge_runtime.NewTxAdmission(time.Now).ReleaseInTx(ctx, ws, reservation.ObjectKey(), holder, "", reservation.Generation, true, forge_runtime.CleanupReasonStop)
+	_, err = forge_runtime.NewTxAdmission(time.Now).ReleaseInTx(ctx, ws, reservation.ObjectKey(), holder, "", reservation.Generation, true, forge_runtime.CleanupReason_CLEANUP_REASON_STOPPED)
 	return err
 }
 

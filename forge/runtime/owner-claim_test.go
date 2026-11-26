@@ -24,7 +24,7 @@ func TestClaimCreateRenewAndReclaimPreserveDraining(t *testing.T) {
 		t.Fatal(err)
 	}
 	created := capacity.OwnerEpoch
-	if created < 2 || capacity.OwnerState != CapacityOwnerStateActive {
+	if created < 2 || capacity.OwnerState != CapacityOwnerState_CAPACITY_OWNER_STATE_ACTIVE {
 		t.Fatalf("unexpected created claim: %+v", capacity)
 	}
 	if capacity.WorkerObjectKey != "worker/a" || capacity.OwnerDeviceObjectKey != selfRef.DeviceObjectKey {
@@ -50,7 +50,7 @@ func TestClaimCreateRenewAndReclaimPreserveDraining(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if capacity.OwnerEpoch != created+1 || capacity.OwnerState != CapacityOwnerStateDraining {
+	if capacity.OwnerEpoch != created+1 || capacity.OwnerState != CapacityOwnerState_CAPACITY_OWNER_STATE_DRAINING {
 		t.Fatalf("reclaim must bump epoch and preserve DRAINING: %+v", capacity)
 	}
 }
@@ -69,7 +69,7 @@ func TestClaimFencesReserveAndActivate(t *testing.T) {
 	}
 
 	// Publish the Worker resource totals for the test scenario.
-	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, capacity.OwnerEpoch, 2_000, 4<<30, []string{"docker"}); err != nil {
+	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, capacity.OwnerEpoch, 2_000, 4<<30, []string{"docker"}, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -95,7 +95,7 @@ func TestClaimFencesReserveAndActivate(t *testing.T) {
 	}
 
 	// Activate runtime custody for the reserved Execution.
-	if _, err := admission.ActivateForClaim(ctx, res.ObjectKey(), BackendRuntimeIdentity{Backend: "docker", ID: "stale"}, selfRef, capacity.OwnerEpoch); !errors.Is(err, ErrStaleGeneration) {
+	if _, err := admission.ActivateForClaim(ctx, res.ObjectKey(), &BackendRuntimeIdentity{Backend: "docker", Id: "stale"}, selfRef, capacity.OwnerEpoch); !errors.Is(err, ErrStaleGeneration) {
 		t.Fatalf("old owner activated runtime: %v", err)
 	}
 }
@@ -130,7 +130,7 @@ func TestExpiredOwnerClaimRejectsNewReservation(t *testing.T) {
 	}
 
 	// Publish the Worker resource totals for the test scenario.
-	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, capacity.OwnerEpoch, 2_000, 4<<30, []string{"docker"}); err != nil {
+	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, capacity.OwnerEpoch, 2_000, 4<<30, []string{"docker"}, nil); err != nil {
 		t.Fatal(err)
 	}
 	admission.SetTimeNow(func() time.Time { return capacity.OwnerLeaseExpiresAt.AsTime() })
@@ -166,7 +166,7 @@ func TestEpochFencesObserveDrainAndComplete(t *testing.T) {
 	}
 
 	// Reject a Worker observation carrying the previous claim epoch.
-	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, stale, 2_000, 4<<30, []string{"docker"}); err == nil {
+	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, stale, 2_000, 4<<30, []string{"docker"}, nil); err == nil {
 		t.Fatal("stale-epoch observe must fail")
 	}
 
@@ -221,7 +221,7 @@ func TestReserveRejectionPrecedenceUnderClaims(t *testing.T) {
 	}
 
 	// Publish the Worker resource totals for the test scenario.
-	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, capacity.OwnerEpoch, 2_000, 4<<30, []string{"docker"}); err != nil {
+	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, capacity.OwnerEpoch, 2_000, 4<<30, []string{"docker"}, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -248,7 +248,7 @@ func TestCompleteDrainWaitsForTerminalThenDeletesOnce(t *testing.T) {
 	}
 
 	// Publish the Worker resource totals for the test scenario.
-	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, capacity.OwnerEpoch, 2_000, 4<<30, []string{"docker"}); err != nil {
+	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, capacity.OwnerEpoch, 2_000, 4<<30, []string{"docker"}, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -297,7 +297,7 @@ func TestStaleRefSweepsSkipWithoutInvokingStopper(t *testing.T) {
 	}
 
 	// Publish the Worker resource totals for the test scenario.
-	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, capacity.OwnerEpoch, 2_000, 4<<30, []string{"docker"}); err != nil {
+	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, capacity.OwnerEpoch, 2_000, 4<<30, []string{"docker"}, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -308,7 +308,7 @@ func TestStaleRefSweepsSkipWithoutInvokingStopper(t *testing.T) {
 	}
 
 	// Activate runtime custody for the reserved Execution.
-	if _, err := admission.Activate(ctx, res.ObjectKey(), BackendRuntimeIdentity{Backend: "docker", ID: "container-1"}); err != nil {
+	if _, err := admission.Activate(ctx, res.ObjectKey(), &BackendRuntimeIdentity{Backend: "docker", Id: "container-1"}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -385,7 +385,7 @@ func TestGatedRenewLeaseRejectsStaleRef(t *testing.T) {
 	}
 
 	// Publish the Worker resource totals for the test scenario.
-	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, capacity.OwnerEpoch, 2_000, 4<<30, []string{"docker"}); err != nil {
+	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, capacity.OwnerEpoch, 2_000, 4<<30, []string{"docker"}, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -420,7 +420,7 @@ func TestObserveFitDrainsAndCreditReactivates(t *testing.T) {
 	}
 
 	// Publish the Worker resource totals for the test scenario.
-	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 2_000, 4<<30, []string{"docker"}); err != nil {
+	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 2_000, 4<<30, []string{"docker"}, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -431,11 +431,11 @@ func TestObserveFitDrainsAndCreditReactivates(t *testing.T) {
 	}
 
 	// Shrink below the debit: observe drains and blocks new work.
-	shrunk, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 500, 1<<29, []string{"docker"})
+	shrunk, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 500, 1<<29, []string{"docker"}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if shrunk.OwnerState != CapacityOwnerStateDraining {
+	if shrunk.OwnerState != CapacityOwnerState_CAPACITY_OWNER_STATE_DRAINING {
 		t.Fatalf("shrink below debits must drain: %+v", shrunk)
 	}
 
@@ -445,17 +445,17 @@ func TestObserveFitDrainsAndCreditReactivates(t *testing.T) {
 	}
 
 	// A fitting observation reactivates directly.
-	fit, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 2_000, 4<<30, []string{"docker"})
+	fit, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 2_000, 4<<30, []string{"docker"}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if fit.OwnerState != CapacityOwnerStateActive {
+	if fit.OwnerState != CapacityOwnerState_CAPACITY_OWNER_STATE_ACTIVE {
 		t.Fatalf("fitting totals must reactivate on observe: %+v", fit)
 	}
 
 	// Shrink again, then credit via terminal release: reactivation happens in
 	// creditCapacity because the declared backends remain non-empty.
-	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 500, 1<<29, []string{"docker"}); err != nil {
+	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 500, 1<<29, []string{"docker"}, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -473,14 +473,14 @@ func TestObserveFitDrainsAndCreditReactivates(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if final.OwnerState != CapacityOwnerStateActive {
+	if final.OwnerState != CapacityOwnerState_CAPACITY_OWNER_STATE_ACTIVE {
 		t.Fatalf("credit must reactivate a drained-with-backends record: %+v", final)
 	}
 
 	// Empty backends never self-activate: drain empties them, a later credit
 	// keeps the record draining until CompleteDrain deletes it. Restore
 	// fitting totals first so the reservation succeeds.
-	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 2_000, 4<<30, []string{"docker"}); err != nil {
+	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 2_000, 4<<30, []string{"docker"}, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -511,7 +511,7 @@ func TestObserveFitDrainsAndCreditReactivates(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if final.OwnerState != CapacityOwnerStateDraining || len(final.Backends) != 0 {
+	if final.OwnerState != CapacityOwnerState_CAPACITY_OWNER_STATE_DRAINING || len(final.Backends) != 0 {
 		t.Fatalf("empty-backend record must never self-activate: %+v", final)
 	}
 }
@@ -530,12 +530,12 @@ func TestEmptyBackendsObserveRejected(t *testing.T) {
 	}
 
 	// Reject a Worker observation without supported runtime backends.
-	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 2_000, 4<<30, nil); err == nil {
+	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 2_000, 4<<30, nil, nil); err == nil {
 		t.Fatal("nil backends observation must be rejected")
 	}
 
 	// Reject a Worker observation without supported runtime backends.
-	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 2_000, 4<<30, []string{}); err == nil {
+	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 2_000, 4<<30, []string{}, nil); err == nil {
 		t.Fatal("empty backends observation must be rejected")
 	}
 }
@@ -556,7 +556,7 @@ func TestStaleClaimIdentitiesAreStaleGeneration(t *testing.T) {
 	}
 
 	// Publish the Worker resource totals for the test scenario.
-	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 2_000, 4<<30, []string{"docker"}); err != nil {
+	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 2_000, 4<<30, []string{"docker"}, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -567,7 +567,7 @@ func TestStaleClaimIdentitiesAreStaleGeneration(t *testing.T) {
 	}
 
 	// Activate the reservation with a backend runtime identity.
-	rt := BackendRuntimeIdentity{Backend: "docker", ID: "container-stale"}
+	rt := &BackendRuntimeIdentity{Backend: "docker", Id: "container-stale"}
 	if _, err := admission.Activate(ctx, res.ObjectKey(), rt); err != nil {
 		t.Fatal(err)
 	}
@@ -581,12 +581,12 @@ func TestStaleClaimIdentitiesAreStaleGeneration(t *testing.T) {
 	staleRef := WorkerClaimRef{DeviceObjectKey: selfRef.DeviceObjectKey, ClaimID: selfRef.ClaimID}
 
 	// Old claim id and old epoch both fence to ErrStaleGeneration.
-	if _, err := admission.ObserveWorker(ctx, "worker/a", staleRef, fresh.OwnerEpoch, 2_000, 4<<30, []string{"docker"}); !errors.Is(err, ErrStaleGeneration) {
+	if _, err := admission.ObserveWorker(ctx, "worker/a", staleRef, fresh.OwnerEpoch, 2_000, 4<<30, []string{"docker"}, nil); !errors.Is(err, ErrStaleGeneration) {
 		t.Fatalf("old claim id must be stale generation, got %v", err)
 	}
 
 	// Reject a Worker observation carrying the previous claim epoch.
-	if _, err := admission.ObserveWorker(ctx, "worker/a", newRef, claimed.OwnerEpoch, 2_000, 4<<30, []string{"docker"}); !errors.Is(err, ErrStaleGeneration) {
+	if _, err := admission.ObserveWorker(ctx, "worker/a", newRef, claimed.OwnerEpoch, 2_000, 4<<30, []string{"docker"}, nil); !errors.Is(err, ErrStaleGeneration) {
 		t.Fatalf("old epoch must be stale generation, got %v", err)
 	}
 

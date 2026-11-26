@@ -1,6 +1,7 @@
 package forge_lib_docker
 
 import (
+	"path"
 	"slices"
 	"strings"
 
@@ -21,6 +22,14 @@ func (c *Config) Validate() error {
 	}
 	if c.GetMilliCpu() == 0 || c.GetMemoryBytes() == 0 {
 		return errors.New("docker milli_cpu and memory_bytes requests must be set")
+	}
+	if err := c.GetCards().Validate(); err != nil {
+		return errors.Wrap(err, "cards")
+	}
+	for _, device := range c.GetDevices() {
+		if host, _, _ := strings.Cut(device, ":"); isCardDevice(host) {
+			return errors.Errorf("devices: %s is a graphics card node; request cards instead", host)
+		}
 	}
 	if err := validateEnvMap(c.GetDockerEnv()); err != nil {
 		return errors.Wrap(err, "docker_env")
@@ -52,6 +61,15 @@ func (c *Config) Validate() error {
 
 	// Declared outputs need a directory to land in.
 	return validateOutputs(c.GetOutputDir(), c.GetOutputs())
+}
+
+// isCardDevice reports whether a host device path is a graphics card node:
+// under /dev/dri, the ROCm compute interface /dev/kfd, or an NVIDIA node. A
+// container reaches a card only through a card request, so admission has
+// reserved every card it uses.
+func isCardDevice(host string) bool {
+	host = path.Clean(host)
+	return host == "/dev/kfd" || host == "/dev/dri" || strings.HasPrefix(host, "/dev/dri/") || strings.HasPrefix(host, "/dev/nvidia")
 }
 
 // validateOutputs requires an output directory for declared outputs, each a

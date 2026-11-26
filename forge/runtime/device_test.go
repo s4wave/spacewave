@@ -86,7 +86,7 @@ func TestDeviceAvailabilityDrainAndDeclarationRemoval(t *testing.T) {
 	}
 	active := nextAvailabilityForTest(t, updates)
 	if active.State != DeviceAvailable || active.ClaimEpoch != claim.OwnerEpoch ||
-		active.OwnerState != CapacityOwnerStateActive || !active.ExpiresAt.Equal(claim.OwnerLeaseExpiresAt.AsTime()) {
+		active.OwnerState != CapacityOwnerState_CAPACITY_OWNER_STATE_ACTIVE || !active.ExpiresAt.Equal(claim.OwnerLeaseExpiresAt.AsTime()) {
 		t.Fatalf("active claim = %+v", active)
 	}
 
@@ -95,7 +95,7 @@ func TestDeviceAvailabilityDrainAndDeclarationRemoval(t *testing.T) {
 		t.Fatal(err)
 	}
 	draining := nextAvailabilityForTest(t, updates)
-	if draining.State != DeviceDraining || draining.OwnerState != CapacityOwnerStateDraining ||
+	if draining.State != DeviceDraining || draining.OwnerState != CapacityOwnerState_CAPACITY_OWNER_STATE_DRAINING ||
 		draining.ClaimEpoch != active.ClaimEpoch || draining.Reason != "forge worker owner claim is draining" {
 		t.Fatalf("draining claim = %+v", draining)
 	}
@@ -105,7 +105,7 @@ func TestDeviceAvailabilityDrainAndDeclarationRemoval(t *testing.T) {
 	publishAvailabilityTestDevice(t, ctx, eng, dev)
 	removed := nextAvailabilityForTest(t, updates)
 	if removed.State != DeviceUnavailable || removed.ClaimEpoch != 0 || !removed.ExpiresAt.IsZero() ||
-		removed.OwnerState != CapacityOwnerStateUnspecified || removed.Reason != "no forge worker declaration" {
+		removed.OwnerState != CapacityOwnerState_CAPACITY_OWNER_STATE_UNKNOWN || removed.Reason != "no forge worker declaration" {
 		t.Fatalf("removed declaration = %+v", removed)
 	}
 }
@@ -152,7 +152,7 @@ func TestDeviceAvailabilityExpiryAndNewEpoch(t *testing.T) {
 	}
 	expired := nextAvailabilityForTest(t, updates)
 	if expired.State != DeviceUnavailable || expired.Reason != "forge worker owner claim expired at "+expired.ExpiresAt.UTC().Format(time.RFC3339) ||
-		expired.ClaimEpoch != renewal.OwnerEpoch || expired.OwnerState != CapacityOwnerStateActive ||
+		expired.ClaimEpoch != renewal.OwnerEpoch || expired.OwnerState != CapacityOwnerState_CAPACITY_OWNER_STATE_ACTIVE ||
 		!expired.ExpiresAt.Equal(renewal.OwnerLeaseExpiresAt.AsTime()) || time.Now().Before(expired.ExpiresAt) {
 		t.Fatalf("expired claim = %+v", expired)
 	}

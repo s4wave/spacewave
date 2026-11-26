@@ -293,6 +293,39 @@ export const DeviceCheckoutRootAccess_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
+ * GraphicsCardVendor names the maker of a graphics card, which decides the
+ * device nodes and drivers a container needs.
+ *
+ * @generated from enum s4wave.device.GraphicsCardVendor
+ */
+export enum GraphicsCardVendor {
+  /**
+   * GRAPHICS_CARD_VENDOR_UNKNOWN is the zero value and never valid on a
+   * declared card.
+   */
+  UNKNOWN = 0,
+
+  /**
+   * GRAPHICS_CARD_VENDOR_AMD is an AMD card, used through ROCm.
+   */
+  AMD = 1,
+
+  /**
+   * GRAPHICS_CARD_VENDOR_NVIDIA is an NVIDIA card, used through CUDA.
+   */
+  NVIDIA = 2,
+}
+
+export const GraphicsCardVendor_Enum = /* @__PURE__ */ createEnumType(
+  's4wave.device.GraphicsCardVendor',
+  [
+    [0, 'GRAPHICS_CARD_VENDOR_UNKNOWN'],
+    [1, 'GRAPHICS_CARD_VENDOR_AMD'],
+    [2, 'GRAPHICS_CARD_VENDOR_NVIDIA'],
+  ],
+)
+
+/**
  * DeviceAvailabilityState describes reachability over the authenticated transport.
  *
  * @generated from enum s4wave.device.DeviceAvailabilityState
@@ -555,6 +588,75 @@ export const DeviceCheckoutRootCapability: MessageType<DeviceCheckoutRootCapabil
   )
 
 /**
+ * GraphicsCard is one whole graphics card on a Device's host. Forge admission
+ * reserves cards whole: consumer cards cannot partition their memory between
+ * holders.
+ *
+ * @generated from message s4wave.device.GraphicsCard
+ */
+export interface GraphicsCard {
+  /**
+   * Id is the card's identifier, stable across reboots: its PCI address, such
+   * as "0000:03:00.0".
+   */
+  id?: string
+  /**
+   * Vendor is the card's maker.
+   */
+  vendor?: GraphicsCardVendor
+  /**
+   * MemoryBytes is the card's dedicated memory in bytes.
+   */
+  memoryBytes?: bigint
+  /**
+   * DevicePaths lists the host device nodes a container needs to use the card,
+   * such as "/dev/kfd" and "/dev/dri/renderD128" for an AMD card.
+   */
+  devicePaths?: string[]
+}
+
+export const GraphicsCard: MessageType<GraphicsCard> =
+  /* @__PURE__ */ createMessageType<GraphicsCard>(
+    's4wave.device.GraphicsCard',
+    () => [
+      [1, 'id', 9],
+      [2, 'vendor', 14, 0, GraphicsCardVendor_Enum],
+      [3, 'memory_bytes', 4],
+      [4, 'device_paths', 9, 1],
+    ],
+  )
+
+/**
+ * GraphicsCardRequest asks for whole graphics cards on one Worker.
+ *
+ * @generated from message s4wave.device.GraphicsCardRequest
+ */
+export interface GraphicsCardRequest {
+  /**
+   * Count is the number of whole cards requested.
+   */
+  count?: number
+  /**
+   * Vendor limits the request to one maker; UNKNOWN accepts any vendor.
+   */
+  vendor?: GraphicsCardVendor
+  /**
+   * MinMemoryBytes is the least dedicated memory each card must have.
+   */
+  minMemoryBytes?: bigint
+}
+
+export const GraphicsCardRequest: MessageType<GraphicsCardRequest> =
+  /* @__PURE__ */ createMessageType<GraphicsCardRequest>(
+    's4wave.device.GraphicsCardRequest',
+    () => [
+      [1, 'count', 13],
+      [2, 'vendor', 14, 0, GraphicsCardVendor_Enum],
+      [3, 'min_memory_bytes', 4],
+    ],
+  )
+
+/**
  * ForgeWorkerDeclaration is the capacity envelope a Device declares for the
  * Forge Worker it hosts. A forge-worker Flowgraph node supplies it.
  *
@@ -577,6 +679,11 @@ export interface ForgeWorkerDeclaration {
    * Backends lists the runtime backends the Worker supports.
    */
   backends?: string[]
+  /**
+   * Cards lists the host's graphics cards the Worker offers, detected on the
+   * host and selected by the node's cards parameter.
+   */
+  cards?: GraphicsCard[]
 }
 
 export const ForgeWorkerDeclaration: MessageType<ForgeWorkerDeclaration> =
@@ -587,6 +694,7 @@ export const ForgeWorkerDeclaration: MessageType<ForgeWorkerDeclaration> =
       [2, 'milli_cpu', 4],
       [3, 'memory_bytes', 4],
       [4, 'backends', 9, 1],
+      [5, 'cards', 11, 1, GraphicsCard.codec],
     ],
   )
 

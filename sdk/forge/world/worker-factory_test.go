@@ -315,7 +315,7 @@ func TestForgeWorkerCancellationRenewsThroughStop(t *testing.T) {
 	if !time.Unix(0, now.Load()).Before(capacity.OwnerLeaseExpiresAt.AsTime()) {
 		t.Fatalf("claim expired during Docker stop: %v", capacity.OwnerLeaseExpiresAt.AsTime())
 	}
-	if capacity.MilliCPUReserved != 500 || capacity.OwnerState != forge_runtime.CapacityOwnerStateDraining {
+	if capacity.MilliCpuReserved != 500 || capacity.OwnerState != forge_runtime.CapacityOwnerState_CAPACITY_OWNER_STATE_DRAINING {
 		t.Fatalf("blocked stop lost custody: %+v", capacity)
 	}
 

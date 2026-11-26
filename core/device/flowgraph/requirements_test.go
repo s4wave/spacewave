@@ -67,7 +67,7 @@ func TestRequirementPlacement(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := admission.ObserveWorker(ctx, worker, ref, capacity.OwnerEpoch, 2000, 4294967296, []string{"docker", "fuse"}); err != nil {
+		if _, err := admission.ObserveWorker(ctx, worker, ref, capacity.OwnerEpoch, 2000, 4294967296, []string{"docker", "fuse"}, nil); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -233,7 +233,7 @@ func TestRequirementPlacement(t *testing.T) {
 			if err != nil {
 				return err
 			}
-			if capacity.MilliCPUReserved != 0 || capacity.MemoryBytesReserved != 0 {
+			if capacity.MilliCpuReserved != 0 || capacity.MemoryBytesReserved != 0 {
 				t.Fatalf("removed node retained reservation: %+v", capacity)
 			}
 		}
@@ -293,7 +293,7 @@ func requireCapacity(t *testing.T, ctx context.Context, engine world.Engine, sel
 			if want != 0 {
 				wantMemory = 1024
 			}
-			if capacity.MilliCPUReserved != want || capacity.MemoryBytesReserved != wantMemory {
+			if capacity.MilliCpuReserved != want || capacity.MemoryBytesReserved != wantMemory {
 				t.Fatalf("%s capacity = %+v, want CPU %d, memory %d", key, capacity, want, wantMemory)
 			}
 		}

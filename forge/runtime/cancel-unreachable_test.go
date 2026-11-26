@@ -24,7 +24,7 @@ func TestCancelWhileUncertainHoldsDebitUntilCleanupOrExpiry(t *testing.T) {
 	}
 
 	// Publish the Worker resource totals for the test scenario.
-	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 1_000, 1<<30, []string{"docker"}); err != nil {
+	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 1_000, 1<<30, []string{"docker"}, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -35,7 +35,7 @@ func TestCancelWhileUncertainHoldsDebitUntilCleanupOrExpiry(t *testing.T) {
 	}
 
 	// Activate the reservation with a backend runtime identity.
-	rt := BackendRuntimeIdentity{Backend: "docker", ID: "container-unreach"}
+	rt := &BackendRuntimeIdentity{Backend: "docker", Id: "container-unreach"}
 	if _, err := admission.Activate(ctx, res.ObjectKey(), rt); err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +46,7 @@ func TestCancelWhileUncertainHoldsDebitUntilCleanupOrExpiry(t *testing.T) {
 	}
 
 	// Cancel arrives while the runtime is unreachable: the stop fails.
-	stopper.failFor = rt.ID
+	stopper.failFor = rt.Id
 	stopper.stopErr = errors.New("runtime unreachable")
 
 	// Check the runtime stop against the reservation and Worker fences.
@@ -59,7 +59,7 @@ func TestCancelWhileUncertainHoldsDebitUntilCleanupOrExpiry(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if loaded.State != ReservationStatePendingStop {
+	if loaded.State != ReservationState_RESERVATION_STATE_PENDING_STOP {
 		t.Fatalf("cancel while unreachable must leave a durable pending-stop: %+v", loaded)
 	}
 	if loaded.Cleanup != nil && (loaded.Cleanup.RuntimeStopped || loaded.Cleanup.CapacityReleased) {
@@ -71,7 +71,7 @@ func TestCancelWhileUncertainHoldsDebitUntilCleanupOrExpiry(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if capacity.MilliCPUReserved != testRequest.MilliCPU {
+	if capacity.MilliCpuReserved != testRequest.MilliCpu {
 		t.Fatalf("cancel while unreachable must hold the debit: %+v", capacity)
 	}
 
@@ -93,7 +93,7 @@ func TestCancelWhileUncertainHoldsDebitUntilCleanupOrExpiry(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if final.State != ReservationStateReleased || !final.Cleanup.Complete() {
+	if final.State != ReservationState_RESERVATION_STATE_RELEASED || !final.Cleanup.Complete() {
 		t.Fatalf("reservation not finalized after reconcile: %+v", final)
 	}
 
@@ -102,7 +102,7 @@ func TestCancelWhileUncertainHoldsDebitUntilCleanupOrExpiry(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if capacity.MilliCPUReserved != 0 {
+	if capacity.MilliCpuReserved != 0 {
 		t.Fatalf("capacity must credit exactly once: %+v", capacity)
 	}
 	finalReceipt, err := admission.StopAndRelease(ctx, selfRef, claimed.OwnerEpoch, res.ObjectKey(), 1)
@@ -114,8 +114,8 @@ func TestCancelWhileUncertainHoldsDebitUntilCleanupOrExpiry(t *testing.T) {
 	if _, err := admission.StopAndRelease(ctx, selfRef, claimed.OwnerEpoch, res.ObjectKey(), 2); !errors.Is(err, ErrStaleGeneration) {
 		t.Fatalf("expected post-release future-generation call to be stale, got %v", err)
 	}
-	if stopper.count(rt.ID) != 1 {
-		t.Fatalf("stopper invoked more than once: %d", stopper.count(rt.ID))
+	if stopper.count(rt.Id) != 1 {
+		t.Fatalf("stopper invoked more than once: %d", stopper.count(rt.Id))
 	}
 }
 
@@ -136,7 +136,7 @@ func TestStaleRefStopAndReleaseRejectedWithoutStopper(t *testing.T) {
 	}
 
 	// Publish the Worker resource totals for the test scenario.
-	if _, err := admission.ObserveWorker(ctx, "worker/a", ref, capacity.OwnerEpoch, 2_000, 4<<30, []string{"docker"}); err != nil {
+	if _, err := admission.ObserveWorker(ctx, "worker/a", ref, capacity.OwnerEpoch, 2_000, 4<<30, []string{"docker"}, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -147,7 +147,7 @@ func TestStaleRefStopAndReleaseRejectedWithoutStopper(t *testing.T) {
 	}
 
 	// Activate the reservation with a backend runtime identity.
-	rt := BackendRuntimeIdentity{Backend: "docker", ID: "container-cancel"}
+	rt := &BackendRuntimeIdentity{Backend: "docker", Id: "container-cancel"}
 	if _, err := admission.Activate(ctx, res.ObjectKey(), rt); err != nil {
 		t.Fatal(err)
 	}

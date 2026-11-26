@@ -4,16 +4,15 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"math"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
-	"github.com/aperturerobotics/fastjson"
-	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
+	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 )
 
 const workerCapacityObjectKeyPrefix = "forge/runtime/capacity/"
@@ -26,78 +25,97 @@ func BuildWorkerCapacityObjectKey(workerObjectKey string) string {
 	return workerCapacityObjectKeyPrefix + hex.EncodeToString(hash[:12])
 }
 
-// CapacityOwnerState describes the lifecycle state of a capacity record's
-// durable owner claim.
-type CapacityOwnerState uint8
-
-const (
-	// CapacityOwnerStateUnspecified is the zero value and never valid on a
-	// stored record.
-	CapacityOwnerStateUnspecified CapacityOwnerState = iota
-	// CapacityOwnerStateActive means the claim is live and admits new work.
-	CapacityOwnerStateActive
-	// CapacityOwnerStateDraining means the claim is live but blocks new work
-	// until reserved debits clear or declared totals grow to fit them.
-	CapacityOwnerStateDraining
-)
-
 // Valid reports whether the state is a defined value.
 func (s CapacityOwnerState) Valid() bool {
-	return s <= CapacityOwnerStateDraining
-}
-
-// WorkerCapacity is the observed and reserved capacity for one Forge Worker.
-type WorkerCapacity struct {
-	// WorkerObjectKey is the Forge Worker object key this record describes.
-	// The record's own object key is a one-way hash of this value, so scans
-	// and reclaim need it stored to name the Worker.
-	WorkerObjectKey string
-	// MilliCPUTotal is the observed total CPU in milli-cores.
-	MilliCPUTotal uint64
-	// MilliCPUReserved is the CPU currently debited by live reservations.
-	MilliCPUReserved uint64
-	// MemoryBytesTotal is the observed total memory in bytes.
-	MemoryBytesTotal uint64
-	// MemoryBytesReserved is the memory currently debited by live reservations.
-	MemoryBytesReserved uint64
-	// Backends lists the runtime backends the Worker supports.
-	Backends []string
-	// ObservedAt is when the Worker reported the totals.
-	ObservedAt *timestamp.Timestamp
-	// Generation increments on every mutation of this record so observers can
-	// fence stale capacity views.
-	Generation uint64
-	// OwnerDeviceObjectKey is the enrolled Device object key of the owning
-	// Worker execution.
-	OwnerDeviceObjectKey string
-	// ClaimID identifies one owning Worker execution claim.
-	ClaimID string
-	// OwnerEpoch increments on every claim transition; calls fencing against
-	// an older epoch are stale. A new record starts at its claim time in Unix
-	// milliseconds, so deleting the record never lets an epoch repeat.
-	OwnerEpoch uint64
-	// OwnerLeaseExpiresAt is when an unrenewed owner claim expires.
-	OwnerLeaseExpiresAt *timestamp.Timestamp
-	// OwnerState is the claim lifecycle state.
-	OwnerState CapacityOwnerState
+	_, ok := CapacityOwnerState_name[int32(s)]
+	return ok
 }
 
 // SupportsBackend reports whether the Worker declares the backend.
 func (w *WorkerCapacity) SupportsBackend(backend string) bool {
-	return slices.Contains(w.Backends, backend)
+	return slices.Contains(w.GetBackends(), backend)
 }
 
-// Admits reports whether the Worker's unreserved capacity and declared
-// backends fit request. It returns ErrBackendUnsupported or
-// ErrCapacityExhausted; the owner claim is checked separately.
-func (w *WorkerCapacity) Admits(request ResourceRequest) error {
-	if !w.SupportsBackend(request.Backend) {
-		return errors.Wrapf(ErrBackendUnsupported, "backend %q", request.Backend)
+// Admits reports whether the Worker can take request now and chooses its
+// cards: the first free matching cards in id order. It returns
+// ErrBackendUnsupported; ErrCapacityNeverFits, naming the shortfall, when the
+// declared totals could never hold the request; or ErrCapacityExhausted when
+// the request fits the totals but live reservations hold what it needs. The
+// owner claim is checked separately.
+func (w *WorkerCapacity) Admits(request *ResourceRequest) ([]string, error) {
+	// Refuse a backend the Worker does not run.
+	if !w.SupportsBackend(request.GetBackend()) {
+		return nil, errors.Wrapf(ErrBackendUnsupported, "backend %q", request.GetBackend())
 	}
-	if remainingMilliCPU(w) < request.MilliCPU || remainingMemoryBytes(w) < request.MemoryBytes {
-		return ErrCapacityExhausted
+
+	// Refuse a request the declared totals could never hold.
+	cards := request.GetCards()
+	count := int(cards.GetCount())
+	matching := w.matchingCardIDs(cards)
+	switch {
+	case request.GetMilliCpu() > w.GetMilliCpuTotal():
+		return nil, errors.Wrapf(ErrCapacityNeverFits, "requests %d milli-CPU, Worker offers %d", request.GetMilliCpu(), w.GetMilliCpuTotal())
+	case request.GetMemoryBytes() > w.GetMemoryBytesTotal():
+		return nil, errors.Wrapf(ErrCapacityNeverFits, "requests %d memory bytes, Worker offers %d", request.GetMemoryBytes(), w.GetMemoryBytesTotal())
+	case len(matching) < count:
+		return nil, errors.Wrapf(ErrCapacityNeverFits, "requests %s, Worker offers %d", describeCardRequest(cards), len(matching))
 	}
-	return nil
+
+	// Wait while live reservations hold the CPU, memory or cards it needs.
+	if remainingMilliCPU(w) < request.GetMilliCpu() || remainingMemoryBytes(w) < request.GetMemoryBytes() {
+		return nil, ErrCapacityExhausted
+	}
+	reserved := idSet(w.GetReservedCardIds())
+	matching = slices.DeleteFunc(matching, func(id string) bool {
+		_, held := reserved[id]
+		return held
+	})
+	if len(matching) < count {
+		return nil, errors.Wrapf(ErrCapacityExhausted, "%d of %s free", len(matching), describeCardRequest(cards))
+	}
+	return matching[:count], nil
+}
+
+// matchingCardIDs returns the ids of the offered cards that meet the card
+// request's vendor and memory, sorted.
+func (w *WorkerCapacity) matchingCardIDs(request *s4wave_device.GraphicsCardRequest) []string {
+	// A request for no cards matches none.
+	var ids []string
+	if request.GetCount() == 0 {
+		return ids
+	}
+
+	// Keep each offered card of the requested vendor and memory.
+	for _, card := range w.GetCards() {
+		vendor := request.GetVendor()
+		if vendor != s4wave_device.GraphicsCardVendor_GRAPHICS_CARD_VENDOR_UNKNOWN && card.GetVendor() != vendor {
+			continue
+		}
+		if card.GetMemoryBytes() < request.GetMinMemoryBytes() {
+			continue
+		}
+		ids = append(ids, card.GetId())
+	}
+	slices.Sort(ids)
+	return ids
+}
+
+// describeCardRequest names a card request for a refusal or a wait, such as
+// "1 AMD card with at least 8589934592 bytes".
+func describeCardRequest(request *s4wave_device.GraphicsCardRequest) string {
+	// Name the count and vendor, then the memory floor when there is one.
+	vendor := "graphics"
+	if v := request.GetVendor(); v != s4wave_device.GraphicsCardVendor_GRAPHICS_CARD_VENDOR_UNKNOWN {
+		vendor = strings.TrimPrefix(v.String(), "GRAPHICS_CARD_VENDOR_")
+	}
+	desc := strconv.FormatUint(uint64(request.GetCount()), 10) + " " + vendor + " card"
+	if request.GetCount() != 1 {
+		desc += "s"
+	}
+	if minMemory := request.GetMinMemoryBytes(); minMemory != 0 {
+		desc += " with at least " + strconv.FormatUint(minMemory, 10) + " bytes"
+	}
+	return desc
 }
 
 // Validate validates the capacity record. Every owner field must be set, so
@@ -105,13 +123,16 @@ func (w *WorkerCapacity) Admits(request ResourceRequest) error {
 func (w *WorkerCapacity) Validate() error {
 	// An ACTIVE record never over-commits; a DRAINING record may hold debits
 	// above shrunk declared totals until credits land or the claim deletes it.
-	if w.OwnerState == CapacityOwnerStateActive {
+	if w.OwnerState == CapacityOwnerState_CAPACITY_OWNER_STATE_ACTIVE {
 		switch {
-		case w.MilliCPUReserved > w.MilliCPUTotal:
+		case w.MilliCpuReserved > w.MilliCpuTotal:
 			return errors.New("reserved milli_cpu exceeds total")
 		case w.MemoryBytesReserved > w.MemoryBytesTotal:
 			return errors.New("reserved memory_bytes exceeds total")
 		}
+	}
+	if err := w.validateCards(); err != nil {
+		return err
 	}
 	if w.Generation == 0 {
 		return errors.New("generation must be set")
@@ -124,15 +145,93 @@ func (w *WorkerCapacity) Validate() error {
 		return errors.New("worker_object_key must be set")
 	case w.OwnerDeviceObjectKey == "":
 		return errors.New("owner_device_object_key must be set")
-	case w.ClaimID == "":
+	case w.ClaimId == "":
 		return errors.New("claim_id must be set")
 	case w.OwnerEpoch == 0:
 		return errors.New("owner_epoch must be set")
-	case w.OwnerState == CapacityOwnerStateUnspecified || !w.OwnerState.Valid():
+	case w.OwnerState == CapacityOwnerState_CAPACITY_OWNER_STATE_UNKNOWN || !w.OwnerState.Valid():
 		return errors.New("invalid owner_state")
 	}
 	if err := w.OwnerLeaseExpiresAt.Validate(false); err != nil {
 		return errors.Wrap(err, "owner_lease_expires_at")
+	}
+	return nil
+}
+
+// HoldsDebit reports whether the record's reserved totals include the
+// reservation's debit: its CPU, its memory and each of its cards.
+func (w *WorkerCapacity) HoldsDebit(res *Reservation) bool {
+	request := res.GetRequest()
+	if w.GetMilliCpuReserved() < request.GetMilliCpu() || w.GetMemoryBytesReserved() < request.GetMemoryBytes() {
+		return false
+	}
+	return containsAll(idSet(w.GetReservedCardIds()), res.GetCardIds())
+}
+
+// fitsTotals reports whether the reserved debits fit the declared totals: CPU,
+// memory, and every reserved card still offered.
+func (w *WorkerCapacity) fitsTotals() bool {
+	if w.MilliCpuReserved > w.MilliCpuTotal || w.MemoryBytesReserved > w.MemoryBytesTotal {
+		return false
+	}
+	return containsAll(w.offeredCardIDs(), w.GetReservedCardIds())
+}
+
+// offeredCardIDs returns the set of declared card ids.
+func (w *WorkerCapacity) offeredCardIDs() map[string]struct{} {
+	offered := make(map[string]struct{}, len(w.GetCards()))
+	for _, card := range w.GetCards() {
+		offered[card.GetId()] = struct{}{}
+	}
+	return offered
+}
+
+// idSet returns the set of ids.
+func idSet(ids []string) map[string]struct{} {
+	set := make(map[string]struct{}, len(ids))
+	for _, id := range ids {
+		set[id] = struct{}{}
+	}
+	return set
+}
+
+// containsAll reports whether set holds every id.
+func containsAll(set map[string]struct{}, ids []string) bool {
+	for _, id := range ids {
+		if _, ok := set[id]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+// validateCards checks the declared cards and the reserved card ids. Every
+// card has a unique id, a vendor and its device nodes, and no id is reserved
+// twice. An ACTIVE record reserves only cards it offers; a DRAINING record may
+// hold the id of a card that left the host until its reservation credits it.
+func (w *WorkerCapacity) validateCards() error {
+	// Require each declared card to be complete and declared once.
+	offered := make(map[string]struct{}, len(w.GetCards()))
+	for _, card := range w.GetCards() {
+		if err := card.Validate(); err != nil {
+			return errors.Wrapf(err, "card %q", card.GetId())
+		}
+		if _, dup := offered[card.GetId()]; dup {
+			return errors.Errorf("card %q declared twice", card.GetId())
+		}
+		offered[card.GetId()] = struct{}{}
+	}
+
+	// Require each reserved card to be reserved once, and offered while ACTIVE.
+	reserved := make(map[string]struct{}, len(w.GetReservedCardIds()))
+	for _, id := range w.GetReservedCardIds() {
+		if _, dup := reserved[id]; dup {
+			return errors.Errorf("card %q reserved twice", id)
+		}
+		reserved[id] = struct{}{}
+		if _, ok := offered[id]; !ok && w.OwnerState == CapacityOwnerState_CAPACITY_OWNER_STATE_ACTIVE {
+			return errors.Errorf("reserved card %q is not offered", id)
+		}
 	}
 	return nil
 }
@@ -145,131 +244,15 @@ func (w *WorkerCapacity) OwnerClaimActive(now time.Time) error {
 	switch {
 	case w.OwnerLeaseExpiresAt == nil || !now.Before(w.OwnerLeaseExpiresAt.AsTime()):
 		return ErrCapacityOwnerExpired
-	case w.OwnerState != CapacityOwnerStateActive:
+	case w.OwnerState != CapacityOwnerState_CAPACITY_OWNER_STATE_ACTIVE:
 		return ErrCapacityDraining
 	}
 	return nil
 }
 
-// Reset resets the block.
-func (w *WorkerCapacity) Reset() {
-	*w = WorkerCapacity{}
-}
-
-// MarshalVT marshals the block to binary.
-func (w *WorkerCapacity) MarshalVT() ([]byte, error) {
-	return w.MarshalJSON()
-}
-
-// UnmarshalVT unmarshals the block from binary.
-func (w *WorkerCapacity) UnmarshalVT(data []byte) error {
-	return w.UnmarshalJSON(data)
-}
-
-// MarshalJSON marshals the WorkerCapacity to JSON without reflection.
-func (w *WorkerCapacity) MarshalJSON() ([]byte, error) {
-	// Encode the Worker claim identity and epoch in a JSON capacity record.
-	var arena fastjson.Arena
-	obj := arena.NewObject()
-	setStringJSONField(&arena, obj, "workerObjectKey", w.WorkerObjectKey)
-	setStringJSONField(&arena, obj, "ownerDeviceObjectKey", w.OwnerDeviceObjectKey)
-	setStringJSONField(&arena, obj, "claimId", w.ClaimID)
-	obj.Set("ownerEpoch", arena.NewNumberString(strconv.FormatUint(w.OwnerEpoch, 10)))
-
-	// Encode the Worker claim lease and lifecycle state.
-	ownerLease, err := marshalTimestampField(&arena, w.OwnerLeaseExpiresAt)
-	if err != nil {
-		return nil, err
-	}
-	obj.Set("ownerLeaseExpiresAt", ownerLease)
-	obj.Set("ownerState", arena.NewNumberInt(int(w.OwnerState)))
-
-	// Encode observed and reserved Worker resource totals.
-	obj.Set("milliCpuTotal", arena.NewNumberString(strconv.FormatUint(w.MilliCPUTotal, 10)))
-	obj.Set("milliCpuReserved", arena.NewNumberString(strconv.FormatUint(w.MilliCPUReserved, 10)))
-	obj.Set("memoryBytesTotal", arena.NewNumberString(strconv.FormatUint(w.MemoryBytesTotal, 10)))
-	obj.Set("memoryBytesReserved", arena.NewNumberString(strconv.FormatUint(w.MemoryBytesReserved, 10)))
-
-	// Encode the supported Worker runtime backends.
-	backends := arena.NewArray()
-	for i, b := range w.Backends {
-		backends.SetArrayItem(i, arena.NewString(b))
-	}
-	obj.Set("backends", backends)
-
-	// Encode the Worker observation timestamp and record generation.
-	tsValue, err := marshalTimestampField(&arena, w.ObservedAt)
-	if err != nil {
-		return nil, err
-	}
-	obj.Set("observedAt", tsValue)
-	obj.Set("generation", arena.NewNumberString(strconv.FormatUint(w.Generation, 10)))
-	return obj.MarshalTo(nil), nil
-}
-
-// UnmarshalJSON unmarshals the WorkerCapacity from JSON without reflection.
-func (w *WorkerCapacity) UnmarshalJSON(data []byte) error {
-	// Parse the Worker capacity JSON before restoring its fields.
-	var parser fastjson.Parser
-	value, err := parser.ParseBytes(data)
-	if err != nil {
-		return err
-	}
-
-	// Accept null capacity or require an object for decoding.
-	if value.Type() == fastjson.TypeNull {
-		*w = WorkerCapacity{}
-		return nil
-	}
-	if value.Type() != fastjson.TypeObject {
-		return errors.New("worker capacity must be object")
-	}
-
-	// Restore observed and reserved Worker resource totals.
-	w.MilliCPUTotal = value.GetUint64("milliCpuTotal")
-	w.MilliCPUReserved = value.GetUint64("milliCpuReserved")
-	w.MemoryBytesTotal = value.GetUint64("memoryBytesTotal")
-	w.MemoryBytesReserved = value.GetUint64("memoryBytesReserved")
-
-	// Restore the Worker claim identity, epoch and lease.
-	w.WorkerObjectKey = string(value.GetStringBytes("workerObjectKey"))
-	w.OwnerDeviceObjectKey = string(value.GetStringBytes("ownerDeviceObjectKey"))
-	w.ClaimID = string(value.GetStringBytes("claimId"))
-	w.OwnerEpoch = value.GetUint64("ownerEpoch")
-	w.OwnerLeaseExpiresAt, err = unmarshalTimestampField(value, "ownerLeaseExpiresAt")
-	if err != nil {
-		return err
-	}
-
-	// Validate and restore the Worker claim lifecycle state.
-	ownerState := value.GetInt("ownerState")
-	if ownerState < 0 || ownerState > math.MaxUint8 {
-		return errors.Errorf("capacity owner state out of range: %d", ownerState)
-	}
-	w.OwnerState = CapacityOwnerState(ownerState) //nolint:gosec // the explicit uint8 range check bounds the persisted enum.
-
-	// Restore the supported Worker runtime backends.
-	w.Backends = nil
-	for _, b := range value.GetArray("backends") {
-		w.Backends = append(w.Backends, string(b.GetStringBytes()))
-	}
-
-	// Restore the Worker observation timestamp and record generation.
-	w.ObservedAt, err = unmarshalTimestampField(value, "observedAt")
-	if err != nil {
-		return err
-	}
-	w.Generation = value.GetUint64("generation")
-	return nil
-}
-
 // LookupWorkerCapacity loads one Worker capacity record or ErrWorkerNotObserved.
 func LookupWorkerCapacity(ctx context.Context, ws world.WorldState, workerObjectKey string) (*WorkerCapacity, error) {
-	capacity, err := world.LookupObjectBody[WorkerCapacity](
-		ctx,
-		ws,
-		BuildWorkerCapacityObjectKey(workerObjectKey),
-	)
+	capacity, err := lookupWorkerCapacityBody(ctx, ws, BuildWorkerCapacityObjectKey(workerObjectKey))
 	if errors.Is(err, world.ErrObjectNotFound) {
 		return nil, ErrWorkerNotObserved
 	}
@@ -279,4 +262,10 @@ func LookupWorkerCapacity(ctx context.Context, ws world.WorldState, workerObject
 	return capacity, nil
 }
 
+// lookupWorkerCapacityBody loads one capacity record body by object key.
+func lookupWorkerCapacityBody(ctx context.Context, ws world.WorldState, objKey string) (*WorkerCapacity, error) {
+	return lookupRecord(ctx, ws, objKey, unmarshalLegacyWorkerCapacity)
+}
+
+// _ is a type assertion
 var _ block.Block = (*WorkerCapacity)(nil)
