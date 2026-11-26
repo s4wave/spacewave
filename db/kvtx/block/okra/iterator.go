@@ -402,17 +402,36 @@ type iteratorWalk interface {
 	release()
 }
 
-// leafWalk walks the leaf pages of one page kind. It holds only the path to
-// its current leaf page.
+// leafWalk walks the leaf pages of one page kind. It holds the path to its
+// current leaf page and, for each page above the leaf that a step has crossed,
+// one batch read of that page's children the scan has yet to reach.
 type leafWalk[P walkPage, C any] struct {
 	t    *Tx
 	r    pageReader[P, C]
 	path pagePath[P, C]
+	// ahead holds, by depth in path, the read-ahead of the page at that depth:
+	// at most one page's children per level, a bound the page size sets.
+	ahead []readAhead[P]
+	// reverse is the direction ahead was read in.
+	reverse bool
 }
 
-// seek loads the path to the leaf page containing key.
+// readAhead is the batch read of one page's children, from the child a step
+// entered to the end of the page in the scan's direction.
+type readAhead[P walkPage] struct {
+	// page is the page whose children were read.
+	page P
+	// answers holds the children no read has taken, or nil when the batch read
+	// fewer than two.
+	answers *block.BatchAnswers
+}
+
+// seek loads the path to the leaf page containing key. It reads nothing
+// ahead, so a seek that reads one entry costs only the lookup; the first step
+// reads the rest of the leaf's parent.
 func (w *leafWalk[P, C]) seek(ctx context.Context, key []byte, last bool) error {
 	// Descend toward the key, or the first or last leaf without one.
+	w.ahead = nil
 	var err error
 	switch {
 	case len(key) != 0:
@@ -425,21 +444,65 @@ func (w *leafWalk[P, C]) seek(ctx context.Context, key []byte, last bool) error 
 	return err
 }
 
-// step loads the adjacent leaf page.
+// step loads the adjacent leaf page. The first step into or across a page
+// above the leaf reads that page's remaining children in the scan's direction
+// with one batch, which later steps take from, so a cold scan waits one store
+// read per parent rather than one per leaf.
 func (w *leafWalk[P, C]) step(ctx context.Context, reverse bool) (bool, error) {
+	// Drop a read-ahead of the other direction, then step on the held ones.
+	if reverse != w.reverse {
+		w.ahead, w.reverse = nil, reverse
+	}
+	for _, a := range w.ahead {
+		ctx = a.answers.Context(ctx)
+	}
+
 	// Keep the current path when there is no adjacent page.
 	var path pagePath[P, C]
 	var ok bool
 	var err error
 	if reverse {
-		path, ok, err = previousPagePath(ctx, w.r, w.path, 0)
+		path, ok, err = previousPagePath(ctx, w.r, w.path, 0, w.enter)
 	} else {
-		path, ok, err = nextPagePath(ctx, w.r, w.path, 0)
+		path, ok, err = nextPagePath(ctx, w.r, w.path, 0, w.enter)
 	}
 	if ok {
 		w.path = path
 	}
 	return ok, err
+}
+
+// enter reads ahead the children of page, at depth in the path, from index to
+// the end of the page in the scan's direction, unless it holds that page's
+// read-ahead already, and drops the read-ahead of the deeper pages the step
+// leaves.
+func (w *leafWalk[P, C]) enter(ctx context.Context, depth int, page P, cursor C, index int) (context.Context, error) {
+	// A page the scan is still inside keeps its read-ahead.
+	if depth < len(w.ahead) && any(w.ahead[depth].page) == any(page) {
+		return ctx, nil
+	}
+
+	// Read the page's next children in the scan's direction.
+	var b block.BatchLoad
+	lo, hi := index, page.Len()
+	if w.reverse {
+		lo, hi = 0, index+1
+	}
+	for i := lo; i < hi; i++ {
+		w.r.aheadPage(ctx, &b, w.r.childAt(page, cursor, i))
+	}
+	answers, err := b.Read(ctx)
+	if err != nil {
+		return ctx, err
+	}
+
+	// Replace the read-ahead at depth and below.
+	w.ahead = w.ahead[:min(depth, len(w.ahead))]
+	for len(w.ahead) < depth {
+		w.ahead = append(w.ahead, readAhead[P]{})
+	}
+	w.ahead = append(w.ahead, readAhead[P]{page: page, answers: answers})
+	return answers.Context(ctx), nil
 }
 
 // leaf returns the current leaf page.
@@ -459,9 +522,9 @@ func (w *leafWalk[P, C]) valueCursor(ctx context.Context, index int) (*block.Cur
 	return w.r.valueCursor(ctx, frame.page, frame.cursor, index)
 }
 
-// release drops the path.
+// release drops the path and the read-ahead.
 func (w *leafWalk[P, C]) release() {
-	w.path = nil
+	w.path, w.ahead = nil, nil
 }
 
 // cursorWalk walks the mutable cursor tree. Each seek pins the tree it walks

@@ -6,6 +6,7 @@ import (
 	"iter"
 	"slices"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -512,16 +513,12 @@ func newOkraFixture(t *testing.T, ctx context.Context, store block.StoreOps, siz
 		values: make([][]byte, size),
 		refs:   make([]*block.BlockRef, size),
 	}
+	// Pad each index to at least four digits, so the keys sort as the indexes.
+	width := max(4, len(strconv.Itoa(size-1)))
 	for i := range size {
-		key := []byte("key-" + strconv.FormatInt(int64(i), 10))
-		value := []byte("value-" + strconv.FormatInt(int64(i), 10))
-		if i < 10 {
-			key = []byte("key-000" + strconv.FormatInt(int64(i), 10))
-		} else if i < 100 {
-			key = []byte("key-00" + strconv.FormatInt(int64(i), 10))
-		} else if i < 1000 {
-			key = []byte("key-0" + strconv.FormatInt(int64(i), 10))
-		}
+		digits := strconv.Itoa(i)
+		key := []byte("key-" + strings.Repeat("0", width-len(digits)) + digits)
+		value := []byte("value-" + digits)
 		ref, _, err := store.PutBlock(ctx, value, nil)
 		if err != nil {
 			t.Fatal(err)

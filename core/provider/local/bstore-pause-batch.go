@@ -129,7 +129,7 @@ func (b *pausedBatch) raceOne(ctx context.Context, i int, slots chan struct{}) {
 			return
 		case slots <- struct{}{}:
 		}
-		stored, err := alt(ctx, ref)
+		stored, err := alt(block.BatchBlockContext(ctx, ref), ref)
 		<-slots
 		if err == nil && stored != nil {
 			_ = b.answer(i, stored, nil)

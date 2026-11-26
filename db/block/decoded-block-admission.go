@@ -244,10 +244,14 @@ func decodedBlockRefHash(refKey string) uint64 {
 // blockReadContextKey is the context key of a blockReadMark.
 type blockReadContextKey struct{}
 
-// blockReadMark records where the bytes of one block read came from.
+// blockReadMark records where the bytes of one block read came from, or, for
+// a batch read, holds one mark for each block of the batch.
 type blockReadMark struct {
 	// ref is the block being read. Durable marks for other refs are ignored.
 	ref *BlockRef
+	// batch holds the mark of each block of a batch read by its ref's
+	// string; nil for a read of one block.
+	batch map[string]*blockReadMark
 	// mtx guards the fields below.
 	mtx sync.Mutex
 	// durable is set when a durable store served ref.
@@ -267,6 +271,39 @@ func withBlockReadMark(ctx context.Context, ref *BlockRef) (context.Context, *bl
 	return context.WithValue(ctx, blockReadContextKey{}, mark), mark
 }
 
+// withBlockReadMarks attaches a mark for a batch read of refs to ctx, and
+// returns the mark of each ref, in order. A ref named twice shares its mark.
+func withBlockReadMarks(ctx context.Context, refs []*BlockRef) (context.Context, []*blockReadMark) {
+	batch := &blockReadMark{batch: make(map[string]*blockReadMark, len(refs))}
+	marks := make([]*blockReadMark, len(refs))
+	for i, ref := range refs {
+		key := ref.MarshalString()
+		mark := batch.batch[key]
+		if mark == nil {
+			mark = &blockReadMark{ref: ref}
+			batch.batch[key] = mark
+		}
+		marks[i] = mark
+	}
+	return context.WithValue(ctx, blockReadContextKey{}, batch), marks
+}
+
+// blockReadMarkFor returns the mark on ctx of the read of ref, or nil when
+// nobody tracks a read of ref.
+func blockReadMarkFor(ctx context.Context, ref *BlockRef) *blockReadMark {
+	mark := blockReadMarkFromContext(ctx)
+	switch {
+	case mark == nil:
+		return nil
+	case mark.batch != nil:
+		return mark.batch[ref.MarshalString()]
+	case mark.ref.EqualsRef(ref):
+		return mark
+	default:
+		return nil
+	}
+}
+
 // blockReadMarkFromContext returns the read mark on ctx, or nil.
 func blockReadMarkFromContext(ctx context.Context) *blockReadMark {
 	if ctx == nil {
@@ -284,29 +321,75 @@ func blockReadMarkFromContext(ctx context.Context) *blockReadMark {
 // admit only to the reading transaction's private scope.
 func MarkDurableRead(ctx context.Context, ref *BlockRef, gen uint64) {
 	// Ignore reads nobody tracks and durable reads of other blocks.
-	mark := blockReadMarkFromContext(ctx)
-	if mark == nil || !mark.ref.EqualsRef(ref) {
+	mark := blockReadMarkFor(ctx, ref)
+	if mark == nil {
 		return
 	}
+	mark.markDurable(gen)
+}
 
+// markDurable records that a durable store served the block at removal
+// generation gen.
+func (m *blockReadMark) markDurable(gen uint64) {
 	// Keep the oldest generation when several durable reads serve the block.
-	mark.mtx.Lock()
-	if !mark.durable || gen < mark.gen {
-		mark.gen = gen
+	m.mtx.Lock()
+	if !m.durable || gen < m.gen {
+		m.gen = gen
 	}
-	mark.durable = true
-	mark.mtx.Unlock()
+	m.durable = true
+	m.mtx.Unlock()
 }
 
 // MarkStagedRead records on ctx that the block being read came from staged
 // content: a write buffer, a publication being prepared, or any other bytes
 // that are not yet durably stored. It vetoes admission even when a durable
-// store also marked the read.
+// store also marked the read. It names no block, so in a batch read it vetoes
+// the admission of every block of the batch.
 func MarkStagedRead(ctx context.Context) {
-	if mark := blockReadMarkFromContext(ctx); mark != nil {
-		mark.mtx.Lock()
-		mark.staged = true
-		mark.mtx.Unlock()
+	mark := blockReadMarkFromContext(ctx)
+	if mark == nil {
+		return
+	}
+	if mark.batch == nil {
+		mark.markStaged()
+		return
+	}
+	for _, m := range mark.batch {
+		m.markStaged()
+	}
+}
+
+// markStaged records that the block came from staged content.
+func (m *blockReadMark) markStaged() {
+	m.mtx.Lock()
+	m.staged = true
+	m.mtx.Unlock()
+}
+
+// adopt records on m what from recorded about the same block, as when a read
+// takes the block from a batch read that from marked. It takes from's keep
+// callback, so the block is kept at most once.
+func (m *blockReadMark) adopt(from *blockReadMark) {
+	// Copy the batch's record of the block.
+	if m == nil || from == nil {
+		return
+	}
+	from.mtx.Lock()
+	durable, gen, staged, keep := from.durable, from.gen, from.staged, from.keep
+	from.keep = nil
+	from.mtx.Unlock()
+
+	// Merge it into the read's own record.
+	if durable {
+		m.markDurable(gen)
+	}
+	if staged {
+		m.markStaged()
+	}
+	if keep != nil {
+		m.mtx.Lock()
+		m.keep = keep
+		m.mtx.Unlock()
 	}
 }
 
@@ -318,8 +401,8 @@ func MarkStagedRead(ctx context.Context) {
 // reader decoded. A read nobody marks drops it without copying data.
 func KeepDecodedRefs(ctx context.Context, ref *BlockRef, data []byte, keep func(ctx context.Context, data []byte, refs []*BlockRef)) {
 	// Ignore reads nobody tracks and requests for another block.
-	mark := blockReadMarkFromContext(ctx)
-	if mark == nil || !mark.ref.EqualsRef(ref) {
+	mark := blockReadMarkFor(ctx, ref)
+	if mark == nil {
 		return
 	}
 

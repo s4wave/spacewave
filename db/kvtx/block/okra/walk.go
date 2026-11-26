@@ -41,8 +41,15 @@ type walkPage interface {
 type pageReader[P walkPage, C any] interface {
 	// rootPage loads the tree's root page.
 	rootPage(ctx context.Context) (P, C, error)
-	// childPage loads the child page of entry index of page.
-	childPage(ctx context.Context, page P, cursor C, index int) (P, C, error)
+	// childAt returns the position of entry index's child page.
+	childAt(page P, cursor C, index int) C
+	// loadAt loads the page at a position childAt returned.
+	loadAt(ctx context.Context, cursor C) (P, error)
+	// aheadPage adds to b the stored page a loadAt of cursor reads.
+	aheadPage(ctx context.Context, b *block.BatchLoad, cursor C)
+	// aheadValue adds to b the stored block an entryValue of entry index
+	// reads first, when the value is not inline.
+	aheadValue(ctx context.Context, b *block.BatchLoad, page P, cursor C, index int)
 	// entryValue returns an owned copy of entry index's value.
 	entryValue(ctx context.Context, page P, cursor C, index int) ([]byte, error)
 	// valueCursor returns a cursor at entry index's value.
@@ -57,11 +64,33 @@ func (r cursorPages) rootPage(ctx context.Context) (*Page, *block.Cursor, error)
 	return r.t.getRootPage(ctx)
 }
 
-// childPage follows the entry's child edge in the cursor tree.
-func (r cursorPages) childPage(ctx context.Context, page *Page, cursor *block.Cursor, index int) (*Page, *block.Cursor, error) {
-	child := page.FollowChild(cursor, index)
-	out, err := loadPage(ctx, child)
-	return out, child, err
+// childAt follows the entry's child edge in the cursor tree.
+func (r cursorPages) childAt(page *Page, cursor *block.Cursor, index int) *block.Cursor {
+	return page.FollowChild(cursor, index)
+}
+
+// loadAt loads the page at a cursor tree position.
+func (r cursorPages) loadAt(ctx context.Context, cursor *block.Cursor) (*Page, error) {
+	return loadPage(ctx, cursor)
+}
+
+// aheadPage adds the stored page of a position that holds none yet.
+func (r cursorPages) aheadPage(ctx context.Context, b *block.BatchLoad, cursor *block.Cursor) {
+	block.AddCursorRead[Page](ctx, b, cursor)
+}
+
+// aheadValue adds the stored value block, or the root of a stored Blob, at
+// the entry's value edge in the cursor tree.
+func (r cursorPages) aheadValue(ctx context.Context, b *block.BatchLoad, page *Page, cursor *block.Cursor, index int) {
+	if _, ok := page.rawInlineValue(index); ok {
+		return
+	}
+	value := page.FollowValue(cursor, index)
+	if page.GetEntries()[index].GetValueIsBlob() {
+		block.AddCursorRead[blob.Blob](ctx, b, value)
+		return
+	}
+	b.AddCursorLeaf(ctx, value)
 }
 
 // entryValue returns an owned copy of the entry's value.
@@ -84,11 +113,33 @@ func (r flatPages) rootPage(ctx context.Context) (*flatPage, block.ReadCursor, e
 	return page, cursor, err
 }
 
-// childPage loads the entry's stored child page.
-func (r flatPages) childPage(ctx context.Context, page *flatPage, cursor block.ReadCursor, index int) (*flatPage, block.ReadCursor, error) {
-	child := page.followChild(cursor, index)
-	out, err := loadFlatPage(ctx, child)
-	return out, child, err
+// childAt returns a reader at the entry's stored child page.
+func (r flatPages) childAt(page *flatPage, cursor block.ReadCursor, index int) block.ReadCursor {
+	return page.followChild(cursor, index)
+}
+
+// loadAt loads the stored page at a reader.
+func (r flatPages) loadAt(ctx context.Context, cursor block.ReadCursor) (*flatPage, error) {
+	return loadFlatPage(ctx, cursor)
+}
+
+// aheadPage adds the stored page the decoded-block cache lacks.
+func (r flatPages) aheadPage(ctx context.Context, b *block.BatchLoad, cursor block.ReadCursor) {
+	block.AddRead[flatPage](ctx, b, cursor)
+}
+
+// aheadValue adds the entry's stored value block, or the root of its stored
+// Blob. An inline value is part of its page.
+func (r flatPages) aheadValue(ctx context.Context, b *block.BatchLoad, page *flatPage, cursor block.ReadCursor, index int) {
+	if _, ok := page.rawInlineValue(index); ok || page.hasInlineBlob(index) {
+		return
+	}
+	value := page.followValue(cursor, index)
+	if page.valueIsBlob(index) {
+		block.AddRead[blob.Blob](ctx, b, value)
+		return
+	}
+	b.AddLeaf(ctx, value)
 }
 
 // entryValue returns an owned copy of the entry's value.
@@ -125,6 +176,13 @@ func loadFlatPage(ctx context.Context, cursor block.ReadCursor) (*flatPage, erro
 
 // errMissingPage reports a page reference that names no block.
 var errMissingPage = fmt.Errorf("okra page: %w", block.ErrNotFound)
+
+// childPage loads the child page of entry index of page through r.
+func childPage[P walkPage, C any](ctx context.Context, r pageReader[P, C], page P, cursor C, index int) (P, C, error) {
+	child := r.childAt(page, cursor, index)
+	out, err := r.loadAt(ctx, child)
+	return out, child, err
+}
 
 // pageFrame is one page along a descent from the root, with the position it
 // was loaded through and the child index used to reach it.
@@ -171,7 +229,7 @@ func findPagePath[P walkPage, C any](ctx context.Context, r pageReader[P, C], ro
 		if idx < 0 {
 			return nil, ErrUnexpectedPageMetadata
 		}
-		page, cursor, err = r.childPage(ctx, page, cursor, idx)
+		page, cursor, err = childPage(ctx, r, page, cursor, idx)
 		if err != nil {
 			return nil, err
 		}
@@ -199,7 +257,7 @@ func lastPagePath[P walkPage, C any](ctx context.Context, r pageReader[P, C], ro
 	}
 	path := pagePath[P, C]{{page: page, cursor: cursor, index: -1}}
 	if page.GetLevel() > level {
-		return descendPagePath(ctx, r, path, page.Len()-1, level, false)
+		return descendPagePath(ctx, r, path, page.Len()-1, level, false, nil)
 	}
 
 	// Verify that the root is the requested level.
@@ -209,29 +267,49 @@ func lastPagePath[P walkPage, C any](ctx context.Context, r pageReader[P, C], ro
 	return path, ctx.Err()
 }
 
+// pageEnter is called as a descent enters each page above its target level,
+// before it loads the page's child at index, with the page's depth in the
+// path. It returns the context the descent loads that child and the pages
+// below it on, such as one carrying a batch read of the page's next children.
+type pageEnter[P walkPage, C any] func(ctx context.Context, depth int, page P, cursor C, index int) (context.Context, error)
+
 // previousPagePath returns the path of the page preceding path's leaf at
-// level, or false when the leaf is the first page in the tree.
-func previousPagePath[P walkPage, C any](ctx context.Context, r pageReader[P, C], path pagePath[P, C], level uint32) (pagePath[P, C], bool, error) {
+// level, or false when the leaf is the first page in the tree. A non-nil
+// enter sees each page the descent loads a child of, as pageEnter describes.
+func previousPagePath[P walkPage, C any](
+	ctx context.Context,
+	r pageReader[P, C],
+	path pagePath[P, C],
+	level uint32,
+	enter pageEnter[P, C],
+) (pagePath[P, C], bool, error) {
 	for depth := len(path) - 2; depth >= 0; depth-- {
 		childIdx := path[depth+1].index
 		if childIdx <= 0 {
 			continue
 		}
-		out, err := descendPagePath(ctx, r, path[:depth+1], childIdx-1, level, false)
+		out, err := descendPagePath(ctx, r, path[:depth+1], childIdx-1, level, false, enter)
 		return out, err == nil, err
 	}
 	return nil, false, nil
 }
 
 // nextPagePath returns the path of the page following path's leaf at level,
-// or false when the leaf is the last page in the tree.
-func nextPagePath[P walkPage, C any](ctx context.Context, r pageReader[P, C], path pagePath[P, C], level uint32) (pagePath[P, C], bool, error) {
+// or false when the leaf is the last page in the tree. A non-nil enter sees
+// each page the descent loads a child of, as pageEnter describes.
+func nextPagePath[P walkPage, C any](
+	ctx context.Context,
+	r pageReader[P, C],
+	path pagePath[P, C],
+	level uint32,
+	enter pageEnter[P, C],
+) (pagePath[P, C], bool, error) {
 	for depth := len(path) - 2; depth >= 0; depth-- {
 		childIdx := path[depth+1].index
 		if childIdx+1 >= path[depth].page.Len() {
 			continue
 		}
-		out, err := descendPagePath(ctx, r, path[:depth+1], childIdx+1, level, true)
+		out, err := descendPagePath(ctx, r, path[:depth+1], childIdx+1, level, true, enter)
 		return out, err == nil, err
 	}
 	return nil, false, nil
@@ -239,7 +317,8 @@ func nextPagePath[P walkPage, C any](ctx context.Context, r pageReader[P, C], pa
 
 // descendPagePath descends from prefix's last frame through childIdx to the
 // page at level, taking the first or last child at each deeper level. The
-// result shares no frames with prefix.
+// result shares no frames with prefix. A non-nil enter sees prefix's last page
+// and each deeper page before the descent loads its child.
 func descendPagePath[P walkPage, C any](
 	ctx context.Context,
 	r pageReader[P, C],
@@ -247,10 +326,15 @@ func descendPagePath[P walkPage, C any](
 	childIdx int,
 	level uint32,
 	first bool,
+	enter pageEnter[P, C],
 ) (pagePath[P, C], error) {
 	// Load the selected child below the existing path prefix.
 	parent := prefix.leaf()
-	page, cursor, err := r.childPage(ctx, parent.page, parent.cursor, childIdx)
+	ctx, err := enterPage(ctx, enter, len(prefix)-1, parent.page, parent.cursor, childIdx)
+	if err != nil {
+		return nil, err
+	}
+	page, cursor, err := childPage(ctx, r, parent.page, parent.cursor, childIdx)
 	if err != nil {
 		return nil, err
 	}
@@ -263,7 +347,11 @@ func descendPagePath[P walkPage, C any](
 		if !first {
 			idx = page.Len() - 1
 		}
-		page, cursor, err = r.childPage(ctx, page, cursor, idx)
+		ctx, err = enterPage(ctx, enter, len(out)-1, page, cursor, idx)
+		if err != nil {
+			return nil, err
+		}
+		page, cursor, err = childPage(ctx, r, page, cursor, idx)
 		if err != nil {
 			return nil, err
 		}
@@ -273,6 +361,15 @@ func descendPagePath[P walkPage, C any](
 		return nil, ErrUnexpectedPageMetadata
 	}
 	return out, ctx.Err()
+}
+
+// enterPage calls enter, when non-nil, as pageEnter describes, and returns ctx
+// otherwise.
+func enterPage[P walkPage, C any](ctx context.Context, enter pageEnter[P, C], depth int, page P, cursor C, index int) (context.Context, error) {
+	if enter == nil {
+		return ctx, nil
+	}
+	return enter(ctx, depth, page, cursor, index)
 }
 
 // Len returns the number of entries.

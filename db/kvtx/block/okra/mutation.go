@@ -152,7 +152,7 @@ func (t *Tx) replaceLevelEntries(
 		page := path.leaf().page
 		window := []cursorPath{path}
 		if containsSortedNodeKey(oldKeys, pageStartKey(page)) && !page.GetStartsAtAnchor() {
-			previous, ok, err := previousPagePath(ctx, cursorPages{t}, path, level)
+			previous, ok, err := previousPagePath(ctx, cursorPages{t}, path, level, nil)
 			if err != nil {
 				return err
 			}

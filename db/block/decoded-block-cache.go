@@ -306,6 +306,20 @@ func (c *DecodedBlockCache) Lookup(
 	return cloned, true, nil
 }
 
+// holds reports whether Lookup of key would hit, without recording a hit or a
+// miss or retaining the block in the read operation's cache. c may be nil.
+func (c *DecodedBlockCache) holds(ctx context.Context, key decodedBlockCacheKey) bool {
+	// The read operation's cache, then a current shared-pool entry.
+	if readOperationContextFromContext(ctx).frontCache().lookup(key) != nil {
+		return true
+	}
+	if !c.enabled() {
+		return false
+	}
+	cached, ok := c.pool.get(c.cacheKey(key))
+	return ok && cached.epochs == c.epochs(key.ref) && !removedSince(key.ref, cached.durableGen)
+}
+
 // lookupShared returns the current shared-pool block for the key and retains
 // it in the read-operation cache, or records a miss and returns nil.
 func (c *DecodedBlockCache) lookupShared(

@@ -40,6 +40,19 @@ func GetStoredBlockBatch(ctx context.Context, store StoreOps, refs []*BlockRef, 
 	return GetStoredBlockEach(ctx, store, refs, fn)
 }
 
+// BatchBlockContext returns the context for a read of ref that a batch read
+// on ctx makes alone, so what the read records about where its bytes came
+// from, such as staged content, marks that block of the batch alone. A store
+// that answers a batch with reads of single blocks passes each this context.
+func BatchBlockContext(ctx context.Context, ref *BlockRef) context.Context {
+	// Narrow a batch's marks to the one of ref.
+	mark := blockReadMarkFromContext(ctx)
+	if mark == nil || mark.batch == nil {
+		return ctx
+	}
+	return context.WithValue(ctx, blockReadContextKey{}, mark.batch[ref.MarshalString()])
+}
+
 // GetStoredBlockEach reads refs from store one GetStoredBlock at a time, at
 // most storedBlockEachReads in flight, and calls fn once for each index of
 // refs. It is the batch read of a store without native batching. Calls of fn
@@ -56,7 +69,7 @@ func GetStoredBlockEach(ctx context.Context, store StoreOps, refs []*BlockRef, f
 			break
 		}
 		eg.Go(func() error {
-			stored, err := store.GetStoredBlock(egCtx, ref)
+			stored, err := store.GetStoredBlock(BatchBlockContext(egCtx, ref), ref)
 			mtx.Lock()
 			defer mtx.Unlock()
 			return fn(i, stored, err)

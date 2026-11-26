@@ -53,6 +53,51 @@ func TestDecodedBlockCacheSkipsStagedBlocks(t *testing.T) {
 	if !errors.Is(err, block.ErrNotFound) {
 		t.Fatalf("second transaction read a block no store holds: blk=%v err=%v", blk, err)
 	}
+
+	// A batch read of a staged block beside a durable one marks each alone:
+	// the staged block stays out of the shared cache, the durable one enters.
+	durableRef, _, err := block.PutBlock(ctx, store, &block_mock.Example{Msg: "durable"})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	staging, durableCursor := block.NewTransaction(store, nil, durableRef, nil)
+	staging.SetDecodedBlockCache(decodedBlocks)
+	staged = staging.StageWrites(ctx, store)
+	ref, _, err = block.PutBlock(ctx, staged, &block_mock.Example{Msg: "staged in a batch, never published"})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	stagedCursor := durableCursor.FollowRef(1, ref)
+	var batch block.BatchLoad
+	block.AddCursorRead[block_mock.Example](ctx, &batch, stagedCursor)
+	block.AddCursorRead[block_mock.Example](ctx, &batch, durableCursor)
+	batchCtx, counter := block.WithReadCounter(ctx)
+	if batchCtx, err = batch.Load(batchCtx); err != nil {
+		t.Fatal(err.Error())
+	}
+	for _, c := range []*block.Cursor{stagedCursor, durableCursor} {
+		if _, err := c.Unmarshal(batchCtx, block_mock.NewExampleBlock); err != nil {
+			t.Fatalf("staging transaction read a batched block: %v", err)
+		}
+	}
+	if reads := counter.Snapshot().BlockReadCount; reads != 2 {
+		t.Fatalf("batched reads counted %d blocks, want 2", reads)
+	}
+	staging.DiscardStagedWrites()
+	reader, readCursor = block.NewTransaction(store, nil, ref, nil)
+	reader.SetDecodedBlockCache(decodedBlocks)
+	if blk, err := readCursor.Unmarshal(ctx, block_mock.NewExampleBlock); !errors.Is(err, block.ErrNotFound) {
+		t.Fatalf("second transaction read a batched block no store holds: blk=%v err=%v", blk, err)
+	}
+	reader, readCursor = block.NewTransaction(store, nil, durableRef, nil)
+	reader.SetDecodedBlockCache(decodedBlocks)
+	readCtx, counter := block.WithReadCounter(ctx)
+	if _, err := readCursor.Unmarshal(readCtx, block_mock.NewExampleBlock); err != nil {
+		t.Fatal(err.Error())
+	}
+	if snap := counter.Snapshot(); snap.BlockReadCount != 0 || snap.DecodedBlockCacheHitCount != 1 {
+		t.Fatalf("durable batched block was not admitted: %+v", snap)
+	}
 }
 
 // pendingOverlay serves blocks written through it from memory before a

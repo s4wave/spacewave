@@ -669,26 +669,9 @@ func (c *Cursor) fetchAt(ctx context.Context, ref *BlockRef) ([]byte, int, bool,
 		return nil, 0, false, nil
 	}
 
-	// Find the store to read from, and wait for the reader's admission to it.
-	bkt := c.readStore(ctx)
-	if bkt == nil {
-		return nil, 0, false, ErrBlockStoreUnavailable
-	}
-	if err := enterColdRead(ctx); err != nil {
-		return nil, 0, false, err
-	}
-
-	// Read the stored block, recording the read and its time on the
-	// context's counter.
-	counter := ContextReadCounter(ctx)
-	var started time.Time
-	if counter != nil {
-		started = time.Now()
-	}
-	data, found, err := bkt.GetBlock(withoutReadOperationStore(ctx), ref)
-	if err == nil {
-		counter.recordRead(found, len(data), time.Since(started))
-	}
+	// Read the stored block, or take it from a batch load of it,
+	// recording the read and its time on the context's counter.
+	data, found, err := c.readBlock(ctx, ref)
 	if err != nil || !found {
 		if err == nil {
 			err = NotFoundError(ref)
@@ -715,6 +698,43 @@ func (c *Cursor) fetchAt(ctx context.Context, ref *BlockRef) ([]byte, int, bool,
 		}
 	}
 	return data, stored, true, nil
+}
+
+// readBlock reads the stored bytes of ref, taking them from a batch load of
+// it when the context holds one, or from the store once the reader's cold-read
+// admission allows. It records the read on the context's counter.
+func (c *Cursor) readBlock(ctx context.Context, ref *BlockRef) ([]byte, bool, error) {
+	// Take the answer of a batch load, with what its mark recorded.
+	counter := ContextReadCounter(ctx)
+	if a := takeBatchAnswer(ctx, ref); a != nil {
+		blockReadMarkFor(ctx, ref).adopt(a.mark)
+		if a.err != nil {
+			return nil, false, a.err
+		}
+		data := a.stored.GetData()
+		counter.recordRead(a.stored != nil, len(data), a.elapsed)
+		return data, a.stored != nil, nil
+	}
+
+	// Find the store to read from, and wait for the reader's admission to it.
+	bkt := c.readStore(ctx)
+	if bkt == nil {
+		return nil, false, ErrBlockStoreUnavailable
+	}
+	if err := enterColdRead(ctx); err != nil {
+		return nil, false, err
+	}
+
+	// Read the stored block.
+	var started time.Time
+	if counter != nil {
+		started = time.Now()
+	}
+	data, found, err := bkt.GetBlock(withoutReadOperationStore(ctx), ref)
+	if err == nil {
+		counter.recordRead(found, len(data), time.Since(started))
+	}
+	return data, found, err
 }
 
 // Unmarshal fetches and unmarshals the data to a block.
@@ -914,6 +934,20 @@ func (c *Cursor) setUnmarshaledBlock(b Block, shared bool) (Block, error) {
 // GetRef returns the current cursor reference.
 func (c *Cursor) GetRef() *BlockRef {
 	if c == nil || c.pos == nil {
+		return nil
+	}
+	return c.pos.ref
+}
+
+// unloadedRef returns the stored ref a read of the position would fetch, or
+// nil when the position holds its decoded block, is a sub-block, has a change
+// of its own, or names no block.
+func (c *Cursor) unloadedRef() *BlockRef {
+	if c.t != nil {
+		c.t.mtx.Lock()
+		defer c.t.mtx.Unlock()
+	}
+	if c.pos == nil || c.pos.blk != nil || c.pos.isSubBlock || c.pos.dirty || c.pos.ref.GetEmpty() {
 		return nil
 	}
 	return c.pos.ref

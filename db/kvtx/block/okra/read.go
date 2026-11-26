@@ -180,9 +180,38 @@ func (w *batchWalk[P, C]) appendLoads(parent int32) {
 const batchLoadConcurrency = 16
 
 // runLoads runs the planned loads with at most batchLoadConcurrency in
-// flight. Each load goes through the reader, so a block the decoded block
-// cache holds costs no store read. Returns the first failure.
+// flight. The level's child pages and stored values are read first in one
+// batch read, so a remote store answers the level in a few requests; each load
+// then goes
+// through the reader, and a block the decoded block cache holds costs no store
+// read. Returns the first failure.
 func (w *batchWalk[P, C]) runLoads(ctx context.Context) error {
+	// Place each child page's load. A level of many loads reads its child
+	// pages and stored values together first.
+	var ahead *block.BatchLoad
+	if len(w.next) > 1 {
+		ahead = new(block.BatchLoad)
+	}
+	for i := range w.next {
+		l := &w.next[i]
+		parent := &w.level[l.parent]
+		switch {
+		case parent.page.GetLevel() != 0:
+			l.cursor = w.r.childAt(parent.page, parent.cursor, int(l.idx))
+			if ahead != nil {
+				w.r.aheadPage(ctx, ahead, l.cursor)
+			}
+		case ahead != nil:
+			w.r.aheadValue(ctx, ahead, parent.page, parent.cursor, int(l.idx))
+		}
+	}
+	if ahead != nil {
+		var err error
+		if ctx, err = ahead.Load(ctx); err != nil {
+			return err
+		}
+	}
+
 	// Load a single block on the caller's goroutine.
 	if len(w.next) == 1 {
 		return w.load(ctx, 0)
@@ -200,7 +229,7 @@ func (w *batchWalk[P, C]) runLoads(ctx context.Context) error {
 }
 
 // load runs planned load i: a leaf's matched value goes straight to the
-// result, and a child page onto the load.
+// result, and a child page onto the load at its placed position.
 func (w *batchWalk[P, C]) load(ctx context.Context, i int) error {
 	// Copy a leaf's matched value into the result.
 	l := &w.next[i]
@@ -217,7 +246,7 @@ func (w *batchWalk[P, C]) load(ctx context.Context, i int) error {
 
 	// Load an inner page's child onto the load.
 	var err error
-	l.page, l.cursor, err = w.r.childPage(ctx, parent.page, parent.cursor, int(l.idx))
+	l.page, err = w.r.loadAt(ctx, l.cursor)
 	return err
 }
 
