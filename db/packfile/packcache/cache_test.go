@@ -2,6 +2,7 @@ package packcache
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/binary"
 	"os"
@@ -86,6 +87,97 @@ func TestCacheCarriesHotSet(t *testing.T) {
 		if _, found, _ := c.Get(b.Key); !found {
 			t.Fatalf("hot block %x was evicted", b.Key[:4])
 		}
+	}
+}
+
+// TestCacheReopenKeepsRecent checks that startup eviction under a lowered
+// limit carries the named old values, leaves removed and unknown keys absent,
+// and never returns a value that no Put stored under the key.
+func TestCacheReopenKeepsRecent(t *testing.T) {
+	// Fill eight limits of values before enabling eviction.
+	const limit, packBytes, size = 256 << 10, 64 << 10, 1 << 10
+	const total, batchSize = 8 * limit / size, 16
+	dir := t.TempDir()
+	logOpts := packahead.Options{MaxPackBytes: packBytes}
+	c := openReady(t, dir, Options{Log: logOpts})
+	defer c.Close()
+	for i := 0; i < total; i += batchSize {
+		batch := make([]packahead.Block, batchSize)
+		for j := range batch {
+			batch[j] = testBlock(i+j, size)
+		}
+		if err := c.Put(t.Context(), batch); err != nil {
+			t.Fatal(err)
+		}
+	}
+	c.Close()
+
+	// Name the oldest batch, a key to remove, and keys never stored.
+	const removedIndex, unknownCount = 2 * batchSize, 4
+	removedKey := testBlock(removedIndex, size).Key
+	keys := make([][]byte, 0, batchSize+1+unknownCount)
+	for i := range batchSize {
+		keys = append(keys, testBlock(i, size).Key)
+	}
+	keys = append(keys, removedKey)
+	for i := range unknownCount {
+		keys = append(keys, testBlock(1_000_000+i, size).Key)
+	}
+
+	// Remove the key after load and before Recent marks its slice.
+	removed := make(chan struct{})
+	c = openReady(t, dir, Options{
+		LimitBytes: limit,
+		Log:        logOpts,
+		Recent: func(_ context.Context, mark func(keys [][]byte)) {
+			<-removed
+			mark(keys)
+		},
+	})
+	defer c.Close()
+	c.Remove(removedKey)
+	close(removed)
+
+	// Wait for eviction to reach the limit within two packs.
+	deadline := time.Now().Add(5 * time.Second)
+	for c.Size() > limit+2*packBytes {
+		if time.Now().After(deadline) {
+			t.Fatalf("size %d stayed over the limit %d", c.Size(), limit)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	// Check every written key and confirm that eviction reached the first cold batch.
+	var coldMiss bool
+	for i := range total {
+		b := testBlock(i, size)
+		value, found, err := c.Get(b.Key)
+		if err != nil {
+			t.Fatalf("read block %d: %v", i, err)
+		}
+		if found && !bytes.Equal(value, b.Value) {
+			t.Fatalf("block %d returned a value that Put did not store under its key", i)
+		}
+		if i < batchSize && !found {
+			t.Fatalf("recent block %d was evicted", i)
+		}
+		if i == removedIndex && found {
+			t.Fatalf("removed block %d was found", i)
+		}
+		if i >= batchSize && i < 2*batchSize && !found {
+			coldMiss = true
+		}
+	}
+	// Check that marking the unknown keys did not make them readable.
+	for _, key := range keys[batchSize+1:] {
+		if _, found, err := c.Get(key); err != nil || found {
+			t.Fatalf("unknown block %x: found %v, err %v", key[:4], found, err)
+		}
+	}
+
+	// Require both an eviction of a cold value and a carry of a recent value.
+	if carried := c.Counts().Carried; !coldMiss || carried == 0 {
+		t.Fatalf("old cold block missed: %v, carried %d values", coldMiss, carried)
 	}
 }
 

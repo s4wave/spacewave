@@ -818,6 +818,35 @@ func (l *Log) GetWithDurability(key []byte) (value []byte, found, synced bool, e
 	return out, true, synced, nil
 }
 
+// MarkRead sets the read bit that EvictCarry uses to carry a value forward.
+// It restores that bit after a restart for keys the caller knows were read,
+// such as keys in a saved list. It returns the number of keys marked and
+// leaves missing keys and deferred removals alone. Callers pass bounded
+// slices because MarkRead holds the Log's lock for the whole slice.
+func (l *Log) MarkRead(keys [][]byte) int {
+	// Restore the read bits of values the table still locates.
+	var marked int
+	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		for _, key := range keys {
+			if len(key) < block.BlockDigestTailLen {
+				continue
+			}
+			t := tailOf(key)
+			loc, ok := l.table[t]
+			if !ok {
+				continue
+			}
+			if _, removed := loc.p.removed[t]; removed {
+				continue
+			}
+			loc.read = true
+			l.table[t] = loc
+			marked++
+		}
+	})
+	return marked
+}
+
 // Has reports whether a local pack holds the value under key.
 func (l *Log) Has(key []byte) bool {
 	if len(key) < block.BlockDigestTailLen {

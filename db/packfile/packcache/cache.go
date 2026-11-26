@@ -92,6 +92,11 @@ func (c *Cache) run(ctx context.Context, dir string) {
 	c.log.Store(l)
 	c.settle(stateReady, nil)
 
+	// Restore reads from before the restart so the first eviction sees them.
+	if c.opts.Recent != nil {
+		c.opts.Recent(ctx, func(keys [][]byte) { l.MarkRead(keys) })
+	}
+
 	// Evict until the end, then stop serving and close the Log.
 	err = c.evict(ctx, l)
 	c.log.Store(nil)

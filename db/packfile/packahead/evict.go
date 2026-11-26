@@ -32,7 +32,7 @@ func (l *Log) Evict(ctx context.Context, seq uint64) error {
 const carryBatchBytes = 1 << 20
 
 // EvictCarry unlinks finalized pack seq as Evict does, after appending to the
-// open pack, unsynced, the values Get read since their write into it, in
+// open pack, unsynced, the values with a read bit set by Get or MarkRead, in
 // offset order, up to carryBytes of them. A carried value is relocated under
 // the lock, so a reader finds it in one pack or the other, and starts with
 // its read bit clear, so it is carried again only if read again. It returns
