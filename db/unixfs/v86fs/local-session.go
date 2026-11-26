@@ -9,8 +9,10 @@ import (
 // LocalSession is an in-process v86fs client session. It shares the SRPC
 // relay's mount, inode, handle, notification, and release lifecycle.
 type LocalSession struct {
+	// server owns the session's mount registration.
 	server *Server
-	sess   *session
+	// sess holds the open session and is nil after Close.
+	sess *session
 }
 
 // NewLocalSession opens a v86fs session without an SRPC stream.
@@ -33,16 +35,7 @@ func NewLocalSession(ctx context.Context, server *Server) *LocalSession {
 	}
 
 	// Register the session and replay pending mount notifications.
-	server.mtx.Lock()
-	server.sessions[sess] = struct{}{}
-	for _, entry := range server.mounts {
-		if msg := mountNotifyMsg(entry); msg != nil {
-			sess.pending = append(sess.pending, msg)
-		}
-	}
-	server.mtx.Unlock()
-
-	// Return the local session handle.
+	server.registerLocalSession(sess)
 	return &LocalSession{server: server, sess: sess}
 }
 
@@ -53,9 +46,7 @@ func (s *LocalSession) Close() {
 	if s == nil || s.sess == nil {
 		return
 	}
-	s.server.mtx.Lock()
-	delete(s.server.sessions, s.sess)
-	s.server.mtx.Unlock()
+	s.server.unregisterSession(s.sess)
 	s.sess.cleanup()
 	s.sess = nil
 }
@@ -89,23 +80,15 @@ func (s *LocalSession) DrainNotifications() []*V86FsMessage {
 	if s == nil || s.sess == nil {
 		return nil
 	}
-	var pending []*V86FsMessage
-	s.sess.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		pending = s.sess.pending
-		s.sess.pending = nil
-	})
-	return pending
+	return s.sess.drainNotifications()
 }
 
 // RequeueNotifications restores drained notifications the guest could not yet
 // accept to the front of the pending queue, preserving delivery order so a
 // notification leaves the session only once it lands in a guest receive buffer.
 func (s *LocalSession) RequeueNotifications(msgs []*V86FsMessage) {
-	if s == nil || s.sess == nil || len(msgs) == 0 {
+	if s == nil || s.sess == nil {
 		return
 	}
-	s.sess.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		s.sess.pending = append(msgs, s.sess.pending...)
-		broadcast()
-	})
+	s.sess.requeueNotifications(msgs)
 }

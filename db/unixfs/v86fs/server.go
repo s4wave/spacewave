@@ -55,6 +55,26 @@ func mountNotifyMsg(entry *MountEntry) *V86FsMessage {
 	}
 }
 
+// registerLocalSession enrolls a new local session and seeds its mount notifications
+// before a mount update can find the session in the registry.
+func (s *Server) registerLocalSession(sess *session) {
+	s.mtx.Lock()
+	s.sessions[sess] = struct{}{}
+	for _, entry := range s.mounts {
+		if msg := mountNotifyMsg(entry); msg != nil {
+			sess.seedNotification(msg)
+		}
+	}
+	s.mtx.Unlock()
+}
+
+// unregisterSession removes a session from future mount fanout snapshots.
+func (s *Server) unregisterSession(sess *session) {
+	s.mtx.Lock()
+	delete(s.sessions, sess)
+	s.mtx.Unlock()
+}
+
 // AddMount registers a dynamic mount and sends MOUNT_NOTIFY to active sessions.
 func (s *Server) AddMount(name, path string, handle *unixfs.FSHandle) {
 
@@ -171,9 +191,7 @@ func (s *Server) RelayV86Fs(strm SRPCV86FsService_RelayV86FsStream) error {
 
 	// Deregister the session and release its handles on exit.
 	defer func() {
-		s.mtx.Lock()
-		delete(s.sessions, sess)
-		s.mtx.Unlock()
+		s.unregisterSession(sess)
 		sess.cleanup()
 	}()
 
@@ -192,8 +210,9 @@ type session struct {
 	inodes    map[uint64]*inodeEntry
 	handles   map[uint64]*handleEntry
 
-	// bcast guards pending and wakes the run loop when notifications are queued.
-	bcast   broadcast.Broadcast
+	// bcast guards pending after registration and wakes the run loop.
+	bcast broadcast.Broadcast
+	// pending holds notifications in delivery order.
 	pending []*V86FsMessage
 }
 
@@ -209,10 +228,38 @@ type handleEntry struct {
 	handle  *unixfs.FSHandle
 }
 
+// seedNotification appends a notification to an unpublished local session.
+// The caller holds the server lock until seeding is complete.
+func (ss *session) seedNotification(msg *V86FsMessage) {
+	ss.pending = append(ss.pending, msg)
+}
+
 // queueNotification appends a notification and wakes the run loop.
 func (ss *session) queueNotification(msg *V86FsMessage) {
 	ss.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		ss.pending = append(ss.pending, msg)
+		broadcast()
+	})
+}
+
+// drainNotifications transfers the pending notifications to the local consumer.
+func (ss *session) drainNotifications() []*V86FsMessage {
+	var pending []*V86FsMessage
+	ss.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		pending = ss.pending
+		ss.pending = nil
+	})
+	return pending
+}
+
+// requeueNotifications restores undelivered notifications ahead of newer arrivals.
+func (ss *session) requeueNotifications(msgs []*V86FsMessage) {
+	// Restore only a nonempty batch so an empty retry produces no wake.
+	if len(msgs) == 0 {
+		return
+	}
+	ss.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		ss.pending = append(msgs, ss.pending...)
 		broadcast()
 	})
 }
