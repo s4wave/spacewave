@@ -121,4 +121,14 @@ func TestDecodedBlockReadMarkAdmission(t *testing.T) {
 	if _, ok := mark.admission(); ok {
 		t.Fatal("staged read admitted")
 	}
+
+	// A batch's single-block context marks that block's read alone.
+	batchCtx, marks := withBlockReadMarks(context.Background(), []*BlockRef{ref, other})
+	MarkDurableRead(BatchBlockContext(batchCtx, other), other, 3)
+	if _, ok := marks[0].admission(); ok {
+		t.Fatal("durable read of another batch block admitted this one")
+	}
+	if gen, ok := marks[1].admission(); !ok || gen != 3 {
+		t.Fatalf("batch block admission gen=%d ok=%v, want 3 true", gen, ok)
+	}
 }

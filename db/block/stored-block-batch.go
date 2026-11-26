@@ -69,7 +69,7 @@ func BatchBlockContext(ctx context.Context, ref *BlockRef) context.Context {
 	if mark == nil || mark.batch == nil {
 		return ctx
 	}
-	return context.WithValue(ctx, blockReadContextKey{}, mark.batch[ref.MarshalString()])
+	return context.WithValue(ctx, blockReadContextKey{}, blockReadMarkFor(ctx, ref))
 }
 
 // GetStoredBlockEach reads refs from store one GetStoredBlock at a time, at
