@@ -114,6 +114,16 @@ func (c *hitCounter) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*
 	return stored, err
 }
 
+// GetStoredBlockBatch reads the blocks in one batch and counts each hit.
+func (c *hitCounter) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
+	return block.GetStoredBlockBatch(ctx, c.StoreOps, refs, func(i int, stored *block.StoredBlock, err error) error {
+		if stored != nil {
+			c.hits.Add(1)
+		}
+		return fn(i, stored, err)
+	})
+}
+
 // _ is a type assertion
 var (
 	_ block.StoreOps = (*hitCounter)(nil)

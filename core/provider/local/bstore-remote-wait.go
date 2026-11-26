@@ -181,6 +181,15 @@ func (r *pendingRemote) GetStoredBlock(ctx context.Context, ref *block.BlockRef)
 	return remote.GetStoredBlock(ctx, ref)
 }
 
+// GetStoredBlockBatch reads the blocks from the backend once it opens.
+func (r *pendingRemote) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
+	remote, err := r.wait(ctx)
+	if err != nil {
+		return err
+	}
+	return block.GetStoredBlockBatch(ctx, remote, refs, fn)
+}
+
 // GetBlockExists checks the backend for the block once it opens.
 func (r *pendingRemote) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	remote, err := r.wait(ctx)
@@ -257,4 +266,5 @@ func (r *pendingRemote) SetRoots(ctx context.Context, entries []*block.PutBatchE
 var (
 	_ block.StoreOps           = (*pendingRemote)(nil)
 	_ block_store.PauseWatcher = (*pendingRemote)(nil)
+	_ block.StoredBlockBatcher = (*pendingRemote)(nil)
 )

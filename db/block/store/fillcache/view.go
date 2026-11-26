@@ -60,6 +60,20 @@ func (v *view) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.
 	return v.get(ctx, ref), nil
 }
 
+// GetStoredBlockBatch serves each block the cache holds in turn: a lookup is
+// a local read, so the batch runs no goroutines.
+func (v *view) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
+	for i, ref := range refs {
+		if err := ctx.Err(); err != nil {
+			return context.Cause(ctx)
+		}
+		if err := fn(i, v.get(ctx, ref), nil); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // get returns the block the cache holds intact, or nil.
 //
 // A hit is marked a durable read, so its decoded block enters the shared
@@ -146,4 +160,7 @@ func (v *view) SetRoots(context.Context, []*block.PutBatchEntry, []block.NamedRo
 }
 
 // _ is a type assertion
-var _ block.StoreOps = (*view)(nil)
+var (
+	_ block.StoreOps           = (*view)(nil)
+	_ block.StoredBlockBatcher = (*view)(nil)
+)

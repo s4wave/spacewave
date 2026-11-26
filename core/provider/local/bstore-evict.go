@@ -434,6 +434,16 @@ func (r *readRecorder) GetStoredBlock(ctx context.Context, ref *block.BlockRef) 
 	return stored, err
 }
 
+// GetStoredBlockBatch reads the blocks in one batch and records each hit.
+func (r *readRecorder) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
+	return block.GetStoredBlockBatch(ctx, r.StoreOps, refs, func(i int, stored *block.StoredBlock, err error) error {
+		if stored != nil {
+			r.reads.add(refs[i].GetHash())
+		}
+		return fn(i, stored, err)
+	})
+}
+
 // evictShortWait is how long eviction waits after a pass that left the store
 // over its budget: the blocks it kept were read within readKeepAge, so a pass
 // at the next upload would only queue them again.

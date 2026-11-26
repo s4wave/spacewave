@@ -3,8 +3,10 @@ package provider_local
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"net/http/httptest"
 	"runtime"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -498,6 +500,30 @@ func TestThrottledBucketServesFallback(t *testing.T) {
 	})
 	if throttles == 0 {
 		t.Fatal("the bucket was never throttled, so the read did not race a pause")
+	}
+
+	// A batch of blocks only the fallback holds races the same pause: each
+	// is answered once, and the batch ends without waiting for the bucket.
+	var batch []*block.BlockRef
+	var want [][]byte
+	for i := range 4 {
+		data := fmt.Appendf(nil, "batch block %d only the fallback holds", i)
+		batch, want = append(batch, f.putSQL(data)), append(want, data)
+	}
+	start = time.Now()
+	answers := make([]int, len(batch))
+	err := block.GetStoredBlockBatch(f.ctx, f.reads, batch, func(i int, stored *block.StoredBlock, err error) error {
+		if err != nil || stored == nil || !bytes.Equal(stored.Data, want[i]) {
+			return fmt.Errorf("batch block %d = %v, %v", i, stored, err)
+		}
+		answers[i]++
+		return nil
+	})
+	if err != nil || slices.ContainsFunc(answers, func(n int) bool { return n != 1 }) {
+		t.Fatalf("batch read answers %v, err %v; want each block once", answers, err)
+	}
+	if took := time.Since(start); took > 2*time.Second {
+		t.Fatalf("batch read took %v, want about one pause", took)
 	}
 }
 

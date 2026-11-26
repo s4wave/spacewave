@@ -64,6 +64,17 @@ func (s *StoreFillReads) GetStoredBlock(ctx context.Context, ref *block.BlockRef
 	return stored, nil
 }
 
+// GetStoredBlockBatch reads the blocks from lower in one batch and fills each
+// hit, as GetStoredBlock does.
+func (s *StoreFillReads) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
+	return block.GetStoredBlockBatch(ctx, s.StoreOps, refs, func(i int, stored *block.StoredBlock, err error) error {
+		if err == nil && stored != nil && !stored.Linked {
+			s.fill(context.WithoutCancel(ctx), refs[i], stored)
+		}
+		return fn(i, stored, err)
+	})
+}
+
 // PutBlock is unsupported because this store is read-only.
 func (*StoreFillReads) PutBlock(context.Context, []byte, *block.PutOpts) (*block.BlockRef, bool, error) {
 	return nil, false, ErrReadOnly
@@ -88,4 +99,7 @@ func (*StoreFillReads) SetRoots(context.Context, []*block.PutBatchEntry, []block
 func (*StoreFillReads) Sync(context.Context) (bool, error) { return true, nil }
 
 // _ is a type assertion
-var _ block.StoreOps = (*StoreFillReads)(nil)
+var (
+	_ block.StoreOps           = (*StoreFillReads)(nil)
+	_ block.StoredBlockBatcher = (*StoreFillReads)(nil)
+)

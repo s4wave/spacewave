@@ -185,6 +185,11 @@ func (b *BlockStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*
 	return b.readOwner().GetStoredBlock(ctx, ref)
 }
 
+// GetStoredBlockBatch forwards the batch to the configured Session read store.
+func (b *BlockStore) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
+	return block.GetStoredBlockBatch(ctx, b.readOwner(), refs, fn)
+}
+
 // GetBlockExists forwards to the configured Session read store.
 func (b *BlockStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	return b.readOwner().GetBlockExists(ctx, ref)
@@ -817,4 +822,7 @@ var (
 	_ bstore.BlockStoreProvider = (*ProviderAccount)(nil)
 	_ bstore.BlockStore         = (*BlockStore)(nil)
 	_ block.StoreOps            = (*BlockStore)(nil)
+	_ block.StoredBlockBatcher  = (*BlockStore)(nil)
+	_ block.StoredBlockBatcher  = (*readRecorder)(nil)
+	_ block.StoredBlockBatcher  = (*hitCounter)(nil)
 )

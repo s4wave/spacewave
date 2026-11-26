@@ -644,12 +644,66 @@ func (r *fallbackReads) readFallback(ctx context.Context, ref *block.BlockRef, p
 	if ctx.Err() != nil {
 		return nil, context.Cause(ctx)
 	}
+	r.recordPrimaryErr(primaryErr)
+
+	// Read the fallback, filling its hit unless a corrupt local copy failed.
+	stored, err := r.readHit(ctx, ref, fillPast(primaryErr))
+	return settleFallback(primaryErr, stored, err)
+}
+
+// GetStoredBlockBatch reads refs from the sources in one batch, then the
+// blocks they missed or failed from the fallback in one batch, answering each
+// as GetStoredBlock does.
+func (r *fallbackReads) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
+	// Serve the blocks the sources hold, keeping the rest.
+	var miss []*block.BlockRef
+	var missAt []int
+	var missErr []error
+	err := block.GetStoredBlockBatch(ctx, r.StoreOps, refs, func(i int, stored *block.StoredBlock, err error) error {
+		if err == nil && stored != nil {
+			return fn(i, stored, nil)
+		}
+		miss, missAt, missErr = append(miss, refs[i]), append(missAt, i), append(missErr, err)
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	if len(miss) == 0 {
+		return nil
+	}
+
+	// Ask the fallback about the misses and failures.
+	if ctx.Err() != nil {
+		return context.Cause(ctx)
+	}
+	for _, err := range missErr {
+		r.recordPrimaryErr(err)
+	}
+	return block.GetStoredBlockBatch(ctx, r.fallback, miss, func(j int, stored *block.StoredBlock, err error) error {
+		stored, err = r.hit(ctx, miss[j], fillPast(missErr[j]), stored, err)
+		stored, err = settleFallback(missErr[j], stored, err)
+		return fn(missAt[j], stored, err)
+	})
+}
+
+// recordPrimaryErr counts a failed read of the sources.
+func (r *fallbackReads) recordPrimaryErr(primaryErr error) {
 	if primaryErr != nil && r.fills != nil {
 		r.fills.recordPackError()
 	}
+}
 
-	// Read the fallback, filling its hit unless a corrupt local copy failed.
-	stored, err := r.readHit(ctx, ref, !errors.Is(primaryErr, block.ErrBlockCorrupt))
+// fillPast reports whether a fallback hit after the sources' primaryErr fills
+// the local store: not past a corrupt local copy.
+func fillPast(primaryErr error) bool {
+	return !errors.Is(primaryErr, block.ErrBlockCorrupt)
+}
+
+// settleFallback answers a read whose sources failed with primaryErr, or
+// missed, and whose fallback read returned stored and err: the hit, else
+// primaryErr, else the fallback's error, else a miss.
+func settleFallback(primaryErr error, stored *block.StoredBlock, err error) (*block.StoredBlock, error) {
 	if err == nil && stored != nil {
 		return stored, nil
 	}
@@ -665,12 +719,18 @@ func (r *fallbackReads) fallbackHit(ctx context.Context, ref *block.BlockRef) (*
 	return r.readHit(ctx, ref, true)
 }
 
-// readHit reads ref from the fallback and, when fill is set, fills a hit. The
-// fallback checks its own bytes: corrupt bytes are a failure, not a miss, and
-// fill nothing.
+// readHit reads ref from the fallback and, when fill is set, fills a hit, as
+// hit describes.
 func (r *fallbackReads) readHit(ctx context.Context, ref *block.BlockRef, fill bool) (*block.StoredBlock, error) {
-	// Read the fallback, counting a corrupt block as a failed fill.
 	stored, err := r.fallback.GetStoredBlock(ctx, ref)
+	return r.hit(ctx, ref, fill, stored, err)
+}
+
+// hit answers the fallback's read of ref, stored and err, and fills a hit when
+// fill is set. The fallback checks its own bytes: corrupt bytes are a failure,
+// not a miss, and fill nothing.
+func (r *fallbackReads) hit(ctx context.Context, ref *block.BlockRef, fill bool, stored *block.StoredBlock, err error) (*block.StoredBlock, error) {
+	// Count a corrupt block as a failed fill.
 	if errors.Is(err, block.ErrBlockCorrupt) {
 		if r.fills != nil {
 			r.fills.recordFailedFill()
@@ -832,4 +892,7 @@ func (r *fallbackReads) StatBlock(ctx context.Context, ref *block.BlockRef) (*bl
 }
 
 // _ is a type assertion
-var _ block.StoreOps = (*fallbackReads)(nil)
+var (
+	_ block.StoreOps           = (*fallbackReads)(nil)
+	_ block.StoredBlockBatcher = (*fallbackReads)(nil)
+)
