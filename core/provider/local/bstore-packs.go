@@ -133,8 +133,16 @@ type PackaheadStats struct {
 // GetPackaheadStats returns the store's packahead log counts, or false when
 // the store keeps no log.
 func (b *BlockStore) GetPackaheadStats() (PackaheadStats, bool) {
-	p := b.placement
-	if p == nil || p.drain == nil || p.packed == nil {
+	if b.placement == nil {
+		return PackaheadStats{}, false
+	}
+	return b.placement.packaheadStats()
+}
+
+// packaheadStats returns the placement's packahead log counts, or false when
+// the store keeps no log.
+func (p *placementState) packaheadStats() (PackaheadStats, bool) {
+	if p.drain == nil || p.packed == nil {
 		return PackaheadStats{}, false
 	}
 	drain, _ := p.drain.Status()

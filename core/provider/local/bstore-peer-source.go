@@ -9,11 +9,14 @@ import (
 
 // peerSource returns the store's peer reads, which count their outcomes in
 // counts.
-func (t *bstoreTracker) peerSource(le *logrus.Entry, bucketID string, counts *peerReadCounts) func() block.StoreOps {
+func (t *bstoreTracker) peerSource(le *logrus.Entry, counts *peerReadCounts) func() block.StoreOps {
 	// A store with no peers to ask reads none.
 	if conf := t.nodePushConfig(); conf != nil && conf.NoPeers {
 		return func() block.StoreOps { return nil }
 	}
+
+	// Read the bucket's P2P store, counting each read's outcome.
+	bucketID := t.bucketID()
 	return newPeerMissSource(
 		le,
 		func() block.StoreOps { return t.a.getP2PStore(bucketID) },

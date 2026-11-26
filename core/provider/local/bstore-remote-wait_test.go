@@ -43,15 +43,15 @@ func TestRemoteReadsWaitForOpen(t *testing.T) {
 		defer unmount()
 		ctx := t.Context()
 		tkr := &bstoreTracker{}
-		p := &placementState{done: mount.Done()}
-		if tkr.getRemoteReads(p) != nil {
+		p := &placementState{done: mount.Done(), remote: &tkr.remote, remoteBcast: &tkr.remoteBcast}
+		if p.remoteReads() != nil {
 			t.Fatal("unplaced store reads a backend")
 		}
 
 		// Select a backend before its handle opens.
 		backend := &account_settings.StorageBackend{Id: "first"}
-		tkr.setPlacementBackend(p, backend)
-		reads := tkr.getRemoteReads(p)
+		p.setBackend(backend)
+		reads := p.remoteReads()
 		if reads == nil {
 			t.Fatal("placed store has no pending backend")
 		}
@@ -92,7 +92,7 @@ func TestRemoteReadsWaitForOpen(t *testing.T) {
 		closed := false
 		tkr.swapRemote(&openBackend{backend: backend, store: openedBackend{StoreOps: store, close: func() {
 			// Re-enter notification capture to establish that Close runs unlocked.
-			_, _ = tkr.readBackend(p)
+			_, _ = p.readBackend()
 			closed = true
 		}}})
 		synctest.Wait()
@@ -104,8 +104,8 @@ func TestRemoteReadsWaitForOpen(t *testing.T) {
 
 		// A changed placement waits for its own backend, not the old handle.
 		next := &account_settings.StorageBackend{Id: "second"}
-		tkr.setPlacementBackend(p, next)
-		pending := tkr.getRemoteReads(p)
+		p.setBackend(next)
+		pending := p.remoteReads()
 		go func() {
 			_, _, err := pending.GetBlock(ctx, ref)
 			results <- err
@@ -127,7 +127,7 @@ func TestRemoteReadsWaitForOpen(t *testing.T) {
 
 		// A retry retains cancellation and removal wakes a pending reader.
 		tkr.swapRemote(nil)
-		pending = tkr.getRemoteReads(p)
+		pending = p.remoteReads()
 		cancelled, cancel := context.WithCancel(ctx)
 		cancel()
 		if _, _, err := pending.GetBlock(cancelled, ref); !errors.Is(err, context.Canceled) {
@@ -140,15 +140,15 @@ func TestRemoteReadsWaitForOpen(t *testing.T) {
 			results <- err
 		}()
 		synctest.Wait()
-		tkr.setPlacementBackend(p, nil)
+		p.setBackend(nil)
 		synctest.Wait()
 		if err := <-results; !errors.Is(err, block.ErrUnavailable) {
 			t.Fatalf("removed placement = %v", err)
 		}
 
 		// Ending a mount wakes readers whose caller context remains alive.
-		tkr.setPlacementBackend(p, next)
-		pending = tkr.getRemoteReads(p)
+		p.setBackend(next)
+		pending = p.remoteReads()
 		go func() {
 			_, _, err := pending.GetBlock(ctx, ref)
 			results <- err
@@ -161,9 +161,9 @@ func TestRemoteReadsWaitForOpen(t *testing.T) {
 		}
 
 		// The original deadline still bounds a backend that never opens.
-		p = &placementState{}
-		tkr.setPlacementBackend(p, next)
-		if _, _, err := tkr.getRemoteReads(p).GetBlock(ctx, ref); !errors.Is(err, block.ErrUnavailable) {
+		p = &placementState{remote: &tkr.remote, remoteBcast: &tkr.remoteBcast}
+		p.setBackend(next)
+		if _, _, err := p.remoteReads().GetBlock(ctx, ref); !errors.Is(err, block.ErrUnavailable) {
 			t.Fatalf("unopened backend deadline = %v", err)
 		}
 	})

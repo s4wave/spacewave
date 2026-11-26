@@ -74,7 +74,7 @@ func SetNodePush(providerID, accountID string, conf *NodePushConfig) {
 // nodeAdopter adopts reported packs into the store's open backend and hands
 // their blocks to runNodeClears.
 type nodeAdopter struct {
-	t *bstoreTracker
+	// p is the placement whose open backend adopts the packs.
 	p *placementState
 	// clears takes the block hashes of each adopted pack.
 	clears chan<- []*hash.Hash
@@ -86,7 +86,7 @@ type nodeAdopter struct {
 // registered clears again, so a report repeated after a restart finishes.
 func (a nodeAdopter) AdoptPack(ctx context.Context, entry *packfile.PackfileEntry, keys [][]byte) error {
 	// A report that arrives before the backend opens is tried again.
-	remote, _ := a.t.readBackend(a.p)
+	remote, _ := a.p.readBackend()
 	if remote == nil {
 		return errors.New("storage backend not open")
 	}
@@ -120,7 +120,7 @@ func (a nodeAdopter) AdoptPack(ctx context.Context, entry *packfile.PackfileEntr
 // runNodeClears clears each adopted pack's blocks from the upload queue, ahead
 // of any backlog there, until ctx ends. A pack it misses, through a failure or
 // a restart, leaves its entries for the upload, which finds them in the index.
-func (t *bstoreTracker) runNodeClears(ctx context.Context, le *logrus.Entry, p *placementState, clears <-chan []*hash.Hash) {
+func (p *placementState) runNodeClears(ctx context.Context, le *logrus.Entry, clears <-chan []*hash.Hash) {
 	for {
 		// Take the next pack's blocks.
 		var hashes []*hash.Hash
@@ -131,7 +131,7 @@ func (t *bstoreTracker) runNodeClears(ctx context.Context, le *logrus.Entry, p *
 		}
 
 		// Clear them against the backend open now.
-		remote, _ := t.readBackend(p)
+		remote, _ := p.readBackend()
 		if remote == nil {
 			continue
 		}
@@ -184,7 +184,7 @@ func (t *bstoreTracker) startNodePush(
 
 	// Build the client and put the publisher in front of the local store.
 	clears := make(chan []*hash.Hash, nodeClearQueue)
-	client := block_store_nodepush.NewClient(le.WithField("routine", "node-push"), block_store_nodepush.NewPackApplier(nodeAdopter{t: t, p: placement, clears: clears}))
+	client := block_store_nodepush.NewClient(le.WithField("routine", "node-push"), block_store_nodepush.NewPackApplier(nodeAdopter{p: placement, clears: clears}))
 	handle.push = block_store_nodepush.NewPublisher(client, conf.Wait, conf.On, conf.Result)
 	wb.SetLocateUploaded(conf.On)
 	t.nodeClient.Store(client)
@@ -196,7 +196,7 @@ func (t *bstoreTracker) startNodePush(
 	runCtx, cancel := context.WithCancel(ctx)
 	running := conc.NewConcurrentQueue(0)
 	running.Enqueue(func() { _ = client.Run(runCtx, conf.Dial, nodeRedial) })
-	running.Enqueue(func() { t.runNodeClears(runCtx, le, placement, clears) })
+	running.Enqueue(func() { placement.runNodeClears(runCtx, le, clears) })
 	return func() {
 		t.nodeClient.Store(nil)
 		cancel()

@@ -58,11 +58,23 @@ func (a *ProviderAccount) CopyToBackend(ctx context.Context, sharedObjectID stri
 // copyToBackend copies the volume's blocks to the store's open backend,
 // waiting for one to open.
 func (b *BlockStore) copyToBackend(ctx context.Context, vol volume_kvtx.KvtxVolume, opts block_store_writeback.CopyOptions) error {
-	// Wait for an open backend.
+	return b.placement.copyToBackend(ctx, listVolumeBlocks(vol), opts)
+}
+
+// copyToBackend copies the blocks list names, in its order, to the placement's
+// open backend, waiting for one to open.
+func (p *placementState) copyToBackend(ctx context.Context, list block_store_writeback.CopyList, opts block_store_writeback.CopyOptions) error {
+	// Wait for an open backend, capturing its change channel under the lock
+	// that publishes it.
 	var remote *openBackend
 	for {
-		_, changed := b.placement.wb.GetStatus()
-		if remote = b.placement.remote.Load(); remote != nil {
+		var changed <-chan struct{}
+		p.remoteBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			if remote = p.remote.Load(); remote == nil {
+				changed = getWaitCh()
+			}
+		})
+		if remote != nil {
 			break
 		}
 		select {
@@ -72,9 +84,8 @@ func (b *BlockStore) copyToBackend(ctx context.Context, vol volume_kvtx.KvtxVolu
 		}
 	}
 
-	// Copy the blocks in key order.
-	list := listVolumeBlocks(vol)
-	return b.placement.wb.Copy(ctx, remote.backend.GetId(), remote.store, list, opts)
+	// Copy the blocks in list order.
+	return p.wb.Copy(ctx, remote.backend.GetId(), remote.store, list, opts)
 }
 
 // listVolumeBlocks lists the blocks the volume stores in key order, each call

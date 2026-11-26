@@ -24,7 +24,6 @@ import (
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/db/bucket"
 	lookup_concurrent "github.com/s4wave/spacewave/db/bucket/lookup/concurrent"
-	"github.com/s4wave/spacewave/db/packfile/packahead"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
@@ -55,142 +54,6 @@ type childListReader interface {
 	// HasChildLists reports, for each ref, whether the volume keeps its child
 	// list.
 	HasChildLists(ctx context.Context, refs []*block.BlockRef) ([]bool, error)
-}
-
-// placementState is a block store's storage backend, its upload queue, and
-// the stores a storage move copies blocks between.
-type placementState struct {
-	// wb queues local writes for upload.
-	wb *block_store_writeback.Store
-	// backend is the storage backend holding the store, nil for the account's
-	// own storage. It changes before wb broadcasts the change.
-	backend atomic.Pointer[account_settings.StorageBackend]
-	// local is the account's own storage, written without upload markers.
-	local block.StoreOps
-	// remote is the open storage backend store, or nil.
-	remote *atomic.Pointer[openBackend]
-	// tracker reports the blocks the volume keeps child lists for, or nil when
-	// the volume keeps none.
-	tracker childListReader
-	// done closes when this mount ends, including a failed mount or remount.
-	done <-chan struct{}
-	// serveOnly is serve mode, as SetServeOnly describes: reads fill nothing.
-	serveOnly bool
-	// peerUpload stores peer reads with an upload marker, as
-	// SetPeerFillsUpload describes.
-	peerUpload bool
-	// reads records the blocks read since the last eviction pass.
-	reads readSet
-	// localHits counts the blocks the local store served.
-	localHits atomic.Uint64
-	// peerReads counts the peer reads by outcome and the blocks they filled.
-	peerReads peerReadCounts
-	// evictGate is held by each eviction pass and by a storage move.
-	evictGate *csync.Mutex
-	// evictAdmit paces eviction passes, or holds nil.
-	evictAdmit *atomic.Pointer[block_store_writeback.EvictAdmit]
-	// resident is the account's resident mark override, or nil.
-	resident *residentOverride
-	// policyWake wakes the eviction loop when the policy changes; nil never.
-	policyWake chan struct{}
-	// evictLatch carries the eviction loop to the low mark across passes and
-	// routine restarts, as EvictLatch describes; only runEviction uses it.
-	evictLatch block_store_writeback.EvictLatch
-	// sqlPrimary reports that the store writes to its SQL backend, which
-	// then holds blocks the reference graph may not track.
-	sqlPrimary bool
-	// fallbackFills runs and counts the fills of the SQL read fallback.
-	fallbackFills fallbackFills
-	// cache is the fill cache that takes the blocks read from the backend, or nil
-	// when they fill the local store. A store mounted without a backend has none.
-	cache FillCache
-	// front is read after the local store misses and before the fill cache
-	// and the backend, or nil.
-	front block.StoreOps
-	// cold is the read-only cold pack tier behind the backend, or nil.
-	cold block.StoreOps
-	// drain uploads the finalized packs of the store's packahead log, or is
-	// nil when the store has no log.
-	drain *packahead.Drain
-	// fileSegments serves the blocks of linked files from the files, after the
-	// local store misses and before every remote tier.
-	fileSegments *block_store_filesegment.Store
-	// packed is the store over the packahead log, or nil when the store has
-	// no log.
-	packed *block_store_writeback.PackedStore
-}
-
-// live reports which blocks a bucket reclaim must keep: the blocks the volume
-// keeps child lists for, and any the local store holds. Only the collector
-// ends a listed block's life, so a block whose local value was dropped stays
-// live, and a volume without child lists keeps what it stores.
-func (p *placementState) live(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
-	// Keep the blocks the graph tracks.
-	live := make([]bool, len(refs))
-	if p.tracker != nil {
-		tracked, err := p.tracker.HasChildLists(ctx, refs)
-		if err != nil {
-			return nil, err
-		}
-		live = tracked
-	}
-
-	// Keep the untracked blocks the local store holds.
-	var rest []*block.BlockRef
-	var restAt []int
-	for i, ok := range live {
-		if !ok {
-			rest = append(rest, refs[i])
-			restAt = append(restAt, i)
-		}
-	}
-	if len(rest) == 0 {
-		return live, nil
-	}
-	held, err := p.local.GetBlockExistsBatch(ctx, rest)
-	if err != nil {
-		return nil, err
-	}
-	for j, ok := range held {
-		live[restAt[j]] = ok
-	}
-	return live, nil
-}
-
-// fill writes a block read from the backend or a peer into the local store. A
-// block the graph tracks lost only its value to eviction, so it is refilled
-// below the ownership layer; any other block is a cache fill.
-func (p *placementState) fill(ctx context.Context, primary block.StoreOps, ref *block.BlockRef, stored *block.StoredBlock) error {
-	// Serve mode writes nothing.
-	if p.serveOnly {
-		return nil
-	}
-
-	// Refill a tracked block of a placed store.
-	if p.backend.Load() != nil && p.tracker != nil {
-		tracked, err := p.tracker.HasChildLists(ctx, []*block.BlockRef{ref})
-		if err != nil {
-			return err
-		}
-
-		// Account for every cached value, including a block whose graph was
-		// omitted during migration. An untracked fill also records child refs
-		// without taking ownership; eviction checks the target before dropping
-		// either value, including a fill served by a peer. Both queue behind
-		// the volume's writers.
-		if tracked[0] {
-			p.wb.Refill(ref, stored)
-		} else {
-			p.wb.CacheFill(ref, stored)
-		}
-
-		// Keep a remote hit hot for the same interval as a local hit.
-		p.reads.add(ref.GetHash())
-		return nil
-	}
-
-	// Fill any other block as a cache fill.
-	return block_store.CacheFill(ctx, primary, ref, stored)
 }
 
 // GetID returns the inner store id.
@@ -231,11 +94,7 @@ func (b *BlockStore) InvalidateDecodedBlockRef(ctx context.Context, ref *block.B
 // UploadedBefore reports whether the storage backend holds every block written
 // before at: the queued writes and the packs of the store's packahead log.
 func (b *BlockStore) UploadedBefore(ctx context.Context, at time.Time) (bool, error) {
-	uploaded, err := b.placement.wb.UploadedBefore(ctx, at)
-	if err != nil || !uploaded || b.placement.drain == nil {
-		return uploaded, err
-	}
-	return b.placement.drain.UploadedBefore(at), nil
+	return b.placement.uploadedBefore(ctx, at)
 }
 
 // ReclaimStorage drops the blocks the volume no longer tracks or holds from
@@ -407,6 +266,15 @@ func (a *ProviderAccount) buildBlockStoreTracker(bstoreID string) (keyed.Routine
 	return tracker.executeBlockStoreTracker, tracker
 }
 
+// bucketID returns the ID of the store's bucket.
+func (t *bstoreTracker) bucketID() string {
+	return BlockStoreBucketID(
+		t.a.t.p.info.GetProviderId(),
+		t.a.t.accountInfo.GetProviderAccountId(),
+		t.id,
+	)
+}
+
 // executeBlockStoreTracker mounts the block store and publishes its handle
 // until ctx ends.
 func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
@@ -465,11 +333,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	decodedBlocks := block.NewDecodedBlockCache()
 	defer decodedBlocks.Close()
 	localBucket := bucketHandle.GetBucket()
-	bucketID := BlockStoreBucketID(
-		t.a.t.p.info.GetProviderId(),
-		t.a.t.accountInfo.GetProviderAccountId(),
-		t.id,
-	)
+	bucketID := t.bucketID()
 
 	// Queue writes for upload when the account places the store on a backend.
 	// The settings cannot place their own block store, which they mount from.
@@ -551,37 +415,41 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		return err
 	}
 
+	// Load cold packs for the configured placement. An unusable cold set
+	// leaves the backend and the SQL fallback available.
+	serveMode := serveOnly.Load()
+	coldPlacement := configuredColdPacks.Load()
+	if coldPlacement != nil && coldPlacement.config.BlockStoreLocalID != blockStoreLocalID {
+		coldPlacement = nil
+	}
+	var coldTier block.StoreOps
+	if coldPlacement != nil {
+		cold, err := t.openColdPacks(ctx, le, coldPlacement, backend, serveMode)
+		if err != nil {
+			le.WithError(err).Warn("cold pack tier unavailable")
+		} else if cold != nil {
+			coldTier = cold
+			coldPlacement.store.Store(cold)
+			defer func() {
+				coldPlacement.store.CompareAndSwap(cold, nil)
+				cold.Close()
+			}()
+		}
+	}
+
 	// Track the store's placement, which places new writes, refills evicted
 	// blocks and reclaims backend storage.
-	placement := &placementState{
-		wb:         wb,
-		local:      local,
-		remote:     &t.remote,
-		evictGate:  &t.evictGate,
-		evictAdmit: &t.a.evictAdmit,
-		resident:   &t.a.resident,
-		policyWake: make(chan struct{}, 1),
-		done:       ctx.Done(),
-	}
+	placement := newPlacementState(ctx, le, t, placementMount{
+		wb:      wb,
+		local:   local,
+		packs:   packs,
+		files:   block_store_filesegment.NewStore(block_store_filesegment.NewIndex(segments.GetObjectStore(), nil)),
+		backend: backend,
+		cold:    coldTier,
+		serve:   serveMode,
+	})
 	defer placement.unregister()
-	placement.fileSegments = block_store_filesegment.NewStore(block_store_filesegment.NewIndex(segments.GetObjectStore(), nil))
-	placement.fallbackFills.ctx, placement.fallbackFills.budget = ctx, &t.a.t.p.fillBudget
-	if packs != nil {
-		placement.drain, placement.packed = packs.drain, packs.packed
-	}
-	placement.tracker, _ = t.a.vol.(childListReader)
-	placement.serveOnly = serveOnly.Load()
-	placement.peerUpload = !placement.serveOnly && peerFillsUpload.Load()
-
-	// Classify the blocks peers serve the placement until the mount ends.
-	placement.startPeerClassify(ctx)
-	if backend != nil {
-		if !placement.serveOnly {
-			placement.cache = t.fillCache()
-		}
-		placement.front = t.packFront()
-	}
-	t.setPlacementBackend(placement, backend)
+	placement.setPolicy(placed.GetCache())
 
 	// A bucket read fills the local store with every block of the window it
 	// fetched, as it fills the block asked for, unless a fill cache takes the
@@ -590,10 +458,6 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		t.windowFill.Store(&windowFill{ctx: ctx, target: &windowFillOps{StoreOps: local, fill: placement.fill}})
 		defer t.windowFill.Store(nil)
 	}
-	if err := placement.reads.load(ctx, wb); err != nil {
-		le.WithError(err).Warn("unable to load the saved block reads, eviction keeps only new reads")
-	}
-	placement.setPolicy(placed.GetCache())
 
 	// Release the tracker backend after the mount's upload routine exits.
 	defer t.swapRemote(nil)
@@ -602,36 +466,15 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	// the account makes it the store's primary. An unreachable backend fails
 	// the mount.
 	var sqlStore backendStore
-	if t.a.sqlPrimary.Load() && backend.GetSql() != nil {
+	if placement.sqlPrimary {
 		opened, err := t.openBackendStore(ctx, backend)
 		if err != nil {
 			return err
 		}
 		sqlStore = opened.store
 		t.swapRemote(opened)
-		placement.sqlPrimary = true
 	}
 	le.WithField("sql-primary", sqlStore != nil).Info("mounting bstore")
-
-	// Load cold packs in the background for the configured placement. An
-	// unusable cold set leaves the backend and the SQL fallback available.
-	coldPlacement := configuredColdPacks.Load()
-	if coldPlacement != nil && coldPlacement.config.BlockStoreLocalID != blockStoreLocalID {
-		coldPlacement = nil
-	}
-	if coldPlacement != nil {
-		cold, err := t.openColdPacks(ctx, le, coldPlacement, backend, placement.serveOnly)
-		if err != nil {
-			le.WithError(err).Warn("cold pack tier unavailable")
-		} else if cold != nil {
-			placement.cold = cold
-			coldPlacement.store.Store(cold)
-			defer func() {
-				coldPlacement.store.CompareAndSwap(cold, nil)
-				cold.Close()
-			}()
-		}
-	}
 
 	// Open the read fallback, which connects on its first read, so an
 	// unreachable database never fails the mount.
@@ -671,20 +514,11 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	// bucket, cold packs, the SQL fallback, and peers. A linked file's block
 	// reads as a local hit, so it fills nothing: the file is its copy.
 	localStore := block_store.NewStore(blockStoreLocalID, wb)
-	var recorded block.StoreOps = &hitCounter{StoreOps: local, hits: &placement.localHits}
-	if !placement.serveOnly {
-		recorded = &readRecorder{StoreOps: recorded, reads: &placement.reads}
-	}
-	recorded = &fallbackReads{StoreOps: recorded, fallback: placement.fileSegments}
-	peers := t.peerSource(le, bucketID, &placement.peerReads)
-	if placement.serveOnly {
-		peers = func() block.StoreOps { return nil }
-	}
 	reads, copies := placement.readChains(
-		recorded,
+		placement.recordedReads(),
 		local,
-		func() block.StoreOps { return t.getRemoteReads(placement) },
-		peers,
+		placement.remoteReads,
+		placement.peers,
 		fallbackStore,
 	)
 
@@ -707,7 +541,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 			nil,
 		)
 	} else {
-		serve = placement.serveReads(placement.withLinkedFiles(local), func() block.StoreOps { return t.getRemoteReads(placement) }, fallbackStore)
+		serve = placement.serveReads(placement.withLinkedFiles(local), placement.remoteReads, fallbackStore)
 	}
 	served := &serveStore{StoreOps: serve}
 	t.a.serveStores.Store(bucketID, served)
@@ -801,7 +635,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 			if coldPlacement != nil {
 				return errors.New("placement of a cold-pack store changed, remounting")
 			}
-			t.setPlacementBackend(placement, next)
+			placement.setBackend(next)
 			if err := wb.SetEnabled(ctx, next != nil); err != nil {
 				return err
 			}
@@ -875,11 +709,7 @@ func (t *bstoreTracker) backfill(
 
 // buildBucketConf builds the bucket config for the bstore.
 func (t *bstoreTracker) buildBucketConf() (*bucket.Config, error) {
-	bucketID := BlockStoreBucketID(
-		t.a.t.p.info.GetProviderId(),
-		t.a.t.accountInfo.GetProviderAccountId(),
-		t.id,
-	)
+	bucketID := t.bucketID()
 	lookupConf, err := bucket.NewLookupConfig(configset.NewControllerConfig(1, &lookup_concurrent.Config{
 		NotFoundBehavior:  lookup_concurrent.NotFoundBehavior_NotFoundBehavior_NONE,
 		PutBlockBehavior:  lookup_concurrent.PutBlockBehavior_PutBlockBehavior_ALL,

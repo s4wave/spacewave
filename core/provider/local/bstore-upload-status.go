@@ -26,19 +26,33 @@ type UploadStatus struct {
 // closed when either changes. Packs is a snapshot: GetPackStatus returns the
 // channel that follows it.
 func (b *BlockStore) GetUploadStatus() (UploadStatus, <-chan struct{}) {
-	status, changed := b.placement.wb.GetStatus()
-	out := UploadStatus{Backend: b.placement.backend.Load(), Status: status, Fallback: b.placement.fallbackFills.status(), Reads: b.placement.readStatus()}
-	out.Packs, _ = b.GetPackStatus()
-	return out, changed
+	return b.placement.uploadStatus()
 }
 
 // GetPackStatus returns the status of the finalized packs of the store's
 // packahead log, and a channel that closes when it next changes, or nils when
 // the store has no log.
 func (b *BlockStore) GetPackStatus() (*packahead.DrainStatus, <-chan struct{}) {
-	if b.placement.drain == nil {
+	return b.placement.packStatus()
+}
+
+// uploadStatus returns the placement's backend, the status of its upload
+// queue, fallback and reads, and a snapshot of its packs' status, with a
+// channel closed when the backend or the upload queue changes.
+func (p *placementState) uploadStatus() (UploadStatus, <-chan struct{}) {
+	status, changed := p.wb.GetStatus()
+	out := UploadStatus{Backend: p.backend.Load(), Status: status, Fallback: p.fallbackFills.status(), Reads: p.readStatus()}
+	out.Packs, _ = p.packStatus()
+	return out, changed
+}
+
+// packStatus returns the status of the finalized packs of the placement's
+// packahead log, and a channel that closes when it next changes, or nils when
+// the store has no log.
+func (p *placementState) packStatus() (*packahead.DrainStatus, <-chan struct{}) {
+	if p.drain == nil {
 		return nil, nil
 	}
-	status, changed := b.placement.drain.Status()
+	status, changed := p.drain.Status()
 	return &status, changed
 }

@@ -18,6 +18,7 @@ import (
 
 	"github.com/s4wave/spacewave/db/kvtx/hashmap"
 
+	"github.com/aperturerobotics/util/broadcast"
 	ftpserver "github.com/fclairamb/ftpserverlib"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -175,15 +176,15 @@ func TestFTPSPlacementAndFallback(t *testing.T) {
 		t.Fatal(err)
 	}
 	f.p.backend.Store(backend)
-	tkr := &bstoreTracker{}
-	tkr.remote.Store(&openBackend{backend: backend, store: adoptedStore{f.packs.(*block_store_s3.PackStore)}})
+	f.p.remote.Store(&openBackend{backend: backend, store: adoptedStore{f.packs.(*block_store_s3.PackStore)}})
+	f.p.remoteBcast = new(broadcast.Broadcast)
 	clears := make(chan []*hash.Hash, 1)
-	adopter := nodeAdopter{t: tkr, p: f.p, clears: clears}
+	adopter := nodeAdopter{p: f.p, clears: clears}
 	if err := adopter.AdoptPack(f.ctx, nil, [][]byte{packfile.BlockKey(pushed.GetHash())}); err != nil {
 		t.Fatal(err)
 	}
 	clearCtx, stopClears := context.WithCancel(f.ctx)
-	go tkr.runNodeClears(clearCtx, logrus.NewEntry(logrus.New()), f.p, clears)
+	go f.p.runNodeClears(clearCtx, logrus.NewEntry(logrus.New()), clears)
 	for {
 		status, changed := f.wb.GetStatus()
 		if status.Pending == 1 {

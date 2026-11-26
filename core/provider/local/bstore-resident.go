@@ -127,7 +127,7 @@ func (t *bstoreTracker) startResident(ctx context.Context, le *logrus.Entry, p *
 // backend reads batches. The blocks it does not read read on demand.
 func (t *bstoreTracker) warmResident(ctx context.Context, le *logrus.Entry, p *placementState, cache ResidentCache) {
 	// Wait for the backend to open, and warm only from one that reads batches.
-	store, err := t.waitBackend(ctx, p)
+	store, err := p.waitBackend(ctx)
 	if err != nil || store == nil {
 		return
 	}
@@ -240,22 +240,6 @@ func retryTransient(le *logrus.Entry, read block_store_fillcache.ReadBatch, firs
 			case <-timer.C:
 			}
 			wait = min(2*wait, warmRetryMax)
-		}
-	}
-}
-
-// waitBackend returns the placement's open backend store once it opens, or
-// nil once the mount is unplaced or ctx ends.
-func (t *bstoreTracker) waitBackend(ctx context.Context, p *placementState) (block.StoreOps, error) {
-	for {
-		store, changed := t.readBackend(p)
-		if store != nil || changed == nil {
-			return store, nil
-		}
-		select {
-		case <-ctx.Done():
-			return nil, context.Cause(ctx)
-		case <-changed:
 		}
 	}
 }
