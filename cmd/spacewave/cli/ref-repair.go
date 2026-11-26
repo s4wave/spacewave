@@ -52,8 +52,14 @@ type refRepairResult struct {
 	// synthetic is the number of blocks listed with no children because the
 	// synthetic set names them, as refRepair.synthetic describes.
 	synthetic uint64
-	// reverify reports that the run compared the marked lists too.
-	reverify bool
+	// payloadBlobs is the number of payload roots read as blobs, which the
+	// walker typed by a guess it could confirm.
+	payloadBlobs uint64
+	// notBlob is the number of payload roots the guess could not confirm as
+	// blobs, so the walk verified nothing for them.
+	notBlob uint64
+	// notBlobSample holds up to refRepairSample of them.
+	notBlobSample []*block.BlockRef
 	// undecodable is the number of blocks that failed to decode as their type.
 	// A block whose type holds no refs is only checked for presence.
 	undecodable uint64
@@ -62,7 +68,7 @@ type refRepairResult struct {
 	// edges is the number of children those lists name.
 	edges uint64
 	// rebuild is what the list rebuild verified and wrote, or on a dry run
-	// with a reverify compared, empty on another dry run and on a volume whose old generation had left Open.
+	// would write, empty on a volume whose old generation had left Open.
 	rebuild block_gc.ListRebuildResult
 	// verified reports that the volume's old generation had left Open before
 	// the run, so it rebuilt nothing.
@@ -104,8 +110,8 @@ type refRepair struct {
 	// It proves nothing about them: it lets a rehearsal reach the flip on a
 	// copy whose unresolved blocks hold it.
 	synthetic map[string]bool
-	// rebuild verifies the decoded blocks' lists, nil on a dry run without a
-	// reverify.
+	// rebuild verifies the decoded blocks' lists, or on a dry run compares
+	// them; nil on a volume whose old generation had left Open.
 	rebuild *block_gc.ListRebuild
 	// res counts the findings.
 	res refRepairResult
@@ -366,7 +372,7 @@ func (r *refRepair) readRootBlock(ctx context.Context, ref *block.BlockRef) ([]b
 }
 
 // undecodableRoot counts a root block that does not decode as typ, its
-// root's type, and hands it to the reverify.
+// root's type, and hands it to the rebuild.
 func (r *refRepair) undecodableRoot(ctx context.Context, ref *block.BlockRef, typ string, err error) error {
 	r.le.WithError(err).Warnf("cannot decode root block %s", ref.MarshalString())
 	r.res.undecodable++
@@ -465,6 +471,23 @@ func (r *refRepair) visit(ctx context.Context, batch []refwalk.Visit) error {
 			r.res.absent++
 			continue
 		}
+		// Verify nothing for a payload root that is not certainly a blob,
+		// which stays on the front if held, so the flip names it.
+		if rd.Unsure {
+			r.res.notBlob++
+			if len(r.res.notBlobSample) < refRepairSample {
+				r.res.notBlobSample = append(r.res.notBlobSample, rd.Node.Ref)
+			}
+			if r.rebuild != nil {
+				if err := r.rebuild.Undecodable(ctx, rd.Node.Ref, nodeType(rd.Node)); err != nil {
+					return err
+				}
+			}
+			continue
+		}
+		if rd.Node.Guess {
+			r.res.payloadBlobs++
+		}
 		if rd.DecodeErr != nil {
 			r.le.WithError(rd.DecodeErr).Warnf("cannot decode %s", rd.Node.Ref.MarshalString())
 			r.countBlock()
@@ -561,7 +584,7 @@ func (r *refRepair) countBlock() {
 }
 
 // verify hands the refs of a block decoded as typ to the list rebuild,
-// unless this is a dry run without a reverify.
+// unless the volume's old generation had left Open.
 func (r *refRepair) verify(ctx context.Context, ref *block.BlockRef, refs []*block.BlockRef, typ string) error {
 	if r.rebuild == nil {
 		return nil
@@ -577,7 +600,7 @@ func nodeType(n refwalk.Node) string {
 	return typeName(n.Ctor())
 }
 
-// typeName names the Go type of a decoded block, for the reverify's samples.
+// typeName names the Go type of a decoded block, for the rebuild's samples.
 func typeName(blk any) string {
 	return reflect.TypeOf(blk).String()
 }

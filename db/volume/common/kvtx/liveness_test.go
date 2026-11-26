@@ -4470,7 +4470,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		// recount. The hold of Y left Y on the front.
 		rebuild := func(entries ...*block.PutBatchEntry) block_gc.ListRebuildResult {
 			t.Helper()
-			rb, err := v.OpenListRebuild(ctx, block_gc.ListRebuildOptions{})
+			rb, err := v.OpenListRebuild(ctx)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4525,9 +4525,62 @@ func TestLivenessAdversarial(t *testing.T) {
 
 		// A rebuild of a Volume whose old generation settled is refused, since
 		// a rewrite then would leave the counts short with no flip to come.
-		if _, err := v.OpenListRebuild(ctx, block_gc.ListRebuildOptions{}); !errors.Is(err, block_gc.ErrListsVerified) {
+		if _, err := v.OpenListRebuild(ctx); !errors.Is(err, block_gc.ErrListsVerified) {
 			t.Fatalf("rebuild of a settled Volume err %v, want ErrListsVerified", err)
 		}
+	})
+
+	t.Run("leaf first, then decoded", func(t *testing.T) {
+		// X's stored list is empty and unverified though its bytes name C.
+		// The walker verifies X twice in one run, as it does a block it
+		// reaches under two types: first as a leaf, with no refs, which
+		// marks the empty list, then with its decoded refs, which must
+		// still add C, or C has no holder and the settle frees it.
+		ctx := t.Context()
+		keys := store_kvkey.NewDefaultKVKey()
+		store := store_kvtx_inmem.NewStore()
+		tr := testTree{}
+		tr.add(t, "C")
+		x := tr.add(t, "X", "C")
+		tr.add(t, "R", "X")
+		writeLegacyStore(t, store, keys, tr, "R", true, "R", "C")
+		tx, err := store.NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		key := append(slices.Clone(livenessPrefix), 'c')
+		if err := tx.Set(ctx, append(key, block_gc.BlockKey(x)...), block_gc.EncodeChildren(nil)); err != nil {
+			t.Fatal(err)
+		}
+		if err := tx.Commit(ctx); err != nil {
+			t.Fatal(err)
+		}
+		v, clk := openUnadoptedVolume(t, store)
+		if _, err := v.Adopt(ctx); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + 1)
+		collectAll(t, v)
+
+		// Verify R, X as a leaf, X decoded, and C, then settle.
+		rb, err := v.OpenListRebuild(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, entry := range []*block.PutBatchEntry{tr["R"], {Ref: x}, tr["X"], {Ref: tr["C"].Ref}} {
+			if err := rb.Verify(ctx, entry.Ref, entry.Refs); err != nil {
+				t.Fatal(err)
+			}
+		}
+		res, err := rb.Finish(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if res.MarkedLacking != 1 {
+			t.Fatalf("rebuild of X leaf first = %+v, want X's marked list lacking C", res)
+		}
+		settleAll(t, v, clk, store, tr)
+		requireStored(t, v, tr, true, "R", "X", "C")
 	})
 
 	t.Run("reput of an older block stored without a list", func(t *testing.T) {
@@ -4622,7 +4675,7 @@ func TestLivenessAdversarial(t *testing.T) {
 			t.Fatalf("collect while Open = %+v, want G parked", res)
 		}
 		requireStored(t, v, tr, true, "R", "X", "G")
-		rb, err := v.OpenListRebuild(ctx, block_gc.ListRebuildOptions{})
+		rb, err := v.OpenListRebuild(ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -4690,7 +4743,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		if err := v.SetBucketRoots(ctx, "b", tr.entries("C2", "F"), c2root); err != nil {
 			t.Fatal(err)
 		}
-		rb, err := v.OpenListRebuild(ctx, block_gc.ListRebuildOptions{})
+		rb, err := v.OpenListRebuild(ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -4825,7 +4878,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		if res, err := v.Adopt(ctx); err != nil || res.Queued != 4 {
 			t.Fatalf("adopt = %+v err %v, want C, F, G and H queued", res, err)
 		}
-		rb, err := v.OpenListRebuild(ctx, block_gc.ListRebuildOptions{})
+		rb, err := v.OpenListRebuild(ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -4922,7 +4975,7 @@ func TestLivenessAdversarial(t *testing.T) {
 			t.Fatalf("the put of C left %d recount records, want none", n)
 		}
 		verify := func(names ...string) {
-			rb, err := v.OpenListRebuild(ctx, block_gc.ListRebuildOptions{})
+			rb, err := v.OpenListRebuild(ctx)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5588,7 +5641,7 @@ func TestLivenessSettle(t *testing.T) {
 	}
 	verify := func(t *testing.T, v *Volume, tr testTree, names ...string) block_gc.ListRebuildResult {
 		t.Helper()
-		rb, err := v.OpenListRebuild(t.Context(), block_gc.ListRebuildOptions{})
+		rb, err := v.OpenListRebuild(t.Context())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -7707,7 +7760,7 @@ func walkFront(t *testing.T, v *Volume, store kvtx.Store, tr testTree) block_gc.
 		if len(keys) == 0 {
 			return total
 		}
-		rb, err := v.OpenListRebuild(t.Context(), block_gc.ListRebuildOptions{})
+		rb, err := v.OpenListRebuild(t.Context())
 		if err != nil {
 			t.Fatal(err)
 		}

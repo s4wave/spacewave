@@ -15,6 +15,10 @@ type Node struct {
 	Ctor block.Ctor
 	// Xfrm decodes the stored bytes, nil for bytes stored as they are.
 	Xfrm block.Transformer
+	// Guess reports that the walker guessed the block's type, as PayloadNode
+	// does: it keeps the decode only when it is certain, as certain
+	// describes, and otherwise reads no refs and does not descend.
+	Guess bool
 	// World is the World whose objects the block belongs to, read for their
 	// types. It is nil above any World.
 	World *bucket.ObjectRef

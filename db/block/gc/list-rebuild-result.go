@@ -13,7 +13,7 @@ type ListRebuildResult struct {
 	// list names. A stored list can only miss children, so every edge it holds
 	// is real, and such a report means a wrong constructor or a decoder bug:
 	// the rebuild keeps the stored list and leaves the block on the front,
-	// or, for a marked list a reverify compared, marked, which MarkedRefused
+	// or, for a marked list the rebuild compared, marked, which MarkedRefused
 	// also counts.
 	Dropped uint64
 	// DroppedSample names up to sampleSize of them.
@@ -25,7 +25,7 @@ type ListRebuildResult struct {
 	// FrontSample names up to sampleSize of them.
 	FrontSample []*block.BlockRef
 
-	// MarkedRead counts the marked lists a reverify compared with their
+	// MarkedRead counts the marked lists the rebuild compared with their
 	// block's decoded refs.
 	MarkedRead uint64
 	// MarkedMatched counts those that name every child the content names.
@@ -40,7 +40,7 @@ type ListRebuildResult struct {
 	// the content lacks, so the merge refuses them and leaves them lacking.
 	MarkedRefused uint64
 	// MarkedUndecodable counts the marked lists of blocks the walker reached
-	// and could not decode, which nothing compared.
+	// and could not decode, or not with certainty, which nothing compared.
 	MarkedUndecodable uint64
 	// MarkedUndecodableSample names up to sampleSize of them.
 	MarkedUndecodableSample []MarkedListSample
@@ -64,7 +64,7 @@ func (res *ListRebuildResult) add(b ListRebuildResult) {
 	res.Dropped += b.Dropped
 	res.DroppedSample = b.DroppedSample
 
-	// Add what its reverify compared.
+	// Add what it found comparing the marked lists.
 	res.MarkedRead += b.MarkedRead
 	res.MarkedMatched += b.MarkedMatched
 	res.MarkedLacking += b.MarkedLacking

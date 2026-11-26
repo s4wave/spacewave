@@ -11,6 +11,9 @@ type Visit struct {
 	// Leaf is true when the block's type holds no refs, so only its presence
 	// was read, or its bytes when the walker keeps them.
 	Leaf bool
+	// Unsure reports a guessed type the walker could not confirm, as
+	// Node.Guess describes: it read no refs and does not descend.
+	Unsure bool
 	// DecodeErr is why the block did not decode as its type.
 	DecodeErr error
 	// Refs are the refs a write records for the decoded block, nil for a leaf.

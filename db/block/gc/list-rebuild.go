@@ -40,7 +40,22 @@ func rebuildable(state *LivenessState) error {
 // in bounded transactions that yield to writers. Writing a marked list takes
 // the block off the run and the front and pushes its unverified children
 // onto the front, so the front holds what the walk still owes and the
-// settle flips only once it is empty. A rerun skips every marked list.
+// settle flips only once it is empty.
+//
+// A marked list is compared too, since Land and the rebuild mark a list with
+// whatever refs their caller hands them, and the walker can verify one
+// block twice in a run, under two types: the first, short, marks the list,
+// and the second must still add the children it lacks. A marked list that
+// lacks a decoded child is rewritten as the union and notes the rewrite; one
+// that names every child is not written.
+//
+// Invariant: after a walk that finishes with an empty front, every list a
+// root reaches through the walker and that it decoded was compared with its
+// block's content in this run. Outside it, and so reported rather than held
+// by the front: a marked list of a block the walker could not decode or
+// type with certainty (MarkedUndecodable), a marked list the merge refused
+// (MarkedRefused), a block no read resolves, and the blocks below a ref
+// whose type the walker cannot name.
 //
 // Verify writes the union of the stored list and the refs, since a list may
 // lack a child and naming one more only keeps a block longer; refs that lack
@@ -59,15 +74,13 @@ func rebuildable(state *LivenessState) error {
 // it has holders, so it holds the flip.
 //
 // It runs on an unadopted or an adopted Volume, but not while an adoption
-// counts, and only while the old generation is Open.
-//
-// With Reverify it also compares each marked list with its block's content,
-// as ListRebuildOptions describes.
+// counts, and only while the old generation is Open. OpenListCheck starts a
+// dry run, which writes nothing.
 type ListRebuild struct {
 	// store is the Volume.
 	store Store
-	// opts selects the reverify and the dry run.
-	opts ListRebuildOptions
+	// dryRun compares the lists and counts what a rebuild would write.
+	dryRun bool
 	// pending are the blocks not yet written.
 	pending []pendingList
 	// res counts the results.
@@ -85,19 +98,10 @@ type pendingList struct {
 	undecodable bool
 }
 
-// OpenListRebuild starts a list rebuild of store with opts, refusing a
-// Volume an adoption is counting with ErrListRebuildAdopting and one whose
-// old generation is not Open with ErrListsVerified, unless it is a dry run.
-func OpenListRebuild(ctx context.Context, store Store, opts ListRebuildOptions) (*ListRebuild, error) {
-	// A dry run compares on a Volume in any state.
-	if opts.DryRun {
-		if !opts.Reverify {
-			return nil, errors.New("a dry list rebuild only reverifies")
-		}
-		return &ListRebuild{store: store, opts: opts}, nil
-	}
-
-	// Refuse a Volume the rebuild may not write.
+// OpenListRebuild starts a list rebuild of store, refusing a Volume an
+// adoption is counting with ErrListRebuildAdopting and one whose old
+// generation is not Open with ErrListsVerified.
+func OpenListRebuild(ctx context.Context, store Store) (*ListRebuild, error) {
 	err := store.View(ctx, func(rec *Records) error {
 		state, err := rec.GetState(ctx)
 		if err != nil {
@@ -108,7 +112,14 @@ func OpenListRebuild(ctx context.Context, store Store, opts ListRebuildOptions) 
 	if err != nil {
 		return nil, err
 	}
-	return &ListRebuild{store: store, opts: opts}, nil
+	return &ListRebuild{store: store}, nil
+}
+
+// OpenListCheck starts a dry run of a list rebuild of store, in any state:
+// it compares each list with its block's refs in read transactions and
+// counts what a rebuild would write, writing nothing.
+func OpenListCheck(store Store) *ListRebuild {
+	return &ListRebuild{store: store, dryRun: true}
 }
 
 // Verify records that ref's decoded refs are refs, writing its list with
@@ -118,19 +129,15 @@ func (r *ListRebuild) Verify(ctx context.Context, ref *block.BlockRef, refs []*b
 }
 
 // VerifyAs is Verify for a block decoded as the type typ names, which the
-// samples of a reverify carry.
+// samples carry.
 func (r *ListRebuild) VerifyAs(ctx context.Context, ref *block.BlockRef, refs []*block.BlockRef, typ string) error {
 	return r.queue(ctx, pendingList{entry: &block.PutBatchEntry{Ref: ref, Refs: refs}, typ: typ})
 }
 
 // Undecodable records that the walker reached ref, as the type typ names,
-// and could not decode it. A reverify counts and samples it when its list
-// is marked, and never rewrites or drops that list; without Reverify it
-// does nothing.
+// and could not decode it, or not with certainty. The rebuild counts and
+// samples it when its list is marked, and never writes its list.
 func (r *ListRebuild) Undecodable(ctx context.Context, ref *block.BlockRef, typ string) error {
-	if !r.opts.Reverify {
-		return nil
-	}
 	return r.queue(ctx, pendingList{entry: &block.PutBatchEntry{Ref: ref}, typ: typ, undecodable: true})
 }
 
@@ -167,7 +174,7 @@ func (r *ListRebuild) flush(ctx context.Context) error {
 
 	// Compare each marked list on a dry run.
 	var res ListRebuildResult
-	if r.opts.DryRun {
+	if r.dryRun {
 		err := r.store.View(ctx, func(rec *Records) error {
 			res = r.res.samples()
 			_, err := r.apply(ctx, rec, &res, false)
@@ -210,11 +217,12 @@ func (r *ListRebuild) added(ctx context.Context, res ListRebuildResult, err erro
 }
 
 // apply verifies each pending block in rec, counting into res, writing the
-// lists when write is set, and reports whether a list gained a child.
+// lists when write is set and otherwise counting what it would write, and
+// reports whether a list gained a child.
 func (r *ListRebuild) apply(ctx context.Context, rec *Records, res *ListRebuildResult, write bool) (bool, error) {
 	var rewrote bool
 	for _, p := range r.pending {
-		// Read the list, and compare a marked one on a reverify.
+		// Read the list, and compare a marked one with the refs.
 		key := BlockKey(p.entry.Ref)
 		value, listed, err := rec.tx.Get(ctx, rec.key(kindChildren, key))
 		if err != nil {
@@ -222,18 +230,25 @@ func (r *ListRebuild) apply(ctx context.Context, rec *Records, res *ListRebuildR
 		}
 		marked := listed && listMarked(value)
 		var lacking bool
-		if marked && r.opts.Reverify {
+		if marked {
 			if lacking, err = res.compareMarked(p, value); err != nil {
 				return false, err
 			}
 		}
 
-		// Write nothing for an undecodable block, on a dry run, or for a
-		// marked list without a reverify or that names every child.
-		if p.undecodable || !write || marked && !lacking {
+		// Leave an undecodable block's list, and a marked list that names
+		// every child.
+		if p.undecodable || marked && !lacking {
 			continue
 		}
-		verdict, err := verifyOne(ctx, rec, p.entry, value, listed)
+
+		// Write the list, or on a dry run judge it.
+		var verdict listVerdict
+		if write {
+			verdict, err = verifyOne(ctx, rec, p.entry, value, listed)
+		} else {
+			verdict, err = judgeList(value, listed, p.entry.Refs)
+		}
 		if err != nil {
 			return false, err
 		}
@@ -252,10 +267,30 @@ func (r *ListRebuild) apply(ctx context.Context, rec *Records, res *ListRebuildR
 	return rewrote, nil
 }
 
+// judgeList returns what verifyOne would do with a list value, listed or
+// not, given its block's decoded refs, writing nothing.
+func judgeList(value []byte, listed bool, refs []*block.BlockRef) (listVerdict, error) {
+	// A missing list is written from the refs.
+	if !listed {
+		return listRewritten, nil
+	}
+
+	// A listed one is refused, kept, or rewritten as the union.
+	old, encoded := listKeys(value), EncodeChildren(refs)
+	if !containsChildren(encoded, old) {
+		return listDropped, nil
+	}
+	union, err := unionChildren(old, encoded)
+	if err != nil || bytes.Equal(union, old) {
+		return listVerified, err
+	}
+	return listRewritten, nil
+}
+
 // verifyOne writes the list of the block entry names from its decoded refs,
 // marked, while the generation is Open, given its list value and whether it
 // is listed: a missing list from the refs, a listed one, unverified or a
-// marked one a reverify compares, as the union, as mergeList describes. A
+// marked one that lacks a child, as the union, as mergeList describes. A
 // missing list is written whether or not the Volume stores the bytes, and
 // ends the block's hole record, since the list now holds its children; the
 // audit walk counts such a block as ListedAbsent, the refill's input. A

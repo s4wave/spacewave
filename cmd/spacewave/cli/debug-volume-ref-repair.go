@@ -31,8 +31,6 @@ type debugRefRepairArgs struct {
 	spaceID string
 	// dryRun counts the missing edges without writing them.
 	dryRun bool
-	// reverify compares the marked lists with their blocks' content too.
-	reverify bool
 	// peerBlocks is a directory of blocks named by their B58 refs, read in
 	// place of the peer for the blocks the volume lacks.
 	peerBlocks string
@@ -53,13 +51,8 @@ func (a *debugRefRepairArgs) BuildFlags() []cli.Flag {
 		},
 		&cli.BoolFlag{
 			Name:        "dry-run",
-			Usage:       "count the blocks lacking edges without writing them",
+			Usage:       "count the blocks lacking edges and the lists a repair would write, without writing them",
 			Destination: &a.dryRun,
-		},
-		&cli.BoolFlag{
-			Name:        "reverify",
-			Usage:       "also compare each marked child list with its block's decoded refs, adding a child it lacks",
-			Destination: &a.reverify,
 		},
 		&cli.StringFlag{
 			Name:        "peer-blocks",
@@ -86,7 +79,7 @@ func (a *debugRefRepairArgs) Run(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	res, err := repairVolumeRefs(c.Context, le, path, a.spaceID, a.dryRun, a.reverify, space_world_optypes.LookupBlockType, stub, a.upgrade.StoreConfig(nil))
+	res, err := repairVolumeRefs(c.Context, le, path, a.spaceID, a.dryRun, space_world_optypes.LookupBlockType, stub, a.upgrade.StoreConfig(nil))
 	if err != nil {
 		return err
 	}
@@ -160,7 +153,8 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 		{"Child lists written", strconv.FormatUint(res.rebuild.Rewritten, 10)},
 		{"Decoded lists refused for dropping a stored child", strconv.FormatUint(res.rebuild.Dropped, 10)},
 		{"Reached blocks the walk still owes", strconv.FormatUint(res.rebuild.Front, 10)},
-		{"Reverify", strconv.FormatBool(res.reverify)},
+		{"Payload roots read as blobs", strconv.FormatUint(res.payloadBlobs, 10)},
+		{"Payload roots that are not blobs", strconv.FormatUint(res.notBlob, 10)},
 		{"Old generation settled", strconv.FormatBool(res.verified)},
 		{"Plugin prefix groups", strconv.Itoa(len(res.pluginStores))},
 		{"Stored blocks without a child list", strconv.FormatUint(res.untracked, 10)},
@@ -188,9 +182,11 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 		fields = append(fields, [2]string{"Refused sample", ref.MarshalString()})
 	}
 
-	// Compare the marked lists on a reverify, naming those found wanting.
-	if res.reverify {
-		fields = append(fields, reverifyFields(res.rebuild)...)
+	// Name the marked lists found wanting and the payload roots that are
+	// not blobs.
+	fields = append(fields, markedFields(res.rebuild)...)
+	for _, ref := range res.notBlobSample {
+		fields = append(fields, [2]string{"Not a blob sample", ref.MarshalString()})
 	}
 
 	// Retain the walk's reasons for stopping at an untyped ref, with a sample
@@ -202,9 +198,9 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 	return fields
 }
 
-// reverifyFields formats what a reverify found comparing the marked lists
+// markedFields formats what the rebuild found comparing the marked lists
 // with their blocks' content.
-func reverifyFields(res block_gc.ListRebuildResult) [][2]string {
+func markedFields(res block_gc.ListRebuildResult) [][2]string {
 	fields := [][2]string{
 		{"Marked lists read", strconv.FormatUint(res.MarkedRead, 10)},
 		{"Marked lists matching their content", strconv.FormatUint(res.MarkedMatched, 10)},
@@ -225,16 +221,15 @@ func reverifyFields(res block_gc.ListRebuildResult) [][2]string {
 // or spaceID alone, typing objects' roots with lookup, and unless dryRun is
 // set writes the child lists they reach from the decoded blocks, as the typed
 // walk of the settle of the volume's old generation, so the collector can
-// settle it once nothing more is owed. With reverify it also compares each
-// marked list with its block's content, as block_gc.ListRebuildOptions
-// describes, and a dry run counts what that would write. Once the old
-// generation has left Open the rebuild refuses the volume and the run only
-// walks it.
+// settle it once nothing more is owed. It compares the marked lists too, as
+// block_gc.ListRebuild describes, and a dry run counts what it would write.
+// Once the old generation has left Open the rebuild refuses the volume and
+// the run only walks it.
 func repairVolumeRefs(
 	ctx context.Context,
 	le *logrus.Entry,
 	path, spaceID string,
-	dryRun, reverify bool,
+	dryRun bool,
 	lookup refwalk.LookupBlockType,
 	stub refRepairStub,
 	storeConf *store_kvtx.Config,
@@ -255,15 +250,15 @@ func repairVolumeRefs(
 		return refRepairResult{}, errors.New("no replay cursor found for the selected Spaces")
 	}
 
-	// Start the list rebuild unless this is a dry run without a reverify,
-	// then walk each Space and release the walker.
+	// Start the list rebuild, or its dry run, then walk each Space and
+	// release the walker.
 	rr := newRefRepair(le, vol, stub.peer, lookup)
 	rr.synthetic = stub.synthetic
-	rr.res.reverify = reverify
 	defer rr.close()
-	if !dryRun || reverify {
-		opts := block_gc.ListRebuildOptions{Reverify: reverify, DryRun: dryRun}
-		rr.rebuild, err = vol.OpenListRebuild(ctx, opts)
+	if dryRun {
+		rr.rebuild = vol.OpenListCheck()
+	} else {
+		rr.rebuild, err = vol.OpenListRebuild(ctx)
 		rr.res.verified = errors.Is(err, block_gc.ErrListsVerified)
 		if err != nil && !rr.res.verified {
 			return refRepairResult{}, err
@@ -309,9 +304,9 @@ func newDebugRefRepairCommand(upgrade *FormatUpgrade) *cli.Command {
 			"and writes each block's child list from its decoded refs, marked as written from content, adding any child the stored list lacks. " +
 			"It reports the reached blocks it still owes: once none is owed, the collector settles the volume's old generation and may free older blocks. " +
 			"A block it cannot decode stays owed and is reported, and so does one whose decoded refs drop a child its stored list names. " +
-			"A rerun skips the marked lists, and a volume whose old generation has settled is only walked and never repaired. " +
-			"With --reverify it also compares each marked list with its block's content, adds a child the list lacks, and reports the marked lists it could not compare; " +
-			"with --dry-run it only counts them. " +
+			"It compares lists already marked too, adds a child one lacks, and reports the marked lists it could not compare. " +
+			"An operation payload root that no walked World types is read as a blob only when it certainly is one; otherwise it is reported and verified for nothing. " +
+			"A volume whose old generation has settled is only walked and never repaired. " +
 			"A list that gains a child on an adopted volume makes the settle return it to unadopted, so an adoption recounts every list before anything more frees. " +
 			"Blocks stored before puts carried their child lists have none. " +
 			"Also counts plugin object-store keys by volume prefix and measures all stored blocks without a child list. " +

@@ -163,13 +163,14 @@ func (w *Walker) BlobNode(world *bucket.ObjectRef, ref *block.BlockRef) (Node, e
 // Worlds that hold an operation's outcome are walked, a payload the walk
 // typed as an object root is walked under its object's type, and the rest
 // are blobs. An object root that no walked World names, such as one a later
-// transaction in its batch replaced, is read as a blob, which a list
-// rebuild refuses where the blob lacks a child its stored list names.
+// transaction in its batch replaced, is read as a blob too, so the node is a
+// guess, which the walker keeps only when the block is certainly a blob.
 func (w *Walker) PayloadNode(world *bucket.ObjectRef, ref *block.BlockRef) (Node, bool, error) {
 	if _, ok := w.roots[ref.MarshalString()]; ok {
 		return Node{}, false, nil
 	}
 	n, err := w.BlobNode(world, ref)
+	n.Guess = true
 	return n, err == nil, err
 }
 
@@ -280,6 +281,9 @@ func (w *Walker) read(ctx context.Context, n Node) (Visit, error) {
 			rd.blk = blk
 		}
 	}
+	if n.Guess && !certain(rd.blk, data) {
+		rd.Unsure, rd.blk = true, nil
+	}
 	if rd.blk == nil {
 		return rd, nil
 	}
@@ -287,6 +291,18 @@ func (w *Walker) read(ctx context.Context, n Node) (Visit, error) {
 	// Extract the refs a write records.
 	rd.Refs, err = block.ExtractBlockRefs(rd.blk)
 	return rd, err
+}
+
+// certain reports whether blk, decoded from data under a guessed type, is
+// certainly of that type: a Blob that validates, that is not an empty blob
+// read from non-empty bytes, and that holds only the fields its types define.
+// Any other type, or no block, is never certain.
+func certain(blk any, data []byte) bool {
+	b, ok := blk.(*blob.Blob)
+	if !ok || b.Validate() != nil || b.IsEmpty() && len(data) != 0 {
+		return false
+	}
+	return b.DefinedFieldsOnly()
 }
 
 // holdsRefs reports whether a block of blk's type can reference other blocks.

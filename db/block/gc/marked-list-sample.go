@@ -2,7 +2,7 @@ package block_gc
 
 import "github.com/s4wave/spacewave/db/block"
 
-// MarkedListSample names a marked list a reverify found wanting.
+// MarkedListSample names a marked list the rebuild found wanting.
 type MarkedListSample struct {
 	// Ref is the block.
 	Ref *block.BlockRef

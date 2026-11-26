@@ -164,7 +164,9 @@ func TestDebugRefRepair(t *testing.T) {
 		RootRef:       eng.GetRootRef().GetRootRef(),
 		TransformConf: base.GetTransformConf(),
 	}}
-	data, err := (&space_world.ReplayCursor{Base: state, Head: state}).MarshalVT()
+	worldRoot := state.GetHeadRef().GetRootRef()
+	outcome := &space_world.ReplayCursorOutcome{World: worldRoot, Payloads: []*block.BlockRef{worldRoot}}
+	data, err := (&space_world.ReplayCursor{Base: state, Head: state, Outcomes: []*space_world.ReplayCursorOutcome{outcome}}).MarshalVT()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -261,13 +263,19 @@ func TestDebugRefRepair(t *testing.T) {
 	before := sum()
 
 	// A dry run counts the missing edges and writes none.
-	dry, err := repairVolumeRefs(ctx, le, path, "", true, false, space_world_optypes.LookupBlockType, refRepairStub{}, nil)
+	dry, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, refRepairStub{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Logf("dry run: %+v", dry)
-	if dry.spaces != 1 || dry.lacking == 0 || dry.edges == 0 || dry.rebuild.Verified != 0 {
+	if dry.spaces != 1 || dry.lacking == 0 || dry.edges == 0 || dry.rebuild.Rewritten == 0 {
 		t.Fatalf("dry run: %+v", dry)
+	}
+
+	// The World root, named as a payload, is read as a guessed blob, is not
+	// certainly one, and is verified for nothing.
+	if dry.notBlob != 1 || dry.payloadBlobs != 0 || !dry.notBlobSample[0].EqualVT(worldRoot) {
+		t.Fatalf("payload root that is not a blob: %+v", dry)
 	}
 	if dry.absent != 0 || dry.undecodable != 0 || len(dry.untyped) != 0 {
 		t.Fatalf("dry run did not walk the whole filesystem: %+v", dry)
@@ -321,7 +329,7 @@ func TestDebugRefRepair(t *testing.T) {
 	}
 
 	// The dry run left the child lists as they were.
-	again, err := repairVolumeRefs(ctx, le, path, "", true, false, space_world_optypes.LookupBlockType, refRepairStub{}, nil)
+	again, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, refRepairStub{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -356,7 +364,7 @@ func TestDebugRefRepair(t *testing.T) {
 	// Applying writes every missing child list, those of the leaves the dry
 	// run only checks for presence too, and verifies every walked block's
 	// list, which leaves no reached block on the settle's front.
-	applied, err := repairVolumeRefs(ctx, le, path, "", false, false, space_world_optypes.LookupBlockType, refRepairStub{}, nil)
+	applied, err := repairVolumeRefs(ctx, le, path, "", false, space_world_optypes.LookupBlockType, refRepairStub{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -389,14 +397,14 @@ func TestDebugRefRepair(t *testing.T) {
 	asBytes := func(_ context.Context, typeID string) (blocktype.BlockType, error) {
 		return blocktype.New[byteslice.ByteSlice](typeID), nil
 	}
-	wrong, err := repairVolumeRefs(ctx, le, path, "", false, false, asBytes, refRepairStub{}, nil)
+	wrong, err := repairVolumeRefs(ctx, le, path, "", false, asBytes, refRepairStub{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if wrong.rebuild.Dropped == 0 || wrong.rebuild.Rewritten != 0 || wrong.rebuild.Front == 0 {
 		t.Fatalf("rebuild with a wrong root type: %+v", wrong.rebuild)
 	}
-	right, err := repairVolumeRefs(ctx, le, path, "", false, false, space_world_optypes.LookupBlockType, refRepairStub{}, nil)
+	right, err := repairVolumeRefs(ctx, le, path, "", false, space_world_optypes.LookupBlockType, refRepairStub{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -405,7 +413,7 @@ func TestDebugRefRepair(t *testing.T) {
 	}
 
 	// Nothing is missing afterward.
-	after, err := repairVolumeRefs(ctx, le, path, "", true, false, space_world_optypes.LookupBlockType, refRepairStub{}, nil)
+	after, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, refRepairStub{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -413,9 +421,9 @@ func TestDebugRefRepair(t *testing.T) {
 		t.Fatalf("after repair: %+v", after)
 	}
 
-	// A marked list that lacks a child its block's bytes name, as Land marks
-	// a list from the refs its caller hands it, escapes a walk that skips
-	// marked lists: drop a child from the World root's list.
+	// A marked list can lack a child its block's bytes name, as Land marks a
+	// list from the refs its caller hands it: drop a child from the World
+	// root's list.
 	rootRef := held[0].Ref
 	children := lsChildren(t, path, rootRef)
 	if len(children) == 0 {
@@ -433,37 +441,28 @@ func TestDebugRefRepair(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Without a reverify the walk leaves it and reports nothing.
-	plain, err := repairVolumeRefs(ctx, le, path, "", false, false, space_world_optypes.LookupBlockType, refRepairStub{}, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if plain.rebuild.Rewritten != 0 || plain.rebuild.MarkedLacking != 0 || slices.ContainsFunc(lsChildren(t, path, rootRef), missing.EqualVT) {
-		t.Fatalf("plain rerun over a short marked list: %+v", plain.rebuild)
-	}
-
-	// A dry reverify counts it and writes nothing.
-	dryRe, err := repairVolumeRefs(ctx, le, path, "", true, true, space_world_optypes.LookupBlockType, refRepairStub{}, nil)
+	// A dry run counts it and writes nothing.
+	dryRe, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, refRepairStub{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	re := dryRe.rebuild
-	if re.MarkedLacking != 1 || re.MarkedRefused != 0 || re.MarkedRead != re.MarkedMatched+1 || re.Rewritten != 0 ||
+	if re.MarkedLacking != 1 || re.MarkedRefused != 0 || re.MarkedRead != re.MarkedMatched+1 || re.Rewritten != 1 ||
 		len(re.MarkedLackingSample) != 1 || !re.MarkedLackingSample[0].Ref.EqualVT(rootRef) || !re.MarkedLackingSample[0].Missing.EqualVT(missing) {
-		t.Fatalf("dry reverify: %+v", re)
+		t.Fatalf("dry run over a short marked list: %+v", re)
 	}
 	if slices.ContainsFunc(lsChildren(t, path, rootRef), missing.EqualVT) {
-		t.Fatal("the dry reverify wrote the list")
+		t.Fatal("the dry run wrote the list")
 	}
 
-	// The reverify rewrites the list with the child.
-	fixed, err := repairVolumeRefs(ctx, le, path, "", false, true, space_world_optypes.LookupBlockType, refRepairStub{}, nil)
+	// The repair rewrites the list with the child.
+	fixed, err := repairVolumeRefs(ctx, le, path, "", false, space_world_optypes.LookupBlockType, refRepairStub{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if fixed.rebuild.MarkedLacking != 1 || fixed.rebuild.Rewritten != 1 || fixed.rebuild.Front != 0 ||
 		!slices.ContainsFunc(lsChildren(t, path, rootRef), missing.EqualVT) {
-		t.Fatalf("reverify: %+v", fixed.rebuild)
+		t.Fatalf("repair of a short marked list: %+v", fixed.rebuild)
 	}
 
 	// Adoption refuses while a stored child list names a block stored
