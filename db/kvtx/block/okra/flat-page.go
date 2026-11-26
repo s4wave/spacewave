@@ -488,16 +488,30 @@ func (p *flatPage) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 
 // GetBlockRefs returns the child and value references by entry ref ID.
 func (p *flatPage) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
+	// A nil page holds no references.
 	if p == nil {
 		return nil, nil
 	}
-	refs := make(map[uint32]*block.BlockRef)
+
+	// Size one arena for every reference, so the page costs three allocations
+	// for its references instead of three per reference.
+	var n, digestBytes int
 	for i := range p.entries {
-		if ref := p.childRef(i); ref != nil {
-			refs[entryChildRefID(i)] = ref
+		for _, r := range [...]flatRef{p.entries[i].child, p.entries[i].value} {
+			if !r.empty() {
+				n, digestBytes = n+1, digestBytes+int(r.digest.n)
+			}
 		}
-		if ref := p.valueRef(i); ref != nil {
-			refs[entryValueRefID(i)] = ref
+	}
+	refs := make(map[uint32]*block.BlockRef, n)
+	arena := block.NewRefArena(n, digestBytes)
+	for i := range p.entries {
+		e := &p.entries[i]
+		if !e.child.empty() {
+			refs[entryChildRefID(i)] = arena.Ref(hash.HashType(e.child.hashType), p.view(e.child.digest))
+		}
+		if !e.value.empty() {
+			refs[entryValueRefID(i)] = arena.Ref(hash.HashType(e.value.hashType), p.view(e.value.digest))
 		}
 	}
 	return refs, nil

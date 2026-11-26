@@ -62,10 +62,10 @@ func newDecodedBlockReadData(scopeID uint64, key decodedBlockCacheKey, entry dec
 	if err != nil {
 		return nil, 0
 	}
-	var count int
+	var count, digestBytes int
 	for _, ref := range refs {
 		if !ref.GetEmpty() {
-			count++
+			count, digestBytes = count+1, digestBytes+len(ref.GetHash().GetHash())
 		}
 	}
 	if count == 0 {
@@ -75,6 +75,7 @@ func newDecodedBlockReadData(scopeID uint64, key decodedBlockCacheKey, entry dec
 	// Reserve and charge every memoized edge before attachment.
 	data.links = make(map[uint32]*decodedBlockReadLink, count)
 	data.edges = make([]decodedBlockReadLink, count)
+	arena := NewRefArena(count, digestBytes)
 	index := 0
 	var edgeCost int64
 	for id, ref := range refs {
@@ -82,7 +83,7 @@ func newDecodedBlockReadData(scopeID uint64, key decodedBlockCacheKey, entry dec
 			continue
 		}
 		edge := &data.edges[index]
-		edge.ref = ref.Clone()
+		edge.ref = arena.Clone(ref)
 		edgeCost += 64 + 2*int64(ref.SizeVT())
 		if withRefs.GetBlockRefCtor(id) != nil {
 			edgeCost += 192
