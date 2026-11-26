@@ -15,21 +15,43 @@
     "replace": [
       [
         "phase' = [phase EXCEPT ![p] = \"backoff\"] /\\ lostTo' = lostTo",
-        "phase' = [phase EXCEPT ![p] = \"held\"] /\\ lostTo' = lostTo"
+        "phase' = [phase EXCEPT ![p] = \"none\"] /\\ lostTo' = lostTo"
       ]
     ],
     "expect": "RecoverableReopens",
     "config": "PeerRetry.cfg"
   },
   {
-    "name": "a readmitted peer waits for the remote side instead of renewing",
+    "name": "a lifted end waits for the remote side instead of renewing",
     "replace": [
       [
-        "/\\ owner = \"running\" /\\ phase[p] = \"readmit\" /\\ admitted[p]\n  /\\ phase' = [phase EXCEPT ![p] = \"offered\"]",
-        "/\\ owner = \"running\" /\\ phase[p] = \"readmit\" /\\ admitted[p]\n  /\\ phase' = [phase EXCEPT ![p] = \"held\"]"
+        "/\\ owner = \"running\" /\\ phase[p] = \"watch\" /\\ lifted[p]\n  /\\ phase' = [phase EXCEPT ![p] = \"offered\"]",
+        "/\\ owner = \"running\" /\\ phase[p] = \"watch\" /\\ lifted[p]\n  /\\ phase' = [phase EXCEPT ![p] = \"parked\"]"
       ]
     ],
-    "expect": "ReadmittedReopens",
+    "expect": "LiftedReopens",
+    "config": "PeerRetry.cfg"
+  },
+  {
+    "name": "a renewal outlives its peer's last link",
+    "replace": [
+      [
+        "/\\ owner = \"running\" /\\ phase[p] \\in Renewing /\\ ~linked[p]",
+        "/\\ FALSE"
+      ]
+    ],
+    "expect": "RenewalNeedsLink",
+    "config": "PeerRetry.cfg"
+  },
+  {
+    "name": "a new link does not pair the standing offers",
+    "replace": [
+      [
+        "/\\ owner = \"running\" /\\ linked[p] /\\ fresh[p] /\\ phase[p] # \"stopped\"",
+        "/\\ FALSE"
+      ]
+    ],
+    "expect": "RelinkReopens",
     "config": "PeerRetry.cfg"
   },
   {

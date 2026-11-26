@@ -40,7 +40,7 @@ func TestRefusedParticipantAdoptsConfigSuffix(t *testing.T) {
 			staleState, staleGenesis := suffixGenesisState(t, soID, owner, stale)
 			staleHost, _ := newMemHostRetaining(soID, staleState.CloneVT(), []*sobject.SOConfigChange{staleGenesis})
 			t.Cleanup(staleHost.ClearContext)
-			stalePeer := NewSOSync(gateLogger(), nil, soID, mustPeerID(t, stale), stale, staleHost, nopPeerObserver{})
+			stalePeer := NewSOSync(gateLogger(), nil, nil, soID, mustPeerID(t, stale), stale, staleHost, nopPeerObserver{})
 
 			// The added key holds a config one change later that lists it.
 			aheadState, aheadGenesis := staleState.CloneVT(), staleGenesis
@@ -55,7 +55,7 @@ func TestRefusedParticipantAdoptsConfigSuffix(t *testing.T) {
 			addition := suffixAddReader(t, soID, aheadState, added, signer)
 			aheadHost, _ := newMemHostRetaining(soID, aheadState, []*sobject.SOConfigChange{aheadGenesis, addition})
 			t.Cleanup(aheadHost.ClearContext)
-			aheadPeer := NewSOSync(gateLogger(), nil, soID, mustPeerID(t, added), added, aheadHost, nopPeerObserver{})
+			aheadPeer := NewSOSync(gateLogger(), nil, nil, soID, mustPeerID(t, added), added, aheadHost, nopPeerObserver{})
 
 			// The first stream is refused by the stale side.
 			runSuffixStream(t, ctx, aheadPeer, stalePeer, true)

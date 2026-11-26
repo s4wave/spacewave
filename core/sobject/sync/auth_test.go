@@ -107,7 +107,7 @@ func newObservedPeer(t *testing.T, soID string, key crypto.PrivKey, state *sobje
 	}
 	host, _ := newMemHost(soID, state.CloneVT())
 	t.Cleanup(host.ClearContext)
-	return NewSOSync(gateLogger(), nil, soID, id, key, host, observer)
+	return NewSOSync(gateLogger(), nil, nil, soID, id, key, host, observer)
 }
 
 // authenticationState establishes the trusted participants before the stream exists.

@@ -1192,6 +1192,7 @@ func (a *ProviderAccount) startSOSync(
 	soSync := sobject_sync.NewSOSync(
 		a.le,
 		childBus,
+		state.sessionTransport,
 		soID,
 		localSO.GetPeerID(),
 		localSO.localPriv,

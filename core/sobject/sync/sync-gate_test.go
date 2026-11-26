@@ -267,7 +267,7 @@ func TestSnapshotExchangeRejectsExcludedLocalPeer(t *testing.T) {
 	}
 	held := gateState(t, soID, ownerPriv, localPeer.String(), sobject.SOParticipantRole_SOParticipantRole_READER)
 	localHost, ctr := newMemHost(soID, held.CloneVT())
-	s := NewSOSync(gateLogger(), nil, soID, localPeer, localPriv, localHost, nopPeerObserver{})
+	s := NewSOSync(gateLogger(), nil, nil, soID, localPeer, localPriv, localHost, nopPeerObserver{})
 
 	// The peer offers an unproven config without the local peer.
 	peerState := held.CloneVT()
@@ -297,7 +297,7 @@ func TestSnapshotExchangeRejectsSnapshotWithoutLocalGrant(t *testing.T) {
 		}
 		return nil
 	}
-	s := NewSOSync(gateLogger(), nil, soID, localPeer, localPriv, localHost, nopPeerObserver{}, validateAccess)
+	s := NewSOSync(gateLogger(), nil, nil, soID, localPeer, localPriv, localHost, nopPeerObserver{}, validateAccess)
 
 	// The peer offers a newer checkpoint without a grant.
 	peerState := held.CloneVT()
@@ -326,7 +326,7 @@ func TestSnapshotExchangeRejectsTamperedGrant(t *testing.T) {
 	ownerPriv := mustKeyPair(t)
 	held := gateState(t, soID, ownerPriv, localPeer.String(), sobject.SOParticipantRole_SOParticipantRole_READER)
 	localHost, ctr := newMemHost(soID, held.CloneVT())
-	s := NewSOSync(gateLogger(), nil, soID, localPeer, localPriv, localHost, nopPeerObserver{})
+	s := NewSOSync(gateLogger(), nil, nil, soID, localPeer, localPriv, localHost, nopPeerObserver{})
 
 	// The peer offers a grant whose signed body was altered.
 	grant := buildGrant(t, soID, ownerPriv, localPub)
@@ -364,7 +364,7 @@ func TestSnapshotExchangeAcceptsObjectPeerDistinctFromTransportPeer(t *testing.T
 	localState := genesis.CloneVT()
 	pending := writeSyncOp(t, soID, localState, localPriv, "pending-local-write")
 	localHost, ctr := newMemHost(soID, localState)
-	s := NewSOSync(gateLogger(), nil, soID, localPeer, localPriv, localHost, nopPeerObserver{})
+	s := NewSOSync(gateLogger(), nil, nil, soID, localPeer, localPriv, localHost, nopPeerObserver{})
 	peerState := genesis.CloneVT()
 	advanceSnapshotCheckpoint(t, soID, peerState, ownerPriv)
 

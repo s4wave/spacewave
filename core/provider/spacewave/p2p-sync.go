@@ -199,7 +199,7 @@ func (a *ProviderAccount) startP2PSyncForSession(ctx context.Context, sessionID 
 				return nil
 			}
 			defer state.endRoutine(&key)
-			return a.runP2PSpace(ctx, childBus, state, key)
+			return a.runP2PSpace(ctx, st, childBus, state, key)
 		}, struct{}{}
 	}, keyed.WithExitLogger[p2pSyncSpaceKey, struct{}](a.le), keyed.WithRetry[p2pSyncSpaceKey, struct{}](providerBackoff))
 	state.watcher.SetRoutine(func(ctx context.Context) error {
@@ -280,8 +280,9 @@ func (a *ProviderAccount) stopP2PSyncForSession(sessionID string) {
 	}
 }
 
-// runP2PSpace retains block exchange and signed state synchronization for one Space.
-func (a *ProviderAccount) runP2PSpace(ctx context.Context, childBus bus.Bus, state *p2pSyncState, key p2pSyncSpaceKey) error {
+// runP2PSpace retains block exchange and signed state synchronization for one
+// Space. st is the Session transport whose links bound each peer renewal.
+func (a *ProviderAccount) runP2PSpace(ctx context.Context, st *transport.SessionTransport, childBus bus.Bus, state *p2pSyncState, key p2pSyncSpaceKey) error {
 	// Publish the direct read adapter only while its controller remains attached.
 	bucketID := BlockStoreBucketID(a.accountID, key.blockStoreID)
 	ctrl, _, dexRef, err := loader.WaitExecControllerRunningTyped[*dex_solicit.Controller](ctx, childBus, resolver.NewLoadControllerWithConfig(&dex_solicit.Config{
@@ -317,7 +318,7 @@ func (a *ProviderAccount) runP2PSpace(ctx context.Context, childBus bus.Bus, sta
 		swSO.tkr.healthCtr.SwapValue(fn)
 	})
 	syncer := sobject_sync.NewSOSync(
-		a.le, childBus, key.id, swSO.localPid, swSO.privKey, swSO.GetSOHost(),
+		a.le, childBus, st, key.id, swSO.localPid, swSO.privKey, swSO.GetSOHost(),
 		health, validateSnapshotAccess,
 	)
 	return syncer.Execute(ctx)

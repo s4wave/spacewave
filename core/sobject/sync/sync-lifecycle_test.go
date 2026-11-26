@@ -15,6 +15,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/callback"
 	"github.com/aperturerobotics/controllerbus/directive"
 	directive_controller "github.com/aperturerobotics/controllerbus/directive/controller"
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/net/link"
@@ -84,7 +85,8 @@ func TestSOSyncExecuteRenewsOnlyFailedPeer(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		syncer := NewSOSync(le, b, "test-object", localID, key, nil, nopPeerObserver{})
+		links := newTestLinks("peer-a", "peer-b")
+		syncer := NewSOSync(le, b, links, "test-object", localID, key, nil, nopPeerObserver{})
 		errCh := make(chan error, 1)
 		go func() {
 			errCh <- syncer.Execute(ctx)
@@ -113,41 +115,59 @@ func TestSOSyncExecuteRenewsOnlyFailedPeer(t *testing.T) {
 	})
 }
 
-// TestPeerStreamsEndRenewsRecoverableFailuresOnly verifies that the last
-// stream with a peer renews its offer after a recoverable failure or a local
-// refusal, and not after a terminal peer state.
-func TestPeerStreamsEndRenewsRecoverableFailuresOnly(t *testing.T) {
+// TestPeerStreamsEndRenewsWhileLinked verifies that the last stream with a
+// linked peer renews its offer after a recoverable failure or an end that a
+// held-state event can lift, not after the remote side's denial, and that the
+// renewal ends with the peer's last link.
+func TestPeerStreamsEndRenewsWhileLinked(t *testing.T) {
 	tests := []struct {
-		name  string
-		err   error
-		renew bool
+		name   string
+		err    error
+		linked bool
+		renew  bool
 	}{
-		{name: "recoverable", err: errors.New("peer snapshot conflicts with accepted root"), renew: true},
-		{name: "local refusal", err: &localRefusal{remoteID: "participant"}, renew: true},
-		{name: "access denied", err: ErrAccessDenied},
-		{name: "participant revoked", err: sobject.ErrParticipantRevoked},
-		{name: "history recovery", err: sobject.ErrConfigHistoryUnavailable},
-		{name: "state too large", err: sobject.ErrStateTooLarge},
+		{name: "recoverable", err: errors.New("peer snapshot conflicts with accepted root"), linked: true, renew: true},
+		{name: "recoverable without link", err: errors.New("peer snapshot conflicts with accepted root")},
+		{name: "local refusal", err: &localRefusal{remoteID: "participant"}, linked: true, renew: true},
+		{name: "remote denial", err: ErrAccessDenied, linked: true},
+		{name: "participant revoked", err: sobject.ErrParticipantRevoked, linked: true, renew: true},
+		{name: "history recovery", err: sobject.ErrConfigHistoryUnavailable, linked: true, renew: true},
+		{name: "state too large", err: sobject.ErrStateTooLarge, linked: true, renew: true},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			synctest.Test(t, func(t *testing.T) {
 				// End the only stream with a peer. The renewal's first delay and
-				// the readmission watch both stay blocked until stop.
+				// the held-state watch both stay blocked until stop.
 				ctx, cancel := context.WithCancel(t.Context())
 				host, _ := newMemHost("test-object", &sobject.SOState{})
-				syncer := NewSOSync(gateLogger(), nil, "test-object", "", nil, host, nopPeerObserver{})
+				links := newTestLinks()
+				if test.linked {
+					links.set("peer-a", true)
+				}
+				syncer := NewSOSync(gateLogger(), nil, links, "test-object", "", nil, host, nopPeerObserver{})
 				streams := newPeerStreams(ctx, syncer)
 				streams.arrive("peer-a")
 				streams.end("peer-a", true, test.err)
+				synctest.Wait()
 
-				// Only a failure with a next step registers a renewal.
-				var renewing bool
-				streams.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-					renewing = streams.peers["peer-a"].renewal != nil
-				})
-				if renewing != test.renew {
-					t.Fatalf("expected renewal %v, got %v", test.renew, renewing)
+				// Only a linked peer with a next step keeps a renewal.
+				renewing := func() bool {
+					var renewing bool
+					streams.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+						renewing = streams.peers["peer-a"].renewal != nil
+					})
+					return renewing
+				}
+				if got := renewing(); got != test.renew {
+					t.Fatalf("expected renewal %v, got %v", test.renew, got)
+				}
+
+				// The peer's last link going ends its renewal.
+				links.set("peer-a", false)
+				synctest.Wait()
+				if renewing() {
+					t.Fatal("renewal outlived the peer's last link")
 				}
 
 				// Stop joins the renewal and leaves new streams fenced.
@@ -188,7 +208,7 @@ func TestLogStreamResultReportsEachFailureChange(t *testing.T) {
 	log, hook := logtest.NewNullLogger()
 	log.SetLevel(logrus.InfoLevel)
 	le := logrus.NewEntry(log)
-	syncer := NewSOSync(le, nil, "test-object", "", nil, nil, nopPeerObserver{})
+	syncer := NewSOSync(le, nil, nil, "test-object", "", nil, nil, nopPeerObserver{})
 
 	// A terminal failure warns on its first stream and stays quiet after.
 	blocked := errors.Wrap(sobject.ErrStateTooLarge, "12582912 bytes")
@@ -306,8 +326,49 @@ func (trackedMountedLink) OpenMountedStream(context.Context, protocol.ID, stream
 	return nil, errors.New("not supported")
 }
 
+// testLinks is a PeerLinks whose linked peers a test sets.
+type testLinks struct {
+	// bcast guards linked and wakes link watches.
+	bcast broadcast.Broadcast
+	// linked holds the peers with a link.
+	linked map[peer.ID]bool
+}
+
+// newTestLinks constructs a PeerLinks with a link to each of peers.
+func newTestLinks(peers ...peer.ID) *testLinks {
+	l := &testLinks{linked: make(map[peer.ID]bool)}
+	for _, p := range peers {
+		l.linked[p] = true
+	}
+	return l
+}
+
+// set links or unlinks p and wakes the watches.
+func (l *testLinks) set(p peer.ID, linked bool) {
+	l.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		l.linked[p] = linked
+		bcast()
+	})
+}
+
+// GetLinkedPeerIDsSnapshotWithWait returns the linked peers of peerIDs.
+func (l *testLinks) GetLinkedPeerIDsSnapshotWithWait(peerIDs []peer.ID) (map[peer.ID]struct{}, []<-chan struct{}) {
+	linked := make(map[peer.ID]struct{})
+	var waitCh <-chan struct{}
+	l.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		waitCh = getWaitCh()
+		for _, p := range peerIDs {
+			if l.linked[p] {
+				linked[p] = struct{}{}
+			}
+		}
+	})
+	return linked, []<-chan struct{}{waitCh}
+}
+
 // _ is a type assertion.
 var (
 	_ link.MountedStream = (*trackedMountedStream)(nil)
 	_ link.MountedLink   = trackedMountedLink{}
+	_ PeerLinks          = (*testLinks)(nil)
 )

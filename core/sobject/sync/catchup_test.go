@@ -362,7 +362,7 @@ func testConcurrentOwnerBranchesMerge(t *testing.T, count, padding int) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		return NewSOSync(gateLogger(), nil, soID, id, key, host, nopPeerObserver{})
+		return NewSOSync(gateLogger(), nil, nil, soID, id, key, host, nopPeerObserver{})
 	}
 	a, b := newPeer(ownerA), newPeer(ownerB)
 
