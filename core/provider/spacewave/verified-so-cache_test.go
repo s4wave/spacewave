@@ -396,7 +396,7 @@ func TestHandleSONotifyDeferToConfigChainOnInlineDelta(t *testing.T) {
 	verifiedHash := []byte("verified-config-chain-hash")
 	bumpedHash := []byte("bumped-config-chain-hash")
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Fatalf("unexpected HTTP call from handleSONotify: %s", r.URL.Path)
+		t.Fatalf("unexpected HTTP call while applying inline state: %s", r.URL.Path)
 	}))
 	defer srv.Close()
 	host := newCloudSOHost(
@@ -432,7 +432,7 @@ func TestHandleSONotifyDeferToConfigChainOnInlineDelta(t *testing.T) {
 			Content: &api.SOStateMessage_Snapshot{Snapshot: snapshot},
 		},
 	}
-	host.handleSONotify(payload)
+	queueAndApplySONotify(host, payload)
 
 	// The verifier is signaled and the pull routine is not.
 	if !host.configChangedRoutine.Pending() {
@@ -462,7 +462,7 @@ func TestHandleSONotifyIgnoresMetadataOnly(t *testing.T) {
 		nil,
 		nil,
 	)
-	host.handleSONotify(&api.SONotifyEventPayload{
+	queueAndApplySONotify(host, &api.SONotifyEventPayload{
 		ChangeType: "metadata",
 		Metadata: &api.SpaceMetadataResponse{
 			DisplayName: "Renamed Space",
@@ -498,7 +498,7 @@ func TestHandleSONotifyConfigChangedPullsState(t *testing.T) {
 		nil,
 		nil,
 	)
-	host.handleSONotify(&api.SONotifyEventPayload{ChangeType: "configChanged"})
+	queueAndApplySONotify(host, &api.SONotifyEventPayload{ChangeType: "configChanged"})
 	if !host.pullRoutine.Pending() {
 		t.Fatal("config change notify should signal the pull routine")
 	}

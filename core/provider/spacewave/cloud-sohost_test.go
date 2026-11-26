@@ -213,7 +213,7 @@ func TestCloudSOHostRefreshesBlockManifestBeforeInlineStateWhenNonceAdvances(t *
 	}
 
 	// Notify an inline state with an advanced nonce.
-	host.handleSONotify(&api.SONotifyEventPayload{
+	queueAndApplySONotify(host, &api.SONotifyEventPayload{
 		Seqno:           1,
 		ChangeType:      "op",
 		BlockStoreNonce: 1,
@@ -256,7 +256,7 @@ func TestCloudSOHostSkipsBlockManifestRefreshWithoutAdvancedNonce(t *testing.T) 
 	// Notify inline states with a given nonce.
 	notify := func(seqno, blockStoreNonce uint64) {
 		t.Helper()
-		host.handleSONotify(&api.SONotifyEventPayload{
+		queueAndApplySONotify(host, &api.SONotifyEventPayload{
 			Seqno:           seqno,
 			ChangeType:      "op",
 			BlockStoreNonce: blockStoreNonce,
@@ -310,7 +310,7 @@ func TestCloudSOHostTriggersPullWhenAdvancedBlockManifestRefreshFails(t *testing
 	}
 
 	// Notify an inline state with an advanced nonce.
-	host.handleSONotify(&api.SONotifyEventPayload{
+	queueAndApplySONotify(host, &api.SONotifyEventPayload{
 		Seqno:           1,
 		ChangeType:      "op",
 		BlockStoreNonce: 1,

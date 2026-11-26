@@ -1,0 +1,50 @@
+[
+  {
+    "name": "the reconnect boundary is marked when the socket drops, before the new connection subscribes",
+    "replace": [
+      [
+        "  /\\ status' = \"dormant\"\n  /\\ UNCHANGED <<head, applied, mode, snap, run, pullPending, terminal, snaps, losses>>",
+        "  /\\ status' = \"dormant\"\n  /\\ EnterResync\n  /\\ UNCHANGED <<head, applied, pullPending, terminal, snaps, losses>>"
+      ],
+      [
+        "  /\\ conn' = \"up\" /\\ status' = \"ready\"\n  /\\ EnterResync\n  /\\ UNCHANGED <<head, applied, wire, pullPending, terminal, snaps, drops, losses>>",
+        "  /\\ conn' = \"up\" /\\ status' = \"ready\"\n  /\\ UNCHANGED <<head, applied, wire, mode, snap, run, pullPending, terminal, snaps, drops, losses>>"
+      ]
+    ],
+    "expect": "Converged",
+    "config": "SpaceBacklog.cfg"
+  },
+  {
+    "name": "a delta past the held end is appended to the run as if contiguous",
+    "replace": [
+      [
+        "m.since > HeldEnd\n          /\\ EnterResync",
+        "m.since > HeldEnd\n          /\\ mode' = \"holding\" /\\ snap' = snap /\\ run' = run \\cup {m.to}"
+      ]
+    ],
+    "expect": "RunContiguous",
+    "config": "SpaceBacklog.cfg"
+  },
+  {
+    "name": "the tracker reconnects after a terminal outcome, and ready replaces it",
+    "replace": [
+      [
+        "Connect ==\n  /\\ conn = \"down\"",
+        "Connect ==\n  /\\ conn \\in {\"down\", \"ended\"}"
+      ]
+    ],
+    "expect": "TerminalKept",
+    "config": "SpaceBacklog.cfg"
+  },
+  {
+    "name": "resync drops the held messages without a fresh pull",
+    "replace": [
+      [
+        "THEN applied' = 1..head /\\ pullPending' = pullPending",
+        "THEN applied' = applied /\\ pullPending' = pullPending"
+      ]
+    ],
+    "expect": "Converged",
+    "config": "SpaceBacklog.cfg"
+  }
+]

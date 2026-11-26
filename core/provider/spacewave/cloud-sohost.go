@@ -81,6 +81,11 @@ type cloudSOHost struct {
 	writeMu csync.Mutex
 	// pullRoutine runs coalesced gap-recovery state pulls.
 	pullRoutine *coalescedTriggerRoutine
+	// stateBacklog holds the inline state the websocket delivered and the
+	// state routine has not yet applied.
+	stateBacklog soStateBacklog
+	// stateRoutine applies stateBacklog off the websocket's read goroutine.
+	stateRoutine *coalescedTriggerRoutine
 	// pullSeed coordinates concurrent pullState callers (cold seed in
 	// Execute, lockFn cold fallback, gap recovery in pullRoutine, write
 	// retries, op-queue cold fallback) so they share one in-flight HTTP
@@ -143,6 +148,7 @@ func newCloudSOHost(
 		syncer:                    syncer,
 	}
 	h.pullRoutine = newCoalescedTriggerRoutine(le, "so-state-pull", h.pullOnTrigger)
+	h.stateRoutine = newCoalescedTriggerRoutine(le, "so-inline-state", h.applyStateBacklog)
 	h.snapDeriver = newNamedRoutineContainer(le, "so-snapshot-deriver")
 	h.snapDeriver.SetRoutine(h.runSnapDeriver)
 	h.configChangedRoutine = newCoalescedTriggerRoutine(le, "so-config-chain-verifier", h.handleConfigChanged)
@@ -207,12 +213,13 @@ func (h *cloudSOHost) execute(ctx context.Context, ready func(context.Context) e
 	h.ctxCancel = cancel
 	defer cancel()
 
-	// Receive notifications for the host's lifetime.
+	// Receive notifications for the host's lifetime, applying them on the
+	// state routine.
 	h.soHost.SetContext(ctx)
-	h.tracker.RegisterNotifyCallback(h.soID, func(payload *api.SONotifyEventPayload) {
-		h.handleSONotifyWithContext(ctx, payload)
-	})
-	defer h.tracker.UnregisterNotifyCallback(h.soID)
+	h.stateRoutine.SetContext(ctx)
+	defer h.stateRoutine.ClearContext()
+	h.tracker.RegisterSOEvents(h.soID, h)
+	defer h.tracker.UnregisterSOEvents(h.soID)
 
 	// Attach background work before seeding the first observable snapshot.
 	h.pullRoutine.SetContext(ctx)
@@ -628,73 +635,6 @@ func (h *cloudSOHost) triggerPull() {
 	}
 }
 
-// handleSONotify processes an SONotifyEventPayload delivered via so_notify.
-func (h *cloudSOHost) handleSONotify(payload *api.SONotifyEventPayload) {
-	h.handleSONotifyWithContext(context.Background(), payload)
-}
-
-// handleSONotifyWithContext processes an SONotifyEventPayload delivered via so_notify.
-// When the payload carries an inline SOStateMessage, the host applies it
-// directly without issuing an HTTP /state pull. A configChanged event pulls
-// the state holding the new configuration, which another peer's change does
-// not otherwise deliver.
-func (h *cloudSOHost) handleSONotifyWithContext(ctx context.Context, payload *api.SONotifyEventPayload) {
-	// Ignore absent notifications before inspecting their state payload.
-	if payload == nil {
-		return
-	}
-
-	// Refresh referenced blocks before applying an inline snapshot or delta.
-	if msg := payload.GetStateMessage(); msg != nil {
-		if err := h.refreshBlockManifestForNonce(ctx, payload.GetBlockStoreNonce()); err != nil {
-			h.le.WithError(err).
-				WithField("change-type", payload.GetChangeType()).
-				WithField("seqno", payload.GetSeqno()).
-				WithField("blockstore-nonce", payload.GetBlockStoreNonce()).
-				Warn("failed to refresh block manifest before inline state apply")
-			h.triggerPull()
-			return
-		}
-		if err := h.handleStateDelta(ctx, msg); err != nil {
-			// Config chain mismatch: verifyPulledState already signaled the
-			// config chain verifier, which fetches /config-chain and refreshes
-			// the trusted hash. Firing /state here would just re-read the same
-			// inline state and fail verification the same way until the chain
-			// catches up; let the next inline event (or gap recovery) carry
-			// the state forward instead.
-			if errors.Is(err, errSOConfigChainChanged) {
-				h.le.WithError(err).
-					WithField("change-type", payload.GetChangeType()).
-					WithField("seqno", payload.GetSeqno()).
-					Debug("inline state deferred to config chain sync")
-				return
-			}
-			h.le.WithError(err).
-				WithField("change-type", payload.GetChangeType()).
-				WithField("seqno", payload.GetSeqno()).
-				Debug("inline state apply failed; falling back to pull")
-			h.triggerPull()
-		}
-		return
-	}
-
-	// A configuration notification carries no state, so pull the state that
-	// holds the new configuration; applying it wakes the chain verifier.
-	switch payload.GetChangeType() {
-	case "configChanged":
-		h.triggerPull()
-	case "metadata", "ownershipChanged", "access_changed", "delete":
-		// Account-level notification routing handles these.
-	default:
-		// Bare notify with no state payload. Cloud should always attach an
-		// inline SOStateMessage for op and checkpoint mutations, so this indicates a
-		// publisher bug rather than a missed update we should pull behind.
-		h.le.WithField("change-type", payload.GetChangeType()).
-			WithField("seqno", payload.GetSeqno()).
-			Warn("so_notify arrived without inline state payload; ignoring")
-	}
-}
-
 // refreshBlockManifestForNonce makes referenced blocks available before publishing newer state.
 func (h *cloudSOHost) refreshBlockManifestForNonce(ctx context.Context, nonce uint64) error {
 	// Skip absent notifications and already-pulled manifest versions.
@@ -715,12 +655,12 @@ func (h *cloudSOHost) refreshBlockManifestForNonce(ctx context.Context, nonce ui
 	return h.refreshBlockManifest(ctx)
 }
 
-// handleStateDelta applies an inline SOStateMessage from a session WS event.
-// Snapshots replace stateCtr after verifyPulledState succeeds; deltas are
-// applied entry-by-entry against a clone of the cached state and committed
-// atomically with the new lastSeqno. Returns an error when the delta cannot
-// be applied (gap, decode failure, or verification failure); the caller may
-// fall back to an HTTP pull.
+// handleStateDelta applies the snapshot or delta of an SOStateMessage, from
+// the inline state backlog or a state pull. Snapshots replace stateCtr after
+// verifyPulledState succeeds; deltas are applied entry-by-entry against a
+// clone of the cached state and committed atomically with the new lastSeqno.
+// Returns an error when the delta cannot be applied (gap, decode failure, or
+// verification failure); the caller may fall back to an HTTP pull.
 func (h *cloudSOHost) handleStateDelta(ctx context.Context, msg *api.SOStateMessage) error {
 	// Serialize the complete inline acceptance with cloud and peer publications.
 	release, err := h.acceptMu.Lock(ctx)
@@ -767,39 +707,35 @@ func (h *cloudSOHost) handleStateDelta(ctx context.Context, msg *api.SOStateMess
 			return errors.New("delta arrived before initial snapshot")
 		}
 
-		// Duplicate: cloud may resend deltas the cache already includes.
-		// Drop silently rather than treating as a gap.
+		// Gap: events between lastSeqno+1 and since are missing, so the
+		// caller recovers with a pull. The held lastSeqno stays, so the pull
+		// asks for the missing range and still rejects a rolled-back snapshot.
 		since := delta.GetSince()
-		if since < lastSeqno {
-			return nil
-		}
-
-		// Gap: events between lastSeqno+1 and since are missing. Reset
-		// lastSeqno=0 under the broadcast lock so the gap-recovery pull
-		// forces since=0 and ingests a fresh full snapshot instead of
-		// looping through deltas the cloud may no longer retain. The
-		// caller in handleSONotify dispatches that pull via triggerPull.
 		if since > lastSeqno {
-			h.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-				if h.lastSeqno == lastSeqno {
-					h.lastSeqno = 0
-					broadcast()
-				}
-			})
 			return errors.Errorf("delta gap: since=%d, last=%d", since, lastSeqno)
 		}
 
-		// Apply the contiguous delta to an independent snapshot.
-		next := cached.Clone()
+		// Apply the contiguous entries past the held state to an independent
+		// snapshot. The cloud may resend entries the state already includes.
+		var next *sobject.SOState
 		expected := since + 1
 		for _, entry := range entries {
 			if entry.GetSeqno() != expected {
 				return errors.Errorf("delta entry out of order: got=%d, want=%d", entry.GetSeqno(), expected)
 			}
+			expected++
+			if entry.GetSeqno() <= lastSeqno {
+				continue
+			}
+			if next == nil {
+				next = cached.Clone()
+			}
 			if err := applyChangeLogEntry(h.soID, next, entry); err != nil {
 				return errors.Wrapf(err, "apply entry seqno=%d", entry.GetSeqno())
 			}
-			expected++
+		}
+		if next == nil {
+			return nil
 		}
 
 		// Retain only a fully verified result before publishing it.
@@ -808,17 +744,6 @@ func (h *cloudSOHost) handleStateDelta(ctx context.Context, msg *api.SOStateMess
 		}
 
 		return h.acceptCloudSnapshot(ctx, next, entries[len(entries)-1].GetSeqno())
-
-	case msg.GetConfigChanged() != nil:
-		// The new configuration arrives with the next pulled state.
-		h.triggerPull()
-		return nil
-
-	case msg.GetError() != nil:
-		h.le.WithField("code", msg.GetError().GetCode()).
-			WithField("message", msg.GetError().GetMessage()).
-			Warn("received error from SO DO via inline state")
-		return nil
 	}
 	return nil
 }

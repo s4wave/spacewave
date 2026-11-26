@@ -165,12 +165,12 @@ func TestColdMountBudget(t *testing.T) {
 		}
 		stateJSON := mustMarshalSOStateMessageSnapshotJSON(t, state)
 		tracker := newTestWSTracker(logrus.New().WithField("test", t.Name()), func() *SessionClient { return nil })
-		notify := func() func(*api.SONotifyEventPayload) {
-			var callback func(*api.SONotifyEventPayload)
+		notify := func() soEvents {
+			var events soEvents
 			tracker.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-				callback = tracker.notifyCallbacks[soID]
+				events = tracker.soEvents[soID]
 			})
-			return callback
+			return events
 		}
 
 		// Serve the state only after the subscription exists.
@@ -221,11 +221,11 @@ func TestColdMountBudget(t *testing.T) {
 				if host.stateCtr.GetValue() == nil {
 					return errors.New("mount published before initial state")
 				}
-				callback := notify()
-				if callback == nil {
+				events := notify()
+				if events == nil {
 					return errors.New("mount published without notification subscription")
 				}
-				callback(&api.SONotifyEventPayload{
+				events.soNotify(&api.SONotifyEventPayload{
 					Seqno: 2,
 					StateMessage: &api.SOStateMessage{
 						Seqno:   2,
@@ -245,11 +245,24 @@ func TestColdMountBudget(t *testing.T) {
 		case <-time.After(time.Second):
 			t.Fatal("host did not become ready")
 		}
-		host.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-			if host.lastSeqno != 2 {
-				t.Errorf("notification during mount was lost: sequence %d", host.lastSeqno)
+		// The state routine applies the notification after the mount.
+		applyCtx, applyCancel := context.WithTimeout(context.Background(), time.Second)
+		defer applyCancel()
+		for {
+			var seqno uint64
+			var waitCh <-chan struct{}
+			host.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+				seqno, waitCh = host.lastSeqno, getWaitCh()
+			})
+			if seqno == 2 {
+				break
 			}
-		})
+			select {
+			case <-waitCh:
+			case <-applyCtx.Done():
+				t.Fatalf("notification during mount was lost: sequence %d", seqno)
+			}
+		}
 
 		// Stop the host once its snapshot is published.
 		waitCtx, waitCancel := context.WithTimeout(context.Background(), time.Second)

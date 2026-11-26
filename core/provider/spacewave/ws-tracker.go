@@ -19,8 +19,10 @@ import (
 // wsEvents receives the account-level events of the Session websocket.
 //
 // The tracker calls each method synchronously on its read goroutine, in the
-// order the events arrive, so a method that blocks delays every later event.
-// connected runs before the first event of each connection.
+// order the events arrive, so a method that blocks delays every later event
+// and every Space. Each method records its event or hands the work to the
+// routine that owns it, and returns without waiting on the network. connected
+// runs before the first event of each connection.
 type wsEvents interface {
 	// connected runs after every session websocket completes authentication,
 	// including the first. Events published before the socket subscribed are
@@ -44,7 +46,7 @@ type wsEvents interface {
 	// memberSessionChanged runs on member_session_added (added=true) and
 	// member_session_removed (added=false).
 	memberSessionChanged(soID, sessionPeerID, accountID string, added bool)
-	// soNotify runs on so_notify after the shared object's own callback. The
+	// soNotify runs on so_notify after the shared object's own soEvents. The
 	// payload is nil when the event carried none or it failed to parse.
 	soNotify(soID string, payload *api.SONotifyEventPayload)
 	// soListUpdate runs on each so_list_update message.
@@ -66,8 +68,21 @@ type wsEvents interface {
 	cdnRootChanged(spaceID string)
 }
 
+// soEvents receives one shared object's events from the Session websocket.
+//
+// The tracker calls each method on its read goroutine, so each records the
+// event for the shared object's own worker and returns in constant time.
+type soEvents interface {
+	// connected runs after every session websocket completes authentication,
+	// before the connection's first event. Events published while no socket
+	// was subscribed are lost, so the receiver resyncs.
+	connected()
+	// soNotify runs on so_notify for the shared object with its parsed payload.
+	soNotify(payload *api.SONotifyEventPayload)
+}
+
 // wsTracker manages a single multiplexed WebSocket connection to the Session DO.
-// Multiple cloudSOHost instances register callbacks keyed by so_id.
+// Multiple cloudSOHost instances register soEvents keyed by so_id.
 type wsTracker struct {
 	// le is the logger.
 	le *logrus.Entry
@@ -78,8 +93,8 @@ type wsTracker struct {
 	accountBcast *broadcast.Broadcast
 	// events receives the account-level events.
 	events wsEvents
-	// notifyCallbacks maps so_id to so_notify event callback.
-	notifyCallbacks map[string]func(*api.SONotifyEventPayload)
+	// soEvents maps so_id to the shared object's event receiver.
+	soEvents map[string]soEvents
 	// bstoreNonceCallbacks maps block-store resource ids to nonce callbacks.
 	bstoreNonceCallbacks map[string]func(uint64)
 	// bcast guards the callback maps.
@@ -104,7 +119,7 @@ func newWSTracker(
 		getClient:            getClient,
 		accountBcast:         accountBcast,
 		events:               events,
-		notifyCallbacks:      make(map[string]func(*api.SONotifyEventPayload)),
+		soEvents:             make(map[string]soEvents),
 		bstoreNonceCallbacks: make(map[string]func(uint64)),
 	}
 	t.rc = refcount.NewRefCountWithOptions(
@@ -286,8 +301,11 @@ func (t *wsTracker) runWebSocket(ctx context.Context) error {
 		t.events.dormantChanged(false)
 	}
 
-	// Let the owner resync state published before this socket subscribed.
+	// Let the owners resync state published before this socket subscribed.
 	t.events.connected()
+	for _, so := range t.snapshotSOEvents() {
+		so.connected()
+	}
 
 	// Keep the connection alive with pings for its lifetime.
 	pingRoutine := routine.NewRoutineContainer()
@@ -341,14 +359,14 @@ func (t *wsTracker) runWebSocket(ctx context.Context) error {
 			if evt.GetType() == "so_notify" {
 				soID := evt.GetSoId()
 				payload, ok := parseSONotifyEventPayload(evt.GetPayload())
-				var notifyCb func(*api.SONotifyEventPayload)
+				var so soEvents
 				if ok && soID != "" {
 					t.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-						notifyCb = t.notifyCallbacks[soID]
+						so = t.soEvents[soID]
 					})
 				}
-				if notifyCb != nil {
-					notifyCb(payload)
+				if so != nil {
+					so.soNotify(payload)
 				}
 				t.events.soNotify(soID, payload)
 			}
@@ -418,20 +436,32 @@ func runWebSocketPing(ctx context.Context, conn *ws.Conn, interval, timeout time
 	}
 }
 
-// RegisterNotifyCallback registers a so_notify event callback for a so_id.
-// The callback receives the parsed SONotifyEventPayload, including any inline
-// SOStateMessage delta or snapshot the cloud attached to the event.
-func (t *wsTracker) RegisterNotifyCallback(soID string, cb func(*api.SONotifyEventPayload)) {
+// RegisterSOEvents registers the event receiver of a so_id. It receives the
+// parsed SONotifyEventPayload, including any inline SOStateMessage delta or
+// snapshot the cloud attached, and each connection's start.
+func (t *wsTracker) RegisterSOEvents(soID string, events soEvents) {
 	t.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		t.notifyCallbacks[soID] = cb
+		t.soEvents[soID] = events
 	})
 }
 
-// UnregisterNotifyCallback removes the so_notify callback for a so_id.
-func (t *wsTracker) UnregisterNotifyCallback(soID string) {
+// UnregisterSOEvents removes the event receiver of a so_id.
+func (t *wsTracker) UnregisterSOEvents(soID string) {
 	t.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		delete(t.notifyCallbacks, soID)
+		delete(t.soEvents, soID)
 	})
+}
+
+// snapshotSOEvents returns the registered shared object event receivers.
+func (t *wsTracker) snapshotSOEvents() []soEvents {
+	var out []soEvents
+	t.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		out = make([]soEvents, 0, len(t.soEvents))
+		for _, so := range t.soEvents {
+			out = append(out, so)
+		}
+	})
+	return out
 }
 
 // RegisterBlockStoreNonceCallback registers a bstore_nonce callback for a resource id.
