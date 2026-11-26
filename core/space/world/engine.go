@@ -222,9 +222,14 @@ func (a *Adapter) writeOp(ctx context.Context, op *WorldOp) error {
 	}
 	a.queue.push(adm)
 
-	// Wait for its decision.
-	decision, err := adm.WaitDecided(ctx)
+	// Bound the caller's wait without removing the admitted operation. A
+	// caller that stops waiting cannot infer refusal from cancellation.
+	wait, stop := world_block.WithDurabilityTimeout(ctx)
+	defer stop()
+	decision, err := adm.WaitDecided(wait)
 	switch {
+	case decision == world.Undecided && wait.Err() != nil && !errors.Is(err, world.ErrDurabilityUnknown):
+		return errors.Wrap(world.ErrDurabilityUnknown, context.Cause(wait).Error())
 	case err != nil:
 		return err
 	case decision != world.Accepted:

@@ -1,0 +1,78 @@
+[
+  {
+    "name": "missed lookup is never rechecked",
+    "replace": [
+      [
+        "IF ack THEN \"exact\" ELSE decided",
+        "IF exact = \"matched\" THEN \"exact\" ELSE decided"
+      ]
+    ],
+    "expect": "BothOrdersDecide",
+    "config": "ReplayRefusalHandoff-legacy.cfg"
+  },
+  {
+    "name": "fork shares the local ID",
+    "replace": [
+      [
+        "IF \"exact\" \\in seen THEN \"exact\" ELSE decided",
+        "IF seen # {} THEN \"exact\" ELSE decided"
+      ]
+    ],
+    "expect": "NoFalseRefusal",
+    "config": "ReplayRefusalHandoff-legacy.cfg"
+  },
+  {
+    "name": "old matcher adopts an earlier identical WorldOp before queue return",
+    "replace": [
+      [
+        "Matches(hash, outcome) == published /\\ signed = hash",
+        "Matches(hash, outcome) == (published /\\ signed = hash) \\/ (~returned /\\ outcome = \"applied\")"
+      ]
+    ],
+    "expect": "ExactAcceptance"
+  },
+  {
+    "name": "refusal matches local ID instead of hash",
+    "replace": [
+      [
+        "Matches(hash, outcome) == published /\\ signed = hash",
+        "Matches(hash, outcome) == (published /\\ signed = hash) \\/ outcome = \"refused\""
+      ]
+    ],
+    "expect": "ExactRefusal"
+  },
+  {
+    "name": "clock expiry abandons replay ownership",
+    "replace": [
+      [
+        "expired' = TRUE /\\ owned' = owned",
+        "expired' = TRUE /\\ owned' = FALSE"
+      ]
+    ],
+    "expect": "ReplayOwnsPending"
+  },
+  {
+    "name": "signing decides before replay installs",
+    "replace": [
+      [
+        "signed' = \"current\" /\\ published' = TRUE\n        /\\ UNCHANGED <<returned, older, current, placed, installed, answer, expired, owned>>",
+        "signed' = \"current\" /\\ published' = TRUE /\\ answer' = \"accepted\"\n        /\\ UNCHANGED <<returned, older, current, placed, installed, expired, owned>>"
+      ]
+    ],
+    "expect": "ExactAcceptance"
+  },
+  {
+    "name": "receipt waits for the queue callback",
+    "replace": [
+      [
+        "signed' = \"current\" /\\ published' = TRUE",
+        "signed' = \"current\" /\\ published' = FALSE"
+      ],
+      [
+        "returned' = TRUE\n               /\\ UNCHANGED <<signed, published,",
+        "returned' = TRUE /\\ published' = TRUE\n               /\\ UNCHANGED <<signed,"
+      ]
+    ],
+    "expect": "AppliedPlacesExact"
+  }
+]

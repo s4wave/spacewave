@@ -143,6 +143,12 @@ func (s *SharedObject) QueueOperation(ctx context.Context, op []byte) (string, *
 	return s.host.addLocalOperation(ctx, s.tkr.a.le, s.tkr.a.sfs, s.privKey, op)
 }
 
+// QueueOperationWithReceipt signs through the provider host and supplies
+// the signed identity before the provider state exposes it to replay.
+func (s *SharedObject) QueueOperationWithReceipt(ctx context.Context, op []byte, receipt *sobject.SignedOperationReceipt) (string, *sobject.SOOperationPosition, error) {
+	return s.GetSOHost().AddLocalOperationWithReceipt(ctx, s.tkr.a.le, s.tkr.a.sfs, s.privKey, op, receipt)
+}
+
 // sobjectTracker tracks a SharedObject in the ProviderAccount.
 type sobjectTracker struct {
 	// a is the provider account.
@@ -1578,6 +1584,7 @@ var (
 	_ sobject.ProviderSequencer          = (*SharedObject)(nil)
 	_ sobject.SharedObjectProvider       = (*ProviderAccount)(nil)
 	_ sobject.SharedObject               = (*SharedObject)(nil)
+	_ sobject.SignedOperationQueuer      = (*SharedObject)(nil)
 	_ sobject.InviteHost                 = (*SharedObject)(nil)
 	_ sobject.RosterHost                 = (*SharedObject)(nil)
 	_ sobject.SequencerHost              = (*SharedObject)(nil)

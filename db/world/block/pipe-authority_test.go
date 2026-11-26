@@ -5,6 +5,7 @@ package world_block
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/aperturerobotics/util/csync"
@@ -111,8 +112,23 @@ func (a *pipeAuthority) decide(t *testing.T, n int, rebased *block.BlockRef, seq
 	for _, fn := range watchers {
 		fn(head)
 	}
-	adm.head = head
-	close(adm.decided)
+	adm.resolve(head, world.Accepted)
+}
+
+// refuse supersedes the nth candidate without moving the decided head.
+func (a *pipeAuthority) refuse(t *testing.T, n int) {
+	// Reset the writer head if it was the refused candidate.
+	t.Helper()
+	adm := a.waitAdmitted(t, n)
+	a.mtx.Lock()
+	head := a.head
+	if adm == a.admitted[len(a.admitted)-1] {
+		a.writer = head
+	}
+	a.mtx.Unlock()
+
+	// Return the unchanged head to the superseded writer.
+	adm.resolve(head, world.Superseded)
 }
 
 // report makes root the decided head, as another writer's operation does, and
@@ -177,6 +193,17 @@ type pipeAdmission struct {
 	decided chan struct{}
 	// head is the decided head, set before decided closes.
 	head world.Head
+	// decision is the Authority's answer, set before decided closes.
+	decision world.Decision
+	// releases counts attempts to abandon this admission.
+	releases atomic.Int32
+}
+
+// resolve records the decision and wakes the writer.
+func (a *pipeAdmission) resolve(head world.Head, decision world.Decision) {
+	a.head = head
+	a.decision = decision
+	close(a.decided)
 }
 
 // Seqno returns the candidate's seqno.
@@ -196,7 +223,7 @@ func (a *pipeAdmission) Head() world.Head {
 func (a *pipeAdmission) WaitDecided(ctx context.Context) (world.Decision, error) {
 	select {
 	case <-a.decided:
-		return world.Accepted, nil
+		return a.decision, nil
 	case <-ctx.Done():
 		return world.Undecided, ctx.Err()
 	}
@@ -204,14 +231,19 @@ func (a *pipeAdmission) WaitDecided(ctx context.Context) (world.Decision, error)
 
 // WaitDurable waits for the decision: a decided candidate is durable.
 func (a *pipeAdmission) WaitDurable(ctx context.Context) (uint64, error) {
-	if _, err := a.WaitDecided(ctx); err != nil {
+	// Return the decided head's sequence only for an accepted candidate.
+	decision, err := a.WaitDecided(ctx)
+	if err != nil {
 		return 0, err
+	}
+	if decision == world.Superseded {
+		return 0, world.ErrSuperseded
 	}
 	return a.head.Seqno, nil
 }
 
-// Release does nothing.
-func (a *pipeAdmission) Release() {}
+// Release records that the caller released the admission.
+func (a *pipeAdmission) Release() { a.releases.Add(1) }
 
 // _ is a type assertion
 var (

@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"github.com/aperturerobotics/util/broadcast"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 )
 
@@ -71,11 +72,27 @@ func (q *opQueue) execute(ctx context.Context, queued func(*spaceAdmission, stri
 			return context.Canceled
 		}
 
-		// Queue it.
-		localID, pos, err := q.so.QueueOperation(ctx, adm.op)
+		// Queue it with a receipt, except in legacy mode or for an acknowledgment.
+		localID, pos, err := q.queueOperation(ctx, adm)
 		if err != nil && ctx.Err() != nil {
 			return context.Canceled
 		}
 		queued(adm, localID, pos, err)
 	}
+}
+
+// queueOperation requires a signer that publishes identity before a WorldOp
+// enters replay. An acknowledgment has no WorldOp for replay to attribute.
+func (q *opQueue) queueOperation(ctx context.Context, adm *spaceAdmission) (string, *sobject.SOOperationPosition, error) {
+	// Keep the original queue path for acknowledgments and legacy mode.
+	if adm.op == nil || adm.a.legacyReplayMatcher {
+		return q.so.QueueOperation(ctx, adm.op)
+	}
+
+	// Reject before queueing if the provider cannot publish early identity.
+	so, ok := q.so.(sobject.SignedOperationQueuer)
+	if !ok {
+		return "", nil, errors.New("shared object does not publish signed operation receipts")
+	}
+	return so.QueueOperationWithReceipt(ctx, adm.op, &adm.receipt)
 }

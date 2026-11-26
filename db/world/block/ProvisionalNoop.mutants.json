@@ -1,0 +1,7 @@
+[
+  {
+    "name": "legacy provisional no-op returns success",
+    "replace": [["IF Guard /\\ baseB =", "IF FALSE /\\ baseB ="]],
+    "expect": "NoFalseSuccess"
+  }
+]

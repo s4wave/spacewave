@@ -179,10 +179,16 @@ func (l *LocalSOHost) detach(ctx context.Context) (context.Context, context.Canc
 // operation set. It returns the local operation id and position once the
 // committed snapshot holds the operation, or a later checkpoint covers it.
 func (l *LocalSOHost) QueueOperation(ctx context.Context, op []byte) (string, *sobject.SOOperationPosition, error) {
+	return l.QueueOperationWithReceipt(ctx, op, nil)
+}
+
+// QueueOperationWithReceipt exposes the signed position before the local
+// host commits it, then waits for the same snapshot as QueueOperation.
+func (l *LocalSOHost) QueueOperationWithReceipt(ctx context.Context, op []byte, receipt *sobject.SignedOperationReceipt) (string, *sobject.SOOperationPosition, error) {
 	// Sign the operation and add it to the host state.
 	ctx, task := trace.NewTask(ctx, "alpha/local-so/queue-operation")
 	defer task.End()
-	localID, pos, err := l.soHost.AddLocalOperation(ctx, l.le, l.sfs, l.privKey, op)
+	localID, pos, err := l.soHost.AddLocalOperationWithReceipt(ctx, l.le, l.sfs, l.privKey, op, receipt)
 	if err != nil {
 		return "", nil, err
 	}

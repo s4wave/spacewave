@@ -237,6 +237,12 @@ func (s *SharedObject) QueueOperation(ctx context.Context, op []byte) (string, *
 	return s.lsoHost.QueueOperation(ctx, op)
 }
 
+// QueueOperationWithReceipt signs through the local host and supplies the
+// signed identity before the local state exposes it to replay.
+func (s *SharedObject) QueueOperationWithReceipt(ctx context.Context, op []byte, receipt *sobject.SignedOperationReceipt) (string, *sobject.SOOperationPosition, error) {
+	return s.lsoHost.QueueOperationWithReceipt(ctx, op, receipt)
+}
+
 // sobjectTracker tracks a SharedObject in the ProviderAccount.
 type sobjectTracker struct {
 	// a is the provider account.
@@ -735,7 +741,10 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 // with the new list entry. An id an enrollment is writing fails with errSOEnrolling, and one with keys
 // under its prefix fails with errStaleSOKeys; see withClearedSOKeys. Assumes
 // p.mtx is locked.
-func (a *ProviderAccount) createSharedObjectLocked(ctx context.Context, id string, meta *sobject.SharedObjectMeta, extra ...func(context.Context, kvtx.Tx, *sobject.SharedObjectListEntry) error) (*sobject.SharedObjectListEntry, error) {
+func (a *ProviderAccount) createSharedObjectLocked(
+	ctx context.Context, id string, meta *sobject.SharedObjectMeta,
+	extra ...func(context.Context, kvtx.Tx, *sobject.SharedObjectListEntry) error,
+) (*sobject.SharedObjectListEntry, error) {
 	// Derive the SharedObject and block-store references from account identity.
 	providerID := a.t.accountInfo.GetProviderId()
 	providerAccountID := a.t.accountInfo.GetProviderAccountId()
@@ -847,7 +856,10 @@ func (a *ProviderAccount) CreateSharedObject(ctx context.Context, id string, met
 
 // createSharedObject creates the sobject id, running each step in the
 // transaction that lists it, and publishes it to the account catalog.
-func (a *ProviderAccount) createSharedObject(ctx context.Context, id string, meta *sobject.SharedObjectMeta, steps ...func(context.Context, kvtx.Tx, *sobject.SharedObjectListEntry) error) (*sobject.SharedObjectRef, error) {
+func (a *ProviderAccount) createSharedObject(
+	ctx context.Context, id string, meta *sobject.SharedObjectMeta,
+	steps ...func(context.Context, kvtx.Tx, *sobject.SharedObjectListEntry) error,
+) (*sobject.SharedObjectRef, error) {
 	// Clear the state an earlier lifetime abandoned, a bounded batch per hold
 	// of the lock, then serialize local storage creation with the account's
 	// other mutations.
@@ -1343,6 +1355,7 @@ var (
 	_ sobject.SharedObjectHealthAccessor = (*SharedObject)(nil)
 	_ sobject.SharedObjectProvider       = (*ProviderAccount)(nil)
 	_ sobject.SharedObject               = (*SharedObject)(nil)
+	_ sobject.SignedOperationQueuer      = (*SharedObject)(nil)
 	_ sobject.InviteHost                 = (*SharedObject)(nil)
 	_ sobject.RosterHost                 = (*SharedObject)(nil)
 	_ sobject.SequencerHost              = (*SharedObject)(nil)
