@@ -619,13 +619,11 @@ const subtreeLookupBytes = 4 << 20
 func (c *LookupController) lookupWithDirective(reqCtx context.Context, ref *block.BlockRef, wait bool) (*block.StoredBlock, []*block.PutBatchEntry, error) {
 	// Build a network lookup directive for the configured bucket.
 	bucketID := c.conf.GetBucketConf().GetId()
-	var dir dex.LookupBlockFromNetwork
+	dir := dex.NewLookupBlockFromNetwork(bucketID, ref)
 	if block.IsSubtreeRead(reqCtx) && c.writesBack() {
 		dir = dex.NewLookupSubtreeFromNetwork(bucketID, ref, subtreeLookupBytes, func(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 			return c.LookupBlockExistsBatch(ctx, refs, lookup.WithLocalOnly())
 		})
-	} else {
-		dir = dex.NewLookupBlockFromNetwork(bucketID, ref)
 	}
 
 	// End idle network demand once a missing block has been reported.
