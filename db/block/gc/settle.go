@@ -407,9 +407,21 @@ func (c *Collector) settle(ctx context.Context, past func() bool, res *CollectRe
 		state, err = rec.GetState(ctx)
 		return err
 	})
-	gen := state.GetGeneration()
-	if err != nil || gen == Generation_GENERATION_SETTLED {
+	if err != nil {
 		return false, err
+	}
+
+	// Forget the settle's positions once the generation leaves Sweeping,
+	// whichever way it left, as restartSettle describes. Reading the
+	// generation, rather than the drop's result, also covers a drop whose
+	// commit was durable but reported an error.
+	gen := state.GetGeneration()
+	if c.lastGen == Generation_GENERATION_SWEEPING && gen != Generation_GENERATION_SWEEPING {
+		c.restartSettle()
+	}
+	c.lastGen = gen
+	if gen == Generation_GENERATION_SETTLED {
+		return false, nil
 	}
 
 	// Sweep a flipped Volume, resuming where the last pass stopped: a sweep
@@ -429,13 +441,9 @@ func (c *Collector) settle(ctx context.Context, past func() bool, res *CollectRe
 			}
 			c.sweptRun = true
 		}
-		more, err := resumeSlices(ctx, c.update, &c.dropFrom, past, func(rec *Records, _ block.StoreOps, from []byte) ([]byte, bool, error) {
+		return resumeSlices(ctx, c.update, &c.dropFrom, past, func(rec *Records, _ block.StoreOps, from []byte) ([]byte, bool, error) {
 			return c.dropRunSlice(ctx, rec, res, from)
 		})
-		if err == nil && res.Settled {
-			c.restartSettle()
-		}
-		return more, err
 	}
 
 	// Build the run and seed the front, each resuming where the last pass
@@ -1090,7 +1098,9 @@ func (c *Collector) dropRunSlice(ctx context.Context, rec *Records, res *Collect
 // before would skip work: a seeding done then names no block a copied put
 // stored since, a finished sweep would drop the next run unswept, and a
 // sweep or drop cursor would pass over the head of the next run. The settle
-// calls it once the drop's last slice committed.
+// calls it when it reads the generation leave Sweeping, as lastGen
+// describes, which also covers a drop whose commit was durable but
+// reported an error.
 func (c *Collector) restartSettle() {
 	c.runFrom, c.sweepFrom, c.sweptRun, c.dropFrom = nil, nil, false, nil
 	c.seedRoot, c.seedDown, c.seededRoots, c.seeded = nil, 0, false, false

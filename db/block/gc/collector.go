@@ -141,8 +141,8 @@ type Collector struct {
 	// behind sweepFrom stays swept or reborn, and a sweep that reaches the
 	// end from it has left no unmarked block, though it began mid-run; the
 	// drop likewise leaves no entry behind dropFrom. A restart begins both
-	// at the head, and the settle forgets both once the drop settles the
-	// Volume, so the next generation sweeps its whole run.
+	// at the head, and the settle forgets both once it reads the generation
+	// leave Sweeping, so the next generation sweeps its whole run.
 	sweepFrom []byte
 	sweptRun  bool
 	dropFrom  []byte
@@ -218,6 +218,10 @@ type Collector struct {
 	// read, packed end to end, and the end of each, reused across slices.
 	frontKeys []byte
 	frontEnds []int
+	// lastGen is the generation the last settle read. The settle forgets
+	// its positions when it reads the generation leave Sweeping, as
+	// restartSettle describes.
+	lastGen Generation
 }
 
 // pace scales a slice's budgets by how long the slices before it took: one
