@@ -40,6 +40,10 @@ type fakeBucket struct {
 	throttleNext int
 	// retryAfter is the Retry-After of a throttled answer; empty is "0".
 	retryAfter string
+	// before, when set, runs before each request is answered, with the
+	// bucket released, as a service's latency does: the connection carries
+	// no other request until the answer is sent.
+	before func(r *http.Request)
 	// after, when set, runs after each request is answered and before the
 	// answer returns, so the client sees the bucket as it was before after.
 	after func(r *http.Request)
@@ -60,7 +64,13 @@ func newFakeBucket(t *testing.T, objects map[string]string) (*fakeBucket, *Clien
 
 // ServeHTTP answers one S3 request.
 func (b *fakeBucket) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// Answer from the bucket, then run the hook with the bucket released.
+	// Run the hooks around the answer with the bucket released.
+	b.mtx.Lock()
+	before := b.before
+	b.mtx.Unlock()
+	if before != nil {
+		before(r)
+	}
 	b.mtx.Lock()
 	b.serve(w, r)
 	after := b.after
