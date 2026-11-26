@@ -80,23 +80,59 @@
 \* from source: the settle slices (db/block/gc/settle.go), the free and its
 \* park (collector.go, records.go), Land (land.go) and the format upgrade
 \* (db/volume/common/kvtx/format.go).
+\*
+\* No single config checks every dimension at once inside the checker's
+\* memory, so each bounds the dimensions its interleavings do not need. Txns
+\* is MaxTxns, Up is Upgrade; checks are S (LiveStored, HeldPresent,
+\* ReachedShown, SelfRetiring), R (SettledLive, HeldPresent, SelfRetiring)
+\* and L (EventuallySettled).
+\*
+\*   config                  Txns Up Lost  Extra Checks Interleavings
+\*   Settle.cfg              2    no {}    g, n  S, L   the settle of g and n
+\*                                                      beside the root's walk
+\*   Settle-upgrade.cfg      2    on {}    -     S, L   an upgrade while a
+\*                                                      rewrite's or an
+\*                                                      unpark's recount is owed
+\*   Settle-upgrade-g.cfg    2    on {}    g     S, L   an upgrade beside g
+\*   Settle-upgrade-n.cfg    2    on {}    n     S, L   an upgrade beside n's
+\*                                                      writes
+\*   Settle-one.cfg          1    on {}    g, n  S, L   an upgrade beside g and
+\*                                                      n at once
+\*   Settle-lost.cfg         2    on h     g, n  S      every block but h
+\*                                                      resolved, the flip held
+\*   Settle-reopen-g.cfg     3    no {}    g     R, L   a reopen beside g
+\*   Settle-reopen-n.cfg     3    no {}    n     R, L   a reopen beside n's
+\*                                                      writes
+\*   Settle-reopen-lost.cfg  3    no h, k  g, n  R      a reopen whose lost
+\*                                                      child holds the flip
+\*
+\* Every pair of dimensions runs together in some config, and each config
+\* now carries the rewritten lists' gained children. Two whole combinations
+\* run in none: an upgrade beside both g and n over two transactions with h
+\* resolved, which Settle-one.cfg checks over one transaction and
+\* Settle-lost.cfg with h lost, and a reopen beside both with h resolved,
+\* which Settle-reopen-lost.cfg checks with h and k lost. Each mutant names
+\* the smallest config that kills it by the invariant that states its
+\* damage.
 
 EXTENDS Integers, FiniteSets
 
 CONSTANTS
   MaxTxns,  \* bounds the Land transactions, so the model is finite
   Upgrade,  \* whether the format upgrade may run
-  Lost      \* the blocks no read resolves once the Volume lacks them
+  Lost,     \* the blocks no read resolves once the Volume lacks them
+  Extra     \* the optional blocks the Volume has: g, n, both or neither
 
 \* r is the root's block, whose old list was cut and lacks h; a's was cut and
 \* lacks b; g is an old, unreachable block whose list was cut too; n is a block
 \* a writer may write; h is a block the Volume lacks, and k a stored block only
-\* h names.
-Blocks == {"r", "a", "b", "g", "n", "h", "k"}
+\* h names. k holds b, so a k unparked by h's walk and freed twice would owe
+\* b a debt its holders do not.
+Blocks == {"r", "a", "b", "h", "k"} \cup Extra
 True == [r |-> {"a", "h"}, a |-> {"b"}, b |-> {}, g |-> {"b"}, n |-> {"a"},
-         h |-> {"k"}, k |-> {}]
+         h |-> {"k"}, k |-> {"b"}]
 Cut == [r |-> {"a"}, a |-> {}, b |-> {}, g |-> {}, n |-> {"a"},
-        h |-> {}, k |-> {}]
+        h |-> {}, k |-> {"b"}]
 
 VARIABLES
   gen,       \* "open", "sweeping" or "settled"
@@ -147,7 +183,7 @@ Reach(S) ==
 
 Init ==
   /\ gen = "open"
-  /\ stored = {"r", "a", "b", "g", "k"}
+  /\ stored = {"r", "a", "b", "k"} \cup (Extra \cap {"g"})
   /\ verified = {}
   /\ short = {}
   /\ front = {}
@@ -172,7 +208,7 @@ Init ==
 \* for a block not stored is new, and its holders are counted.
 Verify(V) ==
   /\ LET g == IF gen = "open"
-               THEN {<<p, c>> \in (V \cap stored \ verified) \X Blocks : c \in True[p] \ Cut[p]}
+               THEN {<<p, c>> \in ((V \cap stored) \ verified) \X Blocks : c \in True[p] \ Cut[p]}
                ELSE {}
      IN /\ gained' = gained \cup g
         /\ owed' = (owed \/ g # {})
@@ -184,8 +220,8 @@ Verify(V) ==
 
 \* Put writes b from its content. A block without a list, or a hidden one,
 \* is born again with every child present, and its list holds them as a
-\* fresh put's does; a stored one is verified while Open and otherwise keeps
-\* its list.
+\* fresh put's does, gained children included; a stored one is verified
+\* while Open and otherwise keeps its list.
 Put(b) ==
   /\ txns < MaxTxns
   /\ \A k \in True[b] : Present(k)
@@ -203,7 +239,8 @@ Put(b) ==
             /\ unmarked' = unmarked \ {b}
             /\ released' = released \ {b}
             /\ run' = IF gen = "sweeping" THEN run ELSE run \ {b}
-            /\ UNCHANGED <<owed, gained>>
+            /\ gained' = {x \in gained : x[1] # b}
+            /\ UNCHANGED owed
   /\ txns' = txns + 1
   /\ UNCHANGED <<gen, seeded, complete, root, fmt, debt>>
 
@@ -344,7 +381,7 @@ Unpark(b) ==
   /\ owed' = (owed \/ b \in released)
   /\ run' = IF b \in verified THEN run \ {b} ELSE run
   /\ front' = front \cup Owed({b})
-  /\ UNCHANGED <<gen, stored, verified, short, seeded, complete, released, unmarked, root, fmt, txns, debt>>
+  /\ UNCHANGED <<gen, stored, verified, short, seeded, complete, released, unmarked, root, fmt, txns, debt, gained>>
 
 Flip ==
   /\ gen = "open"

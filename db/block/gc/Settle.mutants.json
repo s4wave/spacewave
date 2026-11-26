@@ -8,7 +8,7 @@
       ]
     ],
     "expect": "LiveStored",
-    "config": "Settle.cfg"
+    "config": "Settle-upgrade.cfg"
   },
   {
     "name": "the flip does not wait for the front to empty",
@@ -19,7 +19,7 @@
       ]
     ],
     "expect": "HeldPresent",
-    "config": "Settle.cfg"
+    "config": "Settle-upgrade.cfg"
   },
   {
     "name": "the flip does not wait for the roots to be seeded",
@@ -30,7 +30,7 @@
       ]
     ],
     "expect": "HeldPresent",
-    "config": "Settle.cfg"
+    "config": "Settle-upgrade.cfg"
   },
   {
     "name": "the flip does not wait for the run to be complete",
@@ -41,7 +41,7 @@
       ]
     ],
     "expect": "SelfRetiring",
-    "config": "Settle.cfg"
+    "config": "Settle-upgrade.cfg"
   },
   {
     "name": "the flip unmarks a parked block that gained a holder",
@@ -52,7 +52,7 @@
       ]
     ],
     "expect": "LiveStored",
-    "config": "Settle.cfg"
+    "config": "Settle-upgrade.cfg"
   },
   {
     "name": "a root moved onto an unverified block does not push it",
@@ -63,7 +63,7 @@
       ]
     ],
     "expect": "HeldPresent",
-    "config": "Settle.cfg"
+    "config": "Settle-upgrade.cfg"
   },
   {
     "name": "the settle finishes before the sweep does",
@@ -74,7 +74,7 @@
       ]
     ],
     "expect": "SelfRetiring",
-    "config": "Settle.cfg"
+    "config": "Settle-upgrade.cfg"
   },
   {
     "name": "an upgrade mid-Sweeping drops the run instead of finishing the sweep",
@@ -85,7 +85,7 @@
       ]
     ],
     "expect": "SelfRetiring",
-    "config": "Settle.cfg"
+    "config": "Settle-upgrade.cfg"
   },
   {
     "name": "the walk is not bound to run",
@@ -96,7 +96,7 @@
       ]
     ],
     "expect": "EventuallySettled",
-    "config": "Settle.cfg"
+    "config": "Settle-upgrade.cfg"
   },
   {
     "name": "the walk pushes only stored children, not an absent one",
@@ -107,7 +107,7 @@
       ]
     ],
     "expect": "ReachedShown",
-    "config": "Settle.cfg"
+    "config": "Settle-upgrade.cfg"
   },
   {
     "name": "the walk pops an absent block no read resolves while it is held",
@@ -117,7 +117,7 @@
         "        /\\ Hidden(b) \\/ Count(b) = 0 \\/ b \\notin stored\n"
       ]
     ],
-    "expect": "LiveStored",
+    "expect": "ReachedShown",
     "config": "Settle-lost.cfg"
   },
   {
@@ -129,7 +129,7 @@
       ]
     ],
     "expect": "ReachedShown",
-    "config": "Settle.cfg"
+    "config": "Settle-upgrade.cfg"
   },
   {
     "name": "a copied put of a stored block with an unverified list marks it (F2, markStored)",
@@ -139,8 +139,8 @@
         "       [] Present(b) ->\n            /\\ txns' = txns + 1\n            /\\ IF gen = \"open\" /\\ b \\notin verified\n                 THEN MarkCopied({b})\n                 ELSE UNCHANGED <<verified, short, front, run>>\n            /\\ UNCHANGED <<gen, stored, seeded, complete, parked, unmarked, root, fmt, owed, gained>>"
       ]
     ],
-    "expect": "LiveStored",
-    "config": "Settle.cfg"
+    "expect": "ReachedShown",
+    "config": "Settle-upgrade.cfg"
   },
   {
     "name": "a copied put of a block not stored writes its list marked (F2, Land's birth)",
@@ -150,8 +150,8 @@
         "            /\\ MarkCopied({b})\n            /\\ txns' = txns + 1\n            /\\ UNCHANGED <<gen, seeded, complete, parked, unmarked, root, fmt, owed, gained>>"
       ]
     ],
-    "expect": "LiveStored",
-    "config": "Settle.cfg"
+    "expect": "ReachedShown",
+    "config": "Settle-upgrade.cfg"
   },
   {
     "name": "a copied put while Open does not enter the run",
@@ -162,7 +162,7 @@
       ]
     ],
     "expect": "SelfRetiring",
-    "config": "Settle.cfg"
+    "config": "Settle-upgrade.cfg"
   },
   {
     "name": "a copied put past Open stores a block that reads absent",
@@ -173,7 +173,7 @@
       ]
     ],
     "expect": "SelfRetiring",
-    "config": "Settle.cfg"
+    "config": "Settle-upgrade.cfg"
   },
   {
     "name": "a copied put of a parked unverified block leaves the front",
@@ -184,7 +184,7 @@
       ]
     ],
     "expect": "LiveStored",
-    "config": "Settle.cfg"
+    "config": "Settle-upgrade.cfg"
   },
   {
     "name": "a reopening copied put does not enter the run",
@@ -195,7 +195,7 @@
       ]
     ],
     "expect": "SelfRetiring",
-    "config": "Settle-reopen.cfg"
+    "config": "Settle-reopen-n.cfg"
   },
   {
     "name": "a reopening copied put leaves the generation Settled",
@@ -206,7 +206,7 @@
       ]
     ],
     "expect": "SelfRetiring",
-    "config": "Settle-reopen.cfg"
+    "config": "Settle-reopen-n.cfg"
   },
   {
     "name": "a copied put while Sweeping reopens the generation",
@@ -217,7 +217,7 @@
       ]
     ],
     "expect": "HeldPresent",
-    "config": "Settle-reopen.cfg"
+    "config": "Settle-reopen-g.cfg"
   },
   {
     "name": "the sweep gives a parked block's downs again",
@@ -228,7 +228,7 @@
       ]
     ],
     "expect": "LiveStored",
-    "config": "Settle.cfg"
+    "config": "Settle-upgrade.cfg"
   },
   {
     "name": "a parked block keeps its holds",
@@ -239,7 +239,7 @@
       ]
     ],
     "expect": "EventuallySettled",
-    "config": "Settle.cfg"
+    "config": "Settle-upgrade.cfg"
   },
   {
     "name": "a reborn block gives no ups",
@@ -250,7 +250,7 @@
       ]
     ],
     "expect": "HeldPresent",
-    "config": "Settle.cfg"
+    "config": "Settle-upgrade.cfg"
   },
   {
     "name": "the recount counts before it drops the parks",
@@ -260,8 +260,8 @@
         "  /\\ released' = {}\n  /\\ debt' = [k \\in Blocks |-> Cardinality({p \\in released : k \\in List(p)})]\n"
       ]
     ],
-    "expect": "HeldPresent",
-    "config": "Settle.cfg"
+    "expect": "ReachedShown",
+    "config": "Settle-upgrade.cfg"
   },
   {
     "name": "the recount does not return a released list's children to the front",
@@ -272,7 +272,7 @@
       ]
     ],
     "expect": "ReachedShown",
-    "config": "Settle.cfg"
+    "config": "Settle-upgrade.cfg"
   },
   {
     "name": "an unpark of a released block owes no recount",
@@ -282,8 +282,8 @@
         "  /\\ owed' = owed\n"
       ]
     ],
-    "expect": "ReachedShown",
-    "config": "Settle.cfg"
+    "expect": "HeldPresent",
+    "config": "Settle-upgrade.cfg"
   },
   {
     "name": "the flip does not wait for an owed recount",
@@ -294,7 +294,7 @@
       ]
     ],
     "expect": "LiveStored",
-    "config": "Settle.cfg"
+    "config": "Settle-upgrade.cfg"
   },
   {
     "name": "the walk pops while a recount is owed",
@@ -304,8 +304,8 @@
         "     \\/ /\\ TRUE\n        /\\ Hidden(b)"
       ]
     ],
-    "expect": "LiveStored",
-    "config": "Settle.cfg"
+    "expect": "ReachedShown",
+    "config": "Settle-upgrade.cfg"
   },
   {
     "name": "the free parks while a recount is owed",
@@ -315,7 +315,7 @@
         "Free(b) ==\n  /\\ TRUE\n"
       ]
     ],
-    "expect": "ReachedShown",
-    "config": "Settle.cfg"
+    "expect": "HeldPresent",
+    "config": "Settle-upgrade.cfg"
   }
 ]
