@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	account_settings "github.com/s4wave/spacewave/core/account/settings"
 	"github.com/s4wave/spacewave/db/block"
+	block_store "github.com/s4wave/spacewave/db/block/store"
 	"github.com/s4wave/spacewave/net/hash"
 )
 
@@ -101,6 +102,19 @@ func (r *pendingRemote) wait(ctx context.Context) (block.StoreOps, error) {
 		case <-changed:
 		}
 	}
+}
+
+// WatchPause watches the backend once it opens: until then nothing is paused,
+// and the channel closes when the backend opens or the placement changes.
+func (r *pendingRemote) WatchPause() (bool, <-chan struct{}) {
+	remote, changed := r.t.readBackend(r.p)
+	if remote == nil {
+		return false, changed
+	}
+	if w, ok := remote.(block_store.PauseWatcher); ok {
+		return w.WatchPause()
+	}
+	return false, nil
 }
 
 // GetHashType returns zero: the backend has not opened.
@@ -204,4 +218,7 @@ func (r *pendingRemote) Sync(ctx context.Context) (bool, error) {
 }
 
 // _ is a type assertion.
-var _ block.StoreOps = (*pendingRemote)(nil)
+var (
+	_ block.StoreOps           = (*pendingRemote)(nil)
+	_ block_store.PauseWatcher = (*pendingRemote)(nil)
+)

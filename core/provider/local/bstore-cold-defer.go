@@ -20,12 +20,22 @@ import (
 // the World's writer. The fill cache over the backend then fills with only
 // what the backend served. Any other read passes through to the backend
 // unchanged, and is counted in the context's block.ReadCounter.
+//
+// A paused backend makes a deferred fetch wait instead of failing, so with a
+// read fallback the fetch races it while the backend is paused, as
+// raceFallback describes. A block the fallback holds ends the fetch as the
+// backend's miss, so the next attempt passes the backend and reads the
+// fallback; the fill cache never takes a block the backend did not serve.
 type backendDefer struct {
 	// StoreOps is the backend store.
 	block.StoreOps
 	// remote is the unscoped backend store a deferred read fetches from
 	// after its read scope ends.
 	remote block_store.StoreSource
+	// pause watches the backend's pause, or holds nil.
+	pause backendPause
+	// fallback is the read fallback a deferred fetch races, or nil.
+	fallback block.StoreOps
 }
 
 // errBackendDeferred is the error of a backend read deferred to the caller's
@@ -34,17 +44,21 @@ type backendDefer struct {
 var errBackendDeferred = fmt.Errorf("%w: deferred to a backend fetch", block.ErrUnavailable)
 
 // deferBackendReads wraps remote so that reads under block.WithPeerReads defer,
-// as backendDefer describes.
-func deferBackendReads(remote block_store.StoreSource) block_store.StoreSource {
+// as backendDefer describes, their fetches racing fallback, when not nil,
+// while pause reports the backend paused.
+func deferBackendReads(remote block_store.StoreSource, pause backendPause, fallback block.StoreOps) block_store.StoreSource {
 	if remote == nil {
 		return nil
+	}
+	if fallback == nil {
+		pause = nil
 	}
 	return func() block.StoreOps {
 		store := remote()
 		if store == nil {
 			return nil
 		}
-		return &backendDefer{StoreOps: store, remote: remote}
+		return &backendDefer{StoreOps: store, remote: remote, pause: pause, fallback: fallback}
 	}
 }
 
@@ -56,7 +70,7 @@ func (b *backendDefer) BeginReadOperation(ctx context.Context) (block.StoreOps, 
 	if err != nil {
 		return nil, nil, err
 	}
-	return &backendDefer{StoreOps: scoped, remote: b.remote}, release, nil
+	return &backendDefer{StoreOps: scoped, remote: b.remote, pause: b.pause, fallback: b.fallback}, release, nil
 }
 
 // GetBlock reads the block, deferring it as GetStoredBlock does.
@@ -112,13 +126,28 @@ func recordBackendRead(ctx context.Context, started time.Time) {
 }
 
 // fetch returns the deferred read of ref from the unscoped backend, outside
-// the caller's PeerReads. A backend that is gone meanwhile misses the block.
+// the caller's PeerReads. A backend that is gone meanwhile misses the block,
+// and so does one paused while the fallback confirms it.
 func (b *backendDefer) fetch(ref *block.BlockRef) block.PeerFetch {
 	return func(ctx context.Context) (*block.StoredBlock, error) {
+		// Read the backend, racing the fallback while the backend is paused.
 		store := b.remote()
 		if store == nil {
 			return nil, nil
 		}
-		return store.GetStoredBlock(block.WithPeerReads(ctx, nil), ref)
+		ctx = block.WithPeerReads(ctx, nil)
+		res := raceFallback(ctx, b.pause, func(ctx context.Context) (*block.StoredBlock, error) {
+			return store.GetStoredBlock(ctx, ref)
+		}, func(ctx context.Context) (*block.StoredBlock, error) {
+			found, err := b.fallback.GetBlockExists(ctx, ref)
+			if err != nil || !found {
+				return nil, err
+			}
+			return &block.StoredBlock{}, nil
+		}, storedHit)
+		if res.fromFallback {
+			return nil, nil
+		}
+		return res.v, res.err
 	}
 }

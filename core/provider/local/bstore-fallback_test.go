@@ -3,6 +3,7 @@ package provider_local
 import (
 	"bytes"
 	"context"
+	"errors"
 	"net/http/httptest"
 	"runtime"
 	"strings"
@@ -383,11 +384,18 @@ func (f *fallbackTest) packHolds(ref *block.BlockRef) bool {
 	return found
 }
 
-// setUnavailable makes the bucket fail every request, or serve again.
+// setUnavailable makes the bucket throttle every request, or serve again.
 func (f *fakeS3) setUnavailable(unavailable bool) {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 	f.unavailable = unavailable
+}
+
+// setRefusing makes the bucket fail every request, or serve again.
+func (f *fakeS3) setRefusing(refusing bool) {
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
+	f.refusing = refusing
 }
 
 // status returns the write-back status.
@@ -408,6 +416,62 @@ func (f *fallbackTest) waitFallback(cond func(FallbackStatus) bool) FallbackStat
 			f.t.Fatalf("fallback status %+v did not settle", f.p.fallbackFills.status())
 		}
 		time.Sleep(5 * time.Millisecond)
+	}
+}
+
+// TestThrottledBucketServesFallback reads a block only the fallback holds
+// while the bucket answers every request with a throttle. The backend read
+// waits out the pause and never fails, so the fallback must race it: the block
+// is served within about one pause, with no error and no backend failure
+// counted.
+func TestThrottledBucketServesFallback(t *testing.T) {
+	// Hold the block in the fallback alone, and throttle a pack store that
+	// has read nothing from the bucket yet.
+	f := newFallbackTest(t)
+	data := []byte("block only the fallback holds, bucket throttled")
+	ref := f.putSQL(data)
+	f.packs.Close()
+	f.packs = f.openPacks()
+	f.bucket.setUnavailable(true)
+
+	// The fallback serves it while the bucket's read waits.
+	start := time.Now()
+	f.read(ref, data)
+	if took := time.Since(start); took > 2*time.Second {
+		t.Fatalf("read took %v, want about one pause", took)
+	}
+	if status := f.p.fallbackFills.status(); status.PackErrors != 0 || status.Hits != 1 {
+		t.Fatalf("fallback status = %+v, want one hit and no backend failure", status)
+	}
+
+	// The bucket was asked and throttled, so the read raced its pause.
+	var throttles uint64
+	endpoint := strings.TrimPrefix(f.srv.URL, "http://")
+	block_store_s3.VisitRequestGates(func(st block_store_s3.GateState) {
+		if strings.Contains(st.Endpoint, endpoint) {
+			throttles += st.Throttles
+		}
+	})
+	if throttles == 0 {
+		t.Fatal("the bucket was never throttled, so the read did not race a pause")
+	}
+
+	// A read under PeerReads defers its backend read, as a World write does.
+	deferData := []byte("deferred block only the fallback holds")
+	deferRef := f.putSQL(deferData)
+	peerReads := block.NewPeerReads()
+	deferCtx := block.WithPeerReads(f.ctx, peerReads)
+	if _, found, err := f.reads.GetBlock(deferCtx, deferRef); found || !errors.Is(err, block.ErrUnavailable) {
+		t.Fatalf("deferred read = %v, %v; want the backend read deferred", found, err)
+	}
+
+	// Its fetch races the pause and ends as the backend's miss, so the next
+	// attempt reads the fallback.
+	if ok, err := peerReads.Fetch(f.ctx); !ok || err != nil {
+		t.Fatalf("fetch = %v, %v; want the deferred block answered", ok, err)
+	}
+	if data, found, err := f.reads.GetBlock(deferCtx, deferRef); err != nil || !found || !bytes.Equal(data, deferData) {
+		t.Fatalf("read after the fetch = %q, %v, %v; want the fallback's block", data, found, err)
 	}
 }
 
@@ -528,19 +592,19 @@ func TestReadFallbackFailures(t *testing.T) {
 		t.Fatalf("evict = %+v, held %v; want the block evicted", result, f.held(bothRef))
 	}
 
-	// An unreachable bucket falls through to the fallback, which serves the
+	// A bucket that refuses every request falls through to the fallback, which serves the
 	// block and stores it with a marker for the pack store to take later. A
 	// pack store opened fresh holds no cached packs, so the read must go out.
 	f.packs.Close()
 	f.packs = f.openPacks()
-	f.bucket.setUnavailable(true)
+	f.bucket.setRefusing(true)
 	f.read(bothRef, both)
 	f.waitFallback(func(s FallbackStatus) bool { return s.Filled == 1 })
 	if status := f.p.fallbackFills.status(); status.PackErrors == 0 {
 		t.Fatalf("fallback status = %+v, want the bucket error counted", status)
 	}
 
-	// A block nobody holds is an error while the bucket is down, never a miss,
+	// A block nobody holds is an error while the bucket refuses, never a miss,
 	// and queues nothing.
 	absent, err := block.BuildBlockRef([]byte("absent everywhere"), nil)
 	if err != nil {
@@ -555,7 +619,7 @@ func TestReadFallbackFailures(t *testing.T) {
 	}
 
 	// With the bucket back, the same block is a clean miss.
-	f.bucket.setUnavailable(false)
+	f.bucket.setRefusing(false)
 	if data, found, err := f.reads.GetBlock(f.ctx, absent); err != nil || found {
 		t.Fatalf("read of an absent block = %q, %v, %v; want a miss", data, found, err)
 	}

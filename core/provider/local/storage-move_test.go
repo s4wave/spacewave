@@ -30,17 +30,25 @@ type fakeS3 struct {
 	mtx sync.Mutex
 	// objects holds each object by key.
 	objects map[string][]byte
-	// unavailable fails every request with a server error.
+	// unavailable throttles every request with a 503, which the client
+	// waits out.
 	unavailable bool
+	// refusing fails every request with a 403, which the client returns.
+	refusing bool
 }
 
 // ServeHTTP handles one request against the single bucket.
 func (f *fakeS3) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// Hold the bucket for the request, failing it while unavailable.
+	// Hold the bucket for the request, throttling it while unavailable and
+	// failing it while refusing.
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 	if f.unavailable {
 		w.WriteHeader(http.StatusServiceUnavailable)
+		return
+	}
+	if f.refusing {
+		w.WriteHeader(http.StatusForbidden)
 		return
 	}
 

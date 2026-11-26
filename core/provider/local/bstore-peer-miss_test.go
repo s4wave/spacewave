@@ -158,7 +158,7 @@ func TestPeerReadDeferred(t *testing.T) {
 func TestBackendReadDeferred(t *testing.T) {
 	want := &block.StoredBlock{Data: []byte("served")}
 	backend := &flakyPeers{blk: want}
-	src := deferBackendReads(func() block.StoreOps { return backend })
+	src := deferBackendReads(func() block.StoreOps { return backend }, nil, nil)
 	ref := block.NewBlockRef(nil)
 	reads := block.NewPeerReads()
 	ctx := block.WithPeerReads(context.Background(), reads)
