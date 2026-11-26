@@ -999,17 +999,20 @@ func TestSessionMount(t *testing.T) {
 		t.Skip("no sessions configured, skipping session mount test")
 	}
 
-	// Mount session 1 and check its resource ref.
+	// Mount session 1.
 	s, err := sess.MountSessionByIdx(ctx, 1)
 	if err != nil {
 		t.Fatalf("MountSessionByIdx: %v", err)
 	}
 	defer s.Release()
 
-	// Check the mounted session exposes a resource ref.
-	ref := s.GetResourceRef()
-	if ref == nil {
-		t.Fatal("expected non-nil session resource ref")
+	// Check the mounted session answers a request with its own reference.
+	info, err := s.GetSessionInfo(ctx)
+	if err != nil {
+		t.Fatalf("GetSessionInfo: %v", err)
+	}
+	if info.GetSessionRef() == nil {
+		t.Fatal("expected the mounted session to report its session ref")
 	}
 }
 
