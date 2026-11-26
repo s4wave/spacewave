@@ -57,8 +57,11 @@ type Volume struct {
 	// statsBcast wakes watchers when storage stats may have changed.
 	statsBcast broadcast.Broadcast
 	// genBcast wakes writers waiting for the generation to move, as
-	// retrySwept describes.
+	// retrySwept describes, and keepers is the count of callers that keep
+	// collecting, as KeepCollecting describes. A change of either is
+	// broadcast on genBcast.
 	genBcast broadcast.Broadcast
+	keepers  atomic.Int32
 	// closeFn is the close func, may be nil.
 	closeFn func() error
 	// deleteFn removes the backing store after Close, may be nil.

@@ -625,7 +625,9 @@ func collectLoop(ctx context.Context, t *testing.T, vols ...volume.Volume) func(
 }
 
 // runPasses runs block passes with collector until ctx ends, counting each.
+// It keeps collecting meanwhile, so a background put waits for a sweep.
 func runPasses(ctx context.Context, collector volume.Collector, passes *atomic.Int64) error {
+	defer collector.KeepCollecting()()
 	for {
 		_, err := collector.Collect(ctx)
 		if ctx.Err() != nil {

@@ -71,6 +71,12 @@ type Collector interface {
 	// nets the logs and frees what died, in slices that yield to waiting
 	// writers. CollectResult.More reports work left.
 	Collect(ctx context.Context) (block_gc.CollectResult, error)
+	// KeepCollecting reports that the caller runs Collect passes, at once
+	// after a flip and again on an interval, until it calls release. A
+	// background writer waits for a sweep to settle only while some caller
+	// keeps collecting, since otherwise no pass would end the sweep.
+	// release may be called more than once.
+	KeepCollecting() (release func())
 }
 
 // BucketReleaser is implemented by a volume that holds named roots by bucket.

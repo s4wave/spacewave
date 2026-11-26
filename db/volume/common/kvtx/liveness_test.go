@@ -7984,6 +7984,8 @@ func TestLivenessSettle(t *testing.T) {
 		if err := put(t.Context()); !errors.Is(err, block_gc.ErrSweeping) {
 			t.Fatalf("foreground copied put while Sweeping err %v, want ErrSweeping at once", err)
 		}
+		release := v.KeepCollecting()
+		defer release()
 		ctx, cancel := context.WithTimeout(block.WithBackground(t.Context()), 50*time.Millisecond)
 		defer cancel()
 		if err := put(ctx); !errors.Is(err, context.DeadlineExceeded) {
@@ -8010,6 +8012,47 @@ func TestLivenessSettle(t *testing.T) {
 		settleAll(t, v, clk, store, tr)
 		requireReads(t, v, tr, "N")
 		requireAudit(t, v, 0)
+	})
+
+	t.Run("background copied put while Sweeping and no pass will come", func(t *testing.T) {
+		// A background copied put waits for the sweep only while a caller
+		// keeps collecting, since otherwise no pass ends the sweep: with no
+		// keeper it is refused at once, and a put waiting when the last
+		// keeper releases wakes and is refused.
+		v, clk, _, tr := oldU(t, false)
+		collectUntil(t, v, clk, flipped)
+		tr.add(t, "N")
+		put := func(ctx context.Context) error {
+			return v.SetBucketRoots(ctx, "b", []*block.PutBatchEntry{copied(tr, "N")}, []block.NamedRoot{{Name: "n", Ref: tr["N"].Ref}})
+		}
+		bg := block.WithBackground(t.Context())
+		if err := put(bg); !errors.Is(err, block_gc.ErrSweeping) {
+			t.Fatalf("background copied put with no keeper err %v, want ErrSweeping at once", err)
+		}
+
+		// A put waiting under a keeper is refused once the keeper leaves.
+		release := v.KeepCollecting()
+		done := make(chan error, 1)
+		go func() { done <- put(bg) }()
+		select {
+		case err := <-done:
+			t.Fatalf("background copied put under a keeper returned %v, want it to wait", err)
+		case <-time.After(50 * time.Millisecond):
+		}
+		release()
+		release()
+		select {
+		case err := <-done:
+			if !errors.Is(err, block_gc.ErrSweeping) {
+				t.Fatalf("background copied put after the release err %v, want ErrSweeping", err)
+			}
+		case <-time.After(10 * time.Second):
+			t.Fatal("the copied put still waits after the last keeper released")
+		}
+		if gen := livenessGeneration(t, v); gen != block_gc.Generation_GENERATION_SWEEPING {
+			t.Fatalf("the generation after the refused puts is %v, want Sweeping", gen)
+		}
+		requireStored(t, v, tr, false, "N")
 	})
 
 	t.Run("sweep resumes across passes", func(t *testing.T) {

@@ -3,6 +3,7 @@ package kvtx
 import (
 	"context"
 	"errors"
+	"sync"
 	"sync/atomic"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -91,10 +92,12 @@ func settledWord(word uint64) bool {
 // copied put marked block.WithBackground waits for the sweep to settle, then
 // reopens the Volume, as block_gc.Land describes. The sweep can run for
 // minutes on a large Volume, so a foreground put gets the error at once and
-// its caller retries; no user request waits on the sweep. With frees off the
-// sweep never ends, so the error returns. The wait channel is taken before
-// each attempt, so a move between the attempt's commit and the wait still
-// wakes it.
+// its caller retries; no user request waits on the sweep. The put waits only
+// while a pass will come: with frees off, or with no caller keeping the
+// collection running, as KeepCollecting describes, the sweep does not end, so
+// the error returns. The wait channel is taken before each attempt, so a move
+// of the generation or the last keeper's release between the attempt and the
+// wait still wakes it.
 func (v *Volume) retrySwept(ctx context.Context, attempt func() error) error {
 	wait := block.IsBackground(ctx)
 	for {
@@ -103,7 +106,7 @@ func (v *Volume) retrySwept(ctx context.Context, attempt func() error) error {
 			moved = getWaitCh()
 		})
 		err := attempt()
-		if !wait || !errors.Is(err, block_gc.ErrSweeping) || v.collector == nil || !v.collector.Frees() {
+		if !wait || !errors.Is(err, block_gc.ErrSweeping) || v.collector == nil || !v.collector.Frees() || v.keepers.Load() == 0 {
 			return err
 		}
 		select {
@@ -111,6 +114,21 @@ func (v *Volume) retrySwept(ctx context.Context, attempt func() error) error {
 			return context.Cause(ctx)
 		case <-moved:
 		}
+	}
+}
+
+// KeepCollecting reports that the caller runs Collect passes until it calls
+// release, so a background copied put waits for the sweep, as retrySwept
+// describes. The release wakes the waiting writers, which return the error
+// once no caller keeps collecting.
+func (v *Volume) KeepCollecting() func() {
+	v.keepers.Add(1)
+	var once sync.Once
+	return func() {
+		once.Do(func() {
+			v.keepers.Add(-1)
+			v.broadcastGeneration()
+		})
 	}
 }
 

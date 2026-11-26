@@ -55,8 +55,11 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 		return nil
 	}
 
-	// The collector is background work: its commits wait for a checkpoint
-	// the volume's writes outpaced, and its scans leave the index cache.
+	// Keep collecting until the volume closes, so a background writer waits
+	// for the sweep the passes end. The collector is background work: its
+	// commits wait for a checkpoint the volume's writes outpaced, and its
+	// scans leave the index cache.
+	defer collector.KeepCollecting()()
 	ctx = block.WithBackground(ctx)
 	timer := time.NewTimer(interval)
 	defer timer.Stop()
