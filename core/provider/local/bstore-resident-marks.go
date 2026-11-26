@@ -104,11 +104,35 @@ func (r *residentOverride) remove(p *placementState) {
 // it, so a loop waiting out evictShortWait checks the new marks at once.
 func (p *placementState) applyPolicy(policy block_store_writeback.Policy) {
 	p.reads.enabled.Store(policy.ResidentHigh > 0)
-	if status, _ := p.wb.GetStatus(); status.Policy != policy && p.policyWake != nil {
-		select {
-		case p.policyWake <- struct{}{}:
-		default:
-		}
+	if status, _ := p.wb.GetStatus(); status.Policy != policy {
+		p.wakeEviction()
 	}
 	p.wb.SetPolicy(policy)
+}
+
+// WakeEviction starts the eviction check of each of the account's mounted
+// placed stores at once, as a change of the resident marks does. Call it when
+// the pacing behind SetEvictAdmit changes, such as a resume after a hold or a
+// faster rate: a loop whose last pass fell short of the mark waits out
+// evictShortWait otherwise, since the admit's own wake reaches only a pass
+// that is running.
+func (a *ProviderAccount) WakeEviction() {
+	r := &a.resident
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+	for p := range r.placements {
+		p.wakeEviction()
+	}
+}
+
+// wakeEviction starts the placement's next eviction check at once, or leaves
+// a wake already pending for it.
+func (p *placementState) wakeEviction() {
+	if p.policyWake == nil {
+		return
+	}
+	select {
+	case p.policyWake <- struct{}{}:
+	default:
+	}
 }

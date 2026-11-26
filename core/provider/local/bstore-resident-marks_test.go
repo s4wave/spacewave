@@ -6,6 +6,7 @@ import (
 	"time"
 
 	account_settings "github.com/s4wave/spacewave/core/account/settings"
+	"github.com/s4wave/spacewave/db/block"
 )
 
 // TestResidentMarksApplyLive checks that SetResidentMarks lowers a mounted
@@ -63,6 +64,27 @@ func TestResidentMarksApplyLive(t *testing.T) {
 	// the marks runs the next pass at once.
 	p.acc.SetResidentMarks(ResidentMarks{HighBytes: 2})
 	waitPass("changing the marks after a short pass")
+
+	// That pass fell short as well, keeping the root, so the loop waits out
+	// evictShortWait and no status change wakes it: a block written and
+	// uploaded now stays local. WakeEviction, which a change of the pacing
+	// sends, runs the pass that evicts it within a second.
+	extra := []byte("written after the short pass")
+	if _, _, err := bs.PutBlock(ctx, extra, &block.PutOpts{RefsKnown: true}); err != nil {
+		t.Fatalf("put = %v", err)
+	}
+	p.waitUpload(ctx, t, func(status UploadStatus) bool {
+		return status.Pending == 0 && status.ResidentBytes() == rootSize+int64(len(extra))
+	})
+	if status, _ := bs.GetUploadStatus(); status.EvictedBytes != childSize {
+		t.Fatalf("evicted %d bytes before the wake, want %d", status.EvictedBytes, childSize)
+	}
+	wakeCtx, wakeCancel := context.WithTimeout(ctx, time.Second)
+	defer wakeCancel()
+	p.acc.WakeEviction()
+	p.waitUpload(wakeCtx, t, func(status UploadStatus) bool {
+		return status.EvictedBytes == childSize+int64(len(extra)) && status.ResidentBytes() == rootSize
+	})
 
 	// A placement change keeps the marks over its settle age.
 	p.place(ctx, t, &account_settings.BlockStoreCache{SettleSeconds: 1800})

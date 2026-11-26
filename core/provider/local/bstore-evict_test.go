@@ -98,7 +98,23 @@ func TestEvictionRetriesTransientBackend(t *testing.T) {
 	case <-time.After(10 * time.Second):
 		t.Fatal("eviction routine never stopped")
 	}
-	entries := hook.AllEntries()
+	// Each run of the routine says its first pass starts, and only the pass
+	// that evicted logs counts.
+	var entries []*logrus.Entry
+	starts := 0
+	for _, entry := range hook.AllEntries() {
+		if entry.Message == "eviction pass starting" {
+			if entry.Data["cause"] != "start" {
+				t.Fatalf("pass start = %+v, want cause start", entry.Data)
+			}
+			starts++
+			continue
+		}
+		entries = append(entries, entry)
+	}
+	if starts != 2 {
+		t.Fatalf("logged %d pass starts, want 2", starts)
+	}
 	if len(entries) != 1 {
 		t.Fatalf("logged %d summaries, want 1", len(entries))
 	}
