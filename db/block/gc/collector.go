@@ -61,12 +61,13 @@ import (
 //     clock, by a clock that has since stepped back, is restamped with the
 //     collector's clock when it reads it.
 //  6. No late namer. A Land that holds a stored block, a root moving onto
-//     it, a born block naming it or a put of it again, reads the block's
-//     count and dequeues it when at zero, in the transaction that writes
-//     its up. The free cannot take it until that up nets, which lifts it off
-//     zero or, with a down that cancels it, queues it again at the up log's
-//     end. A block that reaches zero takes the up log's end as its ripe
-//     sequence, so every up written before it nets before the free.
+//     it, a born block or a refilled hole naming it or a put of it again,
+//     reads the block's count and dequeues it when at zero, in the
+//     transaction that writes its up. The free cannot take it until that up
+//     nets, which lifts it off zero or, with a down that cancels it, queues
+//     it again at the up log's end. A block that reaches zero takes the up
+//     log's end as its ripe sequence, so every up written before it nets
+//     before the free.
 //  7. No freed read. Grace is a contract on read and write sessions. A
 //     reader that saw a head pins it within Grace, and a root's down nets
 //     only once Grace old, so the reader finds its blocks. A block a batch

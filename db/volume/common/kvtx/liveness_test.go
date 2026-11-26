@@ -2979,6 +2979,62 @@ func TestLivenessAdversarial(t *testing.T) {
 		requireAudit(t, v, 0)
 	})
 
+	t.Run("refill names a child the free step is about to take", func(t *testing.T) {
+		// The same loss and audit, then aux releases C and its down nets, so
+		// C waits ripe on the queue at zero. A put refills X between that
+		// net and the free step: the refill names C, so it takes C off the
+		// queue with the up it logs, and the free leaves C to X.
+		store := store_kvtx_inmem.NewStore()
+		off, _ := openLivenessVolume(t, store, false)
+		ctx := t.Context()
+		tr := testTree{}
+		c := tr.add(t, "C")
+		x := tr.add(t, "X", "C")
+		p := tr.add(t, "P", "X")
+		roots := []block.NamedRoot{{Name: "main", Ref: p}, {Name: "aux", Ref: c}}
+		if err := off.SetBucketRoots(ctx, "b", tr.entries("C", "X", "P"), roots); err != nil {
+			t.Fatal(err)
+		}
+		loseBlock(t, off, x)
+		if err := off.Close(); err != nil {
+			t.Fatal(err)
+		}
+		v, clk := openLivenessVolume(t, store, true)
+		waitAdopted(t, v)
+		if res, err := v.Audit(ctx); err != nil || res.Holes != 1 {
+			t.Fatalf("audit recorded %d holes err %v, want X's", res.Holes, err)
+		}
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "aux", Previous: c}}); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+
+		// Refill X as the pass turns from netting to freeing.
+		refilled := false
+		phase := func(ph block_gc.Phase) func() {
+			if ph == block_gc.PhaseSweep && !refilled {
+				refilled = true
+				if err := v.SetBucketRoots(ctx, "b", tr.entries("X"), nil); err != nil {
+					t.Error(err)
+				}
+			}
+			return func() {}
+		}
+		collector := block_gc.NewCollector(collectorStore{v: v}, block_gc.CollectorOptions{Frees: true, Now: v.now, Phase: phase})
+		if _, err := collector.Collect(ctx); err != nil || !refilled {
+			t.Fatalf("collect err %v, refilled %v", err, refilled)
+		}
+		requireReads(t, v, tr, "P", "X", "C")
+
+		// C stays once the refill's up nets and every grace period passes.
+		for range 3 {
+			clk.Add(3 * (block_gc.DefaultGrace + time.Second))
+			collectAll(t, v)
+		}
+		requireReads(t, v, tr, "P", "X", "C")
+		requireAudit(t, v, 0)
+	})
+
 	t.Run("turning frees on recounts after an older build writes", func(t *testing.T) {
 		// A Volume adopted with frees on is written by a build that knows
 		// neither the switch nor its mark, which keeps both as unknown fields

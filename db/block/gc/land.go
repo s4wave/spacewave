@@ -88,11 +88,11 @@ const (
 // several batches keeps each block it puts again.
 //
 // Land dequeues each stored block it holds: a root moving onto it, a born
-// block naming it, or a put of it again. It reads their count records in the
-// batch that reads the puts' counts and deletes the queue entry of each at
-// zero, so the free cannot take a block whose up has not netted yet. It
-// dequeues only a block it also gives an up, which nets later and lifts the
-// count off zero.
+// block or a refilled hole naming it, or a put of it again. It reads their
+// count records in the batch that reads the puts' counts and deletes the
+// queue entry of each at zero, so the free cannot take a block whose up has
+// not netted yet. It dequeues only a block it also gives an up, which nets
+// later and lifts the count off zero.
 //
 // A root's Previous must match the block the name holds, or Land writes
 // nothing and returns block.ErrRootMoved. A root must name a block the store
@@ -437,7 +437,9 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 	// Store the bytes, which also evicts the tombstones' bytes, then write the
 	// child lists of the refilled holes back. A list gives its children
 	// holders their counts lack, outside an adoption or where its count
-	// already passed it, so it logs them as a birth does.
+	// already passed it, so it logs them as a birth does, and dequeues each
+	// at zero: the free trusts a queue entry to prove no namer since the
+	// block ripened, and the up nets only after it.
 	existed, err := l.blocks.PutBlockBatch(ctx, entries)
 	if err != nil {
 		return nil, err
@@ -449,7 +451,11 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 		}
 		if l.logs && (!l.adopting || adoptCounted(l.state, BlockKey(entry.Ref))) {
 			for _, child := range children {
-				l.up = append(l.up, BlockKey(child))
+				key := BlockKey(child)
+				l.up = append(l.up, key)
+				if err := l.dequeue(ctx, key); err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
@@ -544,9 +550,9 @@ const (
 // reads whether each listed block is hidden, as Records.Hidden describes.
 //
 // When holds is set, the same count batch reads the count of each block
-// outside the batch a born block names or a root moves onto, and of each
-// block the batch stores again, and holds.zeros records each at zero, so
-// Land dequeues them with no read of its own.
+// outside the batch a born block or a refilled hole names or a root moves
+// onto, and of each block the batch stores again, and holds.zeros records
+// each at zero, so Land dequeues them with no read of its own.
 func classifyPuts(
 	ctx context.Context,
 	rec *Records,
@@ -682,12 +688,13 @@ type zeroHolds struct {
 }
 
 // gather returns the count record keys the Land reads for holds: of each
-// child outside the batch a born put names, each root target outside the
-// batch, and each block the batch stores again. kinds holds each put's
-// kind, with the blocks whose counts are not read yet still putBorn, which
-// is born like every kind their counts can give. A key named twice is read
-// twice, which costs less than a map to find it. The keys share one
-// allocation, built from each child's hash with no block key of its own.
+// child outside the batch a born put or a refill names, each root target
+// outside the batch, and each block the batch stores again, a refilled hole
+// among them. kinds holds each put's kind, with the blocks whose counts are
+// not read yet still putBorn, which is born like every kind their counts can
+// give. A key named twice is read twice, which costs less than a map to find
+// it. The keys share one allocation, built from each child's hash with no
+// block key of its own.
 func (h *zeroHolds) gather(rec *Records, puts []*block.PutBatchEntry, keys [][]byte, kinds []putKind, seen map[string]struct{}) [][]byte {
 	// Without holds, nothing.
 	if h == nil {
@@ -703,6 +710,8 @@ func (h *zeroHolds) gather(rec *Records, puts []*block.PutBatchEntry, keys [][]b
 	for i, entry := range puts {
 		if kinds[i] == putStored || kinds[i] == putRefill {
 			size, n = size+head+len(keys[i]), n+1
+		}
+		if kinds[i] == putStored {
 			continue
 		}
 		for _, child := range entry.Refs {
@@ -728,6 +737,8 @@ func (h *zeroHolds) gather(rec *Records, puts []*block.PutBatchEntry, keys [][]b
 			start := len(buf)
 			buf = append(append(append(buf, rec.prefix...), kindCount), keys[i]...)
 			add(start, false)
+		}
+		if kinds[i] == putStored {
 			continue
 		}
 		for _, child := range entry.Refs {
