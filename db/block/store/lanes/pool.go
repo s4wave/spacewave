@@ -22,15 +22,18 @@ const preferWindow = 8
 // at once, or the next lane released before any other class; an interactive
 // call comes next. Refill and background calls share the rest: they hold at
 // most capped lanes at once, leaving reserve lanes for the urgent and
-// interactive calls, and take a lane only while none of those waits. The
-// pool's limit, which SetLimit moves, bounds the lanes all calls hold at
-// once, and the reserve comes out of the limit. A
-// waiting call whose context raises it (block.WithRaise) waits on as
-// interactive. Each class waits in arrival order, except that a released
-// lane goes to a waiter among the first few of its class that prefers it.
+// interactive calls, and take a lane only while none of those waits, refill
+// before background. SetCappedFloor lets refill and background calls hold a
+// few lanes ahead of the other classes, so they keep progressing under any
+// foreground load. The pool's limit, which SetLimit moves, bounds the lanes
+// all calls hold at once, and the reserve comes out of the limit. While the
+// limit is zero, SetProbes lets a few urgent calls through as probes. A
+// waiting call whose class rises (block.WithRaise, block.WithDemand) moves to
+// the queue of its new class. Each class waits in arrival order, except that
+// a released lane goes to a waiter among the first few of its class that
+// prefers it.
 //
-// Invariant: a free lane exists only while no waiter could take it, or while
-// the calls hold the limit.
+// Invariant: a free lane exists only while no waiter could take it.
 type Pool[T comparable] struct {
 	// mu guards the fields below.
 	mu sync.Mutex
@@ -48,6 +51,14 @@ type Pool[T comparable] struct {
 	held int
 	// cappedHeld counts the lanes refill and background calls hold.
 	cappedHeld int
+	// cappedFloor is how many lanes refill and background calls may hold
+	// ahead of urgent and interactive waiters.
+	cappedFloor int
+	// probes is how many urgent calls may hold a lane while the limit is
+	// zero.
+	probes int
+	// probeHeld counts the lanes probes hold.
+	probeHeld int
 	// queues holds the waiting calls of each kind, most urgent first.
 	queues [kinds][]*waiter[T]
 }
@@ -58,9 +69,16 @@ type kind int
 const (
 	kindUrgent kind = iota
 	kindInteractive
-	kindCapped
+	kindRefill
+	kindBackground
 	kinds
 )
+
+// capped reports whether calls of k count against the refill and background
+// cap.
+func (k kind) capped() bool {
+	return k >= kindRefill
+}
 
 // kindOf returns the queue of a call of class.
 func kindOf(class block.ReadClass) kind {
@@ -69,8 +87,10 @@ func kindOf(class block.ReadClass) kind {
 		return kindUrgent
 	case class.Foreground():
 		return kindInteractive
+	case class == block.ReadRefill:
+		return kindRefill
 	default:
-		return kindCapped
+		return kindBackground
 	}
 }
 
@@ -81,6 +101,9 @@ type Lease[T comparable] struct {
 	// Capped reports whether the lease counts against the refill and
 	// background cap: the call was neither urgent nor interactive.
 	Capped bool
+	// Probe reports whether the call took the lane as a probe while the
+	// limit was zero.
+	Probe bool
 }
 
 // waiter is one call waiting for a lane.
@@ -112,10 +135,45 @@ func (p *Pool[T]) SetLimit(n int) {
 	p.mu.Unlock()
 }
 
+// SetCappedFloor lets refill and background calls hold up to n lanes ahead
+// of waiting urgent and interactive calls, within the limit, so a foreground
+// load above the limit cannot starve them. The default is zero.
+func (p *Pool[T]) SetCappedFloor(n int) {
+	p.mu.Lock()
+	p.cappedFloor = max(n, 0)
+	p.grantLocked()
+	p.mu.Unlock()
+}
+
+// SetProbes lets up to n urgent calls hold a lane each while the limit is
+// zero, as probes of whether the link has recovered. The default is zero.
+func (p *Pool[T]) SetProbes(n int) {
+	p.mu.Lock()
+	p.probes = max(n, 0)
+	p.grantLocked()
+	p.mu.Unlock()
+}
+
 // cappedLocked returns the most lanes refill and background calls may hold
-// at once: the limit less the reserve, and at least one.
+// at once: the limit less the reserve, and at least the floor and one.
 func (p *Pool[T]) cappedLocked() int {
-	return max(p.limit-p.reserve, 1)
+	return max(p.limit-p.reserve, p.cappedFloor, 1)
+}
+
+// admitLocked reports whether a call of kind k may take a free lane now, and
+// whether it takes it as a probe.
+func (p *Pool[T]) admitLocked(k kind) (ok, probe bool) {
+	switch {
+	case len(p.free) == 0:
+		return false, false
+	case p.limit == 0:
+		return k == kindUrgent && p.probeHeld < p.probes, true
+	case p.held >= p.limit:
+		return false, false
+	case k.capped() && p.cappedHeld >= p.cappedLocked():
+		return false, false
+	}
+	return true, false
 }
 
 // Len returns the number of lanes.
@@ -129,7 +187,9 @@ func (p *Pool[T]) Len() int {
 // block. The caller returns the lease with Put. Take fails only when ctx ends
 // first.
 func (p *Pool[T]) Take(ctx context.Context, prefer func(T) bool) (*Lease[T], error) {
-	// Take a free lane the call's class may hold.
+	// Take a free lane the call's class may hold. Read the raise channel
+	// before the class, so a rise between the two still wakes the wait.
+	raised := block.Raised(ctx)
 	w := &waiter[T]{grant: make(chan *Lease[T], 1), kind: kindOf(block.ReadClassOf(ctx)), prefer: prefer}
 	p.mu.Lock()
 	if l := p.takeFreeLocked(w); l != nil {
@@ -141,19 +201,14 @@ func (p *Pool[T]) Take(ctx context.Context, prefer func(T) bool) (*Lease[T], err
 	p.queues[w.kind] = append(p.queues[w.kind], w)
 	p.mu.Unlock()
 
-	// Wait for the grant, moving to the interactive queue when raised, or
-	// leave the queue when ctx ends.
-	var raised <-chan struct{}
-	if w.kind == kindCapped {
-		raised = block.Raised(ctx)
-	}
+	// Wait for the grant, moving to the queue of a risen class, or leave
+	// the queue when ctx ends.
 	for {
 		select {
 		case l := <-w.grant:
 			return l, nil
 		case <-raised:
-			raised = nil
-			p.raise(w)
+			raised = p.raise(ctx, w)
 		case <-ctx.Done():
 			p.leave(w)
 			return nil, context.Cause(ctx)
@@ -167,13 +222,12 @@ func (p *Pool[T]) Take(ctx context.Context, prefer func(T) bool) (*Lease[T], err
 func (p *Pool[T]) takeFreeLocked(w *waiter[T]) *Lease[T] {
 	// Wait when no lane is free, the calls hold the limit, or the call's
 	// kind holds its cap.
-	capped := w.kind == kindCapped
-	if len(p.free) == 0 || p.held >= p.limit || (capped && p.cappedHeld >= p.cappedLocked()) {
+	ok, probe := p.admitLocked(w.kind)
+	if !ok {
 		return nil
 	}
 
-	// Take a preferred free lane, else the last one, and count it against
-	// its kind.
+	// Take a preferred free lane, else the last one.
 	i := len(p.free) - 1
 	if w.prefer != nil {
 		if j := slices.IndexFunc(p.free, w.prefer); j >= 0 {
@@ -182,11 +236,17 @@ func (p *Pool[T]) takeFreeLocked(w *waiter[T]) *Lease[T] {
 	}
 	lane := p.free[i]
 	p.free = slices.Delete(p.free, i, i+1)
+
+	// Count the lane against the limit, its kind and the probes.
 	p.held++
+	capped := w.kind.capped()
 	if capped {
 		p.cappedHeld++
 	}
-	return &Lease[T]{Lane: lane, Capped: capped}
+	if probe {
+		p.probeHeld++
+	}
+	return &Lease[T]{Lane: lane, Capped: capped, Probe: probe}
 }
 
 // Put returns a lease taken with Take and hands its lane to the next waiter.
@@ -196,6 +256,9 @@ func (p *Pool[T]) Put(l *Lease[T]) {
 	p.held--
 	if l.Capped {
 		p.cappedHeld--
+	}
+	if l.Probe {
+		p.probeHeld--
 	}
 	p.free = append(p.free, l.Lane)
 	p.grantLocked()
@@ -218,20 +281,21 @@ func (p *Pool[T]) grantLocked() {
 	}
 }
 
-// nextKindLocked returns the most urgent kind with a waiter that may take a
-// lane now, or -1.
+// nextKindLocked returns the kind whose waiter takes the next lane, or -1
+// when no waiter may take one now: refill and background below their floor
+// first, then the most urgent kind.
 func (p *Pool[T]) nextKindLocked() kind {
-	if p.held >= p.limit {
-		return -1
+	if p.cappedHeld < p.cappedFloor {
+		for k := kindRefill; k < kinds; k++ {
+			if ok, _ := p.admitLocked(k); ok && len(p.queues[k]) != 0 {
+				return k
+			}
+		}
 	}
 	for k := range kinds {
-		if len(p.queues[k]) == 0 {
-			continue
+		if ok, _ := p.admitLocked(k); ok && len(p.queues[k]) != 0 {
+			return k
 		}
-		if k == kindCapped && p.cappedHeld >= p.cappedLocked() {
-			continue
-		}
-		return k
 	}
 	return -1
 }
@@ -247,17 +311,25 @@ func (p *Pool[T]) preferredLocked(queue []*waiter[T]) int {
 	return 0
 }
 
-// raise moves a waiting refill or background call to the interactive queue,
-// unless it was already granted a lane.
-func (p *Pool[T]) raise(w *waiter[T]) {
+// raise moves a waiting call whose class rose to the queue of its new class,
+// unless it was already granted a lane, and returns the channel of its next
+// rise.
+func (p *Pool[T]) raise(ctx context.Context, w *waiter[T]) <-chan struct{} {
+	// Read the next rise's channel before the class, as Take does.
+	raised := block.Raised(ctx)
+	k := kindOf(block.ReadClassOf(ctx))
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	if i := slices.Index(p.queues[kindCapped], w); i >= 0 {
-		p.queues[kindCapped] = slices.Delete(p.queues[kindCapped], i, i+1)
-		w.kind = kindInteractive
-		p.queues[kindInteractive] = append(p.queues[kindInteractive], w)
+	if k >= w.kind {
+		return raised
+	}
+	if i := slices.Index(p.queues[w.kind], w); i >= 0 {
+		p.queues[w.kind] = slices.Delete(p.queues[w.kind], i, i+1)
+		w.kind = k
+		p.queues[k] = append(p.queues[k], w)
 		p.grantLocked()
 	}
+	return raised
 }
 
 // leave removes a call whose context ended from its queue. A lane granted to
@@ -283,7 +355,7 @@ func (p *Pool[T]) leave(w *waiter[T]) {
 func (p *Pool[T]) Held() (cappedHeld, cappedWaiting int) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	return p.cappedHeld, len(p.queues[kindCapped])
+	return p.cappedHeld, len(p.queues[kindRefill]) + len(p.queues[kindBackground])
 }
 
 // Stats returns a snapshot of the pool, for status and metrics.
@@ -295,6 +367,7 @@ func (p *Pool[T]) Stats() Stats {
 		Held:        p.held,
 		Urgent:      len(p.queues[kindUrgent]),
 		Interactive: len(p.queues[kindInteractive]),
-		Capped:      len(p.queues[kindCapped]),
+		Refill:      len(p.queues[kindRefill]),
+		Background:  len(p.queues[kindBackground]),
 	}
 }

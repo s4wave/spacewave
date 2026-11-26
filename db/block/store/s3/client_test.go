@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -98,6 +99,33 @@ func TestDoRetriesTransientStatus(t *testing.T) {
 	}
 }
 
+// TestDoReturnsPersistentFault fails every request with a 500 and checks
+// that a GET returns the status after its bounded retries, rather than
+// waiting like a throttle.
+func TestDoReturnsPersistentFault(t *testing.T) {
+	// Shorten the retry delays and fail every request.
+	delays := retryDelays
+	retryDelays = []time.Duration{time.Millisecond, time.Millisecond, time.Millisecond}
+	t.Cleanup(func() { retryDelays = delays })
+	var sent atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sent.Add(1)
+		http.Error(w, "<Error><Code>InternalError</Code></Error>", http.StatusInternalServerError)
+	}))
+	defer srv.Close()
+
+	// The read fails with the status after one try and three retries.
+	client := newTestClient(t, srv)
+	_, err := client.GetObjectRange(t.Context(), "bucket", "key", 0, 8)
+	var status *StatusError
+	if !errors.As(err, &status) || status.StatusCode != http.StatusInternalServerError {
+		t.Fatalf("err = %v; want the 500 status", err)
+	}
+	if got := sent.Load(); got != int32(len(retryDelays)+1) {
+		t.Fatalf("sent %d requests; want %d", got, len(retryDelays)+1)
+	}
+}
+
 // TestThrottleBurstPausesUrgentReads throttles a burst of urgent reads with a
 // one second Retry-After and checks that every read still succeeds, that the
 // gate halved its limit, and that the bucket saw no request during the pause.
@@ -158,67 +186,133 @@ func TestThrottleBurstPausesUrgentReads(t *testing.T) {
 	}
 }
 
-// TestInteractiveReadPassesBackgroundFlood holds a gate of one lane with a
-// background read, queues a flood of background reads and then one
-// interactive read, and checks that the interactive read takes the lane next.
+// TestInteractiveReadPassesBackgroundFlood floods a gate at its floor with
+// background reads the bucket holds, and checks that an interactive read
+// still completes at once: the flood holds only the capped lanes and leaves
+// the reserve free.
 func TestInteractiveReadPassesBackgroundFlood(t *testing.T) {
-	// Hold the first request until the others queue, and record the order of
-	// the requests.
+	// Hold every background request until the interactive read completes.
 	bucket, client := newFakeBucket(t, map[string]string{"bg": "b", "fg": "f"})
-	client.gate.limit = 1
-	client.gate.pool.SetLimit(1)
+	client.gate.limit = gateFloor
+	client.gate.pool.SetLimit(gateFloor)
 	hold := make(chan struct{})
-	var mtx sync.Mutex
-	var order []string
 	bucket.after = func(r *http.Request) {
-		// Record the request, and hold the first.
-		mtx.Lock()
-		order = append(order, r.Header.Get("X-Test"))
-		first := len(order) == 1
-		mtx.Unlock()
-		if first {
+		if r.Header.Get("X-Test") == "bg" {
 			<-hold
 		}
 	}
 
-	// Send each read tagged, so the bucket can record its order.
+	// Start the flood, wait for it to fill the capped lanes and queue, then
+	// read interactively while it is held.
 	const flood = 20
-	done := make(chan error, flood+1)
-	get := func(ctx context.Context, key, tag string) {
-		// Send one tagged GET.
-		resp, err := client.do(ctx, http.MethodGet, "bucket", key, nil, nil, http.Header{"X-Test": {tag}})
-		if err == nil {
-			_ = resp.Body.Close()
-		}
-		done <- err
-	}
-
-	// Start the flood, then the interactive read once the flood queues, and
-	// release the held read once the interactive read queues.
+	done := make(chan error, flood)
 	bg := block.WithBackground(t.Context())
 	for range flood {
-		go get(bg, "bg", "bg")
+		go func() { done <- tagGet(client, bg, "bg", "bg") }()
 	}
-	waitQueued(t, client.gate, func(st GateState) bool { return st.QueuedCapped == flood-1 })
-	go get(t.Context(), "fg", "fg")
-	waitQueued(t, client.gate, func(st GateState) bool { return st.QueuedInteractive == 1 })
-	close(hold)
+	waitQueued(t, client.gate, func(st GateState) bool {
+		return st.InFlight == gateCappedFloor && st.QueuedBackground == flood-gateCappedFloor
+	})
+	if err := tagGet(client, t.Context(), "fg", "fg"); err != nil {
+		t.Fatal(err)
+	}
 
-	// Every read succeeds.
-	for range flood + 1 {
+	// Release the flood; every read succeeds.
+	close(hold)
+	for range flood {
 		if err := <-done; err != nil {
 			t.Fatal(err)
 		}
 	}
+}
 
-	// The interactive read took the released lane. The held read's clean
-	// answer also raises the limit to two, so one background read may be
-	// sent alongside it and arrive first.
-	mtx.Lock()
-	defer mtx.Unlock()
-	if len(order) != flood+1 || slices.Index(order, "fg") > 2 {
-		t.Fatalf("request order %v; want the interactive read next", order)
+// TestBackgroundPutPassesForegroundLoad holds every lane of a gate at its
+// floor with interactive reads, queues more of them and then a background
+// PUT, and checks that the PUT is the next request the bucket sees once one
+// read returns: a foreground load above the limit cannot starve uploads.
+func TestBackgroundPutPassesForegroundLoad(t *testing.T) {
+	// Hold each interactive read until released, and record arrivals.
+	bucket, client := newFakeBucket(t, map[string]string{"fg": "f"})
+	client.gate.limit = gateFloor
+	client.gate.pool.SetLimit(gateFloor)
+	release := make(chan struct{})
+	arrivals := make(chan string, 64)
+	bucket.after = func(r *http.Request) {
+		arrivals <- r.Method
+		if r.Method == http.MethodGet {
+			<-release
+		}
 	}
+
+	// Hold the limit, queue more reads, then the background PUT.
+	const reads = gateFloor + 10
+	done := make(chan error, reads+1)
+	for range reads {
+		go func() { done <- tagGet(client, t.Context(), "fg", "fg") }()
+	}
+	waitQueued(t, client.gate, func(st GateState) bool {
+		return st.InFlight == gateFloor && st.QueuedInteractive == reads-gateFloor
+	})
+	for range gateFloor {
+		<-arrivals
+	}
+	go func() {
+		done <- client.PutObject(block.WithBackground(t.Context()), "bucket", "up", []byte("u"), "")
+	}()
+	waitQueued(t, client.gate, func(st GateState) bool { return st.QueuedBackground == 1 })
+
+	// One read's return admits the PUT ahead of the queued reads.
+	release <- struct{}{}
+	if got := <-arrivals; got != http.MethodPut {
+		t.Fatalf("next request %s; want the background PUT", got)
+	}
+	close(release)
+	for range reads + 1 {
+		if err := <-done; err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+// TestUrgentProbeEndsPause throttles one interactive read with a ten second
+// Retry-After, lets the bucket recover, and checks that an urgent read
+// completes after one probe interval rather than at the pause's deadline,
+// and that its clean answer resumes the waiting interactive read too.
+func TestUrgentProbeEndsPause(t *testing.T) {
+	// Throttle the first request for ten seconds.
+	bucket, client := newFakeBucket(t, map[string]string{"a": "1", "b": "2"})
+	bucket.throttleNext = 1
+	bucket.retryAfter = "10"
+
+	// The interactive read is throttled and waits in the pause.
+	start := time.Now()
+	inter := make(chan error, 1)
+	go func() { inter <- tagGet(client, t.Context(), "a", "inter") }()
+	waitQueued(t, client.gate, func(st GateState) bool { return !st.PausedUntil.IsZero() && st.QueuedInteractive == 1 })
+
+	// An urgent read probes the recovered bucket and ends the pause.
+	urgent := block.WithReadClass(t.Context(), block.ReadUrgent)
+	if err := tagGet(client, urgent, "b", "urgent"); err != nil {
+		t.Fatal(err)
+	}
+	if err := <-inter; err != nil {
+		t.Fatal(err)
+	}
+	if took := time.Since(start); took > gateProbeEvery+time.Second {
+		t.Fatalf("reads took %v; want about one probe interval of %v", took, gateProbeEvery)
+	}
+	if st, _ := client.gate.State(); !st.PausedUntil.IsZero() || st.Throttles != 1 {
+		t.Fatalf("gate state %+v; want unpaused after one throttle", st)
+	}
+}
+
+// tagGet sends one GET of key tagged for the fake bucket and closes its body.
+func tagGet(client *Client, ctx context.Context, key, tag string) error {
+	resp, err := client.do(ctx, http.MethodGet, "bucket", key, nil, nil, http.Header{"X-Test": {tag}})
+	if err != nil {
+		return err
+	}
+	return resp.Body.Close()
 }
 
 // waitQueued waits until the gate's state satisfies ok.
@@ -277,6 +371,65 @@ func newTestClient(t *testing.T, srv *httptest.Server) *Client {
 	if err != nil {
 		t.Fatal(err)
 	}
-	client.gate = newRequestGate(srv.URL)
+	client.gate = newRequestGate(srv.URL, "test")
 	return client
+}
+
+// TestSharedFetchRisesAndOutlivesLeader starts a background fetch on a gate
+// whose one lane is held, joins it with an urgent caller, and checks that
+// the queued request moves to the urgent queue, that the leader's cancel
+// leaves the fetch running, and that the follower gets the result.
+func TestSharedFetchRisesAndOutlivesLeader(t *testing.T) {
+	// Hold the gate's only lane with a held read.
+	bucket, client := newFakeBucket(t, map[string]string{"x": "v", "h": "h"})
+	client.gate.limit = 1
+	client.gate.pool.SetLimit(1)
+	hold := make(chan struct{})
+	bucket.after = func(r *http.Request) {
+		if r.Header.Get("X-Test") == "hold" {
+			<-hold
+		}
+	}
+	held := make(chan error, 1)
+	go func() { held <- tagGet(client, t.Context(), "h", "hold") }()
+	waitQueued(t, client.gate, func(st GateState) bool { return st.InFlight == 1 })
+
+	// A background leader queues the shared fetch.
+	var g fetchGroup[string]
+	fetch := func(ctx context.Context) (string, error) {
+		data, err := client.GetObjectRange(ctx, "bucket", "x", 0, 8)
+		return string(data), err
+	}
+	leaderCtx, cancelLeader := context.WithCancel(block.WithBackground(t.Context()))
+	leader := make(chan error, 1)
+	go func() {
+		_, err := g.do(leaderCtx, "x", fetch)
+		leader <- err
+	}()
+	waitQueued(t, client.gate, func(st GateState) bool { return st.QueuedBackground == 1 })
+
+	// An urgent follower raises the queued request to urgent.
+	type result struct {
+		val string
+		err error
+	}
+	follower := make(chan result, 1)
+	go func() {
+		val, err := g.do(block.WithReadClass(t.Context(), block.ReadUrgent), "x", fetch)
+		follower <- result{val, err}
+	}()
+	waitQueued(t, client.gate, func(st GateState) bool { return st.QueuedUrgent == 1 && st.QueuedBackground == 0 })
+
+	// The leader leaves; the fetch still completes for the follower.
+	cancelLeader()
+	if err := <-leader; !errors.Is(err, context.Canceled) {
+		t.Fatalf("leader err = %v; want its own cancel", err)
+	}
+	close(hold)
+	if got := <-follower; got.err != nil || got.val != "v" {
+		t.Fatalf("follower got %q, %v; want the object", got.val, got.err)
+	}
+	if err := <-held; err != nil {
+		t.Fatal(err)
+	}
 }

@@ -397,10 +397,8 @@ func visitElements(doc, name string, fn func(content string) error) error {
 // transit or with a transient fault other than a throttle. Each wait is drawn
 // uniformly from zero to its bound, so requests that failed together come
 // back spread out rather than in step; the mean waits are 250 ms, 1 s and
-// 3 s. A transient status keeps retrying at the last bound until the
-// request's context ends; a transport failure returns after the last retry.
-// Every request the client sends is idempotent: object writes are content
-// addressed.
+// 3 s. After the last retry the request returns its failure. Every request
+// the client sends is idempotent: object writes are content addressed.
 var retryDelays = []time.Duration{
 	500 * time.Millisecond,
 	2 * time.Second,
@@ -414,23 +412,18 @@ const maxRetryAfter = 30 * time.Second
 // do builds, signs, and sends an S3 request through the client's gate. An
 // empty key addresses the bucket. query, data, and header may be nil.
 //
-// A request waits rather than fails while the service is throttled or
-// faulty: its only error then is its own context ending, so a passing fault's
-// status text never reaches the caller. Each attempt holds one of the gate's
-// lanes until the response headers arrive. A throttled answer, 429 or 503,
-// gives its lane back, tells the gate, and queues again in the request's
-// class. Another transient status retries after a jittered delay, and a
-// transport failure retries len(retryDelays) times and then returns.
+// A throttled answer, 429 or 503, gives its lane back, tells the gate, and
+// queues again in the request's class, as often as the service throttles:
+// a throttle never reaches the caller, whose only error then is its own
+// context ending. A transport failure or another transient status, 500, 502
+// or 504, retries len(retryDelays) times after jittered delays, and then
+// returns its error or its response, logging one warning. Once ctx ends, do
+// returns its cause and never a status's text.
 func (c *Client) do(ctx context.Context, method, bucket, key string, query url.Values, data []byte, header http.Header) (*http.Response, error) {
 	for faults := 0; ; {
-		// Send the request on a lane, returning only the context's error
-		// once it ends.
-		lease, err := c.gate.pool.Take(ctx, nil)
-		if err != nil {
-			return nil, err
-		}
-		resp, err := c.send(ctx, method, bucket, key, query, data, header)
-		c.gate.pool.Put(lease)
+		// Send one attempt, returning only the context's error once it
+		// ends.
+		resp, probe, err := c.attempt(ctx, method, bucket, key, query, data, header)
 		if ctx.Err() != nil {
 			if resp != nil {
 				httpclient.DrainAndCloseResponseBody(resp)
@@ -445,18 +438,29 @@ func (c *Client) do(ctx context.Context, method, bucket, key string, query url.V
 			continue
 		}
 
-		// Return an answer that is not a transient fault, and a transport
-		// failure past its retries.
+		// Return an answer that is not a transient fault. A probe's clean
+		// answer ends the gate's pause.
 		if !isTransient(resp, err) {
 			c.gate.answered()
+			if probe {
+				c.gate.probeAnswered()
+			}
 			return resp, nil
 		}
-		if err != nil && faults == len(retryDelays) {
-			return nil, err
+
+		// Return a transient fault past its retries.
+		if faults == len(retryDelays) {
+			le := c.gate.le.WithField("method", method).WithField("retries", faults)
+			if err != nil {
+				le.WithError(err).Warn("s3 request failed, giving up")
+				return nil, err
+			}
+			le.WithField("status", resp.StatusCode).Warn("s3 request failed, giving up")
+			return resp, nil
 		}
 
 		// Wait out the response's Retry-After plus a jittered delay.
-		delay := jitter(retryDelays[min(faults, len(retryDelays)-1)])
+		delay := jitter(retryDelays[faults])
 		faults++
 		c.gate.retried()
 		if resp != nil {
@@ -473,6 +477,20 @@ func (c *Client) do(ctx context.Context, method, bucket, key string, query url.V
 		case <-timer.C:
 		}
 	}
+}
+
+// attempt sends one attempt of a request on a lane of the gate, which it
+// holds until the response headers arrive, and reports whether the lane was
+// a probe of a paused gate.
+func (c *Client) attempt(ctx context.Context, method, bucket, key string, query url.Values, data []byte, header http.Header) (*http.Response, bool, error) {
+	// Hold a lane for the attempt, returning it however the send ends.
+	lease, err := c.gate.pool.Take(ctx, nil)
+	if err != nil {
+		return nil, false, err
+	}
+	defer c.gate.pool.Put(lease)
+	resp, err := c.send(ctx, method, bucket, key, query, data, header)
+	return resp, lease.Probe, err
 }
 
 // jitter returns a wait drawn uniformly from [0, bound).

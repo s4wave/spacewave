@@ -103,7 +103,7 @@ func TestPoolSetLimit(t *testing.T) {
 	bg := wait(p, refill, nil)
 	inter := wait(p, ctx, nil)
 	urg := wait(p, urgent, nil)
-	if st := p.Stats(); st.Limit != 0 || st.Held != 0 || st.Urgent != 1 || st.Interactive != 1 || st.Capped != 1 {
+	if st := p.Stats(); st.Limit != 0 || st.Held != 0 || st.Urgent != 1 || st.Interactive != 1 || st.Refill != 1 {
 		t.Fatalf("paused stats %+v", st)
 	}
 
@@ -182,4 +182,112 @@ func wait(p *Pool[string], ctx context.Context, prefer func(string) bool) <-chan
 // settle lets started goroutines reach their wait.
 func settle() {
 	time.Sleep(10 * time.Millisecond)
+}
+
+// TestPoolCappedFloor holds every lane with interactive calls and queues more
+// of them with a background and a refill call behind: the next released
+// lanes go to the refill and then the background call, so a foreground load
+// above the limit cannot starve them, and only then to interactive calls.
+func TestPoolCappedFloor(t *testing.T) {
+	// Build a pool at a floor of two refill and background lanes.
+	ctx := context.Background()
+	refill := block.WithReadClass(ctx, block.ReadRefill)
+	bg := block.WithBackground(ctx)
+	p := New(make([]string, 10), 8)
+	p.SetCappedFloor(2)
+
+	// Hold every lane, and queue foreground load ahead of a background and
+	// a refill call.
+	held := make([]*Lease[string], 10)
+	for i := range held {
+		held[i] = take(t, p, ctx, nil)
+	}
+	inter := wait(p, ctx, nil)
+	b := wait(p, bg, nil)
+	r := wait(p, refill, nil)
+
+	// The first lane goes to the refill, the second to the background call.
+	p.Put(held[0])
+	if got := recv(t, r); !got.lease.Capped {
+		t.Fatal("refill lease is not capped")
+	}
+	select {
+	case <-b:
+		t.Fatal("background call took a lane before one was released")
+	case <-inter:
+		t.Fatal("interactive call passed the refill")
+	default:
+	}
+	p.Put(held[1])
+	recv(t, b)
+
+	// At the floor, the interactive call takes the next lane.
+	p.Put(held[2])
+	recv(t, inter)
+}
+
+// TestPoolProbes pauses the pool with one probe allowed: an urgent call
+// takes a lane as a probe, a second urgent call waits for it, and an
+// interactive call waits for the limit.
+func TestPoolProbes(t *testing.T) {
+	// Pause a pool that allows one probe.
+	ctx := context.Background()
+	urgent := block.WithReadClass(ctx, block.ReadUrgent)
+	p := New(make([]string, 4), 1)
+	p.SetLimit(0)
+	p.SetProbes(1)
+
+	// One urgent call probes; the next urgent and an interactive call wait.
+	probe := take(t, p, urgent, nil)
+	if !probe.Probe {
+		t.Fatal("urgent lease taken while paused is not a probe")
+	}
+	inter := wait(p, ctx, nil)
+	next := wait(p, urgent, nil)
+	select {
+	case <-next:
+		t.Fatal("second urgent call probed while a probe was out")
+	case <-inter:
+		t.Fatal("interactive call took a lane while paused")
+	default:
+	}
+
+	// The probe's return lets the next urgent call probe, and the restored
+	// limit lets the interactive call in.
+	p.Put(probe)
+	if got := recv(t, next); !got.lease.Probe {
+		t.Fatal("second urgent lease is not a probe")
+	}
+	p.SetLimit(4)
+	recv(t, inter)
+}
+
+// TestPoolDemandRaise queues a background call on a shared demand behind a
+// held lane and raises the demand to urgent: the call moves ahead of a
+// waiting interactive call.
+func TestPoolDemandRaise(t *testing.T) {
+	// Hold the only lane, and queue a call on a background demand ahead of
+	// an interactive one.
+	ctx := context.Background()
+	p := New(make([]string, 1), 0)
+	d := block.NewDemand(block.ReadBackground)
+	held := take(t, p, ctx, nil)
+	shared := wait(p, block.WithDemand(ctx, d), nil)
+	inter := wait(p, ctx, nil)
+
+	// Raise the shared call to urgent, then release the lane.
+	d.Raise(block.ReadUrgent)
+	settle()
+	if st := p.Stats(); st.Urgent != 1 || st.Background != 0 {
+		t.Fatalf("raised stats %+v", st)
+	}
+	p.Put(held)
+	if got := recv(t, shared); got.lease.Capped {
+		t.Fatal("raised lease counts against the cap")
+	}
+	select {
+	case <-inter:
+		t.Fatal("interactive call passed the raised call")
+	default:
+	}
 }

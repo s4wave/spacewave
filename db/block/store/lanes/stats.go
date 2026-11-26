@@ -10,6 +10,8 @@ type Stats struct {
 	Urgent int
 	// Interactive is the number of interactive calls waiting.
 	Interactive int
-	// Capped is the number of refill and background calls waiting.
-	Capped int
+	// Refill is the number of refill calls waiting.
+	Refill int
+	// Background is the number of background calls waiting.
+	Background int
 }

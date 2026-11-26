@@ -1,6 +1,10 @@
 package block
 
-import "context"
+import (
+	"context"
+
+	"github.com/aperturerobotics/util/broadcast"
+)
 
 // ReadClass ranks a read by who waits for it. A store with a bounded link to
 // remote data serves the classes in this order.
@@ -25,12 +29,59 @@ const (
 // readClassKey identifies the read class of a context.
 type readClassKey struct{}
 
-// readDemand is the read class of a context and the channel that raises it.
+// readDemand is the read class of a context and what raises it.
 type readDemand struct {
 	// class is the class the read starts in.
 	class ReadClass
 	// raised closes when an interactive read starts waiting on this one.
 	raised <-chan struct{}
+	// demand, when set, holds the class instead of class and raised.
+	demand *Demand
+}
+
+// Demand is the read class of a fetch that several readers share: the most
+// urgent class of the readers that joined it. It rises as a more urgent
+// reader joins and never falls, so a fetch that once served an urgent reader
+// stays urgent until it ends.
+type Demand struct {
+	// bcast guards class and broadcasts each rise.
+	bcast broadcast.Broadcast
+	// class is the most urgent class of the readers that joined.
+	class ReadClass
+}
+
+// NewDemand returns a demand that starts at class.
+func NewDemand(class ReadClass) *Demand {
+	return &Demand{class: class}
+}
+
+// Raise raises the demand to class when class is more urgent.
+func (d *Demand) Raise(class ReadClass) {
+	d.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if class < d.class {
+			d.class = class
+			broadcast()
+		}
+	})
+}
+
+// State returns the demand's class and a channel closed when it next rises,
+// nil once it is urgent and cannot rise.
+func (d *Demand) State() (ReadClass, <-chan struct{}) {
+	var class ReadClass
+	var ch <-chan struct{}
+	d.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		class = d.class
+		if class != ReadUrgent {
+			ch = getWaitCh()
+		}
+	})
+	return class, ch
+}
+
+// WithDemand returns ctx whose reads take the current class of d.
+func WithDemand(ctx context.Context, d *Demand) context.Context {
+	return context.WithValue(ctx, readClassKey{}, readDemand{demand: d})
 }
 
 // WithReadClass returns ctx whose reads are of class.
@@ -49,10 +100,29 @@ func WithRaise(ctx context.Context, raised <-chan struct{}) context.Context {
 // ctx carries none.
 func ReadClassOf(ctx context.Context) ReadClass {
 	demand, ok := ctx.Value(readClassKey{}).(readDemand)
-	if !ok {
+	switch {
+	case !ok:
+		return ReadInteractive
+	case demand.demand != nil:
+		class, _ := demand.demand.State()
+		return class
+	case demand.class > ReadInteractive && isClosed(demand.raised):
 		return ReadInteractive
 	}
 	return demand.class
+}
+
+// isClosed reports whether ch is closed; a nil channel is not.
+func isClosed(ch <-chan struct{}) bool {
+	if ch == nil {
+		return false
+	}
+	select {
+	case <-ch:
+		return true
+	default:
+		return false
+	}
 }
 
 // Foreground reports whether someone waits on a read of class c now: an
@@ -61,10 +131,18 @@ func (c ReadClass) Foreground() bool {
 	return c <= ReadInteractive
 }
 
-// Raised returns the channel that raises the reads of ctx to interactive, or
-// nil when nothing can raise them.
+// Raised returns a channel closed when the class of the reads of ctx next
+// rises, after which ReadClassOf returns the new class, or nil when nothing
+// can raise it further.
 func Raised(ctx context.Context) <-chan struct{} {
 	demand, _ := ctx.Value(readClassKey{}).(readDemand)
+	if demand.demand != nil {
+		_, ch := demand.demand.State()
+		return ch
+	}
+	if demand.class <= ReadInteractive || isClosed(demand.raised) {
+		return nil
+	}
 	return demand.raised
 }
 
