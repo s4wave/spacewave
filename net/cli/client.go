@@ -122,6 +122,21 @@ func (a *ClientArgs) BuildBifrostCommand() *cli.Command {
 	}
 }
 
+// BuildBifrostCommandWithClient binds the Bifrost commands to a client provided at invocation.
+func (a *ClientArgs) BuildBifrostCommandWithClient(connect func() (bifrost_api.BifrostAPIClient, error)) *cli.Command {
+	// Configure the Bifrost group to obtain its client before invoking a child.
+	cmd := a.BuildBifrostCommand()
+	cmd.Before = func(_ *cli.Context) error {
+		client, err := connect()
+		if err != nil {
+			return err
+		}
+		a.client = client
+		return nil
+	}
+	return cmd
+}
+
 // BuildCommand binds the Bifrost client commands, flags and invocation context.
 func (a *ClientArgs) BuildCommand() *cli.Command {
 	// Bind this command's flags and context without changing embedded clients.

@@ -89,12 +89,7 @@ func (a *ClientArgs) BuildFlags() []ucli.Flag {
 	}
 }
 
-// SetClient sets the client instance.
-func (a *ClientArgs) SetClient(client api.HydraDaemonClient) {
-	a.client = client
-}
-
-// BuildClient builds the client or returns it if it has been set.
+// BuildClient returns the bound client or dials the Hydra daemon.
 func (a *ClientArgs) BuildClient() (api.HydraDaemonClient, error) {
 	// Reuse an injected client when available.
 	if a.client != nil {
@@ -122,17 +117,32 @@ func (a *ClientArgs) BuildClient() (api.HydraDaemonClient, error) {
 
 // BuildHydraCommand returns the hydra sub-command set.
 func (a *ClientArgs) BuildHydraCommand() *ucli.Command {
-	// Bind the client commands and their invocation context as one command.
-	hydraCmds := a.BuildCommands()
+	return a.buildHydraCommand(func(c *ucli.Context) error {
+		a.ctx = c.Context
+		return nil
+	})
+}
+
+// BuildHydraCommandWithClient binds the Hydra commands to a client provided at invocation.
+func (a *ClientArgs) BuildHydraCommandWithClient(connect func() (api.HydraDaemonClient, error)) *ucli.Command {
+	return a.buildHydraCommand(func(_ *ucli.Context) error {
+		client, err := connect()
+		if err != nil {
+			return err
+		}
+		a.client = client
+		return nil
+	})
+}
+
+// buildHydraCommand joins the Hydra commands and flags with their setup callback.
+func (a *ClientArgs) buildHydraCommand(before ucli.BeforeFunc) *ucli.Command {
 	return &ucli.Command{
 		Name:        "hydra",
 		Usage:       "Hydra storage sub-commands.",
-		Subcommands: hydraCmds,
+		Subcommands: a.BuildCommands(),
 		Flags:       a.BuildFlags(),
-		Before: func(c *ucli.Context) error {
-			a.ctx = c.Context
-			return nil
-		},
+		Before:      before,
 	}
 }
 

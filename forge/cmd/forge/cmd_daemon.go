@@ -10,16 +10,11 @@ import (
 
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
-	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
 	configset_json "github.com/aperturerobotics/controllerbus/controller/configset/json"
-	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/pkg/errors"
 	hcli "github.com/s4wave/spacewave/db/cli"
 	fcli "github.com/s4wave/spacewave/forge/cli"
-	forge_core "github.com/s4wave/spacewave/forge/core"
 	"github.com/s4wave/spacewave/forge/daemon"
-	api_controller "github.com/s4wave/spacewave/forge/daemon/api/controller"
-	forge_lib "github.com/s4wave/spacewave/forge/lib/all"
 	bcli "github.com/s4wave/spacewave/net/cli"
 	daemon_prof "github.com/s4wave/spacewave/net/daemon/prof"
 	"github.com/s4wave/spacewave/net/keypem/keyfile"
@@ -27,43 +22,57 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type (
-	hDaemonArgs = hcli.DaemonArgs
-	bDaemonArgs = bcli.DaemonArgs
-	fDaemonArgs = fcli.DaemonArgs
-)
-
-var daemonFlags struct {
-	hDaemonArgs
-	bDaemonArgs
-	fDaemonArgs
-
-	WriteConfig  bool
-	ConfigPath   string
+// daemonArgs holds the flags and process policy for the Forge daemon command.
+type daemonArgs struct {
+	// hydra holds the Hydra daemon flags.
+	hydra hcli.DaemonArgs
+	// bifrost holds the Bifrost daemon flags.
+	bifrost bcli.DaemonArgs
+	// forge holds the common Forge daemon flags.
+	forge fcli.DaemonArgs
+	// WriteConfig requests writing the merged configuration.
+	WriteConfig bool
+	// ConfigPath is the configuration file path.
+	ConfigPath string
+	// PeerPrivPath is the path to the daemon peer's private key.
 	PeerPrivPath string
-	APIListen    string
-	ProfListen   string
+	// APIListen is the optional address of the daemon API.
+	APIListen string
+	// ProfListen is the optional address of the debug profiler.
+	ProfListen string
 }
 
-func init() {
+// BuildCommand binds the daemon command's startup flags and action.
+func (a *daemonArgs) BuildCommand() *cli.Command {
+	return &cli.Command{
+		Name:   "daemon",
+		Usage:  "run a forge daemon",
+		Action: a.Run,
+		Flags:  a.BuildFlags(),
+	}
+}
+
+// BuildFlags binds flags for the daemon and its underlying services.
+func (a *daemonArgs) BuildFlags() []cli.Flag {
+	// Combine the Hydra flags with the daemon command's startup flags.
 	dflags := append(
-		daemonFlags.hDaemonArgs.BuildFlags(),
+		a.hydra.BuildFlags(),
 		&cli.StringFlag{
 			Name:        "node-priv",
 			Usage:       "path to node private key, will be generated if doesn't exist",
-			Destination: &daemonFlags.PeerPrivPath,
+			Destination: &a.PeerPrivPath,
 			Value:       "daemon_node_priv.pem",
 		},
 		&cli.StringFlag{
 			Name:        "api-listen",
 			Usage:       "if set, will listen on address for API connections, ex :5110",
-			Destination: &daemonFlags.APIListen,
+			Destination: &a.APIListen,
 			Value:       ":5110",
 		},
 		&cli.StringFlag{
 			Name:        "prof-listen",
 			Usage:       "if set, debug profiler will be hosted on the port, ex :8080",
-			Destination: &daemonFlags.ProfListen,
+			Destination: &a.ProfListen,
 		},
 		&cli.StringFlag{
 			Name:        "config",
@@ -71,30 +80,23 @@ func init() {
 			Usage:       "path to configuration yaml file",
 			EnvVars:     []string{"FORGE_CONFIG"},
 			Value:       "forge_daemon.yaml",
-			Destination: &daemonFlags.ConfigPath,
+			Destination: &a.ConfigPath,
 		},
 		&cli.BoolFlag{
 			Name:        "write-config",
 			Usage:       "write the daemon config file on startup",
 			EnvVars:     []string{"FORGE_WRITE_CONFIG"},
-			Destination: &daemonFlags.WriteConfig,
+			Destination: &a.WriteConfig,
 		},
 	)
-	dflags = append(dflags, daemonFlags.bDaemonArgs.BuildFlags()...)
-	dflags = append(dflags, daemonFlags.fDaemonArgs.BuildFlags()...)
-	commands = append(
-		commands,
-		&cli.Command{
-			Name:   "daemon",
-			Usage:  "run a forge daemon",
-			Action: runDaemon,
-			Flags:  dflags,
-		},
-	)
+
+	// Include the network and Forge service flags after the startup flags.
+	dflags = append(dflags, a.bifrost.BuildFlags()...)
+	return append(dflags, a.forge.BuildFlags()...)
 }
 
-// runDaemon runs the daemon.
-func runDaemon(c *cli.Context) error {
+// Run starts the Forge daemon and waits for its process context to end.
+func (a *daemonArgs) Run(_ *cli.Context) error {
 	// Run until interrupted or terminated so the deferred releases run.
 	ctx, ctxCancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer ctxCancel()
@@ -105,7 +107,7 @@ func runDaemon(c *cli.Context) error {
 	le := logrus.NewEntry(log)
 
 	// Load or create the peer private key.
-	peerPriv, err := keyfile.OpenOrWritePrivKey(le, daemonFlags.PeerPrivPath)
+	peerPriv, err := keyfile.OpenOrWritePrivKey(le, a.PeerPrivPath)
 	if err != nil {
 		return err
 	}
@@ -118,34 +120,18 @@ func runDaemon(c *cli.Context) error {
 		return errors.Wrap(err, "construct daemon")
 	}
 
-	// Register the forge factories on the daemon bus.
-	b := d.GetControllerBus()
-	sr := d.GetStaticResolver()
-	forge_core.AddFactories(b, sr)
-	forge_lib.AddFactories(b, sr)
-
-	// Load the ConfigSet controller.
-	_, csRef, err := b.AddDirective(
-		ctx,
-		resolver.NewLoadControllerWithConfig(&configset_controller.Config{}),
-		nil,
-	)
+	// Prepare the daemon to resolve and apply ConfigSets.
+	csRef, err := d.PrepareConfigSets(ctx)
 	if err != nil {
-		return errors.Wrap(err, "construct configset controller")
+		return err
 	}
 	defer csRef.Release()
 
 	// Serve the daemon API when a listen address is configured.
-	if daemonFlags.APIListen != "" {
-		_, apiRef, err := b.AddDirective(
-			ctx,
-			resolver.NewLoadControllerWithConfig(&api_controller.Config{
-				ListenAddr: daemonFlags.APIListen,
-			}),
-			nil,
-		)
+	if a.APIListen != "" {
+		apiRef, err := d.ServeAPI(ctx, a.APIListen)
 		if err != nil {
-			return errors.Wrap(err, "listen on api")
+			return err
 		}
 		defer apiRef.Release()
 	}
@@ -157,18 +143,18 @@ func runDaemon(c *cli.Context) error {
 	confSet["pubsub"] = configset.NewControllerConfig(1, &floodsub_controller.Config{})
 
 	// Merge the config file into the config set.
-	configLe := le.WithField("config", daemonFlags.ConfigPath)
-	if confPath := daemonFlags.ConfigPath; confPath != "" {
+	configLe := le.WithField("config", a.ConfigPath)
+	if confPath := a.ConfigPath; confPath != "" {
 		confDat, err := os.ReadFile(confPath)
 		if err != nil {
 			if os.IsNotExist(err) {
-				if daemonFlags.WriteConfig {
+				if a.WriteConfig {
 					configLe.Info("cannot find config but write-config is set, continuing")
 				} else {
 					return errors.Wrapf(
 						err,
 						"cannot find config at %s",
-						daemonFlags.ConfigPath,
+						a.ConfigPath,
 					)
 				}
 			} else {
@@ -176,16 +162,15 @@ func runDaemon(c *cli.Context) error {
 			}
 		}
 
-		_, err = configset_json.UnmarshalYAML(ctx, b, confDat, confSet, true)
-		if err != nil {
-			return errors.Wrap(err, "unmarshal config yaml")
+		if err := d.MergeConfigSetYAML(ctx, confDat, confSet); err != nil {
+			return err
 		}
 	}
 
 	// Apply the command line arguments to the config set.
 	for _, e := range []error{
-		daemonFlags.bDaemonArgs.ApplyToConfigSet(confSet, true),
-		daemonFlags.hDaemonArgs.ApplyToConfigSet(confSet, true, nil),
+		a.bifrost.ApplyToConfigSet(confSet, true),
+		a.hydra.ApplyToConfigSet(confSet, true, nil),
 	} {
 		if e != nil {
 			return e
@@ -193,32 +178,28 @@ func runDaemon(c *cli.Context) error {
 	}
 
 	// Write the merged config back when requested.
-	if daemonFlags.ConfigPath != "" && daemonFlags.WriteConfig {
+	if a.ConfigPath != "" && a.WriteConfig {
 		confDat, err := configset_json.MarshalYAML(confSet)
 		if err != nil {
 			return errors.Wrap(err, "marshal config")
 		}
-		err = os.WriteFile(daemonFlags.ConfigPath, confDat, 0o644)
+		err = os.WriteFile(a.ConfigPath, confDat, 0o644)
 		if err != nil {
 			return errors.Wrap(err, "write config file")
 		}
 	}
 
 	// Apply the configuration set for the lifetime of the daemon command.
-	_, bdbRef, err := b.AddDirective(
-		ctx,
-		configset.NewApplyConfigSet(confSet),
-		nil,
-	)
+	configRef, err := d.ApplyConfigSet(ctx, confSet)
 	if err != nil {
 		return err
 	}
-	defer bdbRef.Release()
+	defer configRef.Release()
 
 	// Serve daemon profiling when a profiler address is configured.
-	if daemonFlags.ProfListen != "" {
+	if a.ProfListen != "" {
 		go func() {
-			_ = daemon_prof.ListenProf(le, daemonFlags.ProfListen)
+			_ = daemon_prof.ListenProf(le, a.ProfListen)
 		}()
 	}
 

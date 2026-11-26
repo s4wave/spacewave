@@ -3,7 +3,6 @@
 package cli
 
 import (
-	"context"
 	"errors"
 	"net"
 
@@ -11,29 +10,55 @@ import (
 	cbus_cli "github.com/aperturerobotics/controllerbus/cli"
 	"github.com/aperturerobotics/starpc/srpc"
 	hydra_cli "github.com/s4wave/spacewave/db/cli"
+	hydra_api "github.com/s4wave/spacewave/db/daemon/api"
 	api "github.com/s4wave/spacewave/forge/daemon/api"
 	bifrost_cli "github.com/s4wave/spacewave/net/cli"
-	"github.com/sirupsen/logrus"
+	bifrost_api "github.com/s4wave/spacewave/net/daemon/api"
 )
 
-// ClientArgs contains the client arguments and functions.
+// ClientArgs binds the Forge client commands to a shared daemon connection.
 type ClientArgs struct {
-	// CbusConf is the controller-bus configuration.
-	CbusConf cbus_cli.ClientArgs
-	// BifrostConf is the bifrost configuration.
-	BifrostConf bifrost_cli.ClientArgs
-	// HydraConf is the hydra configuration.
-	HydraConf hydra_cli.ClientArgs
-
-	// le is the logger entry
-	le *logrus.Entry
-	// ctx is the context
-	ctx context.Context
-	// client is the client instance
+	// cbusArgs binds the ControllerBus commands.
+	cbusArgs cbus_cli.ClientArgs
+	// bifrostArgs binds the Bifrost commands.
+	bifrostArgs bifrost_cli.ClientArgs
+	// hydraArgs binds the Hydra commands.
+	hydraArgs hydra_cli.ClientArgs
+	// client is the shared RPC client, opened on first use.
 	client api.ForgeDaemonClient
 
 	// DialAddr is the address to dial.
 	DialAddr string
+}
+
+// BuildCommand binds the client command tree and its shared dial address.
+func (a *ClientArgs) BuildCommand() *cli.Command {
+	// Supply the Forge connection when the ControllerBus command runs.
+	cbusCmd := a.cbusArgs.BuildControllerBusCommand()
+	cbusCmd.Before = func(_ *cli.Context) error {
+		client, err := a.buildClient()
+		if err != nil {
+			return err
+		}
+		a.cbusArgs.SetClient(client)
+		return nil
+	}
+
+	// Bind each child to the Forge service it uses.
+	return &cli.Command{
+		Name:  "client",
+		Usage: "client sub-commands",
+		Subcommands: []*cli.Command{
+			cbusCmd,
+			a.bifrostArgs.BuildBifrostCommandWithClient(func() (bifrost_api.BifrostAPIClient, error) {
+				return a.buildClient()
+			}),
+			a.hydraArgs.BuildHydraCommandWithClient(func() (hydra_api.HydraDaemonClient, error) {
+				return a.buildClient()
+			}),
+		},
+		Flags: a.BuildFlags(),
+	}
 }
 
 // BuildFlags attaches the flags to a flag set.
@@ -48,14 +73,9 @@ func (a *ClientArgs) BuildFlags() []cli.Flag {
 	}
 }
 
-// SetClient sets the client instance.
-func (a *ClientArgs) SetClient(client api.ForgeDaemonClient) {
-	a.client = client
-}
-
-// BuildClient builds the client or returns it if it has been set.
-func (a *ClientArgs) BuildClient() (api.ForgeDaemonClient, error) {
-	// Reuse the client when the caller already supplied one.
+// buildClient dials the Forge daemon once and reuses the resulting client.
+func (a *ClientArgs) buildClient() (api.ForgeDaemonClient, error) {
+	// Reuse the open Forge client across subcommands.
 	if a.client != nil {
 		return a.client, nil
 	}
@@ -77,48 +97,4 @@ func (a *ClientArgs) BuildClient() (api.ForgeDaemonClient, error) {
 	client := srpc.NewClientWithMuxedConn(muxedConn)
 	a.client = api.NewForgeDaemonClient(client)
 	return a.client, nil
-}
-
-// BuildForgeCommand returns the forge sub-command set.
-func (a *ClientArgs) BuildForgeCommand() *cli.Command {
-	forgeCmds := a.BuildCommands()
-	return &cli.Command{
-		Name:        "forge",
-		Usage:       "Forge distributed build sub-commands.",
-		Subcommands: forgeCmds,
-	}
-}
-
-// BuildCommands attaches the commands.
-func (a *ClientArgs) BuildCommands() []*cli.Command {
-	// TODO
-	return nil
-}
-
-// SetContext sets the context.
-func (a *ClientArgs) SetContext(c context.Context) {
-	a.ctx = c
-}
-
-// GetContext returns the context.
-func (a *ClientArgs) GetContext() context.Context {
-	if c := a.ctx; c != nil {
-		return c
-	}
-	return context.TODO()
-}
-
-// SetLogger sets the root log entry.
-func (a *ClientArgs) SetLogger(le *logrus.Entry) {
-	a.le = le
-}
-
-// GetLogger returns the log entry
-func (a *ClientArgs) GetLogger() *logrus.Entry {
-	if le := a.le; le != nil {
-		return le
-	}
-	log := logrus.New()
-	log.SetLevel(logrus.DebugLevel)
-	return logrus.NewEntry(log)
 }

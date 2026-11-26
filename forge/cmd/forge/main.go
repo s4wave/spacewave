@@ -7,18 +7,20 @@ import (
 	"os"
 
 	"github.com/aperturerobotics/cli"
+	fcli "github.com/s4wave/spacewave/forge/cli"
 )
 
-// Commands are the CLI commands
-var commands []*cli.Command
-
+// main runs the Forge client and daemon commands.
 func main() {
 	// Configure the forge command-line application.
 	app := cli.NewApp()
 	app.Name = "forge"
 	app.HideVersion = true
 	app.Usage = "distributed task scheduling system"
-	app.Commands = commands
+	app.Commands = []*cli.Command{
+		new(fcli.ClientArgs).BuildCommand(),
+		new(daemonArgs).BuildCommand(),
+	}
 
 	// Run the application and report command failures.
 	if err := app.Run(os.Args); err != nil {
