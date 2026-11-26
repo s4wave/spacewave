@@ -101,8 +101,11 @@ func reserveDocker(t *testing.T, admission *WorkerAdmission, ctx context.Context
 	if err != nil {
 		t.Fatal(err)
 	}
-	return admission.Reserve(ctx, key, conf)
+	return admission.Reserve(ctx, key, conf, noWaiting)
 }
+
+// noWaiting accepts a Reserve's wait reports.
+func noWaiting(context.Context, *forge_target.Waiting) error { return nil }
 
 // TestWorkerAdmissionRejectsOtherWorkerPlacement keeps backend creation behind
 // the selected Worker's capacity claim even if a resolver picks this factory.
@@ -127,7 +130,7 @@ func TestWorkerAdmissionRejectsOtherWorkerPlacement(t *testing.T) {
 	}
 
 	// Verify the Worker refuses capacity for another Worker placement.
-	if _, err := admission.Reserve(ctx, key, &forge_lib_docker.Config{Image: "img", MilliCpu: 500, MemoryBytes: 1 << 20}); err == nil {
+	if _, err := admission.Reserve(ctx, key, &forge_lib_docker.Config{Image: "img", MilliCpu: 500, MemoryBytes: 1 << 20}, noWaiting); err == nil {
 		t.Fatal("backend capacity was reserved on another Worker")
 	}
 }
@@ -738,8 +741,9 @@ func TestWorkerAdmissionReclaimStopsPreviousRuntime(t *testing.T) {
 }
 
 // TestWorkerAdmissionCardWaits proves a busy card makes Reserve wait until the
-// holder's credit, a request the Worker could never hold fails at once, and
-// each grant carries its card's device nodes.
+// holder's credit, reporting the wait and clearing it once granted, a request
+// the Worker could never hold fails at once, and each grant carries its card's
+// device nodes.
 func TestWorkerAdmissionCardWaits(t *testing.T) {
 	// Declare a Worker with one AMD card.
 	admission, _, _ := newWorkerAdmissionTestbed(t)
@@ -788,14 +792,24 @@ func TestWorkerAdmissionCardWaits(t *testing.T) {
 		forge_target.NewValueSet(), &forge_target.Target{Exec: &forge_target.Exec{Disable: true}}, nil, timestamp.Now()); err != nil {
 		t.Fatal(err)
 	}
+	reports := make(chan *forge_target.Waiting, 4)
+	report := func(_ context.Context, waiting *forge_target.Waiting) error {
+		reports <- waiting
+		return nil
+	}
 	go func() {
-		grant, err := admission.Reserve(ctx, "exec/second", conf(1))
+		grant, err := admission.Reserve(ctx, "exec/second", conf(1), report)
 		second <- result{grant, err}
 	}()
 	select {
 	case r := <-second:
 		t.Fatalf("second reservation did not wait: %v", r.err)
-	case <-time.After(200 * time.Millisecond):
+	case waiting := <-reports:
+		if got := waiting.GetCapacity().Describe(); got != "a graphics card on worker/a" {
+			t.Fatalf("second reports waiting for %q", got)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("second reservation reported no wait")
 	}
 
 	// The first Execution's release wakes the second with the card.
@@ -812,6 +826,9 @@ func TestWorkerAdmissionCardWaits(t *testing.T) {
 		}
 		if len(r.grant.Devices()) != 2 {
 			t.Fatalf("second grant devices %v", r.grant.Devices())
+		}
+		if len(reports) != 1 || (<-reports) != nil {
+			t.Fatal("second reservation did not clear its wait once")
 		}
 	case <-time.After(10 * time.Second):
 		t.Fatal("second reservation did not wake after the release")

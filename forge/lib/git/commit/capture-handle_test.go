@@ -64,8 +64,8 @@ func (h *captureHandle) WriteLog(ctx context.Context, level, message string) err
 	return nil
 }
 
-// SetWaitingPlugin accepts wait status without writing an Execution.
-func (h *captureHandle) SetWaitingPlugin(context.Context, string) error { return nil }
+// SetWaiting accepts wait status without writing an Execution.
+func (h *captureHandle) SetWaiting(context.Context, *forge_target.Waiting) error { return nil }
 
 // _ verifies the complete execution handle contract.
 var _ forge_target.ExecControllerHandle = (*captureHandle)(nil)

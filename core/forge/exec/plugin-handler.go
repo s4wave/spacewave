@@ -58,7 +58,7 @@ func (h *pluginExecHandler) Execute(ctx context.Context) error {
 	var waited bool
 	client, ref, err := h.load(ctx, h.b, h.conf.GetPluginId(), func() error {
 		waited = true
-		return h.handle.SetWaitingPlugin(ctx, h.conf.GetPluginId())
+		return h.handle.SetWaiting(ctx, forge_target.NewPluginWaiting(h.conf.GetPluginId()))
 	})
 	if err != nil {
 		return errors.Wrap(err, "load plugin exec service")
@@ -70,7 +70,7 @@ func (h *pluginExecHandler) Execute(ctx context.Context) error {
 		return errors.Errorf("plugin not found: %s", h.conf.GetPluginId())
 	}
 	if waited {
-		if err := h.handle.SetWaitingPlugin(ctx, ""); err != nil {
+		if err := h.handle.SetWaiting(ctx, nil); err != nil {
 			return errors.Wrap(err, "clear plugin load wait")
 		}
 	}

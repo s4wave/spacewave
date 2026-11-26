@@ -194,9 +194,9 @@ func TestPluginExecWaitsForUnlistedSpacePlugin(t *testing.T) {
 
 	// Wait for the Execution to report the plugin it needs.
 	waiting := waitExecution(ctx, t, tb, execKey, func(e *forge_execution.Execution) bool {
-		return e.GetWaitingPluginId() != ""
+		return e.GetWaiting().GetPluginId() != ""
 	})
-	if got := waiting.GetWaitingPluginId(); got != spacePluginID {
+	if got := waiting.GetWaiting().GetPluginId(); got != spacePluginID {
 		t.Fatalf("waiting plugin = %q, want %q", got, spacePluginID)
 	}
 	if state := waiting.GetExecutionState(); state != forge_execution.State_ExecutionState_RUNNING {
@@ -249,7 +249,7 @@ func TestPluginExecWaitsForUnlistedSpacePlugin(t *testing.T) {
 
 	// The plugin load clears the wait before the Execution completes.
 	proceeding := waitExecution(ctx, t, tb, execKey, func(e *forge_execution.Execution) bool {
-		return e.GetWaitingPluginId() == ""
+		return e.GetWaiting().GetPluginId() == ""
 	})
 	if state := proceeding.GetExecutionState(); state != forge_execution.State_ExecutionState_RUNNING {
 		t.Fatalf("proceeding Execution state = %s, want RUNNING", state)
@@ -261,7 +261,7 @@ func TestPluginExecWaitsForUnlistedSpacePlugin(t *testing.T) {
 	if !completed.GetResult().IsSuccessful() {
 		t.Fatalf("Execution failed: %s", completed.GetResult().GetFailError())
 	}
-	if got := completed.GetWaitingPluginId(); got != "" {
+	if got := completed.GetWaiting().GetPluginId(); got != "" {
 		t.Fatalf("completed waiting plugin = %q", got)
 	}
 

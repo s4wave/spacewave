@@ -93,14 +93,15 @@ func (c *Controller) Execute(ctx context.Context) (retErr error) {
 	defer hd.remove(c.le)
 
 	// Debit a deterministic runtime name and launch the container under it.
-	// Reserve waits while the Worker admits no work. A drain that fences the
+	// Reserve waits while the Worker admits no work or its capacity is held,
+	// reporting the capacity wait on the Execution. A drain that fences the
 	// launch voids the debit, so release it and reserve again.
 	var (
 		grant Reservation
 		ctr   *Container
 	)
 	for {
-		grant, err = c.admission.Reserve(ctx, c.handle.GetExecutionObjectKey(), c.conf)
+		grant, err = c.admission.Reserve(ctx, c.handle.GetExecutionObjectKey(), c.conf, c.handle.SetWaiting)
 		if err != nil {
 			return errors.Wrap(err, "reserve docker capacity")
 		}

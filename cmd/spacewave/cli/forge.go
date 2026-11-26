@@ -11,6 +11,7 @@ import (
 	forge_cluster "github.com/s4wave/spacewave/forge/cluster"
 	forge_execution "github.com/s4wave/spacewave/forge/execution"
 	forge_job "github.com/s4wave/spacewave/forge/job"
+	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_worker "github.com/s4wave/spacewave/forge/worker"
 
 	"github.com/aperturerobotics/cli"
@@ -290,13 +291,16 @@ func buildForgeShowExecutionCommand(statePath *string, sessionIdx *uint, spaceID
 				return errors.Wrapf(err, "lookup execution %q", key)
 			}
 
-			// Report the state, the plugin the execution waits for, and any failure.
+			// Report the state, what the execution waits for, and any failure.
 			fields := [][2]string{
 				{"Key", key},
 				{"State", strings.TrimPrefix(exec.GetExecutionState().String(), "ExecutionState_")},
 			}
-			if pluginID := exec.GetWaitingPluginId(); pluginID != "" {
-				fields = append(fields, [2]string{"Waiting for plugin", pluginID + " (not loaded; see spacewave plugin list)"})
+			switch reason := exec.GetWaiting().GetReason().(type) {
+			case *forge_target.Waiting_PluginId:
+				fields = append(fields, [2]string{"Waiting for plugin", reason.PluginId + " (not loaded; see spacewave plugin list)"})
+			case *forge_target.Waiting_Capacity:
+				fields = append(fields, [2]string{"Waiting for", reason.Capacity.Describe()})
 			}
 			if failErr := exec.GetResult().GetFailError(); failErr != "" {
 				fields = append(fields, [2]string{"Error", failErr})

@@ -366,7 +366,7 @@ type observingWorkerRuntime struct {
 }
 
 // Reserve rejects Docker work outside this declaration delivery test.
-func (*observingWorkerRuntime) Reserve(context.Context, string, *forge_lib_docker.Config) (forge_lib_docker.Reservation, error) {
+func (*observingWorkerRuntime) Reserve(context.Context, string, *forge_lib_docker.Config, forge_lib_docker.Waiting) (forge_lib_docker.Reservation, error) {
 	return nil, stderrors.New("unexpected Docker reservation")
 }
 
@@ -505,7 +505,7 @@ func TestForgeWorkerSteadyStatusAndCancellation(t *testing.T) {
 type testWorkerRuntime struct{}
 
 // Reserve is unused by the Worker lifecycle tests.
-func (testWorkerRuntime) Reserve(context.Context, string, *forge_lib_docker.Config) (forge_lib_docker.Reservation, error) {
+func (testWorkerRuntime) Reserve(context.Context, string, *forge_lib_docker.Config, forge_lib_docker.Waiting) (forge_lib_docker.Reservation, error) {
 	return nil, stderrors.New("unexpected Docker reservation")
 }
 

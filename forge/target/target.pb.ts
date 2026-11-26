@@ -7,6 +7,7 @@ import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { Value } from '../value/value.pb.js'
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
+import { ResourceRequest } from '../runtime/runtime.pb.js'
 
 /**
  * InputType is the list of possible input types.
@@ -360,3 +361,51 @@ export const ValueSet: MessageType<ValueSet> =
     [1, 'inputs', 11, 1, Value.codec],
     [2, 'outputs', 11, 1, Value.codec],
   ])
+
+/**
+ * Waiting names what blocks a running Execution before its work can start. An
+ * unset reason means nothing blocks it.
+ *
+ * @generated from message forge.target.Waiting
+ */
+export interface Waiting {
+  /**
+   * @generated from oneof forge.target.Waiting.reason
+   */
+  reason?:
+    | { value?: undefined; case: undefined }
+    | { value: string; case: 'pluginId' }
+    | { value: CapacityWait; case: 'capacity' }
+}
+
+export const Waiting: MessageType<Waiting> =
+  /* @__PURE__ */ createMessageType<Waiting>('forge.target.Waiting', () => [
+    [1, 'plugin_id', 9, 0, 0, 'reason'],
+    [2, 'capacity', 11, 0, CapacityWait.codec, 'reason'],
+  ])
+
+/**
+ * CapacityWait is a wait for Worker capacity that live reservations hold. The
+ * Worker could hold the request; it waits until they release enough.
+ *
+ * @generated from message forge.target.CapacityWait
+ */
+export interface CapacityWait {
+  /**
+   * WorkerObjectKey is the Forge Worker whose capacity the Execution waits for.
+   */
+  workerObjectKey?: string
+  /**
+   * Request is the capacity the Execution asks the Worker to reserve.
+   */
+  request?: ResourceRequest
+}
+
+export const CapacityWait: MessageType<CapacityWait> =
+  /* @__PURE__ */ createMessageType<CapacityWait>(
+    'forge.target.CapacityWait',
+    () => [
+      [1, 'worker_object_key', 9],
+      [2, 'request', 11, 0, ResourceRequest.codec],
+    ],
+  )

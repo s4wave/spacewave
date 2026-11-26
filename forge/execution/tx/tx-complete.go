@@ -100,7 +100,7 @@ func (t *TxComplete) ExecuteTx(
 	// promote to COMPLETE
 	root.ExecutionState = forge_execution.State_ExecutionState_COMPLETE
 	root.Result = result
-	root.WaitingPluginId = ""
+	root.Waiting = nil
 	exCursor.SetBlock(root, true)
 
 	// Validate the completed execution record.

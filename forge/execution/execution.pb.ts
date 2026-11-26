@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import { createEnumType } from '@aptre/protobuf-es-lite/enum'
-import { ValueSet } from '../target/target.pb.js'
+import { ValueSet, Waiting } from '../target/target.pb.js'
 import { BlockRef } from '@go/github.com/s4wave/spacewave/db/block/block.pb.js'
 import { Result } from '../value/value.pb.js'
 import { Placement } from '../worker/worker.pb.js'
@@ -101,10 +101,10 @@ export interface Execution {
    */
   claim?: Claim
   /**
-   * WaitingPluginId names the plugin whose load currently blocks this
-   * Execution. It is empty once the plugin's client is available.
+   * Waiting names what blocks this Execution before its work starts, such as
+   * a plugin load or Worker capacity. It is unset once nothing blocks it.
    */
-  waitingPluginId?: string
+  waiting?: Waiting
   /**
    * Placement is the immutable Worker and Device peer authorized for this Execution.
    */
@@ -123,8 +123,8 @@ export const Execution: MessageType<Execution> =
       [6, 'result', 11, 0, Result.codec],
       [7, 'log_entries', 11, 1, LogEntry.codec],
       [8, 'claim', 11, 0, Claim.codec],
-      [9, 'waiting_plugin_id', 9],
       [10, 'placement', 11, 0, Placement.codec],
+      [11, 'waiting', 11, 0, Waiting.codec],
     ],
   )
 

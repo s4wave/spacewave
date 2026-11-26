@@ -101,9 +101,9 @@ func (a *accessHandle) WriteLog(context.Context, string, string) error {
 	return errors.New("write log unavailable in access-only handle")
 }
 
-// SetWaitingPlugin cannot update status from an access-only handle.
-func (a *accessHandle) SetWaitingPlugin(context.Context, string) error {
-	return errors.New("set waiting plugin unavailable in access-only handle")
+// SetWaiting cannot update status from an access-only handle.
+func (a *accessHandle) SetWaiting(context.Context, *Waiting) error {
+	return errors.New("set waiting unavailable in access-only handle")
 }
 
 // _ verifies the execution handle contract.

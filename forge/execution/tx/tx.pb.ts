@@ -6,6 +6,7 @@ import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
+import { Waiting } from '../../target/target.pb.js'
 import { Result, Value } from '../../value/value.pb.js'
 import { Placement } from '../../worker/worker.pb.js'
 import { LogEntry } from '../execution.pb.js'
@@ -49,9 +50,9 @@ export enum TxType {
   TxType_RECLAIM = 6,
 
   /**
-   * TxType_SET_WAITING_PLUGIN changes the plugin load wait.
+   * TxType_SET_WAITING changes what the Execution waits for.
    */
-  TxType_SET_WAITING_PLUGIN = 7,
+  TxType_SET_WAITING = 7,
 
   /**
    * TxType_RENEW_CLAIM extends the lease of the current claim.
@@ -69,7 +70,7 @@ export const TxType_Enum = /* @__PURE__ */ createEnumType(
     [4, 'TxType_APPEND_LOG'],
     [5, 'TxType_CANCEL'],
     [6, 'TxType_RECLAIM'],
-    [7, 'TxType_SET_WAITING_PLUGIN'],
+    [7, 'TxType_SET_WAITING'],
     [8, 'TxType_RENEW_CLAIM'],
   ],
 )
@@ -115,9 +116,10 @@ export interface Tx {
    */
   txReclaim?: TxReclaim
   /**
-   * TxSetWaitingPlugin updates the plugin load wait reported by the Execution.
+   * TxSetWaiting updates what the Execution reports it waits for.
+   * TxType_SET_WAITING
    */
-  txSetWaitingPlugin?: TxSetWaitingPlugin
+  txSetWaiting?: TxSetWaiting
   /**
    * TxRenewClaim extends the lease of the current claim.
    * TxType_RENEW_CLAIM
@@ -135,7 +137,7 @@ export const Tx: MessageType<Tx> = /* @__PURE__ */ createMessageType<Tx>(
     [5, 'tx_append_log', 11, 0, TxAppendLog.codec],
     [6, 'tx_cancel', 11, 0, TxCancel.codec],
     [7, 'tx_reclaim', 11, 0, TxReclaim.codec],
-    [8, 'tx_set_waiting_plugin', 11, 0, TxSetWaitingPlugin.codec],
+    [8, 'tx_set_waiting', 11, 0, TxSetWaiting.codec],
     [9, 'tx_renew_claim', 11, 0, TxRenewClaim.codec],
   ],
 )
@@ -174,15 +176,17 @@ export const TxRenewClaim: MessageType<TxRenewClaim> =
   )
 
 /**
- * TxSetWaitingPlugin records or clears the plugin load wait under the current claim.
+ * TxSetWaiting records or clears what the Execution waits for under the
+ * current claim.
+ * TxType: TxType_SET_WAITING
  *
- * @generated from message execution.tx.TxSetWaitingPlugin
+ * @generated from message execution.tx.TxSetWaiting
  */
-export interface TxSetWaitingPlugin {
+export interface TxSetWaiting {
   /**
-   * PluginId is the plugin being awaited, or empty after its client is available.
+   * Waiting is what blocks the Execution, or unset once nothing does.
    */
-  pluginId?: string
+  waiting?: Waiting
   /**
    * ClaimEpoch fences this update to the current claim.
    */
@@ -193,13 +197,13 @@ export interface TxSetWaitingPlugin {
   claimId?: string
 }
 
-export const TxSetWaitingPlugin: MessageType<TxSetWaitingPlugin> =
-  /* @__PURE__ */ createMessageType<TxSetWaitingPlugin>(
-    'execution.tx.TxSetWaitingPlugin',
+export const TxSetWaiting: MessageType<TxSetWaiting> =
+  /* @__PURE__ */ createMessageType<TxSetWaiting>(
+    'execution.tx.TxSetWaiting',
     () => [
-      [1, 'plugin_id', 9],
       [2, 'claim_epoch', 4],
       [3, 'claim_id', 9],
+      [4, 'waiting', 11, 0, Waiting.codec],
     ],
   )
 

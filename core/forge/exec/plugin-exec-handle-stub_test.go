@@ -23,8 +23,8 @@ type pluginExecHandleStub struct {
 	cursor *bucket_lookup.Cursor
 }
 
-// SetWaitingPlugin accepts wait status without writing an Execution.
-func (h *pluginExecHandleStub) SetWaitingPlugin(ctx context.Context, pluginID string) error {
+// SetWaiting accepts wait status without writing an Execution.
+func (h *pluginExecHandleStub) SetWaiting(ctx context.Context, waiting *forge_target.Waiting) error {
 	return nil
 }
 

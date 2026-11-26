@@ -62,7 +62,7 @@ func (t TxType) Validate() error {
 		return nil
 	case TxType_TxType_RECLAIM:
 		return nil
-	case TxType_TxType_SET_WAITING_PLUGIN:
+	case TxType_TxType_SET_WAITING:
 		return nil
 	case TxType_TxType_RENEW_CLAIM:
 		return nil
@@ -86,8 +86,8 @@ func (t *Tx) LocateTx() (Transaction, error) {
 		return t.GetTxCancel(), nil
 	case TxType_TxType_RECLAIM:
 		return t.GetTxReclaim(), nil
-	case TxType_TxType_SET_WAITING_PLUGIN:
-		return t.GetTxSetWaitingPlugin(), nil
+	case TxType_TxType_SET_WAITING:
+		return t.GetTxSetWaiting(), nil
 	case TxType_TxType_RENEW_CLAIM:
 		return t.GetTxRenewClaim(), nil
 	default:

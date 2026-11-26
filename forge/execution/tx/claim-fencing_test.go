@@ -139,7 +139,7 @@ func TestStaleWritesRejectedAfterReclaim(t *testing.T) {
 		t.Fatal(err)
 	}
 	owner1 := &forge_execution.Claim{ClaimId: "owner-1", Epoch: 1}
-	if err := f.apply(t, NewTxSetWaitingPlugin("plugin-a", owner1)); err != nil {
+	if err := f.apply(t, NewTxSetWaiting(forge_target.NewPluginWaiting("plugin-a"), owner1)); err != nil {
 		t.Fatal(err)
 	}
 	now := time.Now()
@@ -152,13 +152,13 @@ func TestStaleWritesRejectedAfterReclaim(t *testing.T) {
 	if got := execution.GetClaim(); got.GetClaimId() != "owner-2" || got.GetEpoch() != 2 {
 		t.Fatalf("claim = %q/%d, want owner-2/2", got.GetClaimId(), got.GetEpoch())
 	}
-	if got := execution.GetWaitingPluginId(); got != "" {
+	if got := execution.GetWaiting().GetPluginId(); got != "" {
 		t.Fatalf("waiting plugin after reclaim = %q, want empty", got)
 	}
 
 	// Require stale plugin and completion writes to fail after reclaim.
 	var staleErr *StaleClaimEpochError
-	err := f.apply(t, NewTxSetWaitingPlugin("plugin-a", owner1))
+	err := f.apply(t, NewTxSetWaiting(forge_target.NewPluginWaiting("plugin-a"), owner1))
 	if !errors.As(err, &staleErr) {
 		t.Fatalf("stale waiting plugin error = %v, want StaleClaimEpochError", err)
 	}

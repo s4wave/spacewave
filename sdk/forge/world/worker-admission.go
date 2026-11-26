@@ -14,6 +14,7 @@ import (
 	forge_execution "github.com/s4wave/spacewave/forge/execution"
 	forge_lib_docker "github.com/s4wave/spacewave/forge/lib/docker"
 	forge_runtime "github.com/s4wave/spacewave/forge/runtime"
+	forge_target "github.com/s4wave/spacewave/forge/target"
 	"github.com/s4wave/spacewave/net/peer"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 )
@@ -319,8 +320,14 @@ func (w *WorkerAdmission) setActive(active bool) {
 // but live reservations hold what it needs, it holds the reservation until
 // that changes, so the Execution waits instead of failing. It returns only
 // when the debit is made, the context ends, or the request fails, such as one
-// the Worker could never hold.
-func (w *WorkerAdmission) Reserve(ctx context.Context, executionKey string, conf *forge_lib_docker.Config) (forge_lib_docker.Reservation, error) {
+// the Worker could never hold. waiting hears of the capacity wait once, when
+// the first try finds the Worker busy, and of its end before a grant returns.
+func (w *WorkerAdmission) Reserve(
+	ctx context.Context,
+	executionKey string,
+	conf *forge_lib_docker.Config,
+	waiting forge_lib_docker.Waiting,
+) (forge_lib_docker.Reservation, error) {
 	// Read Execution placement from a scoped World transaction.
 	tx, err := w.engine.NewTransaction(ctx, false)
 	if err != nil {
@@ -339,8 +346,9 @@ func (w *WorkerAdmission) Reserve(ctx context.Context, executionKey string, conf
 		return nil, errors.Errorf("execution %s is placed on Worker %s peer %s", executionKey, placement.GetWorkerObjectKey(), placement.GetPeerId())
 	}
 
-	// Retry while busy. Every debit and credit writes the capacity record, so
-	// its next revision after the read that preceded a busy try wakes the wait.
+	// Retry while busy, reporting the wait once. Every debit and credit writes
+	// the capacity record, so its next revision after the read that preceded a
+	// busy try wakes the wait.
 	request := &forge_runtime.ResourceRequest{
 		MilliCpu:    conf.GetMilliCpu(),
 		MemoryBytes: conf.GetMemoryBytes(),
@@ -349,6 +357,7 @@ func (w *WorkerAdmission) Reserve(ctx context.Context, executionKey string, conf
 	}
 	ws := world.NewEngineWorldState(w.engine, false)
 	capacityKey := forge_runtime.BuildWorkerCapacityObjectKey(w.workerKey)
+	var waited bool
 	for {
 		rev, found, err := world.GetObjectRev(ctx, ws, capacityKey)
 		if err != nil {
@@ -356,13 +365,38 @@ func (w *WorkerAdmission) Reserve(ctx context.Context, executionKey string, conf
 		}
 		grant, err := w.reserve(ctx, executionKey, request, conf)
 		if !errors.Is(err, forge_runtime.ErrCapacityExhausted) {
-			return grant, err
+			if err != nil || !waited {
+				return grant, err
+			}
+			if err := clearWaiting(ctx, waiting, grant); err != nil {
+				return nil, err
+			}
+			return grant, nil
+		}
+		if !waited {
+			if err := waiting(ctx, forge_target.NewCapacityWaiting(w.workerKey, request)); err != nil {
+				return nil, errors.Wrap(err, "report capacity wait")
+			}
+			waited = true
 		}
 		seen := &world.ObjectRootRef{ObjectKey: capacityKey, Rev: rev, Exists: found}
 		if err := world.WaitObjectChange(ctx, ws, seen); err != nil {
 			return nil, err
 		}
 	}
+}
+
+// clearWaiting clears a reported capacity wait once Reserve holds its grant,
+// releasing the grant when the Execution no longer takes the write.
+func clearWaiting(ctx context.Context, waiting forge_lib_docker.Waiting, grant *workerDockerReservation) error {
+	err := waiting(ctx, nil)
+	if err == nil {
+		return nil
+	}
+	if relErr := grant.Release(context.WithoutCancel(ctx)); relErr != nil {
+		return errors.Wrapf(err, "clear capacity wait; release: %v", relErr)
+	}
+	return errors.Wrap(err, "clear capacity wait")
 }
 
 // reserve waits for the Worker to admit work and tries one debit under the

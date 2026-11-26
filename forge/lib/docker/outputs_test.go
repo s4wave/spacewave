@@ -303,7 +303,9 @@ func TestDockerIntegrationMapsCards(t *testing.T) {
 	ctrl.conf.NetworkMode = "none"
 	ctrl.conf.DockerEnv = map[string]string{"PATH": os.Getenv("PATH")}
 	ctrl.conf.Cards = &s4wave_device.GraphicsCardRequest{Count: uint32(len(cards))} //nolint:gosec // a host has few cards.
-	ctrl.conf.Command = []string{"sh", "-c", "test -r /dev/kfd && test -w /dev/kfd && ls /dev/dri > /out/present"}
+	// An image with ROCm also counts the GPU agents rocminfo finds.
+	ctrl.conf.Command = []string{"sh", "-c", "test -r /dev/kfd && test -w /dev/kfd && ls /dev/dri > /out/present && " +
+		"if command -v rocminfo >/dev/null; then echo gpu-agents=$(rocminfo | grep -c 'Device Type: *GPU') >> /out/present; fi"}
 	t.Cleanup(func() {
 		_, _ = runner.Run(context.Background(), "docker", []string{"rm", "-f", name}, env)
 	})
@@ -311,7 +313,8 @@ func TestDockerIntegrationMapsCards(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Require exactly the cards' render nodes inside the container.
+	// Require exactly the cards' render nodes inside the container, and one
+	// GPU agent per card when the image ran rocminfo.
 	if len(handle.outputs) != 1 {
 		t.Fatalf("outputs = %v, want only present", handle.outputs)
 	}
@@ -319,9 +322,19 @@ func TestDockerIntegrationMapsCards(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	got := strings.Fields(string(data))
+	agents := ""
+	if n := len(got); n != 0 {
+		if v, ok := strings.CutPrefix(got[n-1], "gpu-agents="); ok {
+			agents, got = v, got[:n-1]
+		}
+	}
 	slices.Sort(renderNodes)
-	if got := strings.Fields(string(data)); !slices.Equal(got, renderNodes) {
+	if !slices.Equal(got, renderNodes) {
 		t.Fatalf("container sees %v, want %v", got, renderNodes)
 	}
-	t.Logf("container sees %v and /dev/kfd", renderNodes)
+	if agents != "" && agents != strconv.Itoa(len(cards)) {
+		t.Fatalf("rocminfo lists %s GPU agents, want %d", agents, len(cards))
+	}
+	t.Logf("container sees %v and /dev/kfd; rocminfo GPU agents %q", renderNodes, agents)
 }

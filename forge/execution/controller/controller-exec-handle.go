@@ -186,8 +186,8 @@ func (h *execControllerHandle) WriteLog(ctx context.Context, level, message stri
 	return err
 }
 
-// SetWaitingPlugin records the plugin load wait on the Execution object.
-func (h *execControllerHandle) SetWaitingPlugin(ctx context.Context, pluginID string) error {
+// SetWaiting records what blocks the Execution on its object.
+func (h *execControllerHandle) SetWaiting(ctx context.Context, waiting *forge_target.Waiting) error {
 	// Reject wait-status writes after the Execution or request was canceled.
 	select {
 	case <-h.ctx.Done():
@@ -205,7 +205,7 @@ func (h *execControllerHandle) SetWaitingPlugin(ctx context.Context, pluginID st
 	}
 
 	// Write the wait status using this handle's granted claim epoch.
-	tx := execution_transaction.NewTxSetWaitingPlugin(pluginID, &forge_execution.Claim{
+	tx := execution_transaction.NewTxSetWaiting(waiting, &forge_execution.Claim{
 		ClaimId: h.c.claimID,
 		Epoch:   h.claimEpoch,
 	})

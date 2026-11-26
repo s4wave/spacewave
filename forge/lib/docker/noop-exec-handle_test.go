@@ -58,8 +58,8 @@ func (noopExecHandle) WriteLog(ctx context.Context, level, message string) error
 	return nil
 }
 
-// SetWaitingPlugin accepts wait status without writing an Execution.
-func (noopExecHandle) SetWaitingPlugin(context.Context, string) error { return nil }
+// SetWaiting accepts wait status without writing an Execution.
+func (noopExecHandle) SetWaiting(context.Context, *forge_target.Waiting) error { return nil }
 
 // _ verifies the complete execution handle contract.
 var _ forge_target.ExecControllerHandle = (*noopExecHandle)(nil)

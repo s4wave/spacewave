@@ -27,7 +27,7 @@ type recordingAdmission struct {
 }
 
 // Reserve returns a deterministic named runtime grant.
-func (a *recordingAdmission) Reserve(_ context.Context, key string, conf *Config) (Reservation, error) {
+func (a *recordingAdmission) Reserve(_ context.Context, key string, conf *Config, _ Waiting) (Reservation, error) {
 	a.reserves++
 	a.executionKey = key
 	a.request = conf.CloneVT()

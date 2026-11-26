@@ -64,6 +64,7 @@ type ExecControllerHandle interface {
 	// Each entry is a (level, message) pair. The timestamp is set automatically.
 	// Returns context.Canceled if the handle ctx is canceled.
 	WriteLog(ctx context.Context, level, message string) error
-	// SetWaitingPlugin reports the plugin whose load blocks execution; empty clears it.
-	SetWaitingPlugin(ctx context.Context, pluginID string) error
+	// SetWaiting reports what blocks execution, such as a plugin load or Worker
+	// capacity; nil clears it.
+	SetWaiting(ctx context.Context, waiting *Waiting) error
 }

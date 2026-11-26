@@ -3,9 +3,11 @@
 package s4wave_forge_world
 
 import (
+	"bufio"
 	"context"
 	stderrors "errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync/atomic"
@@ -153,6 +155,8 @@ type workerHarness struct {
 	script string
 	// memoryBytes is the capacity this fixture declares.
 	memoryBytes uint64
+	// cards are the graphics cards this fixture declares.
+	cards []*s4wave_device.GraphicsCard
 }
 
 // Worker and Cluster object keys of the harness.
@@ -168,6 +172,7 @@ type workerHarnessOptions struct {
 	timeout     time.Duration
 	memoryBytes uint64
 	dockerPath  string
+	cards       []*s4wave_device.GraphicsCard
 	storage     []db_testbed.Option
 }
 
@@ -237,13 +242,14 @@ func newWorkerHarnessWithOptions(t *testing.T, options workerHarnessOptions) *wo
 		workerKey:    workerKey,
 		script:       script,
 		memoryBytes:  options.memoryBytes,
+		cards:        options.cards,
 	}
 }
 
 // declaration returns the Worker declaration the Device publishes.
 func (h *workerHarness) declaration() *s4wave_device.ForgeWorkerDeclaration {
 	return &s4wave_device.ForgeWorkerDeclaration{
-		WorkerObjectKey: harnessWorkerKey, MilliCpu: 2000, MemoryBytes: h.memoryBytes, Backends: []string{"docker"},
+		WorkerObjectKey: harnessWorkerKey, MilliCpu: 2000, MemoryBytes: h.memoryBytes, Backends: []string{"docker"}, Cards: h.cards,
 	}
 }
 
@@ -276,19 +282,27 @@ func (h *workerHarness) startWorker(admission *WorkerAdmission, updates <-chan *
 // submit creates a Job whose Task runs one fake Docker container and places
 // it on the Worker.
 func (h *workerHarness) submit(t *testing.T, jobKey string, gate *dockerGate) {
-	// Resolve the Target whose Execution runs the fake Docker CLI.
 	t.Helper()
-	target, err := target_json.ResolveYAML(h.ctx, h.tb.Bus, []byte(`
-exec:
-  controller:
-    id: forge/lib/docker
-    config:
+	h.submitDocker(t, jobKey, `
       image: test-image
       milliCpu: 500
       memoryBytes: 1048576
       dockerPath: `+h.script+`
       dockerEnv:
-        GATE: `+gate.dir+`
+        GATE: `+gate.dir)
+}
+
+// submitDocker creates a Job whose Task runs one container with the given
+// YAML Docker Config fields, indented under config, and places it on the
+// Worker.
+func (h *workerHarness) submitDocker(t *testing.T, jobKey string, config string) {
+	// Resolve the Target whose Execution runs the container.
+	t.Helper()
+	target, err := target_json.ResolveYAML(h.ctx, h.tb.Bus, []byte(`
+exec:
+  controller:
+    id: forge/lib/docker
+    config:`+config+`
 `))
 	if err != nil {
 		t.Fatal(err)
@@ -380,8 +394,8 @@ type restartedAdmission struct {
 }
 
 // Reserve reserves through the current Worker execution's admission.
-func (a *restartedAdmission) Reserve(ctx context.Context, executionKey string, conf *forge_lib_docker.Config) (forge_lib_docker.Reservation, error) {
-	return a.current.Load().Reserve(ctx, executionKey, conf)
+func (a *restartedAdmission) Reserve(ctx context.Context, executionKey string, conf *forge_lib_docker.Config, waiting forge_lib_docker.Waiting) (forge_lib_docker.Reservation, error) {
+	return a.current.Load().Reserve(ctx, executionKey, conf, waiting)
 }
 
 // TestForgeWorkerRestartResumesRunningJob ends a Worker execution cleanly
@@ -416,5 +430,156 @@ func TestForgeWorkerRestartResumesRunningJob(t *testing.T) {
 	gate.exit(t)
 	if failure := h.waitJobFailure(t, "job/restart"); failure != "" {
 		t.Fatalf("resumed Job failed: %s", failure)
+	}
+}
+
+// TestForgeWorkerCardsOnDocker runs one-card Jobs through the real Worker and
+// Docker on a host with one graphics card, as Docker's own events report.
+// Two Jobs take turns: the second container starts only after the first dies.
+// A Worker stop during a card run stops its container before the next Worker
+// execution starts it again. Set FORGE_DOCKER_INTEGRATION=1 on a host whose
+// Docker and card the test may use, and FORGE_DOCKER_IMAGE to an image present
+// there.
+func TestForgeWorkerCardsOnDocker(t *testing.T) {
+	// Require explicit opt-in, Docker and exactly one card.
+	if os.Getenv("FORGE_DOCKER_INTEGRATION") == "" {
+		t.Skip("set FORGE_DOCKER_INTEGRATION=1 to run docker daemon integration")
+	}
+	dockerPath, err := exec.LookPath("docker")
+	if err != nil {
+		t.Skip(err.Error())
+	}
+	cards, err := s4wave_device.DetectGraphicsCards(os.DirFS("/sys"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cards) != 1 {
+		t.Skipf("host has %d graphics cards, want 1", len(cards))
+	}
+	image := os.Getenv("FORGE_DOCKER_IMAGE")
+	if image == "" {
+		image = "debian:trixie-slim"
+	}
+
+	// Follow the image's container starts and deaths from now on.
+	h := newWorkerHarnessWithOptions(t, workerHarnessOptions{timeout: 5 * time.Minute, memoryBytes: 2 << 30, dockerPath: dockerPath, cards: cards})
+	events := followDockerEvents(t, h.ctx, dockerPath, image)
+
+	// Run the Worker, with its admission replaceable across a restart.
+	admission := &restartedAdmission{}
+	admission.current.Store(h.newAdmission("cards-1"))
+	h.tb.StaticResolver.AddFactory(forge_lib_docker.NewWorkerFactory(h.tb.Bus, admission))
+	stopWorker := h.startWorker(admission.current.Load(), nil)
+	cardJob := func(jobKey, seconds string) {
+		h.submitDocker(t, jobKey, `
+      image: `+image+`
+      milliCpu: 500
+      memoryBytes: 67108864
+      networkMode: none
+      cards: {count: 1}
+      command: [sh, -c, "test -w /dev/kfd && sleep `+seconds+`"]
+      dockerPath: `+dockerPath+`
+      dockerEnv:
+        PATH: `+os.Getenv("PATH")+`
+        HOME: `+os.Getenv("HOME"))
+	}
+
+	// Two one-card Jobs take turns on the card.
+	cardJob("job/card-a", "3")
+	cardJob("job/card-b", "3")
+	first := events.next(t, "start")
+	events.expect(t, "die", first)
+	second := events.next(t, "start")
+	if second == first {
+		t.Fatalf("container %s started twice", first)
+	}
+	events.expect(t, "die", second)
+	for _, job := range []string{"job/card-a", "job/card-b"} {
+		if failure := h.waitJobFailure(t, job); failure != "" {
+			t.Fatalf("%s failed: %s", job, failure)
+		}
+	}
+
+	// A Worker stop during a card run stops the container before the next
+	// Worker execution starts it again.
+	cardJob("job/card-restart", "8")
+	running := events.next(t, "start")
+	if err := stopWorker(); !stderrors.Is(err, context.Canceled) {
+		t.Fatalf("first Worker execution ended with %v", err)
+	}
+	events.expect(t, "die", running)
+	admission.current.Store(h.newAdmission("cards-2"))
+	stopWorker = h.startWorker(admission.current.Load(), nil)
+	defer func() {
+		if err := stopWorker(); !stderrors.Is(err, context.Canceled) {
+			t.Errorf("second Worker execution ended with %v", err)
+		}
+	}()
+	resumed := events.next(t, "start")
+	events.expect(t, "die", resumed)
+	if failure := h.waitJobFailure(t, "job/card-restart"); failure != "" {
+		t.Fatalf("resumed Job failed: %s", failure)
+	}
+}
+
+// dockerEvents is a stream of one image's container start and die events, each
+// an action and a container name.
+type dockerEvents struct {
+	lines chan [2]string
+}
+
+// followDockerEvents streams the image's container events until ctx ends or
+// the test cleans up.
+func followDockerEvents(t *testing.T, ctx context.Context, dockerPath, image string) *dockerEvents {
+	t.Helper()
+	ctx, cancel := context.WithCancel(ctx)
+	cmd := exec.CommandContext(ctx, dockerPath, "events",
+		"--filter", "type=container", "--filter", "image="+image,
+		"--filter", "event=start", "--filter", "event=die",
+		"--format", "{{.Action}} {{.Actor.Attributes.name}}")
+	out, err := cmd.StdoutPipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := cmd.Start(); err != nil {
+		cancel()
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		cancel()
+		_ = cmd.Wait()
+	})
+	e := &dockerEvents{lines: make(chan [2]string, 16)}
+	go func() {
+		scanner := bufio.NewScanner(out)
+		for scanner.Scan() {
+			action, name, _ := strings.Cut(scanner.Text(), " ")
+			e.lines <- [2]string{action, name}
+		}
+	}()
+	return e
+}
+
+// next returns the container of the next event, which must be action.
+func (e *dockerEvents) next(t *testing.T, action string) string {
+	t.Helper()
+	select {
+	case ev := <-e.lines:
+		if ev[0] != action {
+			t.Fatalf("docker event %s %s, want %s", ev[0], ev[1], action)
+		}
+		t.Logf("docker %s %s", ev[0], ev[1])
+		return ev[1]
+	case <-time.After(time.Minute):
+		t.Fatalf("no docker %s event within a minute", action)
+		return ""
+	}
+}
+
+// expect requires the next event to be action on container.
+func (e *dockerEvents) expect(t *testing.T, action, container string) {
+	t.Helper()
+	if got := e.next(t, action); got != container {
+		t.Fatalf("docker %s %s, want %s", action, got, container)
 	}
 }

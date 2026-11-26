@@ -2,6 +2,7 @@ syntax = "proto3";
 package execution.tx;
 
 import "github.com/s4wave/spacewave/forge/execution/execution.proto";
+import "github.com/s4wave/spacewave/forge/target/target.proto";
 import "github.com/s4wave/spacewave/forge/value/value.proto";
 import "github.com/s4wave/spacewave/forge/worker/worker.proto";
 import "google/protobuf/timestamp.proto";
@@ -32,8 +33,9 @@ message Tx {
   // TxReclaim transfers a running execution after owner liveness is resolved.
   // TxType_RECLAIM
   TxReclaim tx_reclaim = 7;
-  // TxSetWaitingPlugin updates the plugin load wait reported by the Execution.
-  TxSetWaitingPlugin tx_set_waiting_plugin = 8;
+  // TxSetWaiting updates what the Execution reports it waits for.
+  // TxType_SET_WAITING
+  TxSetWaiting tx_set_waiting = 8;
   // TxRenewClaim extends the lease of the current claim.
   // TxType_RENEW_CLAIM
   TxRenewClaim tx_renew_claim = 9;
@@ -54,8 +56,8 @@ enum TxType {
   TxType_CANCEL = 5;
   // TxType_RECLAIM transfers a running execution to a new claim owner.
   TxType_RECLAIM = 6;
-  // TxType_SET_WAITING_PLUGIN changes the plugin load wait.
-  TxType_SET_WAITING_PLUGIN = 7;
+  // TxType_SET_WAITING changes what the Execution waits for.
+  TxType_SET_WAITING = 7;
   // TxType_RENEW_CLAIM extends the lease of the current claim.
   TxType_RENEW_CLAIM = 8;
 }
@@ -73,10 +75,14 @@ message TxRenewClaim {
   google.protobuf.Timestamp lease_expires_at = 3;
 }
 
-// TxSetWaitingPlugin records or clears the plugin load wait under the current claim.
-message TxSetWaitingPlugin {
-  // PluginId is the plugin being awaited, or empty after its client is available.
-  string plugin_id = 1;
+// TxSetWaiting records or clears what the Execution waits for under the
+// current claim.
+// TxType: TxType_SET_WAITING
+message TxSetWaiting {
+  reserved 1;
+  reserved "plugin_id";
+  // Waiting is what blocks the Execution, or unset once nothing does.
+  .forge.target.Waiting waiting = 4;
   // ClaimEpoch fences this update to the current claim.
   uint64 claim_epoch = 2;
   // ClaimId identifies the controller carrying the claim.

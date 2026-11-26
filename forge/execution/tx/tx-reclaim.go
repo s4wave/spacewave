@@ -202,7 +202,7 @@ func (t *TxReclaim) ExecuteTx(
 	}
 	root.PeerId = t.GetPeerId()
 	root.Placement = t.GetPlacement().CloneVT()
-	root.WaitingPluginId = ""
+	root.Waiting = nil
 	exCursor.SetBlock(root, true)
 	return root.Validate()
 }

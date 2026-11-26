@@ -3270,7 +3270,7 @@
           ]
         },
         "github.com/s4wave/spacewave/forge/execution": {
-          "hash": "5f0a128657a0947ba4e28151a91470fc6522bae4b9e57ce257bbda6cdc6d1ece",
+          "hash": "a92c7cd8ed738bca85335065ead7d7952e736e1f56ce0b0a9ddc4a265a6e412b",
           "generatedFiles": [
             "forge/execution/execution.pb.go",
             "forge/execution/execution.pb.ts",
@@ -3292,7 +3292,7 @@
           ]
         },
         "github.com/s4wave/spacewave/forge/execution/tx": {
-          "hash": "6d88f053c94833d3f8d31ea85321894359a057109e9f165f1bed37b7cf1ab313",
+          "hash": "ce9c7ad74ab0a56184fbcc17756dfb104e02d4b8716059454bd74f3566f48e81",
           "generatedFiles": [
             "forge/execution/tx/tx.pb.go",
             "forge/execution/tx/tx.pb.ts",
@@ -3450,7 +3450,7 @@
           ]
         },
         "github.com/s4wave/spacewave/forge/target": {
-          "hash": "7e3809ac4c8505ad05e8e311bd0b37a6e5ae4de36cdbdf69deca5a3127a451ff",
+          "hash": "9b7f36cdff11b549525f44a7f9bb44c0a8ef651bc27b3a2cd137caae9948a1db",
           "generatedFiles": [
             "forge/target/target.pb.go",
             "forge/target/target.pb.ts",

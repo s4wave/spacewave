@@ -5,6 +5,7 @@ import {
   Execution,
   State,
 } from '@go/github.com/s4wave/spacewave/forge/execution/execution.pb.js'
+import type { Waiting } from '@go/github.com/s4wave/spacewave/forge/target/target.pb.js'
 
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
@@ -26,6 +27,27 @@ const execStateLabels: Record<number, string> = {
   [State.ExecutionState_PENDING]: 'PENDING',
   [State.ExecutionState_RUNNING]: 'RUNNING',
   [State.ExecutionState_COMPLETE]: 'COMPLETE',
+}
+
+// waitingText says what blocks the Execution, in the words spacewave forge
+// prints, or null when nothing does.
+export function waitingText(waiting: Waiting | undefined): string | null {
+  const reason = waiting?.reason
+  switch (reason?.case) {
+    case 'pluginId':
+      return `Waiting for plugin ${reason.value} to load`
+    case 'capacity': {
+      const count = reason.value.request?.cards?.count ?? 0
+      const what =
+        count === 1
+          ? 'a graphics card'
+          : count > 1
+            ? `${count} graphics cards`
+            : 'CPU and memory'
+      return `Waiting for ${what} on ${reason.value.workerObjectKey ?? ''}`
+    }
+  }
+  return null
 }
 
 // logLevelColor returns a text color class for a log level.
@@ -206,6 +228,14 @@ export function ForgeExecutionViewer({
     [execution],
   )
 
+  // The header line names what blocks the run while it waits, or why it
+  // failed once it completes.
+  const waiting = waitingText(execution?.waiting)
+  const failError =
+    execution?.executionState === State.ExecutionState_COMPLETE
+      ? execution.result?.failError
+      : undefined
+
   // Details lists the execution's identity behind the bar.
   const facts = (
     <>
@@ -233,11 +263,18 @@ export function ForgeExecutionViewer({
       details={{ label: 'Execution', facts }}
       status={forgeBlockStatus('the execution', block)}
       headerStatus={
-        execution?.waitingPluginId && (
+        waiting ? (
           <div className="border-foreground/8 text-foreground viewer-inset-x border-b py-2 text-xs">
-            Waiting for plugin {execution.waitingPluginId} to load
+            {waiting}
           </div>
-        )
+        ) : failError ? (
+          <div
+            role="alert"
+            className="border-foreground/8 text-destructive viewer-inset-x border-b py-2 text-xs break-words"
+          >
+            <p className="max-w-prose">{failError}</p>
+          </div>
+        ) : null
       }
       tabs={tabs}
     />

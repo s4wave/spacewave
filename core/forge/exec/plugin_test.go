@@ -83,7 +83,7 @@ func TestPluginExecWaitingStatus(t *testing.T) {
 		t.Fatal(err)
 	}
 	world.ReleaseObjectState(stateRef)
-	if got := waiting.GetWaitingPluginId(); got != pluginID {
+	if got := waiting.GetWaiting().GetPluginId(); got != pluginID {
 		t.Fatalf("waiting plugin = %q, want %q", got, pluginID)
 	}
 	if waiting.GetExecutionState() != forge_execution.State_ExecutionState_RUNNING {
@@ -99,7 +99,7 @@ func TestPluginExecWaitingStatus(t *testing.T) {
 		t.Fatal(err)
 	}
 	world.ReleaseObjectState(proceedingRef)
-	if got := proceeding.GetWaitingPluginId(); got != "" {
+	if got := proceeding.GetWaiting().GetPluginId(); got != "" {
 		t.Fatalf("proceeding waiting plugin = %q", got)
 	}
 
@@ -111,7 +111,7 @@ func TestPluginExecWaitingStatus(t *testing.T) {
 		t.Fatal(err)
 	}
 	assertComplete(t, completed)
-	if got := completed.GetWaitingPluginId(); got != "" {
+	if got := completed.GetWaiting().GetPluginId(); got != "" {
 		t.Fatalf("completed waiting plugin = %q", got)
 	}
 }

@@ -3,6 +3,7 @@ package forge.target;
 
 import "github.com/aperturerobotics/common/typeid/typeid.proto";
 import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
+import "github.com/s4wave/spacewave/forge/runtime/runtime.proto";
 import "github.com/s4wave/spacewave/forge/value/value.proto";
 
 // Target contains a desired Task target configuration.
@@ -151,4 +152,24 @@ message ValueSet {
   // Unique by the "name" field.
   // Sorted by name.
   repeated .forge.value.Value outputs = 2;
+}
+
+// Waiting names what blocks a running Execution before its work can start. An
+// unset reason means nothing blocks it.
+message Waiting {
+  oneof reason {
+    // PluginId names the plugin whose load blocks the Execution.
+    string plugin_id = 1;
+    // Capacity names the Worker capacity the Execution waits to reserve.
+    CapacityWait capacity = 2;
+  }
+}
+
+// CapacityWait is a wait for Worker capacity that live reservations hold. The
+// Worker could hold the request; it waits until they release enough.
+message CapacityWait {
+  // WorkerObjectKey is the Forge Worker whose capacity the Execution waits for.
+  string worker_object_key = 1;
+  // Request is the capacity the Execution asks the Worker to reserve.
+  .forge.runtime.ResourceRequest request = 2;
 }
