@@ -2,13 +2,12 @@ package block
 
 import (
 	"context"
-
-	"github.com/pkg/errors"
 )
 
 // WalkGraph visits every block under roots once by following the outgoing
-// refs src reports, keeping reads source reads in flight. Zero reads selects
-// DefaultGraphCopyReads. It never decodes a block.
+// refs src reports, keeping reads blocks in flight in a few batch reads, as
+// graphReader describes. Zero reads selects DefaultGraphCopyReads. It never
+// decodes a block.
 //
 // Returns ErrNotFound for a missing block and ErrRefsUnknown for a block src
 // holds without its refs, each wrapped with the block ref. visit runs on the
@@ -30,43 +29,29 @@ func WalkGraph(ctx context.Context, src StoreOps, roots []*BlockRef, reads int, 
 		push(root)
 	}
 
-	// Start the bounded reader pool.
+	// Read blocks depth first until the queue drains.
 	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	if reads <= 0 {
-		reads = DefaultGraphCopyReads
-	}
-	results := make(chan graphWalkRead, reads)
-	inFlight := 0
+	reader := newGraphReader(src, reads, func(ref *BlockRef) *BlockRef { return ref })
 	defer func() {
 		cancel()
-		for ; inFlight != 0; inFlight-- {
-			<-results
-		}
+		reader.close()
 	}()
-
-	// Read blocks depth first until the queue drains.
 	for {
-		for inFlight < reads && len(queue) != 0 {
-			ref := queue[len(queue)-1]
-			queue = queue[:len(queue)-1]
-			inFlight++
-			go func() {
-				results <- readWalkBlock(ctx, src, ref)
-			}()
-		}
-		if inFlight == 0 {
+		queue = reader.fill(ctx, queue)
+		res, ok := reader.next()
+		if !ok {
 			return nil
 		}
-
-		// Visit one block and queue its unseen children.
-		res := <-results
-		inFlight--
 		if res.err != nil {
 			return res.err
 		}
+		if res.end {
+			continue
+		}
+
+		// Visit one block and queue its unseen children.
 		if visit != nil {
-			err := visit(res.ref, res.stored)
+			err := visit(res.node, res.stored)
 			if err == ErrSkipRefs {
 				continue
 			}
@@ -78,23 +63,4 @@ func WalkGraph(ctx context.Context, src StoreOps, roots []*BlockRef, reads int, 
 			push(ref)
 		}
 	}
-}
-
-// graphWalkRead is the result of reading one block of a walk.
-type graphWalkRead struct {
-	ref    *BlockRef
-	stored *StoredBlock
-	err    error
-}
-
-// readWalkBlock reads one block with its refs from src.
-func readWalkBlock(ctx context.Context, src StoreOps, ref *BlockRef) graphWalkRead {
-	stored, err := src.GetStoredBlock(ctx, ref)
-	if err == nil && stored == nil {
-		err = NotFoundError(ref)
-	}
-	if err == nil && !stored.RefsKnown {
-		err = ErrRefsUnknown
-	}
-	return graphWalkRead{ref: ref, stored: stored, err: errors.Wrap(err, ref.MarshalString())}
 }

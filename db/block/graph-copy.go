@@ -16,8 +16,8 @@ const DefaultGraphCopyReads = 512
 
 // GraphCopyOptions configures CopyGraph.
 type GraphCopyOptions struct {
-	// Reads is the number of source reads kept in flight. Zero selects
-	// DefaultGraphCopyReads.
+	// Reads is the number of blocks kept in flight, read in a few batches as
+	// graphReader describes. Zero selects DefaultGraphCopyReads.
 	Reads int
 	// Known reports which refs already have a complete copy. The copy skips
 	// their subtrees. It receives each block's unvisited children as a batch.
@@ -119,16 +119,6 @@ type graphCopyNode struct {
 	holed bool
 }
 
-// graphCopyRead is the result of reading one block.
-type graphCopyRead struct {
-	node *graphCopyNode
-	data []byte
-	refs []*BlockRef
-	// linked is set when a linked file served the block.
-	linked bool
-	err    error
-}
-
 // run copies the graph under root. It returns only after every reader it
 // started has returned.
 func (c *graphCopy) run(ctx context.Context, root *BlockRef) error {
@@ -138,43 +128,29 @@ func (c *graphCopy) run(ctx context.Context, root *BlockRef) error {
 		return err
 	}
 
-	// Start the bounded reader pool.
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	reads := c.opts.Reads
-	if reads <= 0 {
-		reads = DefaultGraphCopyReads
-	}
-	results := make(chan graphCopyRead, reads)
-	inFlight := 0
-	defer func() {
-		cancel()
-		for ; inFlight != 0; inFlight-- {
-			<-results
-		}
-	}()
-
 	// Copy blocks depth first until the queue drains.
 	rootNode := &graphCopyNode{ref: root}
 	c.nodes[root.MarshalString()] = rootNode
 	c.queue = append(c.queue, rootNode)
+	ctx, cancel := context.WithCancel(ctx)
+	reader := newGraphReader(c.src, c.opts.Reads, func(node *graphCopyNode) *BlockRef { return node.ref })
+	defer func() {
+		cancel()
+		reader.close()
+	}()
 	for {
-		// Fill the reader pool from the queue.
-		for inFlight < reads && len(c.queue) != 0 {
-			node := c.queue[len(c.queue)-1]
-			c.queue = c.queue[:len(c.queue)-1]
-			inFlight++
-			go func() {
-				results <- c.readBlock(ctx, node)
-			}()
-		}
-		if inFlight == 0 {
+		// Keep the batch reads full, then consume one result.
+		c.queue = reader.fill(ctx, c.queue)
+		res, ok := reader.next()
+		if !ok {
 			return nil
 		}
-
-		// Consume one result and expand its children.
-		res := <-results
-		inFlight--
+		if res.end {
+			if res.err != nil {
+				return res.err
+			}
+			continue
+		}
 		if res.err != nil && c.opts.Missing != nil && IsNotAvailable(res.err) {
 			if err := c.opts.Missing(ctx, res.node.ref); err != nil {
 				return err
@@ -188,7 +164,7 @@ func (c *graphCopy) run(ctx context.Context, root *BlockRef) error {
 			return res.err
 		}
 		if c.opts.Visited != nil {
-			c.opts.Visited(res.node.ref, res.data)
+			c.opts.Visited(res.node.ref, res.stored.Data)
 		}
 
 		// Count a linked block as present, as Known counts a proved one.
@@ -201,32 +177,16 @@ func (c *graphCopy) run(ctx context.Context, root *BlockRef) error {
 		// linked only for a block its own linked file serves, so a Linked
 		// block is one no tier of the chain holds, and the copy writes and
 		// deletes nothing for it.
-		if res.linked && c.opts.CountLinked {
+		if res.stored.Linked && c.opts.CountLinked {
 			if err := c.settle(ctx, res.node); err != nil {
 				return err
 			}
 			continue
 		}
-		if err := c.expand(ctx, res.node, res.data, res.refs); err != nil {
+		if err := c.expand(ctx, res.node, res.stored.Data, res.stored.Refs); err != nil {
 			return err
 		}
 	}
-}
-
-// readBlock reads one block with its refs from src.
-func (c *graphCopy) readBlock(ctx context.Context, node *graphCopyNode) graphCopyRead {
-	// Read the block and require the refs a post-order write carries.
-	stored, err := c.src.GetStoredBlock(ctx, node.ref)
-	if err == nil && stored == nil {
-		err = NotFoundError(node.ref)
-	}
-	if err == nil && !stored.RefsKnown {
-		err = ErrRefsUnknown
-	}
-	if err != nil {
-		return graphCopyRead{node: node, err: errors.Wrap(err, node.ref.MarshalString())}
-	}
-	return graphCopyRead{node: node, data: stored.Data, refs: stored.Refs, linked: stored.Linked}
 }
 
 // expand holds a read block until its write, queues its children that are

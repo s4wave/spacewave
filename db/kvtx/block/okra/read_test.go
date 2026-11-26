@@ -3,7 +3,9 @@ package kvtx_block_okra
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"math/rand/v2"
+	"runtime"
 	"slices"
 	"sync"
 	"testing"
@@ -163,64 +165,109 @@ func TestGetBatchReturnsValuesAndReadsTheSameBlocks(t *testing.T) {
 	}
 }
 
-func TestIteratorReadsEachParentsChildrenInOneBatch(t *testing.T) {
-	// Publish a tree with more than one level of pages above its leaves.
-	ctx := context.Background()
-	store := &readOrderStore{StoreOps: newOkraTestStore()}
-	fixture := newOkraFixture(t, ctx, store, 32768)
-	tx, _, err := BuildTree(ctx, store, nil, nil, fixture.seq())
-	if err != nil {
-		t.Fatal(err)
-	}
-	rootRef, _, err := tx.Write(ctx, true)
-	if err != nil {
-		t.Fatal(err)
-	}
+// readCost is what one read of a tree cost: the store calls and the
+// allocations it made.
+type readCost struct {
+	calls  int
+	allocs uint64
+}
 
-	// Scan the flat pages of a read and the cursor tree of a write, each way.
-	for _, c := range []struct{ write, reverse bool }{{false, false}, {false, true}, {true, false}, {true, true}} {
-		// Scan every key cold, counting the leaf pages the scan steps onto.
-		write, reverse := c.write, c.reverse
-		readTx := openOkraRoot(t, ctx, store, rootRef, write)
-		height := readTx.root.GetHeight()
-		store.takeReads()
-		store.takeCalls()
-		it := readTx.Iterate(ctx, nil, true, reverse).(*Iterator)
-		var keys [][]byte
-		var leaf walkPage
-		leaves := 0
-		for it.Next() {
-			if page := it.walk.leaf(); page != leaf {
-				leaf = page
-				leaves++
-			}
-			keys = append(keys, bytes.Clone(it.Key()))
-		}
-		if err := it.Err(); err != nil {
+// measureRead runs read and returns its store calls and allocations.
+func measureRead(store *readOrderStore, read func()) readCost {
+	store.takeReads()
+	store.takeCalls()
+	var before, after runtime.MemStats
+	runtime.ReadMemStats(&before)
+	read()
+	runtime.ReadMemStats(&after)
+	return readCost{calls: store.takeCalls(), allocs: after.Mallocs - before.Mallocs}
+}
+
+func TestReadsScaleWithTheTree(t *testing.T) {
+	// Read trees of n and 10n keys, recording the allocations per key.
+	ctx := context.Background()
+	perKey := make(map[string][]float64)
+	for _, size := range []int{4096, 40960} {
+		// Publish a tree with more than one level of pages above its leaves.
+		store := &readOrderStore{StoreOps: newOkraTestStore()}
+		fixture := newOkraFixture(t, ctx, store, size)
+		tx, _, err := BuildTree(ctx, store, nil, nil, fixture.seq())
+		if err != nil {
 			t.Fatal(err)
 		}
-		it.Close()
+		rootRef, _, err := tx.Write(ctx, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Look up every eighth key cold: the root alone, one batch per level
+		// of pages below it, and one batch of the leaves' values.
+		var keys [][]byte
+		for i := 0; i < size; i += 8 {
+			keys = append(keys, fixture.keys[i])
+		}
+		readTx := openOkraRoot(t, ctx, store, rootRef, false)
+		height := readTx.root.GetHeight()
+		cost := measureRead(store, func() {
+			if _, _, err := readTx.GetBatch(ctx, keys); err != nil {
+				t.Fatal(err)
+			}
+		})
 		readTx.Discard()
+		if cost.calls > int(height)+2 {
+			t.Fatalf("%d keys: GetBatch of %d made %d store calls for height %d", size, len(keys), cost.calls, height)
+		}
+		perKey["lookup"] = append(perKey["lookup"], float64(cost.allocs)/float64(len(keys)))
 
-		// Require every key in the scan's order.
-		want := slices.Clone(fixture.keys)
-		if reverse {
-			slices.Reverse(want)
-		}
-		if !slices.EqualFunc(keys, want, bytes.Equal) {
-			t.Fatalf("write=%v reverse=%v scan returned %d keys, not the fixture's %d in order", write, reverse, len(keys), len(want))
-		}
+		// Scan the flat pages of a read and the cursor tree of a write, each
+		// way: one store call per page of the seek's descent, then one per
+		// page above the leaves, each parent's children in one batch.
+		for _, c := range []struct{ write, reverse bool }{{false, false}, {false, true}, {true, false}, {true, true}} {
+			name := fmt.Sprintf("scan write=%v reverse=%v", c.write, c.reverse)
+			readTx := openOkraRoot(t, ctx, store, rootRef, c.write)
+			var got [][]byte
+			var leaf walkPage
+			leaves := 0
+			cost := measureRead(store, func() {
+				it := readTx.Iterate(ctx, nil, true, c.reverse).(*Iterator)
+				defer it.Close()
+				for it.Next() {
+					if page := it.walk.leaf(); page != leaf {
+						leaf = page
+						leaves++
+					}
+					got = append(got, bytes.Clone(it.Key()))
+				}
+				if err := it.Err(); err != nil {
+					t.Fatal(err)
+				}
+			})
+			readTx.Discard()
 
-		// Require one store call per page of the seek's descent, then one per
-		// page above the leaves: each parent's children in one batch.
-		reads, calls := len(store.takeReads()), store.takeCalls()
-		parents := reads - leaves
-		t.Logf("write=%v reverse=%v height=%d leaves=%d parents=%d reads=%d calls=%d", write, reverse, height, leaves, parents, reads, calls)
-		if height < 2 || leaves < 64 {
-			t.Fatalf("fixture has height %d and %d leaves, too small to check", height, leaves)
+			// Require every key in the scan's order.
+			want := slices.Clone(fixture.keys)
+			if c.reverse {
+				slices.Reverse(want)
+			}
+			if !slices.EqualFunc(got, want, bytes.Equal) {
+				t.Fatalf("%d keys: %s returned %d keys, not the fixture's in order", size, name, len(got))
+			}
+			parents := len(store.takeReads()) - leaves
+			if height < 2 || leaves < 64 {
+				t.Fatalf("%d keys: height %d and %d leaves are too small to check", size, height, leaves)
+			}
+			if cost.calls > int(height)+1+parents {
+				t.Fatalf("%d keys: %s of %d leaves under %d parents made %d store calls", size, name, leaves, parents, cost.calls)
+			}
+			t.Logf("%d keys: %s: %d leaves, %d store calls, %.1f allocations per key", size, name, leaves, cost.calls, float64(cost.allocs)/float64(size))
+			perKey[name] = append(perKey[name], float64(cost.allocs)/float64(size))
 		}
-		if calls > int(height)+1+parents {
-			t.Fatalf("write=%v reverse=%v scan of %d leaves under %d parents made %d store calls", write, reverse, leaves, parents, calls)
+	}
+
+	// Require the allocations per key to stay flat from n to 10n keys.
+	for name, costs := range perKey {
+		if costs[1] > 1.5*costs[0] {
+			t.Fatalf("%s: %.1f allocations per key at 10n, %.1f at n", name, costs[1], costs[0])
 		}
 	}
 }

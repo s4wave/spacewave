@@ -7,9 +7,28 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// storedBlockEachReads is how many reads GetStoredBlockEach keeps in flight,
-// the number of child pages an Okra lookup loaded at once before batch reads.
+// storedBlockEachReads is how many reads GetStoredBlockEach keeps in flight
+// unless its context sets another, the number of child pages an Okra lookup
+// loaded at once before batch reads.
 const storedBlockEachReads = 16
+
+// eachReadsContextKey is the context key of the GetStoredBlockEach width.
+type eachReadsContextKey struct{}
+
+// withEachReads returns ctx on which GetStoredBlockEach keeps at most n reads
+// in flight, for a walk that sets how many blocks it reads at once, as a graph
+// walk does.
+func withEachReads(ctx context.Context, n int) context.Context {
+	return context.WithValue(ctx, eachReadsContextKey{}, n)
+}
+
+// eachReads returns how many reads GetStoredBlockEach keeps in flight on ctx.
+func eachReads(ctx context.Context) int {
+	if n, ok := ctx.Value(eachReadsContextKey{}).(int); ok && n > 0 {
+		return n
+	}
+	return storedBlockEachReads
+}
 
 // StoredBlockFunc receives the outcome of one ref of a batch read: index i of
 // the batch's refs, its stored block or nil when the store lacks it, and err
@@ -54,7 +73,8 @@ func BatchBlockContext(ctx context.Context, ref *BlockRef) context.Context {
 }
 
 // GetStoredBlockEach reads refs from store one GetStoredBlock at a time, at
-// most storedBlockEachReads in flight, and calls fn once for each index of
+// most storedBlockEachReads in flight or the number a graph walk set on ctx,
+// and calls fn once for each index of
 // refs. It is the batch read of a store without native batching. Calls of fn
 // never overlap and follow no promised order. A failed block read reaches fn
 // as its err and does not end the batch; an error fn returns, or the end of
@@ -63,7 +83,7 @@ func GetStoredBlockEach(ctx context.Context, store StoreOps, refs []*BlockRef, f
 	// Read each ref in turn, stopping early once the batch ends.
 	var mtx sync.Mutex
 	eg, egCtx := errgroup.WithContext(ctx)
-	eg.SetLimit(storedBlockEachReads)
+	eg.SetLimit(eachReads(ctx))
 	for i, ref := range refs {
 		if egCtx.Err() != nil {
 			break

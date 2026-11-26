@@ -2,6 +2,8 @@ package block_test
 
 import (
 	"context"
+	"fmt"
+	"runtime"
 	"sync"
 	"testing"
 
@@ -213,5 +215,86 @@ func TestCopyGraphLeavesAcceptedHoles(t *testing.T) {
 	}
 	if !completed[sibling.MarshalString()] || len(completed) != 1 {
 		t.Fatalf("completed %v, want only the sibling", completed)
+	}
+}
+
+// batchCountStore counts the batch reads of a graphTestStore and the most
+// refs one batch asked for.
+type batchCountStore struct {
+	*graphTestStore
+	// batches counts GetStoredBlockBatch calls.
+	batches int
+	// widest is the most refs of one batch.
+	widest int
+}
+
+func (s *batchCountStore) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
+	s.mu.Lock()
+	s.batches++
+	s.widest = max(s.widest, len(refs))
+	s.mu.Unlock()
+	return block.GetStoredBlockEach(ctx, s.graphTestStore, refs, fn)
+}
+
+func TestCopyGraphReadsInBatches(t *testing.T) {
+	// Copy and walk graphs of n and 10n blocks, recording allocations per block.
+	ctx := t.Context()
+	var perBlock []float64
+	for _, width := range []int{16, 160} {
+		// Build a root over width inner blocks of 64 leaves each.
+		src := &batchCountStore{graphTestStore: newGraphTestStore()}
+		var inner []*block.BlockRef
+		for i := range width {
+			var leaves []*block.BlockRef
+			for j := range 64 {
+				leaves = append(leaves, src.put(t, fmt.Sprintf("leaf %d %d", i, j)))
+			}
+			inner = append(inner, src.put(t, fmt.Sprintf("inner %d", i), leaves...))
+		}
+		root := src.put(t, "root", inner...)
+		blocks := 1 + width + width*64
+
+		// Copy the graph, then walk it, each over the batching source.
+		dst := newGraphTestStore()
+		var before, after runtime.MemStats
+		runtime.ReadMemStats(&before)
+		if err := block.CopyGraph(ctx, src, dst, root, nil); err != nil {
+			t.Fatal(err)
+		}
+		runtime.ReadMemStats(&after)
+		perBlock = append(perBlock, float64(after.Mallocs-before.Mallocs)/float64(blocks))
+		if len(dst.puts) != blocks || src.reads != blocks {
+			t.Fatalf("copy wrote %d and read %d blocks, want %d", len(dst.puts), src.reads, blocks)
+		}
+		copyBatches := src.batches
+		walked := 0
+		err := block.WalkGraph(ctx, src, []*block.BlockRef{root}, 0, func(*block.BlockRef, *block.StoredBlock) error {
+			walked++
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if walked != blocks {
+			t.Fatalf("walk visited %d blocks, want %d", walked, blocks)
+		}
+
+		// Require each to read in batches of at most an even share of the
+		// blocks in flight: about the blocks over the batch size, plus the
+		// root and one per inner block while the queue is short.
+		for name, batches := range map[string]int{"copy": copyBatches, "walk": src.batches - copyBatches} {
+			t.Logf("%d blocks: %s read in %d batches", blocks, name, batches)
+			if batches > blocks/(block.DefaultGraphCopyReads/4)+2*width+2 {
+				t.Fatalf("%d blocks: %s read in %d batches", blocks, name, batches)
+			}
+		}
+		if src.widest > block.DefaultGraphCopyReads/4 {
+			t.Fatalf("a batch asked for %d refs, more than its share of %d", src.widest, block.DefaultGraphCopyReads)
+		}
+	}
+
+	// Require the allocations per block to stay flat from n to 10n blocks.
+	if perBlock[1] > 1.5*perBlock[0] {
+		t.Fatalf("copy made %.1f allocations per block at 10n, %.1f at n", perBlock[1], perBlock[0])
 	}
 }
