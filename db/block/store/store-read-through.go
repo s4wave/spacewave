@@ -220,6 +220,71 @@ func (s *StoreReadThrough) GetStoredBlock(ctx context.Context, ref *block.BlockR
 	return s.readLower(ctx, primary, lower, ref)
 }
 
+// GetStoredBlockBatch reads refs as GetStoredBlock reads each: one batch from
+// the primary source, then one batch from the current lower source of the
+// primary's misses and corrupt copies. A lower hit of a miss fills primary as
+// readLower does; a lower hit of a corrupt copy fills nothing, as
+// readPastCorrupt describes, and a lower miss of it keeps the corrupt error.
+func (s *StoreReadThrough) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
+	// Read the primary store, keeping its misses and corrupt copies for lower.
+	var miss []int
+	var missErr []error
+	primary := s.source(s.primary)
+	if primary == nil {
+		miss = make([]int, len(refs))
+		missErr = make([]error, len(refs))
+		for i := range refs {
+			miss[i] = i
+		}
+	} else {
+		err := block.GetStoredBlockBatch(ctx, primary, refs, func(i int, stored *block.StoredBlock, err error) error {
+			if errors.Is(err, block.ErrBlockCorrupt) || (err == nil && stored == nil) {
+				miss = append(miss, i)
+				missErr = append(missErr, err)
+				return nil
+			}
+			return fn(i, stored, err)
+		})
+		if err != nil || len(miss) == 0 {
+			return err
+		}
+	}
+
+	// Without a lower store, report each miss as a single read does.
+	lower := s.source(s.lower)
+	if lower == nil {
+		for j, i := range miss {
+			err := missErr[j]
+			if err == nil {
+				err = s.lowerUnavailable(ctx, refs[i])
+			}
+			if err := fn(i, nil, err); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	// Read the rest from lower in one batch, filling primary with a miss's hit.
+	lowerRefs := make([]*block.BlockRef, len(miss))
+	for j, i := range miss {
+		lowerRefs[j] = refs[i]
+	}
+	return block.GetStoredBlockBatch(ctx, lower, lowerRefs, func(j int, stored *block.StoredBlock, err error) error {
+		i := miss[j]
+		switch {
+		case err != nil:
+			return fn(i, nil, err)
+		case stored == nil:
+			return fn(i, nil, missErr[j])
+		}
+		if missErr[j] == nil && s.fill != nil && primary != nil && stored.RefsKnown && !stored.Linked {
+			_ = s.fill(context.WithoutCancel(ctx), primary, refs[i], stored)
+		}
+		return fn(i, stored, nil)
+	})
+}
+
 // lowerUnavailable returns the outcome of a primary miss while the lower
 // source resolves to nil. A read that may not wait for a peer records the
 // block and reports it unavailable, since the source may hold it once it is
@@ -356,4 +421,7 @@ func (s *StoreReadThrough) StatBlock(ctx context.Context, ref *block.BlockRef) (
 }
 
 // _ is a type assertion
-var _ block.StoreOps = (*StoreReadThrough)(nil)
+var (
+	_ block.StoreOps           = (*StoreReadThrough)(nil)
+	_ block.StoredBlockBatcher = (*StoreReadThrough)(nil)
+)

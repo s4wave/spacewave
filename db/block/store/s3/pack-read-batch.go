@@ -42,12 +42,20 @@ func batchGap(p *Pricing) int64 {
 // at most this much in memory and a slow one delays few blocks.
 const readBatchRun = 4 << 20
 
-// readBatchReads is the number of range reads a batch keeps in flight. A
-// batch is background work, and a foreground miss shares the bucket with it.
+// readBatchReads is the number of range reads a background batch keeps in
+// flight, such as the resident warm-up's, so a foreground miss shares the
+// bucket with at most this many of them.
 const readBatchReads = 2
 
-// batchExtent is the place of one batch ref's block in its pack.
+// readBatchForegroundReads is the number of range reads a foreground batch
+// keeps in flight. The account's request gate admits each one; this bounds
+// only the batch's goroutines.
+const readBatchForegroundReads = 16
+
+// batchExtent is the place of one block of a batch in its pack.
 type batchExtent struct {
+	// i is the block's index in the batch's refs.
+	i int
 	// ref is the block.
 	ref *block.BlockRef
 	// id is the pack holding it.
@@ -58,7 +66,7 @@ type batchExtent struct {
 }
 
 // batchRun is one range read of a batch: a span of one pack and the extents
-// inside it.
+// it holds.
 type batchRun struct {
 	// id is the pack.
 	id string
@@ -68,14 +76,59 @@ type batchRun struct {
 	extents []batchExtent
 }
 
+// GetStoredBlockBatch reads refs as GetStoredBlock reads each, with one range
+// read per run of nearby blocks of one pack rather than one per block. A block
+// whose index row holds no extent, or whose bytes do not hold it, reads alone
+// through GetStoredBlock. A failed range read reaches each block of its run as
+// that block's error, as a failed extent read does. A background batch keeps
+// readBatchReads range reads in flight, any other readBatchForegroundReads.
+func (s *PackStore) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
+	// Read every block alone without extents.
+	if s.index == nil || !extentReadsOn.Load() {
+		return block.GetStoredBlockEach(ctx, s, refs, fn)
+	}
+	if err := s.Preload(ctx); err != nil {
+		return err
+	}
+	extents, err := s.index.locateExtents(ctx, refs)
+	if err != nil {
+		return err
+	}
+
+	// Read the runs, keeping the blocks they did not hold.
+	reads := readBatchForegroundReads
+	if block.IsBackground(ctx) {
+		reads = readBatchReads
+	}
+	answered := make([]bool, len(refs))
+	err = s.readRuns(ctx, extents, reads, func(e batchExtent, stored *block.StoredBlock, err error) error {
+		if stored == nil && err == nil {
+			return nil
+		}
+		answered[e.i] = true
+		return fn(e.i, stored, err)
+	})
+	if err != nil {
+		return err
+	}
+
+	// Read the rest alone.
+	var rest []*block.BlockRef
+	var restIdx []int
+	for i, ref := range refs {
+		if !answered[i] {
+			rest = append(rest, ref)
+			restIdx = append(restIdx, i)
+		}
+	}
+	return block.GetStoredBlockEach(ctx, s, rest, func(j int, stored *block.StoredBlock, err error) error {
+		return fn(restIdx[j], stored, err)
+	})
+}
+
 // ReadBatch reads the blocks of refs with as few range reads as their places
-// allow, and calls fn with each block read and verified. It locates every ref
-// in one snapshot of the index, sorts the extents by pack and offset, and
-// reads each run of nearby extents of one pack, at most readBatchRun bytes,
-// with one range read, readBatchReads at a time. Calls of fn never overlap.
-//
-// Runs span gaps up to batchGap of the bucket's prices, so a read carries every
-// listed block near its neighbours when egress is free.
+// allow, and calls fn with each block read and verified, at most
+// readBatchReads range reads at a time. Calls of fn never overlap.
 //
 // It reads only the refs whose index rows hold their extents, and skips the
 // rest, a missing pack, and bytes that do not hold their block: a caller that
@@ -96,44 +149,80 @@ func (s *PackStore) ReadBatch(ctx context.Context, refs []*block.BlockRef, fn fu
 	}
 
 	// Read the runs, passing on each block in them.
+	return s.readRuns(ctx, extents, readBatchReads, func(e batchExtent, stored *block.StoredBlock, err error) error {
+		if err != nil {
+			return err
+		}
+		if stored == nil {
+			return nil
+		}
+		return fn(e.ref, stored)
+	})
+}
+
+// readRuns reads extents in runs, as batchRuns merges them, with at most reads
+// range reads in flight, and calls fn once for each extent: with its verified
+// block, with neither a block nor an error when its pack is missing or its
+// bytes do not hold it, or with the run's error when the range read failed.
+// Calls of fn never overlap. An error from fn ends the reads.
+//
+// Runs span gaps up to batchGap of the bucket's prices, so a read carries every
+// unwanted byte cheaper than a second request.
+func (s *PackStore) readRuns(ctx context.Context, extents []batchExtent, reads int, fn func(batchExtent, *block.StoredBlock, error) error) error {
+	// Read the runs, at most reads at a time.
 	var mtx sync.Mutex
 	eg, egCtx := errgroup.WithContext(ctx)
-	eg.SetLimit(readBatchReads)
+	eg.SetLimit(reads)
 	for run := range batchRuns(extents, s.batchGap) {
 		eg.Go(func() error {
 			// Read the span; a missing pack means its rows named the wrong one.
 			data, err := s.client.GetObjectRange(egCtx, s.bucket, s.prefix+packDir+run.id, run.off, int(run.end-run.off))
 			if errors.Is(err, ErrNotFound) {
-				return nil
+				data, err = nil, nil
 			}
-			if err != nil {
-				return err
+			if err == nil {
+				s.reads.batchReads.Add(1)
+				s.reads.downloaded(readBatch, len(data))
 			}
-			s.reads.batchReads.Add(1)
-			s.reads.downloaded(readBatch, len(data))
 
-			// Pass on each block whose bytes hold it, as its own copy, so a
-			// kept block does not pin the span.
+			// Pass on each block, as its own copy so a kept block does not
+			// pin the span, or the run's error.
 			mtx.Lock()
 			defer mtx.Unlock()
 			for _, e := range run.extents {
-				start := e.off - run.off
-				if start+int64(e.size) > int64(len(data)) {
-					continue
-				}
-				stored, err := verifiedBlock(e.ref, slices.Clone(data[start:start+int64(e.size)]))
 				if err != nil {
+					if ferr := fn(e, nil, err); ferr != nil {
+						return ferr
+					}
 					continue
 				}
-				s.reads.batchBlocks.Add(1)
-				if err := fn(e.ref, stored); err != nil {
-					return err
+				stored := runBlock(data, run.off, e)
+				if stored != nil {
+					s.reads.batchBlocks.Add(1)
+				}
+				if ferr := fn(e, stored, nil); ferr != nil {
+					return ferr
 				}
 			}
 			return nil
 		})
 	}
 	return eg.Wait()
+}
+
+// runBlock returns the verified block of extent e from data, the bytes of a
+// run starting at off, or nil when the bytes do not hold it.
+func runBlock(data []byte, off int64, e batchExtent) *block.StoredBlock {
+	// Cut the block's bytes from the span and check them against its ref.
+	start := e.off - off
+	if start+int64(e.size) > int64(len(data)) {
+		return nil
+	}
+	stored, err := verifiedBlock(e.ref, slices.Clone(data[start:start+int64(e.size)]))
+	if err != nil {
+		return nil
+	}
+	return stored
 }
 
 // batchRuns sorts extents by pack and offset and yields its runs: the extents
@@ -180,7 +269,7 @@ func (x *packIndex) locateExtents(ctx context.Context, refs []*block.BlockRef) (
 
 	// Keep the rows that hold an extent in a live pack.
 	extents := make([]batchExtent, 0, len(refs))
-	for _, ref := range refs {
+	for i, ref := range refs {
 		if ref.GetHash() == nil {
 			continue
 		}
@@ -199,8 +288,11 @@ func (x *packIndex) locateExtents(ctx context.Context, refs []*block.BlockRef) (
 		}
 		x.mtx.RUnlock()
 		if id != "" {
-			extents = append(extents, batchExtent{ref: ref, id: id, off: int64(row.off), size: int(row.size)}) // #nosec G115 -- the check above bounds off.
+			extents = append(extents, batchExtent{i: i, ref: ref, id: id, off: int64(row.off), size: int(row.size)}) // #nosec G115 -- the check above bounds off.
 		}
 	}
 	return extents, nil
 }
+
+// _ is a type assertion
+var _ block.StoredBlockBatcher = (*PackStore)(nil)

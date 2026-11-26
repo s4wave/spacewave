@@ -24,9 +24,10 @@ type SQLRows interface {
 	// ListHashes returns up to limit row keys after the key after and before
 	// end, nil for no end, in key order. A row key is the marshaled hash of the block.
 	ListHashes(ctx context.Context, after, end []byte, limit int) ([][]byte, error)
-	// GetStoredBlockBatch returns each block with its refs, nil for a block
-	// the store does not hold.
-	GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, withData bool) ([]*block.StoredBlock, error)
+	// GetStoredBlockBatch calls fn with each block and its refs, with neither
+	// a block nor an error for a block the store does not hold, and with a
+	// CorruptError for bytes that do not hash to their ref.
+	GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error
 }
 
 // sqlBatchReader reads the SQL rows in key order, one pack's worth per batch,
@@ -140,7 +141,13 @@ func (r *sqlBatchReader) add(ctx context.Context, batch *packBatch, chunk []sqlR
 	for i, ref := range chunk {
 		refs[i] = ref.ref
 	}
-	stored, err := r.rows.GetStoredBlockBatch(ctx, refs, true)
+	stored := make([]*block.StoredBlock, len(refs))
+	err := r.rows.GetStoredBlockBatch(ctx, refs, func(i int, row *block.StoredBlock, err error) error {
+		if err == nil {
+			stored[i] = row
+		}
+		return nil
+	})
 	if err != nil {
 		return err
 	}
@@ -152,7 +159,7 @@ func (r *sqlBatchReader) add(ctx context.Context, batch *packBatch, chunk []sqlR
 			return err
 		}
 		row := stored[i]
-		if row == nil || ref.VerifyData(row.Data, false) != nil {
+		if row == nil {
 			batch.entries = append(batch.entries, logEntry{key: key, bad: true})
 			continue
 		}

@@ -161,6 +161,30 @@ func TestStoreSplitsBatches(t *testing.T) {
 			t.Fatalf("block %d missing", i)
 		}
 	}
+
+	// Read them back in one batch with a block the store lacks.
+	absent, _ := block.BuildBlockRef([]byte("absent"), nil)
+	batch := append(slices.Clone(refs), absent)
+	got := make([]*block.StoredBlock, len(batch))
+	answered := make([]bool, len(batch))
+	err = store.GetStoredBlockBatch(ctx, batch, func(i int, stored *block.StoredBlock, err error) error {
+		if err != nil {
+			return err
+		}
+		got[i], answered[i] = stored, true
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, stored := range got {
+		if !answered[i] || (i < len(refs)) != (stored != nil) {
+			t.Fatalf("batch block %d = %v, answered %v", i, stored, answered[i])
+		}
+		if stored != nil && !bytes.Equal(stored.Data, entries[i].Data) {
+			t.Fatalf("batch block %d read other bytes", i)
+		}
+	}
 }
 
 // TestCheck passes against a reachable database and reports refused

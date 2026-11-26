@@ -544,6 +544,28 @@ func TestPackStoreLazyLookup(t *testing.T) {
 		t.Fatalf("read counts = %+v, want 30 batch blocks in 3 reads", counts)
 	}
 
+	// The store's batch read reads them the same way, and answers the miss
+	// alone with neither a block nor an error.
+	before = objs.rangeReads.Load()
+	answers := make([]string, len(batch))
+	err = store.GetStoredBlockBatch(ctx, batch, func(i int, stored *block.StoredBlock, err error) error {
+		switch {
+		case err != nil:
+			return err
+		case stored == nil:
+			answers[i] = "miss"
+		default:
+			answers[i] = string(stored.Data)
+		}
+		return nil
+	})
+	if err != nil || answers[0] != "miss" || answers[1+2*10+7] != "pack 2 block 7" || slices.Contains(answers, "") {
+		t.Fatalf("store batch read %q, err %v", answers, err)
+	}
+	if reads := objs.rangeReads.Load() - before; reads != 3 {
+		t.Fatalf("store batch read the blocks with %d range reads, want 3", reads)
+	}
+
 	// Off, the extents go unused, and the reads go through the pack readers.
 	SetIndexExtentReads(false)
 	for _, ref := range refs[2] {

@@ -385,19 +385,12 @@ func (s *Store) ListHashes(ctx context.Context, after, end []byte, limit int) ([
 	return keys, errors.Wrap(rows.Err(), "list blocks")
 }
 
-// GetStoredBlockBatch returns each block the store holds with its refs, a
-// thousand per query, and nil for a block it does not hold. withData false
-// leaves Data out and reads only the refs. A NULL refs column leaves
-// RefsKnown false.
-func (s *Store) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, withData bool) ([]*block.StoredBlock, error) {
-	// Choose the columns to read.
-	columns := "hash, refs"
-	if withData {
-		columns = "hash, refs, data"
-	}
-
-	// Read the refs a chunk at a time.
-	stored := make([]*block.StoredBlock, len(refs))
+// GetStoredBlockBatch reads refs as GetStoredBlock reads each, a thousand per
+// query, and calls fn with each block as its row arrives and with neither a
+// block nor an error for each block the store does not hold. Bytes that do not
+// hash to their ref reach fn as that block's CorruptError. Calls of fn never
+// overlap.
+func (s *Store) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
 	for start := 0; start < len(refs); start += existsBatchSize {
 		// Name the chunk's hashes and map each back to its positions.
 		chunk := refs[start:min(start+existsBatchSize, len(refs))]
@@ -407,7 +400,7 @@ func (s *Store) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef,
 		for i, ref := range chunk {
 			key, err := hashKey(ref)
 			if err != nil {
-				return nil, err
+				return err
 			}
 			if at[string(key)] == nil {
 				args = append(args, key)
@@ -415,42 +408,69 @@ func (s *Store) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef,
 			at[string(key)] = append(at[string(key)], start+i)
 		}
 
-		// Read the rows the table holds.
-		query := "SELECT " + columns + " FROM " + s.table + " WHERE store_id = ? AND hash IN (" + // #nosec G202 -- NewStore quotes the table and values are placeholders.
-			strings.TrimSuffix(strings.Repeat("?,", len(args)-1), ",") + ")"
+		// Read the rows the table holds, taking the removal generation
+		// before the query.
+		gen := block.DurableReadGeneration()
+		marks := strings.TrimSuffix(strings.Repeat("?,", len(args)-1), ",")
+		// #nosec G202 -- NewStore quotes the table and values are placeholders.
+		query := "SELECT hash, refs, data FROM " + s.table + " WHERE store_id = ? AND hash IN (" + marks + ")"
 		rows, err := s.db.QueryContext(ctx, query, args...)
 		if err != nil {
-			return nil, errors.Wrap(err, "read blocks")
+			return errors.Wrap(err, "read blocks")
 		}
-		err = func() error {
-			defer rows.Close()
-			for rows.Next() {
-				var key, encRefs, data []byte
-				dest := []any{&key, &encRefs}
-				if withData {
-					dest = append(dest, &data)
-				}
-				if err := rows.Scan(dest...); err != nil {
+		if err := s.passRows(ctx, rows, refs, at, gen, fn); err != nil {
+			return err
+		}
+
+		// Pass on the blocks the table does not hold.
+		for _, idx := range at {
+			for _, i := range idx {
+				if err := fn(i, nil, nil); err != nil {
 					return err
 				}
-				block := &block.StoredBlock{Data: data}
-				if encRefs != nil {
-					if block.Refs, err = decodeRefs(encRefs); err != nil {
-						return err
-					}
-					block.RefsKnown = true
-				}
-				for _, i := range at[string(key)] {
-					stored[i] = block
-				}
 			}
-			return rows.Err()
-		}()
-		if err != nil {
-			return nil, errors.Wrap(err, "read blocks")
 		}
 	}
-	return stored, nil
+	return nil
+}
+
+// passRows calls fn with the block of each row, verified against its ref, and
+// removes the row's positions from at. gen is the removal generation taken
+// before the query. It closes rows.
+func (s *Store) passRows(ctx context.Context, rows *sql.Rows, refs []*block.BlockRef, at map[string][]int, gen uint64, fn block.StoredBlockFunc) error {
+	defer rows.Close()
+	for rows.Next() {
+		// Decode the row; a NULL refs column means they are unknown.
+		var key, encRefs, data []byte
+		if err := rows.Scan(&key, &encRefs, &data); err != nil {
+			return errors.Wrap(err, "read blocks")
+		}
+		stored := &block.StoredBlock{Data: data}
+		if encRefs != nil {
+			var err error
+			if stored.Refs, err = decodeRefs(encRefs); err != nil {
+				return errors.Wrap(err, "read blocks")
+			}
+			stored.RefsKnown = true
+		}
+
+		// Pass it to each position that names it.
+		idx := at[string(key)]
+		delete(at, string(key))
+		for _, i := range idx {
+			if err := block.VerifyRead(refs[i], data, string(s.storeID)); err != nil {
+				if ferr := fn(i, nil, err); ferr != nil {
+					return ferr
+				}
+				continue
+			}
+			block.MarkDurableRead(ctx, refs[i], gen)
+			if err := fn(i, stored, nil); err != nil {
+				return err
+			}
+		}
+	}
+	return errors.Wrap(rows.Err(), "read blocks")
 }
 
 // StatBlock returns the block's metadata, or nil if the block is not found.
@@ -564,4 +584,7 @@ func pinnedTLS(host, pin string) *tls.Config {
 }
 
 // _ is a type assertion
-var _ block.StoreOps = (*Store)(nil)
+var (
+	_ block.StoreOps           = (*Store)(nil)
+	_ block.StoredBlockBatcher = (*Store)(nil)
+)
