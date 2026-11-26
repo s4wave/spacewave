@@ -170,6 +170,16 @@ func TestEvictionPassLogIntervals(t *testing.T) {
 				}
 				wb.SetPolicy(block_store_writeback.Policy{ResidentHigh: 1})
 				logger, hook := logrustest.NewNullLogger()
+				// Count the minute summaries, not the pass start lines.
+				summaries := func() []*logrus.Entry {
+					var out []*logrus.Entry
+					for _, entry := range hook.AllEntries() {
+						if entry.Message == "eviction pass" {
+							out = append(out, entry)
+						}
+					}
+					return out
+				}
 				done := make(chan error, 1)
 				go func() { done <- p.runEviction(ctx, logrus.NewEntry(logger)) }()
 
@@ -184,7 +194,7 @@ func TestEvictionPassLogIntervals(t *testing.T) {
 					synctest.Wait()
 				}
 				fill("first")
-				if entries := hook.AllEntries(); len(entries) != 0 {
+				if entries := summaries(); len(entries) != 0 {
 					t.Fatalf("logged before the interval ended: %+v", entries)
 				}
 
@@ -199,7 +209,7 @@ func TestEvictionPassLogIntervals(t *testing.T) {
 					// A second completed pass joins the first minute's totals.
 					time.Sleep(evictLogInterval / 2)
 					fill("second")
-					if entries := hook.AllEntries(); len(entries) != 0 {
+					if entries := summaries(); len(entries) != 0 {
 						t.Fatalf("logged before the interval ended: %+v", entries)
 					}
 
@@ -211,7 +221,7 @@ func TestEvictionPassLogIntervals(t *testing.T) {
 					fill("third")
 					time.Sleep(evictLogInterval / 2)
 					synctest.Wait()
-					entries := hook.AllEntries()
+					entries := summaries()
 					if len(entries) != 1 || entries[0].Data["evicted"] != 2 || entries[0].Data["evicted-bytes"] != int64(11) {
 						t.Fatalf("first minute totals = %+v", entries)
 					}
@@ -219,7 +229,7 @@ func TestEvictionPassLogIntervals(t *testing.T) {
 					// Complete the blocked pass; cancellation must flush its interval.
 					release()
 					synctest.Wait()
-					if entries := hook.AllEntries(); len(entries) != 1 {
+					if entries := summaries(); len(entries) != 1 {
 						t.Fatalf("new interval logged early: %+v", entries)
 					}
 				}
@@ -229,7 +239,7 @@ func TestEvictionPassLogIntervals(t *testing.T) {
 				if err := <-done; !errors.Is(err, context.Canceled) {
 					t.Fatalf("routine exit = %v, want canceled", err)
 				}
-				entries := hook.AllEntries()
+				entries := summaries()
 				if zero {
 					if len(entries) != 0 {
 						t.Fatalf("zero passes logged: %+v", entries)
