@@ -7817,6 +7817,14 @@ func TestLivenessSettle(t *testing.T) {
 	// copied returns name's entry as a copier builds it from a store that
 	// recorded refs, which are listed and so not asserted unless the trust
 	// switch is set.
+	// requireDropped requires err to name exactly the dropped fills at.
+	requireDropped := func(t *testing.T, err error, at ...int) {
+		t.Helper()
+		var dropped *block.FillsDroppedError
+		if !errors.As(err, &dropped) || !slices.Equal(dropped.At, at) {
+			t.Fatalf("fill batch err %v, want the fills at %v dropped", err, at)
+		}
+	}
 	copied := func(tr testTree, name string, refs ...*block.BlockRef) *block.PutBatchEntry {
 		src := block.StoredBlock{Data: tr[name].Data, Refs: refs, RefsSource: block.RefsListed}
 		return &block.PutBatchEntry{Ref: tr[name].Ref, Data: src.Data, Refs: src.Refs, RefsKnown: src.RefsSource.Asserted()}
@@ -7904,9 +7912,8 @@ func TestLivenessSettle(t *testing.T) {
 		tr.add(t, "P", "C")
 		p := copied(tr, "P")
 		p.CacheFill = true
-		if _, err := v.PrepareOwnedBlockBatch(t.Context(), "b", []*block.PutBatchEntry{p}); err != nil {
-			t.Fatal(err)
-		}
+		_, err := v.PrepareOwnedBlockBatch(t.Context(), "b", []*block.PutBatchEntry{p})
+		requireDropped(t, err, 0)
 		requireStored(t, v, tr, false, "P")
 		requireStored(t, v, tr, true, "C")
 		if fill := putFlow(t, v, "fill"); fill.Dropped != 1 || fill.Blocks != 0 {
@@ -7922,9 +7929,8 @@ func TestLivenessSettle(t *testing.T) {
 		tr.add(t, "B")
 		a, b := *tr["A"], copied(tr, "B")
 		a.CacheFill, b.CacheFill = true, true
-		if _, err := v.PrepareOwnedBlockBatch(t.Context(), "b", []*block.PutBatchEntry{&a, b}); err != nil {
-			t.Fatal(err)
-		}
+		_, err := v.PrepareOwnedBlockBatch(t.Context(), "b", []*block.PutBatchEntry{&a, b})
+		requireDropped(t, err, 1)
 		requireStored(t, v, tr, true, "A")
 		requireStored(t, v, tr, false, "B")
 		if fill := putFlow(t, v, "fill"); fill.Blocks != 1 || fill.Dropped != 1 || fill.DroppedHoles != 0 {
@@ -8182,9 +8188,8 @@ func TestLivenessSettle(t *testing.T) {
 		}
 		h := copied(tr, "H")
 		h.CacheFill = true
-		if _, err := v.PrepareOwnedBlockBatch(t.Context(), "b", []*block.PutBatchEntry{h}); err != nil {
-			t.Fatal(err)
-		}
+		_, err := v.PrepareOwnedBlockBatch(t.Context(), "b", []*block.PutBatchEntry{h})
+		requireDropped(t, err, 0)
 		requireStored(t, v, tr, false, "H")
 		if fill := putFlow(t, v, "fill"); fill.DroppedHoles != 1 || fill.Dropped != 0 {
 			t.Fatalf("fill flow = %+v, want the hole's fill dropped", fill)
