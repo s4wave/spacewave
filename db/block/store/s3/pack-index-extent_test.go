@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"runtime"
 	"strconv"
 	"sync/atomic"
 	"testing"
@@ -478,5 +479,53 @@ func TestBatchSharesExtentReads(t *testing.T) {
 	close(objs.release)
 	if got := <-alone; got != "b block 2" {
 		t.Fatalf("single read after the batch left = %q, want b block 2", got)
+	}
+}
+
+// TestBatchReadScales reads every block of one pack of n and then 10n blocks
+// in one batch on a cold store over the writer's index, after a first round
+// that warms the process. Each batch makes one range read, and its
+// allocations per block stay flat between the sizes.
+func TestBatchReadScales(t *testing.T) {
+	ctx := t.Context()
+	var perBlock []float64
+	for _, n := range []int{100, 100, 1000} {
+		// Write one pack of n blocks and wait for its extents.
+		_, client := newFakeBucket(t, nil)
+		kv := hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]())
+		writer := newIndexedStore(t, client, kv)
+		refs := adoptBlocks(ctx, t, writer, "b", n)
+		waitFor(t, "the index holds every extent", func() bool { return tailsIdle(writer) })
+		writer.Close()
+
+		// Read them all in one batch on a cold store.
+		objs := &countingObjects{ObjectStore: client}
+		s := NewPackStore(logrus.NewEntry(logrus.New()), objs, "bucket", "p/", &PackStoreOptions{KeepPacks: true, Index: kv, RefreshInterval: time.Hour})
+		t.Cleanup(s.Close)
+		if err := s.Preload(ctx); err != nil {
+			t.Fatal(err)
+		}
+		read := 0
+		var before, after runtime.MemStats
+		runtime.ReadMemStats(&before)
+		err := s.GetStoredBlockBatch(ctx, refs, func(i int, stored *block.StoredBlock, err error) error {
+			if err == nil && (stored == nil || string(stored.Data) != "b block "+strconv.Itoa(i)) {
+				err = fmt.Errorf("block %d = %v", i, stored)
+			}
+			read++
+			return err
+		})
+		runtime.ReadMemStats(&after)
+		if err != nil || read != n {
+			t.Fatalf("%d blocks: read %d, err %v", n, read, err)
+		}
+		if got := objs.rangeReads.Load(); got != 1 {
+			t.Fatalf("%d blocks: read the pack with %d range reads, want 1", n, got)
+		}
+		perBlock = append(perBlock, float64(after.Mallocs-before.Mallocs)/float64(n))
+	}
+	t.Logf("allocations per block: %.1f at n, %.1f at 10n", perBlock[1], perBlock[2])
+	if perBlock[2] > 1.5*perBlock[1] {
+		t.Fatalf("batch made %.1f allocations per block at 10n, %.1f at n", perBlock[2], perBlock[1])
 	}
 }

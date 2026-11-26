@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -21,6 +22,11 @@ type graphTestStore struct {
 	mu sync.Mutex
 	// reads counts GetStoredBlock calls.
 	reads int
+	// delay, when set, is how long each GetStoredBlock takes.
+	delay time.Duration
+	// inFlight counts the GetStoredBlock calls running, and peak the most at
+	// once.
+	inFlight, peak int
 	// puts lists the refs of written blocks in write order.
 	puts []string
 	// found holds, for each entry of puts, whether the put found its block.
@@ -57,10 +63,20 @@ func (s *graphTestStore) PutBlock(ctx context.Context, data []byte, opts *block.
 }
 
 func (s *graphTestStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
-	// Count the read, then serve the block with its refs.
+	// Count the read, then serve the block with its refs after the delay.
 	s.mu.Lock()
 	s.reads++
+	s.inFlight++
+	s.peak = max(s.peak, s.inFlight)
 	s.mu.Unlock()
+	defer func() {
+		s.mu.Lock()
+		s.inFlight--
+		s.mu.Unlock()
+	}()
+	if s.delay != 0 {
+		time.Sleep(s.delay)
+	}
 	return s.RefStore.GetStoredBlock(ctx, ref)
 }
 
@@ -296,5 +312,54 @@ func TestCopyGraphReadsInBatches(t *testing.T) {
 	// Require the allocations per block to stay flat from n to 10n blocks.
 	if perBlock[1] > 1.5*perBlock[0] {
 		t.Fatalf("copy made %.1f allocations per block at 10n, %.1f at n", perBlock[1], perBlock[0])
+	}
+}
+
+// TestGetStoredBlockEachScales reads n and then 10n refs through the per-ref
+// fallback. Each keeps at most 16 reads in flight, answers every ref once, and
+// allocates per ref the same at both sizes.
+func TestGetStoredBlockEachScales(t *testing.T) {
+	ctx := t.Context()
+	var perRef []float64
+	for _, n := range []int{100, 100, 1000} {
+		// Store n blocks whose reads take long enough to overlap.
+		src := newGraphTestStore()
+		refs := make([]*block.BlockRef, n)
+		for i := range refs {
+			refs[i] = src.put(t, fmt.Sprintf("block %d", i))
+		}
+		src.delay = 100 * time.Microsecond
+
+		// Read them all, counting each ref's answers.
+		answers := make([]int, n)
+		var before, after runtime.MemStats
+		runtime.ReadMemStats(&before)
+		err := block.GetStoredBlockEach(ctx, src, refs, func(i int, stored *block.StoredBlock, err error) error {
+			if err == nil && (stored == nil || string(stored.Data) != fmt.Sprintf("block %d", i)) {
+				err = errors.Errorf("block %d = %v", i, stored)
+			}
+			answers[i]++
+			return err
+		})
+		runtime.ReadMemStats(&after)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i, got := range answers {
+			if got != 1 {
+				t.Fatalf("%d refs: ref %d answered %d times", n, i, got)
+			}
+		}
+		if src.peak > 16 || src.peak < 2 {
+			t.Fatalf("%d refs: %d reads in flight at most, want 2 to 16", n, src.peak)
+		}
+		perRef = append(perRef, float64(after.Mallocs-before.Mallocs)/float64(n))
+	}
+
+	// Require the allocations per ref to stay flat from n to 10n, after the
+	// first round warms the process.
+	t.Logf("allocations per ref: %.1f at n, %.1f at 10n", perRef[1], perRef[2])
+	if perRef[2] > 1.5*perRef[1] {
+		t.Fatalf("fallback made %.1f allocations per ref at 10n, %.1f at n", perRef[2], perRef[1])
 	}
 }
