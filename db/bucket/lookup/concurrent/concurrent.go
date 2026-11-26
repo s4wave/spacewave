@@ -305,8 +305,11 @@ func (c *LookupController) lookupMissing(
 // writeback writes a block found outside the bucket handles back to them
 // with its refs, together with subtree, the blocks under it the network sent,
 // as one batch per bucket. A block without known refs is not written back,
-// so a bucket never holds a block whose edges were lost; every subtree block
-// has its refs known.
+// so a bucket never holds a block whose edges were lost. The peer listed the
+// refs of every subtree block, so each is a copied fill, as
+// block.RefsSource.Asserted describes. A bucket that drops any fill of the
+// batch is neither a failure nor counted as gaining the block, and a later
+// read fills the dropped blocks again.
 func (c *LookupController) writeback(
 	reqCtx context.Context,
 	bh []bucket.BucketHandle,
