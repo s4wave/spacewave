@@ -439,7 +439,8 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 	// holders their counts lack, outside an adoption or where its count
 	// already passed it, so it logs them as a birth does, and dequeues each
 	// at zero: the free trusts a queue entry to prove no namer since the
-	// block ripened, and the up nets only after it.
+	// block ripened, and the up nets only after it. It holds each as a born
+	// block's child too, so a hidden one refuses the Land.
 	existed, err := l.blocks.PutBlockBatch(ctx, entries)
 	if err != nil {
 		return nil, err
@@ -447,6 +448,9 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 	for _, entry := range l.refills {
 		children, err := l.rec.refill(ctx, entry)
 		if err != nil {
+			return nil, err
+		}
+		if err := l.holdRefilled(ctx, children); err != nil {
 			return nil, err
 		}
 		if l.logs && (!l.adopting || adoptCounted(l.state, BlockKey(entry.Ref))) {
@@ -960,6 +964,39 @@ func (l *lander) holdChildren(ctx context.Context) error {
 		}
 	}
 	return l.requireListed(ctx, outside, listed)
+}
+
+// holdRefilled checks the holds a refilled hole gives children, its child
+// list, as holdOutside checks a born block's: a child outside the batch that
+// the generation hides refuses the Land with an AbsentError, so the writer
+// puts it again. The hole's holder is one the child's count lacked, so the
+// free may have parked the child while Open, and the flip unmarks a parked
+// block before the up this Land logs can net; a child the flip left unmarked
+// is the sweep's. A child the batch gives birth to is stored by this Land.
+// A Settled Volume hides nothing and a partial Land counts a hidden child as
+// an absent one, as PutHold.Partial describes, so they read nothing;
+// otherwise it reads the children's lists in one batch.
+func (l *lander) holdRefilled(ctx context.Context, children []*block.BlockRef) error {
+	// Nothing is hidden while Settled, and a partial Land refuses no hidden
+	// child.
+	if l.partial || l.gen == Generation_GENERATION_SETTLED {
+		return nil
+	}
+
+	// Check the children the batch does not give birth to.
+	outside := make([]*block.BlockRef, 0, len(children))
+	keys := make([][]byte, 0, len(children))
+	for _, child := range children {
+		key := BlockKey(child)
+		if _, ok := l.born[string(key)]; !ok {
+			outside, keys = append(outside, child), append(keys, key)
+		}
+	}
+	if len(outside) == 0 {
+		return nil
+	}
+	_, err := l.holdOutside(ctx, outside, keys)
+	return err
 }
 
 // holdOutside checks the holds the born blocks give refs, children outside

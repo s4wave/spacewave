@@ -4710,6 +4710,88 @@ func TestLivenessAdversarial(t *testing.T) {
 		requireAudit(t, v, 0)
 	})
 
+	for _, verified := range []bool{true, false} {
+		t.Run("refilled hole names a parked child verified="+strconv.FormatBool(verified), func(t *testing.T) {
+			// A format 6 store holds the root H -> P -> C and has lost P
+			// with its list, so nothing holds C. The audit records P as a
+			// hole, the walk verifies H, and C too when verified is set,
+			// and the free parks C. A put of P lands between a pass's
+			// netting and its settle. P alone is refused: its up nets only
+			// in the next pass, and this one would flip with the hole gone,
+			// leaving a marked C in the run and popping an unverified C off
+			// the front on its parked key. With C, the put gives birth to C
+			// again under P, and the sweep deletes nothing.
+			ctx := t.Context()
+			store := store_kvtx_inmem.NewStore()
+			tr := testTree{}
+			tr.add(t, "C")
+			tr.add(t, "P", "C")
+			tr.add(t, "H", "P")
+			legacy := testTree{"C": tr["C"], "H": tr["H"]}
+			writeLegacyStore(t, store, store_kvkey.NewDefaultKVKey(), legacy, "H", true, "C", "H")
+			v, clk := openUnadoptedVolume(t, store)
+			if _, err := v.Adopt(ctx); err != nil {
+				t.Fatal(err)
+			}
+			if res, err := v.Audit(ctx); err != nil || res.Holes != 1 {
+				t.Fatalf("audit recorded %d holes err %v, want P's", res.Holes, err)
+			}
+			walk := []string{"H"}
+			if verified {
+				walk = append(walk, "C")
+			}
+			rb, err := v.OpenListRebuild(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, name := range walk {
+				if err := rb.Verify(ctx, tr[name].Ref, tr[name].Refs); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if _, err := rb.Finish(ctx); err != nil {
+				t.Fatal(err)
+			}
+			clk.Add(block_gc.DefaultGrace + time.Second)
+			if res := collectAll(t, v); res.Parked != 1 || res.Freed != 0 || res.Flipped {
+				t.Fatalf("collect while Open = %+v, want C parked and no flip", res)
+			}
+
+			// Put P as the pass turns from netting to settling: alone, then
+			// with C.
+			refilled := false
+			phase := func(ph block_gc.Phase) func() {
+				if ph == block_gc.PhaseSweep && !refilled {
+					refilled = true
+					var parked *block_gc.AbsentError
+					if err := v.SetBucketRoots(ctx, "b", tr.entries("P"), nil); !errors.As(err, &parked) || !parked.Ref.EqualsRef(tr["C"].Ref) {
+						t.Errorf("put of P alone err %v, want the parked C refused", err)
+					}
+					if err := v.SetBucketRoots(ctx, "b", tr.entries("C", "P"), nil); err != nil {
+						t.Error(err)
+					}
+				}
+				return func() {}
+			}
+			collector := block_gc.NewCollector(collectorStore{v: v}, block_gc.CollectorOptions{Frees: true, Now: v.now, Phase: phase})
+			if _, err := collector.Collect(ctx); err != nil || !refilled {
+				t.Fatalf("collect err %v, refilled %v", err, refilled)
+			}
+			requireReads(t, v, tr, "H", "P", "C")
+
+			// C stays through the flip and a whole sweep.
+			for range 6 {
+				clk.Add(3 * (block_gc.DefaultGrace + time.Second))
+				collectAll(t, v)
+			}
+			if gen := livenessGeneration(t, v); gen != block_gc.Generation_GENERATION_SETTLED {
+				t.Fatalf("generation %v, want Settled", gen)
+			}
+			requireReads(t, v, tr, "H", "P", "C")
+			requireAudit(t, v, 0)
+		})
+	}
+
 	t.Run("old list a put rewrites", func(t *testing.T) {
 		// A format 6 store holds the root A and unreached blocks C -> F,
 		// whose list lacks F, G and H. The walk verifies A and F. A put of

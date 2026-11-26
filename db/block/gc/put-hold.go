@@ -17,9 +17,10 @@ type PutHold struct {
 	// Nil drops it.
 	Observed func(notHeld [NotHeldPut + 1]uint64, err error)
 	// Partial reports that the batch copies part of a tree another store
-	// holds, as a cache fill does: a born block may name a child the
-	// generation hides, which Land counts as it counts an absent child
-	// instead of refusing. A root onto a hidden block is still refused.
+	// holds, as a cache fill does: a born block or a refilled hole may
+	// name a child the generation hides, which Land counts as it counts an
+	// absent child instead of refusing. A root onto a hidden block is still
+	// refused.
 	Partial bool
 }
 
