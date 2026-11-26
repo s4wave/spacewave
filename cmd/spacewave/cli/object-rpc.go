@@ -82,7 +82,7 @@ func (a *objectRPCArgs) Run(c *cli.Context) error {
 	defer close(stop)
 	go func() {
 		select {
-		case <-mount.TypedRef.Done():
+		case <-mount.Done():
 			_ = conn.Close()
 		case <-stop:
 		}
@@ -90,7 +90,7 @@ func (a *objectRPCArgs) Run(c *cli.Context) error {
 	err = srpc.NewServer(srpc.NewClientInvoker(mount.TypedClient)).AcceptMuxedConn(ctx, conn)
 
 	// Report why the object ended, or end cleanly when the peer closed stdin.
-	if resourceErr := mount.client.resourceEndError(mount.TypedRef.Done(), mount.ObjectKey); resourceErr != nil {
+	if resourceErr := mount.resourceEndError(); resourceErr != nil {
 		return resourceErr
 	}
 	if err == io.EOF || conn.IsClosed() {

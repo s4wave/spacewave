@@ -146,11 +146,10 @@ func newSpaceJoinCommand(statePath *string, sessionIdx *uint) *cli.Command {
 				return err
 			}
 			if invite == nil {
-				sessionClient, err := sess.GetResourceRef().GetClient()
+				svc, err := sess.AccessSpacewaveService()
 				if err != nil {
 					return errors.Wrap(err, "session client")
 				}
-				svc := s4wave_session.NewSRPCSpacewaveSessionResourceServiceClient(sessionClient)
 				resp, err := svc.LookupInviteCode(ctx, &s4wave_provider_spacewave.LookupInviteCodeRequest{Code: input})
 				if err != nil {
 					return errors.Wrap(err, "look up invite code")

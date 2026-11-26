@@ -73,11 +73,10 @@ func (a *sessionNameArgs) Run(c *cli.Context) error {
 	}
 
 	// Set the name through the local session service.
-	sessionClient, err := sess.GetResourceRef().GetClient()
+	service, err := sess.AccessLocalService()
 	if err != nil {
 		return errors.Wrap(err, "session client")
 	}
-	service := s4wave_session.NewSRPCLocalSessionResourceServiceClient(sessionClient)
 	if _, err := service.SetDisplayName(ctx, &s4wave_session.SetLocalDisplayNameRequest{DisplayName: name}); err != nil {
 		return errors.Wrap(err, "set display name")
 	}

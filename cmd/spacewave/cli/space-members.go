@@ -268,11 +268,10 @@ func removeSpaceAccount(
 	accountID string,
 ) error {
 	// Ask the cloud session to remove the account's peers.
-	sessionClient, err := sess.GetResourceRef().GetClient()
+	svc, err := sess.AccessSpacewaveService()
 	if err != nil {
 		return errors.Wrap(err, "session client")
 	}
-	svc := s4wave_session.NewSRPCSpacewaveSessionResourceServiceClient(sessionClient)
 	resp, err := svc.RemoveSpaceMember(ctx, &s4wave_provider_spacewave.RemoveSpaceMemberRequest{
 		SpaceId:   spaceID,
 		AccountId: accountID,

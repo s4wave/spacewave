@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
+	"github.com/s4wave/spacewave/db/world"
 	s4wave_root "github.com/s4wave/spacewave/sdk/root"
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
@@ -26,8 +27,8 @@ type Object struct {
 	Engine *sdk_engine.SDKEngine
 	// ObjectKey is the resolved typed object key.
 	ObjectKey string
-	// TypedRef references the typed object; Done closes when it is released.
-	TypedRef resource_client.ResourceRef
+	// typedRef retains the typed object until Release.
+	typedRef resource_client.ResourceRef
 	// TypedClient reaches the typed object's services.
 	TypedClient srpc.Client
 
@@ -94,7 +95,7 @@ func MountObject(ctx context.Context, res *resource_client.Client, root *s4wave_
 	if err != nil {
 		return fail(errors.Wrap(err, "access typed object for "+obj.ObjectKey))
 	}
-	obj.TypedRef, obj.TypedClient = typedRef, typedClient
+	obj.typedRef, obj.TypedClient = typedRef, typedClient
 	obj.rels = append(obj.rels, typedRef.Release)
 	return obj, nil
 }
@@ -105,4 +106,15 @@ func (o *Object) Release() {
 		rel()
 	}
 	o.rels = nil
+}
+
+// Done closes when the typed object is released, including on disconnection.
+func (o *Object) Done() <-chan struct{} {
+	return o.typedRef.Done()
+}
+
+// NewTransaction opens a transaction in the mounted object's World. The caller
+// discards it after use, before releasing the Object.
+func (o *Object) NewTransaction(ctx context.Context, write bool) (world.Tx, error) {
+	return o.Engine.NewTransaction(ctx, write)
 }

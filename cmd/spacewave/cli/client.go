@@ -631,6 +631,11 @@ func (m *objectMount) release() {
 	m.client.close()
 }
 
+// resourceEndError identifies whether the daemon or the mounted object ended.
+func (m *objectMount) resourceEndError() error {
+	return m.client.resourceEndError(m.Done(), m.ObjectKey)
+}
+
 // mountObjectChain connects to the daemon and mounts session -> space ->
 // world engine -> typed object for the URI. When resolveObjectKey is nil,
 // uri.objectKey is used verbatim; otherwise it resolves the key against

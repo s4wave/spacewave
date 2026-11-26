@@ -9,7 +9,6 @@ import (
 	"github.com/aperturerobotics/cli"
 	"github.com/pkg/errors"
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
-	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 )
 
 // newAccountEmailCommand builds the account email command group.
@@ -53,11 +52,10 @@ func newAccountEmailAddCommand() *cli.Command {
 			defer sess.Release()
 
 			// Add the address to the Session's account.
-			sessionClient, err := sess.GetResourceRef().GetClient()
+			svc, err := sess.AccessSpacewaveService()
 			if err != nil {
 				return errors.Wrap(err, "session client")
 			}
-			svc := s4wave_session.NewSRPCSpacewaveSessionResourceServiceClient(sessionClient)
 			resp, err := svc.AddEmail(ctx, &s4wave_provider_spacewave.AddEmailRequest{Email: address})
 			if err != nil {
 				return errors.Wrap(err, "add email")

@@ -41,17 +41,8 @@ func getStatusMountSessionTimeout() (time.Duration, error) {
 
 // WatchRecoveryStatus returns the first recovery update and closes its watch stream.
 func (s *nativeSession) WatchRecoveryStatus(ctx context.Context) (*s4wave_status.RecoveryStatus, error) {
-	// Resolve the status resource client for the mounted session.
-	client, err := s.GetResourceRef().GetClient()
-	if err != nil {
-		return nil, err
-	}
-
 	// Open the recovery status stream and release it after the first update.
-	strm, err := s4wave_status.NewSRPCSystemStatusServiceClient(client).WatchRecoveryStatus(
-		ctx,
-		&s4wave_status.WatchRecoveryStatusRequest{},
-	)
+	strm, err := s.Session.WatchRecoveryStatus(ctx)
 	if err != nil {
 		return nil, err
 	}

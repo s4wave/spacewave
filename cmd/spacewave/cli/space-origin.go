@@ -235,11 +235,11 @@ func runSpacewaveSpaceCommand(
 	if err != nil {
 		return err
 	}
-	sessionClient, err := sess.GetResourceRef().GetClient()
+	service, err := sess.AccessSpacewaveService()
 	if err != nil {
 		return errors.Wrap(err, "session client")
 	}
-	return call(ctx, s4wave_session.NewSRPCSpacewaveSessionResourceServiceClient(sessionClient), spaceID)
+	return call(ctx, service, spaceID)
 }
 
 // readOriginSecret returns the origin secret key from the environment, or from

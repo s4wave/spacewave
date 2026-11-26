@@ -110,53 +110,21 @@ func nativeRunnerClientFlags(sessionIdx *uint) []cli.Flag {
 
 // newBifrostCommand embeds the bifrost CLI command set.
 func newBifrostCommand() *cli.Command {
+	// Compose the Bifrost client and utility commands with their own context binding.
 	var clientArgs bifrost_cli.ClientArgs
 	var utilArgs bifrost_cliutil.UtilArgs
-	return &cli.Command{
-		Name:  "bifrost",
-		Usage: "Bifrost network-router sub-commands.",
-		Subcommands: append(
-			[]*cli.Command{{
-				Name:        "util",
-				Usage:       "utility sub-commands",
-				Subcommands: utilArgs.BuildCommands(),
-				Flags:       utilArgs.BuildFlags(),
-				Before: func(c *cli.Context) error {
-					utilArgs.SetContext(c.Context)
-					return nil
-				},
-			}},
-			clientArgs.BuildCommands()...,
-		),
-		Flags: clientArgs.BuildFlags(),
-		Before: func(c *cli.Context) error {
-			clientArgs.SetContext(c.Context)
-			return nil
-		},
-	}
+	cmd := clientArgs.BuildCommand()
+	cmd.Subcommands = append([]*cli.Command{utilArgs.BuildCommand()}, cmd.Subcommands...)
+	return cmd
 }
 
 // newHydraCommand embeds the hydra storage CLI command set.
 func newHydraCommand() *cli.Command {
-	// Build the hydra command and attach the util subcommands.
+	// Compose the Hydra client and utility commands with their own context binding.
 	var clientArgs hydra_cli.ClientArgs
 	var utilArgs hydra_cliutil.UtilArgs
 	cmd := clientArgs.BuildHydraCommand()
-	cmd.Subcommands = append(cmd.Subcommands, &cli.Command{
-		Name:        "util",
-		Usage:       "utility sub-commands",
-		Subcommands: utilArgs.BuildCommands(),
-		Flags:       utilArgs.BuildFlags(),
-		Before: func(c *cli.Context) error {
-			utilArgs.SetContext(c.Context)
-			return nil
-		},
-	})
-	cmd.Flags = clientArgs.BuildFlags()
-	cmd.Before = func(c *cli.Context) error {
-		clientArgs.SetContext(c.Context)
-		return nil
-	}
+	cmd.Subcommands = append(cmd.Subcommands, utilArgs.BuildCommand())
 	return cmd
 }
 

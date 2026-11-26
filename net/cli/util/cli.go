@@ -22,7 +22,7 @@ type UtilArgs struct {
 	// KeySize is the key size to generate.
 	KeySize int
 
-	// Timestamp is the input timestamp string
+	// Timestamp is the input timestamp string.
 	Timestamp string
 }
 
@@ -160,9 +160,18 @@ func (a *UtilArgs) BuildCommands() []*ucli.Command {
 	}
 }
 
-// SetContext sets the context.
-func (a *UtilArgs) SetContext(c context.Context) {
-	a.ctx = c
+// BuildCommand binds the utility commands, flags and invocation context.
+func (a *UtilArgs) BuildCommand() *ucli.Command {
+	return &ucli.Command{
+		Name:        "util",
+		Usage:       "utility sub-commands",
+		Subcommands: a.BuildCommands(),
+		Flags:       a.BuildFlags(),
+		Before: func(c *ucli.Context) error {
+			a.ctx = c.Context
+			return nil
+		},
+	}
 }
 
 // GetContext returns the context.
@@ -178,7 +187,7 @@ func (a *UtilArgs) SetLogger(le *logrus.Entry) {
 	a.le = le
 }
 
-// GetLogger returns the log entry
+// GetLogger returns the log entry.
 func (a *UtilArgs) GetLogger() *logrus.Entry {
 	if le := a.le; le != nil {
 		return le

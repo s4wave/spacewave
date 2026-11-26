@@ -69,12 +69,13 @@ func (s *mountedBillingSession) GetSessionInfo(ctx context.Context) (*s4wave_ses
 
 // AccessSpacewaveSession binds billing RPCs to the retained Session resource.
 func (s *mountedBillingSession) AccessSpacewaveSession() (billingSpacewaveSessionService, error) {
-	client, err := s.session.GetResourceRef().GetClient()
+	// Bind the provider service while the billing command retains the Session.
+	client, err := s.session.AccessSpacewaveService()
 	if err != nil {
 		return nil, errors.Wrap(err, "session client")
 	}
 	return &billingSpacewaveSessionClient{
-		client: s4wave_session.NewSRPCSpacewaveSessionResourceServiceClient(client),
+		client: client,
 	}, nil
 }
 

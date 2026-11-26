@@ -55,6 +55,7 @@ type coreClient struct {
 	root      *s4wave_root.Root
 }
 
+// Close releases the core plugin resource connection.
 func (c *coreClient) Close() {
 	if c.root != nil {
 		c.root.Release()
@@ -64,6 +65,7 @@ func (c *coreClient) Close() {
 	}
 }
 
+// MountSession retains the selected Session for a runner command.
 func (c *coreClient) MountSession(ctx context.Context, idx uint32) (runner.Session, error) {
 	// Mount the requested session and reject a missing session index.
 	resp, err := c.root.MountSessionByIdx(ctx, idx)
@@ -88,26 +90,20 @@ type coreSession struct {
 	*s4wave_session.Session
 }
 
+// WatchResourcesList opens the Session resource listing for the runner.
 func (s *coreSession) WatchResourcesList(ctx context.Context) (runner.ResourcesListStream, error) {
 	return s.Session.WatchResourcesList(ctx)
 }
 
+// WatchLockState opens the Session lock-state watch for the runner.
 func (s *coreSession) WatchLockState(ctx context.Context) (runner.LockStateStream, error) {
 	return s.Session.WatchLockState(ctx)
 }
 
+// WatchRecoveryStatus reads the first recovery update and closes its stream.
 func (s *coreSession) WatchRecoveryStatus(ctx context.Context) (*s4wave_status.RecoveryStatus, error) {
-	// Obtain the session connection for the recovery status service.
-	client, err := s.GetResourceRef().GetClient()
-	if err != nil {
-		return nil, err
-	}
-
-	// Open a recovery status watch for the session connection.
-	strm, err := s4wave_status.NewSRPCSystemStatusServiceClient(client).WatchRecoveryStatus(
-		ctx,
-		&s4wave_status.WatchRecoveryStatusRequest{},
-	)
+	// Open the mounted Session's recovery status watch.
+	strm, err := s.Session.WatchRecoveryStatus(ctx)
 	if err != nil {
 		return nil, err
 	}

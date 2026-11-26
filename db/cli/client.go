@@ -33,7 +33,7 @@ type ClientArgs struct {
 	ApplyBucketConfigReq api.ApplyBucketConfigRequest
 	// ApplyBucketConfigReqVolumeIDs is the list of volume IDs to apply to.
 	ApplyBucketConfigReqVolumeIDs ucli.StringSlice
-	// ListBucketsRequest configures listing buckets.
+	// ListBucketsReq configures listing buckets.
 	ListBucketsReq volume.ListBucketsRequest
 	// ListBucketsReqVolumeIDs is the list of volume IDs to list.
 	ListBucketsReqVolumeIDs ucli.StringSlice
@@ -122,11 +122,17 @@ func (a *ClientArgs) BuildClient() (api.HydraDaemonClient, error) {
 
 // BuildHydraCommand returns the hydra sub-command set.
 func (a *ClientArgs) BuildHydraCommand() *ucli.Command {
+	// Bind the client commands and their invocation context as one command.
 	hydraCmds := a.BuildCommands()
 	return &ucli.Command{
 		Name:        "hydra",
 		Usage:       "Hydra storage sub-commands.",
 		Subcommands: hydraCmds,
+		Flags:       a.BuildFlags(),
+		Before: func(c *ucli.Context) error {
+			a.ctx = c.Context
+			return nil
+		},
 	}
 }
 
@@ -335,11 +341,6 @@ func (a *ClientArgs) BuildCommands() []*ucli.Command {
 			Subcommands: clientVolumeCommands,
 		},
 	}
-}
-
-// SetContext sets the context.
-func (a *ClientArgs) SetContext(c context.Context) {
-	a.ctx = c
 }
 
 // GetContext returns the context.

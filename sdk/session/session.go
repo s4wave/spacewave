@@ -7,6 +7,7 @@ import (
 	"github.com/s4wave/spacewave/core/pairing"
 	session "github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
+	s4wave_status "github.com/s4wave/spacewave/sdk/status"
 )
 
 // Session is a session resource that provides access to session functionality.
@@ -33,11 +34,6 @@ func NewSession(client *resource_client.Client, ref resource_client.ResourceRef)
 		ref:     ref,
 		service: NewSRPCSessionResourceServiceClient(srpcClient),
 	}, nil
-}
-
-// GetResourceRef returns the resource reference.
-func (s *Session) GetResourceRef() resource_client.ResourceRef {
-	return s.ref
 }
 
 // Release releases the resource reference.
@@ -304,4 +300,46 @@ func (s *Session) ConfirmPairingWithResult(ctx context.Context, remotePeerID, di
 		RemotePeerId: remotePeerID,
 		DisplayName:  displayName,
 	})
+}
+
+// AccessSpacewaveService binds the cloud provider's Session service to this
+// mounted resource. It remains valid until the Session is released.
+func (s *Session) AccessSpacewaveService() (SRPCSpacewaveSessionResourceServiceClient, error) {
+	// Require a live mounted resource before binding the provider service.
+	client, err := s.ref.GetClient()
+	if err != nil {
+		return nil, err
+	}
+	return NewSRPCSpacewaveSessionResourceServiceClient(client), nil
+}
+
+// AccessLocalService binds the local provider's Session service to this mounted
+// resource. It remains valid until the Session is released.
+func (s *Session) AccessLocalService() (SRPCLocalSessionResourceServiceClient, error) {
+	// Require a live mounted resource before binding the provider service.
+	client, err := s.ref.GetClient()
+	if err != nil {
+		return nil, err
+	}
+	return NewSRPCLocalSessionResourceServiceClient(client), nil
+}
+
+// WatchRecoveryStatus opens the mounted Session's recovery status stream.
+func (s *Session) WatchRecoveryStatus(ctx context.Context) (s4wave_status.SRPCSystemStatusService_WatchRecoveryStatusClient, error) {
+	// Bind the status service to the retained Session resource.
+	client, err := s.ref.GetClient()
+	if err != nil {
+		return nil, err
+	}
+	return s4wave_status.NewSRPCSystemStatusServiceClient(client).WatchRecoveryStatus(ctx, &s4wave_status.WatchRecoveryStatusRequest{})
+}
+
+// WatchPluginApprovals watches manifest decisions on this Session.
+func (s *Session) WatchPluginApprovals(ctx context.Context) (SRPCSessionResourceService_WatchPluginApprovalsClient, error) {
+	return s.service.WatchPluginApprovals(ctx, &WatchPluginApprovalsRequest{})
+}
+
+// SetPluginApproval records a manifest decision on this Session.
+func (s *Session) SetPluginApproval(ctx context.Context, req *SetPluginApprovalRequest) (*SetPluginApprovalResponse, error) {
+	return s.service.SetPluginApproval(ctx, req)
 }

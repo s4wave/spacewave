@@ -13,6 +13,7 @@ import (
 	"github.com/aperturerobotics/cli"
 	protojson "github.com/aperturerobotics/protobuf-go-lite/json"
 	"github.com/dustin/go-humanize"
+
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/s4db"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
@@ -135,7 +136,6 @@ func runDebugVolumeUsage(
 
 	// Group every key under the prefix by its class.
 	classes := newVolumeKeyClasses(separator, depth, width)
-	var total volumeKeyClass
 	err = tx.ScanPrefixLens(ctx, prefix, func(k []byte, n int) error {
 		classes.add(k[len(prefix):], len(k), n)
 		return nil
@@ -145,20 +145,7 @@ func runDebugVolumeUsage(
 	}
 
 	// Rank classes by the bytes they hold.
-	ranked := make([]*volumeKeyClass, 0, len(classes.byClass))
-	for _, kc := range classes.byClass {
-		kc.class = string(prefix) + formatVolumeKeyClass([]byte(kc.class))
-		ranked = append(ranked, kc)
-		total.keys += kc.keys
-		total.keyBytes += kc.keyBytes
-		total.valueBytes += kc.valueBytes
-	}
-	slices.SortFunc(ranked, func(a, b *volumeKeyClass) int {
-		return cmp.Compare(b.keyBytes+b.valueBytes, a.keyBytes+a.valueBytes)
-	})
-	if top > 0 && len(ranked) > top {
-		ranked = ranked[:top]
-	}
+	ranked, total := classes.ranked(prefix, top)
 
 	// Emit structured output for scripts.
 	if outputFormat == "json" || outputFormat == "yaml" {
@@ -407,6 +394,32 @@ func (c *volumeKeyClasses) narrow() {
 		into.valueBytes += kc.valueBytes
 	}
 	c.byClass = merged
+}
+
+// ranked formats and orders the classes by total bytes, keeping at most top
+// classes when positive, and returns totals across every class.
+func (c *volumeKeyClasses) ranked(prefix []byte, top int) ([]*volumeKeyClass, volumeKeyClass) {
+	// Format each class for display and sum the whole histogram.
+	var total volumeKeyClass
+	ranked := make([]*volumeKeyClass, 0, len(c.byClass))
+	for _, kc := range c.byClass {
+		kc.class = string(prefix) + formatVolumeKeyClass([]byte(kc.class))
+		ranked = append(ranked, kc)
+		total.keys += kc.keys
+		total.keyBytes += kc.keyBytes
+		total.valueBytes += kc.valueBytes
+	}
+
+	// Rank the classes by stored bytes before applying the display limit.
+	slices.SortFunc(ranked, func(a, b *volumeKeyClass) int {
+		return cmp.Compare(b.keyBytes+b.valueBytes, a.keyBytes+a.valueBytes)
+	})
+	if top > 0 && len(ranked) > top {
+		ranked = ranked[:top]
+	}
+
+	// Return the selected classes with totals independent of the display limit.
+	return ranked, total
 }
 
 // volumeKeyClassOf returns the leading depth segments of key, including their

@@ -79,7 +79,7 @@ func (a *deviceShowArgs) Run(c *cli.Context) error {
 	defer mount.release()
 
 	// Read the Device and its Worker claim from the same World revision.
-	tx, err := mount.Engine.NewTransaction(c.Context, false)
+	tx, err := mount.NewTransaction(c.Context, false)
 	if err != nil {
 		return errors.Wrap(err, "read device world")
 	}

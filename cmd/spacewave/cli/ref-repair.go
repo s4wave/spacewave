@@ -3,14 +3,12 @@
 package spacewave_cli
 
 import (
-	"bytes"
 	"context"
 	"maps"
 	"reflect"
 	"slices"
 	"strings"
 
-	"github.com/pkg/errors"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/db/block"
@@ -18,7 +16,7 @@ import (
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_store "github.com/s4wave/spacewave/db/bucket/store"
-	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
+
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/s4wave/spacewave/db/world/refwalk"
 	"github.com/sirupsen/logrus"
@@ -250,19 +248,11 @@ func (r *refRepair) measureFront(ctx context.Context, dryRun, roots bool) error 
 // measurePluginStores counts object-store keys under each plugin's volume prefix.
 // It reads only keys; the values are root pointers whose trees are not measured.
 func (r *refRepair) measurePluginStores(ctx context.Context, vol *volume_s4db.Volume) error {
-	// Scan the plugin object-store namespace in one read transaction.
-	tx, err := vol.GetKvtxStore().NewTransaction(ctx, false)
-	if err != nil {
-		return err
-	}
-	defer tx.Discard()
-	prefix := vol.GetKvKey().GetObjectStorePrefixByID("plugin-volume")
+	// Group logical plugin-volume keys by escaped instance and plugin.
 	r.res.pluginStores = make(map[string]uint64)
-
-	// Group by the escaped instance and plugin components, not store boundaries.
-	return tx.ScanPrefixKeys(ctx, prefix, func(key []byte) error {
+	return vol.ScanObjectStoreKeys(ctx, "plugin-volume", func(key []byte) error {
 		// Count only keys with both escaped plugin-volume components.
-		instance, rest, ok := strings.Cut(string(key[len(prefix):]), "/")
+		instance, rest, ok := strings.Cut(string(key), "/")
 		if !ok {
 			return nil
 		}
@@ -277,47 +267,27 @@ func (r *refRepair) measurePluginStores(ctx context.Context, vol *volume_s4db.Vo
 // measureUntracked scans every stored block, including blocks outside the typed
 // walk, and measures those stored without a child list.
 func (r *refRepair) measureUntracked(ctx context.Context, vol *volume_s4db.Volume) error {
-	// Iterate block keys and their child lists in one snapshot.
-	tx, err := vol.GetKvtxStore().NewTransaction(ctx, false)
-	if err != nil {
-		return err
-	}
-	defer tx.Discard()
-	rec := volume_kvtx.OpenRecords(tx)
-	prefix := vol.GetKvKey().GetBlockFullPrefix()
-	it := tx.Iterate(ctx, prefix, true, false)
-	defer it.Close()
-
-	// Count each block without a list.
+	// Count blocks and listless bytes from the Volume's single-snapshot scan.
 	var scanned uint64
-	for it.Next() {
-		ref := &block.BlockRef{}
-		if err := ref.UnmarshalVT(bytes.Clone(it.Key()[len(prefix):])); err != nil {
-			return errors.Wrap(err, "decode stored block key")
-		}
-		listed, err := rec.HasChildren(ctx, ref)
-		if err != nil {
-			return err
-		}
+	return vol.ScanChildListCoverage(ctx, func(ref *block.BlockRef, listed bool, size uint64) error {
+		// Report progress across every stored block, including listed blocks.
 		scanned++
 		if scanned%refRepairProgress == 0 {
 			r.le.Infof("scanned %d stored blocks, %d without a child list", scanned, r.res.untracked)
 		}
 		if listed {
-			continue
+			return nil
 		}
-		value, err := it.Value()
-		if err != nil {
-			return err
-		}
-		blk := refRepairStoredBlock{ref: ref, size: uint64(len(value))}
+
+		// Retain a bounded sample and totals for listless blocks.
+		blk := refRepairStoredBlock{ref: ref, size: size}
 		r.res.untracked++
 		r.res.untrackedBytes += blk.size
 		if len(r.res.untrackedSample) < refRepairSample {
 			r.res.untrackedSample = append(r.res.untrackedSample, blk)
 		}
-	}
-	return it.Err()
+		return nil
+	})
 }
 
 // walkSpace walks the roots of one Space's replay: the roots its bucket holds

@@ -13,6 +13,7 @@ import (
 
 	"github.com/aperturerobotics/cli"
 	"github.com/dustin/go-humanize"
+
 	"github.com/s4wave/spacewave/db/block"
 	block_store_sql "github.com/s4wave/spacewave/db/block/store/sql"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -39,7 +40,8 @@ func newDebugVolumeCopyCommand() *cli.Command {
 	var reachable bool
 	var opts volume_kvtx.CopyReachableOptions
 	var dropSQL, countOnly bool
-	var sqlArgs sqlDrop
+	var sqlConf block_store_sql.Config
+	var sqlStoreID string
 	var sqlPort uint
 	return &cli.Command{
 		Name:      "volume-copy",
@@ -81,14 +83,14 @@ func newDebugVolumeCopyCommand() *cli.Command {
 				Usage:       "with --drop-sql-blocks, print what the copy would keep and drop without writing a new file",
 				Destination: &countOnly,
 			},
-			&cli.StringFlag{Name: "sql-host", Usage: "with --drop-sql-blocks, the database host", Destination: &sqlArgs.conf.Host},
+			&cli.StringFlag{Name: "sql-host", Usage: "with --drop-sql-blocks, the database host", Destination: &sqlConf.Host},
 			&cli.UintFlag{Name: "sql-port", Usage: "with --drop-sql-blocks, the database port; zero uses 3306", Destination: &sqlPort},
-			&cli.StringFlag{Name: "sql-database", Usage: "with --drop-sql-blocks, the database name", Destination: &sqlArgs.conf.Database},
-			&cli.StringFlag{Name: "sql-user", Usage: "with --drop-sql-blocks, the database user", Destination: &sqlArgs.conf.User},
-			&cli.StringFlag{Name: "sql-table", Usage: "with --drop-sql-blocks, the blocks table", Value: "blocks", Destination: &sqlArgs.conf.Table},
-			&cli.BoolFlag{Name: "sql-tls", Usage: "with --drop-sql-blocks, connect with TLS", Value: true, Destination: &sqlArgs.conf.TLS},
-			&cli.StringFlag{Name: "sql-tls-cert-sha256", Usage: "with --drop-sql-blocks, the hex SHA-256 of the server certificate to trust", Destination: &sqlArgs.conf.TLSCertSHA256},
-			&cli.StringFlag{Name: "sql-store-id", Usage: "with --drop-sql-blocks, the block store id whose rows to check", Destination: &sqlArgs.storeID},
+			&cli.StringFlag{Name: "sql-database", Usage: "with --drop-sql-blocks, the database name", Destination: &sqlConf.Database},
+			&cli.StringFlag{Name: "sql-user", Usage: "with --drop-sql-blocks, the database user", Destination: &sqlConf.User},
+			&cli.StringFlag{Name: "sql-table", Usage: "with --drop-sql-blocks, the blocks table", Value: "blocks", Destination: &sqlConf.Table},
+			&cli.BoolFlag{Name: "sql-tls", Usage: "with --drop-sql-blocks, connect with TLS", Value: true, Destination: &sqlConf.TLS},
+			&cli.StringFlag{Name: "sql-tls-cert-sha256", Usage: "with --drop-sql-blocks, the hex SHA-256 of the server certificate to trust", Destination: &sqlConf.TLSCertSHA256},
+			&cli.StringFlag{Name: "sql-store-id", Usage: "with --drop-sql-blocks, the block store id whose rows to check", Destination: &sqlStoreID},
 		},
 		Action: func(c *cli.Context) error {
 			// Validate the source and destination arguments for the chosen operation.
@@ -112,13 +114,13 @@ func newDebugVolumeCopyCommand() *cli.Command {
 				if reachable {
 					return errors.New("--drop-sql-blocks copies every key outside the blocks; drop --reachable")
 				}
-				sqlArgs.conf.Port = uint32(sqlPort) //nolint:gosec // a port fits.
-				sqlArgs.conf.Password = os.Getenv(sqlPasswordEnv)
-				sqlArgs.conf.MaxConns = 1
-				if sqlArgs.conf.Host == "" || sqlArgs.conf.Database == "" || sqlArgs.conf.User == "" || sqlArgs.storeID == "" {
+				sqlConf.Port = uint32(sqlPort) //nolint:gosec // a port fits.
+				sqlConf.Password = os.Getenv(sqlPasswordEnv)
+				sqlConf.MaxConns = 1
+				if sqlConf.Host == "" || sqlConf.Database == "" || sqlConf.User == "" || sqlStoreID == "" {
 					return errors.New("--drop-sql-blocks needs --sql-host, --sql-database, --sql-user and --sql-store-id")
 				}
-				drop = &sqlArgs
+				drop = newSQLDrop(sqlConf, sqlStoreID)
 			}
 
 			// Count the proposed copy or create the destination with progress on stderr.
@@ -271,6 +273,11 @@ type sqlDrop struct {
 	marked map[string]struct{}
 	// store is the store's rows.
 	store *block_store_sql.Store
+}
+
+// newSQLDrop prepares a block comparison against the configured SQL store.
+func newSQLDrop(conf block_store_sql.Config, storeID string) *sqlDrop {
+	return &sqlDrop{conf: conf, storeID: storeID}
 }
 
 // open reads the upload markers of the volume src and opens the SQL store.

@@ -119,7 +119,7 @@ func (a *deviceApproveArgs) Run(c *cli.Context) error {
 	providerID := info.GetSessionRef().GetProviderResourceRef().GetProviderId()
 
 	// Resolve the session's RPC client for the provider's approval service.
-	sessionClient, err := sess.GetResourceRef().GetClient()
+	cloudService, err := sess.AccessSpacewaveService()
 	if err != nil {
 		return errors.Wrap(err, "session client")
 	}
@@ -128,7 +128,7 @@ func (a *deviceApproveArgs) Run(c *cli.Context) error {
 	var payload []byte
 	switch providerID {
 	case "spacewave":
-		service := s4wave_session.NewSRPCSpacewaveSessionResourceServiceClient(sessionClient)
+		service := cloudService
 		response, err := service.ApproveSpaceLink(ctx, &s4wave_provider_spacewave.ApproveSpaceLinkRequest{
 			Ticket:     ticket,
 			ResourceId: []byte(resourceID),
@@ -152,7 +152,10 @@ func (a *deviceApproveArgs) Run(c *cli.Context) error {
 	}
 
 	// Approve the ticket through the local session service and print its completion.
-	service := s4wave_session.NewSRPCLocalSessionResourceServiceClient(sessionClient)
+	service, err := sess.AccessLocalService()
+	if err != nil {
+		return errors.Wrap(err, "session client")
+	}
 	response, err := service.ApproveSpaceLink(ctx, &s4wave_session.ApproveLocalSpaceLinkRequest{
 		Ticket:     ticket,
 		ResourceId: resourceID,

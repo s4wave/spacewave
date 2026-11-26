@@ -28,7 +28,7 @@ type ClientArgs struct {
 	DialConf stream_api_dial.Config
 	// ForwardingConf is the forwarding configuration.
 	ForwardingConf stream_forwarding.Config
-	// IdentifyConf is the identify configuration
+	// IdentifyConf is the identify configuration.
 	IdentifyConf peer_controller.Config
 	// SubscribeConf is the configuration for the publish or subscribe call.
 	SubscribeConf pubsub_api.SubscribeRequest
@@ -120,6 +120,18 @@ func (a *ClientArgs) BuildBifrostCommand() *cli.Command {
 		Usage:       "Bifrost network-router sub-commands.",
 		Subcommands: bifrostCmds,
 	}
+}
+
+// BuildCommand binds the Bifrost client commands, flags and invocation context.
+func (a *ClientArgs) BuildCommand() *cli.Command {
+	// Bind this command's flags and context without changing embedded clients.
+	cmd := a.BuildBifrostCommand()
+	cmd.Flags = a.BuildFlags()
+	cmd.Before = func(c *cli.Context) error {
+		a.ctx = c.Context
+		return nil
+	}
+	return cmd
 }
 
 // BuildCommands attaches the commands.
@@ -278,11 +290,6 @@ func (a *ClientArgs) BuildCommands() []*cli.Command {
 			},
 		},
 	}
-}
-
-// SetContext sets the context.
-func (a *ClientArgs) SetContext(c context.Context) {
-	a.ctx = c
 }
 
 // GetContext returns the context.

@@ -8,7 +8,6 @@ import (
 	"github.com/aperturerobotics/cli"
 	"github.com/pkg/errors"
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
-	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 )
 
 // billingOwnerTypeAccount is the owner type that assigns a billing account to
@@ -50,11 +49,10 @@ func newBillingCreateCommand() *cli.Command {
 				return errors.Wrap(err, "get session info")
 			}
 			accountID := info.GetSessionRef().GetProviderResourceRef().GetProviderAccountId()
-			sessionClient, err := sess.GetResourceRef().GetClient()
+			svc, err := sess.AccessSpacewaveService()
 			if err != nil {
 				return errors.Wrap(err, "session client")
 			}
-			svc := s4wave_session.NewSRPCSpacewaveSessionResourceServiceClient(sessionClient)
 
 			// Create the billing account the caller manages.
 			created, err := svc.CreateBillingAccount(ctx, &s4wave_provider_spacewave.CreateBillingAccountRequest{

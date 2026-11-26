@@ -14,6 +14,7 @@ import (
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/csync"
 	"github.com/aperturerobotics/util/ulid"
+	pkg_errors "github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/coord"
@@ -567,6 +568,69 @@ func (v *Volume) GetKvtxStore() kvtx.Store {
 // GetKvKey returns the instance of KvKey used to build keys.
 func (v *Volume) GetKvKey() *store_kvkey.KVKey {
 	return v.kvKey
+}
+
+// ScanObjectStoreKeys visits the keys beneath storeID in one read snapshot.
+// Keys exclude the physical object-store prefix and are borrowed until fn returns.
+func (v *Volume) ScanObjectStoreKeys(ctx context.Context, storeID string, fn func(key []byte) error) error {
+	// Keep the namespace and its transaction together for the whole scan.
+	tx, err := v.kvtxStore.NewTransaction(ctx, false)
+	if err != nil {
+		return err
+	}
+	defer tx.Discard()
+	prefix := v.kvKey.GetObjectStorePrefixByID(storeID)
+
+	// Present logical keys without exposing the Volume's physical layout.
+	return tx.ScanPrefixKeys(ctx, prefix, func(key []byte) error {
+		return fn(key[len(prefix):])
+	})
+}
+
+// ScanChildListCoverage visits every stored block and whether it has a child
+// list, in one read snapshot. For an unlisted block it also reads its size;
+// listed blocks report zero bytes without reading their values. The caller must
+// not open another transaction on this Volume from fn.
+func (v *Volume) ScanChildListCoverage(ctx context.Context, fn func(ref *block.BlockRef, listed bool, unlistedBytes uint64) error) error {
+	// Keep blocks and their child lists in the same physical snapshot.
+	tx, err := v.kvtxStore.NewTransaction(ctx, false)
+	if err != nil {
+		return err
+	}
+	defer tx.Discard()
+	rec := OpenRecords(tx)
+	prefix := v.kvKey.GetBlockFullPrefix()
+	it := tx.Iterate(ctx, prefix, true, false)
+	defer it.Close()
+
+	// Decode each block key and read only an unlisted block's value.
+	for it.Next() {
+		// Resolve the block's child-list coverage in this snapshot.
+		ref := &block.BlockRef{}
+		if err := ref.UnmarshalVT(bytes.Clone(it.Key()[len(prefix):])); err != nil {
+			return pkg_errors.Wrap(err, "decode stored block key")
+		}
+		listed, err := rec.HasChildren(ctx, ref)
+		if err != nil {
+			return err
+		}
+
+		// Measure unlisted storage without loading values of listed blocks.
+		var size uint64
+		if !listed {
+			value, err := it.Value()
+			if err != nil {
+				return err
+			}
+			size = uint64(len(value))
+		}
+
+		// Hand over one record and stop promptly on the consumer's error.
+		if err := fn(ref, listed, size); err != nil {
+			return err
+		}
+	}
+	return it.Err()
 }
 
 // GetStorageStats returns storage usage statistics for the volume.

@@ -53,10 +53,9 @@ func (a *pluginApprovalsArgs) BuildFlags() []cli.Flag {
 
 // pluginApprovalsSession is a mounted session with its approvals service.
 type pluginApprovalsSession struct {
-	client  *sdkClient
-	sess    *s4wave_session.Session
-	service s4wave_session.SRPCSessionResourceServiceClient
-	peerID  string
+	client *sdkClient
+	sess   *s4wave_session.Session
+	peerID string
 }
 
 // connect mounts the selected session and its SessionResource service.
@@ -81,12 +80,6 @@ func (a *pluginApprovalsArgs) connect(c *cli.Context) (*pluginApprovalsSession, 
 		s.close()
 		return nil, errors.Wrap(err, "get session info")
 	}
-	srpcClient, err := sess.GetResourceRef().GetClient()
-	if err != nil {
-		s.close()
-		return nil, errors.Wrap(err, "session client")
-	}
-	s.service = s4wave_session.NewSRPCSessionResourceServiceClient(srpcClient)
 	s.peerID = info.GetPeerId()
 	return s, nil
 }
@@ -101,7 +94,7 @@ func (s *pluginApprovalsSession) close() {
 // of WatchPluginApprovals, which holds every decision.
 func (s *pluginApprovalsSession) decisions(ctx context.Context) ([]*s4wave_plugin_approval.PluginApproval, error) {
 	// Open the decisions watch.
-	strm, err := s.service.WatchPluginApprovals(ctx, &s4wave_session.WatchPluginApprovalsRequest{})
+	strm, err := s.sess.WatchPluginApprovals(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "watch plugin approvals")
 	}
@@ -395,7 +388,7 @@ func (a *pluginApprovalsApproveArgs) Run(c *cli.Context) error {
 // approve records ALLOWED for one root and prints it.
 func (s *pluginApprovalsSession) approve(ctx context.Context, row *pluginApprovalRow) error {
 	// Record ALLOWED for the session's peer.
-	_, err := s.service.SetPluginApproval(ctx, &s4wave_session.SetPluginApprovalRequest{
+	_, err := s.sess.SetPluginApproval(ctx, &s4wave_session.SetPluginApprovalRequest{
 		PluginId:     row.pluginID,
 		ManifestRoot: row.manifestRoot,
 		State:        s4wave_plugin_approval.PluginApprovalState_PluginApprovalState_ALLOWED,

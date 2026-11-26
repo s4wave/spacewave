@@ -316,11 +316,10 @@ func resolveCredential(
 // entity key it protects.
 func passkeyCredential(ctx context.Context, sess *s4wave_session.Session, peerID string) (*session_pb.EntityCredential, error) {
 	// Run the passkey ceremony in the system browser through the daemon.
-	sessionClient, err := sess.GetResourceRef().GetClient()
+	svc, err := sess.AccessSpacewaveService()
 	if err != nil {
 		return nil, errors.Wrap(err, "session client")
 	}
-	svc := s4wave_session.NewSRPCSpacewaveSessionResourceServiceClient(sessionClient)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	strm, err := svc.StartDesktopPasskeyReauth(ctx, &s4wave_provider_spacewave.StartDesktopPasskeyReauthRequest{PeerId: peerID})
