@@ -176,24 +176,17 @@ func buildStoreInfo(label string, store block.StoreOps, depth int) *s4wave_statu
 
 // WatchDirectives streams the list of active directives on change.
 //
-// The list is read outside the broadcast lock. The directive controller takes
-// that lock while it holds its own mutex, and reading the list takes that
-// mutex, so reading under the lock deadlocks the bus against AddDirective. The
-// wait channel is taken before each read, so a change during the read wakes the
-// next pass.
+// The wait channel is taken before each read, so a change during the read
+// wakes the next pass.
 func (r *StatusResource) WatchDirectives(
 	_ *s4wave_status.WatchDirectivesRequest,
 	strm s4wave_status.SRPCSystemStatusService_WatchDirectivesStream,
 ) error {
 	ctx := strm.Context()
-	bcast := r.b.GetDirectivesBroadcast()
 	var prev *s4wave_status.WatchDirectivesResponse
 	for {
 		// Take the wait channel, then read the directives.
-		var waitCh <-chan struct{}
-		bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			waitCh = getWaitCh()
-		})
+		waitCh := r.b.GetDirectivesWaitCh()
 		infos := buildDirectiveInfos(r.b.GetDirectives())
 		resp := &s4wave_status.WatchDirectivesResponse{
 			Directives:     infos,

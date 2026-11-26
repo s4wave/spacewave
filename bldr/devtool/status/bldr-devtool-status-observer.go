@@ -71,18 +71,15 @@ func (o *BldrDevtoolStatusObserver) GetStatusProducer() *BldrDevtoolStatusProduc
 func (o *BldrDevtoolStatusObserver) Execute(ctx context.Context) error {
 	defer o.Close()
 
-	o.rescanDirectives(ctx)
-	bcast := o.b.GetDirectivesBroadcast()
+	// Take the wait channel before each scan, so a change during the scan
+	// wakes the next one.
 	for {
-		var waitCh <-chan struct{}
-		bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			waitCh = getWaitCh()
-		})
+		waitCh := o.b.GetDirectivesWaitCh()
+		o.rescanDirectives(ctx)
 		select {
 		case <-ctx.Done():
 			return nil
 		case <-waitCh:
-			o.rescanDirectives(ctx)
 		}
 	}
 }

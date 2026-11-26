@@ -116,7 +116,7 @@ func (noopBus) GetDirectives() []directive.Instance {
 	return nil
 }
 
-func (noopBus) GetDirectivesBroadcast() *broadcast.Broadcast {
+func (noopBus) GetDirectivesWaitCh() <-chan struct{} {
 	return nil
 }
 
