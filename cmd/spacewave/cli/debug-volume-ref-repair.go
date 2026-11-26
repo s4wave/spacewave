@@ -184,6 +184,10 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 	for _, ref := range res.rebuild.FrontSample {
 		fields = append(fields, [2]string{"Owed sample", ref.MarshalString()})
 	}
+	for _, cause := range slices.Sorted(maps.Keys(res.front)) {
+		front := res.front[cause]
+		fields = append(fields, [2]string{"Owed, " + cause, strconv.FormatUint(front.count, 10) + " (" + front.sample.MarshalString() + ")"})
+	}
 	for _, ref := range res.rebuild.DroppedSample {
 		fields = append(fields, [2]string{"Refused sample", ref.MarshalString()})
 	}
@@ -294,6 +298,9 @@ func repairVolumeRefs(
 	if rr.rebuild != nil {
 		if rr.res.rebuild, err = rr.rebuild.Finish(ctx); err != nil {
 			return refRepairResult{}, errors.Wrap(err, "finish the child list rebuild")
+		}
+		if err := rr.measureFront(ctx, dryRun); err != nil {
+			return refRepairResult{}, errors.Wrap(err, "measure the front")
 		}
 	}
 	return rr.res, nil

@@ -404,6 +404,9 @@ func TestDebugRefRepair(t *testing.T) {
 	if wrong.rebuild.Dropped == 0 || wrong.rebuild.Rewritten != 0 || wrong.rebuild.Front == 0 {
 		t.Fatalf("rebuild with a wrong root type: %+v", wrong.rebuild)
 	}
+	if len(wrong.front) != 1 || wrong.front[frontRest].count != wrong.rebuild.Front {
+		t.Fatalf("front of a rebuild with a wrong root type: %+v", wrong.front)
+	}
 	right, err := repairVolumeRefs(ctx, le, path, "", false, space_world_optypes.LookupBlockType, refRepairStub{}, nil)
 	if err != nil {
 		t.Fatal(err)

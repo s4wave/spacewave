@@ -345,10 +345,25 @@ func (r *ListRebuild) Finish(ctx context.Context) (ListRebuildResult, error) {
 		return r.res, err
 	}
 
-	// Count the front in slices, adding each slice once its view ends.
+	// Count the front and keep a sample of it.
 	r.res.Front, r.res.FrontSample = 0, nil
+	err := r.EachFront(ctx, func(ref *block.BlockRef) error {
+		r.res.Front++
+		if len(r.res.FrontSample) < sampleSize {
+			r.res.FrontSample = append(r.res.FrontSample, ref)
+		}
+		return nil
+	})
+	return r.res, err
+}
+
+// EachFront calls visit with each block on the front, in key order. It reads
+// the front in slices of sliceRecords entries and visits each slice once its
+// view ends, so it yields to writers on a live Volume and holds one slice.
+func (r *ListRebuild) EachFront(ctx context.Context, visit func(ref *block.BlockRef) error) error {
 	var from []byte
 	for {
+		// Read one slice of front keys.
 		var next []byte
 		var keys [][]byte
 		err := r.store.View(ctx, func(rec *Records) error {
@@ -363,20 +378,21 @@ func (r *ListRebuild) Finish(ctx context.Context) (ListRebuildResult, error) {
 			})
 		})
 		if err != nil {
-			return r.res, err
+			return err
 		}
+
+		// Visit the slice outside its view.
 		for _, key := range keys {
-			r.res.Front++
-			if len(r.res.FrontSample) < sampleSize {
-				ref, _, err := ParseBlockKey(key)
-				if err != nil {
-					return r.res, err
-				}
-				r.res.FrontSample = append(r.res.FrontSample, ref)
+			ref, _, err := ParseBlockKey(key)
+			if err != nil {
+				return err
+			}
+			if err := visit(ref); err != nil {
+				return err
 			}
 		}
 		if next == nil {
-			return r.res, nil
+			return nil
 		}
 		from = next
 	}

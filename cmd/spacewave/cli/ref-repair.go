@@ -28,7 +28,32 @@ const (
 	refRepairProgress = 100_000
 	// refRepairSample limits the listless blocks printed in the report.
 	refRepairSample = 10
+
+	// frontAbsent is the front cause of a block no read resolves.
+	frontAbsent = "absent"
+	// frontNotBlob is the front cause of a payload root the walk could not
+	// confirm as a blob.
+	frontNotBlob = "payload root, not certainly a blob"
+	// frontUndecodable is the front cause of a block that does not decode
+	// as its type.
+	frontUndecodable = "undecodable as its type"
+	// frontUntyped prefixes the front cause of a ref whose type the walk
+	// cannot name, followed by the walker's reason.
+	frontUntyped = "untyped, "
+	// frontRest is the front cause of every other block after a repair,
+	// which marked each block it decoded.
+	frontRest = "not reached by the walk, or its decoded list refused"
+	// frontRestDry is frontRest on a dry run, which marked nothing.
+	frontRestDry = "decoded by this walk, or not reached by it"
 )
+
+// refRepairFront counts the blocks one cause left on the front.
+type refRepairFront struct {
+	// count is the number of blocks.
+	count uint64
+	// sample is the first of them in key order.
+	sample *block.BlockRef
+}
 
 // refRepairStoredBlock describes a listless block without decoding its type.
 type refRepairStoredBlock struct {
@@ -70,6 +95,9 @@ type refRepairResult struct {
 	// rebuild is what the list rebuild verified and wrote, or on a dry run
 	// would write, empty on a volume whose old generation had left Open.
 	rebuild block_gc.ListRebuildResult
+	// front counts the blocks the rebuild's front holds by why the walk
+	// verified nothing for them, as measureFront describes.
+	front map[string]refRepairFront
 	// verified reports that the volume's old generation had left Open before
 	// the run, so it rebuilt nothing.
 	verified bool
@@ -113,6 +141,9 @@ type refRepair struct {
 	// rebuild verifies the decoded blocks' lists, or on a dry run compares
 	// them; nil on a volume whose old generation had left Open.
 	rebuild *block_gc.ListRebuild
+	// unread names why the walk verified nothing for a block it reached,
+	// by the ref's string: frontAbsent, frontNotBlob or frontUndecodable.
+	unread map[string]string
 	// res counts the findings.
 	res refRepairResult
 }
@@ -135,7 +166,41 @@ func newRefRepair(le *logrus.Entry, vol *volume_s4db.Volume, peer block.StoreOps
 		buckets: vol,
 		walker:  refwalk.NewWalker(le, reads, lookup),
 		peer:    peer,
+		unread:  make(map[string]string),
 	}
+}
+
+// measureFront counts the blocks the rebuild's front holds by why the walk
+// verified nothing for them: no read resolves the block, it is not what its
+// type says, or the walk stopped at it for a type it cannot name. A repair
+// marked every other block it reached, so the rest were not reached or had
+// their decoded list refused; a dry run marked nothing, so its rest also
+// holds the blocks a repair would verify. Call it after the walk and the
+// rebuild's Finish.
+func (r *refRepair) measureFront(ctx context.Context, dryRun bool) error {
+	rest := frontRest
+	if dryRun {
+		rest = frontRestDry
+	}
+	r.res.front = make(map[string]refRepairFront)
+	return r.rebuild.EachFront(ctx, func(ref *block.BlockRef) error {
+		// Name the cause the walk recorded for the block.
+		cause := rest
+		if why, ok := r.unread[ref.MarshalString()]; ok {
+			cause = why
+		} else if reason := r.walker.UntypedReason(ref); reason != "" {
+			cause = frontUntyped + reason
+		}
+
+		// Count it, keeping the first block of each cause.
+		f := r.res.front[cause]
+		if f.count == 0 {
+			f.sample = ref
+		}
+		f.count++
+		r.res.front[cause] = f
+		return nil
+	})
 }
 
 // measurePluginStores counts object-store keys under each plugin's volume prefix.
@@ -363,19 +428,27 @@ var spaceRootNames = []string{
 
 // readRootBlock reads a block a named root holds, or reports it absent.
 func (r *refRepair) readRootBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	// Read it from the volume alone.
 	data, found, err := r.vol.GetBlock(ctx, ref)
 	if err != nil || found {
 		return data, found, err
 	}
+
+	// Count it absent and keep that as its front cause.
 	r.res.absent++
+	r.unread[ref.MarshalString()] = frontAbsent
 	return nil, false, nil
 }
 
 // undecodableRoot counts a root block that does not decode as typ, its
 // root's type, and hands it to the rebuild.
 func (r *refRepair) undecodableRoot(ctx context.Context, ref *block.BlockRef, typ string, err error) error {
+	// Count it and keep that as its front cause.
 	r.le.WithError(err).Warnf("cannot decode root block %s", ref.MarshalString())
 	r.res.undecodable++
+	r.unread[ref.MarshalString()] = frontUndecodable
+
+	// Let the rebuild count it when its list is marked.
 	if r.rebuild == nil {
 		return nil
 	}
@@ -469,12 +542,14 @@ func (r *refRepair) visit(ctx context.Context, batch []refwalk.Visit) error {
 		// Count a block no read resolves, a leaf, and an undecodable block.
 		if !rd.Found {
 			r.res.absent++
+			r.unread[rd.Node.Ref.MarshalString()] = frontAbsent
 			continue
 		}
 		// Verify nothing for a payload root that is not certainly a blob,
 		// which stays on the front if held, so the flip names it.
 		if rd.Unsure {
 			r.res.notBlob++
+			r.unread[rd.Node.Ref.MarshalString()] = frontNotBlob
 			if len(r.res.notBlobSample) < refRepairSample {
 				r.res.notBlobSample = append(r.res.notBlobSample, rd.Node.Ref)
 			}
@@ -492,6 +567,7 @@ func (r *refRepair) visit(ctx context.Context, batch []refwalk.Visit) error {
 			r.le.WithError(rd.DecodeErr).Warnf("cannot decode %s", rd.Node.Ref.MarshalString())
 			r.countBlock()
 			r.res.undecodable++
+			r.unread[rd.Node.Ref.MarshalString()] = frontUndecodable
 			if r.rebuild != nil {
 				if err := r.rebuild.Undecodable(ctx, rd.Node.Ref, nodeType(rd.Node)); err != nil {
 					return err

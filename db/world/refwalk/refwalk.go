@@ -66,6 +66,8 @@ type Walker struct {
 	roots map[string]struct{}
 	// untyped counts the refs whose type the walk cannot name, by reason.
 	untyped map[string]*Untyped
+	// stops holds the reason of each such ref, by the ref's string.
+	stops map[string]string
 	// types caches object type IDs by object key across Worlds.
 	types map[string]string
 	// xfrms caches transformers by their marshaled config.
@@ -90,6 +92,7 @@ func NewWalker(le *logrus.Entry, store block.StoreOps, lookup LookupBlockType) *
 		visited: make(map[visitKey]struct{}),
 		roots:   make(map[string]struct{}),
 		untyped: make(map[string]*Untyped),
+		stops:   make(map[string]string),
 		types:   make(map[string]string),
 		xfrms:   make(map[string]block.Transformer),
 	}
@@ -110,6 +113,13 @@ func (w *Walker) Untyped() map[string]Untyped {
 		out[reason] = *u
 	}
 	return out
+}
+
+// UntypedReason returns why the walk could not name the type of ref and so
+// did not walk below it, or "" when it stopped at no such ref. It still
+// answers after Close.
+func (w *Walker) UntypedReason(ref *block.BlockRef) string {
+	return w.stops[ref.MarshalString()]
 }
 
 // Transformer returns the transformer of conf, built once per config.
@@ -512,4 +522,5 @@ func (w *Walker) count(reason string, ref *block.BlockRef) {
 		w.untyped[reason] = u
 	}
 	u.Count++
+	w.stops[ref.MarshalString()] = reason
 }
