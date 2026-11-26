@@ -459,6 +459,12 @@ func TestDebugRefRepair(t *testing.T) {
 		t.Fatal("the dry run wrote the list")
 	}
 
+	// The World root's list is marked by now, so its visit as a payload,
+	// which is not certainly a blob, counts a marked list left uncompared.
+	if re.MarkedUndecodable != 1 || len(re.MarkedUndecodableSample) != 1 || !re.MarkedUndecodableSample[0].Ref.EqualVT(worldRoot) {
+		t.Fatalf("marked list of a payload root that is not a blob: %+v", re)
+	}
+
 	// The repair rewrites the list with the child.
 	fixed, err := repairVolumeRefs(ctx, le, path, "", false, space_world_optypes.LookupBlockType, refRepairStub{}, nil)
 	if err != nil {
