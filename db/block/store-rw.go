@@ -18,7 +18,7 @@ type StoreRW struct {
 // NewStoreRW constructs a new Store handle using a read handle and an optional
 // write handle. If the write handle is not nil, the write (put and delete)
 // calls will go to it. Otherwise, all calls are sent to the read handle.
-func NewStoreRW(readHandle, writeHandle StoreOps) StoreOps {
+func NewStoreRW(readHandle, writeHandle StoreOps) *StoreRW {
 	if writeHandle == nil {
 		writeHandle = readHandle
 	}

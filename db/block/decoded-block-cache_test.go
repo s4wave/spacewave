@@ -270,14 +270,14 @@ func TestDecodedBlockHitObserverAndHolds(t *testing.T) {
 	view.Keep(part)
 
 	// A miss reaches neither the observer nor the hold.
-	if _, ok, err := lookupDecodedBlock(WithRefHold(ctx, view), ref, key, true); err != nil || ok || len(seen) != 0 || Held(ref.GetHash()) {
+	if _, ok, err := cache.lookupRead(WithRefHold(ctx, view), ref, key, true); err != nil || ok || len(seen) != 0 || Held(ref.GetHash()) {
 		t.Fatalf("miss: ok=%v err=%v observed %d held %v", ok, err, len(seen), Held(ref.GetHash()))
 	}
 
 	// A hit reaches the observer and holds the block in each hold it reads in.
 	storeDecodedBlockCacheTestEntry(t, cache, key, blk, data)
 	for _, h := range []*RefHold{view, view, part} {
-		if _, ok, err := lookupDecodedBlock(WithRefHold(ctx, h), ref, key, true); err != nil || !ok {
+		if _, ok, err := cache.lookupRead(WithRefHold(ctx, h), ref, key, true); err != nil || !ok {
 			t.Fatalf("hit: ok=%v err=%v", ok, err)
 		}
 	}
@@ -291,7 +291,7 @@ func TestDecodedBlockHitObserverAndHolds(t *testing.T) {
 	if !Held(ref.GetHash()) {
 		t.Fatal("block dropped while the part still holds it")
 	}
-	if _, _, err := lookupDecodedBlock(WithRefHold(ctx, view), ref, key, true); err != nil || view.Len() != 0 {
+	if _, _, err := cache.lookupRead(WithRefHold(ctx, view), ref, key, true); err != nil || view.Len() != 0 {
 		t.Fatalf("released hold recorded a read: len %d err %v", view.Len(), err)
 	}
 

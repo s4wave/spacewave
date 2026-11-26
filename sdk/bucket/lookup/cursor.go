@@ -159,7 +159,7 @@ func (s *cursorStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte
 	if err != nil {
 		return nil, false, err
 	}
-	block.RecordResourceGetBlock(ctx, ref, found, len(data))
+	block.ContextReadCounter(ctx).RecordResourceGetBlock(ref, found, len(data))
 	if found {
 		block.MarkDurableRead(ctx, ref, gen)
 	}

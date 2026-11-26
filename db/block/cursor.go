@@ -769,7 +769,7 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 	ctx = c.decodedBlockCacheContext(ctx)
 	cacheKey, cacheable := decodedBlockCacheKeyFor(c.pos.ref, b, c.transformer())
 	if !cacheable {
-		RecordDecodedBlockUncacheable(ctx)
+		ContextReadCounter(ctx).recordUncacheable()
 	}
 	share := c.t.sharesDecodedBlock(b)
 
@@ -784,7 +784,7 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 		}
 
 		// Load the decoded block after refreshing its store state.
-		cached, ok, err := lookupDecodedBlock(ctx, c.pos.ref, cacheKey, share)
+		cached, ok, err := decodedBlockCacheFromContext(ctx).lookupRead(ctx, c.pos.ref, cacheKey, share)
 		if err != nil {
 			return nil, err
 		}
@@ -813,7 +813,7 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 	if datFound {
 		// Decode the fetched bytes into the requested block type. The store
 		// checked them against the ref, so a failure here is a *DecodeError.
-		recordDecodedBlockUnmarshal(ctx, len(dat))
+		ContextReadCounter(ctx).recordUnmarshal(len(dat))
 		if err := unmarshalDecodedBlock(b, dat); err != nil {
 			return nil, &DecodeError{Err: err}
 		}
@@ -852,7 +852,7 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 // to the cursor's block store.
 func (c *Cursor) readStore(ctx context.Context) StoreOps {
 	// Reuse the block store scoped to the current read operation.
-	bkt := readOperationStore(ctx)
+	bkt := readOperationContextFromContext(ctx).readStore()
 	if bkt != nil {
 		return bkt
 	}

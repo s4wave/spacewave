@@ -32,7 +32,7 @@ func TestStoreRWForwardsDecodedBlockCacheFreshness(t *testing.T) {
 	store := NewStoreRW(readInner, nil)
 
 	// Verify freshness checks reach the unscoped read store.
-	if err := store.(DecodedBlockCacheFreshener).EnsureDecodedBlockCacheFresh(ctx); err != nil {
+	if err := store.EnsureDecodedBlockCacheFresh(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
 	if readInner.freshenCalls != 1 {

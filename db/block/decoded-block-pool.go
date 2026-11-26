@@ -130,6 +130,34 @@ func newDecodedBlockPoolShards(maxCost int64) *decodedBlockPool {
 	return pool
 }
 
+// setMaxCost sets the budget of the whole pool and the limit of the shared
+// read-cache budget it draws on, so the two stay one setting. Lowering it
+// evicts entries from each shard at its next store. A non-positive budget,
+// or a pool built disabled, keeps its budget.
+func (p *decodedBlockPool) setMaxCost(maxCost int64) {
+	// Keep the budget of a disabled pool and refuse a non-positive one.
+	if maxCost <= 0 || p.shards == nil {
+		return
+	}
+
+	// Set the pool's budget, then the shared limit it counts against.
+	p.maxCost.Store(maxCost)
+	if p.budget != nil {
+		p.budget.SetLimit(maxCost)
+	}
+}
+
+// disable stops the pool from serving or retaining blocks from then on.
+func (p *decodedBlockPool) disable() {
+	p.off.Store(true)
+}
+
+// serving reports whether the pool serves and retains blocks: it was built
+// with shards and has not been disabled.
+func (p *decodedBlockPool) serving() bool {
+	return p.shards != nil && !p.off.Load()
+}
+
 // shard returns the shard holding key.
 func (p *decodedBlockPool) shard(key string) *decodedBlockShard {
 	return &p.shards[maphash.String(p.seed, key)%uint64(len(p.shards))]

@@ -164,12 +164,7 @@ type decodedBlockCacheStoreToken struct {
 // joined the budget, and the pool may hold all of it while those stay at their
 // floor. The pool and the budget are sized from this one setting.
 func SetSharedDecodedBlockCacheMaxCost(maxCost int64) {
-	pool := sharedDecodedBlockPool()
-	if maxCost <= 0 || pool.shards == nil {
-		return
-	}
-	pool.maxCost.Store(maxCost)
-	SharedReadCacheBudget().SetLimit(maxCost)
+	sharedDecodedBlockPool().setMaxCost(maxCost)
 }
 
 // DisableSharedDecodedBlockCache stops the process-wide pool behind
@@ -177,7 +172,7 @@ func SetSharedDecodedBlockCacheMaxCost(maxCost int64) {
 // decodes what the store returns. A read operation still reuses the blocks it
 // decoded itself.
 func DisableSharedDecodedBlockCache() {
-	sharedDecodedBlockPool().off.Store(true)
+	sharedDecodedBlockPool().disable()
 }
 
 // NewDecodedBlockCache constructs a scope in the process-wide pool.
@@ -266,23 +261,58 @@ func (c *DecodedBlockCache) Snapshot() DecodedBlockCacheSnapshot {
 // Lookup returns the cached decoded block for the key, recording a cache
 // hit or miss. The returned block is a clone safe for the caller to keep,
 // or with share the shared cached instance, which the caller must not mutate.
+// It reports a miss when the block cannot be cloned.
 func (c *DecodedBlockCache) Lookup(
 	ctx context.Context,
 	front *decodedBlockFrontCache,
 	key decodedBlockCacheKey,
 	share bool,
 ) (Block, bool, error) {
-	// Reuse the decoded block retained in the read-operation cache.
-	if cached := front.lookup(key); cached != nil {
-		return decodedBlockHit(ctx, cached, share)
+	// Prefer the block retained in the read-operation cache, then the shared
+	// pool's entry.
+	cached := front.lookup(key)
+	if cached == nil {
+		cached = c.lookupShared(ctx, front, key)
+		if cached == nil {
+			return nil, false, nil
+		}
 	}
 
+	// Share the cached block with a caller that never mutates it.
+	counter := ContextReadCounter(ctx)
+	if share {
+		counter.recordCacheHit(false)
+		return cached, true, nil
+	}
+
+	// Clone the cached block and classify unavailable clone support.
+	cloned, ok, err := cloneDecodedBlock(cached)
+	if err != nil {
+		return nil, false, err
+	}
+	if !ok {
+		counter.recordUncloneable()
+		return nil, false, nil
+	}
+
+	// Record the successful decoded-cache hit for the caller.
+	counter.recordCacheHit(true)
+	return cloned, true, nil
+}
+
+// lookupShared returns the current shared-pool block for the key and retains
+// it in the read-operation cache, or records a miss and returns nil.
+func (c *DecodedBlockCache) lookupShared(
+	ctx context.Context,
+	front *decodedBlockFrontCache,
+	key decodedBlockCacheKey,
+) Block {
 	// Record a miss when the shared decoded-block pool is disabled.
 	if !c.enabled() {
 		if front != nil {
-			recordDecodedBlockCacheMiss(ctx)
+			ContextReadCounter(ctx).recordCacheMiss()
 		}
-		return nil, false, nil
+		return nil
 	}
 
 	// Look up the shared entry and reject stale invalidation epochs and
@@ -296,13 +326,13 @@ func (c *DecodedBlockCache) Lookup(
 
 	// Record a cache miss when no current shared entry exists.
 	if !ok {
-		recordDecodedBlockCacheMiss(ctx)
-		return nil, false, nil
+		ContextReadCounter(ctx).recordCacheMiss()
+		return nil
 	}
 
-	// Retain the shared block in the read cache and hand it to the caller.
+	// Retain the shared block in the read cache for the operation's next read.
 	front.store(key, cached.block)
-	return decodedBlockHit(ctx, cached.block, share)
+	return cached.block
 }
 
 // Store caches the decoded block under the key when the store token is
@@ -325,7 +355,7 @@ func (c *DecodedBlockCache) Store(
 		return nil
 	}
 	if c == nil && front == nil {
-		RecordDecodedBlockUncacheable(ctx)
+		ContextReadCounter(ctx).recordUncacheable()
 		return nil
 	}
 
@@ -340,7 +370,7 @@ func (c *DecodedBlockCache) Store(
 			return err
 		}
 		if !ok {
-			RecordDecodedBlockUncloneable(ctx)
+			ContextReadCounter(ctx).recordUncloneable()
 			return nil
 		}
 	}
@@ -365,7 +395,7 @@ func (c *DecodedBlockCache) Store(
 	cacheKey := c.cacheKey(key)
 	cost, ok := decodedBlockCacheCost(cacheKey, blk, size)
 	if !ok {
-		RecordDecodedBlockUncacheable(ctx)
+		ContextReadCounter(ctx).recordUncacheable()
 		return nil
 	}
 
@@ -383,10 +413,7 @@ func (c *DecodedBlockCache) Store(
 		epochs:     epochs,
 		durableGen: durableGen,
 	}, cost)
-	recordDecodedBlockCacheStore(ctx, accepted, cost)
-	if !accepted {
-		recordDecodedBlockCacheRejected(ctx)
-	}
+	ContextReadCounter(ctx).recordCacheStore(accepted, cost)
 	return nil
 }
 
@@ -399,7 +426,7 @@ func (c *DecodedBlockCache) InvalidateRef(ctx context.Context, ref *BlockRef) {
 	}
 
 	// Invalidate the read cache and advance the shared reference epoch.
-	decodedBlockFrontCacheFromContext(ctx).invalidateRef(refKey)
+	readOperationContextFromContext(ctx).frontCache().invalidateRef(refKey)
 	if c == nil {
 		return
 	}
@@ -408,7 +435,7 @@ func (c *DecodedBlockCache) InvalidateRef(ctx context.Context, ref *BlockRef) {
 
 // InvalidateAll makes every cached entry of this scope stale.
 func (c *DecodedBlockCache) InvalidateAll(ctx context.Context) {
-	decodedBlockFrontCacheFromContext(ctx).clear()
+	readOperationContextFromContext(ctx).frontCache().clear()
 	if c == nil {
 		return
 	}
@@ -417,7 +444,7 @@ func (c *DecodedBlockCache) InvalidateAll(ctx context.Context) {
 
 // enabled reports whether the scope can read and write its pool.
 func (c *DecodedBlockCache) enabled() bool {
-	return c != nil && c.pool.shards != nil && !c.pool.off.Load() && !c.closed.Load()
+	return c != nil && c.pool.serving() && !c.closed.Load()
 }
 
 // epochs returns the current invalidation epochs for refKey.
@@ -476,31 +503,6 @@ func (c *DecodedBlockCache) refEpoch(refKey string) *atomic.Uint64 {
 	return &c.refEpochs[decodedBlockRefHash(refKey)%decodedBlockCacheStripes]
 }
 
-// decodedBlockHit records the hit and returns the cached block itself with
-// share, or a clone otherwise. It reports a miss when the block cannot be
-// cloned.
-func decodedBlockHit(ctx context.Context, cached Block, share bool) (Block, bool, error) {
-	// Share the cached block with a caller that never mutates it.
-	if share {
-		RecordDecodedBlockCacheHit(ctx, false)
-		return cached, true, nil
-	}
-
-	// Clone the cached block and classify unavailable clone support.
-	cloned, ok, err := cloneDecodedBlock(cached)
-	if err != nil {
-		return nil, false, err
-	}
-	if !ok {
-		RecordDecodedBlockUncloneable(ctx)
-		return nil, false, nil
-	}
-
-	// Record the successful decoded-cache hit for the caller.
-	RecordDecodedBlockCacheHit(ctx, true)
-	return cloned, true, nil
-}
-
 // decodedBlockCacheRefKey marshals the ref into its cache key prefix.
 func decodedBlockCacheRefKey(ref *BlockRef) (string, bool) {
 	if ref == nil || ref.GetEmpty() {
@@ -530,10 +532,11 @@ func SetDecodedBlockHitObserver(fn func(*BlockRef)) {
 	decodedBlockHitObserver.Store(&fn)
 }
 
-// lookupDecodedBlock looks the key of ref up in the context's caches and
-// reports a hit to the decoded-block hit observer and the context's hold.
-func lookupDecodedBlock(ctx context.Context, ref *BlockRef, key decodedBlockCacheKey, share bool) (Block, bool, error) {
-	blk, ok, err := decodedBlockCacheFromContext(ctx).Lookup(ctx, decodedBlockFrontCacheFromContext(ctx), key, share)
+// lookupRead looks the key of ref up in the context's read-operation cache
+// and in c, and reports a hit to the decoded-block hit observer and the
+// context's hold. c may be nil.
+func (c *DecodedBlockCache) lookupRead(ctx context.Context, ref *BlockRef, key decodedBlockCacheKey, share bool) (Block, bool, error) {
+	blk, ok, err := c.Lookup(ctx, readOperationContextFromContext(ctx).frontCache(), key, share)
 	if ok {
 		observeDecodedBlockHit(ctx, ref)
 	}
@@ -573,7 +576,7 @@ func storeDecodedBlock(
 	if durable {
 		cache = decodedBlockCacheFromContext(ctx)
 	}
-	return cache.Store(ctx, decodedBlockFrontCacheFromContext(ctx), token, key, blk, size, durableGen, share)
+	return cache.Store(ctx, readOperationContextFromContext(ctx).frontCache(), token, key, blk, size, durableGen, share)
 }
 
 // decodedBlockCacheContextKey is the context key of the attached cache.
@@ -588,16 +591,6 @@ func decodedBlockCacheFromContext(ctx context.Context) *DecodedBlockCache {
 		}
 	}
 	return nil
-}
-
-// decodedBlockFrontCacheFromContext returns the read operation's front
-// cache from the context, or nil.
-func decodedBlockFrontCacheFromContext(ctx context.Context) *decodedBlockFrontCache {
-	op := readOperationContextFromContext(ctx)
-	if op == nil {
-		return nil
-	}
-	return op.decodedBlocks
 }
 
 // decodedBlockCacheCost computes the cost of a cached entry: its pool key, the

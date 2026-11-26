@@ -19,8 +19,8 @@ func WithReadOperationStore(ctx context.Context, store StoreOps) context.Context
 		return ctx
 	}
 	cache := newDecodedBlockFrontCache()
-	if op := readOperationContextFromContext(ctx); op != nil && op.decodedBlocks != nil {
-		cache = op.decodedBlocks
+	if front := readOperationContextFromContext(ctx).frontCache(); front != nil {
+		cache = front
 	}
 	return context.WithValue(ctx, readOperationStoreContextKey{}, &readOperationContext{
 		store:         store,
@@ -28,14 +28,21 @@ func WithReadOperationStore(ctx context.Context, store StoreOps) context.Context
 	})
 }
 
-// readOperationStore returns the read-scoped store from the context, or
-// nil.
-func readOperationStore(ctx context.Context) StoreOps {
-	op := readOperationContextFromContext(ctx)
+// readStore returns the read-scoped store, or nil when op is nil.
+func (op *readOperationContext) readStore() StoreOps {
 	if op == nil {
 		return nil
 	}
 	return op.store
+}
+
+// frontCache returns the read operation's decoded-block front cache, or nil
+// when op is nil.
+func (op *readOperationContext) frontCache() *decodedBlockFrontCache {
+	if op == nil {
+		return nil
+	}
+	return op.decodedBlocks
 }
 
 // withoutReadOperationStore ends routing at the selected storage boundary.

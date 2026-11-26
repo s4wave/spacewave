@@ -115,114 +115,106 @@ func (c *ReadCounter) recordRead(found bool, bytes int, elapsed time.Duration) {
 	c.misses.Add(1)
 }
 
-// RecordResourceGetBlock records a Resource SDK GetBlock call.
-func RecordResourceGetBlock(ctx context.Context, ref *BlockRef, found bool, bytes int) {
-	// Find the operation read counter before recording the Resource SDK result.
-	counter := ContextReadCounter(ctx)
-	if counter == nil {
+// RecordResourceGetBlock records a Resource SDK GetBlock call of ref and
+// whether it found bytes bytes. A nil counter records nothing.
+func (c *ReadCounter) RecordResourceGetBlock(ref *BlockRef, found bool, bytes int) {
+	// Skip a context with no counter.
+	if c == nil {
 		return
 	}
 
 	// Count the Resource SDK read and its result.
-	counter.resourceGetBlockCount.Add(1)
+	c.resourceGetBlockCount.Add(1)
 	if ref != nil && !ref.GetEmpty() {
-		counter.resourceGetBlockRefs.Add(1)
+		c.resourceGetBlockRefs.Add(1)
 	}
 	if found {
-		counter.resourceGetBlockBytes.Add(nonNegativeReadBytes(bytes))
+		c.resourceGetBlockBytes.Add(nonNegativeReadBytes(bytes))
 		return
 	}
-	counter.resourceGetBlockMisses.Add(1)
+	c.resourceGetBlockMisses.Add(1)
 }
 
-// recordDecodedBlockUnmarshal records a decoded block unmarshal and its
-// size.
-func recordDecodedBlockUnmarshal(ctx context.Context, bytes int) {
-	counter := ContextReadCounter(ctx)
-	if counter == nil {
+// recordUnmarshal records a decoded block unmarshal of bytes bytes. A nil
+// counter records nothing.
+func (c *ReadCounter) recordUnmarshal(bytes int) {
+	if c == nil {
 		return
 	}
-	counter.decodedBlockUnmarshalCount.Add(1)
-	counter.decodedBlockUnmarshalBytes.Add(nonNegativeReadBytes(bytes))
+	c.decodedBlockUnmarshalCount.Add(1)
+	c.decodedBlockUnmarshalBytes.Add(nonNegativeReadBytes(bytes))
 }
 
+// recordCacheMiss records a decoded-block cache lookup that missed. A nil
+// counter records nothing.
+func (c *ReadCounter) recordCacheMiss() {
+	if c == nil {
+		return
+	}
+	c.decodedBlockCacheAttempts.Add(1)
+	c.decodedBlockCacheMisses.Add(1)
+}
+
+// recordCacheHit records a decoded-block cache hit, and whether the caller
+// got a clone of the cached block. A nil counter records nothing.
+func (c *ReadCounter) recordCacheHit(cloned bool) {
+	// Skip a context with no counter.
+	if c == nil {
+		return
+	}
+
+	// Count the cache hit and its returned clone.
+	c.decodedBlockCacheAttempts.Add(1)
+	c.decodedBlockCacheHits.Add(1)
+	if cloned {
+		c.decodedBlockClones.Add(1)
+	}
+}
+
+// recordUncloneable records a decoded-block cache candidate that cannot be
+// cloned. A nil counter records nothing.
+func (c *ReadCounter) recordUncloneable() {
+	if c == nil {
+		return
+	}
+	c.decodedBlockUncloneable.Add(1)
+}
+
+// recordUncacheable records a decoded-block cache bypass for a block without
+// an exact key. A nil counter records nothing.
+func (c *ReadCounter) recordUncacheable() {
+	if c == nil {
+		return
+	}
+	c.decodedBlockUncacheable.Add(1)
+}
+
+// recordCacheStore records a decoded-block cache store submission, whether
+// the pool accepted or rejected it, and its cost. A nil counter records
+// nothing.
+func (c *ReadCounter) recordCacheStore(accepted bool, cost int64) {
+	// Skip a context with no counter.
+	if c == nil {
+		return
+	}
+
+	// Count the submission, its outcome and its retained cost.
+	c.decodedBlockStoreAttempts.Add(1)
+	if accepted {
+		c.decodedBlockStoreAccepted.Add(1)
+	} else {
+		c.decodedBlockStoreRejected.Add(1)
+	}
+	if cost > 0 {
+		c.decodedBlockStoreCost.Add(uint64(cost))
+	}
+}
+
+// nonNegativeReadBytes converts a byte count to the unsigned counter type,
+// counting a negative value as zero.
 func nonNegativeReadBytes(value int) uint64 {
 	if value <= 0 {
 		return 0
 	}
 	return uint64(value) //nolint:gosec // the positive check protects the unsigned counter from negative callback values.
-}
-
-// recordDecodedBlockCacheMiss records a decoded block cache attempt that
-// missed.
-func recordDecodedBlockCacheMiss(ctx context.Context) {
-	counter := ContextReadCounter(ctx)
-	if counter == nil {
-		return
-	}
-	counter.decodedBlockCacheAttempts.Add(1)
-	counter.decodedBlockCacheMisses.Add(1)
-}
-
-// RecordDecodedBlockCacheHit records a clone-safe decoded-block cache hit.
-func RecordDecodedBlockCacheHit(ctx context.Context, cloned bool) {
-	// Find the operation read counter before recording the cache hit.
-	counter := ContextReadCounter(ctx)
-	if counter == nil {
-		return
-	}
-
-	// Count the cache hit and its returned clone.
-	counter.decodedBlockCacheAttempts.Add(1)
-	counter.decodedBlockCacheHits.Add(1)
-	if cloned {
-		counter.decodedBlockClones.Add(1)
-	}
-}
-
-// RecordDecodedBlockUncloneable records a decoded-block cache candidate that cannot be cloned.
-func RecordDecodedBlockUncloneable(ctx context.Context) {
-	counter := ContextReadCounter(ctx)
-	if counter == nil {
-		return
-	}
-	counter.decodedBlockUncloneable.Add(1)
-}
-
-// RecordDecodedBlockUncacheable records a decoded-block cache bypass without an exact key.
-func RecordDecodedBlockUncacheable(ctx context.Context) {
-	counter := ContextReadCounter(ctx)
-	if counter == nil {
-		return
-	}
-	counter.decodedBlockUncacheable.Add(1)
-}
-
-// recordDecodedBlockCacheStore records a cache store attempt, whether it
-// was accepted, and its cost.
-func recordDecodedBlockCacheStore(ctx context.Context, accepted bool, cost int64) {
-	// Find the operation read counter before recording the cache submission.
-	counter := ContextReadCounter(ctx)
-	if counter == nil {
-		return
-	}
-
-	// Count the cache store submission and its retained cost.
-	counter.decodedBlockStoreAttempts.Add(1)
-	if accepted {
-		counter.decodedBlockStoreAccepted.Add(1)
-	}
-	if cost > 0 {
-		counter.decodedBlockStoreCost.Add(uint64(cost))
-	}
-}
-
-// recordDecodedBlockCacheRejected records a block rejected as
-// uncacheable.
-func recordDecodedBlockCacheRejected(ctx context.Context) {
-	counter := ContextReadCounter(ctx)
-	if counter == nil {
-		return
-	}
-	counter.decodedBlockStoreRejected.Add(1)
 }
