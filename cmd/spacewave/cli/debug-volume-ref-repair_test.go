@@ -34,6 +34,7 @@ import (
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
+	"github.com/s4wave/spacewave/db/world/refwalk"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 )
@@ -262,14 +263,25 @@ func TestDebugRefRepair(t *testing.T) {
 	}
 	before := sum()
 
-	// A dry run counts the missing edges and writes none.
-	dry, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, refRepairOpts{}, nil)
+	// A dry run counts the missing edges and writes none, and its histogram
+	// counts each walked block once, with every stored byte.
+	hist := refwalk.NewHistogram()
+	dry, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, refRepairOpts{histogram: hist}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Logf("dry run: %+v", dry)
 	if dry.spaces != 1 || dry.lacking == 0 || dry.edges == 0 || dry.rebuild.Rewritten == 0 {
 		t.Fatalf("dry run: %+v", dry)
+	}
+	total := hist.Total()
+	var typed refwalk.HistogramRow
+	for _, row := range hist.Rows() {
+		typed.Blocks += row.Blocks
+		typed.Bytes += row.Bytes
+	}
+	if total.Blocks == 0 || total.Blocks > dry.blocks || total.Bytes == 0 || total.Leaves == 0 || typed.Blocks != total.Blocks || typed.Bytes != total.Bytes {
+		t.Fatalf("histogram: total %+v, types %+v, walked %d", total, hist.Rows(), dry.blocks)
 	}
 
 	// The World root, named as a payload, is read as a guessed blob, is not

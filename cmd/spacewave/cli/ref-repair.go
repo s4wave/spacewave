@@ -156,6 +156,9 @@ type refRepair struct {
 	// unread names why the walk verified nothing for a block it reached,
 	// by the ref's string: frontAbsent, frontNotBlob or frontUndecodable.
 	unread map[string]string
+	// histogram counts the walked blocks by type and size, nil when the run
+	// asked for none.
+	histogram *refwalk.Histogram
 	// res counts the findings.
 	res refRepairResult
 }
@@ -358,7 +361,7 @@ func (r *refRepair) walkSpace(ctx context.Context, sc spaceReplayCursor) error {
 	// Walk each World, then each payload the Worlds did not type.
 	r.le.Infof("walking %d worlds and %d payloads of space %s in bucket %s", len(worlds), len(payloads), sc.spaceID, bucketID)
 	for _, root := range worlds {
-		if err := r.walker.Walk(ctx, root, r.visit); err != nil {
+		if err := r.walker.Walk(ctx, root, r.walkVisit); err != nil {
 			return err
 		}
 	}
@@ -370,7 +373,7 @@ func (r *refRepair) walkSpace(ctx context.Context, sc spaceReplayCursor) error {
 		if !ok {
 			continue
 		}
-		if err := r.walker.Walk(ctx, root, r.visit); err != nil {
+		if err := r.walker.Walk(ctx, root, r.walkVisit); err != nil {
 			return err
 		}
 	}
@@ -557,6 +560,17 @@ func appendRef(refs []*block.BlockRef, ref *block.BlockRef) []*block.BlockRef {
 		return refs
 	}
 	return append(refs, ref)
+}
+
+// walkVisit counts a batch the walk read in the histogram, when the run asked
+// for one, and visits it.
+func (r *refRepair) walkVisit(ctx context.Context, batch []refwalk.Visit) error {
+	if r.histogram != nil {
+		for _, rd := range batch {
+			r.histogram.Add(rd)
+		}
+	}
+	return r.visit(ctx, batch)
 }
 
 // visit counts a batch of reads and verifies each decoded block's list.

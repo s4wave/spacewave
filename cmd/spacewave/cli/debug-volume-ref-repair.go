@@ -37,6 +37,9 @@ type debugRefRepairArgs struct {
 	// syntheticEmpty is a file of B58 refs, one per line, listed with no
 	// children when no read decodes them.
 	syntheticEmpty string
+	// histogram reads every walked block's bytes and reports the blocks and
+	// bytes by type and by size.
+	histogram bool
 	// frontRoots also names the root that reaches each block the walk left
 	// on the front.
 	frontRoots bool
@@ -68,6 +71,11 @@ func (a *debugRefRepairArgs) BuildFlags() []cli.Flag {
 			Destination: &a.syntheticEmpty,
 		},
 		&cli.BoolFlag{
+			Name:        "histogram",
+			Usage:       "read every walked block's bytes and report blocks and bytes by type and size",
+			Destination: &a.histogram,
+		},
+		&cli.BoolFlag{
 			Name: "front-roots",
 			Usage: "also walk the stored child lists from every named root and count the blocks the typed walk left on the front by the root that reaches them; " +
 				"it holds one key per reached block in memory, so run it on a copy host",
@@ -93,14 +101,19 @@ func (a *debugRefRepairArgs) Run(c *cli.Context) error {
 		return err
 	}
 
-	// Print the repair findings and the volume-wide inventory.
-	writeFields(os.Stdout, refRepairFields(path, a.dryRun, res))
+	// Print the repair findings, the volume-wide inventory and the histogram.
+	fields := refRepairFields(path, a.dryRun, res)
+	if opts.histogram != nil {
+		fields = append(fields, histogramFields(opts.histogram)...)
+	}
+	writeFields(os.Stdout, fields)
 	return nil
 }
 
 // opts reads the peer and synthetic stand-ins the flags name, with what more
 // the run measures.
 func (a *debugRefRepairArgs) opts() (refRepairOpts, error) {
+	// Read the peer store and the synthetic list the flags name.
 	opts := refRepairOpts{frontRoots: a.frontRoots}
 	if a.peerBlocks != "" {
 		opts.peer = packcopy.NewSourceStore([]packcopy.Source{dirBlocks(a.peerBlocks)})
@@ -117,6 +130,11 @@ func (a *debugRefRepairArgs) opts() (refRepairOpts, error) {
 			}
 		}
 	}
+
+	// Make the histogram the run fills.
+	if a.histogram {
+		opts.histogram = refwalk.NewHistogram()
+	}
 	return opts, nil
 }
 
@@ -132,6 +150,10 @@ type refRepairOpts struct {
 	// synthetic names blocks to list with no children when no read decodes
 	// them, as refRepair.synthetic describes.
 	synthetic map[string]bool
+	// histogram counts the walked blocks by type and size when set. The walk
+	// then reads every block's bytes, leaves included. The root blocks the
+	// Space's bucket names, read before the walk, are not counted.
+	histogram *refwalk.Histogram
 }
 
 // dirBlocks is a directory of blocks named by their B58 refs.
@@ -296,6 +318,10 @@ func repairVolumeRefs(
 			return refRepairResult{}, err
 		}
 	}
+	if opts.histogram != nil {
+		rr.histogram = opts.histogram
+		rr.walker.KeepBytes()
+	}
 	for _, sc := range cursors {
 		if err := rr.walkSpace(ctx, sc); err != nil {
 			return refRepairResult{}, errors.Wrapf(err, "walk space %s", sc.spaceID)
@@ -328,6 +354,40 @@ func repairVolumeRefs(
 	return rr.res, nil
 }
 
+// histogramFields formats a histogram in the command's field table: the
+// total, each size class, and each type with its blocks in each size class.
+func histogramFields(h *refwalk.Histogram) [][2]string {
+	// Print the total and the blocks and bytes in each size class.
+	total := h.Total()
+	fields := [][2]string{
+		{"Histogram blocks", strconv.FormatUint(total.Blocks, 10)},
+		{"Histogram bytes", strconv.FormatUint(total.Bytes, 10)},
+		{"Histogram leaves", strconv.FormatUint(total.Leaves, 10)},
+	}
+	for class := range refwalk.SizeClasses {
+		if total.Sizes[class] == 0 {
+			continue
+		}
+		fields = append(fields, [2]string{
+			"Size " + refwalk.SizeClassName(class),
+			strconv.FormatUint(total.Sizes[class], 10) + " blocks, " + strconv.FormatUint(total.SizeBytes[class], 10) + " bytes",
+		})
+	}
+
+	// Print each type, most bytes first, with its blocks in each size class.
+	for _, row := range h.Rows() {
+		var b strings.Builder
+		b.WriteString(strconv.FormatUint(row.Blocks, 10) + " blocks, " + strconv.FormatUint(row.Bytes, 10) + " bytes, " + strconv.FormatUint(row.Leaves, 10) + " leaves;")
+		for class := range refwalk.SizeClasses {
+			if row.Sizes[class] != 0 {
+				b.WriteString(" " + refwalk.SizeClassName(class) + " " + strconv.FormatUint(row.Sizes[class], 10))
+			}
+		}
+		fields = append(fields, [2]string{"Type " + row.Type, b.String()})
+	}
+	return fields
+}
+
 // newDebugRefRepairCommand returns the offline child list repair command.
 func newDebugRefRepairCommand(upgrade *FormatUpgrade) *cli.Command {
 	args := &debugRefRepairArgs{upgrade: upgrade}
@@ -344,6 +404,8 @@ func newDebugRefRepairCommand(upgrade *FormatUpgrade) *cli.Command {
 			"A volume whose old generation has settled is only walked and never repaired. " +
 			"A list that gains a child on an adopted volume makes the settle return it to unadopted, so an adoption recounts every list before anything more frees. " +
 			"Blocks stored before puts carried their child lists have none. " +
+			"With --histogram it reads every walked block's bytes, leaves included, " +
+			"and reports the blocks, bytes and leaves by block type and by power-of-two size class. " +
 			"Also counts plugin object-store keys by volume prefix and measures all stored blocks without a child list. " +
 			"These counts cover the whole volume even with --space, and describe it before repair. The scan does not decode those blocks. " +
 			"Run it only on a stopped volume, with --dry-run first.",
