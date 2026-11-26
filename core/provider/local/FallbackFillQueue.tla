@@ -13,6 +13,14 @@
 \* finds the queue empty exits; the check and the exit are one step under the
 \* queue's lock, as the spawn decision is under the same lock in start.
 \*
+\* A fill asserts its block's refs, from a decoded read, or only lists them,
+\* and the Volume may drop a listed fill but stores or fails an asserted one.
+\* A hit asserting refs of a block queued with listed refs upgrades the
+\* waiting fill in place; behind a running listed fill it waits as again, and
+\* the worker queues it once the running fill ends, or counts a skip when
+\* nothing has room. want names the blocks an asserted hit was accepted for
+\* and whose asserted fill has not run or been skipped yet.
+\*
 \* Abstraction and bounds: blocks are 1..NBlocks, the last two bytes and the
 \* rest one; stores are 1..NStores. A fill's outcome is chosen freely, and a
 \* fill already running when the mount ends may still store its block, as a
@@ -27,8 +35,10 @@ Stores == 1..NStores
 Blocks == 1..NBlocks
 Size(b) == IF b = NBlocks THEN 2 ELSE 1
 
-VARIABLES mount, queue, queued, filling, running, stored, budget, late
-vars == <<mount, queue, queued, filling, running, stored, budget, late>>
+VARIABLES mount, queue, queued, filling, running, stored, budget, late,
+          asserted, again, want
+vars == <<mount, queue, queued, filling, running, stored, budget, late,
+          asserted, again, want>>
 
 RECURSIVE SeqBytes(_)
 SeqBytes(q) == IF q = <<>> THEN 0 ELSE Size(Head(q)) + SeqBytes(Tail(q))
@@ -49,6 +59,9 @@ TypeOK ==
   /\ stored \in [Stores -> SUBSET Blocks]
   /\ budget \in Nat
   /\ late \in SUBSET Stores
+  /\ asserted \in [Stores -> SUBSET Blocks]
+  /\ again \in [Stores -> SUBSET Blocks]
+  /\ want \in [Stores -> SUBSET Blocks]
 
 Init ==
   /\ mount = [s \in Stores |-> "live"]
@@ -59,9 +72,13 @@ Init ==
   /\ stored = [s \in Stores |-> {}]
   /\ budget = 0
   /\ late = {}
+  /\ asserted = [s \in Stores |-> {}]
+  /\ again = [s \in Stores |-> {}]
+  /\ want = [s \in Stores |-> {}]
 
-\* A fallback hit of b on s: queue its fill, or skip it.
-Start(s, b) ==
+\* A fallback hit of b on s, asserting its refs when a: queue its fill, or
+\* skip it.
+Start(s, b, a) ==
   /\ b \notin stored[s]
   /\ b \notin queued[s]
   /\ mount[s] = "live"
@@ -71,7 +88,23 @@ Start(s, b) ==
   /\ queued' = [queued EXCEPT ![s] = @ \cup {b}]
   /\ budget' = budget + Size(b)
   /\ running' = [running EXCEPT ![s] = IF @ < Slots THEN @ + 1 ELSE @]
-  /\ UNCHANGED <<mount, filling, stored, late>>
+  /\ asserted' = [asserted EXCEPT ![s] = IF a THEN @ \cup {b} ELSE @]
+  /\ want' = [want EXCEPT ![s] = IF a THEN @ \cup {b} ELSE @]
+  /\ UNCHANGED <<mount, filling, stored, late, again>>
+
+\* A hit asserting the refs of b, queued or filling on s with listed refs:
+\* the waiting fill takes the asserted refs, or the asserted fill waits as
+\* again behind the running one.
+Upgrade(s, b) ==
+  /\ b \in queued[s]
+  /\ b \notin asserted[s]
+  /\ want' = [want EXCEPT ![s] = @ \cup {b}]
+  /\ IF b \in filling[s]
+       THEN /\ again' = [again EXCEPT ![s] = @ \cup {b}]
+            /\ UNCHANGED asserted
+       ELSE /\ asserted' = [asserted EXCEPT ![s] = @ \cup {b}]
+            /\ UNCHANGED again
+  /\ UNCHANGED <<mount, queue, queued, filling, running, stored, budget, late>>
 
 \* An idle worker of s takes the oldest fill: it runs it while the mount
 \* lives, and drops it unrun once the mount has ended.
@@ -84,35 +117,54 @@ Take(s) ==
         /\ budget' = budget - Size(b)
         /\ IF run
              THEN /\ filling' = [filling EXCEPT ![s] = @ \cup {b}]
-                  /\ UNCHANGED queued
+                  /\ UNCHANGED <<queued, asserted, want>>
              ELSE /\ queued' = [queued EXCEPT ![s] = @ \ {b}]
+                  /\ asserted' = [asserted EXCEPT ![s] = @ \ {b}]
+                  /\ want' = [want EXCEPT ![s] = @ \ {b}]
                   /\ UNCHANGED filling
         /\ late' = IF run /\ mount[s] = "ended" THEN late \cup {s} ELSE late
-  /\ UNCHANGED <<mount, running, stored>>
+  /\ UNCHANGED <<mount, running, stored, again>>
 
-\* A running fill of b on s ends: it stored the block, or failed.
+\* The asserted fill of b waiting on s has room in the queue.
+AgainFits(s, b) == mount[s] = "live" /\ Len(queue[s]) < QueueMax /\ budget + Size(b) <= Budget
+
+\* A running fill of b on s ends: it stored the block, the Volume dropped a
+\* fill with listed refs, or it failed. Its worker then queues the asserted
+\* fill that waited on it, or skips it when nothing has room.
 Finish(s, b) ==
   /\ b \in filling[s]
   /\ filling' = [filling EXCEPT ![s] = @ \ {b}]
-  /\ queued' = [queued EXCEPT ![s] = @ \ {b}]
-  /\ \E ok \in BOOLEAN : stored' = [stored EXCEPT ![s] = IF ok THEN @ \cup {b} ELSE @]
-  /\ UNCHANGED <<mount, queue, running, budget, late>>
+  /\ \E outcome \in {"stored", "dropped", "failed"} :
+       /\ outcome = "dropped" => b \notin asserted[s]
+       /\ stored' = [stored EXCEPT ![s] = IF outcome = "stored" THEN @ \cup {b} ELSE @]
+  /\ again' = [again EXCEPT ![s] = @ \ {b}]
+  /\ IF b \in again[s] /\ AgainFits(s, b)
+       THEN /\ queue' = [queue EXCEPT ![s] = Append(@, b)]
+            /\ budget' = budget + Size(b)
+            /\ asserted' = [asserted EXCEPT ![s] = @ \cup {b}]
+            /\ UNCHANGED <<queued, want>>
+       ELSE /\ queued' = [queued EXCEPT ![s] = @ \ {b}]
+            /\ asserted' = [asserted EXCEPT ![s] = @ \ {b}]
+            /\ want' = [want EXCEPT ![s] = @ \ {b}]
+            /\ UNCHANGED <<queue, budget>>
+  /\ UNCHANGED <<mount, running, late>>
 
 \* An idle worker of s finds the queue empty and frees its slot.
 Exit(s) ==
   /\ running[s] > Cardinality(filling[s])
   /\ queue[s] = <<>>
   /\ running' = [running EXCEPT ![s] = @ - 1]
-  /\ UNCHANGED <<mount, queue, queued, filling, stored, budget, late>>
+  /\ UNCHANGED <<mount, queue, queued, filling, stored, budget, late, asserted, again, want>>
 
 \* The mount of s ends: its context is cancelled.
 End(s) ==
   /\ mount[s] = "live"
   /\ mount' = [mount EXCEPT ![s] = "ended"]
-  /\ UNCHANGED <<queue, queued, filling, running, stored, budget, late>>
+  /\ UNCHANGED <<queue, queued, filling, running, stored, budget, late, asserted, again, want>>
 
 Next ==
-  \/ \E s \in Stores, b \in Blocks : Start(s, b) \/ Finish(s, b)
+  \/ \E s \in Stores, b \in Blocks, a \in BOOLEAN : Start(s, b, a)
+  \/ \E s \in Stores, b \in Blocks : Upgrade(s, b) \/ Finish(s, b)
   \/ \E s \in Stores : Take(s) \/ Exit(s) \/ End(s)
 
 Spec ==
@@ -131,6 +183,8 @@ NoDuplicate ==
     /\ \A i, j \in 1..Len(queue[s]) : i # j => queue[s][i] # queue[s][j]
     /\ InQueue(s) \cap filling[s] = {}
     /\ queued[s] = InQueue(s) \cup filling[s]
+    /\ asserted[s] \subseteq queued[s]
+    /\ again[s] \subseteq filling[s]
 
 \* A queued fill always has a worker, idle or filling, that will take it:
 \* a worker exits only on an empty queue.
@@ -138,6 +192,15 @@ QueueHasWorker == \A s \in Stores : queue[s] # <<>> => running[s] > 0
 
 \* No store runs more than Slots fills, nor queues more than QueueMax.
 Bounded == \A s \in Stores : Cardinality(filling[s]) <= running[s] /\ Len(queue[s]) <= QueueMax
+
+\* An accepted asserted hit is never lost to the listed fill it met: its
+\* block waits with asserted refs, or runs with them, or runs listed with
+\* the asserted fill waiting behind it, until the asserted fill runs or its
+\* skip is counted.
+AssertedKept ==
+  \A s \in Stores : \A b \in want[s] :
+    \/ b \in InQueue(s) /\ b \in asserted[s]
+    \/ b \in filling[s] /\ (b \in asserted[s] \/ b \in again[s])
 
 \* No fill begins after its store's mount has ended.
 NoFillAfterEnd == late = {}

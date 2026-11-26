@@ -1,29 +1,82 @@
 [
   {
     "name": "a fill is queued past the shared budget",
-    "replace": [["  /\\ budget + Size(b) <= Budget\n", ""]],
+    "replace": [
+      [
+        "  /\\ budget + Size(b) <= Budget\n",
+        ""
+      ]
+    ],
     "expect": "BudgetBound"
   },
   {
     "name": "a block already queued is queued again",
-    "replace": [["  /\\ b \\notin queued[s]\n", ""]],
+    "replace": [
+      [
+        "  /\\ b \\notin queued[s]\n",
+        ""
+      ]
+    ],
     "expect": "NoDuplicate"
   },
   {
     "name": "a worker runs a fill after the mount ended",
-    "replace": [["         run == mount[s] = \"live\"", "         run == TRUE"]],
+    "replace": [
+      [
+        "         run == mount[s] = \"live\"",
+        "         run == TRUE"
+      ]
+    ],
     "expect": "NoFillAfterEnd"
   },
   {
     "name": "a worker exits with fills still queued",
-    "replace": [["  /\\ queue[s] = <<>>\n  /\\ running' = [running EXCEPT ![s] = @ - 1]", "  /\\ running' = [running EXCEPT ![s] = @ - 1]"]],
+    "replace": [
+      [
+        "  /\\ queue[s] = <<>>\n  /\\ running' = [running EXCEPT ![s] = @ - 1]",
+        "  /\\ running' = [running EXCEPT ![s] = @ - 1]"
+      ]
+    ],
     "expect": "QueueHasWorker"
   },
   {
     "name": "a fill is queued after the mount ended",
     "replace": [
-      ["  /\\ mount[s] = \"live\"\n  /\\ Len(queue[s]) < QueueMax", "  /\\ Len(queue[s]) < QueueMax"]
+      [
+        "  /\\ mount[s] = \"live\"\n  /\\ Len(queue[s]) < QueueMax",
+        "  /\\ Len(queue[s]) < QueueMax"
+      ]
     ],
     "expect": "EndedStops"
+  },
+  {
+    "name": "an asserted hit leaves the waiting listed fill as it was",
+    "replace": [
+      [
+        "       ELSE /\\ asserted' = [asserted EXCEPT ![s] = @ \\cup {b}]\n            /\\ UNCHANGED again\n",
+        "       ELSE UNCHANGED <<asserted, again>>\n"
+      ]
+    ],
+    "expect": "AssertedKept"
+  },
+  {
+    "name": "an asserted hit behind a running listed fill is not kept",
+    "replace": [
+      [
+        "       THEN /\\ again' = [again EXCEPT ![s] = @ \\cup {b}]\n            /\\ UNCHANGED asserted\n",
+        "       THEN UNCHANGED <<again, asserted>>\n"
+      ]
+    ],
+    "expect": "AssertedKept"
+  },
+  {
+    "name": "the asserted fill that waited is never queued",
+    "replace": [
+      [
+        "       THEN /\\ queue' = [queue EXCEPT ![s] = Append(@, b)]\n            /\\ budget' = budget + Size(b)\n            /\\ asserted' = [asserted EXCEPT ![s] = @ \\cup {b}]\n            /\\ UNCHANGED <<queued, want>>\n",
+        "       THEN /\\ queued' = [queued EXCEPT ![s] = @ \\ {b}]\n            /\\ asserted' = [asserted EXCEPT ![s] = @ \\ {b}]\n            /\\ UNCHANGED <<queue, budget, want>>\n"
+      ]
+    ],
+    "expect": "AssertedKept"
   }
 ]
