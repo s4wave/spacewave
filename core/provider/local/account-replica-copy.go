@@ -13,6 +13,7 @@ import (
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 	"github.com/s4wave/spacewave/db/block"
+	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/bucket"
 	dex_solicit "github.com/s4wave/spacewave/db/dex/solicit"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -280,11 +281,25 @@ func (a *ProviderAccount) copyAccountWorldHead(
 	absent *knownAbsent,
 	exchange *dex_solicit.Controller,
 ) error {
-	for logged := false; ; logged = true {
+	var logged, rewalked bool
+	for {
 		// Take the known-absent generation first so a peer session starting
 		// during the copy still wakes the wait.
 		gen := absent.generation()
 		err := a.copyAndPersistAccountWorld(ctx, so, state, local, cur.head, absent)
+
+		// A block this Volume hides until it is put again, as a park while
+		// the collector settles leaves it, is no peer's to serve: walk again
+		// at once, which reads and puts it again, and leave a second refusal
+		// to the copier's retry.
+		var hidden *block_gc.AbsentError
+		if errors.As(err, &hidden) {
+			if rewalked {
+				return err
+			}
+			rewalked = true
+			continue
+		}
 		if !block.IsNotAvailable(err) && !errors.Is(err, block.ErrRefsUnknown) {
 			return err
 		}
@@ -293,6 +308,7 @@ func (a *ProviderAccount) copyAccountWorldHead(
 		// ReplicaRewalkEnv also for a newer head.
 		if !logged {
 			a.le.WithError(err).Info("waiting for a peer that holds a World block with its refs")
+			logged = true
 		}
 		var holes *worldHolesError
 		errors.As(err, &holes)
