@@ -13,9 +13,9 @@ import (
 const graphBatchReads = 4
 
 // graphReader reads the queued blocks of a graph walk in batches: at most
-// graphBatchReads batches in flight, each of at most size blocks, so the walk
-// reads as many blocks at once as it did one block per read, and holds no more
-// of them. A store that answers a batch one block at a time reads every block
+// slots batches in flight, each of at most size blocks, so the walk reads no
+// more blocks at once than its reads, as it did one block per read, and holds
+// no more of them. A store that answers a batch one block at a time reads every block
 // of it at once.
 //
 // Only the walk's goroutine calls fill, next and close.
@@ -26,6 +26,9 @@ type graphReader[N any] struct {
 	ref func(N) *BlockRef
 	// size is the most blocks one batch reads.
 	size int
+	// slots is the most batches in flight: graphBatchReads, or reads when
+	// fewer, so a walk of one read at a time reads one block at a time.
+	slots int
 	// results receives each block read and the end of each batch. Its buffer
 	// holds every send of the batches in flight, so a batch never waits on
 	// the walk.
@@ -53,19 +56,21 @@ func newGraphReader[N any](src StoreOps, reads int, ref func(N) *BlockRef) *grap
 	if reads <= 0 {
 		reads = DefaultGraphCopyReads
 	}
-	size := max(1, reads/graphBatchReads)
+	slots := min(graphBatchReads, reads)
+	size := reads / slots
 	return &graphReader[N]{
 		src:     src,
 		ref:     ref,
 		size:    size,
-		results: make(chan graphRead[N], graphBatchReads*(size+1)),
+		slots:   slots,
+		results: make(chan graphRead[N], slots*(size+1)),
 	}
 }
 
 // fill starts a batch read of the nodes at the end of queue while a slot is
 // free, so the walk keeps its depth-first order, and returns what remains.
 func (r *graphReader[N]) fill(ctx context.Context, queue []N) []N {
-	for r.batches < graphBatchReads && len(queue) != 0 {
+	for r.batches < r.slots && len(queue) != 0 {
 		n := min(r.size, len(queue))
 		batch := slices.Clone(queue[len(queue)-n:])
 		queue = queue[:len(queue)-n]
