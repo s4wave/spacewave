@@ -380,15 +380,15 @@ type fallbackFills struct {
 
 	// running counts the fills running.
 	running atomic.Int64
-	// packErrors counts backend errors that fell through to the fallback.
+	// packErrors counts primary-source errors that fell through to the fallback.
 	packErrors atomic.Uint64
-	// hits counts blocks only the fallback held.
+	// hits counts fallback hits offered for local filling.
 	hits atomic.Uint64
 	// refsUnknown counts hits whose refs the fallback does not hold.
 	refsUnknown atomic.Uint64
 	// filled counts fills that landed.
 	filled atomic.Uint64
-	// failed counts fills that failed.
+	// failed counts failed fills and corrupt fallback blocks rejected before filling.
 	failed atomic.Uint64
 	// skipped counts fills dropped because the queue or the budget was full,
 	// or the mount ended.
@@ -421,6 +421,24 @@ func (f *fallbackFills) status() FallbackStatus {
 		FillFailed:  f.failed.Load(),
 		FillSkipped: f.skipped.Load(),
 	}
+}
+
+// recordPackError counts a primary-source failure that reached the fallback.
+func (f *fallbackFills) recordPackError() {
+	f.packErrors.Add(1)
+}
+
+// recordHit counts a fallback hit and whether it lacked the refs needed to fill.
+func (f *fallbackFills) recordHit(refsKnown bool) {
+	f.hits.Add(1)
+	if !refsKnown {
+		f.refsUnknown.Add(1)
+	}
+}
+
+// recordFailedFill counts a failed local fill or a corrupt fallback block.
+func (f *fallbackFills) recordFailedFill() {
+	f.failed.Add(1)
 }
 
 // start queues fill to run in the background, and starts a worker when a
@@ -502,7 +520,7 @@ func (f *fallbackFills) drain() {
 		case ended:
 			f.skipped.Add(1)
 		case err != nil:
-			f.failed.Add(1)
+			f.recordFailedFill()
 		default:
 			f.filled.Add(1)
 		}
@@ -580,7 +598,7 @@ func (r *fallbackReads) readFallback(ctx context.Context, ref *block.BlockRef, p
 		return nil, context.Cause(ctx)
 	}
 	if primaryErr != nil && r.fills != nil {
-		r.fills.packErrors.Add(1)
+		r.fills.recordPackError()
 	}
 
 	// Read the fallback and fill its hit. The fallback checks its own bytes;
@@ -588,7 +606,7 @@ func (r *fallbackReads) readFallback(ctx context.Context, ref *block.BlockRef, p
 	stored, err := r.fallback.GetStoredBlock(ctx, ref)
 	if errors.Is(err, block.ErrBlockCorrupt) {
 		if r.fills != nil {
-			r.fills.failed.Add(1)
+			r.fills.recordFailedFill()
 		}
 		return nil, errors.Wrap(err, "read fallback block")
 	}
@@ -608,12 +626,14 @@ func (r *fallbackReads) readFallback(ctx context.Context, ref *block.BlockRef, p
 // A hit without its refs serves but is not stored, since the pack would keep it
 // as a leaf.
 func (r *fallbackReads) fillHit(ctx context.Context, ref *block.BlockRef, stored *block.StoredBlock) {
+	// Count only hits on a read path that fills the local store.
 	if r.fills == nil || r.fill == nil {
 		return
 	}
-	r.fills.hits.Add(1)
+	r.fills.recordHit(stored.RefsKnown)
+
+	// Leave a block without refs to serve until its reader decodes them.
 	if !stored.RefsKnown {
-		r.fills.refsUnknown.Add(1)
 		return
 	}
 	r.fills.start(ref, stored, r.fill)
