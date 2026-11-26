@@ -41,6 +41,7 @@ func (r *countingRemote) PutPackFile(ctx context.Context, id string, data []byte
 // holds only once the values written before its time are uploaded; and a
 // drain of a Log whose packs the store holds uploads none again.
 func TestPackStoreDrain(t *testing.T) {
+	// Keep the same directory when reopening the Log.
 	ctx := t.Context()
 	dir := t.TempDir()
 	open := func() *packahead.Log {
@@ -51,6 +52,7 @@ func TestPackStoreDrain(t *testing.T) {
 		return log
 	}
 	log := open()
+	t.Cleanup(func() { log.Close() })
 
 	// Write a chain of blocks into the Log and wait for its pack.
 	var refs []*block.BlockRef
@@ -89,7 +91,6 @@ func TestPackStoreDrain(t *testing.T) {
 			}
 			select {
 			case <-waitCh:
-			case <-time.After(10 * time.Millisecond):
 			case <-deadline:
 				t.Fatalf("Log holds %d packs, want %d", len(infos), want)
 			}
@@ -115,8 +116,12 @@ func TestPackStoreDrain(t *testing.T) {
 	if drain.UploadedBefore(written) || len(waitPacks(log, 1)) != 1 {
 		t.Fatal("failed upload reported uploaded or evicted")
 	}
-	if st, _ := drain.Status(); st.Pending != 1 || st.PendingBytes != infos[0].Size || st.LocalBytes != infos[0].Size {
-		t.Fatalf("status after a failed upload = %+v", st)
+	failed := packahead.DrainStatus{
+		Pending: 1, PendingBytes: infos[0].Size, LocalBytes: infos[0].Size,
+		Oldest: infos[0].FirstAt, Failures: 1,
+	}
+	if st, _ := drain.Status(); st != failed {
+		t.Fatalf("status after a failed upload = %+v, want %+v", st, failed)
 	}
 	for _, ref := range refs {
 		if !log.Has(packfile.BlockKey(ref.GetHash())) {
@@ -142,19 +147,24 @@ func TestPackStoreDrain(t *testing.T) {
 	// A second pack drains; past the budget both are evicted.
 	appendChain(log, 20)
 	later := time.Now()
-	waitPacks(log, 2)
+	infos = waitPacks(log, 2)
 	remote.fail.Store(false)
 	runCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	done := make(chan error, 1)
 	go func() { done <- drain.Run(runCtx, remote) }()
 	waitPacks(log, 0)
 	cancel()
-	<-done
+	if err := <-done; !errors.Is(err, context.Canceled) {
+		t.Fatalf("stop drain: %v", err)
+	}
 	if !drain.UploadedBefore(later) {
 		t.Fatal("drained Log not reported uploaded")
 	}
-	if st, _ := drain.Status(); st != (packahead.DrainStatus{}) {
-		t.Fatalf("status after the drain = %+v", st)
+	// The queue is empty, and the counters retain both attempts.
+	drained := packahead.DrainStatus{Written: 1, WrittenBytes: uint64(infos[1].Size), Listed: 1, Failures: 1}
+	if st, _ := drain.Status(); st != drained {
+		t.Fatalf("status after the drain = %+v, want %+v", st, drained)
 	}
 	if got := remote.puts.Load(); got != 1 {
 		t.Fatalf("drain uploaded %d packs, want the 1 the store lacked", got)
@@ -180,8 +190,8 @@ func TestPackStoreDrain(t *testing.T) {
 	// After a restart, a pack the store holds is not uploaded again.
 	log.Close()
 	log = open()
-	defer log.Close()
 	appendChain(log, 40)
+	written = time.Now()
 	infos = waitPacks(log, 1)
 	data, err = os.ReadFile(infos[0].Path)
 	if err != nil {
@@ -192,20 +202,35 @@ func TestPackStoreDrain(t *testing.T) {
 	}
 	before := remote.puts.Load()
 	drain = packahead.NewDrain(log, packahead.DrainOptions{})
-	if drain.UploadedBefore(time.Now()) {
+	if drain.UploadedBefore(written) {
 		t.Fatal("new drain reported a pack it never saw uploaded")
 	}
+
+	// Watch the Log until the drain recognizes the listed pack.
 	runCtx, cancel = context.WithCancel(ctx)
+	defer cancel()
 	go func() { done <- drain.Run(runCtx, remote) }()
-	deadline := time.Now().Add(10 * time.Second)
-	for !drain.UploadedBefore(time.Now()) {
-		if time.Now().After(deadline) {
-			t.Fatal("drain did not see the listed pack")
+	deadline := time.After(10 * time.Second)
+	for {
+		st, changed := drain.Status()
+		if st.Pending == 0 && st.Listed == 1 {
+			break
 		}
-		time.Sleep(5 * time.Millisecond)
+		select {
+		case <-changed:
+		case err := <-done:
+			t.Fatalf("drain stopped before finding the listed pack: %v", err)
+		case <-deadline:
+			t.Fatalf("drain did not see the listed pack: %+v", st)
+		}
 	}
 	cancel()
-	<-done
+	if err := <-done; !errors.Is(err, context.Canceled) {
+		t.Fatalf("stop drain after reopen: %v", err)
+	}
+	if !drain.UploadedBefore(written) {
+		t.Fatal("listed pack is still reported pending")
+	}
 	if got := remote.puts.Load(); got != before || len(waitPacks(log, 1)) != 1 {
 		t.Fatalf("drain uploaded %d packs again, or evicted with no budget", got-before)
 	}
