@@ -56,6 +56,10 @@ type DexMessage struct {
 	// responder's Device is its only copy there, so the response carries the
 	// refs and no data (response only). It is never set on a forwarded lookup.
 	Linked bool `protobuf:"varint,12,opt,name=linked,proto3" json:"linked,omitempty"`
+	// Denied answers a request whose requester lacks read access, with the
+	// reason in error (response only). It says nothing of whether the
+	// responder holds the block, so a grant makes the same request servable.
+	Denied bool `protobuf:"varint,13,opt,name=denied,proto3" json:"denied,omitempty"`
 }
 
 func (x *DexMessage) Reset() {
@@ -148,6 +152,13 @@ func (x *DexMessage) GetLinked() bool {
 	return false
 }
 
+func (x *DexMessage) GetDenied() bool {
+	if x != nil {
+		return x.Denied
+	}
+	return false
+}
+
 func (m *DexMessage) CloneVT() *DexMessage {
 	if m == nil {
 		return (*DexMessage)(nil)
@@ -162,6 +173,7 @@ func (m *DexMessage) CloneVT() *DexMessage {
 	r.Cancel = m.Cancel
 	r.LinkedOk = m.LinkedOk
 	r.Linked = m.Linked
+	r.Denied = m.Denied
 	r.Ref = protobuf_go_lite.CloneVTValue(m.Ref)
 	r.Data = protobuf_go_lite.CloneBytes(m.Data)
 	r.Refs = protobuf_go_lite.CloneVTSlice(m.Refs)
@@ -215,6 +227,9 @@ func (this *DexMessage) EqualVT(that *DexMessage) bool {
 		return false
 	}
 	if this.Linked != that.Linked {
+		return false
+	}
+	if this.Denied != that.Denied {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -302,6 +317,11 @@ func (x *DexMessage) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("linked")
 		s.WriteBool(x.Linked)
 	}
+	if x.Denied || s.HasField("denied") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("denied")
+		s.WriteBool(x.Denied)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -374,6 +394,9 @@ func (x *DexMessage) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "linked":
 			s.AddField("linked")
 			x.Linked = s.ReadBool()
+		case "denied":
+			s.AddField("denied")
+			x.Denied = s.ReadBool()
 		}
 	})
 }
@@ -411,6 +434,11 @@ func (m *DexMessage) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Denied {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Denied)
+		i--
+		dAtA[i] = 0x68
 	}
 	if m.Linked {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Linked)
@@ -511,6 +539,7 @@ func (m *DexMessage) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Cancel)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.LinkedOk)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Linked)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Denied)
 	n += len(m.unknownFields)
 	return n
 }
@@ -573,6 +602,10 @@ func (x *DexMessage) MarshalProtoText() string {
 	if x.Linked != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "linked")
 		protobuf_go_lite.TextWriteBool(&sb, x.Linked)
+	}
+	if x.Denied != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "denied")
+		protobuf_go_lite.TextWriteBool(&sb, x.Denied)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -725,6 +758,16 @@ func (m *DexMessage) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Linked = bool(v)
+		case 13:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Denied", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Denied = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

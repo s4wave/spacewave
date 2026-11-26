@@ -72,6 +72,11 @@ var ErrNoPeerSession = errors.New("no peer session")
 // failed.
 var ErrPeerError = errors.New("peer lookup failed")
 
+// ErrPeerDenied reports a peer's answer that the requester lacks read access.
+// Unlike ErrPeerError it says nothing of the block: a grant makes the same
+// read servable.
+var ErrPeerDenied = errors.New("peer denied read access")
+
 // ErrUnaskedLinked reports a peer that answered linked, with no data, to a
 // request that did not let it.
 var ErrUnaskedLinked = errors.New("peer answered linked to a data request")

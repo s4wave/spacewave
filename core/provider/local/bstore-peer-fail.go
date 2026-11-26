@@ -29,6 +29,9 @@ const (
 	// failed send, a reset stream or a block that failed to verify, which
 	// says nothing of whether the peer holds the block.
 	peerExchange
+	// peerDenied is a read every peer it reached answered with a denial:
+	// the requester lacked read access, which a grant can change.
+	peerDenied
 	// peerCauseCount is the number of causes.
 	peerCauseCount
 )
@@ -42,6 +45,8 @@ func (c peerCause) String() string {
 		return "no_session"
 	case peerExchange:
 		return "exchange"
+	case peerDenied:
+		return "denied"
 	default:
 		return "peer_error"
 	}
@@ -56,6 +61,8 @@ func peerFailCause(err error) peerCause {
 	switch {
 	case errors.Is(err, dex_solicit.ErrPeerError):
 		return peerError
+	case errors.Is(err, dex_solicit.ErrPeerDenied):
+		return peerDenied
 	case errors.Is(err, dex_solicit.ErrNoPeerSession):
 		return peerNoSession
 	case errors.Is(err, context.DeadlineExceeded), errors.Is(err, context.Canceled):
@@ -68,7 +75,9 @@ func peerFailCause(err error) peerCause {
 // peerRefused reports whether err proves that the peers cannot serve the
 // block: every failure it carries is a peer's own error answer, beside the
 // block.ErrUnavailable that wraps them. A failed exchange, a closed session or
-// a timeout from any peer leaves it unproven, since that peer may hold it.
+// a timeout from any peer leaves it unproven, since that peer may hold it. A
+// denial leaves it unproven too: it speaks of the requester's access, which a
+// grant changes, not of the block.
 func peerRefused(err error) bool {
 	// Walk err's tree: every leaf must be the wrapper or a refusal, and one
 	// must be a refusal.

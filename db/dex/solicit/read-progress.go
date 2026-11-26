@@ -100,6 +100,7 @@ func getReadProgress(ctx context.Context) *readProgress {
 // to a closed session or the end of the read's own context.
 func peerRefused(err error) bool {
 	return errors.Is(err, ErrPeerError) ||
+		errors.Is(err, ErrPeerDenied) ||
 		errors.Is(err, ErrUnaskedLinked) ||
 		errors.Is(err, block.ErrRefsUnknown)
 }

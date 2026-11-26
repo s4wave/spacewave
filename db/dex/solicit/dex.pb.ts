@@ -75,6 +75,12 @@ export interface DexMessage {
    * refs and no data (response only). It is never set on a forwarded lookup.
    */
   linked?: boolean
+  /**
+   * Denied answers a request whose requester lacks read access, with the
+   * reason in error (response only). It says nothing of whether the
+   * responder holds the block, so a grant makes the same request servable.
+   */
+  denied?: boolean
 }
 
 export const DexMessage: MessageType<DexMessage> =
@@ -93,5 +99,6 @@ export const DexMessage: MessageType<DexMessage> =
       [10, 'cancel', 8],
       [11, 'linked_ok', 8],
       [12, 'linked', 8],
+      [13, 'denied', 8],
     ],
   )

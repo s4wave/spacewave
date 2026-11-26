@@ -15,4 +15,6 @@ type PeerFailedCauses struct {
 	// Exchange counts reads whose exchange with a peer failed, such as a
 	// failed send, a reset stream or a block that failed to verify.
 	Exchange uint64
+	// Denied counts reads every reached peer denied for lack of read access.
+	Denied uint64
 }
