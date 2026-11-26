@@ -119,9 +119,11 @@ func (r *ccResult) badFreed() int {
 	return n
 }
 
-// failed reports an unexplained conflict. Leftover pages are reported
-// for the operator's thresholds but do not fail the run.
-func (r *ccResult) failed() bool { return r.unexplained() > 0 }
+// failed reports an unexplained conflict or an unexplained bad page. A bad
+// page's children went unwalked, so a page under it that is also free would
+// pass unseen. Leftover pages are reported for the operator's thresholds but
+// do not fail the run.
+func (r *ccResult) failed() bool { return r.unexplained() > 0 || len(r.bad) > r.badFreed() }
 
 func (r *ccResult) unexplained() int {
 	n := 0
@@ -134,6 +136,7 @@ func (r *ccResult) unexplained() int {
 }
 
 func (r *ccResult) print(out io.Writer) {
+	// Report the page totals and how the walk accounts for each page.
 	sum := r.reached + r.free + r.lockPage
 	fmt.Fprintf(out, "sanity: reached %d + free %d + lock-byte %d = %d of header page count %d (match %v); leaf cells %d\n",
 		r.reached, r.free, r.lockPage, sum, r.dbPages, sum == uint64(r.dbPages), r.leafCells)
@@ -141,6 +144,8 @@ func (r *ccResult) print(out io.Writer) {
 	fmt.Fprintf(out, "pages walked %d (main walk %d + late walk %d, late roots not counted) = table interior %d + table leaf %d + index interior %d + index leaf %d + overflow %d\n",
 		r.reached+uint64(r.lateReached), r.reached, r.lateReached, r.byType[0x05], r.byType[0x0d], r.byType[0x02], r.byType[0x0a], r.kinds[kindOverflow])
 	fmt.Fprintf(out, "free at start %d = trunks %d + leaves %d\n", r.free, r.freeTrunks, r.freeLeaves)
+
+	// Report the unaccounted pages, with the first few listed.
 	fmt.Fprintf(out, "unaccounted-total %d, unaccounted-freed-during-walk %d, unaccounted-unexplained %d (main walk; the late walk and leftovers follow)\n", r.unaccounted, r.unaccFreed, r.unaccUnexplained())
 	var unexp []uint32
 	for _, p := range r.unaccPages {
@@ -152,10 +157,14 @@ func (r *ccResult) print(out io.Writer) {
 	if len(unexp) > 0 {
 		fmt.Fprintf(out, "unaccounted pages (first %d, freed or not): %v\n", len(unexp), unexp)
 	}
+
+	// Report the bad pages and a torn freelist walk.
 	fmt.Fprintf(out, "bad-total %d, bad-freed-during-walk %d, bad-unexplained %d\n", len(r.bad), r.badFreed(), len(r.bad)-r.badFreed())
 	if r.freeTorn != nil {
 		fmt.Fprintln(out, "freelist walk stopped early:", r.freeTorn)
 	}
+
+	// List the first unexplained bad pages.
 	shownBad := 0
 	for _, b := range r.bad {
 		if b.freed || shownBad == 50 {
@@ -164,6 +173,9 @@ func (r *ccResult) print(out io.Writer) {
 		shownBad++
 		fmt.Fprintf(out, "  bad page %d (UNEXPLAINED): %s\n", b.page, b.err)
 	}
+
+	// List the conflicts, every unexplained one and the first explained
+	// ones, then count the explained ones by class.
 	fmt.Fprintf(out, "conflicts %d\n", len(r.conflicts))
 	classes := map[string]int{}
 	shown := 0
@@ -191,15 +203,19 @@ func (r *ccResult) print(out io.Writer) {
 			fmt.Fprintf(out, "  %d %s\n", n, k)
 		}
 	}
+
+	// Report the late walk and the leftovers it did not reach.
 	fmt.Fprintf(out, "late walk: %d roots left unreached by any walk, %d pages walked\n", r.lateRoots, r.lateReached)
 	fmt.Fprintf(out, "leftover (unaccounted or bad, not freed during the walk, after the late walk) by type: %v\n", r.leftoverByType)
 	fmt.Fprintf(out, "leftover interior %d\n", r.leftoverInterior)
 	fmt.Fprintf(out, "leftover leaf+overflow %d\n", r.leftoverLeaf)
 	fmt.Fprintf(out, "leftover unparsable %d\n", r.leftoverUnparse)
+
+	// Report the freelist growth, the verdict and the read cost.
 	fmt.Fprintf(out, "freed-during-walk %d (unaccounted %d + bad %d) against freelist growth %d (end %d - start %d)\n",
 		r.unaccFreed+uint64(r.badFreed()), r.unaccFreed, r.badFreed(), int64(r.endFree)-int64(r.startFree), r.endFree, r.startFree)
 	fmt.Fprintf(out, "unexplained conflicts %d\n", r.unexplained())
-	fmt.Fprintf(out, "result: %s\n", map[bool]string{true: "FAIL (unexplained conflicts)", false: "PASS (leftovers, if any, do not fail)"}[r.failed()])
+	fmt.Fprintf(out, "result: %s\n", map[bool]string{true: "FAIL (unexplained conflicts or bad pages)", false: "PASS (leftovers, if any, do not fail)"}[r.failed()])
 	fmt.Fprintf(out, "read %d bytes in %s (%.1f MB/s)\n", r.readBytes, r.elapsed.Round(time.Second), float64(r.readBytes)/1e6/r.elapsed.Seconds())
 }
 
@@ -749,7 +765,10 @@ func alignedBuf(n int) []byte {
 // parsePage reads one page as its item's kind and returns the pages it
 // points to.
 func parsePage(h header, it ccItem, p []byte) pageResult {
+	// The result names the item it parsed.
 	r := pageResult{item: it}
+
+	// An overflow page points only to the next page of its chain.
 	if it.kind == kindOverflow {
 		r.tree = kindOverflow
 		next := binary.BigEndian.Uint32(p[0:4])
@@ -767,12 +786,16 @@ func parsePage(h header, it ccItem, p []byte) pageResult {
 		}
 		return r
 	}
+
+	// Read the b-tree page header, after the file header on page 1.
 	hoff := 0
 	if it.pg == 1 {
 		hoff = 100
 	}
 	u := int(h.usable)
 	t := p[hoff]
+
+	// The page type sets the header length; any other type is a bad page.
 	var hlen int
 	switch t {
 	case 0x0d, 0x0a:
@@ -788,6 +811,8 @@ func parsePage(h header, it ccItem, p []byte) pageResult {
 	if t == 0x02 || t == 0x0a {
 		r.tree = kindIndex
 	}
+
+	// Check that the cell pointer array fits on the page.
 	child := func(pg uint32) {
 		r.children = append(r.children, ccItem{pg: pg, parent: it.pg, kind: kindTree, schema: it.schema})
 	}
@@ -796,6 +821,8 @@ func parsePage(h header, it ccItem, p []byte) pageResult {
 		r.bad = fmt.Sprintf("%d cells do not fit", n)
 		return r
 	}
+
+	// Walk the cells for child pages, schema roots and overflow chains.
 	for i := 0; i < n; i++ {
 		off := int(binary.BigEndian.Uint16(p[hoff+hlen+2*i:]))
 		if off < hoff+hlen || off+4 > u {
@@ -812,7 +839,7 @@ func parsePage(h header, it ccItem, p []byte) pageResult {
 		}
 		r.leafCells += boolInt(t == 0x0d || t == 0x0a)
 		size, k := varint(c)
-		if k == 0 {
+		if k == 0 || size > maxPayload {
 			r.bad = fmt.Sprintf("cell %d payload size", i)
 			return r
 		}
@@ -830,8 +857,18 @@ func parsePage(h header, it ccItem, p []byte) pageResult {
 			r.bad = fmt.Sprintf("cell %d payload %d runs past the page", i, size)
 			return r
 		}
+		// A schema record whose rootpage cannot be read from the page, such as
+		// one whose long names push it onto an overflow page, or that gives a
+		// table or an index root 0, is a bad page:
+		// skipping it would leave that tree's pages unreached, and a tree page
+		// also on the freelist would then pass as free and be punched.
 		if it.schema && t == 0x0d {
-			if root, ok := schemaRoot(c[:local]); ok && root != 0 {
+			root, ok := schemaRoot(c[:local])
+			if !ok {
+				r.bad = fmt.Sprintf("cell %d schema record: rootpage unreadable on the page, or 0 for a table or an index", i)
+				return r
+			}
+			if root != 0 {
 				r.children = append(r.children, ccItem{pg: root, parent: 0, kind: kindTree})
 			}
 		}
@@ -840,6 +877,8 @@ func parsePage(h header, it ccItem, p []byte) pageResult {
 			r.children = append(r.children, ccItem{pg: binary.BigEndian.Uint32(c[local:]), parent: it.pg, kind: kindOverflow, left: uint32(pages)})
 		}
 	}
+
+	// An interior page's right-most child follows its header.
 	if hlen == 12 {
 		child(binary.BigEndian.Uint32(p[hoff+8:]))
 	}
@@ -863,10 +902,14 @@ func localPayload(u int, p int64, table bool) int64 {
 	return m
 }
 
-// schemaRoot reads the rootpage column of a local sqlite_master record.
+// schemaRoot reads the rootpage column of a local sqlite_master record. It
+// reports false when the record cannot be read from the page, or when it
+// gives a table or an index no root: only a view, a trigger or a virtual
+// table owns no tree.
 func schemaRoot(rec []byte) (uint32, bool) {
+	// Read the record header's serial types.
 	hsize, k := varint(rec)
-	if k == 0 || int(hsize) > len(rec) {
+	if k == 0 || hsize > uint64(len(rec)) {
 		return 0, false
 	}
 	var types []uint64
@@ -878,33 +921,82 @@ func schemaRoot(rec []byte) (uint32, bool) {
 		types = append(types, st)
 		pos += n
 	}
-	if len(types) < 4 {
+	if len(types) < 5 {
 		return 0, false
 	}
-	body := int(hsize)
-	for _, st := range types[:3] {
-		body += serialLen(st)
+
+	// Find the body offset of the type, rootpage and sql columns. The
+	// columns before sql lie on the page; sql may run on into overflow, so
+	// recText bounds its length.
+	off := [5]int{int(hsize)}
+	for i := 0; i < 4; i++ {
+		l := serialLen(types[i])
+		if l < 0 || l > len(rec) {
+			return 0, false
+		}
+		off[i+1] = off[i] + l
 	}
-	l := serialLen(types[3])
-	if body+l > len(rec) {
+
+	// Read the rootpage column.
+	if off[4] > len(rec) {
 		return 0, false
 	}
-	var v uint64
+	var root uint32
 	switch types[3] {
 	case 8:
-		return 0, true
 	case 9:
-		return 1, true
+		root = 1
 	case 1, 2, 3, 4:
-		for _, b := range rec[body : body+l] {
+		var v uint64
+		for _, b := range rec[off[3]:off[4]] {
 			v = v<<8 | uint64(b)
 		}
-		return uint32(v), true
+		root = uint32(v)
+	default:
+		return 0, false
+	}
+	if root != 0 {
+		return root, true
+	}
+
+	// A zero root belongs only to an object that owns no tree. A virtual
+	// table's row says table, and its sql names it; only the sql's start
+	// need be on the page.
+	switch typ, _ := recText(rec, off[0], types[0], 8); typ {
+	case "view", "trigger":
+		return 0, true
+	case "table":
+		const vt = "CREATE VIRTUAL TABLE "
+		sql, _ := recText(rec, off[4], types[4], len(vt))
+		return 0, strings.EqualFold(sql, vt)
 	}
 	return 0, false
 }
 
+// recText reads up to max bytes of the text column at body offset off with
+// serial type st, as far as rec holds them. It reports false for a column
+// that is not text.
+func recText(rec []byte, off int, st uint64, max int) (string, bool) {
+	if st < 13 || st%2 == 0 || off > len(rec) {
+		return "", false
+	}
+	n := min(serialLen(st), max, len(rec)-off)
+	if n < 0 {
+		return "", false
+	}
+	return string(rec[off : off+n]), true
+}
+
+// maxPayload bounds a cell's payload and a column's length: SQLite never
+// writes more than 2^31-1 bytes, so a larger value marks a corrupt page.
+const maxPayload = 1<<31 - 1
+
+// serialLen is the body length of a column of serial type st, or -1 when
+// that length would exceed maxPayload.
 func serialLen(st uint64) int {
+	if st >= 12 && (st-12)/2 > maxPayload {
+		return -1
+	}
 	switch {
 	case st <= 4:
 		return int(st)
