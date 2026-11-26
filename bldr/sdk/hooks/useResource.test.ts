@@ -813,6 +813,53 @@ describe('useResource', () => {
     }
   })
 
+  it('reopens a stream that gives no first value by its deadline', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    try {
+      // Open a stream that never yields.
+      const { streams, streamFactory } = manualStreams<Row>()
+      mount()
+      await render(
+        React.createElement(TestStreamOptions, {
+          streamFactory,
+          options: { firstValueTimeout: 1000 },
+          seen: [],
+        }),
+        2,
+      )
+      expect(streamFactory).toHaveBeenCalledTimes(1)
+
+      // At the deadline it closes and reopens after the backoff, loading.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1100)
+      })
+      expect(streamFactory).toHaveBeenCalledTimes(2)
+      expect(view('data-loading')).toBe('true')
+      expect(view('data-error')).toBe('')
+
+      // The second deadline is twice the first.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1500)
+      })
+      expect(streamFactory).toHaveBeenCalledTimes(2)
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(800)
+      })
+      expect(streamFactory).toHaveBeenCalledTimes(3)
+
+      // A value from the reopened stream settles it and stops the deadline.
+      await update(() => streams[2].push({ id: 1, label: 'first' }))
+      expect(view('data-value')).toBe('first')
+      expect(view('data-loading')).toBe('false')
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10_000)
+      })
+      expect(streamFactory).toHaveBeenCalledTimes(3)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('reports a reconnecting stream that fails before yielding', async () => {
     // Open a reconnecting stream that fails at once.
     const stream = createManualAsyncIterable<Row>()

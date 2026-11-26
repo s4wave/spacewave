@@ -28,7 +28,21 @@ export interface UseStreamingResourceOptions<T> {
    * backoff. A stream that fails before its first value reports the error.
    */
   reconnect?: boolean
+  /**
+   * firstValueTimeout is how long, in milliseconds, an opened stream may go
+   * without its first value before the hook closes it and reopens it after a
+   * backoff, staying in its loading state, so a stream stuck behind a stalled
+   * or restarted computation recovers without a reload. The deadline doubles
+   * with each consecutive stall, up to eight times this value, so a slow
+   * computation still finishes. A yielded value resets it. Each open has its
+   * own deadline, a reconnect included. Zero disables it. Defaults to
+   * defaultFirstValueTimeout.
+   */
+  firstValueTimeout?: number
 }
+
+/** defaultFirstValueTimeout is the default first-value deadline in ms. */
+export const defaultFirstValueTimeout = 15_000
 
 /**
  * useStreamingResource subscribes to an async iterable derived from a parent
@@ -45,11 +59,14 @@ export function useStreamingResource<P, T>(
     (prev: T, next: T) => options?.equals?.(prev, next) ?? false,
   )
   const reconnect = options?.reconnect ?? false
+  const firstValueTimeout = options?.firstValueTimeout ?? defaultFirstValueTimeout
   const parentValueChangeCount = useResourceTransitionVersion([parent.value])
   const [retryCount, setRetryCount] = useState(0)
   const abortRetriedParentValueChangeRef = useRef<number | null>(null)
   const valueRef = useRef<T | null>(null)
   const reconnectingRef = useRef(false)
+  // Track consecutive stalls for the current factory and parent value.
+  const stallsRef = useRef({ version: 0, count: 0 })
   const [backoff] = useState(exponentialBackoff)
 
   // Restart the stream when the factory or the parent value changes.
@@ -87,9 +104,31 @@ export function useStreamingResource<P, T>(
       return
     }
 
+    // Reset the deadline series when the factory or parent value changes.
+    if (stallsRef.current.version !== transitionVersion) {
+      stallsRef.current = { version: transitionVersion, count: 0 }
+    }
+
     // Follow the stream, keeping the current value for an equal item.
     const run = begin(transitionVersion)
     let reconnectTimer: ReturnType<typeof setTimeout> | undefined
+
+    // Close a stream that gives no first value by its deadline and reopen it
+    // after a backoff. The hook keeps its loading state during the backoff.
+    let deadlineTimer: ReturnType<typeof setTimeout> | undefined
+    if (firstValueTimeout > 0) {
+      const deadline = firstValueTimeout * 2 ** Math.min(stallsRef.current.count, 3)
+      deadlineTimer = setTimeout(() => {
+        if (!isCurrent(run)) return
+        stallsRef.current.count += 1
+        run.abort()
+        reconnectTimer = setTimeout(
+          () => setRetryCount((c) => c + 1),
+          backoff(),
+        )
+      }, deadline)
+    }
+
     void (async () => {
       let emitted = false
       try {
@@ -97,6 +136,8 @@ export function useStreamingResource<P, T>(
           if (!isCurrent(run)) {
             break
           }
+          clearTimeout(deadlineTimer)
+          stallsRef.current.count = 0
           backoff.reset()
           reconnectingRef.current = false
           if (
@@ -111,6 +152,7 @@ export function useStreamingResource<P, T>(
           valueRef.current = value
           complete(run, value)
         }
+        clearTimeout(deadlineTimer)
         if (!isCurrent(run)) {
           return
         }
@@ -118,6 +160,7 @@ export function useStreamingResource<P, T>(
           complete(run, null)
         }
       } catch (err) {
+        clearTimeout(deadlineTimer)
         if (!isCurrent(run)) return
         const e = err instanceof Error ? err : new Error(String(err))
         if (isAbortError(err) || e.name === 'AbortError') {
@@ -148,11 +191,13 @@ export function useStreamingResource<P, T>(
 
     return () => {
       run.abort()
+      clearTimeout(deadlineTimer)
       clearTimeout(reconnectTimer)
     }
   }, [
     backoff,
     reconnect,
+    firstValueTimeout,
     parent.loading,
     parent.value,
     parentValueChangeCount,
