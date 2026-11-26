@@ -19,24 +19,14 @@ func (s *Server) Listen(req *signaling.ListenRequest, strm signaling.SRPCSignali
 	// Register the peer and supersede any previous listen stream.
 	s.mtx.Lock()
 	tkr, existed := s.getPeer(pidStr)
-	if existed {
-		// userp any existing Listen call for this peer
-		tkr.listenNonce++
-		tkr.broadcast()
-	}
-	tkr.listening = true
-	listenNonce := tkr.listenNonce
+	listenNonce := tkr.beginListen(existed)
 	s.mtx.Unlock()
 
 	// Clear the registration when this listen stream exits.
-	// Cleanup when we exit
 	defer func() {
 		s.mtx.Lock()
 		currTkr := s.peers[pidStr]
-		if currTkr == tkr && currTkr.listenNonce == listenNonce {
-			currTkr.listenNonce++
-			currTkr.listening = false
-			currTkr.broadcast()
+		if currTkr == tkr && currTkr.endListen(listenNonce) {
 			s.maybeReleasePeer(pidStr)
 		}
 		s.mtx.Unlock()
@@ -46,24 +36,11 @@ func (s *Server) Listen(req *signaling.ListenRequest, strm signaling.SRPCSignali
 	sentWant := make(map[string]struct{})
 	for {
 		s.mtx.Lock()
-		if tkr.listenNonce != listenNonce {
+		txWant, txNotWant, waitCh, err := tkr.nextListenChanges(listenNonce, sentWant)
+		if err != nil {
 			s.mtx.Unlock()
-			return signaling.ErrUserpedListen
+			return err
 		}
-		var txWant, txNotWant string
-		for wantPeerID := range tkr.wantPeers {
-			if _, ok := sentWant[wantPeerID]; !ok {
-				txWant = wantPeerID
-				break
-			}
-		}
-		for sentPeerID := range sentWant {
-			if _, ok := tkr.wantPeers[sentPeerID]; !ok {
-				txNotWant = sentPeerID
-				break
-			}
-		}
-		waitCh := tkr.getWaitCh()
 		s.mtx.Unlock()
 
 		// Notify the peer about removed session requests.

@@ -8,20 +8,6 @@ import (
 	signaling "github.com/s4wave/spacewave/net/signaling/rpc"
 )
 
-// sessionTracker tracks a session between two peers.
-type sessionTracker struct {
-	// wait is a channel that is closed when below changes.
-	wait chan struct{}
-	// seqno is incremented when peerA or peerB changes.
-	seqno uint64
-	// peerA is the tracker for peer A.
-	// nil until connected.
-	peerA *sessionPeerTracker
-	// peerB is the tracker for peer B.
-	// nil until connected.
-	peerB *sessionPeerTracker
-}
-
 // sessionPeerTracker tracks a peer attached to a session.
 type sessionPeerTracker struct {
 	// recv contains a pending packet to receive.
@@ -35,41 +21,6 @@ type sessionPeerTracker struct {
 	// outAcked indicates a remote peer acked a packet.
 	// this ack will be transmitted to the local peer.
 	outAcked *uint64
-}
-
-// getWaitCh returns the wait channel.
-func (t *sessionTracker) getWaitCh() <-chan struct{} {
-	wait := t.wait
-	if wait == nil {
-		wait = make(chan struct{})
-		t.wait = wait
-	}
-	return wait
-}
-
-// broadcast closes the wait channel if any.
-func (t *sessionTracker) broadcast() {
-	if t.wait != nil {
-		close(t.wait)
-		t.wait = nil
-	}
-}
-
-// getCurrPeers returns the current peers for the session.
-func (t *sessionTracker) getCurrPeers(srcIsPeerA bool) (*sessionPeerTracker, *sessionPeerTracker) {
-	if srcIsPeerA {
-		return t.peerA, t.peerB
-	}
-	return t.peerB, t.peerA
-}
-
-// checkSeqno checks if a seqno is equal to the current and is a reasonable value.
-func (t *sessionTracker) checkSeqno(seqno uint64) (bool, error) {
-	// If the session sequence number is lower than the message session seqno, the peer is misbehaving.
-	if t.seqno < seqno {
-		return false, errors.Errorf("signaling: message session seqno is too high: %v > expected %v", seqno, t.seqno)
-	}
-	return t.seqno == seqno, nil
 }
 
 // sessionKey is the key for the sessions map.
@@ -135,27 +86,11 @@ func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
 
 	// Register that we want a session with that peer.
 	dstPeer, _ := s.getPeer(dstPeerIDStr)
-	if _, ok := dstPeer.wantPeers[srcPeerIDStr]; !ok {
-		dstPeer.wantPeers[srcPeerIDStr] = struct{}{}
-		dstPeer.broadcast()
-	}
+	dstPeer.addWant(srcPeerIDStr)
 
-	// Register our end of the session.
+	// Claim our endpoint and invalidate control state from the previous generation.
 	sess, _ := s.getSession(sessKey)
-	if localIsPeerA {
-		sess.peerA = ourPeerTkr
-	} else {
-		sess.peerB = ourPeerTkr
-	}
-
-	// Pending messages and acknowledgments belong to the replaced generation.
-	if _, prevRemotePeer := sess.getCurrPeers(localIsPeerA); prevRemotePeer != nil {
-		*prevRemotePeer = sessionPeerTracker{}
-	}
-
-	// Publish the new generation after both endpoint slots are consistent.
-	sess.seqno++
-	sess.broadcast()
+	sess.claimPeer(localIsPeerA, ourPeerTkr)
 	s.mtx.Unlock()
 
 	// Cleanup when we return.
@@ -163,30 +98,14 @@ func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
 		// Serialize session cleanup with endpoint replacement.
 		s.mtx.Lock()
 
-		// Check if we are still the active Session and clear out if so.
-		var currLocalPeer **sessionPeerTracker
-		if localIsPeerA {
-			currLocalPeer = &sess.peerA
-		} else {
-			currLocalPeer = &sess.peerB
-		}
-		if *currLocalPeer == ourPeerTkr {
-			// Clear the peer from the session and increment nonce.
-			*currLocalPeer = nil
-			// Get the current remote peer.
-			if _, currRemotePeer := sess.getCurrPeers(localIsPeerA); currRemotePeer != nil {
-				// Drop all control state from the closed generation.
-				*currRemotePeer = sessionPeerTracker{}
-			}
-			sess.seqno++
-			sess.broadcast()
+		// Release only the endpoint still attached to this stream.
+		if sess.releasePeer(localIsPeerA, ourPeerTkr) {
 			// Maybe drop the session if there's no peers.
 			if s.maybeReleaseSession(sessKey) {
 				defer le.Debug("signaling: server: finished session")
 			}
 			// Delete the session want from the remote peer.
-			delete(dstPeer.wantPeers, srcPeerIDStr)
-			dstPeer.broadcast()
+			dstPeer.removeWant(srcPeerIDStr)
 			// Release the peer if there is no want & no session.
 			_ = s.maybeReleasePeer(dstPeerIDStr)
 		}

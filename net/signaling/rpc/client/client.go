@@ -128,6 +128,16 @@ func (c *Client) ClearContext() {
 	_ = c.listenRoutine.ClearContext()
 }
 
+// matchesPeerID reports whether the client represents the requested local peer.
+func (c *Client) matchesPeerID(peerID peer.ID) bool {
+	return c.peerID.String() == peerID.String()
+}
+
+// matchesPublicKey reports whether the public key belongs to the local client.
+func (c *Client) matchesPublicKey(pubKey crypto.PubKey) bool {
+	return c.peerID.MatchesPublicKey(pubKey)
+}
+
 // SetListenHandler sets the handler to call when the Listen RPC returns a peer to contact.
 // If nil, disables the Listen RPC.
 //

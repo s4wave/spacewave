@@ -26,7 +26,7 @@ func (c *Controller) resolveSignalPeer(
 	}
 
 	if localPeerID := dir.SignalLocalPeerID(); localPeerID != "" {
-		if client := c.client.GetValue(); client != nil && client.peerID.String() != localPeerID.String() {
+		if client := c.client.GetValue(); client != nil && !client.matchesPeerID(localPeerID) {
 			return nil, nil
 		}
 	}
@@ -51,7 +51,7 @@ func (r *signalPeerResolver) Resolve(ctx context.Context, handler directive.Reso
 	}
 
 	// Require the ready client to match the requested local signaling peer.
-	if localPeerID := r.dir.SignalLocalPeerID(); localPeerID != "" && client.peerID.String() != localPeerID.String() {
+	if localPeerID := r.dir.SignalLocalPeerID(); localPeerID != "" && !client.matchesPeerID(localPeerID) {
 		return nil
 	}
 

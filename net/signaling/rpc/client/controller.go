@@ -224,7 +224,7 @@ func (c *Controller) addSessionTrackerRef(
 	}
 
 	// Reject self-dialing.
-	if client.peerID.MatchesPublicKey(peerPub) {
+	if client.matchesPublicKey(peerPub) {
 		return nil, nil, false, errors.New("signaling: cannot self-dial")
 	}
 
