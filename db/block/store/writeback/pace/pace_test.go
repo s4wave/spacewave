@@ -106,7 +106,7 @@ func TestEvictPaceCapsRate(t *testing.T) {
 	}
 
 	// A paused pace holds until the pass ends.
-	p.paused = true
+	p.SetPaused(true)
 	pctx, cancel := context.WithCancel(ctx)
 	cancel()
 	if err := p.Admit(pctx, 0); err == nil {
@@ -186,6 +186,52 @@ func TestPaceCancellation(t *testing.T) {
 		synctest.Wait()
 		cancel()
 		if err := <-done; !errors.Is(err, context.Canceled) {
+			t.Fatal(err)
+		}
+	})
+}
+
+// TestPacePauseHoldsAndResumes checks that a pause holds a batch already
+// waiting on the cap and a pass's next batch, and that resuming admits the
+// held batch at once with no restart.
+func TestPacePauseHoldsAndResumes(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		// A batch waits about a second on the cap, and a pause catches it.
+		p := New(logrus.NewEntry(logrus.New()), nil, Config{BytesPerSecond: 1 << 20})
+		if err := p.Admit(t.Context(), 0); err != nil {
+			t.Fatal(err)
+		}
+		done := make(chan error, 1)
+		go func() { done <- p.Admit(t.Context(), 1<<20) }()
+		synctest.Wait()
+		p.SetPaused(true)
+		time.Sleep(time.Hour)
+		synctest.Wait()
+		select {
+		case err := <-done:
+			t.Fatalf("paused admit returned %v", err)
+		default:
+		}
+
+		// Resuming admits it at once, since its due time passed while held.
+		start := time.Now()
+		p.SetPaused(false)
+		if err := <-done; err != nil || time.Since(start) != 0 {
+			t.Fatalf("resumed admit = %v after %v", err, time.Since(start))
+		}
+
+		// The pass's next batch holds too, until the pause clears.
+		p.SetPaused(true)
+		go func() { done <- p.Admit(t.Context(), 0) }()
+		time.Sleep(time.Hour)
+		synctest.Wait()
+		select {
+		case err := <-done:
+			t.Fatalf("next paused admit returned %v", err)
+		default:
+		}
+		p.SetPaused(false)
+		if err := <-done; err != nil {
 			t.Fatal(err)
 		}
 	})

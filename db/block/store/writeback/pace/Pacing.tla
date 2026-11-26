@@ -14,10 +14,16 @@ Acquire == /\ phase = "serial"
          /\ UNCHANGED <<cancelled,paused,due,pressure,waited>>
 RatePass == /\ phase = "rate" /\ ~cancelled /\ due' = FALSE /\ phase' = "pressure"
             /\ UNCHANGED <<paused,pressure,waited,cancelled>>
-\* RateChange is SetBytesPerSecond during a rate wait: the wait recomputes its
-\* due time from the new cap, which may make the batch due now or later.
-RateChange == /\ phase = "rate" /\ due' \in BOOLEAN
-              /\ UNCHANGED <<phase,cancelled,paused,pressure,waited>>
+\* RateChange is SetBytesPerSecond during a wait: the batch reads the settings
+\* again, and the new cap may make it due now or later.
+RateChange == /\ phase \in {"paused","rate","pressure"} /\ due' \in BOOLEAN
+              /\ phase' = "serial" /\ waited' = 0
+              /\ UNCHANGED <<cancelled,paused,pressure>>
+\* PauseChange is SetPaused before admission; a batch waiting reads the
+\* settings again.
+PauseChange == /\ phase \notin {"admitted","cancelled"} /\ paused' = ~paused
+               /\ phase' = (IF phase = "ready" THEN "ready" ELSE "serial")
+               /\ waited' = 0 /\ UNCHANGED <<cancelled,due,pressure>>
 Backoff == /\ phase = "pressure" /\ pressure /\ waited < 3 /\ ~cancelled
            /\ waited' = waited+1 /\ UNCHANGED <<phase,cancelled,paused,due,pressure>>
 Recover == /\ pressure /\ pressure' = FALSE
@@ -26,7 +32,7 @@ Admit == /\ phase = "pressure" /\ (~pressure \/ waited = 3) /\ ~cancelled
          /\ phase' = "admitted" /\ UNCHANGED <<cancelled,paused,due,pressure,waited>>
 Cancel == /\ phase \notin {"admitted","cancelled"} /\ cancelled' = TRUE
           /\ phase' = "cancelled" /\ UNCHANGED <<paused,due,pressure,waited>>
-Next == Start \/ Acquire \/ RatePass \/ RateChange \/ Backoff \/ Recover \/ Admit \/ Cancel
+Next == Start \/ Acquire \/ RatePass \/ RateChange \/ PauseChange \/ Backoff \/ Recover \/ Admit \/ Cancel
 Spec == Init /\ [][Next]_vars
 PauseHolds == phase = "admitted" => ~paused
 RateHeld == phase = "admitted" => ~due
