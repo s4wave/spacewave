@@ -34,6 +34,8 @@ type collectReport struct {
 	// status is what the flip's checks found after the passes, nil when
 	// unread.
 	status *block_gc.SettleStatus
+	// load is the writer run beside the passes, nil without one.
+	load *volumeLoad
 }
 
 // newCollectReport returns an empty report of a collection of the volume at
@@ -132,6 +134,11 @@ func (r *collectReport) fields() [][2]string {
 			[2]string{"Generation", st.State.GetGeneration().String()},
 		)
 		fields = append(fields, settleStatusFields(st, r.frees, true)...)
+	}
+
+	// Add the writer's commits beside the passes' totals.
+	if r.load != nil {
+		fields = append(fields, r.load.fields()...)
 	}
 	return fields
 }

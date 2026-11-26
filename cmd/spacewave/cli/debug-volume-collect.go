@@ -9,6 +9,7 @@ import (
 
 	"github.com/aperturerobotics/cli"
 	"github.com/pkg/errors"
+	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/sirupsen/logrus"
@@ -20,6 +21,8 @@ type debugVolumeCollectArgs struct {
 	frees bool
 	// grace is the collector's grace period, empty for its default.
 	grace string
+	// load is the writer run beside the passes.
+	load volumeLoadOpts
 	// upgrade decides whether the open upgrades the volume's format.
 	upgrade *FormatUpgrade
 }
@@ -37,11 +40,23 @@ func (a *debugVolumeCollectArgs) BuildFlags() []cli.Flag {
 			Usage:       "how long a block waits at zero before a pass frees it, such as 15m; empty uses the collector's default",
 			Destination: &a.grace,
 		},
+		&cli.Float64Flag{
+			Name:        "load-rate",
+			Usage:       "commits per second of the writer --load-for runs",
+			Value:       12,
+			Destination: &a.load.rate,
+		},
+		&cli.DurationFlag{
+			Name:        "load-for",
+			Usage:       "run a writer beside the passes for this long, such as 10m, and print its commit latencies",
+			Destination: &a.load.window,
+		},
 	}, a.upgrade.BuildFlags()...)
 }
 
-// Run collects the stopped volume until a pass leaves no work and prints the
-// totals and why an Open generation did not flip.
+// Run collects the stopped volume until a pass leaves no work, or under a
+// writer until its window ends, and prints the totals and why an Open
+// generation did not flip.
 func (a *debugVolumeCollectArgs) Run(c *cli.Context) error {
 	// Collect the volume at the argument's path.
 	if c.NArg() != 1 {
@@ -56,7 +71,7 @@ func (a *debugVolumeCollectArgs) Run(c *cli.Context) error {
 
 	// Turning frees on recounts the Volume.
 	conf := a.upgrade.StoreConfig(&store_kvtx.Config{CollectorFrees: a.frees, CollectorGraceDur: a.grace})
-	rep, err := collectVolume(c.Context, logrus.NewEntry(logrus.New()), path, conf)
+	rep, err := collectVolume(c.Context, logrus.NewEntry(logrus.New()), path, conf, a.load)
 
 	// Print the totals, including those a failed pass left.
 	writeFields(os.Stdout, rep.fields())
@@ -64,9 +79,10 @@ func (a *debugVolumeCollectArgs) Run(c *cli.Context) error {
 }
 
 // collectVolume runs collection passes on the stopped volume at path until
-// one leaves no work, and reports what they did and what the settle's flip
-// checks found after them.
-func collectVolume(ctx context.Context, le *logrus.Entry, path string, conf *store_kvtx.Config) (*collectReport, error) {
+// one leaves no work or, when load has a window, beside a writer until the
+// window ends, and reports what they did and what the settle's flip checks
+// found after them.
+func collectVolume(ctx context.Context, le *logrus.Entry, path string, conf *store_kvtx.Config, load volumeLoadOpts) (*collectReport, error) {
 	// Open the stopped volume with the collector's configuration.
 	rep := newCollectReport(path, conf)
 	vol, err := openStoppedVolumeStore(ctx, le, path, volumeWritable, conf)
@@ -86,8 +102,13 @@ func collectVolume(ctx context.Context, le *logrus.Entry, path string, conf *sto
 		}
 	}
 
-	// Collect, then read what the flip's checks find.
-	err = rep.collectToEnd(ctx, vol)
+	// Collect, under the writer when it has a window, then read what the
+	// flip's checks find.
+	if load.window > 0 {
+		err = rep.collectUnderLoad(ctx, vol, load)
+	} else {
+		err = rep.collectToEnd(ctx, vol)
+	}
 	if statusErr := rep.readStatus(ctx, vol); err == nil {
 		err = statusErr
 	}
@@ -105,6 +126,55 @@ func (r *collectReport) collectToEnd(ctx context.Context, vol *volume_s4db.Volum
 	}
 }
 
+// collectUnderLoad runs a writer on vol as load sets, and passes beside it in
+// the same process until its window ends, each pass after one that left no
+// work waiting for the writer's next commit. It then releases the writer's
+// scratch root.
+func (r *collectReport) collectUnderLoad(ctx context.Context, vol *volume_s4db.Volume, load volumeLoadOpts) error {
+	// Start the writer, which ends the window early if a commit fails.
+	w, err := newVolumeLoad(ctx, vol, load.rate)
+	if err != nil {
+		return err
+	}
+	r.load = w
+	windowCtx, cancel := context.WithTimeout(ctx, load.window)
+	defer cancel()
+	kick := make(chan struct{}, 1)
+	loadErr := make(chan error, 1)
+	go func() {
+		err := w.run(windowCtx, kick)
+		if err != nil {
+			cancel()
+		}
+		loadErr <- err
+	}()
+
+	// Collect until the window ends.
+	var passErr error
+	for passErr == nil && windowCtx.Err() == nil {
+		var res block_gc.CollectResult
+		res, passErr = vol.Collect(ctx)
+		r.add(res)
+		if passErr == nil && !res.More {
+			select {
+			case <-windowCtx.Done():
+			case <-kick:
+			}
+		}
+	}
+
+	// Stop the writer, then release its scratch root.
+	cancel()
+	err = <-loadErr
+	if err == nil {
+		err = passErr
+	}
+	if releaseErr := w.release(ctx); err == nil {
+		err = releaseErr
+	}
+	return err
+}
+
 // newDebugVolumeCollectCommand returns the offline collection command.
 func newDebugVolumeCollectCommand(upgrade *FormatUpgrade) *cli.Command {
 	args := &debugVolumeCollectArgs{upgrade: upgrade}
@@ -116,7 +186,9 @@ func newDebugVolumeCollectCommand(upgrade *FormatUpgrade) *cli.Command {
 			"left, and prints the totals. Without --frees the passes release lapsed leases and net the logs and free " +
 			"nothing. With --frees the volume is first counted again, as turning frees on requires, and then frees what " +
 			"lost its last holder; this deletes blocks, so run it on a copy for a rehearsal, and compare a volume-audit " +
-			"before and after. While the volume's old generation is Open it then prints what the settle's flip still " +
+			"before and after. With --load-for, a writer in the same process commits a tree of eight 3,200-byte " +
+			"leaves and a parent under a scratch root --load-rate times a second while the passes run, prints each " +
+			"commit's latency distribution, and releases the root at the end. While the volume's old generation is Open it then prints what the settle's flip still " +
 			"waits on: the clause of the free check that fails, a list rewrite owing a recount, the unmarked run, the " +
 			"front and the recorded holes with a sample of each, and a ripe block queued to free. Run it only on a " +
 			"stopped volume.",

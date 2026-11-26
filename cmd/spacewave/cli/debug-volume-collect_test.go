@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/s4wave/spacewave/db/block"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
@@ -17,7 +18,9 @@ import (
 // TestDebugVolumeCollect replaces a bucket head on a fresh volume, then checks
 // that collection without frees keeps the replaced head and that collection
 // with frees deletes it and keeps the live head, and that volume-state reads
-// the stored frees switch each left without changing the file.
+// the stored frees switch each left without changing the file. It then runs
+// the writer beside passes with frees and checks that it committed, released
+// its scratch root, and left the live head stored.
 func TestDebugVolumeCollect(t *testing.T) {
 	// Write a head and replace it, so the first head is garbage.
 	ctx := t.Context()
@@ -82,7 +85,7 @@ func TestDebugVolumeCollect(t *testing.T) {
 	}
 
 	// Without frees the passes net the logs and delete nothing.
-	rep, err := collectVolume(ctx, le, path, &store_kvtx.Config{CollectorGraceDur: "1ns"})
+	rep, err := collectVolume(ctx, le, path, &store_kvtx.Config{CollectorGraceDur: "1ns"}, volumeLoadOpts{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +100,7 @@ func TestDebugVolumeCollect(t *testing.T) {
 	}
 
 	// With frees the replaced head goes and the live head stays.
-	rep, err = collectVolume(ctx, le, path, &store_kvtx.Config{CollectorFrees: true, CollectorGraceDur: "1ns"})
+	rep, err = collectVolume(ctx, le, path, &store_kvtx.Config{CollectorFrees: true, CollectorGraceDur: "1ns"}, volumeLoadOpts{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,5 +112,30 @@ func TestDebugVolumeCollect(t *testing.T) {
 	}
 	if !frees() {
 		t.Fatal("state reads frees off after a collection with frees")
+	}
+
+	// A writer beside the passes commits, then releases its scratch root.
+	load := volumeLoadOpts{rate: 50, window: 300 * time.Millisecond}
+	rep, err = collectVolume(ctx, le, path, &store_kvtx.Config{CollectorFrees: true, CollectorGraceDur: "1ns"}, load)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep.load == nil || len(rep.load.latencies) == 0 {
+		t.Fatalf("the writer committed nothing: %+v", rep.load)
+	}
+	if _, liveOK := stored(); !liveOK {
+		t.Fatal("the live head is gone after the load")
+	}
+	vol, err = openStoppedVolume(ctx, le, path, volumeReadOnly)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer vol.Close()
+	head, err := vol.GetBucketRoot(ctx, volumeLoadBucket, volumeLoadRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if head != nil {
+		t.Fatalf("the load's scratch root still holds %s", head.MarshalString())
 	}
 }
