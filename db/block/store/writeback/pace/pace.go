@@ -2,7 +2,7 @@ package pace
 
 import (
 	"context"
-	"math"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -32,14 +32,20 @@ type Pace struct {
 	stats func() (Stats, bool)
 	// paused holds every pass until it ends.
 	paused bool
-	// rate caps the bytes evicted a second, zero for no cap, as float64
-	// bits; SetBytesPerSecond changes it while passes run.
-	rate atomic.Uint64
+	// rateMtx guards rate and rateSet.
+	rateMtx sync.Mutex
+	// rate caps the bytes evicted a second, zero for no cap;
+	// SetBytesPerSecond changes it while passes run.
+	rate float64
+	// rateSet is closed and replaced when the rate changes, waking a batch
+	// spacing itself by the old rate.
+	rateSet chan struct{}
 	// flushMax is the mean flush time past which a batch waits, zero to
 	// never wait on flushes; SetFlushMax changes it while passes run.
 	flushMax atomic.Int64
-	// sleep waits d or until ctx ends.
-	sleep func(ctx context.Context, d time.Duration) error
+	// sleep waits d, until wake closes, or until ctx ends, and reports
+	// whether wake ended it. A nil wake never closes.
+	sleep func(ctx context.Context, d time.Duration, wake <-chan struct{}) (bool, error)
 
 	mtx csync.Mutex
 	// last is when the last batch was admitted.
@@ -55,16 +61,31 @@ type Pace struct {
 // New constructs an optional policy for a store's EvictAdmit hook. The
 // policy delays work only; it never changes which blocks may be removed.
 func New(le *logrus.Entry, stats func() (Stats, bool), config Config) *Pace {
-	p := &Pace{le: le, stats: stats, paused: config.Paused, sleep: sleepCtx}
+	p := &Pace{le: le, stats: stats, paused: config.Paused, sleep: sleepCtx, rateSet: make(chan struct{})}
 	p.SetBytesPerSecond(config.BytesPerSecond)
 	p.SetFlushMax(config.FlushMax)
 	return p
 }
 
 // SetBytesPerSecond sets the cap on the bytes evicted a second, zero or less
-// for no cap. The next batch admitted spaces itself by the new cap.
+// for no cap. A batch already waiting on the old cap recomputes its wait from
+// the new one, so lifting a near-zero cap releases it at once.
 func (p *Pace) SetBytesPerSecond(rate float64) {
-	p.rate.Store(math.Float64bits(max(rate, 0)))
+	// Store the cap and wake every batch waiting on the old one.
+	p.rateMtx.Lock()
+	defer p.rateMtx.Unlock()
+	p.rate = max(rate, 0)
+	if p.rateSet != nil {
+		close(p.rateSet)
+	}
+	p.rateSet = make(chan struct{})
+}
+
+// currentRate returns the rate cap and the channel its next change closes.
+func (p *Pace) currentRate() (float64, <-chan struct{}) {
+	p.rateMtx.Lock()
+	defer p.rateMtx.Unlock()
+	return p.rate, p.rateSet
 }
 
 // SetFlushMax sets the mean flush time past which a batch backs off, zero or
@@ -91,20 +112,31 @@ func (p *Pace) Admit(ctx context.Context, lastBytes int64) error {
 	defer release()
 	start := time.Now()
 
-	// Space batches to the rate cap.
-	if rate := math.Float64frombits(p.rate.Load()); rate > 0 && lastBytes > 0 && !p.last.IsZero() {
+	// Space batches to the rate cap, recomputing the due time from the last
+	// admission whenever the cap changes during the wait.
+	for lastBytes > 0 && !p.last.IsZero() {
+		rate, changed := p.currentRate()
+		if rate == 0 {
+			break
+		}
 		due := p.last.Add(time.Duration(float64(lastBytes) / rate * float64(time.Second)))
-		if wait := time.Until(due); wait > 0 {
-			if err := p.sleep(ctx, wait); err != nil {
-				return err
-			}
+		wait := time.Until(due)
+		if wait <= 0 {
+			break
+		}
+		woken, err := p.sleep(ctx, wait, changed)
+		if err != nil {
+			return err
+		}
+		if !woken {
+			break
 		}
 	}
 
 	// Back off while flushes run slow, up to evictBackoffMax.
 	step := evictBackoffStep
 	for waited := time.Duration(0); waited < evictBackoffMax && p.slow(); {
-		if err := p.sleep(ctx, step); err != nil {
+		if _, err := p.sleep(ctx, step, nil); err != nil {
 			return err
 		}
 		waited += step
@@ -154,14 +186,17 @@ func (p *Pace) slow() bool {
 	return float64(st.FlushTime-prev.FlushTime)/float64(flushes) > float64(flushMax)
 }
 
-// sleepCtx waits d or until ctx ends.
-func sleepCtx(ctx context.Context, d time.Duration) error {
+// sleepCtx waits d, until wake closes, or until ctx ends, and reports whether
+// wake ended it.
+func sleepCtx(ctx context.Context, d time.Duration, wake <-chan struct{}) (bool, error) {
 	t := time.NewTimer(d)
 	defer t.Stop()
 	select {
 	case <-ctx.Done():
-		return context.Cause(ctx)
+		return false, context.Cause(ctx)
+	case <-wake:
+		return true, nil
 	case <-t.C:
-		return nil
+		return false, nil
 	}
 }
