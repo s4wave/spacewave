@@ -24,11 +24,8 @@ func TestParticipantAuthenticationRequiresExplicitAdmission(t *testing.T) {
 	defer cancel()
 	const soID = "authentication-admission"
 	owner, reader := mustKeyPair(t), mustKeyPair(t)
-	local := newAuthenticationPeer(t, soID, owner, authenticationState(t, soID, owner, reader))
 	admissions := make(chan bool, 1)
-
-	// func.
-	local.peerAdmission = func(_ peer.ID, accepted bool) { admissions <- accepted }
+	local := newObservedPeer(t, soID, owner, authenticationState(t, soID, owner, reader), admissionObserver(func(_ peer.ID, accepted bool) { admissions <- accepted }))
 	left, right := net.Pipe()
 	t.Cleanup(func() { left.Close(); right.Close() })
 	done := make(chan error, 1)
@@ -95,8 +92,14 @@ func (s *authenticationStream) Write(data []byte) (int, error) {
 
 // newAuthenticationPeer creates a host with a locally held shared checkpoint.
 func newAuthenticationPeer(t *testing.T, soID string, key crypto.PrivKey, state *sobject.SOState) *SOSync {
+	t.Helper()
+	return newObservedPeer(t, soID, key, state, nopPeerObserver{})
+}
 
-	// helper.
+// newObservedPeer creates a host with a locally held shared checkpoint whose
+// sync reports its peer events to observer.
+func newObservedPeer(t *testing.T, soID string, key crypto.PrivKey, state *sobject.SOState, observer PeerObserver) *SOSync {
+	// Derive the participant identity and its host.
 	t.Helper()
 	id, err := peer.IDFromPrivateKey(key)
 	if err != nil {
@@ -104,7 +107,7 @@ func newAuthenticationPeer(t *testing.T, soID string, key crypto.PrivKey, state 
 	}
 	host, _ := newMemHost(soID, state.CloneVT())
 	t.Cleanup(host.ClearContext)
-	return NewSOSync(gateLogger(), nil, soID, id, key, host, nil)
+	return NewSOSync(gateLogger(), nil, soID, id, key, host, observer)
 }
 
 // authenticationState establishes the trusted participants before the stream exists.
@@ -189,18 +192,14 @@ func TestParticipantAuthenticationDeniesBeforeDisclosure(t *testing.T) {
 			if test.outsider {
 				remoteKey = mustKeyPair(t)
 			}
-			local := newAuthenticationPeer(t, soID, owner, state)
-			remote := newAuthenticationPeer(t, soID, remoteKey, state)
 			localHealth := sobject.NewSharedObjectReadyHealth(sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT)
 			remoteHealth := localHealth.CloneVT()
-			local.peerAdmission = func(remoteID peer.ID, accepted bool) {
+			local := newObservedPeer(t, soID, owner, state, admissionObserver(func(remoteID peer.ID, accepted bool) {
 				localHealth = localHealth.WithSyncPeerAdmission(remoteID.String(), accepted)
-			}
-
-			// func.
-			remote.peerAdmission = func(remoteID peer.ID, accepted bool) {
+			}))
+			remote := newObservedPeer(t, soID, remoteKey, state, admissionObserver(func(remoteID peer.ID, accepted bool) {
 				remoteHealth = remoteHealth.WithSyncPeerAdmission(remoteID.String(), accepted)
-			}
+			}))
 			if test.removed {
 				removed, err := sobject.RemoveSOParticipant(ctx, local.soHost, remote.localObjectPeerID.String(), owner, nil)
 				if err != nil || !removed {
@@ -269,14 +268,13 @@ func TestParticipantRevocationNotifiesConnectedPeer(t *testing.T) {
 
 	// authenticationState state.
 	state := authenticationState(t, soID, owner, reader)
-	local := newAuthenticationPeer(t, soID, owner, state)
-	remote := newAuthenticationPeer(t, soID, reader, state)
 	denied := make(chan peer.ID, 1)
-	remote.peerAdmission = func(remoteID peer.ID, accepted bool) {
+	local := newAuthenticationPeer(t, soID, owner, state)
+	remote := newObservedPeer(t, soID, reader, state, admissionObserver(func(remoteID peer.ID, accepted bool) {
 		if !accepted {
 			denied <- remoteID
 		}
-	}
+	}))
 
 	// Start the real paired exchange and remove access once object traffic has begun.
 	left, right := net.Pipe()
@@ -433,3 +431,34 @@ func TestParticipantAuthenticationRejectsPrematureData(t *testing.T) {
 		})
 	}
 }
+
+// admissionObserver forwards each admission response to the function and
+// ignores the other peer events.
+type admissionObserver func(remoteID peer.ID, accepted bool)
+
+// PeerAdmission forwards the response.
+func (o admissionObserver) PeerAdmission(remoteID peer.ID, accepted bool) { o(remoteID, accepted) }
+
+// PeerRecovery ignores the recovery requirement.
+func (admissionObserver) PeerRecovery(peer.ID, bool) {}
+
+// PeerConnection ignores the stream transition.
+func (admissionObserver) PeerConnection(peer.ID, bool, error) {}
+
+// PeerState ignores the advertised digest.
+func (admissionObserver) PeerState(peer.ID, []byte) {}
+
+// nopPeerObserver ignores every peer event. Embed it to observe a subset.
+type nopPeerObserver struct{}
+
+// PeerAdmission ignores the admission response.
+func (nopPeerObserver) PeerAdmission(peer.ID, bool) {}
+
+// PeerRecovery ignores the recovery requirement.
+func (nopPeerObserver) PeerRecovery(peer.ID, bool) {}
+
+// PeerConnection ignores the stream transition.
+func (nopPeerObserver) PeerConnection(peer.ID, bool, error) {}
+
+// PeerState ignores the advertised digest.
+func (nopPeerObserver) PeerState(peer.ID, []byte) {}

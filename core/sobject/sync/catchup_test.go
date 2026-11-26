@@ -261,10 +261,9 @@ func TestUnverifiableCatchupRequiresRecovery(t *testing.T) {
 			}
 
 			// The owner reports each recovery decision for its peer.
-			local := newAuthenticationPeer(t, soID, owner, initial)
-			remote := newAuthenticationPeer(t, soID, reader, initial)
 			recovery := make(chan bool, 1)
-			local.SetPeerRecoveryObserver(func(_ peer.ID, needed bool) { recovery <- needed })
+			local := newObservedPeer(t, soID, owner, initial, recoveryRecorder{recovery: recovery})
+			remote := newAuthenticationPeer(t, soID, reader, initial)
 			left, right := net.Pipe()
 			t.Cleanup(func() { left.Close(); right.Close() })
 			done := make(chan error, 1)
@@ -363,7 +362,7 @@ func testConcurrentOwnerBranchesMerge(t *testing.T, count, padding int) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		return NewSOSync(gateLogger(), nil, soID, id, key, host, nil)
+		return NewSOSync(gateLogger(), nil, soID, id, key, host, nopPeerObserver{})
 	}
 	a, b := newPeer(ownerA), newPeer(ownerB)
 
@@ -570,4 +569,15 @@ func TestCatchupSendsOnlyMissingRecords(t *testing.T) {
 	if slices.Equal(swapped, records) {
 		t.Fatal("a swapped held op rebuilt the advertised list")
 	}
+}
+
+// recoveryRecorder sends each recovery decision to recovery.
+type recoveryRecorder struct {
+	nopPeerObserver
+	recovery chan<- bool
+}
+
+// PeerRecovery records the decision.
+func (r recoveryRecorder) PeerRecovery(_ peer.ID, required bool) {
+	r.recovery <- required
 }

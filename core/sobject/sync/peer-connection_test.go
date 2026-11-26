@@ -28,12 +28,9 @@ func TestPeerConnectionReportsStreamGap(t *testing.T) {
 	const soID = "peer-connection-gap"
 	owner, reader := mustKeyPair(t), mustKeyPair(t)
 	initial := authenticationState(t, soID, owner, reader)
-	local := newAuthenticationPeer(t, soID, owner, initial)
-	remote := newAuthenticationPeer(t, soID, reader, initial)
 	events := make(chan peerConnectionEvent, 4)
-	local.SetPeerConnectionObserver(func(remoteID peer.ID, connected bool, err error) {
-		events <- peerConnectionEvent{remoteID, connected, err}
-	})
+	local := newObservedPeer(t, soID, owner, initial, connectionRecorder{events: events})
+	remote := newAuthenticationPeer(t, soID, reader, initial)
 	states, release, err := remote.soHost.GetSOStateCtr(ctx, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -128,4 +125,15 @@ func TestPeerConnectionReportsStreamGap(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("no report after cancel")
 	}
+}
+
+// connectionRecorder sends each stream transition to events.
+type connectionRecorder struct {
+	nopPeerObserver
+	events chan<- peerConnectionEvent
+}
+
+// PeerConnection records the transition.
+func (r connectionRecorder) PeerConnection(remoteID peer.ID, connected bool, err error) {
+	r.events <- peerConnectionEvent{remoteID, connected, err}
 }

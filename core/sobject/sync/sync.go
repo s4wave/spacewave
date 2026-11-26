@@ -62,19 +62,82 @@ type SOSync struct {
 	soHost *sobject.SOHost
 	// validateSnapshotAccess checks local decryption before acceptance.
 	validateSnapshotAccess SnapshotAccessValidator
-	// peerAdmission reports a locally permitted participant's explicit admission
-	// response.
-	peerAdmission func(peer.ID, bool)
-	// peerRecovery reports trusted recovery requirements independently of admission.
-	peerRecovery func(peer.ID, bool)
-	// peerConnection reports each authenticated stream's start and end.
-	peerConnection func(peer.ID, bool, error)
-	// peerState reports a sync digest of a state a peer holds.
-	peerState func(peer.ID, []byte)
+	// observer receives the per-peer events; fixed at construction.
+	observer PeerObserver
 	// failures remembers the last logged stream failure of each peer.
 	failures syncFailures
 	// digest memoizes the digest of the latest watched state for every stream.
 	digest stateDigest
+}
+
+// PeerObserver receives the per-peer events of one SOSync.
+//
+// NewSOSync takes the observer, so it is fixed for the syncer's lifetime.
+// Calls can come from concurrent peer streams, so every method must be safe
+// for concurrent use and return promptly.
+type PeerObserver interface {
+	// PeerAdmission reports an explicit admission response from a peer that
+	// local authority permits. A denial describes that source's response, not
+	// a local membership change.
+	PeerAdmission(remoteID peer.ID, accepted bool)
+	// PeerRecovery reports whether a trusted peer requires source recovery,
+	// independently of admission.
+	PeerRecovery(remoteID peer.ID, required bool)
+	// PeerConnection reports connected once a participant authenticates, then
+	// not connected with the error that ended the stream.
+	PeerConnection(remoteID peer.ID, connected bool, err error)
+	// PeerState reports the StateHash digest of each state the peer advertises
+	// as its own. A digest is the peer's claim, not authority: use it only to
+	// delay local work, never to admit anything. stateHash is owned by the
+	// observer.
+	PeerState(remoteID peer.ID, stateHash []byte)
+}
+
+// HealthObserver records admission, recovery and connection events in a
+// SharedObjectHealth snapshot through the swap function the observer is.
+// The swap must apply fn atomically to the current snapshot. PeerState is
+// ignored; wrap the observer to handle it.
+type HealthObserver func(fn func(*sobject.SharedObjectHealth) *sobject.SharedObjectHealth)
+
+// PeerAdmission records the peer's admission response.
+func (o HealthObserver) PeerAdmission(remoteID peer.ID, accepted bool) {
+	o(func(h *sobject.SharedObjectHealth) *sobject.SharedObjectHealth {
+		return h.WithSyncPeerAdmission(remoteID.String(), accepted)
+	})
+}
+
+// PeerRecovery records whether the peer requires source recovery.
+func (o HealthObserver) PeerRecovery(remoteID peer.ID, required bool) {
+	o(func(h *sobject.SharedObjectHealth) *sobject.SharedObjectHealth {
+		return h.WithSyncPeerRecovery(remoteID.String(), required)
+	})
+}
+
+// PeerConnection records the stream transition at the current time.
+func (o HealthObserver) PeerConnection(remoteID peer.ID, connected bool, err error) {
+	o(func(h *sobject.SharedObjectHealth) *sobject.SharedObjectHealth {
+		return h.WithSyncPeerConnection(remoteID.String(), connected, err, time.Now())
+	})
+}
+
+// PeerState ignores the advertised digest.
+func (HealthObserver) PeerState(peer.ID, []byte) {}
+
+// WithPeerState returns observer with its PeerState events sent to fn instead.
+func WithPeerState(observer PeerObserver, fn func(remoteID peer.ID, stateHash []byte)) PeerObserver {
+	return peerStateObserver{PeerObserver: observer, state: fn}
+}
+
+// peerStateObserver overrides the PeerState events of an observer.
+type peerStateObserver struct {
+	PeerObserver
+	// state receives each advertised digest.
+	state func(peer.ID, []byte)
+}
+
+// PeerState sends the advertised digest to state.
+func (o peerStateObserver) PeerState(remoteID peer.ID, stateHash []byte) {
+	o.state(remoteID, stateHash)
 }
 
 // solicitationGeneration owns the workers admitted by one solicitation
@@ -96,9 +159,8 @@ type solicitationGeneration struct {
 // state. The transport peer routes the sync stream but need not be a Space
 // participant. localObjectKey must belong to localObjectPeerID and remains
 // available for the SOSync lifetime. Authentication rejects a mismatched key.
-// peerAdmission, when non-nil, observes explicit responses from peers permitted
-// by local authority. Calls may be concurrent and must return promptly. A remote
-// denial describes that source's response, not a local membership change.
+// observer receives the per-peer events for the SOSync lifetime and must not be
+// nil.
 func NewSOSync(
 	le *logrus.Entry,
 	b bus.Bus,
@@ -106,7 +168,7 @@ func NewSOSync(
 	localObjectPeerID peer.ID,
 	localObjectKey crypto.PrivKey,
 	soHost *sobject.SOHost,
-	peerAdmission func(peer.ID, bool),
+	observer PeerObserver,
 	accessValidators ...SnapshotAccessValidator,
 ) *SOSync {
 	// Select the optional inbound-snapshot authority check.
@@ -124,32 +186,8 @@ func NewSOSync(
 		localObjectKey:         localObjectKey,
 		soHost:                 soHost,
 		validateSnapshotAccess: validateSnapshotAccess,
-		peerAdmission:          peerAdmission,
+		observer:               observer,
 	}
-}
-
-// SetPeerRecoveryObserver configures source-recovery observation before Execute
-// starts. The observer must return promptly; calls can come from concurrent peer
-// streams.
-func (s *SOSync) SetPeerRecoveryObserver(observer func(peer.ID, bool)) {
-	s.peerRecovery = observer
-}
-
-// SetPeerConnectionObserver configures stream observation before Execute
-// starts. The observer sees connected once a participant authenticates, then
-// not connected with the error that ended the stream. It must return promptly;
-// calls can come from concurrent peer streams.
-func (s *SOSync) SetPeerConnectionObserver(observer func(remoteID peer.ID, connected bool, err error)) {
-	s.peerConnection = observer
-}
-
-// SetPeerStateObserver configures held-state observation before Execute
-// starts. The observer sees the StateHash digest of each state the remote
-// peer advertises as its own. A digest is the peer's claim, not authority:
-// use it only to delay local work, never to admit anything. The observer must
-// return promptly; calls can come from concurrent peer streams.
-func (s *SOSync) SetPeerStateObserver(observer func(remoteID peer.ID, stateHash []byte)) {
-	s.peerState = observer
 }
 
 // Execute runs the SO sync, emitting a SolicitProtocol directive and
@@ -493,8 +531,8 @@ func (s *SOSync) runStream(
 	}
 	remoteID, err := s.authenticate(ctx, stream_packet.NewSession(strm, authMessageSize), localTransport, remoteTransport)
 	defer func() {
-		if remoteID != "" && errors.Is(rerr, sobject.ErrConfigHistoryUnavailable) && s.peerRecovery != nil {
-			s.peerRecovery(remoteID, true)
+		if remoteID != "" && errors.Is(rerr, sobject.ErrConfigHistoryUnavailable) {
+			s.observer.PeerRecovery(remoteID, true)
 		}
 	}()
 	if err != nil {
@@ -506,10 +544,8 @@ func (s *SOSync) runStream(
 	}
 
 	// Report the authenticated stream until it ends.
-	if s.peerConnection != nil {
-		s.peerConnection(remoteID, true, nil)
-		defer func() { s.peerConnection(remoteID, false, rerr) }()
-	}
+	s.observer.PeerConnection(remoteID, true, nil)
+	defer func() { s.observer.PeerConnection(remoteID, false, rerr) }()
 	if err := strm.SetDeadline(time.Time{}); err != nil {
 		return err
 	}
@@ -578,3 +614,9 @@ func (s *SOSync) watchAuthority(ctx context.Context, strm stream.Stream, sess *s
 func sendAccessDenied(sess *stream_packet.Session) error {
 	return sess.SendMsg(&SOSyncMessage{Body: &SOSyncMessage_Authorization{Authorization: &SOSyncAuthorization{}}})
 }
+
+// _ is a type assertion.
+var (
+	_ PeerObserver = HealthObserver(nil)
+	_ PeerObserver = peerStateObserver{}
+)

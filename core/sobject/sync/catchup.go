@@ -74,8 +74,8 @@ type syncIncoming struct {
 
 // handleDenial reports a peer's explicit rejection and ends the exchange.
 func (s *SOSync) handleDenial(remoteID peer.ID, authorization *SOSyncAuthorization) error {
-	if !authorization.GetAccepted() && s.peerAdmission != nil {
-		s.peerAdmission(remoteID, false)
+	if !authorization.GetAccepted() {
+		s.observer.PeerAdmission(remoteID, false)
 	}
 	return ErrAccessDenied
 }
@@ -353,15 +353,13 @@ func (x *syncExchange) receive(ctx context.Context, le *logrus.Entry, current *s
 			return errors.New("invalid or overlapping sync head")
 		}
 		x.remoteRevision = head.GetRevision()
-		if x.sync.peerState != nil {
-			x.sync.peerState(x.remoteID, bytes.Clone(head.GetStateHash()))
-		}
+		x.sync.observer.PeerState(x.remoteID, bytes.Clone(head.GetStateHash()))
 		digest, err := x.sync.digest.get(current)
 		if err != nil {
 			return err
 		}
-		if bytes.Equal(head.GetStateHash(), digest) && x.sync.peerRecovery != nil {
-			x.sync.peerRecovery(x.remoteID, false)
+		if bytes.Equal(head.GetStateHash(), digest) {
+			x.sync.observer.PeerRecovery(x.remoteID, false)
 		}
 		// Decline an equal state, or one behind the held config. A peer behind
 		// the config first catches up from this side, then advertises its merged
@@ -432,8 +430,8 @@ func (x *syncExchange) receive(ctx context.Context, le *logrus.Entry, current *s
 		}
 
 		// Acknowledge the accepted snapshot and clear the pinned receive.
-		if x.sync.peerRecovery != nil && !x.sync.responseObsolete(ctx, x.receiving.head) {
-			x.sync.peerRecovery(x.remoteID, false)
+		if !x.sync.responseObsolete(ctx, x.receiving.head) {
+			x.sync.observer.PeerRecovery(x.remoteID, false)
 		}
 		x.control = syncAcknowledgment(x.receiving.head.GetRevision())
 		x.receiving = nil

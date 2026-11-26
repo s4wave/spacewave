@@ -99,8 +99,8 @@ func (s *SOSync) authenticate(ctx context.Context, sess *stream_packet.Session, 
 	if authorization == nil {
 		return "", errors.New("expected synchronization admission response")
 	}
-	if accepted && s.peerAdmission != nil {
-		s.peerAdmission(remoteID, authorization.GetAccepted())
+	if accepted {
+		s.observer.PeerAdmission(remoteID, authorization.GetAccepted())
 	}
 
 	// A participant that refused admission this side granted may hold a

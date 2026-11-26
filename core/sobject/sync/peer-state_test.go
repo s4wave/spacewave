@@ -21,19 +21,13 @@ func TestPeerStateReportsAdoptedState(t *testing.T) {
 	const soID = "peer-state-adopted"
 	owner, reader := mustKeyPair(t), mustKeyPair(t)
 	initial := authenticationState(t, soID, owner, reader)
-	local := newAuthenticationPeer(t, soID, owner, initial)
-	remote := newAuthenticationPeer(t, soID, reader, initial)
 	readerID, err := peer.IDFromPrivateKey(reader)
 	if err != nil {
 		t.Fatal(err)
 	}
 	reported := make(chan []byte, 16)
-	local.SetPeerStateObserver(func(remoteID peer.ID, stateHash []byte) {
-		if remoteID != readerID {
-			t.Errorf("state reported for %s, want %s", remoteID, readerID)
-		}
-		reported <- stateHash
-	})
+	local := newObservedPeer(t, soID, owner, initial, stateRecorder{t: t, want: readerID, reported: reported})
+	remote := newAuthenticationPeer(t, soID, reader, initial)
 
 	// The owner writes while the reader is offline.
 	if err := local.soHost.UpdateSOState(ctx, func(state *sobject.SOState) error {
@@ -81,4 +75,21 @@ func TestPeerStateReportsAdoptedState(t *testing.T) {
 			t.Fatal("reader never reported holding the owner's state")
 		}
 	}
+}
+
+// stateRecorder sends each digest want advertises to reported and fails the
+// test for a digest from any other peer.
+type stateRecorder struct {
+	nopPeerObserver
+	t        *testing.T
+	want     peer.ID
+	reported chan<- []byte
+}
+
+// PeerState records the advertised digest.
+func (r stateRecorder) PeerState(remoteID peer.ID, stateHash []byte) {
+	if remoteID != r.want {
+		r.t.Errorf("state reported for %s, want %s", remoteID, r.want)
+	}
+	r.reported <- stateHash
 }

@@ -309,13 +309,15 @@ func leanSyncHandshake(t *testing.T, seed uint64, variant int, keys []crypto.Pri
 		state.Config.Participants = append(state.Config.Participants, participantCfg(mustPeerIDStr(t, keys[1]), sobject.SOParticipantRole_SOParticipantRole_UNKNOWN))
 	}
 
-	// Install adversarial held values after the initial signed checkpoint was built.
-	sync := newAuthenticationPeer(t, objectID, keys[0], state)
+	// Observe admission; variant 21 ignores it, the model's observer=false.
 	var notification *bool
-	sync.peerAdmission = func(_ peer.ID, accepted bool) { notification = &accepted }
+	var observer PeerObserver = admissionObserver(func(_ peer.ID, accepted bool) { notification = &accepted })
 	if variant == 21 {
-		sync.peerAdmission = nil
+		observer = nopPeerObserver{}
 	}
+	sync := newObservedPeer(t, objectID, keys[0], state, observer)
+
+	// Install adversarial held values after the initial signed checkpoint was built.
 	if variant == 1 {
 		sync.localObjectKey = nil
 	}
@@ -503,7 +505,7 @@ func leanSyncHandshake(t *testing.T, seed uint64, variant int, keys []crypto.Pri
 
 	// Set via input.
 	input.Set("remoteAuthorization", remoteAuthorization)
-	input.Set("observer", leanSyncBool(&arena, sync.peerAdmission != nil))
+	input.Set("observer", leanSyncBool(&arena, variant != 21))
 	request, expected, result := arena.NewObject(), arena.NewObject(), arena.NewObject()
 	request.Set("op", arena.NewString("authenticateSync"))
 

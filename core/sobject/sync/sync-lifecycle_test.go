@@ -104,7 +104,7 @@ func TestSOSyncExecuteRearmsRecoverableFailuresOnly(t *testing.T) {
 
 				// Run the production Execute loop and wait until all retry timers and
 				// directive callbacks have settled.
-				syncer := NewSOSync(le, b, "test-object", "", nil, nil, nil)
+				syncer := NewSOSync(le, b, "test-object", "", nil, nil, nopPeerObserver{})
 				errCh := make(chan error, 1)
 				go func() {
 					errCh <- syncer.Execute(ctx)
@@ -207,7 +207,7 @@ func TestLogStreamResultReportsEachFailureChange(t *testing.T) {
 	log, hook := logtest.NewNullLogger()
 	log.SetLevel(logrus.InfoLevel)
 	le := logrus.NewEntry(log)
-	syncer := NewSOSync(le, nil, "test-object", "", nil, nil, nil)
+	syncer := NewSOSync(le, nil, "test-object", "", nil, nil, nopPeerObserver{})
 
 	// A terminal failure warns on its first stream and stays quiet after.
 	blocked := errors.Wrap(sobject.ErrStateTooLarge, "12582912 bytes")

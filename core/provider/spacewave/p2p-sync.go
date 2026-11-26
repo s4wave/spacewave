@@ -3,7 +3,6 @@ package provider_spacewave
 import (
 	"bytes"
 	"context"
-	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -314,25 +313,13 @@ func (a *ProviderAccount) runP2PSpace(ctx context.Context, childBus bus.Bus, sta
 		_, err := snapshot.GetCheckpoint(ctx)
 		return err
 	}
+	health := sobject_sync.HealthObserver(func(fn func(*sobject.SharedObjectHealth) *sobject.SharedObjectHealth) {
+		swSO.tkr.healthCtr.SwapValue(fn)
+	})
 	syncer := sobject_sync.NewSOSync(
 		a.le, childBus, key.id, swSO.localPid, swSO.privKey, swSO.GetSOHost(),
-		func(remoteID peer.ID, accepted bool) {
-			swSO.tkr.healthCtr.SwapValue(func(health *sobject.SharedObjectHealth) *sobject.SharedObjectHealth {
-				return health.WithSyncPeerAdmission(remoteID.String(), accepted)
-			})
-		},
-		validateSnapshotAccess,
+		health, validateSnapshotAccess,
 	)
-	syncer.SetPeerRecoveryObserver(func(remoteID peer.ID, required bool) {
-		swSO.tkr.healthCtr.SwapValue(func(health *sobject.SharedObjectHealth) *sobject.SharedObjectHealth {
-			return health.WithSyncPeerRecovery(remoteID.String(), required)
-		})
-	})
-	syncer.SetPeerConnectionObserver(func(remoteID peer.ID, connected bool, err error) {
-		swSO.tkr.healthCtr.SwapValue(func(health *sobject.SharedObjectHealth) *sobject.SharedObjectHealth {
-			return health.WithSyncPeerConnection(remoteID.String(), connected, err, time.Now())
-		})
-	})
 	return syncer.Execute(ctx)
 }
 

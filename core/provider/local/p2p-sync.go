@@ -6,7 +6,6 @@ import (
 	"maps"
 	"slices"
 	"sync/atomic"
-	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -1188,7 +1187,8 @@ func (a *ProviderAccount) startSOSync(
 		return err
 	}
 
-	// Report peer admission, recovery, and connections to the object's health.
+	// Report peer admission, recovery, and connections to the object's health,
+	// and each peer's advertised state to its tracker.
 	soSync := sobject_sync.NewSOSync(
 		a.le,
 		childBus,
@@ -1196,24 +1196,9 @@ func (a *ProviderAccount) startSOSync(
 		localSO.GetPeerID(),
 		localSO.localPriv,
 		localSO.soHost,
-		func(remoteID peer.ID, accepted bool) {
-			localSO.run.swapHealth(func(health *sobject.SharedObjectHealth) *sobject.SharedObjectHealth {
-				return health.WithSyncPeerAdmission(remoteID.String(), accepted)
-			})
-		},
+		sobject_sync.WithPeerState(sobject_sync.HealthObserver(localSO.run.swapHealth), localSO.tkr.recordPeerState),
 		validateSnapshotAccess,
 	)
-	soSync.SetPeerRecoveryObserver(func(remoteID peer.ID, required bool) {
-		localSO.run.swapHealth(func(health *sobject.SharedObjectHealth) *sobject.SharedObjectHealth {
-			return health.WithSyncPeerRecovery(remoteID.String(), required)
-		})
-	})
-	soSync.SetPeerStateObserver(localSO.tkr.recordPeerState)
-	soSync.SetPeerConnectionObserver(func(remoteID peer.ID, connected bool, err error) {
-		localSO.run.swapHealth(func(health *sobject.SharedObjectHealth) *sobject.SharedObjectHealth {
-			return health.WithSyncPeerConnection(remoteID.String(), connected, err, time.Now())
-		})
-	})
 
 	// Retain the mount for this generation while allowing an explicit invite to
 	// replace only the solicitation routine. RoutineContainer serializes the

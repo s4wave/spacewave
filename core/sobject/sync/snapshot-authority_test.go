@@ -82,7 +82,7 @@ func TestSnapshotExchangeRequiresHeldAuthority(t *testing.T) {
 			t.Cleanup(host.ClearContext)
 
 			// Exchange the candidate, or import it directly when no chain is held.
-			syncer := NewSOSync(gateLogger(), nil, soID, localID, local, host, nil)
+			syncer := NewSOSync(gateLogger(), nil, soID, localID, local, host, nopPeerObserver{})
 			if len(held.GetConfig().GetConfigChainHash()) == 0 {
 				err = host.ImportPeerSnapshot(t.Context(), candidate, nil, localID, nil)
 			} else {

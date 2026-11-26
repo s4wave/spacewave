@@ -339,8 +339,9 @@ func TestOversizedSnapshotEndsStreamAsTooLarge(t *testing.T) {
 	for range 21 {
 		writeSyncOp(t, soID, big, owner, strings.Repeat("x", 512<<10))
 	}
+	recovery := make(chan peer.ID, 1)
 	local := newAuthenticationPeer(t, soID, owner, big)
-	remote := newAuthenticationPeer(t, soID, reader, initial)
+	remote := newObservedPeer(t, soID, reader, initial, requiredRecoveryRecorder{required: recovery})
 	change, err := sobject.BuildSOConfigChange(soID, big.Config, big.Config, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, owner, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -349,13 +350,7 @@ func TestOversizedSnapshotEndsStreamAsTooLarge(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Watch for the requester being told to recover.
-	recovery := make(chan peer.ID, 1)
-	remote.SetPeerRecoveryObserver(func(id peer.ID, required bool) {
-		if required {
-			recovery <- id
-		}
-	})
+	// Run both ends; the requester's observer reports a required recovery.
 	left, right := net.Pipe()
 	t.Cleanup(func() { left.Close(); right.Close() })
 	localDone, remoteDone := make(chan error, 1), make(chan error, 1)
@@ -375,5 +370,18 @@ func TestOversizedSnapshotEndsStreamAsTooLarge(t *testing.T) {
 	case <-recovery:
 	case <-ctx.Done():
 		t.Fatal("requester was not told to recover")
+	}
+}
+
+// requiredRecoveryRecorder sends each peer that requires recovery to required.
+type requiredRecoveryRecorder struct {
+	nopPeerObserver
+	required chan<- peer.ID
+}
+
+// PeerRecovery records a required recovery.
+func (r requiredRecoveryRecorder) PeerRecovery(remoteID peer.ID, required bool) {
+	if required {
+		r.required <- remoteID
 	}
 }
