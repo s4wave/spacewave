@@ -277,11 +277,22 @@ func (n *netting) writeNode(ctx context.Context, nd *node, holders0, ripe0 uint6
 		}
 	}
 
-	// Ripen a block at zero that could have gained a holder.
+	// Ripen a block at zero that could have gained a holder. A block parked
+	// while Open that an up and a down in this netting left at zero stays
+	// parked at its ripe sequence: its park already gave its children their
+	// downs or kept its holds, and a second park would give them again.
+	raised := nd.raised
+	if raised && holders0 == 0 && holders == 0 && n.state.GetGeneration() == Generation_GENERATION_OPEN {
+		parked, err := n.rec.parkedAt(ctx, nd.key, ripe0)
+		if err != nil {
+			return err
+		}
+		raised = !parked
+	}
 	var ripe uint64
 	if holders == 0 {
 		ripe = ripe0
-		if holders0 != 0 || nd.raised {
+		if holders0 != 0 || raised {
 			ripe = n.state.GetUpSeq()
 		}
 		if holders0 != 0 {
@@ -313,7 +324,7 @@ func (n *netting) writeNode(ctx context.Context, nd *node, holders0, ripe0 uint6
 			return err
 		}
 	}
-	if holders == 0 && (holders0 != 0 || nd.raised) {
+	if holders == 0 && (holders0 != 0 || raised) {
 		return n.rec.tx.Set(ctx, n.rec.queueKey(ripe, nd.key), nil)
 	}
 	return nil

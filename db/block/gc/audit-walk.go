@@ -1299,7 +1299,8 @@ func (w *walker) checkChild(
 	named := max(int64(seen)+pending, 0) //nolint:gosec // counts stay far below the int64 range.
 
 	// Compare a stored block's holders with its namers, once the Volume
-	// keeps counts and unless the sweep owns the block, as checkStored does.
+	// keeps counts, owes no recount and the sweep does not own the block, as
+	// checkStored does.
 	listed, err := rec.HasChildren(ctx, ref)
 	if err != nil {
 		return bytesCheck{}, false, err
@@ -1308,7 +1309,11 @@ func (w *walker) checkChild(
 		check := bytesCheck{ref: ref, listed: true}
 		unmarked, err := rec.Unmarked(ctx, key)
 		total := w.prog.GetCounts()
-		if err != nil || unmarked || state.GetAdoption() != Adoption_ADOPTION_ADOPTED {
+		var owed bool
+		if err == nil {
+			owed, err = rec.tx.Exists(ctx, rec.key(kindRewritten))
+		}
+		if err != nil || unmarked || owed || state.GetAdoption() != Adoption_ADOPTION_ADOPTED {
 			if err == nil {
 				total.Declined++
 			}
@@ -1385,12 +1390,19 @@ func edgeHolds(ctx context.Context, rec *Records, state *LivenessState, key, nam
 		entry, err := rec.GetRoot(ctx, bucketID, name)
 		return entry != nil && bytes.Equal(entry.GetRef(), key), err
 	case walkListNamer:
-		// Read the parent's list and whether it holds.
+		// Read the parent's list and whether it holds: a list a park while
+		// Open released gave its children their downs, as tallyHolders
+		// describes.
 		parent, rest, err := ParseBlockKey(namer[1:])
 		if err != nil || len(rest) != 0 {
 			return false, errBadBlockKey
 		}
-		return rec.HasChildren(ctx, parent)
+		listed, err := rec.HasChildren(ctx, parent)
+		if err != nil || !listed {
+			return false, err
+		}
+		_, _, released, err := rec.parkState(ctx, namer[1:])
+		return !released, err
 	}
 	return false, errBadWalkRecord
 }

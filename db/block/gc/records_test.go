@@ -128,6 +128,83 @@ func TestSettleWaitsForNetting(t *testing.T) {
 	}
 }
 
+// TestNettingKeepsParkOnRaiseToZero checks that a block parked while Open,
+// whose park released its list, stays parked at its ripe sequence when one
+// netting gives it an up and a down: requeued, the free would park it again
+// and give its child a second down, which takes the child to zero under the
+// parent that still holds it, and the front would pop it for the sweep.
+func TestNettingKeepsParkOnRaiseToZero(t *testing.T) {
+	ctx := context.Background()
+	child, err := block.BuildBlockRef([]byte("child"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	parked, err := block.BuildBlockRef([]byte("parked"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	key := BlockKey(parked)
+	tx, err := store_kvtx_inmem.NewStore().NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+	rec := NewRecords(tx, []byte("l/"))
+	state := &LivenessState{
+		Adoption:   Adoption_ADOPTION_ADOPTED,
+		Generation: Generation_GENERATION_OPEN,
+		UpSeq:      20,
+		UpCursor:   20,
+	}
+	for _, err := range []error{
+		rec.PutChildren(ctx, parked, []*block.BlockRef{child}),
+		rec.SetHolders(ctx, parked, 0, 5),
+		tx.Set(ctx, rec.releasedKey(5, key), nil),
+		rec.PutChildren(ctx, child, nil),
+		rec.SetHolders(ctx, child, 1, 0),
+	} {
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Net an up and a down of the parked block together.
+	c := NewCollector(nil, CollectorOptions{Frees: true})
+	var res CollectResult
+	n, err := c.newNetting(rec, state, &res, sliceRecords)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := n.add(key, 1); err != nil {
+		t.Fatal(err)
+	}
+	if err := n.add(key, -1); err != nil {
+		t.Fatal(err)
+	}
+	if err := n.write(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	// It stays parked where it was, off the queue, and a free pass gives
+	// its child no second down.
+	holders, ripe, err := rec.GetHolders(ctx, parked)
+	if err != nil || holders != 0 || ripe != 5 {
+		t.Fatalf("parked block at %d ripe %d err %v, want 0 ripe 5", holders, ripe, err)
+	}
+	if found, err := tx.Exists(ctx, rec.releasedKey(5, key)); err != nil || !found {
+		t.Fatalf("released key found %v err %v, want kept", found, err)
+	}
+	if found, err := tx.Exists(ctx, rec.queueKey(20, key)); err != nil || found {
+		t.Fatalf("queue entry found %v err %v, want none", found, err)
+	}
+	if _, _, _, err := c.freeSlice(ctx, rec, nil, &res, nil); err != nil {
+		t.Fatal(err)
+	}
+	if res.Parked != 0 {
+		t.Fatalf("free pass parked %d, want none", res.Parked)
+	}
+}
+
 // TestWalkRestartsUnreadableProgress checks that a walk whose scratch holds a
 // progress record this build cannot read, as a build with another WalkMark
 // leaves, drops it with the run's records and begins the run again, instead

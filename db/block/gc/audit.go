@@ -91,8 +91,15 @@ func Audit(ctx context.Context, store AdoptStore, now time.Time, record bool) (A
 
 		// Compare each stored block's liveness with the queue, and its count
 		// once the Volume keeps counts.
+		// An unpark of a released park leaves its children short of its
+		// list's holders until the recount it owes, so the counts compare
+		// only once that recount ran.
 		counted := tally
-		if state.GetAdoption() != Adoption_ADOPTION_ADOPTED {
+		owed, err := rec.tx.Exists(ctx, rec.key(kindRewritten))
+		if err != nil {
+			return err
+		}
+		if state.GetAdoption() != Adoption_ADOPTION_ADOPTED || owed {
 			counted = nil
 		}
 		releasing := newReleaseCursor(rec, state.GetRelease())
@@ -217,7 +224,10 @@ func (res *AuditResult) checkStored(
 // its children until its free, so every stored list counts, and a child a
 // paged release has not reached yet still counts its parent. Leaving the
 // release's children out would restore a hole's count one too low and free
-// the hole while a root still reaches it.
+// the hole while a root still reaches it. A list a park while Open released
+// gave its children their downs and does not count: counting it would report
+// each of its children undercounted and raise a hole's count by a holder
+// nothing takes back.
 func tallyHolders(ctx context.Context, rec *Records, state *LivenessState) (map[string]uint64, error) {
 	// Count the roots.
 	tally := make(map[string]uint64)
@@ -229,8 +239,15 @@ func tallyHolders(ctx context.Context, rec *Records, state *LivenessState) (map[
 		return nil, err
 	}
 
-	// Count the child lists.
-	err = rec.ScanChildren(ctx, func(_ *block.BlockRef, children []*block.BlockRef) error {
+	// Count the child lists that hold.
+	released, err := rec.releasedLists(ctx)
+	if err != nil {
+		return nil, err
+	}
+	err = rec.ScanChildren(ctx, func(ref *block.BlockRef, children []*block.BlockRef) error {
+		if _, ok := released[string(BlockKey(ref))]; ok {
+			return nil
+		}
 		for _, child := range children {
 			tally[string(BlockKey(child))]++
 		}

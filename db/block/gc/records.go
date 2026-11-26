@@ -771,6 +771,32 @@ func (r *Records) parkState(ctx context.Context, key []byte) (ripe uint64, parke
 	return ripe, parked, false, err
 }
 
+// releasedLists returns the block keys of the lists a park while Open
+// released: those of the blocks with a released key, whose children the park
+// gave their downs, so the lists name children they no longer hold. It scans
+// the released keys, one per such park, and keeps them in memory, so it
+// suits an audit.
+func (r *Records) releasedLists(ctx context.Context) (map[string]struct{}, error) {
+	released := make(map[string]struct{})
+	err := r.scan(ctx, r.key(kindReleased), nil, func(key []byte, _ func() ([]byte, error)) (bool, error) {
+		if len(key) < 8 {
+			return false, errBadBlockKey
+		}
+		released[string(key[8:])] = struct{}{}
+		return true, nil
+	})
+	return released, err
+}
+
+// parkedAt reports whether the block at key, with a zero count ripe at
+// ripe, has a parked or a released key. It reads up to two keys.
+func (r *Records) parkedAt(ctx context.Context, key []byte, ripe uint64) (bool, error) {
+	if released, err := r.tx.Exists(ctx, r.releasedKey(ripe, key)); err != nil || released {
+		return released, err
+	}
+	return r.tx.Exists(ctx, r.parkedKey(ripe, key))
+}
+
 // AnyParked reports whether the free parked any block that waits for the
 // flip, reading at most two keys.
 func (r *Records) AnyParked(ctx context.Context) (bool, error) {
@@ -808,9 +834,11 @@ func (r *Records) park(ctx context.Context, queued, parked, key []byte) error {
 // A released park's list holds again once its key goes, and its children
 // lack those holders, so it records under state that the counts owe a
 // recount, which the flip runs before anything is deleted: a bounded write
-// in place of a cascade of ups. Land refuses a hold onto a parked block, so
-// only an up logged before the park or an underflow reaches it. It reads
-// the released key and the list record.
+// in place of a cascade of ups. Land refuses a hold onto a parked block
+// except in a partial batch, as a cache fill puts, so such a fill's up or an
+// underflow reaches it: the free parks only up to the up cursor, so no up
+// logged before the park nets after it. It reads the released key and the
+// list record.
 func (r *Records) unpark(ctx context.Context, state *LivenessState, key []byte, ripe uint64) error {
 	// Delete the park's key, noting a recount for a released one.
 	released, err := r.tx.Exists(ctx, r.releasedKey(ripe, key))

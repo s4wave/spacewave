@@ -5775,6 +5775,37 @@ func TestLivenessSettle(t *testing.T) {
 				}
 				requireReads(t, v, tr, "A", "L", "S")
 
+				// While P is parked both audits leave a released list out of
+				// its children's namers, so S's one holder, L, reads exact.
+				// Lost and refilled, S is a hole L alone names, and the audit
+				// adds it no holder. The park that keeps its holds leaves Q,
+				// which no root reaches, held by P until the sweep.
+				leaked := uint64(0)
+				if tc.old {
+					leaked = 1
+				}
+				requireAudit(t, v, leaked)
+				scratch, err := store_kvtx_sqlite.Open(t.Context(), filepath.Join(t.TempDir(), "walk.db"), "walk")
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer scratch.Close()
+				walk, err := v.AuditWalk(t.Context(), scratch, block_gc.WalkOptions{Run: "parked", Delay: -1})
+				if err != nil || walk.Counts.GetUndercount() != 0 {
+					t.Fatalf("walk while parked = %+v err %v, want no undercount", walk, err)
+				}
+				if !tc.old {
+					loseBlock(t, v, tr["S"].Ref)
+					if _, err := v.Audit(t.Context()); err != nil {
+						t.Fatal(err)
+					}
+					if holders, _ := blockHolders(t, v, tr, "S"); holders != 1 {
+						t.Fatalf("hole S under the released P has %d holders, want 1", holders)
+					}
+					fill(t, v, tr, "S")
+					requireReads(t, v, tr, "S")
+				}
+
 				// Root main onto P and Q again, or leave them to the sweep,
 				// and free what the settle released: the old park gives
 				// P's downs only when the sweep deletes it.
