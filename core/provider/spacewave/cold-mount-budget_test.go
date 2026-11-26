@@ -70,7 +70,7 @@ func TestColdMountBudget(t *testing.T) {
 			NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String()),
 			soID,
 			"",
-			newWSTracker(logrus.New().WithField("test", t.Name()), func() *SessionClient { return nil }),
+			newTestWSTracker(logrus.New().WithField("test", t.Name()), func() *SessionClient { return nil }),
 			priv,
 			pid,
 			nil,
@@ -127,7 +127,7 @@ func TestColdMountBudget(t *testing.T) {
 			NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String()),
 			soID,
 			"",
-			newWSTracker(logrus.New().WithField("test", t.Name()), func() *SessionClient { return nil }),
+			newTestWSTracker(logrus.New().WithField("test", t.Name()), func() *SessionClient { return nil }),
 			priv,
 			pid,
 			nil,
@@ -164,7 +164,7 @@ func TestColdMountBudget(t *testing.T) {
 			},
 		}
 		stateJSON := mustMarshalSOStateMessageSnapshotJSON(t, state)
-		tracker := newWSTracker(logrus.New().WithField("test", t.Name()), func() *SessionClient { return nil })
+		tracker := newTestWSTracker(logrus.New().WithField("test", t.Name()), func() *SessionClient { return nil })
 		notify := func() func(*api.SONotifyEventPayload) {
 			var callback func(*api.SONotifyEventPayload)
 			tracker.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -303,7 +303,7 @@ func TestColdMountBudget(t *testing.T) {
 			NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String()),
 			soID,
 			"",
-			newWSTracker(logrus.New().WithField("test", t.Name()), func() *SessionClient { return nil }),
+			newTestWSTracker(logrus.New().WithField("test", t.Name()), func() *SessionClient { return nil }),
 			priv,
 			pid,
 			nil,

@@ -38,7 +38,6 @@ import (
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
-	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
 	"github.com/sirupsen/logrus"
 )
 
@@ -54,8 +53,6 @@ type providerAccountTracker struct {
 
 // ProviderAccount implements the spacewave provider account.
 type ProviderAccount struct {
-	// t is the tracker
-	t *providerAccountTracker
 	// le is the logger
 	le *logrus.Entry
 	// p is the provider
@@ -379,7 +376,6 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 
 	// Construct the account around its clients and storage.
 	acc := &ProviderAccount{
-		t:              t,
 		le:             le,
 		p:              t.p,
 		accountID:      t.accountID,
@@ -465,167 +461,13 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		},
 	)
 
-	// Track the Session websocket and resync on each connect.
+	// Track the Session websocket and apply its events to the account.
 	acc.wsTracker = newWSTracker(
 		le.WithField("component", "session-tracker"),
 		acc.currentSessionClient,
+		&acc.accountBcast,
+		accountWSEvents{acc: acc, ctx: ctx},
 	)
-
-	// Refetch account and organization state on their change events.
-	acc.wsTracker.accountBcast = &acc.accountBcast
-	acc.wsTracker.onAccountChanged = func(epoch uint64) {
-		le.WithField("epoch", epoch).Debug("account changed via ws notify")
-		if epoch > 0 {
-			acc.setEpoch(epoch)
-			return
-		}
-		acc.BumpLocalEpoch()
-	}
-	acc.wsTracker.onOrgChanged = func(orgID string) {
-		le.WithField("org-id", orgID).Debug("org changed via ws notify")
-		acc.InvalidateBillingSnapshot("")
-		acc.QueueOrganizationSync(orgID)
-	}
-
-	// Sync participants and member Sessions as the cloud reports them.
-	acc.wsTracker.onPendingParticipant = func(soID, accountID string) {
-		le.WithField("sobject-id", soID).
-			WithField("target-account-id", accountID).
-			Debug("pending participant via ws notify")
-		acc.pendingParticipantSyncs.SetKey(pendingParticipantSyncKey{
-			soID:      soID,
-			accountID: accountID,
-		}, true)
-	}
-	acc.wsTracker.onMemberSessionChanged = func(soID, sessionPeerID, accountID string, added bool) {
-		le.WithField("sobject-id", soID).
-			WithField("session-peer-id", sessionPeerID).
-			WithField("account-id", accountID).
-			WithField("added", added).
-			Debug("member session changed via ws notify")
-		acc.memberSessionSyncs.SetKey(memberSessionSyncKey{
-			soID:          soID,
-			sessionPeerID: sessionPeerID,
-			accountID:     accountID,
-			added:         added,
-		}, true)
-	}
-
-	// Apply SharedObject notifications and list updates.
-	acc.wsTracker.onSONotify = func(soID string, payload *api.SONotifyEventPayload) {
-		acc.handleAccountSONotify(ctx, soID, payload)
-	}
-	acc.wsTracker.onSOListUpdate = func(list *sobject.SharedObjectList) {
-		acc.soListCtr.SetValue(list)
-		acc.selfEnrollmentRefresh.Trigger()
-	}
-
-	// Resync after every authenticated connect.
-	acc.wsTracker.onConnected = func() {
-		// Refetch account state and the caches that events would update.
-		le.Debug("session ws connected; invalidating event-driven caches")
-		acc.BumpLocalEpoch()
-		acc.InvalidatePendingMailboxEntries()
-		acc.InvalidateTargetedInvitations()
-		acc.orgListJobs.Trigger()
-
-		// The list refetch reconciles cached metadata by revision; without
-		// one, every entry is stale.
-		if !acc.invalidateSharedObjectList() {
-			acc.InvalidateSharedObjectMetadataCache()
-		}
-
-		// Re-evaluate every mounted SO once per connection: the cold-start
-		// gate short-circuits warm SOs and the cache-aware classifier fetches
-		// only what is missing on the rest, so a long disconnect window cannot
-		// leave caches stale across all SOs without producing per-mount rejoin
-		// storms.
-		acc.bumpSelfRejoinSweepGeneration()
-	}
-
-	// Process invite mailbox entries and targeted invitations.
-	acc.wsTracker.onInviteMailbox = func(soID string, entry *api.MailboxEntry, updatedAt int64) {
-		// Apply a received entry, then process it.
-		if soID == "" || entry == nil {
-			return
-		}
-		le.WithField("sobject-id", soID).
-			WithField("entry-id", entry.GetId()).
-			Debug("received mailbox add via ws notify")
-		acc.ApplyMailboxEntryEvent(soID, entry, updatedAt)
-		acc.triggerMailboxEntryAutoProcess(ctx, soID, entry)
-	}
-	acc.wsTracker.onInviteMailboxUpdate = func(soID string, entry *api.MailboxEntry, updatedAt int64) {
-		// Apply an updated entry, refresh the list once it is accepted, then
-		// process it.
-		if soID == "" || entry == nil {
-			return
-		}
-		le.WithField("sobject-id", soID).
-			WithField("entry-id", entry.GetId()).
-			WithField("status", entry.GetStatus()).
-			Debug("received mailbox update via ws notify")
-		acc.ApplyMailboxEntryEvent(soID, entry, updatedAt)
-		if entry.GetStatus() == "accepted" {
-			acc.invalidateSharedObjectList()
-		}
-		acc.triggerMailboxEntryAutoProcess(ctx, soID, entry)
-	}
-	acc.wsTracker.onTargetedInvitationsChanged = acc.InvalidateTargetedInvitations
-
-	// Handle release, CDN root and dormancy events.
-	acc.wsTracker.onUpdateAvailable = func() {
-		le.Debug("dispatching launcher recheck after update_available notify")
-		acc.launcherRecheckJobs.Trigger()
-	}
-	acc.wsTracker.onCdnRootChanged = func(spaceID string) {
-		le.WithField("space-id", spaceID).
-			Debug("dispatching cdn-root-changed invalidate to subscribers")
-		acc.fireCdnRootChanged(spaceID)
-	}
-	acc.wsTracker.onDormantChanged = func(dormant bool) {
-		acc.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-			status := provider.ProviderAccountStatus_ProviderAccountStatus_READY
-			if dormant {
-				status = provider.ProviderAccountStatus_ProviderAccountStatus_DORMANT
-			}
-			acc.state.status = status
-			broadcast()
-		})
-		acc.refreshSelfRejoinSweepState()
-		if dormant {
-			acc.syncSharedObjectListAccess(
-				s4wave_provider_spacewave.BillingStatus_BillingStatus_UNKNOWN,
-			)
-			return
-		}
-
-		// Exiting dormant means cloud access reopened; force a fresh account
-		// state fetch so onboarding reflects the restored subscription.
-		acc.BumpLocalEpoch()
-	}
-
-	// Handle a revoked Session or deleted account.
-	acc.wsTracker.onSessionUnauthenticated = func() {
-		acc.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-			acc.state.status = accountstatus.Unauthenticated(acc.state.info)
-			broadcast()
-		})
-		acc.refreshSelfRejoinSweepState()
-	}
-	acc.wsTracker.onAccountWasDeleted = func() {
-		// Release the account's roots and clean up its storage.
-		acc.releaseAccountRoots(ctx, le)
-		acc.triggerGCCleanup()
-
-		// Set account status to DELETED and broadcast so Watch loops see it.
-		acc.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-			acc.state.status = provider.ProviderAccountStatus_ProviderAccountStatus_DELETED
-			broadcast()
-		})
-		acc.refreshSelfRejoinSweepState()
-		acc.p.accountRc.RestartRoutine(acc.accountID)
-	}
 
 	// Build the block store and organization sync managers.
 	acc.bstores = keyed.NewKeyedRefCountWithLogger(

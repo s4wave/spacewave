@@ -37,7 +37,7 @@ func TestCloudHostHydrationRefreshesState(t *testing.T) {
 	le := logrus.New().WithField("test", t.Name())
 	host := newCloudSOHost(le,
 		NewSessionClient(server.Client(), server.URL, DefaultSigningEnvPrefix, key, pid.String()),
-		testSharedObjectID, "", newWSTracker(le, func() *SessionClient { return nil }), key, pid, nil,
+		testSharedObjectID, "", newTestWSTracker(le, func() *SessionClient { return nil }), key, pid, nil,
 		&api.VerifiedSOStateCache{
 			PeerState: initial.CloneVT(), CloudState: initial.CloneVT(), CurrentConfig: initial.GetConfig().CloneVT(),
 			VerifiedConfigChainHash: initial.GetConfig().GetConfigChainHash(), VerifiedConfigChainSeqno: initial.GetConfig().GetConfigChainSeqno(),

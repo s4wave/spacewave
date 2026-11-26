@@ -123,7 +123,7 @@ func newCloudDEXAccessTestAccount(
 		account.sessionClient,
 		soID,
 		account.accountID,
-		newWSTracker(account.le, func() *SessionClient { return account.sessionClient }),
+		newTestWSTracker(account.le, func() *SessionClient { return account.sessionClient }),
 		ownerPriv,
 		owner,
 		account.sfs,

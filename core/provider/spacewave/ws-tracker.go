@@ -16,6 +16,56 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// wsEvents receives the account-level events of the Session websocket.
+//
+// The tracker calls each method synchronously on its read goroutine, in the
+// order the events arrive, so a method that blocks delays every later event.
+// connected runs before the first event of each connection.
+type wsEvents interface {
+	// connected runs after every session websocket completes authentication,
+	// including the first. Events published before the socket subscribed are
+	// lost, so the receiver refetches state that events would carry.
+	connected()
+	// dormantChanged runs when the tracker enters or exits idle mode.
+	// dormant=true means access is gated (subscription_required or rbac_denied).
+	dormantChanged(dormant bool)
+	// sessionUnauthenticated runs when the session key is stale, which
+	// reauthentication recovers.
+	sessionUnauthenticated()
+	// accountWasDeleted runs when the cloud reports the account deleted.
+	accountWasDeleted()
+	// accountChanged runs on account_changed with the event's account epoch,
+	// or 0 when the payload carries none.
+	accountChanged(epoch uint64)
+	// orgChanged runs on org_changed with the organization id.
+	orgChanged(orgID string)
+	// pendingParticipant runs on pending_participant for an owned shared object.
+	pendingParticipant(soID, accountID string)
+	// memberSessionChanged runs on member_session_added (added=true) and
+	// member_session_removed (added=false).
+	memberSessionChanged(soID, sessionPeerID, accountID string, added bool)
+	// soNotify runs on so_notify after the shared object's own callback. The
+	// payload is nil when the event carried none or it failed to parse.
+	soNotify(soID string, payload *api.SONotifyEventPayload)
+	// soListUpdate runs on each so_list_update message.
+	soListUpdate(list *sobject.SharedObjectList)
+	// inviteMailbox runs on invite_mailbox with the full entry and the DO-side
+	// updatedAt, so the receiver applies the delta without refetching.
+	inviteMailbox(soID string, entry *api.MailboxEntry, updatedAt int64)
+	// inviteMailboxUpdate runs on invite_mailbox_update with the full updated
+	// entry and the DO-side updatedAt.
+	inviteMailboxUpdate(soID string, entry *api.MailboxEntry, updatedAt int64)
+	// targetedInvitationsChanged runs when the recipient's targeted invitation
+	// inbox changed and watchers should reload it.
+	targetedInvitationsChanged()
+	// updateAvailable runs when the release orchestrator published a new dist
+	// config and the launcher should re-fetch it.
+	updateAvailable()
+	// cdnRootChanged runs when the CDN Space's root.packedmsg regenerated; the
+	// receiver invalidates any cached root pointer for that Space.
+	cdnRootChanged(spaceID string)
+}
+
 // wsTracker manages a single multiplexed WebSocket connection to the Session DO.
 // Multiple cloudSOHost instances register callbacks keyed by so_id.
 type wsTracker struct {
@@ -24,60 +74,10 @@ type wsTracker struct {
 	// getClient returns the current session client for API calls.
 	// The client may initially have a nil key; the tracker retries until ready.
 	getClient func() *SessionClient
-	// onSessionUnauthenticated is called when a stale session key error is
-	// detected (recoverable via reauthentication). Called instead of
-	// onAccountWasDeleted for unauthCodes errors.
-	onSessionUnauthenticated func()
-	// onAccountWasDeleted is called when a non-retryable cloud error is detected.
-	onAccountWasDeleted func()
-	// onAccountChanged is called when a session_event{type:"account_changed"}
-	// is received via the WebSocket, indicating remote account state mutation.
-	// The epoch parameter is the account epoch from the event payload.
-	onAccountChanged func(epoch uint64)
-	// onOrgChanged is called when a session_event{type:"org_changed"} is
-	// received, indicating organization membership or state change.
-	onOrgChanged func(string)
-	// onPendingParticipant is called when a session_event{
-	// type:"pending_participant"} is received for an owned shared object.
-	onPendingParticipant func(string, string)
-	// onMemberSessionChanged is called when a session_event{
-	// type:"member_session_added" or "member_session_removed"} is received.
-	// Parameters: soID, sessionPeerID, accountID, added (true=added, false=removed).
-	onMemberSessionChanged func(soID, sessionPeerID, accountID string, added bool)
-	// onSONotify is called when a session_event{type:"so_notify"} is received.
-	// Parameters: soID, parsed payload.
-	onSONotify func(string, *api.SONotifyEventPayload)
-	// onInviteMailbox is called when a session_event{type:"invite_mailbox"} is
-	// received. The event carries the full mailbox entry and DO-side
-	// updatedAt so the receiver applies the delta without refetching.
-	onInviteMailbox func(soID string, entry *api.MailboxEntry, updatedAt int64)
-	// onInviteMailboxUpdate is called when a session_event{
-	// type:"invite_mailbox_update"} is received. The event carries the full
-	// updated mailbox entry and DO-side updatedAt.
-	onInviteMailboxUpdate func(soID string, entry *api.MailboxEntry, updatedAt int64)
-	// onTargetedInvitationsChanged is called when the recipient targeted
-	// invitation inbox changed and watchers should reload the durable inbox.
-	onTargetedInvitationsChanged func()
-	// onUpdateAvailable is called when a session_event{type:"update_available"}
-	// is received, indicating the release orchestrator has published a new
-	// dist config and the launcher should re-fetch immediately.
-	onUpdateAvailable func()
-	// onCdnRootChanged is called when a session_event{type:"cdn_root_changed"}
-	// is received. The so_id is the CDN Space ID whose =root.packedmsg=
-	// regenerated; receivers should invalidate any cached root pointer for
-	// that Space and re-fetch on the next graph lookup.
-	onCdnRootChanged func(spaceID string)
-	// onSOListUpdate is called when a so_list_update message is received.
-	onSOListUpdate func(*sobject.SharedObjectList)
-	// onConnected is called after every session websocket completes
-	// authentication, including the first. Events published before the socket
-	// subscribed are lost, so receivers refetch state that events would carry.
-	onConnected func()
-	// onDormantChanged is called when the tracker enters or exits idle mode.
-	// dormant=true means access is gated (subscription_required or rbac_denied).
-	onDormantChanged func(dormant bool)
 	// accountBcast is the account broadcast, used to wake from subscription-idle.
 	accountBcast *broadcast.Broadcast
+	// events receives the account-level events.
+	events wsEvents
 	// notifyCallbacks maps so_id to so_notify event callback.
 	notifyCallbacks map[string]func(*api.SONotifyEventPayload)
 	// bstoreNonceCallbacks maps block-store resource ids to nonce callbacks.
@@ -91,11 +91,19 @@ type wsTracker struct {
 	rc *refcount.RefCount[struct{}]
 }
 
-// newWSTracker constructs a new wsTracker.
-func newWSTracker(le *logrus.Entry, getClient func() *SessionClient) *wsTracker {
+// newWSTracker constructs a new wsTracker that delivers account-level events
+// to events and idles on accountBcast while cloud access is gated.
+func newWSTracker(
+	le *logrus.Entry,
+	getClient func() *SessionClient,
+	accountBcast *broadcast.Broadcast,
+	events wsEvents,
+) *wsTracker {
 	t := &wsTracker{
 		le:                   le,
 		getClient:            getClient,
+		accountBcast:         accountBcast,
+		events:               events,
 		notifyCallbacks:      make(map[string]func(*api.SONotifyEventPayload)),
 		bstoreNonceCallbacks: make(map[string]func(uint64)),
 	}
@@ -180,9 +188,7 @@ func (t *wsTracker) Execute(ctx context.Context) error {
 			if isIdleableCloudError(err) {
 				if !t.dormant {
 					t.le.WithError(err).Warn("access denied, entering idle until account changes")
-					if t.onDormantChanged != nil {
-						t.onDormantChanged(true)
-					}
+					t.events.dormantChanged(true)
 					t.dormant = true
 				}
 				if err := t.waitForAccountChanged(ctx); err != nil {
@@ -192,16 +198,12 @@ func (t *wsTracker) Execute(ctx context.Context) error {
 			}
 			if clouderror.IsUnauth(err) {
 				t.le.WithError(err).Warn("session key stale, marking unauthenticated")
-				if t.onSessionUnauthenticated != nil {
-					t.onSessionUnauthenticated()
-				}
+				t.events.sessionUnauthenticated()
 				return err
 			}
 			if clouderror.IsAccountDeleted(err) {
 				t.le.WithError(err).Warn("account deleted, tearing down account state")
-				if t.onAccountWasDeleted != nil {
-					t.onAccountWasDeleted()
-				}
+				t.events.accountWasDeleted()
 				return err
 			}
 			return err
@@ -212,9 +214,6 @@ func (t *wsTracker) Execute(ctx context.Context) error {
 // waitForAccountChanged blocks until the account broadcast fires or the context
 // is canceled.
 func (t *wsTracker) waitForAccountChanged(ctx context.Context) error {
-	if t.accountBcast == nil {
-		return errors.New("no account broadcast configured")
-	}
 	var ch <-chan struct{}
 	t.accountBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 		ch = getWaitCh()
@@ -284,15 +283,11 @@ func (t *wsTracker) runWebSocket(ctx context.Context) error {
 	// An authenticated connection ends any dormant state.
 	if t.dormant {
 		t.dormant = false
-		if t.onDormantChanged != nil {
-			t.onDormantChanged(false)
-		}
+		t.events.dormantChanged(false)
 	}
 
 	// Let the owner resync state published before this socket subscribed.
-	if t.onConnected != nil {
-		t.onConnected()
-	}
+	t.events.connected()
 
 	// Keep the connection alive with pings for its lifetime.
 	pingRoutine := routine.NewRoutineContainer()
@@ -318,32 +313,29 @@ func (t *wsTracker) runWebSocket(ctx context.Context) error {
 		switch {
 		case msg.GetSoListUpdate() != nil:
 			t.le.Debug("received so list update via session ws")
-			if t.onSOListUpdate != nil {
-				t.onSOListUpdate(msg.GetSoListUpdate())
-			}
+			t.events.soListUpdate(msg.GetSoListUpdate())
 
 		case msg.GetSessionEvent() != nil:
 			evt := msg.GetSessionEvent()
 			t.le.WithField("event-type", evt.GetType()).
 				WithField("so-id", evt.GetSoId()).
 				Debug("received session event")
-			if evt.GetType() == "account_changed" && t.onAccountChanged != nil {
-				epoch := parseEpochFromPayload(evt.GetPayload())
-				t.onAccountChanged(epoch)
+			if evt.GetType() == "account_changed" {
+				t.events.accountChanged(parseEpochFromPayload(evt.GetPayload()))
 			}
-			if evt.GetType() == "org_changed" && t.onOrgChanged != nil {
-				t.onOrgChanged(parseOrgIDFromPayload(evt.GetPayload()))
+			if evt.GetType() == "org_changed" {
+				t.events.orgChanged(parseOrgIDFromPayload(evt.GetPayload()))
 			}
-			if evt.GetType() == "pending_participant" && t.onPendingParticipant != nil {
+			if evt.GetType() == "pending_participant" {
 				accountID := parseAccountIDFromPayload(evt.GetPayload())
 				if accountID != "" {
-					t.onPendingParticipant(evt.GetSoId(), accountID)
+					t.events.pendingParticipant(evt.GetSoId(), accountID)
 				}
 			}
-			if (evt.GetType() == "member_session_added" || evt.GetType() == "member_session_removed") && t.onMemberSessionChanged != nil {
+			if evt.GetType() == "member_session_added" || evt.GetType() == "member_session_removed" {
 				var payload api.MemberSessionChangedPayload
 				if err := payload.UnmarshalVT(evt.GetPayload()); err == nil && payload.GetSessionPeerId() != "" {
-					t.onMemberSessionChanged(evt.GetSoId(), payload.GetSessionPeerId(), payload.GetAccountId(), evt.GetType() == "member_session_added")
+					t.events.memberSessionChanged(evt.GetSoId(), payload.GetSessionPeerId(), payload.GetAccountId(), evt.GetType() == "member_session_added")
 				}
 			}
 			if evt.GetType() == "so_notify" {
@@ -358,9 +350,7 @@ func (t *wsTracker) runWebSocket(ctx context.Context) error {
 				if notifyCb != nil {
 					notifyCb(payload)
 				}
-				if t.onSONotify != nil {
-					t.onSONotify(soID, payload)
-				}
+				t.events.soNotify(soID, payload)
 			}
 			if evt.GetType() == "bstore_nonce" {
 				resourceID, nonce, ok := parseBlockStoreNonceEventPayload(evt.GetPayload())
@@ -377,26 +367,26 @@ func (t *wsTracker) runWebSocket(ctx context.Context) error {
 					nonceCb(nonce)
 				}
 			}
-			if evt.GetType() == "invite_mailbox" && t.onInviteMailbox != nil {
+			if evt.GetType() == "invite_mailbox" {
 				entry, updatedAt, ok := parseInviteMailboxEventPayload(evt.GetPayload())
 				if ok {
-					t.onInviteMailbox(evt.GetSoId(), entry, updatedAt)
+					t.events.inviteMailbox(evt.GetSoId(), entry, updatedAt)
 				}
 			}
-			if evt.GetType() == "invite_mailbox_update" && t.onInviteMailboxUpdate != nil {
+			if evt.GetType() == "invite_mailbox_update" {
 				entry, updatedAt, ok := parseInviteMailboxEventPayload(evt.GetPayload())
 				if ok {
-					t.onInviteMailboxUpdate(evt.GetSoId(), entry, updatedAt)
+					t.events.inviteMailboxUpdate(evt.GetSoId(), entry, updatedAt)
 				}
 			}
-			if evt.GetType() == "targeted_invitations_changed" && t.onTargetedInvitationsChanged != nil {
-				t.onTargetedInvitationsChanged()
+			if evt.GetType() == "targeted_invitations_changed" {
+				t.events.targetedInvitationsChanged()
 			}
-			if evt.GetType() == "update_available" && t.onUpdateAvailable != nil {
-				t.onUpdateAvailable()
+			if evt.GetType() == "update_available" {
+				t.events.updateAvailable()
 			}
-			if evt.GetType() == "cdn_root_changed" && t.onCdnRootChanged != nil {
-				t.onCdnRootChanged(evt.GetSoId())
+			if evt.GetType() == "cdn_root_changed" {
+				t.events.cdnRootChanged(evt.GetSoId())
 			}
 		}
 	}

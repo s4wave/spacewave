@@ -109,7 +109,7 @@ func TestFillParticipantAccounts(t *testing.T) {
 		acc.sessionClient,
 		soID,
 		accountID,
-		newWSTracker(le, func() *SessionClient { return acc.sessionClient }),
+		newTestWSTracker(le, func() *SessionClient { return acc.sessionClient }),
 		ownerPriv,
 		ownerPID,
 		acc.sfs,

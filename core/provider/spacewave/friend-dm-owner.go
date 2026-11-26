@@ -15,6 +15,7 @@ import (
 	"github.com/s4wave/spacewave/core/space"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/crypto"
+	"github.com/s4wave/spacewave/net/peer"
 	spacewave_chat "github.com/s4wave/spacewave/sdk/chat"
 )
 
@@ -147,9 +148,8 @@ func (a *ProviderAccount) OpenFriendDM(
 	if localParticipant != nil && sobject.CanWriteOps(localParticipant.GetRole()) {
 		if bootstrap.OwnerAccountId == localAccountID &&
 			sobject.IsOwner(localParticipant.GetRole()) {
-			if err := reconcileFriendDmParticipants(
+			if err := swSO.reconcileFriendDmParticipants(
 				ctx,
-				swSO,
 				bootstrap.Accounts,
 				localPeerID,
 			); err != nil {
@@ -160,7 +160,7 @@ func (a *ProviderAccount) OpenFriendDM(
 			ctx,
 			a.p.b,
 			ref,
-			swSO,
+			swSO.GetPeerID(),
 		); err != nil {
 			return nil, errors.Wrap(err, "ensure friend dm channel")
 		}
@@ -376,14 +376,16 @@ func buildFriendDmParticipantPlan(
 	return plan, nil
 }
 
-func reconcileFriendDmParticipants(
+// reconcileFriendDmParticipants brings the friend DM's participants to the
+// bootstrap's accounts: it removes stale participants in one owner revocation,
+// then adds each missing one with its role and account.
+func (s *SharedObject) reconcileFriendDmParticipants(
 	ctx context.Context,
-	swSO *SharedObject,
 	accounts []*api.FriendDmAccount,
 	localPeerID string,
 ) error {
 	// Read the verified config and build the participant plan.
-	state, err := swSO.GetSOHost().GetHostState(ctx)
+	state, err := s.GetSOHost().GetHostState(ctx)
 	if err != nil {
 		return err
 	}
@@ -411,7 +413,7 @@ func reconcileFriendDmParticipants(
 
 	// Remove stale participants in one change with an owner revocation.
 	if len(plan.removals) != 0 {
-		if _, err := swSO.RemoveParticipantsWithRevocation(
+		if _, err := s.RemoveParticipantsWithRevocation(
 			ctx,
 			plan.removals,
 			&sobject.SORevocationInfo{
@@ -424,7 +426,7 @@ func reconcileFriendDmParticipants(
 
 	// Add each planned participant with its role and account.
 	for _, participant := range plan.additions {
-		if _, _, _, err := swSO.AddParticipant(
+		if _, _, _, err := s.AddParticipant(
 			ctx,
 			participant.peerID,
 			parsedPubs[participant.peerID],
@@ -439,12 +441,13 @@ func reconcileFriendDmParticipants(
 }
 
 // ensureFriendDmChannel creates the direct message channel when the Space
-// World lacks it, and waits for the World to project the channel.
+// World lacks it, and waits for the World to project the channel. The
+// creating operation is signed as localPeerID.
 func ensureFriendDmChannel(
 	ctx context.Context,
 	b bus.Bus,
 	ref *sobject.SharedObjectRef,
-	swSO *SharedObject,
+	localPeerID peer.ID,
 ) error {
 	// Mount the Space body to read its World.
 	mounted, bodyRef, err := space.ExMountSpaceSoBody(ctx, b, ref, false, nil)
@@ -471,7 +474,7 @@ func ensureFriendDmChannel(
 		Name:      "Direct Messages",
 		Timestamp: timestamppb.Now(),
 	}
-	_, _, createErr := world.NewEngineWorldState(eng, true).ApplyWorldOp(ctx, op, swSO.GetPeerID())
+	_, _, createErr := world.NewEngineWorldState(eng, true).ApplyWorldOp(ctx, op, localPeerID)
 	if createErr == nil || !errors.Is(createErr, sobject.ErrRejectedOp) {
 		return errors.Wrap(createErr, "create friend dm channel")
 	}

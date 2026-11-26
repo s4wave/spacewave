@@ -36,7 +36,7 @@ func TestEnsureInitialStateReturnsTerminalErrorAfterRejectedPull(t *testing.T) {
 		NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, clientPriv, clientPID.String()),
 		"so-invalid",
 		"",
-		newWSTracker(logrus.New().WithField("test", t.Name()), func() *SessionClient { return nil }),
+		newTestWSTracker(logrus.New().WithField("test", t.Name()), func() *SessionClient { return nil }),
 		clientPriv,
 		clientPID,
 		nil,

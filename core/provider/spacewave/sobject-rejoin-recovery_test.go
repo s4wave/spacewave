@@ -327,7 +327,7 @@ func newRejoinScenario(t *testing.T, opts rejoinOptions) *rejoinScenario {
 		sc.acc.sessionClient,
 		soID,
 		accountID,
-		newWSTracker(logrus.New().WithField("test", t.Name()), func() *SessionClient { return sc.acc.sessionClient }),
+		newTestWSTracker(logrus.New().WithField("test", t.Name()), func() *SessionClient { return sc.acc.sessionClient }),
 		newPriv,
 		newPID,
 		sc.acc.sfs,

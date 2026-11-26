@@ -118,7 +118,7 @@ func TestWSTrackerDispatchesBlockStoreNonceEventByResourceID(t *testing.T) {
 
 	// Register the callback for the payload resource, independently of the envelope.
 	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-	tracker := newWSTracker(logrus.NewEntry(logrus.New()), func() *SessionClient {
+	tracker := newTestWSTracker(logrus.NewEntry(logrus.New()), func() *SessionClient {
 		return cli
 	})
 	gotNonce := make(chan uint64, 1)
@@ -155,7 +155,7 @@ func TestWSTrackerDispatchesBlockStoreNonceEventByResourceID(t *testing.T) {
 // TestWaitForAccountChangedRequiresBroadcast blocks until the account publishes a change.
 func TestWaitForAccountChangedRequiresBroadcast(t *testing.T) {
 	bcast := &broadcast.Broadcast{}
-	tracker := &wsTracker{accountBcast: bcast}
+	tracker := newWSTracker(logrus.NewEntry(logrus.New()), func() *SessionClient { return nil }, bcast, nopWSEvents{})
 	ctx := t.Context()
 
 	// Observe the blocking call from the test driver.
@@ -188,7 +188,7 @@ func TestWaitForAccountChangedRequiresBroadcast(t *testing.T) {
 // TestWaitForAccountChangedCancellation releases a pending account wait on cancellation.
 func TestWaitForAccountChangedCancellation(t *testing.T) {
 	bcast := &broadcast.Broadcast{}
-	tracker := &wsTracker{accountBcast: bcast}
+	tracker := newWSTracker(logrus.NewEntry(logrus.New()), func() *SessionClient { return nil }, bcast, nopWSEvents{})
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
 	go func() {
