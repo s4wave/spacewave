@@ -1311,7 +1311,7 @@ func (w *walker) checkChild(
 		total := w.prog.GetCounts()
 		var owed bool
 		if err == nil {
-			owed, err = rec.tx.Exists(ctx, rec.key(kindRewritten))
+			owed, err = rec.recountOwed(ctx)
 		}
 		if err != nil || unmarked || owed || state.GetAdoption() != Adoption_ADOPTION_ADOPTED {
 			if err == nil {

@@ -294,10 +294,13 @@ BuildRun ==
 \* Free deletes a block at zero holders, except that while Open it parks it.
 \* A park is a free that keeps the bytes and the list: it releases the
 \* block's holds as a free does, so its children may reach zero and park in
-\* turn, and the block stays hidden until the sweep deletes it. A block an
-\* unpark left released, whose list the counts still lack, gives its downs
-\* again, as the free gives a list's downs whatever the records say.
+\* turn, and the block stays hidden until the sweep deletes it. Nothing is
+\* freed or parked while a recount is owed, since a count may miss a holder:
+\* a block an unpark left released, whose list the counts still lack, would
+\* give its downs again, as the free gives a list's downs whatever the
+\* records say.
 Free(b) ==
+  /\ ~owed
   /\ b \in stored
   /\ ~Hidden(b)
   /\ Count(b) = 0
@@ -420,13 +423,20 @@ LiveStored == Reach({root}) \ {"h"} \subseteq stored
 \* The root's block reads present.
 HeldPresent == ~Hidden(root)
 
-\* Once the flip could run, no block the root reaches reads hidden: an
-\* unpark's owed recount has given back every holder its released list
-\* took, so no live block stays parked behind it.
+\* A hidden block the root reaches that a shown parent names, by a list
+\* from its whole content that holds, keeps that holder, so an unpark shows
+\* it again; only a released list's children, which its park gave their
+\* downs before an unpark that owes their recount, may lose it. Once the
+\* flip could run, no block the root reaches reads hidden: the owed recount
+\* has given back every holder a released list took.
+Holding(b) ==
+  {p \in Reach({root}) : Present(p) /\ p \in verified \ short /\ p \notin released /\ b \in True[p]}
 FlipReady ==
   /\ gen = "open" /\ complete /\ seeded /\ front = {} /\ ~owed
   /\ \A b \in parked : Count(b) = 0
-ReachedShown == FlipReady => \A b \in Reach({root}) : ~Hidden(b)
+ReachedShown ==
+  /\ \A b \in Reach({root}) : Hidden(b) /\ Holding(b) # {} => Count(b) > 0
+  /\ FlipReady => \A b \in Reach({root}) : ~Hidden(b)
 
 \* Once Settled every list was written from content and no settle record
 \* remains, so the settle's code and records can go.

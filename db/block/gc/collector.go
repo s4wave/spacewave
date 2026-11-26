@@ -624,7 +624,11 @@ func (c *Collector) netLogs(ctx context.Context, n *netting, budget int) (bool, 
 // freeSlice frees up to sliceFrees ripe blocks at zero in one transaction,
 // in ripe order, stopping at the first block the up cursor has not reached
 // and at the next block once a writer waits. It frees nothing while a paged
-// release is in progress or the Volume is not adopted. A free deletes the
+// release is in progress or the Volume is not adopted, and frees and parks
+// nothing while a recount is owed: an unpark of a released park gave its
+// children no ups, so a zero count may miss a holder, and a park then would
+// hide a live block. The flip reads freeable alone, so it still reaches the
+// unadopt that runs the recount. A free deletes the
 // block's bytes, child list, queue entry, proof and count record, and gives
 // each child its down, as freeing describes; the slice stops after a free
 // that starts a paged release. It reports whether the slice was full, and
@@ -640,9 +644,13 @@ func (c *Collector) netLogs(ctx context.Context, n *netting, budget int) (bool, 
 // deletes queue entries and writes log pages, and netting runs before the
 // free step, never between its slices.
 func (c *Collector) freeSlice(ctx context.Context, rec *Records, blocks block.StoreOps, res *CollectResult, from []byte) ([]byte, bool, bool, error) {
-	// Free only in an adopted Volume with no release in progress.
+	// Free only in an adopted Volume with no release in progress and no
+	// recount owed.
 	state, err := rec.GetState(ctx)
 	if err != nil || !c.freeable(state) {
+		return from, false, false, err
+	}
+	if owed, err := rec.recountOwed(ctx); err != nil || owed {
 		return from, false, false, err
 	}
 

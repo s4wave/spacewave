@@ -249,7 +249,7 @@
         "            /\\ released' = released\n            /\\ run' = IF gen = \"sweeping\""
       ]
     ],
-    "expect": "LiveStored",
+    "expect": "HeldPresent",
     "config": "Settle.cfg"
   },
   {
@@ -271,7 +271,7 @@
         "                     THEN Unverified("
       ]
     ],
-    "expect": "LiveStored",
+    "expect": "ReachedShown",
     "config": "Settle.cfg"
   },
   {
@@ -305,6 +305,17 @@
       ]
     ],
     "expect": "LiveStored",
+    "config": "Settle.cfg"
+  },
+  {
+    "name": "the free parks while a recount is owed",
+    "replace": [
+      [
+        "Free(b) ==\n  /\\ ~owed\n",
+        "Free(b) ==\n  /\\ TRUE\n"
+      ]
+    ],
+    "expect": "ReachedShown",
     "config": "Settle.cfg"
   }
 ]

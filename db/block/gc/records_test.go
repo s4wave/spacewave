@@ -37,13 +37,14 @@ func TestNormalizeChildrenAllocs(t *testing.T) {
 	}
 }
 
-// TestSettleWaitsForNetting checks that neither the front pop nor the flip
-// runs while the free could not: a paged release in progress (the model's
+// TestSettleWaitsForNetting checks that neither the front pop, the free nor
+// the flip runs while the free could not: a paged release in progress (the model's
 // FlipSettled, mutant rps-noflipsettled), an adoption younger than the grace
 // period, or a rewritten list awaiting its recount. Each blocker leaves a
 // listed block at zero, queued at a ripe sequence the up cursor passed, so
 // the free proof would pop it and the flip would follow, unless the check
-// holds; otherwise the free parks it, which the flip requires. Collect nets
+// holds; otherwise the free parks it, which the flip requires. A recount
+// owed holds the park too, since the zero may miss a holder. Collect nets
 // before the settle runs, so no writer reaches these states with work owed;
 // the test writes them as a netting step cut short would.
 func TestSettleWaitsForNetting(t *testing.T) {
@@ -118,8 +119,8 @@ func TestSettleWaitsForNetting(t *testing.T) {
 				t.Fatal(err)
 			}
 			held := bc.block != nil
-			if held && (res.Popped != 0 || res.Flipped) {
-				t.Fatalf("with %s, popped %d and flipped %v; want neither", bc.name, res.Popped, res.Flipped)
+			if held && (res.Popped != 0 || res.Parked != 0 || res.Flipped) {
+				t.Fatalf("with %s, popped %d, parked %d and flipped %v; want none", bc.name, res.Popped, res.Parked, res.Flipped)
 			}
 			if !held && (res.Popped != 1 || !res.Flipped) {
 				t.Fatalf("with netting done, popped %d and flipped %v; want the pop and the flip", res.Popped, res.Flipped)

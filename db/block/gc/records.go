@@ -828,17 +828,17 @@ func (r *Records) park(ctx context.Context, queued, parked, key []byte) error {
 }
 
 // unpark ends the park of the block at key, parked at ripe, when it gains a
-// holder while Open, as an up gives it: its parked key
-// goes, and so does its run entry when its list is marked, which only the
-// park wrote. An old block's list stays unverified, so it stays in the run.
-// A released park's list holds again once its key goes, and its children
-// lack those holders, so it records under state that the counts owe a
-// recount, which the flip runs before anything is deleted: a bounded write
-// in place of a cascade of ups. Land refuses a hold onto a parked block
+// holder while Open, as an up gives it: its parked key goes, and so does its
+// run entry when its list is marked, which only the park wrote. An old block's
+// list stays unverified, so it stays in the run. A released park's list holds
+// again once its key goes, and its children lack those holders, so it records
+// under state that the counts owe a recount, which the flip runs before
+// anything is deleted, and until which nothing is freed or parked: a bounded
+// write in place of a cascade of ups. Land refuses a hold onto a parked block
 // except in a partial batch, as a cache fill puts, so such a fill's up or an
 // underflow reaches it: the free parks only up to the up cursor, so no up
-// logged before the park nets after it. It reads the released key and the
-// list record.
+// logged before the park nets after it. It reads the released key and the list
+// record.
 func (r *Records) unpark(ctx context.Context, state *LivenessState, key []byte, ripe uint64) error {
 	// Delete the park's key, noting a recount for a released one.
 	released, err := r.tx.Exists(ctx, r.releasedKey(ripe, key))

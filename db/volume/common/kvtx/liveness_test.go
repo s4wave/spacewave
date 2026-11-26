@@ -5738,16 +5738,22 @@ func TestLivenessSettle(t *testing.T) {
 		// and Q and give S no second down, or a writer roots main onto P
 		// and Q before the flip, and their rebirth gives S and Q back the
 		// ups the park took. The old park, kept selectable, parks P alone
-		// with its holds. Each way the settle keeps what main reaches, and
-		// the audit finds every count exact.
+		// with its holds. Or a fill of X, which names P, unparks P with no
+		// up for S and owes a recount; until it runs nothing is freed or
+		// parked, since X's park would take P back to zero and P's second
+		// park would give S, which L still names, a second down. Each way
+		// the settle keeps what main reaches, and the audit finds every
+		// count exact.
 		for _, tc := range []struct {
 			name   string
 			old    bool
 			reborn bool
+			owed   bool
 		}{
 			{name: "swept"},
 			{name: "reborn before the flip", reborn: true},
 			{name: "with the park keeping its holds", old: true},
+			{name: "unparked by a fill", owed: true},
 		} {
 			t.Run(tc.name, func(t *testing.T) {
 				tr := testTree{}
@@ -5806,6 +5812,24 @@ func TestLivenessSettle(t *testing.T) {
 					requireReads(t, v, tr, "S")
 				}
 
+				// A fill of X holds P again and owes the recount its
+				// released list's children lack. The passes free and park
+				// nothing until the flip's attempt unadopts, and S, which L
+				// names, reads throughout.
+				if tc.owed {
+					tr.add(t, "X", "P")
+					fill(t, v, tr, "X")
+					netAll(t, v)
+					if owed := livenessRecords(t, store, 'Y'); len(owed) == 0 {
+						t.Fatal("the fill's unpark of the released P owes no recount")
+					}
+					res := collectAll(t, v)
+					if !res.Unadopted {
+						t.Fatalf("collect with a recount owed = %+v, want the readoption", res)
+					}
+					requireReads(t, v, tr, "A", "L", "S")
+				}
+
 				// Root main onto P and Q again, or leave them to the sweep,
 				// and free what the settle released: the old park gives
 				// P's downs only when the sweep deletes it.
@@ -5822,6 +5846,9 @@ func TestLivenessSettle(t *testing.T) {
 				requireReads(t, v, tr, kept...)
 				if !tc.reborn {
 					requireStored(t, v, tr, false, "P", "Q")
+				}
+				if tc.owed {
+					requireStored(t, v, tr, false, "X")
 				}
 				requireListsStored(t, v, tr)
 				requireAudit(t, v, 0)

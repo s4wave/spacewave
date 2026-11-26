@@ -348,6 +348,16 @@ func (r *Records) noteRewrite(ctx context.Context, state *LivenessState) error {
 	return r.tx.Set(ctx, r.key(kindRewritten), nil)
 }
 
+// recountOwed reports whether the counts owe the recount noteRewrite
+// records. While they do a count may miss a holder, so no step that trusts
+// a zero count runs: the free, the pop and the flip. Nothing writes the
+// record while Sweeping: the flip refuses to run while it exists, and each
+// writer runs only while Open, so a free while Sweeping trusts its counts.
+// It reads one key.
+func (r *Records) recountOwed(ctx context.Context) (bool, error) {
+	return r.tx.Exists(ctx, r.key(kindRewritten))
+}
+
 // rebirth gives birth again to the unmarked block ref while the generation
 // is Sweeping: it leaves the run as releaseOld describes, keeping the
 // holders it gained since the flip, its run entry turns reborn, and it
@@ -703,7 +713,7 @@ func (c *Collector) frontSlice(ctx context.Context, rec *Records, blocks block.S
 	if !c.freeable(state) {
 		return pos, false, nil
 	}
-	if recount, err := rec.tx.Exists(ctx, rec.key(kindRewritten)); err != nil || recount {
+	if recount, err := rec.recountOwed(ctx); err != nil || recount {
 		return pos, false, err
 	}
 
@@ -830,7 +840,7 @@ func (c *Collector) flip(ctx context.Context, rec *Records, res *CollectResult) 
 	// every stored list again: SetHolders writes an unmarked block's count
 	// to kindUnmarkedCount, and its old list holds the children the recount
 	// gave it.
-	recount, err := rec.tx.Exists(ctx, rec.key(kindRewritten))
+	recount, err := rec.recountOwed(ctx)
 	if err != nil {
 		return err
 	}

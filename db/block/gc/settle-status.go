@@ -62,7 +62,7 @@ func (c *Collector) SettleStatus(ctx context.Context, limit int) (SettleStatus, 
 		st.GraceLeft = max(c.opts.Grace-c.opts.Now().Sub(adopted), 0)
 
 		// Read the rewrite marker and the run's completion entry.
-		if st.Rewritten, err = rec.tx.Exists(ctx, rec.key(kindRewritten)); err != nil {
+		if st.Rewritten, err = rec.recountOwed(ctx); err != nil {
 			return err
 		}
 		if st.RunComplete, err = rec.tx.Exists(ctx, rec.key(kindUnmarked, runComplete)); err != nil {

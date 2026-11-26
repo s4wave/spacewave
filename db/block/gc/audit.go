@@ -95,7 +95,7 @@ func Audit(ctx context.Context, store AdoptStore, now time.Time, record bool) (A
 		// list's holders until the recount it owes, so the counts compare
 		// only once that recount ran.
 		counted := tally
-		owed, err := rec.tx.Exists(ctx, rec.key(kindRewritten))
+		owed, err := rec.recountOwed(ctx)
 		if err != nil {
 			return err
 		}
