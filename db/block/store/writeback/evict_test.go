@@ -769,9 +769,10 @@ func TestLoweredHighMarkKeepsBatchesShort(t *testing.T) {
 // TestFillQueueBoundsAndDedupes checks that a block read twice before its
 // write queues once, that a fill past the policy's byte bound is dropped and
 // counted, and that the drain writes every queued block and lets them queue
-// again. Under either retry policy, a fill with asserted refs replaces a
-// queued one with listed refs, and a fill the volume drops counts as dropped,
-// holds no resident bytes and leaves no eviction entry.
+// again. Under each queue policy, including indexed accounting, a fill with
+// asserted refs replaces a queued one with listed refs, and a fill the volume
+// drops in the same step counts as dropped, holds no resident bytes and
+// leaves no eviction entry, while the stored fill keeps its entry.
 func TestFillQueueBoundsAndDedupes(t *testing.T) {
 	// Open a placed store whose fill queue holds three blocks of eight bytes,
 	// and hold the drain off so the queue keeps what it takes.
@@ -826,11 +827,19 @@ func TestFillQueueBoundsAndDedupes(t *testing.T) {
 		t.Fatalf("after the drain %d blocks are queued, draining=%v; want none", n, s.fills.draining)
 	}
 
-	// The volume drops a cache fill whose refs are only listed.
-	for _, retry := range []bool{false, true} {
-		t.Run(fmt.Sprintf("retry=%t", retry), func(t *testing.T) {
-			SetEvictRefusedRetry(retry)
-			t.Cleanup(func() { SetEvictRefusedRetry(false) })
+	// The volume drops a cache fill whose refs are only listed, under the
+	// legacy queue, refusal retry, and indexed accounting.
+	for _, mode := range []struct {
+		name         string
+		retry, index bool
+	}{{"retry=false", false, false}, {"retry=true", true, false}, {"index", true, true}} {
+		t.Run(mode.name, func(t *testing.T) {
+			SetEvictRefusedRetry(mode.retry)
+			SetEvictQueueIndex(mode.index)
+			t.Cleanup(func() {
+				SetEvictQueueIndex(false)
+				SetEvictRefusedRetry(false)
+			})
 			env := newTestEnv(t)
 			s := env.newStore(t, true)
 			s.local = listedFillDrops{s.local}
@@ -843,17 +852,15 @@ func TestFillQueueBoundsAndDedupes(t *testing.T) {
 			}
 			before, _ := s.GetStatus()
 
-			// A decoded read's asserted fill replaces the pending listed one.
-			upgraded, listed := put(fmt.Sprintf("upgraded-%t", retry))
+			// A decoded read's asserted fill replaces the pending listed one,
+			// and a fill with listed refs alone, in the same step, is dropped:
+			// the step removes the dropped fill's entry and keeps the other.
+			upgraded, listed := put("upgraded-" + mode.name)
+			dropped, droppedListed := put("dropped-" + mode.name)
 			s.fills.draining = true
 			s.CacheFill(upgraded, listed)
 			s.CacheFill(upgraded, &block.StoredBlock{Data: listed.Data, RefsSource: block.RefsAsserted})
-			s.drainFills()
-
-			// A fill with listed refs alone is dropped.
-			dropped, listed := put(fmt.Sprintf("dropped-%t", retry))
-			s.fills.draining = true
-			s.CacheFill(dropped, listed)
+			s.CacheFill(dropped, droppedListed)
 			s.drainFills()
 
 			// Only the asserted fill is stored and resident, before and after
@@ -862,10 +869,11 @@ func TestFillQueueBoundsAndDedupes(t *testing.T) {
 			if err != nil || !held[0] || held[1] {
 				t.Fatalf("held = %v, %v; want the upgraded fill alone", held, err)
 			}
-			want := before.EvictableBytes + int64(len(fmt.Sprintf("upgraded-%t", retry)))
+			want := before.EvictableBytes + int64(len("upgraded-"+mode.name))
 			if status, _ := s.GetStatus(); status.EvictableBytes != want || status.DroppedFills != before.DroppedFills+1 {
 				t.Fatalf("status = %+v, want %d evictable bytes and one more dropped fill", status, want)
 			}
+
 			env.open(t)
 			if status, _ := env.newStore(t, true).GetStatus(); status.EvictableBytes != want {
 				t.Fatalf("reopened evictable bytes = %d, want %d", status.EvictableBytes, want)

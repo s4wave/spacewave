@@ -222,10 +222,17 @@ func (s *Store) rebuildEvictIndex(ctx context.Context) {
 // walk makes all concurrent inserts sort beyond its boundary; there is no
 // foreground scan or startup dependency. No persistent completion bit survives
 // a reopen or switch flip. Cursor progress follows successful commits only.
+// The advance holds the fill barrier, as an eviction pass's does, so a fill
+// step finds the epoch it reserved under when it removes a dropped fill's
+// entry.
 func (s *Store) repairEvictIndex(ctx context.Context, revision uint64) error {
 	// Fence legacy producers before the walk with the existing durable epoch.
+	releaseFill, err := s.fillMtx.Lock(ctx)
+	if err != nil {
+		return err
+	}
 	var boundary uint64
-	err := kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
+	err = kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
 		epoch, err := readEpoch(ctx, tx)
 		if err != nil {
 			return err
@@ -233,6 +240,7 @@ func (s *Store) repairEvictIndex(ctx context.Context, revision uint64) error {
 		boundary = epoch + 1
 		return tx.Set(ctx, []byte(epochKey), []byte(strconv.FormatUint(boundary, 10)))
 	})
+	releaseFill()
 	if err != nil {
 		return err
 	}

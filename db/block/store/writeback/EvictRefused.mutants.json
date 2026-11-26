@@ -56,5 +56,25 @@
       ]
     ],
     "expect": "NoStrandedValue"
+  },
+  {
+    "name": "A dropped fill keeps its reserved entry",
+    "replace": [
+      [
+        "               /\\ queue' = [queue EXCEPT ![3] = -1]\n",
+        "               /\\ UNCHANGED queue\n"
+      ]
+    ],
+    "expect": "DropUnqueued"
+  },
+  {
+    "name": "An unqueue removes a stored fill's entry",
+    "replace": [
+      [
+        "IF RetryRefused THEN \"done\" ELSE \"queue\"",
+        "IF RetryRefused THEN \"unqueue\" ELSE \"queue\""
+      ]
+    ],
+    "expect": "NoStrandedValue"
   }
 ]

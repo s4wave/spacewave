@@ -224,6 +224,13 @@ func (s *Store) drainFills() {
 // not resident, and its reserved entry is removed before fillMtx releases the
 // epoch, or is never queued with retry off.
 //
+// Invariant: an unqueue deletes only metadata, never a value, and only the
+// entry of a block the same step's put found absent and did not store. A
+// surplus entry for an absent value costs only bytes counted until the next
+// pass deletes it. Not covered: a write of the same block that lands and
+// clears its upload between the dropped put and the unqueue leaves that block
+// resident without an entry, so it is never evicted.
+//
 // This store upkeep runs below Flowgraphs: it must work before a Space loads.
 // Retry off retains the former value-before-queue ordering.
 func (s *Store) writeFills(ctx context.Context, batch []fill) error {
@@ -306,14 +313,14 @@ func (s *Store) writeFills(ctx context.Context, batch []fill) error {
 	}
 
 	// Remove the dropped fills' reserved coverage, or keep the legacy
-	// ordering selectable, then count completed refills.
+	// ordering selectable, then count completed refills. A failed removal
+	// leaves surplus entries for absent values, which the next eviction pass
+	// deletes, and changes no count of the stored fills.
 	var queued int64
 	if repairQueue && len(gone) != 0 {
-		removed, err := s.unqueueFills(ctx, gone)
-		if err != nil {
-			return err
+		if removed, err := s.unqueueFills(ctx, gone); err == nil {
+			queued = removed
 		}
-		queued = removed
 	}
 	if !repairQueue {
 		var err error
@@ -371,8 +378,11 @@ func (s *Store) queueFills(ctx context.Context, batch []fill) (int64, error) {
 // unqueueFills removes the eviction entries queueFills reserved at the current
 // epoch for fills the volume dropped, and returns the bytes removed, negated.
 // The caller holds fillMtx from the reservation on, so the epoch has not moved.
-// A marker-covered fill reserved no entry and removes nothing. The caller
-// projects the bytes only after this transaction commits.
+// A dropped fill's block reads absent through the volume, so an entry it had
+// before the reservation, which the reservation may have moved to this epoch,
+// covers no resident value and goes too. A marker-covered fill reserved no
+// entry and removes nothing. The caller projects the bytes only after this
+// transaction commits.
 func (s *Store) unqueueFills(ctx context.Context, gone []fill) (int64, error) {
 	var removed int64
 	err := kvtx.RunOptimisticTransaction(ctx, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
