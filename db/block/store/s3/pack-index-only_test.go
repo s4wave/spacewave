@@ -1,6 +1,7 @@
 package block_store_s3
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -8,14 +9,17 @@ import (
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/kvtx/hashmap"
 	"github.com/sirupsen/logrus"
 )
 
-// requestCounter counts the reads and listings of an object store.
+// requestCounter counts the reads and listings of an object store, and the
+// listings alone.
 type requestCounter struct {
 	ObjectStore
 	requests atomic.Int64
+	lists    atomic.Int64
 }
 
 func (c *requestCounter) GetObject(ctx context.Context, bucket, key string) (io.ReadCloser, error) {
@@ -30,6 +34,7 @@ func (c *requestCounter) GetObjectRange(ctx context.Context, bucket, key string,
 
 func (c *requestCounter) ListObjects(ctx context.Context, bucket, prefix string, fn func(key string, size int64) error) error {
 	c.requests.Add(1)
+	c.lists.Add(1)
 	return c.ObjectStore.ListObjects(ctx, bucket, prefix, fn)
 }
 
@@ -134,5 +139,133 @@ func TestPackStoreIndexOnly(t *testing.T) {
 		if data, found, err := store.GetBlock(ctx, ref); err != nil || !found || string(data) != string(want) {
 			t.Fatalf("third start read = %q, %v, %v", data, found, err)
 		}
+	}
+}
+
+// TestPackStoreIndexOnlyRestored checks that an index-only store opened on a
+// copy of its index taken before its last pack reads that pack once the copy
+// is marked with RequestPackListing, that the listing drops no pack the copy
+// holds even when the listing lacks its entry, and that the mark clears so the
+// next start lists nothing.
+func TestPackStoreIndexOnlyRestored(t *testing.T) {
+	ctx := t.Context()
+	_, client := newFakeBucket(t, nil)
+	batch := func(name string) ([]*block.PutBatchEntry, []*block.BlockRef) {
+		var entries []*block.PutBatchEntry
+		var refs []*block.BlockRef
+		for i := range 10 {
+			data := []byte(fmt.Sprintf("%s block %d", name, i))
+			ref, err := block.BuildBlockRef(data, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			entries = append(entries, &block.PutBatchEntry{Ref: ref, Data: data})
+			refs = append(refs, ref)
+		}
+		return entries, refs
+	}
+	open := func(kv kvtx.Store) (*PackStore, *requestCounter) {
+		objs := &requestCounter{ObjectStore: client}
+		s := NewPackStore(logrus.NewEntry(logrus.New()), objs, "bucket", "p/", &PackStoreOptions{
+			KeepPacks: true,
+			Index:     kv,
+			IndexOnly: true,
+		})
+		t.Cleanup(s.Close)
+		return s, objs
+	}
+	readAll := func(s *PackStore, entries []*block.PutBatchEntry, refs []*block.BlockRef) {
+		t.Helper()
+		for i, ref := range refs {
+			if data, found, err := s.GetBlock(ctx, ref); err != nil || !found || string(data) != string(entries[i].Data) {
+				t.Fatalf("read = %q, %v, %v", data, found, err)
+			}
+		}
+	}
+	entryIDs := func() map[string]bool {
+		ids := make(map[string]bool)
+		err := client.ListObjects(ctx, "bucket", "p/"+entryDir, func(key string, _ int64) error {
+			ids[key] = true
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return ids
+	}
+
+	// The store writes a pack, its index is backed up, and it writes another.
+	live := hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]())
+	store, _ := open(live)
+	early, earlyRefs := batch("early")
+	if _, err := store.PutBlockBatch(ctx, early); err != nil {
+		t.Fatal(err)
+	}
+	earlyEntries := entryIDs()
+	backup := hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]())
+	copyKV(t, live, backup)
+	late, lateRefs := batch("late")
+	if _, err := store.PutBlockBatch(ctx, late); err != nil {
+		t.Fatal(err)
+	}
+	store.Close()
+
+	// Without the mark the restored copy misses the later pack.
+	unmarked := hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]())
+	copyKV(t, backup, unmarked)
+	store, _ = open(unmarked)
+	if _, found, err := store.GetBlock(ctx, lateRefs[0]); err != nil || found {
+		t.Fatalf("unmarked late read = %v, %v", found, err)
+	}
+	store.Close()
+
+	// The early pack's entry leaves the bucket; the restored index still
+	// holds it, so its blocks must keep reading.
+	for key := range earlyEntries {
+		if err := client.DeleteObject(ctx, "bucket", key); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Marked, the restored copy reads both packs.
+	if err := RequestPackListing(ctx, backup); err != nil {
+		t.Fatal(err)
+	}
+	store, _ = open(backup)
+	readAll(store, late, lateRefs)
+	readAll(store, early, earlyRefs)
+	store.Close()
+
+	// The mark is gone: the next start lists nothing and reads both packs.
+	store, objs := open(backup)
+	readAll(store, early, earlyRefs)
+	readAll(store, late, lateRefs)
+	if n := objs.lists.Load(); n != 0 {
+		t.Fatalf("restart after the listing listed %d times, want none", n)
+	}
+}
+
+// copyKV copies every key of src into dst.
+func copyKV(t *testing.T, src, dst kvtx.Store) {
+	t.Helper()
+	ctx := t.Context()
+	rtx, err := src.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rtx.Discard()
+	wtx, err := dst.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer wtx.Discard()
+	err = rtx.ScanPrefix(ctx, nil, func(key, value []byte) error {
+		return wtx.Set(ctx, bytes.Clone(key), bytes.Clone(value))
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := wtx.Commit(ctx); err != nil {
+		t.Fatal(err)
 	}
 }
