@@ -5,26 +5,24 @@ import (
 
 	"github.com/pkg/errors"
 	cdn_publish "github.com/s4wave/spacewave/core/cdn/publish"
-	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/net/hash"
 )
 
-// reclaim rewrites the destination's packs that are at least half dead once
-// the checkpoint whose World is head has been posted. blocks is the complete
-// closure of head: every ref of a decoded block is in blocks. read loads a
-// closure block's data by hash. The pass stops when the destination head
-// moves away from head. Returns the dead value bytes dropped.
-func reclaim(ctx context.Context, opts cdn_publish.Options, head *bucket.ObjectRef, blocks []packedBlock, read cdn_publish.ReadBlock) (uint64, error) {
+// reclaim rewrites mostly dead packs after the closure's head is published.
+// Every stored ref of a decoded block must belong to the closure.
+// The pass stops when the destination head moves away from the closure's head.
+// Returns the dead value bytes dropped.
+func (c *releaseClosure) reclaim(ctx context.Context, opts cdn_publish.Options, read cdn_publish.ReadBlock) (uint64, error) {
 	// Index the live blocks and require the closure to hold every stored ref
 	// of a decoded block, since a missed subtree would read as dead.
-	live := make([]*hash.Hash, len(blocks))
-	keys := make(map[string]struct{}, len(blocks))
-	for i, entry := range blocks {
+	live := make([]*hash.Hash, len(c.blocks))
+	keys := make(map[string]struct{}, len(c.blocks))
+	for i, entry := range c.blocks {
 		live[i] = entry.ref.GetHash()
 		keys[string(packfile.BlockKey(entry.ref.GetHash()))] = struct{}{}
 	}
-	for _, entry := range blocks {
+	for _, entry := range c.blocks {
 		if !entry.decoded {
 			continue
 		}
@@ -39,7 +37,7 @@ func reclaim(ctx context.Context, opts cdn_publish.Options, head *bucket.ObjectR
 	}
 
 	// The checkpoint holds head without its bucket binding.
-	want := head.CloneVT()
+	want := c.head.CloneVT()
 	want.BucketId = ""
 
 	// Replace the mostly dead packs while the destination head stays at head.

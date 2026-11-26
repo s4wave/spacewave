@@ -96,7 +96,7 @@ func TestReclaimReplacesMostlyDeadPacks(t *testing.T) {
 	opts := cdn_publish.Options{Client: client, DstSpaceID: reclaimSpace, CdnBaseURL: server.URL}
 
 	// The live leaf supersedes both dead-heavy packs in one replacement.
-	dropped, err := reclaim(t.Context(), opts, head, blocks, testRead)
+	dropped, err := (&releaseClosure{head: head, blocks: blocks}).reclaim(t.Context(), opts, testRead)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -118,14 +118,14 @@ func TestReclaimReplacesMostlyDeadPacks(t *testing.T) {
 	}
 	client.entries = []*packfile.PackfileEntry{supersede(mixed), supersede(dead), livePack}
 	client.replaced, client.replacedKeys, client.replacedData = nil, nil, nil
-	if _, err := reclaim(t.Context(), opts, head, blocks, testRead); err != nil || len(client.replaced) != 0 {
+	if _, err := (&releaseClosure{head: head, blocks: blocks}).reclaim(t.Context(), opts, testRead); err != nil || len(client.replaced) != 0 {
 		t.Fatalf("superseded: err=%v replaced=%v", err, client.replaced)
 	}
 
 	// A group of dead packs borrows the smallest kept pack.
 	client.entries = []*packfile.PackfileEntry{dead, livePack}
 	client.replaced, client.replacedKeys, client.replacedData = nil, nil, nil
-	if _, err := reclaim(t.Context(), opts, head, blocks, testRead); err != nil {
+	if _, err := (&releaseClosure{head: head, blocks: blocks}).reclaim(t.Context(), opts, testRead); err != nil {
 		t.Fatal(err)
 	}
 	rootKey := string(packfile.BlockKey(root.ref.GetHash()))
@@ -141,12 +141,12 @@ func TestReclaimReplacesMostlyDeadPacks(t *testing.T) {
 	// A moved head stops the pass before any replacement.
 	client.state = reclaimState(t, &bucket.ObjectRef{RootRef: leaf.ref})
 	client.replaced = nil
-	if _, err := reclaim(t.Context(), opts, head, blocks, testRead); err == nil || len(client.replaced) != 0 {
+	if _, err := (&releaseClosure{head: head, blocks: blocks}).reclaim(t.Context(), opts, testRead); err == nil || len(client.replaced) != 0 {
 		t.Fatalf("moved head: err=%v replaced=%v", err, client.replaced)
 	}
 
 	// A closure missing a referenced block judges nothing.
-	if _, err := reclaim(t.Context(), opts, head, []packedBlock{root}, testRead); err == nil {
+	if _, err := (&releaseClosure{head: head, blocks: []packedBlock{root}}).reclaim(t.Context(), opts, testRead); err == nil {
 		t.Fatal("reclaimed against an open closure")
 	}
 
@@ -155,7 +155,7 @@ func TestReclaimReplacesMostlyDeadPacks(t *testing.T) {
 	opaque := root
 	opaque.decoded = false
 	client.state = reclaimState(t, head)
-	if _, err := reclaim(t.Context(), opts, head, []packedBlock{opaque}, testRead); err != nil {
+	if _, err := (&releaseClosure{head: head, blocks: []packedBlock{opaque}}).reclaim(t.Context(), opts, testRead); err != nil {
 		t.Fatalf("undecoded block: %v", err)
 	}
 }
@@ -173,7 +173,7 @@ func TestReclaimKeepsPacks(t *testing.T) {
 
 	// The pass refuses before it reads or replaces any pack.
 	opts := cdn_publish.Options{Client: client, DstSpaceID: reclaimSpace, CdnBaseURL: "http://unused.invalid", KeepPacks: true}
-	if _, err := reclaim(t.Context(), opts, head, []packedBlock{leaf}, testRead); err == nil {
+	if _, err := (&releaseClosure{head: head, blocks: []packedBlock{leaf}}).reclaim(t.Context(), opts, testRead); err == nil {
 		t.Fatal("reclaimed a destination that keeps every pack")
 	}
 	if len(client.pushed) != 0 || len(client.replaced) != 0 {

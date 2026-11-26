@@ -445,7 +445,7 @@ func validateReadOnlyInitHead(
 	}
 
 	// Require the configured World root to exist in its bucket.
-	found, err := cursor.GetBucket().GetBlockExists(ctx, initRef.GetRootRef())
+	found, err := cursor.HasStoredBlock(ctx, initRef.GetRootRef())
 	if err != nil {
 		return err
 	}

@@ -8,10 +8,7 @@ import (
 	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	cdn_publish "github.com/s4wave/spacewave/core/cdn/publish"
-	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	"github.com/s4wave/spacewave/core/release"
-	"github.com/s4wave/spacewave/core/sobject"
-	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/crypto"
 )
@@ -37,20 +34,6 @@ type ReleaseOptions struct {
 	// Publish writes the Deployment's Space. Its Space and CDN URL default to
 	// the Deployment's.
 	Publish cdn_publish.Options
-}
-
-// Released is the result of a release.
-type Released struct {
-	// Metadata is the staged channel metadata.
-	Metadata *release.ReleaseMetadata
-	// Checkpoint is the checkpoint the Space posted.
-	Checkpoint *sobject.SOCheckpointInner
-	// Head is the release World root the checkpoint names.
-	Head *bucket.ObjectRef
-	// DistConfig selects the channel for launchers.
-	DistConfig *spacewave_launcher.DistConfig
-	// Signed is DistConfig as the signed packed message launchers fetch.
-	Signed string
 }
 
 // Release stages the channel in eng, publishes the release World to the
@@ -108,15 +91,9 @@ func orderedRelease(ctx context.Context, eng world.Engine, opts ReleaseOptions, 
 	}
 
 	// Publish to the Deployment's Space.
-	pub := opts.Publish
-	if pub.DstSpaceID == "" {
-		pub.DstSpaceID = d.SpaceID
-	}
-	if pub.CdnBaseURL == "" {
-		pub.CdnBaseURL = d.CdnBaseURL
-	}
-	if pub.DstSpaceID != d.SpaceID {
-		return nil, errors.Errorf("publication Space %q is not the deployment's %q", pub.DstSpaceID, d.SpaceID)
+	pub, err := opts.Publish.WithDestination(d.SpaceID, d.CdnBaseURL)
+	if err != nil {
+		return nil, err
 	}
 
 	// Build the selector before any write, so a bad Deployment fails first.

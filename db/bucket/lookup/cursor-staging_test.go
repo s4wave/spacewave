@@ -13,12 +13,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// TestCursorStagingCoversDirectAndTransactionStorePaths checks raw and staged storage stay separate.
 func TestCursorStagingCoversDirectAndTransactionStorePaths(t *testing.T) {
 	// Construct a cursor whose effective block store buffers destination writes.
 	ctx := t.Context()
 	raw := block_store_inmem.NewInmemBlock(store_kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), 0)
 	stage := block.NewBufferedStore(ctx, raw)
-	cursor := NewCursor(ctx, nil, logrus.NewEntry(logrus.New()), nil, raw, nil, &bucket.ObjectRef{BucketId: "staged"}, &bucket.BucketOpArgs{BucketId: "staged", VolumeId: "volume"}, nil)
+	cursor := NewCursor(
+		ctx, nil, logrus.NewEntry(logrus.New()), nil, raw, nil,
+		&bucket.ObjectRef{BucketId: "staged"},
+		&bucket.BucketOpArgs{BucketId: "staged", VolumeId: "volume"}, nil,
+	)
 	cursor.SetTransactionStore(stage)
 
 	// Clone the staged cursor and release the original cursor.
@@ -47,6 +52,14 @@ func TestCursorStagingCoversDirectAndTransactionStorePaths(t *testing.T) {
 		t.Fatalf("direct write escaped staging: %v %v", found, err)
 	}
 
+	// Raw cursor operations must not expose bytes held only in staging.
+	if found, err := clone.HasStoredBlock(ctx, ref); err != nil || found {
+		t.Fatalf("raw cursor read exposed staging: %v %v", found, err)
+	}
+	if stored, err := clone.GetStoredBlock(ctx, ref); err != nil || stored != nil {
+		t.Fatalf("raw stored block exposed staging: %v %v", stored, err)
+	}
+
 	// Write an example through a staged block transaction.
 	tx, cs := clone.BuildTransactionAtRef(nil, nil)
 	cs.SetBlock(block_mock.NewExample("transaction staged"), true)
@@ -71,8 +84,14 @@ func TestCursorStagingCoversDirectAndTransactionStorePaths(t *testing.T) {
 	}
 	batch.Complete(nil)
 
+	// Raw stored reads expose the bytes once the staged batch is published.
+	stored, err := clone.GetStoredBlock(ctx, ref)
+	if err != nil || stored == nil || !bytes.Equal(stored.Data, data) {
+		t.Fatalf("raw stored block after publication: %v %v", stored, err)
+	}
+
 	// Verify batch publication makes the transaction root durable.
-	if found, err := raw.GetBlockExists(ctx, root); err != nil || !found {
+	if found, err := clone.HasStoredBlock(ctx, root); err != nil || !found {
 		t.Fatalf("publication missing: %v %v", found, err)
 	}
 }

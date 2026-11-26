@@ -62,7 +62,7 @@ func OpenHead(
 	// Replace an old head whose blocks are missing when configured to.
 	root := old
 	if !root.GetEmpty() {
-		found, err := cursor.GetBucket().GetBlockExists(ctx, root)
+		found, err := cursor.HasStoredBlock(ctx, root)
 		switch {
 		case err != nil:
 			return world.Head{}, err

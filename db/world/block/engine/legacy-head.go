@@ -58,7 +58,7 @@ func (l LegacyHead) read(ctx context.Context, le *logrus.Entry, cursor *bucket_l
 	}
 
 	// Read the old root.
-	oldRoot, err := cursor.GetBucket().GetRoot(ctx, l.RootName)
+	oldRoot, err := cursor.ReadRoot(ctx, l.RootName)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -81,15 +81,8 @@ func (l LegacyHead) read(ctx context.Context, le *logrus.Entry, cursor *bucket_l
 // delete finishes the delete at the next open.
 func (l LegacyHead) drop(ctx context.Context, cursor *bucket_lookup.Cursor) error {
 	// Release the old root when an earlier open left it.
-	store := cursor.GetBucket()
-	oldRoot, err := store.GetRoot(ctx, l.RootName)
-	if err != nil {
+	if err := cursor.ReleaseRoot(ctx, l.RootName); err != nil {
 		return err
-	}
-	if !oldRoot.GetEmpty() {
-		if err := store.SetRoots(ctx, nil, []block.NamedRoot{{Name: l.RootName, Previous: oldRoot}}); err != nil {
-			return err
-		}
 	}
 
 	// Delete the HeadState record.

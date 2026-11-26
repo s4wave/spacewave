@@ -289,7 +289,7 @@ func copyObjectToBucket(
 			logicalSourceBytes.Add(int64(len(ent.Data)))
 			var writeExisted bool
 			if !batchExistence {
-				writeExisted, err = writeBkt.GetBlockExists(ctx, ent.Ref)
+				writeExisted, err = writeCursor.HasStoredBlock(ctx, ent.Ref)
 			}
 			if err == nil {
 				// A single large block must not wait for capacity it can never fit.
