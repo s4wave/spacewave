@@ -81,11 +81,9 @@ func (x *ChangeIndex[T]) Add(w T, interest *ChangeInterest) {
 
 	// Hold each shared set for w, then release the earlier ones it no
 	// longer holds, so a set held by both stays indexed.
-	if interest != nil && !interest.all {
-		for _, set := range interest.shared {
-			x.hold(set).watchers[w] = struct{}{}
-		}
-	}
+	interest.visitSharedSets(func(set *ReadSet) {
+		x.hold(set).watchers[w] = struct{}{}
+	})
 	if replaced {
 		x.releaseShared(w, prev, interest)
 	}
@@ -106,27 +104,12 @@ func (x *ChangeIndex[T]) Remove(w T) {
 // releaseShared releases each shared set prev held for w that next does not
 // hold.
 func (x *ChangeIndex[T]) releaseShared(w T, prev, next *ChangeInterest) {
-	// Entries without named shared sets hold nothing to release.
-	if prev == nil || prev.all {
-		return
-	}
-
-	// Index the retained sets once instead of comparing every pair.
-	keep := make(map[*ReadSet]struct{})
-	if next != nil && !next.all {
-		for _, set := range next.shared {
-			keep[set] = struct{}{}
-		}
-	}
-	for _, set := range prev.shared {
-		if _, ok := keep[set]; ok {
-			continue
-		}
+	prev.visitReleasedSets(next, func(set *ReadSet) {
 		if entry := x.held[set]; entry != nil {
 			delete(entry.watchers, w)
 			x.releaseUnheld(entry)
 		}
-	}
+	})
 }
 
 // Candidates returns the watchers whose interest may accept changes, each
@@ -214,7 +197,7 @@ func (x *ChangeIndex[T]) hold(set *ReadSet) *heldSet[T] {
 	}
 	x.held[set] = entry
 	x.sets.add(entry, names)
-	if names.all {
+	if names.needsEveryChange() {
 		return entry
 	}
 
@@ -268,72 +251,50 @@ func newNameIndex[T comparable]() nameIndex[T] {
 // add indexes e by names.
 func (x *nameIndex[T]) add(e T, names *ChangeInterest) {
 	// An entry without names sees every change.
-	if names == nil || names.all {
+	if names.needsEveryChange() {
 		x.all[e] = struct{}{}
 		return
 	}
 
 	// Index the named keys and quad fields.
-	for _, key := range names.keys {
-		addIndexed(x.keys, key, e)
-	}
-	for _, term := range names.terms {
-		addIndexed(x.terms, term, e)
-	}
+	names.visitNames(
+		func(key string) { addIndexed(x.keys, key, e) },
+		func(term quadTerm) { addIndexed(x.terms, term, e) },
+	)
 }
 
 // remove drops e, indexed by names, and each name e alone held.
 func (x *nameIndex[T]) remove(e T, names *ChangeInterest) {
 	// An entry without names is held only in all.
-	if names == nil || names.all {
+	if names.needsEveryChange() {
 		delete(x.all, e)
 		return
 	}
 
 	// Drop e from each name.
-	for _, key := range names.keys {
-		removeIndexed(x.keys, key, e)
-	}
-	for _, term := range names.terms {
-		removeIndexed(x.terms, term, e)
-	}
+	names.visitNames(
+		func(key string) { removeIndexed(x.keys, key, e) },
+		func(term quadTerm) { removeIndexed(x.terms, term, e) },
+	)
 }
 
 // replace moves e from the names in prev to those in next, adding and
 // dropping only the names that differ.
 func (x *nameIndex[T]) replace(e T, prev, next *ChangeInterest) {
 	// An entry that sees every change on either side moves whole.
-	if prev == nil || prev.all || next == nil || next.all {
+	if prev.needsEveryChange() || next.needsEveryChange() {
 		x.remove(e, prev)
 		x.add(e, next)
 		return
 	}
 
 	// Index the new names, then drop the old names next lacks.
-	replaceIndexed(x.keys, e, prev.keys, next.keys)
-	replaceIndexed(x.terms, e, prev.terms, next.terms)
-}
-
-// replaceIndexed moves w from the names in prev to those in next. A name in
-// both stays as it is, so the shared index sees only the names that differ.
-func replaceIndexed[K comparable, T comparable](index map[K]nameEntries[T], w T, prev, next []K) {
-	// Add the new names, crossing off each old name next keeps.
-	dropped := make(map[K]struct{}, len(prev))
-	for _, name := range prev {
-		dropped[name] = struct{}{}
-	}
-	for _, name := range next {
-		if _, ok := dropped[name]; ok {
-			delete(dropped, name)
-			continue
-		}
-		addIndexed(index, name, w)
-	}
-
-	// Drop the old names next lacks.
-	for name := range dropped {
-		removeIndexed(index, name, w)
-	}
+	prev.visitNameChanges(next,
+		func(key string) { addIndexed(x.keys, key, e) },
+		func(key string) { removeIndexed(x.keys, key, e) },
+		func(term quadTerm) { addIndexed(x.terms, term, e) },
+		func(term quadTerm) { removeIndexed(x.terms, term, e) },
+	)
 }
 
 // collectKeys adds to found the entries a changed object key selects.

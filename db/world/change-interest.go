@@ -73,6 +73,84 @@ func (c *ChangeInterest) Accepts(changes *ChangeSet) bool {
 	return c == nil || c.filter.Accepts(changes)
 }
 
+// needsEveryChange reports whether the index must consider the interest on
+// every change.
+func (c *ChangeInterest) needsEveryChange() bool {
+	return c == nil || c.all
+}
+
+// visitSharedSets visits the declared sets that the index must hold.
+func (c *ChangeInterest) visitSharedSets(visit func(*ReadSet)) {
+	if c.needsEveryChange() {
+		return
+	}
+	for _, set := range c.shared {
+		visit(set)
+	}
+}
+
+// visitReleasedSets visits the held sets the next interest does not need.
+func (c *ChangeInterest) visitReleasedSets(next *ChangeInterest, visit func(*ReadSet)) {
+	// Only a named interest holds sets.
+	if c.needsEveryChange() {
+		return
+	}
+
+	// Index the retained sets once instead of comparing every pair.
+	keep := make(map[*ReadSet]struct{})
+	if !next.needsEveryChange() {
+		for _, set := range next.shared {
+			keep[set] = struct{}{}
+		}
+	}
+
+	// Release each set the next interest omits.
+	for _, set := range c.shared {
+		if _, ok := keep[set]; !ok {
+			visit(set)
+		}
+	}
+}
+
+// visitNames visits a named interest's direct object keys and quad terms.
+func (c *ChangeInterest) visitNames(key func(string), term func(quadTerm)) {
+	for _, name := range c.keys {
+		key(name)
+	}
+	for _, name := range c.terms {
+		term(name)
+	}
+}
+
+// visitNameChanges visits the direct names added or removed when one named
+// interest replaces another.
+func (c *ChangeInterest) visitNameChanges(next *ChangeInterest, addKey, removeKey func(string), addTerm, removeTerm func(quadTerm)) {
+	visitNameChanges(c.keys, next.keys, addKey, removeKey)
+	visitNameChanges(c.terms, next.terms, addTerm, removeTerm)
+}
+
+// visitNameChanges visits added names before removed names, leaving common
+// names in place.
+func visitNameChanges[K comparable](prev, next []K, add, remove func(K)) {
+	// Visit the new names, crossing off each old name next keeps.
+	dropped := make(map[K]struct{}, len(prev))
+	for _, name := range prev {
+		dropped[name] = struct{}{}
+	}
+	for _, name := range next {
+		if _, ok := dropped[name]; ok {
+			delete(dropped, name)
+			continue
+		}
+		add(name)
+	}
+
+	// Visit the old names next lacks.
+	for name := range dropped {
+		remove(name)
+	}
+}
+
 // quadTerms returns the fields of a changed quad an index looks up.
 func quadTerms(q GraphQuad) [4]quadTerm {
 	return [4]quadTerm{
