@@ -104,6 +104,7 @@ vi.mock('@s4wave/web/frame/bottom-bar-item.js', () => ({
 
 vi.mock('@s4wave/web/frame/bottom-bar-context.js', () => ({
   useBottomBarSetOpenMenu: mockUseBottomBarSetOpenMenu,
+  useBottomBarDismissMenu: () => () => {},
 }))
 
 vi.mock('@s4wave/web/frame/bottom-icon-props.js', () => ({
