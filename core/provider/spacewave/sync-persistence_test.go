@@ -193,9 +193,10 @@ func TestSyncUploadedBlockCanBeMarkedAgain(t *testing.T) {
 
 // TestSyncMissingDirtyBlockPreservesPending rejects an incomplete local payload set.
 func TestSyncMissingDirtyBlockPreservesPending(t *testing.T) {
+	// Mark a block dirty without putting its payload in the local store.
 	syncer := &syncController{
 		le: logrus.NewEntry(logrus.New()), store: newSyncTestKvStore(),
-		upper: newSyncTestBlockStore(), lower: packfile_store.NewPackfileStore(nil, nil),
+		upper: newSyncTestBlockStore(), lower: packfile_store.NewPackfileStore(nil, nil, nil),
 	}
 	ref, err := block.BuildBlockRef([]byte("missing payload"), nil)
 	if err != nil {
@@ -204,6 +205,8 @@ func TestSyncMissingDirtyBlockPreservesPending(t *testing.T) {
 	if err := syncer.MarkDirty(t.Context(), []block_store_writeback.Mark{{Hash: ref.GetHash(), Size: 15}}); err != nil {
 		t.Fatal(err)
 	}
+
+	// Reject the missing upload payload while retaining its pending marker.
 	if err := syncer.FlushNowUnordered(t.Context()); !errors.Is(err, block.ErrNotFound) {
 		t.Fatalf("missing payload was acknowledged: %v", err)
 	}

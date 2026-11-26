@@ -229,9 +229,12 @@ func readTree(t *testing.T, r *writertest.Rig, tr *tree) {
 // spaceHolds reports which of refs the packs hold, read as a reader of r's
 // Space reads them.
 func spaceHolds(t *testing.T, r *writertest.Rig, packs []*packfile.PackfileEntry, refs []*block.BlockRef) []bool {
-	store := packfile_store.NewPackfileStore(cdn_bstore.NewAnonymousOpener(nil, r.PackBase(), writertest.Space), nil)
+	// Publish the supplied packs in an anonymous reader of the fixture Space.
+	store := packfile_store.NewPackfileStore(cdn_bstore.NewAnonymousOpener(nil, r.PackBase(), writertest.Space), nil, nil)
 	defer store.Close()
 	store.UpdateManifest(packs)
+
+	// Probe all references through the same pack lookup used by CDN readers.
 	exists, err := store.GetBlockExistsBatch(t.Context(), refs)
 	if err != nil {
 		t.Fatal(err)

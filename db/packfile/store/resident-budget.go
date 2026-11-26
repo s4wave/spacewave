@@ -1,6 +1,7 @@
 package store
 
 import (
+	"cmp"
 	"container/list"
 	"sync"
 	"sync/atomic"
@@ -38,6 +39,8 @@ type residentBudget struct {
 	// draws on. It decides what to evict, so limit and indexLimit no longer
 	// apply and reclaim defers to it.
 	shared atomic.Pointer[block.ReadCacheBudget]
+	// leaveShared unregisters this budget on store close, or is nil.
+	leaveShared func()
 
 	// mtx guards spanReaders, indexes and each reader's spanElem and
 	// indexElem. A reader takes mtx under its own lock; the budget never takes
@@ -53,13 +56,36 @@ type residentBudget struct {
 	indexes list.List
 }
 
-// newResidentBudget builds a budget with the given byte limit.
-func newResidentBudget(limit int64) *residentBudget {
+// newResidentBudget builds the store's resident-memory policy before any read.
+func newResidentBudget(conf Config) *residentBudget {
+	// Resolve local limits and the process default for index layout.
 	b := &residentBudget{}
-	b.limit.Store(limit)
-	b.indexLimit.Store(defaultIndexBudget)
-	b.parsedIndex.Store(parsedIndexDefault)
+	b.limit.Store(cmp.Or(conf.RangeCacheMaxBytes, defaultResidentBudget))
+	b.indexLimit.Store(cmp.Or(conf.IndexByteLimit, defaultIndexBudget))
+	parsed := parsedIndexDefault
+	if conf.ParsedIndex != nil {
+		parsed = *conf.ParsedIndex
+	}
+	b.parsedIndex.Store(parsed)
+
+	// Register encoded bytes with the shared cache when it owns eviction.
+	if shared := conf.ReadCacheBudget; shared != nil {
+		b.leaveShared = shared.Join(block.ReadCacheEncoded, b)
+		b.shared.Store(shared)
+		shared.Reclaim()
+	}
 	return b
+}
+
+// close restores local accounting and unregisters the shared cache membership.
+// PackfileStore calls it once, outside its locks, before draining its readers.
+func (b *residentBudget) close() {
+	// Stop shared eviction before unregistering its source of encoded bytes.
+	if b.leaveShared == nil {
+		return
+	}
+	b.shared.Store(nil)
+	b.leaveShared()
 }
 
 // overage returns the bytes charged beyond the limit, or zero.

@@ -55,11 +55,15 @@ func (c *SessionClient) ReadGrants(ctx context.Context, resourceID string, packI
 // granted read URLs, renewing the grant before it expires. The size comes
 // from the manifest entry, so no HEAD request is issued.
 func (c *SessionClient) OpenPackReader(resourceID, packID string, size int64) (*packfile_store.PackReader, error) {
+	// Require the manifest size before opening a granted range reader.
 	if size <= 0 {
 		return nil, errors.New("pack size must be known from the manifest")
 	}
+
+	// Keep the pack identity stable while each request renews its read URL.
 	return packfile_store.NewHTTPRangeReader(
 		c.httpCli,
+		packID,
 		"",
 		size,
 		httpReaderAtReadAheadSize,

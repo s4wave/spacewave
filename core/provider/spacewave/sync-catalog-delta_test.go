@@ -25,7 +25,7 @@ func TestSyncCatalogDeltaTransitions(t *testing.T) {
 	remoteReads := 0
 	syncer := &syncController{
 		mfst:  catalog,
-		lower: packfile_store.NewPackfileStore(nil, nil),
+		lower: packfile_store.NewPackfileStore(nil, nil, nil),
 		remote: func() []*packfile.PackfileEntry {
 			remoteReads++
 			return nil

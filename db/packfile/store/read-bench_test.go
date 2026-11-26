@@ -48,7 +48,7 @@ func BenchmarkPackfileStoreColdPackRead(b *testing.B) {
 		// Create a fresh store and writeback target for the benchmark iteration.
 		store := NewPackfileStore(func(id string, size int64) (*PackReader, error) {
 			return NewPackReader(id, size, transport), nil
-		}, newMemIndexCache())
+		}, newMemIndexCache(), nil)
 		target := &countingStore{
 			StoreOps: block_store_inmem.NewInmemBlock(
 				store_kvkey.NewDefaultKVKey(),

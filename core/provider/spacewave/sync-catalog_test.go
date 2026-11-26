@@ -22,7 +22,7 @@ func TestSyncCatalogCommitVisibility(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	syncer := &syncController{mfst: catalog, lower: packfile_store.NewPackfileStore(nil, nil)}
+	syncer := &syncController{mfst: catalog, lower: packfile_store.NewPackfileStore(nil, nil, nil)}
 	initial := &packfile.PackfileEntry{Id: "original", Sequence: 8, BloomFilter: []byte("bloom"), BlockCount: 1}
 	if err := syncer.applyManifestDelta(ctx, []*packfile.PackfileEntry{initial}, nil, 8); err != nil {
 		t.Fatal(err)
@@ -119,7 +119,7 @@ func TestSyncPullRestartDropsUnlistedPacks(t *testing.T) {
 		resourceID: "res-1",
 		le:         logrus.NewEntry(logrus.New()),
 		mfst:       catalog,
-		lower:      packfile_store.NewPackfileStore(nil, nil),
+		lower:      packfile_store.NewPackfileStore(nil, nil, nil),
 	}
 
 	// Store the held packs at cursor 5.

@@ -90,7 +90,7 @@ func TestPendingUploadCutoff(t *testing.T) {
 	syncer := &syncController{
 		le: logrus.NewEntry(logrus.New()), store: store, resourceID: "cutoff",
 		upper: &syncCountingBlockStore{StoreOps: newSyncTestBlockStore(), onGet: func(*block.BlockRef) { assertClosed() }},
-		lower: packfile_store.NewPackfileStore(nil, nil),
+		lower: packfile_store.NewPackfileStore(nil, nil, nil),
 	}
 	const count = syncDirtyPageLimit*2 + 17
 	if err := syncer.MarkDirty(ctx, putQueueBlocks(t, syncer.upper, "", count)); err != nil {
@@ -125,7 +125,7 @@ func TestPendingUploadPagesFillPacks(t *testing.T) {
 	const perPack = 3000
 	syncer := &syncController{
 		le: logrus.NewEntry(logrus.New()), store: newSyncTestKvStore(), resourceID: "fill",
-		upper: newSyncTestBlockStore(), lower: packfile_store.NewPackfileStore(nil, nil),
+		upper: newSyncTestBlockStore(), lower: packfile_store.NewPackfileStore(nil, nil, nil),
 	}
 	marks := putQueueBlocks(t, syncer.upper, "", 3*perPack)
 	for i := range marks {

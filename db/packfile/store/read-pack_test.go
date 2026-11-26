@@ -19,7 +19,7 @@ func TestReadPackBlocks(t *testing.T) {
 	}
 	packBytes, _ := buildTestPackOrdered(t, ordered)
 	opener, transport := openerFromBytes(packBytes)
-	store := NewPackfileStore(opener, newMemIndexCache())
+	store := NewPackfileStore(opener, newMemIndexCache(), nil)
 
 	// Read the whole pack and verify its block count.
 	blocks, err := store.ReadPackBlocks(t.Context(), "pack", int64(len(packBytes)))
@@ -58,7 +58,7 @@ func TestReadPackBlocksRejectsCorruptedBlock(t *testing.T) {
 	transport.rewriteFn = func(_ int, _ int64, data []byte) []byte {
 		return bytes.ReplaceAll(data, []byte("alpha"), []byte("alphx"))
 	}
-	store := NewPackfileStore(opener, newMemIndexCache())
+	store := NewPackfileStore(opener, newMemIndexCache(), nil)
 
 	// Verify the whole-pack read rejects the corrupted block reference.
 	_, err := store.ReadPackBlocks(t.Context(), "pack", int64(len(packBytes)))

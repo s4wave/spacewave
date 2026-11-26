@@ -167,7 +167,7 @@ func newCompactTestController(t *testing.T, cloud *compactTestCloud, packs [][]s
 	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
 
 	// Build the sync controller over the manifest and cloud-backed store.
-	lower := packfile_store.NewPackfileStore(cloud.open, nil)
+	lower := packfile_store.NewPackfileStore(cloud.open, nil, nil)
 	lower.UpdateManifest(mfst.GetEntries())
 	return &syncController{
 		le:         logrus.NewEntry(logrus.New()),

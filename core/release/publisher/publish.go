@@ -67,7 +67,7 @@ func publish(ctx context.Context, eng world.Engine, metadata *release.ReleaseMet
 	}
 
 	// Exact pack indexes prove presence; Bloom filters only narrow the search.
-	remote := packfile_store.NewPackfileStore(cdn_bstore.NewAnonymousOpener(nil, opts.CdnBaseURL, opts.DstSpaceID), nil)
+	remote := packfile_store.NewPackfileStore(cdn_bstore.NewAnonymousOpener(nil, opts.CdnBaseURL, opts.DstSpaceID), nil, nil)
 	defer remote.Close()
 	remote.UpdateManifest(entries)
 

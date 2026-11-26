@@ -158,10 +158,13 @@ func (k *GrantKeeper) refused(g *cdn.CdnSpaceGrant) {
 // base with its authorization. A read the bucket refuses with 401 or 403
 // drops that grant, so the next read asks for a fresh one.
 func (k *GrantKeeper) Opener(httpCli *http.Client) packfile_store.Opener {
+	// Retain the HTTP client for requests against this Space's grants.
 	if httpCli == nil {
 		httpCli = http.DefaultClient
 	}
 	spaceID := k.spaceID
+
+	// Build each reader against the manifest ID and the current grant.
 	return func(packID string, size int64) (*packfile_store.PackReader, error) {
 		// Require the size from the manifest, as the anonymous opener does.
 		if size <= 0 {
@@ -204,6 +207,6 @@ func (k *GrantKeeper) Opener(httpCli *http.Client) packfile_store.Opener {
 			mtx.Unlock()
 			k.refused(g)
 		}
-		return packfile_store.NewHTTPRangeReader(httpCli, packURL("grant:", spaceID, packID), size, readAheadSize, sign, observe), nil
+		return packfile_store.NewHTTPRangeReader(httpCli, packID, packURL("grant:", spaceID, packID), size, readAheadSize, sign, observe), nil
 	}
 }

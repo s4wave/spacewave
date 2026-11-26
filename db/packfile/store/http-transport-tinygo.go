@@ -112,11 +112,12 @@ func (t *httpTransport) SnapshotTransportStats() TransportStats {
 }
 
 // NewHTTPRangeReader builds a per-pack engine backed by browser fetch range
-// requests. signReq optionally prepares each request, such as signing it or
+// requests. packID identifies index-cache entries independently of the URL.
+// signReq optionally prepares each request, such as signing it or
 // replacing its URL with a granted one.
 func NewHTTPRangeReader(
 	cli *http.Client,
-	url string,
+	packID, url string,
 	size int64,
 	readAheadSize int,
 	signReq func(*http.Request) error,
@@ -128,12 +129,11 @@ func NewHTTPRangeReader(
 		signReq:     signReq,
 		observeResp: observeResp,
 	}
-	e := NewPackReader(url, size, t)
+	e := newPackReader(packID, size, t, 16*1024*1024)
 
 	// Size its windows for the browser.
 	e.SetReadWindow(readAheadSize)
 	e.setTransportFetchMaxBytes(tinyGoPackRangeMaxBytes)
-	e.budget.limit.Store(16 * 1024 * 1024)
 	e.normalizeTransportLocked()
 	return e
 }

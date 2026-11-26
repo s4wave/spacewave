@@ -124,12 +124,13 @@ func (t *httpTransport) SnapshotTransportStats() TransportStats {
 
 // NewHTTPRangeReader builds a per-pack engine backed by HTTP range requests.
 //
+// packID identifies index-cache entries independently of the transport URL.
 // readAheadSize sets the engine's minimum transport window (and alignment
 // quantum); zero accepts the default. signReq optionally prepares each
 // request, such as signing it or replacing its URL with a granted one.
 func NewHTTPRangeReader(
 	cli *http.Client,
-	url string,
+	packID, url string,
 	size int64,
 	readAheadSize int,
 	signReq func(*http.Request) error,
@@ -148,7 +149,7 @@ func NewHTTPRangeReader(
 		signReq:     signReq,
 		observeResp: observeResp,
 	}
-	e := NewPackReader(url, size, t)
+	e := NewPackReader(packID, size, t)
 
 	// Apply the requested read-ahead window within the reader transport bounds.
 	e.SetReadWindow(readAheadSize)

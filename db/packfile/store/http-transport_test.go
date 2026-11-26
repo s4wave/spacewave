@@ -24,8 +24,14 @@ import (
 
 // TestHTTPRangeReaderDefaults verifies default and explicit transport sizing.
 func TestHTTPRangeReaderDefaults(t *testing.T) {
+	// Keep the manifest identity independent of the transport URL.
+	rd := NewHTTPRangeReader(nil, "manifest-pack", "https://example.com/pack", 1024, 0, nil, nil)
+	t.Cleanup(rd.Close)
+	if rd.packID != "manifest-pack" {
+		t.Fatalf("pack ID = %q, want manifest-pack", rd.packID)
+	}
+
 	// Verify the HTTP reader defaults for its budget and transport windows.
-	rd := NewHTTPRangeReader(nil, "https://example.com/pack", 1024, 0, nil, nil)
 	if limit := rd.budget.limit.Load(); limit != defaultResidentBudget {
 		t.Fatalf("budget limit = %d, want %d", limit, defaultResidentBudget)
 	}
@@ -43,7 +49,7 @@ func TestHTTPRangeReaderDefaults(t *testing.T) {
 	}
 
 	// Verify an explicit HTTP window controls minimum, quantum, and current sizes.
-	rd = NewHTTPRangeReader(nil, "https://example.com/pack", 1024, 16, nil, nil)
+	rd = NewHTTPRangeReader(nil, "manifest-pack", "https://example.com/pack", 1024, 16, nil, nil)
 	if rd.minWindow != 16 {
 		t.Fatalf("minWindow = %d, want 16", rd.minWindow)
 	}
@@ -266,7 +272,7 @@ func TestHTTPRangeReaderDedupesConcurrentFetch(t *testing.T) {
 	defer srv.Close()
 
 	// Create the HTTP reader shared by concurrent callers.
-	rd := NewHTTPRangeReader(srv.Client(), srv.URL, int64(len(data)), 8, nil, nil)
+	rd := NewHTTPRangeReader(srv.Client(), srv.URL, srv.URL, int64(len(data)), 8, nil, nil)
 
 	// Start two readers requesting the same initial bytes.
 	var wg sync.WaitGroup
@@ -459,6 +465,7 @@ func TestHTTPRangeReaderRetainsMultipleRanges(t *testing.T) {
 	rd := NewHTTPRangeReader(
 		srv.Client(),
 		srv.URL,
+		srv.URL,
 		int64(len(data)),
 		16,
 		nil,
@@ -514,7 +521,7 @@ func TestHTTPRangeReaderRetriesTransientFailure(t *testing.T) {
 
 	// A 503 is retried at once.
 	status.Store(http.StatusServiceUnavailable)
-	rd := NewHTTPRangeReader(srv.Client(), srv.URL, int64(len(data)), 4, nil, nil)
+	rd := NewHTTPRangeReader(srv.Client(), srv.URL, srv.URL, int64(len(data)), 4, nil, nil)
 	buf := make([]byte, 4)
 	n, err := rd.ReaderAt(context.Background()).ReadAt(buf, 0)
 	if err != nil && err != io.EOF {
@@ -530,7 +537,7 @@ func TestHTTPRangeReaderRetriesTransientFailure(t *testing.T) {
 	// A 429 is retried after its Retry-After delay.
 	reqs.Store(0)
 	status.Store(http.StatusTooManyRequests)
-	rd = NewHTTPRangeReader(srv.Client(), srv.URL, int64(len(data)), 4, nil, nil)
+	rd = NewHTTPRangeReader(srv.Client(), srv.URL, srv.URL, int64(len(data)), 4, nil, nil)
 	start := time.Now()
 	if _, err := rd.ReaderAt(context.Background()).ReadAt(buf, 0); err != nil && err != io.EOF {
 		t.Fatalf("ReadAt after 429 returned error: %v", err)
@@ -545,7 +552,7 @@ func TestHTTPRangeReaderRetriesTransientFailure(t *testing.T) {
 	// A 404 is not retried.
 	reqs.Store(0)
 	status.Store(http.StatusNotFound)
-	rd = NewHTTPRangeReader(srv.Client(), srv.URL, int64(len(data)), 4, nil, nil)
+	rd = NewHTTPRangeReader(srv.Client(), srv.URL, srv.URL, int64(len(data)), 4, nil, nil)
 	if _, err := rd.ReaderAt(context.Background()).ReadAt(buf, 0); err == nil {
 		t.Fatal("ReadAt after 404 succeeded, want error")
 	}
@@ -572,7 +579,7 @@ func TestResidentBudgetEvictsAcrossReaders(t *testing.T) {
 	transport := TransportFunc(func(_ context.Context, _ int64, size int) ([]byte, error) {
 		return make([]byte, size), nil
 	})
-	budget := newResidentBudget(300)
+	budget := newResidentBudget(Config{RangeCacheMaxBytes: 300})
 	a := NewPackReader("a", 1000, transport)
 	b := NewPackReader("b", 1000, transport)
 	a.setBudget(budget)
@@ -620,7 +627,7 @@ func TestHTTPRangeReaderFullResponseFallbackStats(t *testing.T) {
 	defer srv.Close()
 
 	// Read the first range from a server ignoring Range.
-	rd := NewHTTPRangeReader(srv.Client(), srv.URL, int64(len(data)), 4, nil, nil)
+	rd := NewHTTPRangeReader(srv.Client(), srv.URL, srv.URL, int64(len(data)), 4, nil, nil)
 	buf := make([]byte, 4)
 	reader := rd.ReaderAt(context.Background())
 	n, err := reader.ReadAt(buf, 0)

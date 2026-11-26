@@ -31,12 +31,6 @@ type Locator interface {
 	Version() uint64
 }
 
-// SetLocator sets the locator the lookups consult. Call it before the first
-// lookup.
-func (s *PackfileStore) SetLocator(l Locator) {
-	s.locator = l
-}
-
 // unindexedPacks is a snapshot's catalog split by the locator at one version.
 type unindexedPacks struct {
 	// version is the locator version the split was computed at.

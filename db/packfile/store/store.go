@@ -95,20 +95,31 @@ type PackfileStore struct {
 	current atomic.Pointer[ManifestSnapshot]
 }
 
-// NewPackfileStore creates a new packfile store.
-func NewPackfileStore(opener Opener, cache IndexCache) *PackfileStore {
+// NewPackfileStore creates a packfile store with immutable configuration.
+// A nil config uses the default budgets, index layout, and bloom-only lookup.
+// Close releases any shared read-cache budget membership.
+func NewPackfileStore(opener Opener, cache IndexCache, conf *Config) *PackfileStore {
+	// Resolve optional construction settings before publishing the store.
+	if conf == nil {
+		conf = &Config{}
+	}
+
+	// Build the catalog with its locator and resident budget already in place.
 	s := &PackfileStore{
 		opener:          opener,
 		cache:           cache,
+		locator:         conf.Locator,
 		engines:         make(map[string]*PackReader),
 		manifest:        newManifestTree(),
 		manifestByID:    make(map[string]*manifestEntry),
 		manifestIDs:     newManifestIDTree(),
 		writebackCtx:    context.Background(),
 		writebackWindow: defaultWritebackWindow,
-		budget:          newResidentBudget(defaultResidentBudget),
+		budget:          newResidentBudget(*conf),
 		gate:            newDemandGate(),
 	}
+
+	// Publish the initial empty catalog for lock-free snapshots.
 	s.publishManifest()
 	return s
 }
@@ -126,6 +137,9 @@ func (s *PackfileStore) Close() {
 	engines := s.snapshotEnginesLocked()
 	s.engines = nil
 	s.mtx.Unlock()
+
+	// Leave the shared cache before draining readers, outside the store mutex.
+	s.budget.close()
 
 	// Drain every reader outside the store mutex.
 	for _, engine := range engines {
@@ -205,44 +219,6 @@ func (s *PackfileStore) SetWriteback(ctx context.Context, target block.StoreOps,
 	for _, e := range engines {
 		e.SetWriteback(ctx, target, windowBytes)
 	}
-}
-
-// SetRangeCacheMaxBytes sets the resident-byte budget shared by every engine.
-func (s *PackfileStore) SetRangeCacheMaxBytes(maxBytes int64) {
-	s.budget.limit.Store(maxBytes)
-	s.budget.reclaim()
-}
-
-// JoinReadCacheBudget makes the store's resident span and index bytes draw on
-// the shared read-cache budget instead of its own limits, and returns the
-// function that restores them. The shared budget evicts across the decoded
-// block cache and every joined store, so one limit bounds their sum.
-func (s *PackfileStore) JoinReadCacheBudget(shared *block.ReadCacheBudget) (leave func()) {
-	leaveClass := shared.Join(block.ReadCacheEncoded, s.budget)
-	s.budget.shared.Store(shared)
-	shared.Reclaim()
-	return func() {
-		s.budget.shared.Store(nil)
-		leaveClass()
-	}
-}
-
-// SetIndexByteLimit sets the index bytes every engine may hold together.
-// Above it the least recently used indexes drop and reload on their next use.
-// Zero or negative keeps every index loaded.
-func (s *PackfileStore) SetIndexByteLimit(bytes int64) {
-	s.budget.indexLimit.Store(bytes)
-	s.budget.reclaimIndexes()
-}
-
-// SetParsedIndex selects the layout of pack indexes loaded from now on: parsed
-// kvfile entries when true, the raw index tail searched in place when false.
-// Both return the same blocks; the parsed layout is the one used before the
-// in-place layout, kept as a switch until the latter has run in production.
-// The environment variable SPACEWAVE_PACKFILE_PARSED_INDEX, when nonempty,
-// selects the parsed layout for stores that never call this.
-func (s *PackfileStore) SetParsedIndex(parsed bool) {
-	s.budget.parsedIndex.Store(parsed)
 }
 
 // SetStatsChangedCallback sets a callback invoked after observable stats change.
@@ -852,7 +828,6 @@ func (s *PackfileStore) getOrOpenEngine(packID string, size int64, blockCount ui
 	if err != nil {
 		return nil, nil, err
 	}
-	eng.packID = packID
 	eng.SetExpectedBlockCount(blockCount)
 
 	// Share the store's index cache, writeback, resident budget, demand gate

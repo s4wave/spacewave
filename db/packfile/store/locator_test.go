@@ -43,9 +43,11 @@ func (l *testLocator) index(ids ...string) {
 // scan of the whole catalog: a derived split must never miss an unindexed
 // pack, or a lookup would skip the pack that holds its block.
 func TestUnindexedPacksFollowManifest(t *testing.T) {
+	// Retain an indexing view whose revision advances with each indexed pack.
 	loc := &testLocator{indexed: make(map[string]bool)}
-	store := NewPackfileStore(nil, nil)
-	store.SetLocator(loc)
+
+	// Configure the locator before publishing any manifest snapshot.
+	store := NewPackfileStore(nil, nil, &Config{Locator: loc})
 	t.Cleanup(store.Close)
 
 	// open returns the ids the split leaves open, and checks them against a

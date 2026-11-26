@@ -285,7 +285,7 @@ func TestPackfileStoreBasicReads(t *testing.T) {
 	// Publish the pack manifest in a byte-backed store.
 	opener, _ := openerFromBytes(packBytes)
 	cache := newMemIndexCache()
-	store := NewPackfileStore(opener, cache)
+	store := NewPackfileStore(opener, cache, nil)
 	store.UpdateManifest([]*packfile.PackfileEntry{{
 		Id:          "basic-pack",
 		BloomFilter: bloomBytes,
@@ -347,6 +347,7 @@ func TestPackfileStoreBasicReads(t *testing.T) {
 	}
 }
 
+// TestPackfileStoreGetBlockExistsDoesNotFetchPayload checks existence without loading block values.
 func TestPackfileStoreGetBlockExistsDoesNotFetchPayload(t *testing.T) {
 	// Build a pack with enough filler to separate its index from its payload.
 	ctx := t.Context()
@@ -359,7 +360,7 @@ func TestPackfileStoreGetBlockExistsDoesNotFetchPayload(t *testing.T) {
 	opener, transport := openerFromBytes(packBytes)
 
 	// Publish the existence-probe pack in the store.
-	store := NewPackfileStore(opener, newMemIndexCache())
+	store := NewPackfileStore(opener, newMemIndexCache(), nil)
 	store.UpdateManifest([]*packfile.PackfileEntry{{
 		Id:          "exists-pack",
 		BloomFilter: bloomBytes,
@@ -414,6 +415,7 @@ func TestPackfileStoreGetBlockExistsDoesNotFetchPayload(t *testing.T) {
 	}
 }
 
+// TestPackfileStoreStatBlockUsesIndexOnly reports block size from the cached index alone.
 func TestPackfileStoreStatBlockUsesIndexOnly(t *testing.T) {
 	// Build a pack with its target payload outside the index window.
 	ctx := t.Context()
@@ -426,7 +428,7 @@ func TestPackfileStoreStatBlockUsesIndexOnly(t *testing.T) {
 	opener, transport := openerFromBytes(packBytes)
 
 	// Publish the stat-probe pack in the store.
-	store := NewPackfileStore(opener, newMemIndexCache())
+	store := NewPackfileStore(opener, newMemIndexCache(), nil)
 	store.UpdateManifest([]*packfile.PackfileEntry{{
 		Id:          "stat-pack",
 		BloomFilter: bloomBytes,
@@ -467,12 +469,13 @@ func TestPackfileStoreStatBlockUsesIndexOnly(t *testing.T) {
 	}
 }
 
+// TestPackfileStoreUpdateManifestFiltersSupersededAndEvictsEngines removes superseded packs and their readers.
 func TestPackfileStoreUpdateManifestFiltersSupersededAndEvictsEngines(t *testing.T) {
 	// Seed engines whose manifest membership will change.
 	store := NewPackfileStore(func(packID string, size int64) (*PackReader, error) {
 		t.Fatalf("unexpected opener call for %s size %d", packID, size)
 		return nil, nil
-	}, nil)
+	}, nil, nil)
 	store.engines["pack-a"] = nil
 	store.engines["pack-b"] = nil
 	store.engines["pack-gone"] = nil
@@ -507,6 +510,7 @@ func TestPackfileStoreUpdateManifestFiltersSupersededAndEvictsEngines(t *testing
 	}
 }
 
+// TestPackfileStoreUpdateManifestPrefersNewestSequence retains the newest generation of each pack.
 func TestPackfileStoreUpdateManifestPrefersNewestSequence(t *testing.T) {
 	// Build historical, compacted, and superseded versions of the target pack.
 	ctx := t.Context()
@@ -537,7 +541,7 @@ func TestPackfileStoreUpdateManifestPrefersNewestSequence(t *testing.T) {
 		}
 		opened = append(opened, packID)
 		return NewPackReader(packID, size, &bytesTransport{data: data}), nil
-	}, newMemIndexCache())
+	}, newMemIndexCache(), nil)
 
 	// Publish the pack generations with their sequence and supersession records.
 	store.UpdateManifest([]*packfile.PackfileEntry{
@@ -608,9 +612,10 @@ func TestPackfileStoreUpdateManifestPrefersNewestSequence(t *testing.T) {
 	}
 }
 
+// TestPackfileStoreUpdateManifestOrdersCloudAndLocalEntries orders manifest entries consistently across sources.
 func TestPackfileStoreUpdateManifestOrdersCloudAndLocalEntries(t *testing.T) {
 	// Publish cloud and local packs with mixed sequence numbers.
-	store := NewPackfileStore(nil, nil)
+	store := NewPackfileStore(nil, nil, nil)
 	store.UpdateManifest([]*packfile.PackfileEntry{
 		{Id: "local-z"},
 		{Id: "cloud-z", Sequence: 7},
@@ -634,6 +639,7 @@ func TestPackfileStoreUpdateManifestOrdersCloudAndLocalEntries(t *testing.T) {
 	}
 }
 
+// TestPackfileStoreGetBlockExistsBatchUsesIndexes probes a batch through pack indexes.
 func TestPackfileStoreGetBlockExistsBatchUsesIndexes(t *testing.T) {
 	// Build the blocks and filler used by batch existence probes.
 	ctx := t.Context()
@@ -647,7 +653,7 @@ func TestPackfileStoreGetBlockExistsBatchUsesIndexes(t *testing.T) {
 	opener, transport := openerFromBytes(packBytes)
 
 	// Publish the batch-probe pack in the store.
-	store := NewPackfileStore(opener, newMemIndexCache())
+	store := NewPackfileStore(opener, newMemIndexCache(), nil)
 	store.UpdateManifest([]*packfile.PackfileEntry{{
 		Id:          "batch-exists-pack",
 		BloomFilter: bloomBytes,
@@ -716,6 +722,7 @@ func TestPackfileStoreGetBlockExistsBatchUsesIndexes(t *testing.T) {
 	}
 }
 
+// TestPackfileStoreGetBlockExistsHandlesBloomFalsePositive checks the index after a positive bloom probe.
 func TestPackfileStoreGetBlockExistsHandlesBloomFalsePositive(t *testing.T) {
 	// Build a target pack and a pack with a false-positive bloom filter.
 	ctx := t.Context()
@@ -740,7 +747,7 @@ func TestPackfileStoreGetBlockExistsHandlesBloomFalsePositive(t *testing.T) {
 		transports[packID] = transport
 		return NewPackReader(packID, size, transport), nil
 	}
-	store := NewPackfileStore(opener, newMemIndexCache())
+	store := NewPackfileStore(opener, newMemIndexCache(), nil)
 
 	// Publish the false-positive candidate ahead of the target pack.
 	store.UpdateManifest([]*packfile.PackfileEntry{
@@ -804,7 +811,7 @@ func TestPackfileStoreProbeSurvivesManifestChange(t *testing.T) {
 			return nil, ctx.Err()
 		})), nil
 	}
-	store := NewPackfileStore(opener, nil)
+	store := NewPackfileStore(opener, nil, nil)
 	entry := func(id string) *packfile.PackfileEntry {
 		return &packfile.PackfileEntry{
 			Id:          id,
@@ -842,6 +849,7 @@ func TestPackfileStoreProbeSurvivesManifestChange(t *testing.T) {
 	}
 }
 
+// TestPackfileStoreReadsPackWithoutBloom finds blocks when a pack has no bloom filter.
 func TestPackfileStoreReadsPackWithoutBloom(t *testing.T) {
 	// Build two packs with one missing bloom filter.
 	ctx := t.Context()
@@ -853,7 +861,7 @@ func TestPackfileStoreReadsPackWithoutBloom(t *testing.T) {
 	}
 
 	// Publish both packs so the bloomless pack remains a candidate.
-	store := NewPackfileStore(opener, newMemIndexCache())
+	store := NewPackfileStore(opener, newMemIndexCache(), nil)
 	store.UpdateManifest([]*packfile.PackfileEntry{
 		{Id: "alpha-pack", BloomFilter: alphaBloom, BlockCount: 1, SizeBytes: uint64(len(alphaBytes)), Sequence: 2},
 		{Id: "beta-pack", BlockCount: 1, SizeBytes: uint64(len(betaBytes)), Sequence: 1},
@@ -884,6 +892,7 @@ func TestPackfileStoreLookupStats(t *testing.T) {
 	}
 }
 
+// testPackfileStoreLookupStats checks lookup, index-cache, and eviction accounting for either index layout.
 func testPackfileStoreLookupStats(t *testing.T, parsed bool) {
 	// Build target and negative packs sharing the target bloom filter.
 	ctx := t.Context()
@@ -897,8 +906,7 @@ func testPackfileStoreLookupStats(t *testing.T, parsed bool) {
 		data := packs[packID]
 		return NewPackReader(packID, size, &bytesTransport{data: data}), nil
 	}
-	store := NewPackfileStore(opener, newMemIndexCache())
-	store.SetParsedIndex(parsed)
+	store := NewPackfileStore(opener, newMemIndexCache(), &Config{ParsedIndex: &parsed, IndexByteLimit: 1})
 
 	// Publish the negative candidate ahead of the target pack.
 	store.UpdateManifest([]*packfile.PackfileEntry{
@@ -962,8 +970,7 @@ func testPackfileStoreLookupStats(t *testing.T, parsed bool) {
 		)
 	}
 
-	// Cap the index bytes below one index: the colder index drops at once.
-	store.SetIndexByteLimit(1)
+	// The constructor's index cap drops the colder index after both loads.
 	if stats := store.SnapshotStats(); stats.IndexDrops != 1 {
 		t.Fatalf("IndexDrops = %d, want 1", stats.IndexDrops)
 	}
@@ -1028,7 +1035,7 @@ func TestPackfileStoreGetBlockExistsBatchLoadsIndexesConcurrently(t *testing.T) 
 		})
 		return NewPackReader(packID, size, transport), nil
 	}
-	store := NewPackfileStore(opener, newMemIndexCache())
+	store := NewPackfileStore(opener, newMemIndexCache(), nil)
 	store.UpdateManifest(manifest)
 
 	// Verify the batch probe finds both blocks after concurrent index loads.
@@ -1082,7 +1089,7 @@ func TestPackfileStoreGetBlockLoadsCandidateIndexesConcurrently(t *testing.T) {
 		})
 		return NewPackReader(packID, size, transport), nil
 	}
-	store := NewPackfileStore(opener, newMemIndexCache())
+	store := NewPackfileStore(opener, newMemIndexCache(), nil)
 	store.UpdateManifest(manifest)
 
 	// Verify the lookup reads the block from the pack that holds it.
@@ -1099,6 +1106,7 @@ func TestPackfileStoreGetBlockLoadsCandidateIndexesConcurrently(t *testing.T) {
 	}
 }
 
+// TestPackfileStoreLookupPrunesUnrelatedFullPacks skips full packs whose bloom filters reject a block.
 func TestPackfileStoreLookupPrunesUnrelatedFullPacks(t *testing.T) {
 	// Configure a full-pack collection and its target location.
 	ctx := t.Context()
@@ -1153,7 +1161,7 @@ func TestPackfileStoreLookupPrunesUnrelatedFullPacks(t *testing.T) {
 	}
 
 	// Publish the full-pack collection in the store.
-	store := NewPackfileStore(opener, newMemIndexCache())
+	store := NewPackfileStore(opener, newMemIndexCache(), nil)
 	store.UpdateManifest(entries)
 
 	// Read the target block and verify its selected payload.
@@ -1191,13 +1199,14 @@ func TestPackfileStoreLookupPrunesUnrelatedFullPacks(t *testing.T) {
 	}
 }
 
+// TestPackfileStoreManifestDistributionStats reports pack sizes and manifest distribution.
 func TestPackfileStoreManifestDistributionStats(t *testing.T) {
 	// Publish packs with valid, missing, and malformed bloom filters.
 	packBytes, bloomBytes := buildTestPackOrdered(t, []struct{ Name, Data string }{
 		{"a", "alpha"},
 		{"b", "beta"},
 	})
-	store := NewPackfileStore(nil, nil)
+	store := NewPackfileStore(nil, nil, nil)
 	store.UpdateManifest([]*packfile.PackfileEntry{
 		{
 			Id:          "valid-pack",
@@ -1271,12 +1280,13 @@ func TestPackfileStoreManifestDistributionStats(t *testing.T) {
 	}
 }
 
+// TestPackfileStoreStatsChangedCallback notifies observers after lookup statistics change.
 func TestPackfileStoreStatsChangedCallback(t *testing.T) {
 	// Build the pack used to observe store statistics notifications.
 	ctx := t.Context()
 	packBytes, bloomBytes := buildTestPackOrdered(t, []struct{ Name, Data string }{{"a", "alpha"}})
 	opener, _ := openerFromBytes(packBytes)
-	store := NewPackfileStore(opener, newMemIndexCache())
+	store := NewPackfileStore(opener, newMemIndexCache(), nil)
 	var calls atomic.Int32
 
 	// Count statistics notifications while publishing the manifest.
@@ -1313,6 +1323,7 @@ func TestPackfileStoreStatsChangedCallback(t *testing.T) {
 	}
 }
 
+// TestPackfileStoreIndexCacheErrorStats counts index-cache errors while retaining remote reads.
 func TestPackfileStoreIndexCacheErrorStats(t *testing.T) {
 	// Publish a pack with an index cache that fails reads and writes.
 	ctx := t.Context()
@@ -1321,7 +1332,7 @@ func TestPackfileStoreIndexCacheErrorStats(t *testing.T) {
 	store := NewPackfileStore(opener, &errorIndexCache{
 		getErr: errors.New("cache read failed"),
 		setErr: errors.New("cache write failed"),
-	})
+	}, nil)
 	store.UpdateManifest([]*packfile.PackfileEntry{{
 		Id:          "error-pack",
 		BloomFilter: bloomBytes,
@@ -1355,6 +1366,7 @@ func TestPackfileStoreIndexCacheErrorStats(t *testing.T) {
 	}
 }
 
+// TestPackfileStoreIndexCacheHitStats counts index tails served from cache.
 func TestPackfileStoreIndexCacheHitStats(t *testing.T) {
 	// Build a pack and extract its cacheable index tail.
 	ctx := t.Context()
@@ -1367,7 +1379,7 @@ func TestPackfileStoreIndexCacheHitStats(t *testing.T) {
 	if err := cache.Set(ctx, "hit-pack", tail); err != nil {
 		t.Fatal(err)
 	}
-	store := NewPackfileStore(opener, cache)
+	store := NewPackfileStore(opener, cache, nil)
 	store.UpdateManifest([]*packfile.PackfileEntry{{
 		Id:          "hit-pack",
 		BloomFilter: bloomBytes,
@@ -1401,6 +1413,7 @@ func TestPackfileStoreIndexCacheHitStats(t *testing.T) {
 	}
 }
 
+// TestPackfileStoreRejectsStaleIndexTailCache reloads an index that does not match the pack.
 func TestPackfileStoreRejectsStaleIndexTailCache(t *testing.T) {
 	// Build current pack bytes and a stale index tail missing one block.
 	ctx := t.Context()
@@ -1416,7 +1429,7 @@ func TestPackfileStoreRejectsStaleIndexTailCache(t *testing.T) {
 	if err := cache.Set(ctx, "stale-pack", mustReadIndexTail(t, staleBytes)); err != nil {
 		t.Fatal(err)
 	}
-	store := NewPackfileStore(opener, cache)
+	store := NewPackfileStore(opener, cache, nil)
 	store.UpdateManifest([]*packfile.PackfileEntry{{
 		Id:          "stale-pack",
 		BloomFilter: bloomBytes,
@@ -1450,6 +1463,7 @@ func TestPackfileStoreRejectsStaleIndexTailCache(t *testing.T) {
 	}
 }
 
+// TestPackfileStoreColdIndexTailFetchIsBounded bounds transport reads while locating a cold index tail.
 func TestPackfileStoreColdIndexTailFetchIsBounded(t *testing.T) {
 	// Build a pack containing one large target block.
 	ctx := t.Context()
@@ -1458,7 +1472,7 @@ func TestPackfileStoreColdIndexTailFetchIsBounded(t *testing.T) {
 
 	// Publish the large pack with target-only fetch alignment.
 	opener, transport := openerFromBytes(packBytes)
-	store := NewPackfileStore(opener, newMemIndexCache())
+	store := NewPackfileStore(opener, newMemIndexCache(), nil)
 	store.UpdateManifest([]*packfile.PackfileEntry{{
 		Id:          "bounded-tail-pack",
 		BloomFilter: bloomBytes,
@@ -1502,6 +1516,7 @@ func TestPackfileStoreColdIndexTailFetchIsBounded(t *testing.T) {
 	}
 }
 
+// TestPackfileStoreCachedTailDrivesCoBlockWriteback uses cached extents to select neighboring blocks.
 func TestPackfileStoreCachedTailDrivesCoBlockWriteback(t *testing.T) {
 	// Build the adjacent blocks used by cached-index writeback.
 	ctx := t.Context()
@@ -1518,7 +1533,7 @@ func TestPackfileStoreCachedTailDrivesCoBlockWriteback(t *testing.T) {
 	if err := cache.Set(ctx, "cached-coblock-pack", mustReadIndexTail(t, packBytes)); err != nil {
 		t.Fatal(err)
 	}
-	store := NewPackfileStore(opener, cache)
+	store := NewPackfileStore(opener, cache, nil)
 	store.UpdateManifest([]*packfile.PackfileEntry{{
 		Id:          "cached-coblock-pack",
 		BloomFilter: bloomBytes,
@@ -1554,6 +1569,7 @@ func TestPackfileStoreCachedTailDrivesCoBlockWriteback(t *testing.T) {
 	}
 }
 
+// TestPackfileStoreReopenReusesRawTailCache loads a new reader from the previous reader's cached tail.
 func TestPackfileStoreReopenReusesRawTailCache(t *testing.T) {
 	// Build a pack manifest and target reference shared by two stores.
 	ctx := t.Context()
@@ -1572,7 +1588,7 @@ func TestPackfileStoreReopenReusesRawTailCache(t *testing.T) {
 
 	// Read the target through the first store and verify its remote index load.
 	firstOpener, firstTransport := openerFromBytes(packBytes)
-	firstStore := NewPackfileStore(firstOpener, cache)
+	firstStore := NewPackfileStore(firstOpener, cache, nil)
 	firstStore.UpdateManifest([]*packfile.PackfileEntry{entry})
 	if _, found, err := firstStore.GetBlock(ctx, &block.BlockRef{Hash: alphaHash}); err != nil || !found {
 		t.Fatalf("first GetBlock: found=%v err=%v", found, err)
@@ -1587,7 +1603,7 @@ func TestPackfileStoreReopenReusesRawTailCache(t *testing.T) {
 
 	// Read the target through a new store and verify index cache reuse.
 	secondOpener, _ := openerFromBytes(packBytes)
-	secondStore := NewPackfileStore(secondOpener, cache)
+	secondStore := NewPackfileStore(secondOpener, cache, nil)
 	secondStore.UpdateManifest([]*packfile.PackfileEntry{entry})
 	if _, found, err := secondStore.GetBlock(ctx, &block.BlockRef{Hash: alphaHash}); err != nil || !found {
 		t.Fatalf("second GetBlock: found=%v err=%v", found, err)
@@ -1639,7 +1655,7 @@ func TestPackfileStoreEmptyManifest(t *testing.T) {
 	// Open an empty pack store and derive an absent block reference.
 	ctx := t.Context()
 	opener, _ := openerFromBytes(nil)
-	store := NewPackfileStore(opener, newMemIndexCache())
+	store := NewPackfileStore(opener, newMemIndexCache(), nil)
 	h, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("x"))
 	if err != nil {
 		t.Fatal(err)
@@ -1663,7 +1679,7 @@ func TestPackfileStoreOpenerError(t *testing.T) {
 	opener := func(_ string, _ int64) (*PackReader, error) {
 		return nil, errors.New("network down")
 	}
-	store := NewPackfileStore(opener, newMemIndexCache())
+	store := NewPackfileStore(opener, newMemIndexCache(), nil)
 	store.UpdateManifest([]*packfile.PackfileEntry{{
 		Id:          "fail-pack",
 		BloomFilter: bloomBytes,
@@ -1690,7 +1706,7 @@ func TestPackfileStoreCoBlockWriteback(t *testing.T) {
 	}
 	packBytes, bloomBytes := buildTestPackOrdered(t, ordered)
 	opener, _ := openerFromBytes(packBytes)
-	store := NewPackfileStore(opener, newMemIndexCache())
+	store := NewPackfileStore(opener, newMemIndexCache(), nil)
 	store.UpdateManifest([]*packfile.PackfileEntry{{
 		Id:          "writeback-pack",
 		BloomFilter: bloomBytes,
@@ -1760,7 +1776,7 @@ func TestPackfileStoreServesAndWritesBackRefs(t *testing.T) {
 	// Create stores that expose the same packed graph.
 	openStore := func() *PackfileStore {
 		opener, _ := openerFromBytes(packBytes)
-		store := NewPackfileStore(opener, newMemIndexCache())
+		store := NewPackfileStore(opener, newMemIndexCache(), nil)
 		store.UpdateManifest([]*packfile.PackfileEntry{entry})
 		return store
 	}
@@ -1839,7 +1855,7 @@ func TestPackfileStoreTrailerPromotesBlocks(t *testing.T) {
 	}
 
 	// Publish the trailer-promotion pack in the store.
-	store := NewPackfileStore(opener, newMemIndexCache())
+	store := NewPackfileStore(opener, newMemIndexCache(), nil)
 	store.UpdateManifest([]*packfile.PackfileEntry{{
 		Id:          "promote-pack",
 		BloomFilter: bloomBytes,
@@ -1889,7 +1905,7 @@ func TestPackfileStoreReusesEngine(t *testing.T) {
 	}
 
 	// Publish the engine-reuse pack in the store.
-	store := NewPackfileStore(opener, newMemIndexCache())
+	store := NewPackfileStore(opener, newMemIndexCache(), nil)
 	store.UpdateManifest([]*packfile.PackfileEntry{{
 		Id:          "reuse-pack",
 		BloomFilter: bloomBytes,
@@ -1922,7 +1938,7 @@ func TestPackfileStoreServesCachedBlock(t *testing.T) {
 	}
 	packBytes, bloomBytes := buildTestPackOrdered(t, ordered)
 	opener, transport := openerFromBytes(packBytes)
-	store := NewPackfileStore(opener, newMemIndexCache())
+	store := NewPackfileStore(opener, newMemIndexCache(), nil)
 	store.UpdateManifest([]*packfile.PackfileEntry{{
 		Id:          "cache-pack",
 		BloomFilter: bloomBytes,
@@ -1957,7 +1973,7 @@ func TestPackfileStoreColdReadReturnsBeforePersistence(t *testing.T) {
 	ctx := t.Context()
 	packBytes, bloomBytes := buildTestPackOrdered(t, []struct{ Name, Data string }{{"a", "alpha"}})
 	opener, _ := openerFromBytes(packBytes)
-	store := NewPackfileStore(opener, newMemIndexCache())
+	store := NewPackfileStore(opener, newMemIndexCache(), nil)
 	store.UpdateManifest([]*packfile.PackfileEntry{{
 		Id:          "cold-pack",
 		BloomFilter: bloomBytes,
@@ -2003,7 +2019,7 @@ func TestPackfileStoreRejectsCorruptedBlock(t *testing.T) {
 	opener := func(packID string, size int64) (*PackReader, error) {
 		return NewPackReader(packID, size, transport), nil
 	}
-	store := NewPackfileStore(opener, newMemIndexCache())
+	store := NewPackfileStore(opener, newMemIndexCache(), nil)
 	store.UpdateManifest([]*packfile.PackfileEntry{{
 		Id:          "corrupt-pack",
 		BloomFilter: bloomBytes,
@@ -2028,7 +2044,7 @@ func TestPackfileStoreSecondReadReturnsBeforePersistence(t *testing.T) {
 	ctx := t.Context()
 	packBytes, bloomBytes := buildTestPackOrdered(t, []struct{ Name, Data string }{{"a", "alpha"}})
 	opener, _ := openerFromBytes(packBytes)
-	store := NewPackfileStore(opener, newMemIndexCache())
+	store := NewPackfileStore(opener, newMemIndexCache(), nil)
 	store.UpdateManifest([]*packfile.PackfileEntry{{
 		Id:          "wait-pack",
 		BloomFilter: bloomBytes,
@@ -2118,7 +2134,7 @@ func TestPackfileStoreDedupesConcurrentFetch(t *testing.T) {
 	}
 
 	// Publish the pack with a shared resident fetch window.
-	store := NewPackfileStore(opener, cache)
+	store := NewPackfileStore(opener, cache, nil)
 	store.UpdateManifest([]*packfile.PackfileEntry{{
 		Id:          "dedupe-pack",
 		BloomFilter: bloomBytes,
@@ -2195,7 +2211,7 @@ func TestPackfileStoreVerifyFailureAllowsRetry(t *testing.T) {
 	}
 
 	// Publish the recovery pack with target-only fetch alignment.
-	store := NewPackfileStore(opener, cache)
+	store := NewPackfileStore(opener, cache, nil)
 	store.UpdateManifest([]*packfile.PackfileEntry{{
 		Id:          "retry-pack",
 		BloomFilter: bloomBytes,
@@ -2284,18 +2300,13 @@ func TestPackfileStoreEvictsOldestBlock(t *testing.T) {
 		return e, nil
 	}
 
-	// Publish both packs with background writeback disabled.
-	store := NewPackfileStore(opener, newMemIndexCache())
+	// Publish both packs under a one-byte span budget with writeback disabled.
+	store := NewPackfileStore(opener, newMemIndexCache(), &Config{RangeCacheMaxBytes: 1})
 	store.UpdateManifest([]*packfile.PackfileEntry{
 		{Id: "pack-a", BloomFilter: bloomA, BlockCount: 1, SizeBytes: uint64(len(packA))},
 		{Id: "pack-b", BloomFilter: bloomB, BlockCount: 1, SizeBytes: uint64(len(packB))},
 	})
 	store.SetWriteback(ctx, nil, 0)
-
-	// Force the resident budget to exactly one byte so the second engine's
-	// fetches force eviction of the first engine's spans over time. Here we
-	// check engine-local eviction on pack-a.
-	store.SetRangeCacheMaxBytes(1)
 
 	// Verify both blocks remain readable under the one-byte cache budget.
 	hA, _ := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
@@ -2310,7 +2321,7 @@ func TestPackfileStoreEvictsOldestBlock(t *testing.T) {
 
 // TestPackfileStoreSharedReadCacheBudget verifies a store that joined the
 // shared read-cache budget is bounded by it rather than by its own limit, keeps
-// serving reads while the budget evicts, and returns to its own limits on leave.
+// serving reads while the budget evicts, and unregisters when closed.
 func TestPackfileStoreSharedReadCacheBudget(t *testing.T) {
 	// Publish two packs and join a budget far below one resident span.
 	ctx := t.Context()
@@ -2323,14 +2334,14 @@ func TestPackfileStoreSharedReadCacheBudget(t *testing.T) {
 		}
 		return NewPackReader(packID, size, &bytesTransport{data: data}), nil
 	}
-	store := NewPackfileStore(opener, newMemIndexCache())
+	shared := block.NewReadCacheBudget(8)
+	store := NewPackfileStore(opener, newMemIndexCache(), &Config{ReadCacheBudget: shared})
 	store.UpdateManifest([]*packfile.PackfileEntry{
 		{Id: "pack-a", BloomFilter: bloomA, BlockCount: 1, SizeBytes: uint64(len(packA))},
 		{Id: "pack-b", BloomFilter: bloomB, BlockCount: 1, SizeBytes: uint64(len(packB))},
 	})
 	store.SetWriteback(ctx, nil, 0)
-	shared := block.NewReadCacheBudget(8)
-	leave := store.JoinReadCacheBudget(shared)
+	t.Cleanup(store.Close)
 
 	// Read both blocks: each read is served and the store holds only what the
 	// shared budget keeps, which reclaim brings to its floor at most.
@@ -2348,13 +2359,14 @@ func TestPackfileStoreSharedReadCacheBudget(t *testing.T) {
 		t.Fatal("shared budget never evicted from the store")
 	}
 
-	// After leaving, the store's own limits apply again and nothing is counted.
-	leave()
+	// Closing the store releases its shared budget membership.
+	store.Close()
 	if shared.Used(block.ReadCacheEncoded) != 0 {
 		t.Fatal("left store still counted")
 	}
 }
 
+// TestPackfileStoreCloseDrainsWritebackBeforeReleasingReferences holds dependencies until pending writebacks finish.
 func TestPackfileStoreCloseDrainsWritebackBeforeReleasingReferences(t *testing.T) {
 	// Gate the first block writeback in an initialized pack reader.
 	firstPut := make(chan struct{})
@@ -2408,7 +2420,7 @@ func TestPackfileStoreCloseDrainsWritebackBeforeReleasingReferences(t *testing.T
 	<-firstPut
 
 	// Attach the running pack reader to the store being closed.
-	store := NewPackfileStore(nil, cache)
+	store := NewPackfileStore(nil, cache, nil)
 	store.SetWriteback(t.Context(), writeback, 64)
 	store.mtx.Lock()
 	store.engines[eng.packID] = eng
@@ -2455,10 +2467,11 @@ func TestPackfileStoreCloseDrainsWritebackBeforeReleasingReferences(t *testing.T
 	}
 }
 
+// TestPackfileStoreUpdateManifestAfterCloseIgnoresValidBloom keeps a closed catalog empty.
 func TestPackfileStoreUpdateManifestAfterCloseIgnoresValidBloom(t *testing.T) {
 	// Close a store before publishing a valid pack bloom filter.
 	_, bloomBytes := buildTestPack(t, map[string][]byte{"block": []byte("data")})
-	store := NewPackfileStore(nil, newMemIndexCache())
+	store := NewPackfileStore(nil, newMemIndexCache(), nil)
 	store.Close()
 
 	// Verify manifest publication after closing leaves the store empty.

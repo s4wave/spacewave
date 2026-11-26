@@ -22,7 +22,7 @@ func NewPackfileStore(
 	}
 
 	// Register the pack entry and configure the writeback store.
-	store := packfile_store.NewPackfileStore(opener, cache)
+	store := packfile_store.NewPackfileStore(opener, cache, nil)
 	store.UpdateManifest([]*packfile.PackfileEntry{meta.GetPack()})
 	store.SetWriteback(ctx, writeback, 0)
 	return store, nil

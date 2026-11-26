@@ -24,7 +24,7 @@ func TestManifestSnapshotReadAfterRemoval(t *testing.T) {
 	store := NewPackfileStore(func(id string, size int64) (*PackReader, error) {
 		once.Do(func() { close(opening); <-resume })
 		return NewPackReader(id, size, &bytesTransport{data: data}), nil
-	}, nil)
+	}, nil, nil)
 	t.Cleanup(func() { store.Close() })
 	store.ApplyManifestDelta([]*packfile.PackfileEntry{{
 		Id: "removed", SizeBytes: uint64(len(data)), BlockCount: 1, BloomFilter: bloom,

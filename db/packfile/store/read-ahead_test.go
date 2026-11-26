@@ -33,7 +33,7 @@ func TestMaterializerReadAheadSharesForegroundCache(t *testing.T) {
 	transport := &bytesTransport{data: data}
 	store := NewPackfileStore(func(id string, size int64) (*PackReader, error) {
 		return NewPackReader(id, size, transport), nil
-	}, newMemIndexCache())
+	}, newMemIndexCache(), nil)
 	t.Cleanup(store.Close)
 	store.UpdateManifest([]*packfile.PackfileEntry{{
 		Id: "bulk", BloomFilter: bloom, BlockCount: uint64(len(items)), SizeBytes: uint64(len(data)),
@@ -213,7 +213,7 @@ func TestPackLocalityReducesRelatedRangeReads(t *testing.T) {
 			reader := NewPackReader(id, size, transport)
 			reader.setTransportWindows(128<<10, 128<<10, 128<<10)
 			return reader, nil
-		}, newMemIndexCache())
+		}, newMemIndexCache(), nil)
 		defer store.Close()
 		store.UpdateManifest([]*packfile.PackfileEntry{{
 			Id: "layout", BloomFilter: bloom, BlockCount: uint64(len(ordered)), SizeBytes: uint64(len(data)),

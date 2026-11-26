@@ -18,14 +18,19 @@ func NewHTTPPackfileStore(
 	cache packfile_store.IndexCache,
 	writeback block.StoreOps,
 ) (*packfile_store.PackfileStore, error) {
+	// Require an endpoint before building the manifest pack opener.
 	if packURL == "" {
 		return nil, errors.New("pack url is empty")
 	}
+
+	// Restrict transport construction to the manifest's immutable pack identity.
 	opener := func(packID string, size int64) (*packfile_store.PackReader, error) {
 		if packID != meta.GetPack().GetId() {
 			return nil, errors.Errorf("unknown manifest-pack id %q", packID)
 		}
-		return packfile_store.NewHTTPRangeReader(cli, packURL, size, 0, nil, nil), nil
+		return packfile_store.NewHTTPRangeReader(cli, packID, packURL, size, 0, nil, nil), nil
 	}
+
+	// Assemble the verified store over the endpoint-bound opener.
 	return NewPackfileStore(ctx, meta, opener, cache, writeback)
 }

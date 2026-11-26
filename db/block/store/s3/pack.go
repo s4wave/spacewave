@@ -109,8 +109,6 @@ type PackStore struct {
 	keepPacks bool
 	// packs reads blocks from the known packfiles.
 	packs *packfile_store.PackfileStore
-	// leaveReadCache removes the pack store from the shared read-cache budget.
-	leaveReadCache func()
 	// compactor runs compact after writes.
 	compactor *routine.RoutineContainer
 	// refresher lists the entries every refreshInterval once a read started it.
@@ -243,15 +241,16 @@ func NewPackStore(le *logrus.Entry, client ObjectStore, bucket, prefix string, o
 	// Open the local index, which also keeps the index tail of each pack a
 	// reader loaded, so a restart does not read those tails again.
 	var tails packfile_store.IndexCache
+	conf := &packfile_store.Config{ReadCacheBudget: block.SharedReadCacheBudget()}
 	if opts.Index != nil {
 		s.index = newPackIndex(opts.Index)
 		s.index.readOnly = opts.ReadOnlyIndex
 		tails = s.index
+		conf.Locator = s.index
 	}
 
 	// Read blocks from the known packfiles within the shared cache budget.
-	s.packs = packfile_store.NewPackfileStore(s.openPack, tails)
-	s.leaveReadCache = s.packs.JoinReadCacheBudget(block.SharedReadCacheBudget())
+	s.packs = packfile_store.NewPackfileStore(s.openPack, tails, conf)
 
 	// Start compaction; the refresher starts at the first read.
 	s.compactor.SetRoutine(s.runCompaction)
@@ -259,9 +258,6 @@ func NewPackStore(le *logrus.Entry, client ObjectStore, bucket, prefix string, o
 	s.refresher.SetRoutine(s.runRefresh)
 
 	// Locate blocks through the index and index the listed packs.
-	if s.index != nil {
-		s.packs.SetLocator(s.index)
-	}
 	if s.index != nil && !opts.ReadOnlyIndex {
 		s.indexer = routine.NewRoutineContainerWithLogger(
 			le.WithField("routine", "pack-index"),
@@ -281,7 +277,6 @@ func (s *PackStore) Close() {
 	if s.indexer != nil {
 		s.indexer.ClearContext()
 	}
-	s.leaveReadCache()
 	s.packs.Close()
 }
 

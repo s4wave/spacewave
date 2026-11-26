@@ -723,7 +723,7 @@ func (t *bstoreTracker) buildLowerStore(
 		remote := newPublicReadRemote(t.a.p.httpCli, base, t.id, cache, decodedBlocks)
 		return remote.lower, remote
 	}
-	return packfile_store.NewPackfileStore(t.buildOpener(), cache), nil
+	return packfile_store.NewPackfileStore(t.buildOpener(), cache, nil), nil
 }
 
 // publicBaseURL returns the base URL of the block store's published files
@@ -756,14 +756,16 @@ func newPublicReadRemote(
 	cache packfile_store.IndexCache,
 	decodedBlocks *block.DecodedBlockCache,
 ) *publicReadRemote {
+	// Retain the remote's shared cache and manifest publication state.
 	remote := &publicReadRemote{
 		root:          cdn_bstore.NewRootPointerFetcher(cli, cdnBaseURL, spaceID),
 		decodedBlocks: decodedBlocks,
 	}
+
+	// Resolve immutable pack IDs through anonymous HTTP range readers.
 	remote.lower = packfile_store.NewPackfileStore(
 		cdn_bstore.NewAnonymousOpener(cli, cdnBaseURL, spaceID),
-		cache,
-	)
+		cache, nil)
 	return remote
 }
 

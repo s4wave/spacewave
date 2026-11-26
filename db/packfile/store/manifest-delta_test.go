@@ -22,7 +22,7 @@ func TestManifestDeltaLookupAndReaders(t *testing.T) {
 	store := NewPackfileStore(func(id string, size int64) (*PackReader, error) {
 		opened = append(opened, id)
 		return NewPackReader(id, size, &bytesTransport{data: data}), nil
-	}, nil)
+	}, nil, nil)
 	t.Cleanup(store.Close)
 	entries := []*packfile.PackfileEntry{
 		{Id: "local", SizeBytes: uint64(len(data)), BlockCount: 1},

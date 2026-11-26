@@ -28,6 +28,8 @@ type CachedBlockStoreOptions struct {
 	CacheBlockStoreID string
 	// PointerTTL is the cache TTL for the decoded root pointer. See Options.
 	PointerTTL time.Duration
+	// RangeCacheMaxBytes bounds resident pack spans. See Options.
+	RangeCacheMaxBytes int64
 	// WritebackWindowBytes bounds co-block writeback buffering.
 	WritebackWindowBytes int64
 	// HttpClient overrides the default http.Client.
@@ -102,6 +104,7 @@ func NewCachedBlockStore(ctx context.Context, b bus.Bus, opts CachedBlockStoreOp
 		SpaceID:            opts.SpaceID,
 		HttpClient:         opts.HttpClient,
 		PointerTTL:         opts.PointerTTL,
+		RangeCacheMaxBytes: opts.RangeCacheMaxBytes,
 		IndexCache:         indexCache,
 		PointerStore:       pointerStore,
 		Grants:             opts.Grants,

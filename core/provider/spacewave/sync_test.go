@@ -291,7 +291,7 @@ func TestSyncControllerInitSkipsPullForRemoteManifest(t *testing.T) {
 		BlockCount: 1,
 		SizeBytes:  128,
 	}
-	lower := packfile_store.NewPackfileStore(nil, nil)
+	lower := packfile_store.NewPackfileStore(nil, nil, nil)
 	s := &syncController{
 		le:         logrus.NewEntry(logrus.New()),
 		store:      store,
@@ -351,7 +351,7 @@ func TestSyncControllerPullNowRecordsLatestSequenceFromEmptyPull(t *testing.T) {
 		client:     cli,
 		resourceID: "test-res",
 		mfst:       mfst,
-		lower:      packfile_store.NewPackfileStore(nil, nil),
+		lower:      packfile_store.NewPackfileStore(nil, nil, nil),
 	}
 
 	// Pull once and check the recorded sequence.
@@ -488,7 +488,7 @@ func TestSyncControllerInitReturnsAccessGatedPullError(t *testing.T) {
 		client:     cli,
 		resourceID: "space-1",
 		mfst:       mfst,
-		lower:      packfile_store.NewPackfileStore(nil, nil),
+		lower:      packfile_store.NewPackfileStore(nil, nil, nil),
 	}
 
 	// Require Init to return the denial after one pull.
@@ -868,7 +868,10 @@ func newSyncTestLowerPackfileStore(t *testing.T, blocks map[string][]byte) *pack
 			), nil
 		},
 		nil,
+		nil,
 	)
+
+	// Make the failing pack a candidate for every requested block.
 	lower.UpdateManifest([]*packfile.PackfileEntry{{
 		Id:                 "existing-pack",
 		BloomFilter:        result.BloomFilter,
@@ -881,6 +884,7 @@ func newSyncTestLowerPackfileStore(t *testing.T, blocks map[string][]byte) *pack
 
 // newSyncTestErrorLowerPackfileStore constructs a lower store whose reads fail.
 func newSyncTestErrorLowerPackfileStore() *packfile_store.PackfileStore {
+	// Fail every transport read from the lower store.
 	lower := packfile_store.NewPackfileStore(
 		func(packID string, size int64) (*packfile_store.PackReader, error) {
 			return packfile_store.NewPackReader(
@@ -889,8 +893,7 @@ func newSyncTestErrorLowerPackfileStore() *packfile_store.PackfileStore {
 				&syncErrorTransport{err: io.ErrUnexpectedEOF},
 			), nil
 		},
-		nil,
-	)
+		nil, nil)
 	lower.UpdateManifest([]*packfile.PackfileEntry{{
 		Id:                 "error-pack",
 		BloomFilter:        []byte("invalid-bloom"),
@@ -1022,7 +1025,7 @@ func newDirtySyncExecuteTestController(
 		client:     cli,
 		resourceID: "test-res",
 		mfst:       mfst,
-		lower:      packfile_store.NewPackfileStore(nil, nil),
+		lower:      packfile_store.NewPackfileStore(nil, nil, nil),
 		upper:      upper,
 		conf:       &SyncConfig{SizeThresholdBytes: 1, CheckpointIntervalSecs: 1},
 		gateBcast:  gate,

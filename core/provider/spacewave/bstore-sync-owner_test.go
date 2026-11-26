@@ -146,7 +146,7 @@ func TestSyncControllerCoalescesNonceTriggersIntoPullNow(t *testing.T) {
 		client:     NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String()),
 		resourceID: "space-1",
 		mfst:       mfst,
-		lower:      packfile_store.NewPackfileStore(nil, nil),
+		lower:      packfile_store.NewPackfileStore(nil, nil, nil),
 	}
 
 	// Run the remote pull routine for the test.

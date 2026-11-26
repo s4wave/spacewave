@@ -17,6 +17,7 @@ import (
 
 // TestSyncCatalogChangeScaling measures one committed pack acknowledgement.
 func TestSyncCatalogChangeScaling(t *testing.T) {
+	// Measure one catalog change as the surrounding manifest grows.
 	for _, count := range []int{1000, 10000, 100000} {
 		t.Run(strconv.Itoa(count), func(t *testing.T) {
 			// Open the native volume backend and release it after the read store.
@@ -36,7 +37,7 @@ func TestSyncCatalogChangeScaling(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			syncer := &syncController{mfst: catalog, lower: packfile_store.NewPackfileStore(nil, nil)}
+			syncer := &syncController{mfst: catalog, lower: packfile_store.NewPackfileStore(nil, nil, nil)}
 			t.Cleanup(syncer.lower.Close)
 			entries := make([]*packfile.PackfileEntry, count)
 			for n := range count {

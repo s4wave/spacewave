@@ -159,6 +159,12 @@ type PackReader struct {
 
 // NewPackReader builds a per-pack access engine wrapping a transport.
 func NewPackReader(packID string, size int64, transport Transport) *PackReader {
+	return newPackReader(packID, size, transport, defaultResidentBudget)
+}
+
+// newPackReader fixes pack identity, transport, and the initial span budget.
+func newPackReader(packID string, size int64, transport Transport, maxResidentBytes int64) *PackReader {
+	// Allocate the reader's cancellation scope and immutable pack identity.
 	ctx, cancel := newPackReaderContext()
 	e := &PackReader{
 		ctx:                    ctx,
@@ -176,10 +182,12 @@ func NewPackReader(packID string, size int64, transport Transport) *PackReader {
 		sparseColdWindow:       defaultSparseColdWindow,
 		sparseLocalityDistance: defaultSparseLocalityDistance,
 		writebackWindow:        defaultWritebackWindow,
-		budget:                 newResidentBudget(defaultResidentBudget),
+		budget:                 newResidentBudget(Config{RangeCacheMaxBytes: maxResidentBytes}),
 		gate:                   newDemandGate(),
 		published:              make(map[string]struct{}),
 	}
+
+	// Register the reader with its initial private resident budget.
 	e.budget.attach(e)
 	return e
 }

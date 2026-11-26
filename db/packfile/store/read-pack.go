@@ -33,23 +33,29 @@ func (s *PackfileStore) ReadPackBlocks(ctx context.Context, packID string, size 
 	}
 	defer rd.Close()
 
+	// Verify the private reader's complete payload without filling its spans.
+	return rd.readPackBlocks(ctx, s.gate)
+}
+
+// readPackBlocks fetches and verifies one pack without using the span cache.
+func (e *PackReader) readPackBlocks(ctx context.Context, gate *demandGate) ([]PackBlock, error) {
 	// Fetch the complete pack once the gate admits it, and validate its
 	// encoded index.
-	leave, err := s.gate.enter(ctx, block.IsBackground(ctx), nil)
+	leave, err := gate.enter(ctx, block.IsBackground(ctx), nil)
 	if err != nil {
 		return nil, err
 	}
-	data, err := rd.transport.Fetch(ctx, 0, int(size))
+	data, err := e.transport.Fetch(ctx, 0, int(e.size))
 	leave()
 	if err != nil {
-		return nil, errors.Wrapf(err, "fetch packfile %s", packID)
+		return nil, errors.Wrapf(err, "fetch packfile %s", e.packID)
 	}
-	if int64(len(data)) != size {
-		return nil, errors.Errorf("packfile %s: read %d of %d bytes", packID, len(data), size)
+	if int64(len(data)) != e.size {
+		return nil, errors.Errorf("packfile %s: read %d of %d bytes", e.packID, len(data), e.size)
 	}
 	kv, err := kvfile.BuildReader(bytes.NewReader(data), uint64(len(data)))
 	if err != nil {
-		return nil, errors.Wrapf(err, "read packfile %s index", packID)
+		return nil, errors.Wrapf(err, "read packfile %s index", e.packID)
 	}
 
 	// Collect index entries in the order of their payload offsets.
@@ -65,7 +71,7 @@ func (s *PackfileStore) ReadPackBlocks(ctx context.Context, packID string, size 
 		return err
 	})
 	if err != nil {
-		return nil, errors.Wrapf(err, "scan packfile %s index", packID)
+		return nil, errors.Wrapf(err, "scan packfile %s index", e.packID)
 	}
 	slices.SortFunc(entries, func(a, b located) int {
 		return int(a.off - b.off)
@@ -73,17 +79,17 @@ func (s *PackfileStore) ReadPackBlocks(ctx context.Context, packID string, size 
 
 	// Decode and verify every pack block in payload order.
 	blocks := make([]PackBlock, 0, len(entries))
-	for _, e := range entries {
+	for _, item := range entries {
 		// Decode the block reference stored in the index key.
-		h, err := packfile.ParseBlockKey(e.entry.GetKey())
+		h, err := packfile.ParseBlockKey(item.entry.GetKey())
 		if err != nil {
-			return nil, errors.Wrapf(err, "packfile %s key", packID)
+			return nil, errors.Wrapf(err, "packfile %s key", e.packID)
 		}
 
 		// Read and verify the indexed block before returning its bytes.
-		value, err := kv.GetWithEntry(e.entry, e.idx)
+		value, err := kv.GetWithEntry(item.entry, item.idx)
 		if err != nil {
-			return nil, errors.Wrapf(err, "packfile %s value", packID)
+			return nil, errors.Wrapf(err, "packfile %s value", e.packID)
 		}
 		stored, err := decodeVerifiedBlock(block.NewBlockRef(h), value)
 		if err != nil {

@@ -544,7 +544,9 @@ func TestDirtyTrackingStoreBatchRepairsExistingBlocks(t *testing.T) {
 	}
 }
 
+// TestHTTPReaderAtReadsOffsetFromFullBodyFallback reads the requested offset when a server returns the whole body.
 func TestHTTPReaderAtReadsOffsetFromFullBodyFallback(t *testing.T) {
+	// Serve known pack bytes through a counted HTTP transport.
 	data := []byte("0123456789abcdef")
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -560,8 +562,10 @@ func TestHTTPReaderAtReadsOffsetFromFullBodyFallback(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// Open the fixture pack with its explicit identity and transport URL.
 	shared := packfile_store.NewHTTPRangeReader(
 		srv.Client(),
+		srv.URL,
 		srv.URL,
 		int64(len(data)),
 		16,
@@ -570,6 +574,7 @@ func TestHTTPReaderAtReadsOffsetFromFullBodyFallback(t *testing.T) {
 	)
 	rd := shared.ReaderAt(context.Background())
 
+	// Verify the returned bytes and the transport request count.
 	buf := make([]byte, 4)
 	n, err := rd.ReadAt(buf, 4)
 	if err != nil && err != io.EOF {
@@ -583,7 +588,9 @@ func TestHTTPReaderAtReadsOffsetFromFullBodyFallback(t *testing.T) {
 	}
 }
 
+// TestHTTPReaderAtReadAheadCache serves neighboring reads from one fetched range.
 func TestHTTPReaderAtReadAheadCache(t *testing.T) {
+	// Serve known pack bytes through a counted HTTP transport.
 	data := []byte("0123456789abcdef")
 	var reqs int
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -599,8 +606,10 @@ func TestHTTPReaderAtReadAheadCache(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// Open the fixture pack with its explicit identity and transport URL.
 	shared := packfile_store.NewHTTPRangeReader(
 		srv.Client(),
+		srv.URL,
 		srv.URL,
 		int64(len(data)),
 		16,
@@ -609,6 +618,7 @@ func TestHTTPReaderAtReadAheadCache(t *testing.T) {
 	)
 	rd := shared.ReaderAt(context.Background())
 
+	// Verify the returned bytes and the transport request count.
 	buf := make([]byte, 4)
 	n, err := rd.ReadAt(buf, 4)
 	if err != nil && err != io.EOF {
@@ -618,6 +628,7 @@ func TestHTTPReaderAtReadAheadCache(t *testing.T) {
 		t.Fatalf("unexpected first read: n=%d data=%q", n, string(buf))
 	}
 
+	// Reuse the same fetched window for the neighboring block.
 	n, err = rd.ReadAt(buf, 8)
 	if err != nil && err != io.EOF {
 		t.Fatalf("second ReadAt returned error: %v", err)
@@ -699,6 +710,7 @@ func TestPackReadGrants(t *testing.T) {
 	newReader := func() io.ReaderAt {
 		return packfile_store.NewHTTPRangeReader(
 			srv.Client(),
+			packID,
 			"",
 			int64(len(data)),
 			4,
@@ -739,7 +751,9 @@ func TestPackReadGrants(t *testing.T) {
 	}
 }
 
+// TestHTTPReaderAtRetainsMultipleRanges retains independently fetched ranges for later reads.
 func TestHTTPReaderAtRetainsMultipleRanges(t *testing.T) {
+	// Serve known pack bytes through a counted HTTP transport.
 	data := bytes.Repeat([]byte("0123456789abcdef"), 8192)
 	var reqs int
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -756,8 +770,10 @@ func TestHTTPReaderAtRetainsMultipleRanges(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// Open the fixture pack with its explicit identity and transport URL.
 	shared := packfile_store.NewHTTPRangeReader(
 		srv.Client(),
+		srv.URL,
 		srv.URL,
 		int64(len(data)),
 		16,
@@ -766,6 +782,7 @@ func TestHTTPReaderAtRetainsMultipleRanges(t *testing.T) {
 	)
 	rd := shared.ReaderAt(context.Background())
 
+	// Verify the returned bytes and the transport request count.
 	buf := make([]byte, 4)
 	for _, off := range []int64{0, 70000, 0} {
 		n, err := rd.ReadAt(buf, off)

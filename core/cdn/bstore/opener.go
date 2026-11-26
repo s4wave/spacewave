@@ -39,6 +39,7 @@ func NewAnonymousOpener(httpCli *http.Client, cdnBaseURL, spaceID string) packfi
 		}
 		return packfile_store.NewHTTPRangeReader(
 			httpCli,
+			packID,
 			packURL(cdnBaseURL, spaceID, packID),
 			size,
 			readAheadSize,

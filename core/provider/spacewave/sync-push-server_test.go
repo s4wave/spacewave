@@ -99,7 +99,7 @@ func (s *testPushServer) lower(t *testing.T) *packfile_store.PackfileStore {
 			data = pack.data
 		}
 		return packfile_store.NewPackReader(packID, size, &syncPackTransport{data: data}), nil
-	}, nil)
+	}, nil, nil)
 	t.Cleanup(store.Close)
 	return store
 }

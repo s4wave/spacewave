@@ -290,6 +290,7 @@ func TestGrantReadsAndWritesPrivateSpace(t *testing.T) {
 // several of their lives through one opener: every read is authorized, so
 // each grant was renewed before it expired.
 func TestGrantRenewsBeforeExpiry(t *testing.T) {
+	// Publish a tree that stays readable across several grant lifetimes.
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	defer cancel()
 	fx := newFixture(t)
@@ -307,7 +308,7 @@ func TestGrantRenewsBeforeExpiry(t *testing.T) {
 	packs := fx.rig.Writer.Root(writertest.Space).GetPacks()
 	issued := h.issued.Load()
 	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); time.Sleep(250 * time.Millisecond) {
-		store := packfile_store.NewPackfileStore(opener, nil)
+		store := packfile_store.NewPackfileStore(opener, nil, nil)
 		store.UpdateManifest(packs)
 		exists, err := store.GetBlockExistsBatch(ctx, []*block.BlockRef{tree.GetRootRef()})
 		store.Close()

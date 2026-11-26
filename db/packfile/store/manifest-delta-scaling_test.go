@@ -13,12 +13,13 @@ import (
 
 // TestManifestDeltaReaderScaling measures publication with every retained reader open.
 func TestManifestDeltaReaderScaling(t *testing.T) {
+	// Measure one pack replacement against progressively larger catalogs.
 	for _, count := range []int{1000, 10000, 100000} {
 		t.Run(strconv.Itoa(count), func(t *testing.T) {
 			// Fill the catalog with descriptors for idle readable packs.
 			store := NewPackfileStore(func(id string, size int64) (*PackReader, error) {
 				return NewPackReader(id, size, &bytesTransport{data: []byte("pack")}), nil
-			}, nil)
+			}, nil, nil)
 			t.Cleanup(store.Close)
 			entries := make([]*packfile.PackfileEntry, count)
 			for n := range count {

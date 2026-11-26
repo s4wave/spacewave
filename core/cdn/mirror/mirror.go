@@ -121,7 +121,7 @@ func Mirror(ctx context.Context, src block.StoreOps, head *bucket.ObjectRef, opt
 	if grants != nil {
 		opener = grants.Opener(nil)
 	}
-	remote := packfile_store.NewPackfileStore(opener, nil)
+	remote := packfile_store.NewPackfileStore(opener, nil, nil)
 	defer remote.Close()
 	remote.UpdateManifest(entries)
 

@@ -73,7 +73,7 @@ func NewCdnBlockStore(opts Options) (*CdnBlockStore, error) {
 	if opts.Grants != nil {
 		opener = NewGrantKeeper(opts.Grants, opts.SpaceID).Opener(cli)
 	}
-	pfs := packfile_store.NewPackfileStore(opener, cache)
+	pfs := packfile_store.NewPackfileStore(opener, cache, &packfile_store.Config{RangeCacheMaxBytes: opts.RangeCacheMaxBytes})
 
 	// Allocate the decoded-block cache.
 	decodedBlocks := block.NewDecodedBlockCache()
@@ -173,11 +173,6 @@ func (s *CdnBlockStore) SetWriteback(ctx context.Context, target block.StoreOps,
 		return
 	}
 	s.pfs.SetWriteback(ctx, target, windowBytes)
-}
-
-// SetRangeCacheMaxBytes sets the resident range-cache budget per pack reader.
-func (s *CdnBlockStore) SetRangeCacheMaxBytes(maxBytes int64) {
-	s.pfs.SetRangeCacheMaxBytes(maxBytes)
 }
 
 // SnapshotStats returns the store's pack reads from the CDN, among them the

@@ -12,10 +12,11 @@ import (
 // TestPackReaderBlockReadAcrossEviction reads fragmented blocks while a shared
 // budget cannot retain both halves, with one reader and concurrent readers.
 func TestPackReaderBlockReadAcrossEviction(t *testing.T) {
+	// Exercise fragmented reads with one reader and with competing readers.
 	for _, readers := range []int{1, 8} {
 		t.Run(strconv.Itoa(readers), func(t *testing.T) {
 			// Share a budget smaller than one block across independent packs.
-			budget := newResidentBudget(1)
+			budget := newResidentBudget(Config{RangeCacheMaxBytes: 1})
 			for i := range readers {
 				t.Run(strconv.Itoa(i), func(t *testing.T) {
 					// Load the real pack index from cache without warming payloads.

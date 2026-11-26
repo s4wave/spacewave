@@ -51,17 +51,13 @@ func NewBlockStoreBuilder(le *logrus.Entry, b bus.Bus, conf *Config) block_store
 			SpaceID:              conf.GetSpaceId(),
 			CacheBlockStoreID:    conf.GetCacheBlockStoreId(),
 			PointerTTL:           pointerTTL,
+			RangeCacheMaxBytes:   max(conf.GetRangeCacheMaxBytes(), 0),
 			WritebackWindowBytes: conf.GetWritebackWindowBytes(),
 			HttpClient:           http.DefaultClient,
 			Release:              released,
 		})
 		if err != nil {
 			return nil, nil, err
-		}
-
-		// Apply the configured range-cache budget.
-		if maxBytes := conf.GetRangeCacheMaxBytes(); maxBytes > 0 {
-			cdnStore.SetRangeCacheMaxBytes(maxBytes)
 		}
 
 		// Expose the CDN store under the configured block store ID.
