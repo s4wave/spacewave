@@ -31,6 +31,8 @@ type debugRefRepairArgs struct {
 	spaceID string
 	// dryRun counts the missing edges without writing them.
 	dryRun bool
+	// reverify compares the marked lists with their blocks' content too.
+	reverify bool
 	// peerBlocks is a directory of blocks named by their B58 refs, read in
 	// place of the peer for the blocks the volume lacks.
 	peerBlocks string
@@ -53,6 +55,11 @@ func (a *debugRefRepairArgs) BuildFlags() []cli.Flag {
 			Name:        "dry-run",
 			Usage:       "count the blocks lacking edges without writing them",
 			Destination: &a.dryRun,
+		},
+		&cli.BoolFlag{
+			Name:        "reverify",
+			Usage:       "also compare each marked child list with its block's decoded refs, adding a child it lacks",
+			Destination: &a.reverify,
 		},
 		&cli.StringFlag{
 			Name:        "peer-blocks",
@@ -79,7 +86,7 @@ func (a *debugRefRepairArgs) Run(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	res, err := repairVolumeRefs(c.Context, le, path, a.spaceID, a.dryRun, space_world_optypes.LookupBlockType, stub, a.upgrade.StoreConfig(nil))
+	res, err := repairVolumeRefs(c.Context, le, path, a.spaceID, a.dryRun, a.reverify, space_world_optypes.LookupBlockType, stub, a.upgrade.StoreConfig(nil))
 	if err != nil {
 		return err
 	}
@@ -153,6 +160,7 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 		{"Child lists written", strconv.FormatUint(res.rebuild.Rewritten, 10)},
 		{"Decoded lists refused for dropping a stored child", strconv.FormatUint(res.rebuild.Dropped, 10)},
 		{"Reached blocks the walk still owes", strconv.FormatUint(res.rebuild.Front, 10)},
+		{"Reverify", strconv.FormatBool(res.reverify)},
 		{"Old generation settled", strconv.FormatBool(res.verified)},
 		{"Plugin prefix groups", strconv.Itoa(len(res.pluginStores))},
 		{"Stored blocks without a child list", strconv.FormatUint(res.untracked, 10)},
@@ -180,6 +188,11 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 		fields = append(fields, [2]string{"Refused sample", ref.MarshalString()})
 	}
 
+	// Compare the marked lists on a reverify, naming those found wanting.
+	if res.reverify {
+		fields = append(fields, reverifyFields(res.rebuild)...)
+	}
+
 	// Retain the walk's reasons for stopping at an untyped ref, with a sample
 	// ref of each.
 	for _, reason := range slices.Sorted(maps.Keys(res.untyped)) {
@@ -189,17 +202,39 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 	return fields
 }
 
+// reverifyFields formats what a reverify found comparing the marked lists
+// with their blocks' content.
+func reverifyFields(res block_gc.ListRebuildResult) [][2]string {
+	fields := [][2]string{
+		{"Marked lists read", strconv.FormatUint(res.MarkedRead, 10)},
+		{"Marked lists matching their content", strconv.FormatUint(res.MarkedMatched, 10)},
+		{"Marked lists lacking a decoded child", strconv.FormatUint(res.MarkedLacking, 10)},
+		{"Of those, refused for naming a child the content lacks", strconv.FormatUint(res.MarkedRefused, 10)},
+		{"Marked, not decodable", strconv.FormatUint(res.MarkedUndecodable, 10)},
+	}
+	for _, s := range res.MarkedLackingSample {
+		fields = append(fields, [2]string{"Marked lacking sample", s.Ref.MarshalString() + " " + s.Type + " lacks " + s.Missing.MarshalString()})
+	}
+	for _, s := range res.MarkedUndecodableSample {
+		fields = append(fields, [2]string{"Marked, not decodable sample", s.Ref.MarshalString() + " " + s.Type})
+	}
+	return fields
+}
+
 // repairVolumeRefs walks the Spaces of the stopped volume at path, all of them
 // or spaceID alone, typing objects' roots with lookup, and unless dryRun is
 // set writes the child lists they reach from the decoded blocks, as the typed
 // walk of the settle of the volume's old generation, so the collector can
-// settle it once nothing more is owed. Once the old generation has left Open
-// the rebuild refuses the volume and the run only walks it.
+// settle it once nothing more is owed. With reverify it also compares each
+// marked list with its block's content, as block_gc.ListRebuildOptions
+// describes, and a dry run counts what that would write. Once the old
+// generation has left Open the rebuild refuses the volume and the run only
+// walks it.
 func repairVolumeRefs(
 	ctx context.Context,
 	le *logrus.Entry,
 	path, spaceID string,
-	dryRun bool,
+	dryRun, reverify bool,
 	lookup refwalk.LookupBlockType,
 	stub refRepairStub,
 	storeConf *store_kvtx.Config,
@@ -220,13 +255,15 @@ func repairVolumeRefs(
 		return refRepairResult{}, errors.New("no replay cursor found for the selected Spaces")
 	}
 
-	// Start the list rebuild unless this is a dry run, then walk each Space
-	// and release the walker.
+	// Start the list rebuild unless this is a dry run without a reverify,
+	// then walk each Space and release the walker.
 	rr := newRefRepair(le, vol, stub.peer, lookup)
 	rr.synthetic = stub.synthetic
+	rr.res.reverify = reverify
 	defer rr.close()
-	if !dryRun {
-		rr.rebuild, err = vol.OpenListRebuild(ctx)
+	if !dryRun || reverify {
+		opts := block_gc.ListRebuildOptions{Reverify: reverify, DryRun: dryRun}
+		rr.rebuild, err = vol.OpenListRebuild(ctx, opts)
 		rr.res.verified = errors.Is(err, block_gc.ErrListsVerified)
 		if err != nil && !rr.res.verified {
 			return refRepairResult{}, err
@@ -237,7 +274,7 @@ func repairVolumeRefs(
 			return refRepairResult{}, errors.Wrapf(err, "walk space %s", sc.spaceID)
 		}
 	}
-	if rr.rebuild != nil {
+	if rr.rebuild != nil && !dryRun {
 		if err := rr.listUnwalkedSynthetic(ctx); err != nil {
 			return refRepairResult{}, err
 		}
@@ -252,7 +289,7 @@ func repairVolumeRefs(
 		return refRepairResult{}, errors.Wrap(err, "measure untracked blocks")
 	}
 
-	// Finish the list rebuild unless this is a dry run.
+	// Finish the list rebuild, which a dry run only counts.
 	if rr.rebuild != nil {
 		if rr.res.rebuild, err = rr.rebuild.Finish(ctx); err != nil {
 			return refRepairResult{}, errors.Wrap(err, "finish the child list rebuild")
@@ -273,6 +310,8 @@ func newDebugRefRepairCommand(upgrade *FormatUpgrade) *cli.Command {
 			"It reports the reached blocks it still owes: once none is owed, the collector settles the volume's old generation and may free older blocks. " +
 			"A block it cannot decode stays owed and is reported, and so does one whose decoded refs drop a child its stored list names. " +
 			"A rerun skips the marked lists, and a volume whose old generation has settled is only walked and never repaired. " +
+			"With --reverify it also compares each marked list with its block's content, adds a child the list lacks, and reports the marked lists it could not compare; " +
+			"with --dry-run it only counts them. " +
 			"A list that gains a child on an adopted volume makes the settle return it to unadopted, so an adoption recounts every list before anything more frees. " +
 			"Blocks stored before puts carried their child lists have none. " +
 			"Also counts plugin object-store keys by volume prefix and measures all stored blocks without a child list. " +

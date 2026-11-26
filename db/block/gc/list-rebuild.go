@@ -60,19 +60,44 @@ func rebuildable(state *LivenessState) error {
 //
 // It runs on an unadopted or an adopted Volume, but not while an adoption
 // counts, and only while the old generation is Open.
+//
+// With Reverify it also compares each marked list with its block's content,
+// as ListRebuildOptions describes.
 type ListRebuild struct {
 	// store is the Volume.
 	store Store
-	// pending are the decoded refs not yet written.
-	pending []*block.PutBatchEntry
+	// opts selects the reverify and the dry run.
+	opts ListRebuildOptions
+	// pending are the blocks not yet written.
+	pending []pendingList
 	// res counts the results.
 	res ListRebuildResult
 }
 
-// OpenListRebuild starts a list rebuild of store, refusing a Volume an
-// adoption is counting with ErrListRebuildAdopting and one whose old
-// generation is not Open with ErrListsVerified.
-func OpenListRebuild(ctx context.Context, store Store) (*ListRebuild, error) {
+// pendingList is one block Verify or Undecodable queued.
+type pendingList struct {
+	// entry holds the block's ref and decoded refs.
+	entry *block.PutBatchEntry
+	// typ names the block's decoded type, for the samples.
+	typ string
+	// undecodable reports that the walker could not decode the block, so it
+	// is only counted when its list is marked.
+	undecodable bool
+}
+
+// OpenListRebuild starts a list rebuild of store with opts, refusing a
+// Volume an adoption is counting with ErrListRebuildAdopting and one whose
+// old generation is not Open with ErrListsVerified, unless it is a dry run.
+func OpenListRebuild(ctx context.Context, store Store, opts ListRebuildOptions) (*ListRebuild, error) {
+	// A dry run compares on a Volume in any state.
+	if opts.DryRun {
+		if !opts.Reverify {
+			return nil, errors.New("a dry list rebuild only reverifies")
+		}
+		return &ListRebuild{store: store, opts: opts}, nil
+	}
+
+	// Refuse a Volume the rebuild may not write.
 	err := store.View(ctx, func(rec *Records) error {
 		state, err := rec.GetState(ctx)
 		if err != nil {
@@ -83,13 +108,35 @@ func OpenListRebuild(ctx context.Context, store Store) (*ListRebuild, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &ListRebuild{store: store}, nil
+	return &ListRebuild{store: store, opts: opts}, nil
 }
 
 // Verify records that ref's decoded refs are refs, writing its list with
 // the next batch.
 func (r *ListRebuild) Verify(ctx context.Context, ref *block.BlockRef, refs []*block.BlockRef) error {
-	r.pending = append(r.pending, &block.PutBatchEntry{Ref: ref, Refs: refs})
+	return r.VerifyAs(ctx, ref, refs, "")
+}
+
+// VerifyAs is Verify for a block decoded as the type typ names, which the
+// samples of a reverify carry.
+func (r *ListRebuild) VerifyAs(ctx context.Context, ref *block.BlockRef, refs []*block.BlockRef, typ string) error {
+	return r.queue(ctx, pendingList{entry: &block.PutBatchEntry{Ref: ref, Refs: refs}, typ: typ})
+}
+
+// Undecodable records that the walker reached ref, as the type typ names,
+// and could not decode it. A reverify counts and samples it when its list
+// is marked, and never rewrites or drops that list; without Reverify it
+// does nothing.
+func (r *ListRebuild) Undecodable(ctx context.Context, ref *block.BlockRef, typ string) error {
+	if !r.opts.Reverify {
+		return nil
+	}
+	return r.queue(ctx, pendingList{entry: &block.PutBatchEntry{Ref: ref}, typ: typ, undecodable: true})
+}
+
+// queue adds p to the next batch, flushing a full one.
+func (r *ListRebuild) queue(ctx context.Context, p pendingList) error {
+	r.pending = append(r.pending, p)
 	if len(r.pending) < listRebuildBatch {
 		return nil
 	}
@@ -100,11 +147,9 @@ func (r *ListRebuild) Verify(ctx context.Context, ref *block.BlockRef, refs []*b
 type listVerdict int
 
 const (
-	// listSkipped is a block whose list is marked already.
-	listSkipped listVerdict = iota
 	// listVerified is a block whose stored list named every child its refs
 	// name.
-	listVerified
+	listVerified listVerdict = iota
 	// listRewritten is a block whose list was missing or lacked a child.
 	listRewritten
 	// listDropped is a block whose refs lack a child its stored list names.
@@ -112,18 +157,29 @@ const (
 )
 
 // flush writes the pending lists in one transaction while no adoption
-// counts and the generation is Open, then lets a waiting writer in.
+// counts and the generation is Open, or on a dry run compares them in one
+// read snapshot, then lets a waiting writer in.
 func (r *ListRebuild) flush(ctx context.Context) error {
 	// Nothing is pending.
 	if len(r.pending) == 0 {
 		return nil
 	}
 
-	// Write each list from its refs.
+	// Compare each marked list on a dry run.
 	var res ListRebuildResult
+	if r.opts.DryRun {
+		err := r.store.View(ctx, func(rec *Records) error {
+			res = r.res.samples()
+			_, err := r.apply(ctx, rec, &res, false)
+			return err
+		})
+		return r.added(ctx, res, err)
+	}
+
+	// Write each list from its refs.
 	err := r.store.Update(ctx, func(rec *Records, _ block.StoreOps) error {
 		// Refuse a Volume an adoption is counting or the settle flipped.
-		res = ListRebuildResult{DroppedSample: r.res.DroppedSample}
+		res = r.res.samples()
 		state, err := rec.GetState(ctx)
 		if err != nil {
 			return err
@@ -133,70 +189,93 @@ func (r *ListRebuild) flush(ctx context.Context) error {
 		}
 
 		// Verify each block, then record a recount the counts owe.
-		var rewrote bool
-		for _, entry := range r.pending {
-			verdict, err := verifyOne(ctx, rec, entry)
-			if err != nil {
-				return err
-			}
-			switch verdict {
-			case listRewritten:
-				res.Rewritten++
-				rewrote = true
-				fallthrough
-			case listVerified:
-				res.Verified++
-			case listDropped:
-				res.Dropped++
-				res.DroppedSample = sample(res.DroppedSample, entry.Ref)
-			}
-		}
-		if !rewrote {
-			return nil
+		rewrote, err := r.apply(ctx, rec, &res, true)
+		if err != nil || !rewrote {
+			return err
 		}
 		return rec.noteRewrite(ctx, state)
 	})
+	return r.added(ctx, res, err)
+}
+
+// added adds a flushed batch's tally res, unless the batch failed with err,
+// and lets a waiting writer in.
+func (r *ListRebuild) added(ctx context.Context, res ListRebuildResult, err error) error {
 	if err != nil {
 		return err
 	}
-
-	// Add the batch's tally and let a waiting writer in.
-	r.res.Verified += res.Verified
-	r.res.Rewritten += res.Rewritten
-	r.res.Dropped += res.Dropped
-	r.res.DroppedSample = res.DroppedSample
+	r.res.add(res)
 	r.pending = r.pending[:0]
 	return context.Cause(ctx)
 }
 
-// verifyOne writes the list of the block entry names from its decoded refs,
-// marked, while the generation is Open: a missing list from the refs, an
-// unverified one as the union, as mergeList describes. A missing list is
-// written whether or not the Volume stores the bytes, and ends the block's
-// hole record, since the list now holds its children; the audit walk counts
-// such a block as ListedAbsent, the refill's input. A marked list is
-// skipped, and a refused one is left, on the front.
-func verifyOne(ctx context.Context, rec *Records, entry *block.PutBatchEntry) (listVerdict, error) {
-	// Skip a marked list, which leaves the front when it is marked.
-	key := BlockKey(entry.Ref)
-	value, listed, err := rec.tx.Get(ctx, rec.key(kindChildren, key))
-	if err != nil || listed && listMarked(value) {
-		return listSkipped, err
-	}
+// apply verifies each pending block in rec, counting into res, writing the
+// lists when write is set, and reports whether a list gained a child.
+func (r *ListRebuild) apply(ctx context.Context, rec *Records, res *ListRebuildResult, write bool) (bool, error) {
+	var rewrote bool
+	for _, p := range r.pending {
+		// Read the list, and compare a marked one on a reverify.
+		key := BlockKey(p.entry.Ref)
+		value, listed, err := rec.tx.Get(ctx, rec.key(kindChildren, key))
+		if err != nil {
+			return false, err
+		}
+		marked := listed && listMarked(value)
+		var lacking bool
+		if marked && r.opts.Reverify {
+			if lacking, err = res.compareMarked(p, value); err != nil {
+				return false, err
+			}
+		}
 
-	// Write a missing list from the refs, or merge an unverified one.
+		// Write nothing for an undecodable block, on a dry run, or for a
+		// marked list without a reverify or that names every child.
+		if p.undecodable || !write || marked && !lacking {
+			continue
+		}
+		verdict, err := verifyOne(ctx, rec, p.entry, value, listed)
+		if err != nil {
+			return false, err
+		}
+		switch verdict {
+		case listRewritten:
+			res.Rewritten++
+			rewrote = true
+			fallthrough
+		case listVerified:
+			res.Verified++
+		case listDropped:
+			res.Dropped++
+			res.DroppedSample = sample(res.DroppedSample, p.entry.Ref)
+		}
+	}
+	return rewrote, nil
+}
+
+// verifyOne writes the list of the block entry names from its decoded refs,
+// marked, while the generation is Open, given its list value and whether it
+// is listed: a missing list from the refs, a listed one, unverified or a
+// marked one a reverify compares, as the union, as mergeList describes. A
+// missing list is written whether or not the Volume stores the bytes, and
+// ends the block's hole record, since the list now holds its children; the
+// audit walk counts such a block as ListedAbsent, the refill's input. A
+// refused list is left as it was, an unverified one on the front.
+func verifyOne(ctx context.Context, rec *Records, entry *block.PutBatchEntry, value []byte, listed bool) (listVerdict, error) {
+	// Write a missing list from the refs, or merge a listed one.
+	key := BlockKey(entry.Ref)
 	var packed []byte
 	verdict := listRewritten
 	if !listed {
 		packed = EncodeChildren(entry.Refs)
 		if err := rec.tx.Set(ctx, rec.key(kindChildren, key), markList(packed)); err != nil {
-			return listSkipped, err
+			return listVerified, err
 		}
 		if err := rec.tx.Delete(ctx, rec.key(kindHole, key)); err != nil {
-			return listSkipped, err
+			return listVerified, err
 		}
 	} else {
 		var gained, dropped bool
+		var err error
 		packed, gained, dropped, err = rec.mergeList(ctx, key, value, entry.Refs, true)
 		if err != nil || dropped {
 			return listDropped, err

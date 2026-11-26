@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"maps"
+	"reflect"
 	"slices"
 	"strings"
 
@@ -51,6 +52,8 @@ type refRepairResult struct {
 	// synthetic is the number of blocks listed with no children because the
 	// synthetic set names them, as refRepair.synthetic describes.
 	synthetic uint64
+	// reverify reports that the run compared the marked lists too.
+	reverify bool
 	// undecodable is the number of blocks that failed to decode as their type.
 	// A block whose type holds no refs is only checked for presence.
 	undecodable uint64
@@ -58,8 +61,8 @@ type refRepairResult struct {
 	lacking uint64
 	// edges is the number of children those lists name.
 	edges uint64
-	// rebuild is what the list rebuild verified and wrote, empty on a dry run
-	// and on a volume whose old generation had left Open.
+	// rebuild is what the list rebuild verified and wrote, or on a dry run
+	// with a reverify compared, empty on another dry run and on a volume whose old generation had left Open.
 	rebuild block_gc.ListRebuildResult
 	// verified reports that the volume's old generation had left Open before
 	// the run, so it rebuilt nothing.
@@ -101,7 +104,8 @@ type refRepair struct {
 	// It proves nothing about them: it lets a rehearsal reach the flip on a
 	// copy whose unresolved blocks hold it.
 	synthetic map[string]bool
-	// rebuild verifies the decoded blocks' lists, nil on a dry run.
+	// rebuild verifies the decoded blocks' lists, nil on a dry run without a
+	// reverify.
 	rebuild *block_gc.ListRebuild
 	// res counts the findings.
 	res refRepairResult
@@ -361,10 +365,15 @@ func (r *refRepair) readRootBlock(ctx context.Context, ref *block.BlockRef) ([]b
 	return nil, false, nil
 }
 
-// undecodableRoot counts a root block that does not decode as its root's type.
-func (r *refRepair) undecodableRoot(ref *block.BlockRef, err error) {
+// undecodableRoot counts a root block that does not decode as typ, its
+// root's type, and hands it to the reverify.
+func (r *refRepair) undecodableRoot(ctx context.Context, ref *block.BlockRef, typ string, err error) error {
 	r.le.WithError(err).Warnf("cannot decode root block %s", ref.MarshalString())
 	r.res.undecodable++
+	if r.rebuild == nil {
+		return nil
+	}
+	return r.rebuild.Undecodable(ctx, ref, typ)
 }
 
 // heldRoots reads the HeldRoots chain at ref, verifying each block's list,
@@ -378,10 +387,9 @@ func (r *refRepair) heldRoots(ctx context.Context, ref *block.BlockRef) ([]*bloc
 		}
 		msg := &space_world.HeldRoots{}
 		if err := msg.UnmarshalVT(data); err != nil {
-			r.undecodableRoot(ref, err)
-			return roots, nil
+			return roots, r.undecodableRoot(ctx, ref, typeName(msg), err)
 		}
-		if err := r.visitDecoded(ctx, ref, appendRef(msg.GetRoots(), msg.GetPrev())); err != nil {
+		if err := r.visitDecoded(ctx, ref, appendRef(msg.GetRoots(), msg.GetPrev()), typeName(msg)); err != nil {
 			return nil, err
 		}
 		roots = append(roots, msg.GetRoots()...)
@@ -400,14 +408,13 @@ func (r *refRepair) retainedRoots(ctx context.Context, ref *block.BlockRef) ([]*
 	}
 	msg := &space_world.RetainedRootSet{}
 	if err := msg.UnmarshalVT(data); err != nil {
-		r.undecodableRoot(ref, err)
-		return nil, nil
+		return nil, r.undecodableRoot(ctx, ref, typeName(msg), err)
 	}
 	roots := make([]*block.BlockRef, 0, len(msg.GetRoots()))
 	for _, root := range msg.GetRoots() {
 		roots = appendRef(roots, root.GetRootRef())
 	}
-	return roots, r.visitDecoded(ctx, ref, roots)
+	return roots, r.visitDecoded(ctx, ref, roots, typeName(msg))
 }
 
 // spanRoots reads the ReplaySpan chain at ref, raw protobuf blocks, verifying
@@ -421,11 +428,10 @@ func (r *refRepair) spanRoots(ctx context.Context, ref *block.BlockRef) ([]*bloc
 		}
 		span := &space_world.ReplaySpan{}
 		if err := span.UnmarshalVT(data); err != nil {
-			r.undecodableRoot(ref, err)
-			return worlds, payloads, nil
+			return worlds, payloads, r.undecodableRoot(ctx, ref, typeName(span), err)
 		}
 		refs := appendRef(slices.Concat(span.GetWorlds(), span.GetPayloads()), span.GetPrev())
-		if err := r.visitDecoded(ctx, ref, refs); err != nil {
+		if err := r.visitDecoded(ctx, ref, refs, typeName(span)); err != nil {
 			return nil, nil, err
 		}
 		worlds = append(worlds, span.GetWorlds()...)
@@ -448,7 +454,7 @@ func (r *refRepair) visit(ctx context.Context, batch []refwalk.Visit) error {
 	for _, rd := range batch {
 		// List a synthetic block no read decodes with no children.
 		if (!rd.Found || rd.DecodeErr != nil) && r.listSynthetic(rd.Node.Ref) {
-			if err := r.verify(ctx, rd.Node.Ref, nil); err != nil {
+			if err := r.verify(ctx, rd.Node.Ref, nil, ""); err != nil {
 				return err
 			}
 			continue
@@ -463,18 +469,23 @@ func (r *refRepair) visit(ctx context.Context, batch []refwalk.Visit) error {
 			r.le.WithError(rd.DecodeErr).Warnf("cannot decode %s", rd.Node.Ref.MarshalString())
 			r.countBlock()
 			r.res.undecodable++
+			if r.rebuild != nil {
+				if err := r.rebuild.Undecodable(ctx, rd.Node.Ref, nodeType(rd.Node)); err != nil {
+					return err
+				}
+			}
 			continue
 		}
 		if rd.Leaf {
 			r.countBlock()
-			if err := r.verify(ctx, rd.Node.Ref, nil); err != nil {
+			if err := r.verify(ctx, rd.Node.Ref, nil, ""); err != nil {
 				return err
 			}
 			continue
 		}
 
 		// Count and verify the decoded block's list.
-		if err := r.visitDecoded(ctx, rd.Node.Ref, rd.Refs); err != nil {
+		if err := r.visitDecoded(ctx, rd.Node.Ref, rd.Refs, nodeType(rd.Node)); err != nil {
 			return err
 		}
 	}
@@ -507,16 +518,16 @@ func (r *refRepair) listUnwalkedSynthetic(ctx context.Context) error {
 			return err
 		}
 		r.listSynthetic(ref)
-		if err := r.verify(ctx, ref, nil); err != nil {
+		if err := r.verify(ctx, ref, nil, ""); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-// visitDecoded counts a decoded block, and its list when the volume lacks
-// one, and verifies the list.
-func (r *refRepair) visitDecoded(ctx context.Context, ref *block.BlockRef, refs []*block.BlockRef) error {
+// visitDecoded counts a block decoded as typ, and its list when the volume
+// lacks one, and verifies the list.
+func (r *refRepair) visitDecoded(ctx context.Context, ref *block.BlockRef, refs []*block.BlockRef, typ string) error {
 	// Count the block, and a block only the peer read resolved.
 	r.countBlock()
 	if r.peer != nil {
@@ -538,7 +549,7 @@ func (r *refRepair) visitDecoded(ctx context.Context, ref *block.BlockRef, refs 
 		r.res.lacking++
 		r.res.edges += uint64(len(refs))
 	}
-	return r.verify(ctx, ref, refs)
+	return r.verify(ctx, ref, refs, typ)
 }
 
 // countBlock counts one walked block that the volume stores.
@@ -549,13 +560,26 @@ func (r *refRepair) countBlock() {
 	}
 }
 
-// verify hands a decoded block's refs to the list rebuild, unless this is a
-// dry run.
-func (r *refRepair) verify(ctx context.Context, ref *block.BlockRef, refs []*block.BlockRef) error {
+// verify hands the refs of a block decoded as typ to the list rebuild,
+// unless this is a dry run without a reverify.
+func (r *refRepair) verify(ctx context.Context, ref *block.BlockRef, refs []*block.BlockRef, typ string) error {
 	if r.rebuild == nil {
 		return nil
 	}
-	return r.rebuild.Verify(ctx, ref, refs)
+	return r.rebuild.VerifyAs(ctx, ref, refs, typ)
+}
+
+// nodeType names the type the walker decodes n as, empty when it has none.
+func nodeType(n refwalk.Node) string {
+	if n.Ctor == nil {
+		return ""
+	}
+	return typeName(n.Ctor())
+}
+
+// typeName names the Go type of a decoded block, for the reverify's samples.
+func typeName(blk any) string {
+	return reflect.TypeOf(blk).String()
 }
 
 // close releases the walker and keeps what it could not type.

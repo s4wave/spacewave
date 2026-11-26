@@ -4470,7 +4470,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		// recount. The hold of Y left Y on the front.
 		rebuild := func(entries ...*block.PutBatchEntry) block_gc.ListRebuildResult {
 			t.Helper()
-			rb, err := v.OpenListRebuild(ctx)
+			rb, err := v.OpenListRebuild(ctx, block_gc.ListRebuildOptions{})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4525,7 +4525,7 @@ func TestLivenessAdversarial(t *testing.T) {
 
 		// A rebuild of a Volume whose old generation settled is refused, since
 		// a rewrite then would leave the counts short with no flip to come.
-		if _, err := v.OpenListRebuild(ctx); !errors.Is(err, block_gc.ErrListsVerified) {
+		if _, err := v.OpenListRebuild(ctx, block_gc.ListRebuildOptions{}); !errors.Is(err, block_gc.ErrListsVerified) {
 			t.Fatalf("rebuild of a settled Volume err %v, want ErrListsVerified", err)
 		}
 	})
@@ -4622,7 +4622,7 @@ func TestLivenessAdversarial(t *testing.T) {
 			t.Fatalf("collect while Open = %+v, want G parked", res)
 		}
 		requireStored(t, v, tr, true, "R", "X", "G")
-		rb, err := v.OpenListRebuild(ctx)
+		rb, err := v.OpenListRebuild(ctx, block_gc.ListRebuildOptions{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -4690,7 +4690,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		if err := v.SetBucketRoots(ctx, "b", tr.entries("C2", "F"), c2root); err != nil {
 			t.Fatal(err)
 		}
-		rb, err := v.OpenListRebuild(ctx)
+		rb, err := v.OpenListRebuild(ctx, block_gc.ListRebuildOptions{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -4825,7 +4825,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		if res, err := v.Adopt(ctx); err != nil || res.Queued != 4 {
 			t.Fatalf("adopt = %+v err %v, want C, F, G and H queued", res, err)
 		}
-		rb, err := v.OpenListRebuild(ctx)
+		rb, err := v.OpenListRebuild(ctx, block_gc.ListRebuildOptions{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -4922,7 +4922,7 @@ func TestLivenessAdversarial(t *testing.T) {
 			t.Fatalf("the put of C left %d recount records, want none", n)
 		}
 		verify := func(names ...string) {
-			rb, err := v.OpenListRebuild(ctx)
+			rb, err := v.OpenListRebuild(ctx, block_gc.ListRebuildOptions{})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5588,7 +5588,7 @@ func TestLivenessSettle(t *testing.T) {
 	}
 	verify := func(t *testing.T, v *Volume, tr testTree, names ...string) block_gc.ListRebuildResult {
 		t.Helper()
-		rb, err := v.OpenListRebuild(t.Context())
+		rb, err := v.OpenListRebuild(t.Context(), block_gc.ListRebuildOptions{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -7707,7 +7707,7 @@ func walkFront(t *testing.T, v *Volume, store kvtx.Store, tr testTree) block_gc.
 		if len(keys) == 0 {
 			return total
 		}
-		rb, err := v.OpenListRebuild(t.Context())
+		rb, err := v.OpenListRebuild(t.Context(), block_gc.ListRebuildOptions{})
 		if err != nil {
 			t.Fatal(err)
 		}
