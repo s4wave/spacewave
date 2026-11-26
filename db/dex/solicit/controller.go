@@ -592,6 +592,22 @@ func (c *Controller) askPeers(ctx context.Context, f peerBlockFanout, exclude *p
 	return found, blocks, err
 }
 
+// hasOpenSession reports whether any peer has an open session now.
+func (c *Controller) hasOpenSession() bool {
+	var open bool
+	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		for _, peerSessions := range c.sessions {
+			for _, sess := range peerSessions {
+				if !sess.closed.Load() {
+					open = true
+					return
+				}
+			}
+		}
+	})
+	return open
+}
+
 // waitSessions waits until the solicitation has settled and returns the
 // session pickSession picks with each peer other than the peer of exclude. A peer the
 // solicitation is still negotiating with may hold the block, so a read must

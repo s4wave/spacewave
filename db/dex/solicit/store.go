@@ -163,6 +163,12 @@ func (s *Store) fetch(ctx context.Context, ref *block.BlockRef, wantPeer bool, l
 	return found, nil
 }
 
+// HasPeerSession reports whether a peer session is open now, so a read that
+// must not wait for a peer can skip asking when none is.
+func (s *Store) HasPeerSession() bool {
+	return s.controller.hasOpenSession()
+}
+
 // GetBlockExists checks whether any connected peer has the block. It does not
 // wait for a peer to connect.
 func (s *Store) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {

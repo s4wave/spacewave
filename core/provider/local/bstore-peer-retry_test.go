@@ -124,3 +124,48 @@ func TestPeerReadBoundIsNotCallerDeadline(t *testing.T) {
 		t.Fatalf("stalled: %v does not name the block", err)
 	}
 }
+
+// presentPeers is flakyPeers reporting whether a peer session is open.
+type presentPeers struct {
+	*flakyPeers
+	open bool
+}
+
+// HasPeerSession reports open.
+func (p *presentPeers) HasPeerSession() bool { return p.open }
+
+// TestRacingPeerReadReportsNoMiss checks that a peer read racing a paused
+// backend counts no miss, since the backend has not answered, and asks no peer
+// while none is connected, while a chain's read counts its miss.
+func TestRacingPeerReadReportsNoMiss(t *testing.T) {
+	want := &block.StoredBlock{Data: []byte("served")}
+	peers := &presentPeers{flakyPeers: &flakyPeers{blk: want}}
+	p := &peerMissLog{StoreOps: peers, le: logrus.NewEntry(logrus.New()), misses: &peerMisses{}}
+	ref := peerReadRef(t)
+	racing := context.WithValue(context.Background(), racingKey{}, true)
+
+	// With no peer connected the racing read misses without asking.
+	if blk, err := p.GetStoredBlock(racing, ref); blk != nil || err != nil {
+		t.Fatalf("racing read with no peers: %v %v", blk, err)
+	}
+	if n := peers.reads.Load(); n != 0 {
+		t.Fatalf("racing read with no peers asked %d times", n)
+	}
+
+	// With a peer connected it asks, and still counts no miss.
+	peers.open = true
+	if blk, err := p.GetStoredBlock(racing, ref); blk != want || err != nil {
+		t.Fatalf("racing read: %v %v", blk, err)
+	}
+	if p.misses.n != 0 {
+		t.Fatalf("racing reads counted %d misses", p.misses.n)
+	}
+
+	// A chain's read counts its miss.
+	if _, err := p.GetStoredBlock(context.Background(), ref); err != nil {
+		t.Fatal(err)
+	}
+	if p.misses.n != 0 || p.misses.last.IsZero() {
+		t.Fatalf("chain read: %d misses pending, reported %v", p.misses.n, p.misses.last)
+	}
+}

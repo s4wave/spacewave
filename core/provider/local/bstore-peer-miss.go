@@ -57,11 +57,15 @@ func peerReadLimit() time.Duration {
 // peers, so a report per block would log millions of lines.
 const peerMissReport = time.Minute
 
-// peerMissLog is the peer source of a placed store's reads. A read reaches it
-// only after the local store, the backend and the read fallback all missed, so
-// it reports the misses, at most once per peerMissReport with their count and
-// the latest ref, before asking peers, and gives the peers peerReadWait to
-// serve it. It serves reads only and never asks peers about existence.
+// peerMissLog is the peer source of a placed store's reads. A chain's read
+// reaches it only after the local store, the backend and the read fallback all
+// missed, so it reports the misses, at most once per peerMissReport with their
+// count and the latest ref, before asking peers, and gives the peers
+// peerReadWait to serve it. A read racing a paused backend, as racingBackend
+// reports, reaches it before the backend answered: it reports nothing, and
+// asks no peer while none is connected, since the chain asks the peers again
+// once the backend missed. It serves reads only and never asks peers about
+// existence.
 type peerMissLog struct {
 	// StoreOps is the peer store.
 	block.StoreOps
@@ -171,10 +175,35 @@ func (p *peerMissLog) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte
 
 // GetStoredBlock logs the miss and reads the block and its refs from peers,
 // asking again after a failure until peerReadLimit, as SetPeerReadWait
-// describes.
+// describes. A read racing a paused backend logs nothing and misses at once
+// with no peer connected, as peerMissLog describes.
 func (p *peerMissLog) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
-	p.logMiss(ref)
+	switch {
+	case !racingBackend(ctx):
+		p.logMiss(ref)
+	case !peersConnected(p.StoreOps):
+		return nil, nil
+	}
 	return readPeers(ctx, p.le, p.StoreOps, ref, p.counts, p.unserved)
+}
+
+// peerPresence is a peer store that reports whether a peer is connected.
+type peerPresence interface {
+	// HasPeerSession reports whether a peer session is open now.
+	HasPeerSession() bool
+}
+
+// peersConnected reports whether store has a peer to ask now. returningPeers
+// has none while P2P sync restarts, and a store that cannot tell may have one.
+func peersConnected(store block.StoreOps) bool {
+	switch s := store.(type) {
+	case *returningPeers:
+		return false
+	case peerPresence:
+		return s.HasPeerSession()
+	default:
+		return true
+	}
 }
 
 // readPeers asks the peers in store for ref until one answers, or
@@ -186,7 +215,14 @@ func (p *peerMissLog) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (
 // block.ErrUnavailable at once, asks no peer and counts as remembered instead.
 // A failed exchange, a missing session or a timeout in any attempt leaves the
 // ref unremembered, so a blip to a peer costs no more than the read it failed.
-func readPeers(ctx context.Context, le *logrus.Entry, store block.StoreOps, ref *block.BlockRef, counts *peerReadCounts, unserved *unservedRefs) (blk *block.StoredBlock, err error) {
+func readPeers(
+	ctx context.Context,
+	le *logrus.Entry,
+	store block.StoreOps,
+	ref *block.BlockRef,
+	counts *peerReadCounts,
+	unserved *unservedRefs,
+) (blk *block.StoredBlock, err error) {
 	// Answer a ref the peers recently refused from memory.
 	key := ref.MarshalString()
 	if unserved.holds(key, time.Now()) {
