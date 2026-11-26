@@ -1,12 +1,16 @@
 package block_gc
 
 import (
+	"bytes"
 	"context"
+	"encoding/binary"
 	"maps"
+	"math"
 	"slices"
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 )
 
@@ -218,11 +222,60 @@ type Collector struct {
 	// read, packed end to end, and the end of each, reused across slices.
 	frontKeys []byte
 	frontEnds []int
+	// queueFrom is the free queue position from which the free's scan
+	// resumes, nil for the head, and queueBehind the entries that the
+	// collector's committed transactions wrote before it since, newest last.
+	// The free takes the entries behind by key, newest first, and scans
+	// from queueFrom only past entries it has not read, so each deleted
+	// entry, which the store steps over until a merge drops it, costs one
+	// step of one scan rather than one of every scan.
+	//
+	// Invariant: every queue entry the free has not taken is at or after
+	// queueFrom or in queueBehind. Only these write a queue entry, each
+	// through Records.enqueue: the netting, including a free's, and the
+	// requeue, all in the collector's own transactions,
+	// which update hands to noteQueued once they commit; and the adoption,
+	// which runs outside the collector but only while the Volume is not
+	// adopted, and stamps a new AdoptAtUnixMilli, which queueAdoptAt
+	// compares. A Land only deletes entries. A transaction that returns an
+	// error, which may still have committed, forgets the position, so the
+	// next scan starts at the head. A restart starts at the head. A read
+	// that reaches the queue's end moves the position to queueEnd, after
+	// every entry, so each entry written later joins queueBehind.
+	//
+	// The position decides only where the free looks, never what it frees:
+	// each entry it takes must still be on the queue in the free's
+	// transaction, and freeBlock reads its count and ripe sequence there.
+	// An entry the position missed would wait, not go: the flip reads the
+	// queue from a snapshot of its own, as flip describes.
+	queueFrom    []byte
+	queueBehind  []queuedBlock
+	queueAdoptAt int64
+	// requeueFrom is the parked key position at which the requeue resumes,
+	// and requeued reports that it reached the parked keys' end since the
+	// generation left Open. Only a free while Open parks, so no parked key
+	// appears until the Volume is Open again, which resets both.
+	requeueFrom []byte
+	requeued    bool
 	// lastGen is the generation the last settle read. The settle forgets
 	// its positions when it reads the generation leave Sweeping, as
 	// restartSettle describes.
 	lastGen Generation
+	// res is the running pass's result, for update's accounting.
+	res *CollectResult
 }
+
+// queueBehindMax bounds Collector.queueBehind. When more entries are
+// written behind the scan's position, the position moves back to the
+// earliest of them, and the next scan reads forward from there.
+const queueBehindMax = 1 << 16
+
+// queueEnd is a free queue position after every entry: a ripe sequence of
+// all ones, which no up sequence reaches. The free moves its position there
+// once a read reaches the queue's end, so every entry written later sorts
+// behind it and reaches queueBehind, and the next read finds nothing to
+// step over.
+var queueEnd = binary.BigEndian.AppendUint64(nil, math.MaxUint64)
 
 // pace scales a slice's budgets by how long the slices before it took: one
 // longer than sliceTarget halves the share of the base budgets the next
@@ -249,18 +302,47 @@ func (p *pace) observe(d time.Duration) {
 // them would hold the pace at its smallest share on a store whose commit
 // alone takes longer than sliceTarget. The store may run fn more than once;
 // the last run is the one it commits.
+//
+// It notes the queue entries the committed run wrote, or forgets the free
+// queue's position when the store returns an error, as Collector.queueFrom
+// describes, and adds the slice and the store's share of its time to the
+// pass's result.
 func (c *Collector) update(ctx context.Context, fn func(rec *Records, blocks block.StoreOps) error) error {
+	return c.updateThen(ctx, fn, nil)
+}
+
+// updateThen runs fn as update does, and calls then, unless nil, once the
+// store committed, before it notes the run's queue entries: a free moves
+// its position there, so an entry the slice queued behind the new position
+// lands in queueBehind.
+func (c *Collector) updateThen(ctx context.Context, fn func(rec *Records, blocks block.StoreOps) error, then func()) error {
 	// Time each run of fn, and pace by the last one once the store returns.
 	var took time.Duration
-	ran := false
+	var last *Records
+	begin := c.opts.Now()
 	err := c.store.Update(ctx, func(rec *Records, blocks block.StoreOps) error {
 		start := c.opts.Now()
 		err := fn(rec, blocks)
-		took, ran = c.opts.Now().Sub(start), true
+		took, last = c.opts.Now().Sub(start), rec
 		return err
 	})
-	if ran {
+	if last != nil {
 		c.pace.observe(took)
+	}
+	if res := c.res; res != nil {
+		res.Slices++
+		res.StoreTime += c.opts.Now().Sub(begin) - took
+	}
+
+	// Learn where the committed run queued blocks.
+	switch {
+	case err != nil:
+		c.forgetQueue()
+	case last != nil:
+		if then != nil {
+			then()
+		}
+		c.noteQueued(last.queued)
 	}
 	return err
 }
@@ -319,7 +401,10 @@ func (c *Collector) Collect(ctx context.Context) (res CollectResult, err error) 
 	start := c.opts.Now()
 	deadline := start.Add(c.opts.Budget)
 	past := func() bool { return c.opts.Now().After(deadline) }
-	defer func() { res.Duration = c.opts.Now().Sub(start) }()
+	c.res = &res
+	defer func() {
+		res.Duration, res.PaceShift, c.res = c.opts.Now().Sub(start), c.pace.shift, nil
+	}()
 
 	// Release the roots of the lapsed leases.
 	_, err = eachSlice(ctx, c.update, "", nil, func(rec *Records, blocks block.StoreOps, from string) (string, bool, error) {
@@ -373,22 +458,24 @@ func (c *Collector) netStep(ctx context.Context, res *CollectResult, past func()
 // blocks never wait behind a front scan or a sweep. A flip's parked blocks
 // requeue in the next pass, which the flip's result asks for at once.
 func (c *Collector) freeStep(ctx context.Context, res *CollectResult, past func() bool) (bool, bool, error) {
-	// Requeue the parked blocks once the generation flipped.
+	// Requeue the parked blocks once the generation flipped, resuming where
+	// the last requeue stopped, until one reaches the end.
 	defer c.phase(PhaseSweep)()
-	more, err := eachSlice(ctx, c.update, []byte(nil), past, func(rec *Records, _ block.StoreOps, from []byte) ([]byte, bool, error) {
-		return c.requeueSlice(ctx, rec, res, from)
-	})
-	if err != nil || more {
-		return false, more, err
+	if !c.requeued {
+		var reached bool
+		more, err := resumeSlices(ctx, c.update, &c.requeueFrom, past, func(rec *Records, _ block.StoreOps, from []byte) ([]byte, bool, error) {
+			next, more, end, err := c.requeueSlice(ctx, rec, res, from)
+			reached = end
+			return next, more, err
+		})
+		if err != nil || more {
+			return false, more, err
+		}
+		c.requeued = reached
 	}
 
 	// Free the queued blocks, noting whether any free gave more work.
-	again := false
-	more, err = eachSlice(ctx, c.update, []byte(nil), past, func(rec *Records, blocks block.StoreOps, from []byte) ([]byte, bool, error) {
-		next, full, gave, err := c.freeSlice(ctx, rec, blocks, res, from)
-		again = again || gave
-		return next, full, err
-	})
+	again, more, err := c.free(ctx, res, past)
 	if err != nil || more || again {
 		return again, more, err
 	}
@@ -396,6 +483,194 @@ func (c *Collector) freeStep(ctx context.Context, res *CollectResult, past func(
 	// Run the settle's steps, which while Open delete nothing.
 	more, err = c.settle(ctx, past, res)
 	return false, more, err
+}
+
+// free frees the ripe queued blocks in slices, each proposed by a scan in a
+// read snapshot and taken in one write transaction, until no ripe block is
+// left, ctx ends, or past reports true between two slices. It reports
+// whether a free took a child to zero or started a paged release, and
+// whether it stopped at past with work left.
+//
+// Cost: per slice, one read snapshot that reads the entries behind the
+// position from memory and the queue's entries from queueFrom up to the
+// slice's frees and the first not yet ripe, stepping over the entries
+// deleted since the last scan passed there; and one write transaction of
+// point reads and writes, one queue read per entry and what freeBlock
+// does. The writer is held only for the write transaction, whose work the
+// pace bounds, so no read under it grows with the queue's deleted entries.
+// A read that proposes nothing still moves the position, to the first
+// unripe entry or past the queue's end, so an idle pass steps over no
+// deleted entry: it reads at most the one unripe entry it stopped at.
+func (c *Collector) free(ctx context.Context, res *CollectResult, past func() bool) (bool, bool, error) {
+	again := false
+	for {
+		// Find the ripe entries.
+		start := c.opts.Now()
+		scan, err := c.freeCandidates(ctx, res)
+		res.ScanTime += c.opts.Now().Sub(start)
+		if err != nil {
+			c.forgetQueue()
+			return again, false, err
+		}
+
+		// With nothing ripe, move the position to where the read stopped:
+		// no transaction ran since the snapshot, so it holds every entry
+		// before that point.
+		if len(scan.cands) == 0 {
+			c.advanceQueue(scan, 0)
+			return again, false, nil
+		}
+
+		// Take them, and once the slice commits move the position past what
+		// it took.
+		var took, done int
+		var gave bool
+		err = c.updateThen(ctx, func(rec *Records, blocks block.StoreOps) error {
+			var err error
+			took, done, gave, err = c.freeSlice(ctx, rec, blocks, res, scan.cands)
+			return err
+		}, func() { c.advanceQueue(scan, took) })
+		if err != nil {
+			return again, false, err
+		}
+		again = again || gave
+		if took == 0 && done == 0 {
+			return again, false, nil
+		}
+		if past() {
+			return again, true, nil
+		}
+		if err := context.Cause(ctx); err != nil {
+			return again, false, err
+		}
+	}
+}
+
+// freeScan is the entries a scan proposed to one free slice.
+type freeScan struct {
+	// cands are the entries, the first behind of them taken from
+	// queueBehind and the rest read from queueFrom on.
+	cands  []queuedBlock
+	behind int
+	// end is where the next read starts once the slice took every
+	// candidate: the first entry not yet ripe, or the last entry read when
+	// the slice filled, or queueEnd when the read reached the queue's end;
+	// nil when no read ran.
+	end []byte
+}
+
+// freeCandidates proposes up to a slice of free queue entries ripe at the
+// up cursor, one while a writer waits: the entries behind the scan's
+// position newest first, which it pops from queueBehind, then the entries
+// it reads from queueFrom on in a read snapshot. It proposes none when the
+// free may not run, as freeSlice decides. A new adoption mark forgets the
+// position.
+func (c *Collector) freeCandidates(ctx context.Context, res *CollectResult) (freeScan, error) {
+	var scan freeScan
+	err := c.store.View(ctx, func(rec *Records) error {
+		// Propose nothing when the free may not run.
+		state, err := rec.GetState(ctx)
+		if err != nil || !c.freeable(state) {
+			return err
+		}
+		if owed, err := rec.recountOwed(ctx); err != nil || owed {
+			return err
+		}
+		if at := state.GetAdoptAtUnixMilli(); at != c.queueAdoptAt {
+			c.forgetQueue()
+			c.queueAdoptAt = at
+		}
+		if state.GetGeneration() == Generation_GENERATION_OPEN {
+			c.requeueFrom, c.requeued = nil, false
+		}
+
+		// Take the ripe entries behind the position, newest first.
+		cursor, frees := state.GetUpCursor(), c.share(sliceFrees)
+		if c.waiting() {
+			frees = 1
+		}
+		var kept []queuedBlock
+		for i := len(c.queueBehind) - 1; i >= 0; i-- {
+			q := c.queueBehind[i]
+			if q.ripe <= cursor && len(scan.cands) < frees {
+				scan.cands = append(scan.cands, q)
+				continue
+			}
+			kept = append(kept, q)
+		}
+		slices.Reverse(kept)
+		c.queueBehind, scan.behind = kept, len(scan.cands)
+		if len(scan.cands) == frees {
+			return nil
+		}
+
+		// Read on from the position, noting a read that reaches the end.
+		stopped := false
+		err = rec.scanQueue(ctx, c.queueFrom, func(seq uint64, ref *block.BlockRef) (bool, error) {
+			// Note how far the read got, and stop at an unripe entry or a
+			// full slice.
+			q := queuedBlock{ripe: seq, key: BlockKey(ref)}
+			scan.end = q.pos()
+			if seq > cursor {
+				res.Kept++
+				stopped = true
+				return false, nil
+			}
+			scan.cands = append(scan.cands, q)
+			stopped = len(scan.cands) == frees
+			return !stopped, nil
+		})
+		if err == nil && !stopped {
+			scan.end = queueEnd
+		}
+		return err
+	})
+	return scan, err
+}
+
+// advanceQueue moves the free queue's position past what a committed free
+// slice took of scan: took of its entries, a prefix. It returns the entries
+// from behind the position that the slice left to queueBehind, and moves
+// queueFrom forward to the first read entry the slice left, or to the
+// scan's end when it took them all.
+func (c *Collector) advanceQueue(scan freeScan, took int) {
+	switch {
+	case took < scan.behind:
+		left := slices.Clone(scan.cands[took:scan.behind])
+		slices.Reverse(left)
+		c.queueBehind = append(c.queueBehind, left...)
+	case took < len(scan.cands):
+		c.queueFrom = scan.cands[took].pos()
+	case scan.end != nil:
+		c.queueFrom = scan.end
+	}
+}
+
+// noteQueued records the queue entries a committed transaction wrote that
+// sort before the free's position, so the free takes them by key, as
+// Collector.queueFrom describes. Past queueBehindMax it moves the position
+// back to the earliest entry behind it instead.
+func (c *Collector) noteQueued(queued []queuedBlock) {
+	for _, q := range queued {
+		if c.queueFrom != nil && bytes.Compare(q.pos(), c.queueFrom) < 0 {
+			c.queueBehind = append(c.queueBehind, q)
+		}
+	}
+	if len(c.queueBehind) <= queueBehindMax {
+		return
+	}
+	for _, q := range c.queueBehind {
+		if pos := q.pos(); bytes.Compare(pos, c.queueFrom) < 0 {
+			c.queueFrom = pos
+		}
+	}
+	c.queueBehind = nil
+}
+
+// forgetQueue returns the free's scan to the queue's head, which holds
+// every entry.
+func (c *Collector) forgetQueue() {
+	c.queueFrom, c.queueBehind = nil, nil
 }
 
 // eachSlice runs slice in one transaction of update at a time, the first at
@@ -678,112 +953,100 @@ func (c *Collector) netLogs(ctx context.Context, n *netting, budget int) (bool, 
 	return full, err
 }
 
-// freeSlice frees up to sliceFrees ripe blocks at zero in one transaction,
-// in ripe order, stopping at the first block the up cursor has not reached
-// and at the next block once a writer waits. It frees nothing while a paged
-// release is in progress or the Volume is not adopted, and frees and parks
-// nothing while a recount is owed: an unpark of a released park gave its
-// children no ups, so a zero count may miss a holder, and a park then would
-// hide a live block. The flip reads freeable alone, so it still reaches the
-// unadopt that runs the recount. A free deletes the
+// freeSlice frees the blocks of cands in order, in one transaction, while
+// the Volume is adopted, Grace has passed since the adoption, no paged
+// release is in progress and no recount is owed: an unpark of a released
+// park gave its children no ups, so a zero count may miss a holder, and a
+// park then would hide a live block. The flip reads freeable alone, so it
+// still reaches the unadopt that runs the recount. A free deletes the
 // block's bytes, child list, queue entry, proof and count record, and gives
-// each child its down, as freeing describes; the slice stops after a free
-// that starts a paged release. It reports whether the slice was full, and
-// whether a free took a child to zero or started a paged release.
+// each child its down, as freeing describes.
 //
-// It starts at the queue position from and returns the position past the
-// entries it deleted, where the next slice of the pass resumes, so a long
-// run of frees reads each entry once rather than walking the run's deleted
-// entries again each slice. The resume lasts only the pass's free step:
-// within it, nothing adds a queue entry before the resume except a free's
-// down, which queues a child at the up log's end. The free step reports
-// that, and the pass runs another from the start. A writer's Land only
-// deletes queue entries and writes log pages, and netting runs before the
-// free step, never between its slices.
-func (c *Collector) freeSlice(ctx context.Context, rec *Records, blocks block.StoreOps, res *CollectResult, from []byte) ([]byte, bool, bool, error) {
+// cands are queue entries a scan proposed from a read snapshot. Each counts
+// only while its entry is still on the queue in this transaction, since a
+// Land that names a queued block deletes its entry; one that is gone the
+// slice passes over. A child the slice's frees bring to zero is queued,
+// never freed in the same slice: the commit between its zero and its free
+// lets a Land that names it dequeue it, as a put that names a block it saw
+// stored relies on, and the free's tail check reads such a Land's record.
+//
+// It frees up to a slice of blocks, one while a writer waits, and stops
+// after a free that starts a paged release or one whose list does not fit
+// the moves left. It reports how many of cands it took, a prefix, how many
+// blocks it freed or parked, and whether a free took a child to zero or
+// started a paged release.
+func (c *Collector) freeSlice(ctx context.Context, rec *Records, blocks block.StoreOps, res *CollectResult, cands []queuedBlock) (int, int, bool, error) {
 	// Free only in an adopted Volume with no release in progress and no
 	// recount owed.
 	state, err := rec.GetState(ctx)
 	if err != nil || !c.freeable(state) {
-		return from, false, false, err
+		return 0, 0, false, err
 	}
 	if owed, err := rec.recountOwed(ctx); err != nil || owed {
-		return from, false, false, err
-	}
-
-	// Take the next ripe blocks, only one while a writer waits, noting one
-	// that waits on its ripe sequence.
-	type entry struct {
-		ripe uint64
-		ref  *block.BlockRef
-	}
-	var ripe []entry
-	full := false
-	cursor, frees := state.GetUpCursor(), c.share(sliceFrees)
-	if c.waiting() {
-		frees = 1
-	}
-	err = rec.scanQueue(ctx, from, func(seq uint64, ref *block.BlockRef) (bool, error) {
-		switch {
-		case seq > cursor:
-			res.Kept++
-			return false, nil
-		case len(ripe) == frees:
-			full = true
-			return false, nil
-		}
-		ripe = append(ripe, entry{ripe: seq, ref: ref})
-		return true, nil
-	})
-	if err != nil {
-		return from, false, false, err
+		return 0, 0, false, err
 	}
 
 	// The frees give their children downs within the moves a netting slice
 	// makes, one page's while a writer waits.
 	f := &freeing{moves: c.share(sliceReleases)}
+	frees := c.share(sliceFrees)
 	if c.waiting() {
 		f.moves = min(f.moves, releasePageChildren)
+		frees = 1
 	}
 
-	// Free each until a writer waits, a list does not fit the moves left or
-	// a paged release starts; the next slice resumes there.
-	for i, e := range ripe {
-		if i != 0 && c.waiting() {
-			full = true
+	// Free the entries still queued, in order, until the slice's frees are
+	// done or a writer waits.
+	took, done := 0, 0
+	for ; done < frees && took < len(cands); took++ {
+		if done != 0 && c.waiting() {
 			break
 		}
-		freed, err := c.freeBlock(ctx, rec, blocks, state, e.ripe, e.ref, res, f)
+		q := cands[took]
+		if q.ripe > state.GetUpCursor() {
+			break
+		}
+		found, err := rec.tx.Exists(ctx, rec.queueKey(q.ripe, q.key))
 		if err != nil {
-			return from, false, false, err
+			return 0, 0, false, err
 		}
-		if !freed {
-			full = true
-			break
+		if !found {
+			continue
 		}
-		from = queuePos(e.ripe, BlockKey(e.ref))
+		freed, err := c.freeBlock(ctx, rec, blocks, state, q, res, f)
+		if err != nil || !freed {
+			return took, done, f.gave, err
+		}
+		done++
 		if state.GetRelease() != nil {
-			full = true
-			break
+			return took + 1, done, f.gave, nil
 		}
 	}
-	return from, full, f.gave, nil
+	return took, done, f.gave, nil
 }
 
 // requeueSlice moves up to a slice of parked blocks back onto the free queue
 // once the generation flipped, from the parked key position from, and
-// reports whether the slice was full. It reads only kindParked keys: a
-// released park gave its downs already, so it stays for the sweep, which
-// deletes its key and gives none. Each keeps its ripe sequence, which the
-// cursor passed before the free parked it, so the free step that follows
-// takes it, checking it is still at zero at that sequence, and drops an
-// unmarked one, which the sweep deletes. While the generation is Open, or the
-// Volume is not adopted, it moves nothing.
-func (c *Collector) requeueSlice(ctx context.Context, rec *Records, res *CollectResult, from []byte) ([]byte, bool, error) {
+// reports whether the slice was full and whether it reached the parked
+// keys' end. It reads only kindParked keys: a released park gave its downs
+// already, so it stays for the sweep, which deletes its key and gives none.
+// Each keeps its ripe sequence, which the cursor passed before the free
+// parked it, so the free step that follows takes it, checking it is still
+// at zero at that sequence, and drops an unmarked one, which the sweep
+// deletes. While the generation is Open, or the Volume is not adopted, it
+// moves nothing, and an Open one resets the requeue's position, as
+// Collector.requeued describes.
+func (c *Collector) requeueSlice(ctx context.Context, rec *Records, res *CollectResult, from []byte) ([]byte, bool, bool, error) {
 	// Requeue only once an adopted Volume's generation flipped.
 	state, err := rec.GetState(ctx)
-	if err != nil || state.GetGeneration() == Generation_GENERATION_OPEN || state.GetAdoption() != Adoption_ADOPTION_ADOPTED {
-		return from, false, err
+	if err != nil {
+		return from, false, false, err
+	}
+	if state.GetGeneration() == Generation_GENERATION_OPEN {
+		return nil, false, false, nil
+	}
+	if state.GetAdoption() != Adoption_ADOPTION_ADOPTED {
+		return from, false, false, nil
 	}
 
 	// Take the next parked keys, then move each.
@@ -798,19 +1061,22 @@ func (c *Collector) requeueSlice(ctx context.Context, rec *Records, res *Collect
 		return true, nil
 	})
 	if err != nil {
-		return from, false, err
+		return from, false, false, err
 	}
 	for _, key := range keys {
-		if err := rec.tx.Delete(ctx, rec.key(kindParked, key)); err != nil {
-			return from, false, err
+		if len(key) < 8 {
+			return from, false, false, errBadBlockKey
 		}
-		if err := rec.tx.Set(ctx, rec.key(kindQueue, key), nil); err != nil {
-			return from, false, err
+		if err := rec.tx.Delete(ctx, rec.key(kindParked, key)); err != nil {
+			return from, false, false, err
+		}
+		if err := rec.enqueue(ctx, binary.BigEndian.Uint64(key), key[8:]); err != nil {
+			return from, false, false, err
 		}
 		res.Requeued++
 		from = key
 	}
-	return from, full, nil
+	return from, full, !full, nil
 }
 
 // freeable reports whether the free may run under state: the Volume is
@@ -824,44 +1090,54 @@ func (c *Collector) freeable(state *LivenessState) bool {
 	return state.GetAdoption() == Adoption_ADOPTION_ADOPTED && graced && state.GetRelease() == nil
 }
 
-// freeBlock frees one block at zero, queued at ripe: its bytes, child list,
-// queue entry, proof and count record, and gives each child its down through
-// f. It deletes only the queue entry when the entry is stale: the block has
-// no child list or no zero record at ripe, or it is unmarked, which the
-// sweep deletes. While the generation is Open it deletes nothing, and parks
-// the block instead, as invariants 9 and 10 describe: a park gives the
-// children their downs as a free does, unless ParkKeepsHolds keeps them.
-// When the list does not fit
-// the moves f has left after an earlier free, it changes nothing and
-// reports false, so the next slice frees it first.
+// freeBlock frees one block at zero, q, ripe at q.ripe: its bytes, child
+// list, queue entry, proof and count record, and gives each child its down
+// through f. The caller read q's entry in this transaction. It deletes only the queue entry when the entry is stale: the block has no
+// child list or no zero record at its ripe sequence, or it is unmarked,
+// which the sweep deletes. While the generation is Open it deletes nothing,
+// and parks the block instead, as invariants 9 and 10 describe: a park
+// gives the children their downs as a free does, unless ParkKeepsHolds
+// keeps them. When the list does not fit the moves f has left after an
+// earlier free, it changes nothing and reports false, so the slice stops
+// before it.
 //
 // This is the one path that deletes a block the counts prove dead. It keeps
 // the invariants Collector lists: hold until free, since the children lose
 // the block only here, in the transaction that deletes its list; counts
-// exact, since the block's zero record at the queue's ripe is read here and
-// each child moves down exactly once; no late namer, since a Land that held
-// the block since it ripened deleted its queue entry, so the scan that
-// found the entry proves none did; and no freed read, since the up cursor
-// reached the ripe sequence, so every up before it netted.
+// exact, since the block's zero record at q's ripe sequence is read here
+// and each child moves down exactly once; no late namer, since a Land that
+// held the block since it ripened deleted its queue entry, and the caller
+// read the entry in this transaction; and no freed
+// read, since the up cursor reached the ripe sequence, which it checks
+// here, so every up before it netted.
 func (c *Collector) freeBlock(
 	ctx context.Context,
 	rec *Records,
 	blocks block.StoreOps,
 	state *LivenessState,
-	ripe uint64,
-	ref *block.BlockRef,
+	q queuedBlock,
 	res *CollectResult,
 	f *freeing,
 ) (bool, error) {
-	// Check the block is stored.
-	key := BlockKey(ref)
-	queued := rec.queueKey(ripe, key)
+	// Check the block is ripe.
+	ripe, key := q.ripe, q.key
+	ref, _, err := ParseBlockKey(key)
+	if err != nil {
+		return false, err
+	}
+	if ripe > state.GetUpCursor() {
+		return false, errors.Errorf("free of a block ripe at %d past the up cursor %d", ripe, state.GetUpCursor())
+	}
+
+	// Check it is listed.
+	entry := rec.queueKey(ripe, key)
+	dequeue := func() error { return rec.tx.Delete(ctx, entry) }
 	listed, err := rec.HasChildren(ctx, ref)
 	if err != nil {
 		return false, err
 	}
 	if !listed {
-		return true, rec.tx.Delete(ctx, queued)
+		return true, dequeue()
 	}
 
 	// Check its count. The netting moves a block's queue entry whenever it
@@ -872,7 +1148,7 @@ func (c *Collector) freeBlock(
 		return false, err
 	}
 	if holders != 0 || at != ripe {
-		return true, rec.tx.Delete(ctx, queued)
+		return true, dequeue()
 	}
 
 	// Park it while the generation is Open, in the run, keeping its holds
@@ -881,14 +1157,14 @@ func (c *Collector) freeBlock(
 	switch {
 	case park && c.opts.ParkKeepsHolds:
 		res.Parked++
-		return true, rec.park(ctx, queued, rec.parkedKey(ripe, key), key)
+		return true, rec.park(ctx, entry, rec.parkedKey(ripe, key), key)
 	case state.GetGeneration() == Generation_GENERATION_SWEEPING:
 		unmarked, err := rec.Unmarked(ctx, key)
 		if err != nil {
 			return false, err
 		}
 		if unmarked {
-			return true, rec.tx.Delete(ctx, queued)
+			return true, dequeue()
 		}
 	}
 
@@ -907,14 +1183,14 @@ func (c *Collector) freeBlock(
 	// list and proof, and give its children their downs as a free does.
 	if park {
 		res.Parked++
-		if err := rec.park(ctx, queued, rec.releasedKey(ripe, key), key); err != nil {
+		if err := rec.park(ctx, entry, rec.releasedKey(ripe, key), key); err != nil {
 			return false, err
 		}
 		return true, f.give(ctx, c, rec, state, res, key, children)
 	}
 
 	// Free its bytes and records.
-	if err := rec.tx.Delete(ctx, queued); err != nil {
+	if err := dequeue(); err != nil {
 		return false, err
 	}
 	if err := blocks.RmBlock(ctx, ref); err != nil {

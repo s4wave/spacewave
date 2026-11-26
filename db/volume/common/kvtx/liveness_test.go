@@ -146,6 +146,30 @@ func (tr testTree) add(t *testing.T, name string, children ...string) *block.Blo
 	return ref
 }
 
+// addBinary builds a tree depth levels deep, each block above the leaves
+// naming two, and returns its blocks' names bottom up, the root last.
+func (tr testTree) addBinary(t *testing.T, depth int) []string {
+	t.Helper()
+	var level []string
+	for i := range 1 << (depth - 1) {
+		name := "level " + strconv.Itoa(depth) + " block " + strconv.Itoa(i)
+		tr.add(t, name)
+		level = append(level, name)
+	}
+	names := slices.Clone(level)
+	for d := depth - 1; d >= 1; d-- {
+		var up []string
+		for i := 0; i < len(level); i += 2 {
+			name := "level " + strconv.Itoa(d) + " block " + strconv.Itoa(i/2)
+			tr.add(t, name, level[i], level[i+1])
+			up = append(up, name)
+		}
+		names = append(names, up...)
+		level = up
+	}
+	return names
+}
+
 // entries returns the blocks names name.
 func (tr testTree) entries(names ...string) []*block.PutBatchEntry {
 	out := make([]*block.PutBatchEntry, len(names))
@@ -808,6 +832,62 @@ func (p *paceProbe) Update(ctx context.Context, fn func(rec *block_gc.Records, b
 	err := p.Store.Update(ctx, fn)
 	p.after()
 	return err
+}
+
+// viewHook runs a collector's transactions and read snapshots, and calls
+// after once, following the first snapshot read once the free's phase
+// begins: a writer that commits between the free's read of its candidates
+// and its write slice.
+type viewHook struct {
+	block_gc.Store
+	// after runs after the snapshot.
+	after func()
+	// armed is set once the free's phase began.
+	armed bool
+	// fired records that after ran.
+	fired bool
+}
+
+// arm is the collector's phase callback: it arms the hook as the free's
+// phase begins.
+func (h *viewHook) arm(ph block_gc.Phase) func() {
+	if ph == block_gc.PhaseSweep && !h.fired {
+		h.armed = true
+	}
+	return func() {}
+}
+
+// View reads the snapshot, then runs after once armed.
+func (h *viewHook) View(ctx context.Context, fn func(rec *block_gc.Records) error) error {
+	err := h.Store.View(ctx, fn)
+	if h.armed && !h.fired {
+		h.armed, h.fired = false, true
+		h.after()
+	}
+	return err
+}
+
+// errRerun discards the first run of a transaction rerunStore runs twice.
+var errRerun = errors.New("transaction discarded to run again")
+
+// rerunStore runs each of a collector's transactions twice: once discarded,
+// then again committed, as a store that retries a conflicted transaction.
+type rerunStore struct {
+	block_gc.Store
+}
+
+// Update runs fn in a transaction it discards, then in one it commits.
+func (s *rerunStore) Update(ctx context.Context, fn func(rec *block_gc.Records, blocks block.StoreOps) error) error {
+	err := s.Store.Update(ctx, func(rec *block_gc.Records, blocks block.StoreOps) error {
+		if err := fn(rec, blocks); err != nil {
+			return err
+		}
+		return errRerun
+	})
+	if !errors.Is(err, errRerun) {
+		return err
+	}
+	return s.Store.Update(ctx, fn)
 }
 
 // collectThrough runs passes of a collector of probe until one reports no
@@ -2654,24 +2734,8 @@ func TestLivenessAdversarial(t *testing.T) {
 		v, clk := newLivenessVolume(t, true)
 		ctx := t.Context()
 		tr := testTree{}
-		var level []string
-		for i := range 16 {
-			name := "level 5 block " + strconv.Itoa(i)
-			tr.add(t, name)
-			level = append(level, name)
-		}
-		names := slices.Clone(level)
-		for depth := 4; depth >= 1; depth-- {
-			var up []string
-			for i := 0; i < len(level); i += 2 {
-				name := "level " + strconv.Itoa(depth) + " block " + strconv.Itoa(i/2)
-				tr.add(t, name, level[i], level[i+1])
-				up = append(up, name)
-			}
-			names = append(names, up...)
-			level = up
-		}
-		root := tr[level[0]].Ref
+		names := tr.addBinary(t, 5)
+		root := tr[names[len(names)-1]].Ref
 		a := tr.add(t, "A")
 		roots := []block.NamedRoot{{Name: "tree", Ref: root}, {Name: "a", Ref: a}}
 		if err := v.SetBucketRoots(ctx, "b", tr.entries(append(slices.Clone(names), "A")...), roots); err != nil {
@@ -2705,6 +2769,140 @@ func TestLivenessAdversarial(t *testing.T) {
 		requireStored(t, v, tr, true, held...)
 		requireAudit(t, v, 0)
 	})
+
+	for _, tc := range []struct {
+		name   string
+		raised func(tr testTree) *block.BlockRef
+	}{
+		{"queued block", func(tr testTree) *block.BlockRef { return tr["C"].Ref }},
+		{"child of a queued block", func(tr testTree) *block.BlockRef { return tr["E"].Ref }},
+	} {
+		t.Run(tc.name+" raised between the free's read and its write", func(t *testing.T) {
+			// R -> E loses main, and C loses aux, past the grace period.
+			// The free reads its candidates in a snapshot, then a commit
+			// moves root k onto one of them, or onto E, R's child, before
+			// the free's write slice. The write takes each candidate only
+			// while its queue entry stays, and R's free moves E down only
+			// from the count that holds the commit's up, so the block the
+			// root names and its children stay.
+			v, clk := newLivenessVolume(t, true)
+			ctx := t.Context()
+			tr := testTree{}
+			tr.add(t, "E")
+			r := tr.add(t, "R", "E")
+			c := tr.add(t, "C")
+			z := tr.add(t, "Z")
+			roots := []block.NamedRoot{{Name: "main", Ref: r}, {Name: "aux", Ref: c}, {Name: "z", Ref: z}}
+			if err := v.SetBucketRoots(ctx, "b", tr.entries("E", "R", "C", "Z"), roots); err != nil {
+				t.Fatal(err)
+			}
+			gone := []block.NamedRoot{{Name: "main", Previous: r}, {Name: "aux", Previous: c}}
+			if err := v.SetBucketRoots(ctx, "b", nil, gone); err != nil {
+				t.Fatal(err)
+			}
+			clk.Add(block_gc.DefaultGrace + time.Second)
+
+			// Move k onto the block after the free's first snapshot.
+			raised := tc.raised(tr)
+			hook := &viewHook{Store: collectorStore{v: v}, after: func() {
+				if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "k", Ref: raised}}); err != nil {
+					t.Error(err)
+				}
+			}}
+			opts := block_gc.CollectorOptions{Frees: true, Now: v.now, Phase: hook.arm}
+			collectThrough(t, &paceProbe{Store: hook, limit: 1000, after: func() {}}, opts)
+			if !hook.fired {
+				t.Fatal("the free read no snapshot")
+			}
+
+			// The raised block and its children stay through every pass.
+			kept := []string{"Z", "C"}
+			if raised != c {
+				kept = []string{"Z", "E"}
+			}
+			for range 3 {
+				clk.Add(block_gc.DefaultGrace + time.Second)
+				collectAll(t, v)
+				requireReads(t, v, tr, kept...)
+				requireListsStored(t, v, tr)
+			}
+			requireAudit(t, v, 0)
+		})
+	}
+
+	t.Run("free transactions run twice", func(t *testing.T) {
+		// A tree five levels deep, each block naming two, loses its root,
+		// and a store runs each collector transaction once and discards
+		// it, then runs it again and commits, as a store that retries a
+		// conflicted transaction does. The collector keeps its place on
+		// the free queue from the run that committed, so the whole tree
+		// goes and A, which root a holds, stays.
+		v, clk := newLivenessVolume(t, true)
+		ctx := t.Context()
+		tr := testTree{}
+		names := tr.addBinary(t, 5)
+		root := tr[names[len(names)-1]].Ref
+		a := tr.add(t, "A")
+		roots := []block.NamedRoot{{Name: "tree", Ref: root}, {Name: "a", Ref: a}}
+		if err := v.SetBucketRoots(ctx, "b", tr.entries(append(slices.Clone(names), "A")...), roots); err != nil {
+			t.Fatal(err)
+		}
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "tree", Previous: root}}); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		probe := &paceProbe{Store: &rerunStore{Store: collectorStore{v: v}}, limit: 1000, after: func() {
+			requireListsStored(t, v, tr)
+		}}
+		opts := block_gc.CollectorOptions{Frees: true, Now: v.now, WritersWaiting: func() bool { return true }}
+		collectThrough(t, probe, opts)
+		requireStored(t, v, tr, false, names...)
+		requireReads(t, v, tr, "A")
+		requireAudit(t, v, 0)
+	})
+
+	for _, cut := range []int{2, 5, 11, 23} {
+		t.Run("restart mid-cascade after "+strconv.Itoa(cut)+" transactions", func(t *testing.T) {
+			// A tree five levels deep, each block naming two, loses its
+			// root, and a collector freeing one block a slice stops after
+			// cut transactions, losing its place on the free queue and the
+			// children it kept behind it. A new collector finds every
+			// remaining block on the queue, so the whole tree goes and A
+			// stays.
+			v, clk := newLivenessVolume(t, true)
+			ctx := t.Context()
+			tr := testTree{}
+			names := tr.addBinary(t, 5)
+			root := tr[names[len(names)-1]].Ref
+			a := tr.add(t, "A")
+			roots := []block.NamedRoot{{Name: "tree", Ref: root}, {Name: "a", Ref: a}}
+			if err := v.SetBucketRoots(ctx, "b", tr.entries(append(slices.Clone(names), "A")...), roots); err != nil {
+				t.Fatal(err)
+			}
+			if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "tree", Previous: root}}); err != nil {
+				t.Fatal(err)
+			}
+			clk.Add(block_gc.DefaultGrace + time.Second)
+			opts := block_gc.CollectorOptions{Frees: true, Now: v.now, WritersWaiting: func() bool { return true }}
+			first := block_gc.NewCollector(&paceProbe{Store: collectorStore{v: v}, limit: cut, after: func() {}}, opts)
+			for {
+				res, err := first.Collect(ctx)
+				if errors.Is(err, errPaceLimit) {
+					break
+				}
+				if err != nil || !res.More {
+					t.Fatalf("the first collector ended before its cut: err %v", err)
+				}
+			}
+			requireListsStored(t, v, tr)
+			collectThrough(t, &paceProbe{Store: collectorStore{v: v}, limit: 1000, after: func() {
+				requireListsStored(t, v, tr)
+			}}, opts)
+			requireStored(t, v, tr, false, names...)
+			requireReads(t, v, tr, "A")
+			requireAudit(t, v, 0)
+		})
+	}
 
 	t.Run("restart after a second process unadopts", func(t *testing.T) {
 		// A, with frees on, adopts a Volume holding main -> R -> X and an

@@ -363,6 +363,10 @@ type Records struct {
 	gen Generation
 	// moved reports that a write in the transaction moved the generation.
 	moved bool
+	// queued are the queue entries the transaction wrote through enqueue, in
+	// the order written, which the collector reads once it commits, as
+	// Collector.queueFrom describes.
+	queued []queuedBlock
 }
 
 // AssumeSettled tells the records that the Volume's generation is
@@ -1089,6 +1093,23 @@ func (r *Records) ScanRoots(ctx context.Context, fn func(bucketID, name string, 
 	})
 }
 
+// runSettled reports whether the unmarked run is complete and the front
+// and the recorded holes are empty, the flip's checks of the settle's own
+// records. It reads the run's completion entry and seeks two prefixes;
+// each seek steps over the deleted keys at its prefix's start.
+func (r *Records) runSettled(ctx context.Context) (bool, error) {
+	done, err := r.tx.Exists(ctx, r.key(kindUnmarked, runComplete))
+	if err != nil || !done {
+		return false, err
+	}
+	for _, kind := range []byte{kindFront, kindHole} {
+		if found, err := r.anyKey(ctx, r.key(kind)); err != nil || found {
+			return false, err
+		}
+	}
+	return true, nil
+}
+
 // anyKey reports whether a key begins with prefix.
 func (r *Records) anyKey(ctx context.Context, prefix []byte) (bool, error) {
 	var found bool
@@ -1246,6 +1267,26 @@ func queuePos(ripe uint64, key []byte) []byte {
 	return append(binary.BigEndian.AppendUint64(nil, ripe), key...)
 }
 
+// queuedBlock is one entry of the free queue: the block at key, ripe at
+// ripe.
+type queuedBlock struct {
+	ripe uint64
+	key  []byte
+}
+
+// pos returns the entry's queue position, as queuePos returns it.
+func (q queuedBlock) pos() []byte {
+	return queuePos(q.ripe, q.key)
+}
+
+// enqueue writes the queue entry of the block at key, ripe at ripe, and
+// notes it in queued. Every writer of a queue entry writes through it, so
+// the collector learns each position its committed transactions wrote.
+func (r *Records) enqueue(ctx context.Context, ripe uint64, key []byte) error {
+	r.queued = append(r.queued, queuedBlock{ripe: ripe, key: bytes.Clone(key)})
+	return r.tx.Set(ctx, r.queueKey(ripe, key), nil)
+}
+
 // scanQueue calls fn with each Dead block on the free queue in ripe order,
 // from the entry at or after the queue position from, a ripe sequence and
 // block key as queuePos returns, or from the start when from is nil, until
@@ -1265,14 +1306,19 @@ func (r *Records) scanQueue(ctx context.Context, from []byte, fn func(ripe uint6
 
 // ripeQueued reports whether the free queue holds a block at a ripe
 // sequence no later than upTo, which the free has yet to take, reading at
-// most one key.
-func (r *Records) ripeQueued(ctx context.Context, upTo uint64) (bool, error) {
+// most one entry at or after the queue position from, and returns that
+// entry's position, nil when it read none. Each entry deleted before it
+// costs the read a step, so a caller that reads in the writer's
+// transaction passes from a position a read snapshot found, as the flip
+// does.
+func (r *Records) ripeQueued(ctx context.Context, from []byte, upTo uint64) (bool, []byte, error) {
 	var ripe bool
-	err := r.scanQueue(ctx, nil, func(seq uint64, _ *block.BlockRef) (bool, error) {
-		ripe = seq <= upTo
+	var at []byte
+	err := r.scanQueue(ctx, from, func(seq uint64, ref *block.BlockRef) (bool, error) {
+		ripe, at = seq <= upTo, queuePos(seq, BlockKey(ref))
 		return false, nil
 	})
-	return ripe, err
+	return ripe, at, err
 }
 
 // popMark returns the pop mark and whether it exists, as kindPopMark

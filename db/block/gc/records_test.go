@@ -112,10 +112,10 @@ func TestSettleWaitsForNetting(t *testing.T) {
 			if _, _, err := c.frontSlice(ctx, rec, nil, &res, frontPos{}); err != nil {
 				t.Fatal(err)
 			}
-			if _, _, _, err := c.freeSlice(ctx, rec, nil, &res, nil); err != nil {
+			if _, _, _, err := c.freeSlice(ctx, rec, nil, &res, queuedIn(ctx, t, rec)); err != nil {
 				t.Fatal(err)
 			}
-			if err := c.flip(ctx, rec, &res); err != nil {
+			if err := c.flip(ctx, rec, &res, headIn(ctx, t, rec)); err != nil {
 				t.Fatal(err)
 			}
 			held := bc.block != nil
@@ -198,7 +198,7 @@ func TestNettingKeepsParkOnRaiseToZero(t *testing.T) {
 	if found, err := tx.Exists(ctx, rec.queueKey(20, key)); err != nil || found {
 		t.Fatalf("queue entry found %v err %v, want none", found, err)
 	}
-	if _, _, _, err := c.freeSlice(ctx, rec, nil, &res, nil); err != nil {
+	if _, _, _, err := c.freeSlice(ctx, rec, nil, &res, queuedIn(ctx, t, rec)); err != nil {
 		t.Fatal(err)
 	}
 	if res.Parked != 0 {
@@ -248,4 +248,34 @@ func TestWalkRestartsUnreadableProgress(t *testing.T) {
 	if _, found, err := tx.Get(ctx, edge); err != nil || found {
 		t.Fatalf("stale edge found %v, %v; want it cleared", found, err)
 	}
+}
+
+// queuedIn returns every entry on the free queue of rec, as a test that
+// frees within one transaction proposes them to freeSlice.
+func queuedIn(ctx context.Context, t *testing.T, rec *Records) []queuedBlock {
+	t.Helper()
+	var queued []queuedBlock
+	err := rec.scanQueue(ctx, nil, func(ripe uint64, ref *block.BlockRef) (bool, error) {
+		queued = append(queued, queuedBlock{ripe: ripe, key: BlockKey(ref)})
+		return true, nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return queued
+}
+
+// headIn returns the free queue's head in rec, as readQueueHead's snapshot
+// finds it, for a test that flips within one transaction.
+func headIn(ctx context.Context, t *testing.T, rec *Records) queueHead {
+	t.Helper()
+	state, err := rec.GetState(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	head := queueHead{read: true, adoptAt: state.GetAdoptAtUnixMilli()}
+	if _, head.at, err = rec.ripeQueued(ctx, nil, 0); err != nil {
+		t.Fatal(err)
+	}
+	return head
 }

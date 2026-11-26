@@ -691,7 +691,7 @@ func (a *adoption) settle(ctx context.Context, rec *Records, state *LivenessStat
 	if err := rec.SetHolders(ctx, ref, 0, ripe); err != nil {
 		return err
 	}
-	return rec.tx.Set(ctx, rec.queueKey(ripe, BlockKey(ref)), nil)
+	return rec.enqueue(ctx, ripe, BlockKey(ref))
 }
 
 // countRoots counts each name after the cursor's that held a root when the

@@ -83,7 +83,7 @@ func (c *Collector) SettleStatus(ctx context.Context, limit int) (SettleStatus, 
 		if err != nil || !popped {
 			return err
 		}
-		st.RipeQueued, err = rec.ripeQueued(ctx, min(mark, state.GetUpCursor()))
+		st.RipeQueued, _, err = rec.ripeQueued(ctx, nil, min(mark, state.GetUpCursor()))
 		return err
 	})
 	return st, err

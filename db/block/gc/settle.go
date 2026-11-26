@@ -465,9 +465,61 @@ func (c *Collector) settle(ctx context.Context, past func() bool, res *CollectRe
 	if more, err := c.scanFront(ctx, state, past, res); err != nil || more {
 		return more, err
 	}
+	head, err := c.readQueueHead(ctx)
+	if err != nil {
+		return false, err
+	}
 	return false, c.update(ctx, func(rec *Records, _ block.StoreOps) error {
-		return c.flip(ctx, rec, res)
+		return c.flip(ctx, rec, res, head)
 	})
+}
+
+// queueHead is where a read snapshot found the free queue's first entry,
+// for the flip's check of the queue, as flip describes.
+type queueHead struct {
+	// read reports that the snapshot read the head; without it the flip
+	// does not run in this pass.
+	read bool
+	// at is the first entry's position, nil when the queue was empty.
+	at []byte
+	// adoptAt is the adoption mark the snapshot read.
+	adoptAt int64
+}
+
+// readQueueHead finds the free queue's first entry in a read snapshot,
+// which holds no writer, stepping over the entries deleted before it. It
+// reads the head only when the same snapshot shows every other condition
+// of the flip holding: Open, freeable, no recount owed, the run complete,
+// no front or hole key, and a pop mark. Otherwise it returns a head not
+// read, and the flip does not run in this pass.
+//
+// Cost: per pass that reaches the flip, the state, the recount mark and
+// the flip's other checks in a snapshot; and, only when they all pass, one
+// walk over the deleted entries before the queue's first.
+func (c *Collector) readQueueHead(ctx context.Context) (queueHead, error) {
+	var head queueHead
+	err := c.store.View(ctx, func(rec *Records) error {
+		// Require every other condition of the flip.
+		state, err := rec.GetState(ctx)
+		if err != nil || state.GetGeneration() != Generation_GENERATION_OPEN || !c.freeable(state) {
+			return err
+		}
+		if owed, err := rec.recountOwed(ctx); err != nil || owed {
+			return err
+		}
+		if settled, err := rec.runSettled(ctx); err != nil || !settled {
+			return err
+		}
+		if _, popped, err := rec.popMark(ctx); err != nil || !popped {
+			return err
+		}
+
+		// Read the head under the adoption mark the snapshot holds.
+		head.read, head.adoptAt = true, state.GetAdoptAtUnixMilli()
+		_, head.at, err = rec.ripeQueued(ctx, nil, 0)
+		return err
+	})
+	return head, err
 }
 
 // scanFront scans the front in slices from where the last pass stopped,
@@ -924,10 +976,18 @@ func (c *Collector) frontProven(ctx context.Context, rec *Records, blocks block.
 // Volume to unadopted. The settle calls it only once seed is done, so the
 // empty front covers every seed.
 //
+// head is where a read snapshot found the free queue's first entry, which
+// the queue's check reads from, as queueHead.ripe describes. A pass
+// without a head read under the current adoption mark does not flip: the
+// flip never walks the queue from its head under the writer, and the next
+// pass reads a fresh head. A ripe entry there means the free's position
+// missed it, so the flip forgets the position and the next free scans from
+// the queue's head.
+//
 // Cost: point reads of the run's completion entry and the pop mark and up
 // to four prefix seeks, in one transaction, once per collector pass until
 // the flip.
-func (c *Collector) flip(ctx context.Context, rec *Records, res *CollectResult) error {
+func (c *Collector) flip(ctx context.Context, rec *Records, res *CollectResult, head queueHead) error {
 	// Require an Open Volume the free may run in: adopted Grace ago, so a
 	// head a reader saw before the mark, which the walk does not seed, is
 	// unmarked only once it is Grace old, and with no paged release left.
@@ -957,14 +1017,8 @@ func (c *Collector) flip(ctx context.Context, rec *Records, res *CollectResult) 
 	}
 
 	// Require the run complete, the front empty and no recorded hole.
-	done, err := rec.tx.Exists(ctx, rec.key(kindUnmarked, runComplete))
-	if err != nil || !done {
+	if settled, err := rec.runSettled(ctx); err != nil || !settled {
 		return err
-	}
-	for _, kind := range []byte{kindFront, kindHole} {
-		if found, err := rec.anyKey(ctx, rec.key(kind)); err != nil || found {
-			return err
-		}
 	}
 
 	// Require every Dead block at or below the pop mark parked, and so in
@@ -978,8 +1032,14 @@ func (c *Collector) flip(ctx context.Context, rec *Records, res *CollectResult) 
 		return err
 	}
 	if popped {
-		ripe, err := rec.ripeQueued(ctx, min(mark, state.GetUpCursor()))
+		if !head.valid(state) {
+			return nil
+		}
+		ripe, err := head.ripe(ctx, rec, min(mark, state.GetUpCursor()))
 		if err != nil || ripe {
+			if ripe {
+				c.forgetQueue()
+			}
 			return err
 		}
 	}
@@ -1092,19 +1152,47 @@ func (c *Collector) dropRunSlice(ctx context.Context, rec *Records, res *Collect
 	return from, false, rec.SetState(ctx, state)
 }
 
+// valid reports whether the flip may check the queue from h under state,
+// the state the flip's transaction read: the snapshot read the head, under
+// the same adoption mark.
+//
+// Invariant: the queue gains no entry before h.at between h's snapshot and
+// the flip's transaction. Only the collector's transactions and the
+// adoption write queue entries, as Collector.queueFrom describes. The
+// collector runs one step at a time, and the settle runs nothing between
+// the snapshot and the flip; an adoption stamps a new AdoptAtUnixMilli,
+// which makes h invalid. A Land only deletes entries.
+func (h queueHead) valid(state *LivenessState) bool {
+	return h.read && h.adoptAt == state.GetAdoptAtUnixMilli()
+}
+
+// ripe reports whether the free queue holds a block at a ripe sequence no
+// later than upTo, for a valid h. It reads one entry from h.at, the queue's
+// first entry in h's snapshot, so it steps over no entry deleted before it,
+// and reads nothing when the snapshot found the queue empty.
+func (h queueHead) ripe(ctx context.Context, rec *Records, upTo uint64) (bool, error) {
+	if h.at == nil {
+		return false, nil
+	}
+	ripe, _, err := rec.ripeQueued(ctx, h.at, upTo)
+	return ripe, err
+}
+
 // restartSettle forgets the settle's positions once the Volume settles, so
 // a Volume a copied put reopens builds, seeds and scans its front from the
 // start, as at the collector's start. A position kept from the generation
 // before would skip work: a seeding done then names no block a copied put
 // stored since, a finished sweep would drop the next run unswept, and a
-// sweep or drop cursor would pass over the head of the next run. The settle
-// calls it when it reads the generation leave Sweeping, as lastGen
+// sweep or drop cursor would pass over the head of the next run, and a
+// finished requeue would leave the next generation's parks parked. The
+// settle calls it when it reads the generation leave Sweeping, as lastGen
 // describes, which also covers a drop whose commit was durable but
 // reported an error.
 func (c *Collector) restartSettle() {
 	c.runFrom, c.sweepFrom, c.sweptRun, c.dropFrom = nil, nil, false, nil
 	c.seedRoot, c.seedDown, c.seededRoots, c.seeded = nil, 0, false, false
 	c.front, c.frontIdle, c.frontWake, c.frontAdoptAt = frontPos{}, false, 0, 0
+	c.requeueFrom, c.requeued = nil, false
 }
 
 // runEntries returns the block keys of up to a slice of base run entries

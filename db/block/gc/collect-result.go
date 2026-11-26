@@ -57,6 +57,19 @@ type CollectResult struct {
 	Underflows uint64
 	// Lapsed counts the leased roots the pass released.
 	Lapsed uint64
+	// Slices counts the pass's write transactions, each committed when it
+	// changed anything.
+	Slices uint64
+	// StoreTime is the time the pass's write transactions spent in the
+	// store outside the collector's own work: waiting for the writer and
+	// committing.
+	StoreTime time.Duration
+	// ScanTime is the time the free spent reading the queue for ripe
+	// blocks, in read snapshots that hold no writer.
+	ScanTime time.Duration
+	// PaceShift is the pace's share at the pass's end, as a power of two: a
+	// slice takes its base budgets shifted right by it.
+	PaceShift uint
 	// More reports that the pass stopped with work left.
 	More bool
 	// Duration is the time the pass took.

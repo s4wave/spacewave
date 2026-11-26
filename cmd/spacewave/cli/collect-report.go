@@ -82,6 +82,12 @@ func (r *collectReport) add(res block_gc.CollectResult) {
 	sum.FrontScanned += res.FrontScanned
 	sum.Swept += res.Swept
 
+	// Sum the store's work, and keep the pace the last pass left.
+	sum.Slices += res.Slices
+	sum.StoreTime += res.StoreTime
+	sum.ScanTime += res.ScanTime
+	sum.PaceShift = res.PaceShift
+
 	// Keep the settle's events and the last full scan of the front.
 	sum.Flipped = sum.Flipped || res.Flipped
 	sum.Unadopted = sum.Unadopted || res.Unadopted
@@ -109,6 +115,10 @@ func (r *collectReport) progress() {
 		"front-scanned": r.res.FrontScanned,
 		"popped":        r.res.Popped,
 		"swept":         r.res.Swept,
+		"slices":        r.res.Slices,
+		"store-time":    r.res.StoreTime.Round(time.Millisecond).String(),
+		"scan-time":     r.res.ScanTime.Round(time.Millisecond).String(),
+		"pace-shift":    r.res.PaceShift,
 	}).Info("collecting the volume")
 }
 
@@ -153,6 +163,10 @@ func (r *collectReport) fields() [][2]string {
 		{"Returned to unadopted", strconv.FormatBool(res.Unadopted)},
 		{"Swept", strconv.FormatUint(res.Swept, 10)},
 		{"Settled", strconv.FormatBool(res.Settled)},
+		{"Write slices", strconv.FormatUint(res.Slices, 10)},
+		{"Writer wait and commit time", res.StoreTime.String()},
+		{"Queue scan time", res.ScanTime.String()},
+		{"Pace shift at the end", strconv.FormatUint(uint64(res.PaceShift), 10)},
 		{"Duration", res.Duration.String()},
 	}
 

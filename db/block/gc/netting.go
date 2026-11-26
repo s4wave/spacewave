@@ -328,7 +328,7 @@ func (n *netting) writeNode(ctx context.Context, nd *node, holders0, ripe0 uint6
 		if err := n.wakeFront(ctx, nd.key, ripe); err != nil {
 			return err
 		}
-		return n.rec.tx.Set(ctx, n.rec.queueKey(ripe, nd.key), nil)
+		return n.rec.enqueue(ctx, ripe, nd.key)
 	}
 	return nil
 }
