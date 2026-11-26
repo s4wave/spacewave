@@ -207,7 +207,7 @@ func flipHeldBy(st *block_gc.SettleStatus, frees, graced bool) string {
 	case !st.RunComplete:
 		return "the unmarked run is not complete"
 	case st.Front != 0:
-		return "the front: blocks the typed walk owes; volume-ref-repair walks them"
+		return "the front: blocks without a verified child list; a pass takes off the ones nothing holds, and debug ref-repair walks the rest"
 	case st.Holes != 0:
 		return "recorded holes: blocks lost with their lists that a put must store again"
 	case st.RipeQueued:

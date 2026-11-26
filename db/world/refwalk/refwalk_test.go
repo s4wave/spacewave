@@ -82,8 +82,13 @@ func TestPayloadNodeBlob(t *testing.T) {
 	}
 
 	// Build the same blob holding field 15, which no blob message defines,
-	// in the blob, in its chunk index and in a chunk.
-	encode := func(msg interface{ MarshalVT() ([]byte, error) }, suffix ...byte) []byte {
+	// in the blob and in each message below it that the blob package
+	// defines.
+	type message interface {
+		MarshalVT() ([]byte, error)
+		UnmarshalVT(data []byte) error
+	}
+	encode := func(msg message, suffix ...byte) []byte {
 		t.Helper()
 		data, err := msg.MarshalVT()
 		if err != nil {
@@ -92,19 +97,32 @@ func TestPayloadNodeBlob(t *testing.T) {
 		return append(data, suffix...)
 	}
 	unknown := []byte{15 << 3, 1}
-	inIndex, inChunk := b.CloneVT(), b.CloneVT()
-	inIndex.ChunkIndex = &blob.ChunkIndex{}
-	if err := inIndex.ChunkIndex.UnmarshalVT(encode(b.GetChunkIndex(), unknown...)); err != nil {
-		t.Fatal(err)
+	reread := func(msg, out message) {
+		t.Helper()
+		if err := out.UnmarshalVT(encode(msg, unknown...)); err != nil {
+			t.Fatal(err)
+		}
 	}
-	inChunk.ChunkIndex.Chunks[0] = &blob.Chunk{}
-	if err := inChunk.ChunkIndex.Chunks[0].UnmarshalVT(encode(chunks[0], unknown...)); err != nil {
-		t.Fatal(err)
+	index, chunk, args := &blob.ChunkIndex{}, &blob.Chunk{}, &blob.ChunkerArgs{}
+	rabin, jc := &blob.RabinArgs{}, &blob.JcArgs{}
+	reread(b.GetChunkIndex(), index)
+	reread(chunks[0], chunk)
+	reread(b.GetChunkIndex().GetChunkerArgs(), args)
+	reread(rabin.CloneVT(), rabin)
+	reread(jc.CloneVT(), jc)
+	edit := func(fn func(index *blob.ChunkIndex)) []byte {
+		t.Helper()
+		other := b.CloneVT()
+		fn(other.ChunkIndex)
+		return encode(other)
 	}
 	foreign := map[string][]byte{
-		"blob":        encode(b, unknown...),
-		"chunk index": encode(inIndex),
-		"chunk":       encode(inChunk),
+		"blob":         encode(b, unknown...),
+		"chunk index":  encode(&blob.Blob{BlobType: b.GetBlobType(), TotalSize: b.GetTotalSize(), ChunkIndex: index}),
+		"chunk":        edit(func(index *blob.ChunkIndex) { index.Chunks[0] = chunk }),
+		"chunker args": edit(func(index *blob.ChunkIndex) { index.ChunkerArgs = args }),
+		"rabin args":   edit(func(index *blob.ChunkIndex) { index.ChunkerArgs = &blob.ChunkerArgs{RabinArgs: rabin} }),
+		"jc args":      edit(func(index *blob.ChunkIndex) { index.ChunkerArgs = &blob.ChunkerArgs{JcArgs: jc} }),
 	}
 
 	// Each still names every chunk as a blob, and the walk trusts none.
