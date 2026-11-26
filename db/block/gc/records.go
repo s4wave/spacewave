@@ -352,14 +352,26 @@ type Records struct {
 	genKnown bool
 	// gen is the generation when genKnown is set.
 	gen Generation
+	// moved reports that a write in the transaction moved the generation.
+	moved bool
 }
 
 // AssumeSettled tells the records that the Volume's generation is
 // Settled, which the Volume knows from a transaction that read or wrote it,
-// so the transaction reads no state to learn it. Settled is the last
-// generation, so the knowledge never goes stale.
+// so the transaction reads no state to learn it. Only a transaction that
+// writes the state moves the generation, and it reads the state first, so
+// a Volume that clears its knowledge before such a write commits never
+// assumes a stale generation, as GenerationMoved describes.
 func (r *Records) AssumeSettled() {
 	r.genKnown, r.gen = true, Generation_GENERATION_SETTLED
+}
+
+// GenerationMoved reports whether a write in the transaction moved the
+// Volume's generation: the settle's flip and its last step, or a reopen, as
+// Land describes. A Volume that caches the generation drops the cache
+// before such a transaction commits.
+func (r *Records) GenerationMoved() bool {
+	return r.moved
 }
 
 // Settled reports whether the transaction has seen the Volume's generation
@@ -1253,6 +1265,7 @@ func (r *Records) SetState(ctx context.Context, state *LivenessState) error {
 	if err != nil {
 		return err
 	}
+	r.moved = r.moved || r.genKnown && r.gen != state.GetGeneration()
 	r.genKnown, r.gen = true, state.GetGeneration()
 	return r.tx.Set(ctx, r.key(kindState), value)
 }

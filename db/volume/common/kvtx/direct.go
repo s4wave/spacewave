@@ -150,7 +150,12 @@ func (d *directTx) Commit(ctx context.Context) error {
 		return nil
 	}
 
-	// Commit using the Volume write-ordering contract.
+	// Drop the settled cache before a reopen commits, so no transaction opened
+	// after the commit assumes Settled. Then commit using the Volume
+	// write-ordering contract.
+	if d.p.rec.GenerationMoved() && !d.p.rec.Settled() {
+		d.v.settled.clear()
+	}
 	var err error
 	if d.v.ordered != nil && !d.durable {
 		err = kvtx.CommitOrdered(ctx, d.p.tx)
@@ -168,12 +173,22 @@ func (d *directTx) Discard() {
 
 // settle reports the committed markers, forgets the pending proofs of the
 // blocks p removed, wakes Volume statistics watchers, notes that the Volume
-// is Settled when p saw or wrote it so and, when p returned the Volume to
-// unadopted, starts the recount, once p committed.
+// is Settled when p saw or wrote it so, notes that a reopen with frees off
+// hides no block, wakes the writers waiting on a generation p moved and, when p returned the Volume to unadopted, starts the
+// recount, once p committed.
 func (d *directTx) settle() {
 	if d.committed {
 		if d.p.rec.Settled() {
-			d.v.settled.Store(true)
+			d.v.settled.set(d.p.settled)
+		}
+		if d.p.rec.GenerationMoved() {
+			// A move that left Settled with frees off is a reopen, since
+			// only a collector that frees flips: it parked nothing and the
+			// Settled Volume held no park, so no read hides a block.
+			if !d.p.rec.Settled() && !d.v.collector.Frees() {
+				d.v.hidesNone.Store(true)
+			}
+			d.v.broadcastGeneration()
 		}
 		d.p.blocks.marks.committed()
 		d.v.forgetFreedProofs(d.p.blocks.removedRefs())
@@ -353,12 +368,14 @@ func (v *Volume) putEntries(
 		}
 	}
 
-	// Store them in one transaction.
+	// Store them in one transaction, once the Volume no longer sweeps.
 	var existed []bool
-	err := direct(ctx, func(p *physicalTx) error {
-		var err error
-		existed, err = v.land(ctx, p, "", entries, nil)
-		return err
+	err := v.retrySwept(ctx, func() error {
+		return direct(ctx, func(p *physicalTx) error {
+			var err error
+			existed, err = v.land(ctx, p, "", entries, nil)
+			return err
+		})
 	})
 	return existed, err
 }

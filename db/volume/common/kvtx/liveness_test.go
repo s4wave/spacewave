@@ -7794,23 +7794,171 @@ func TestLivenessSettle(t *testing.T) {
 		requireAudit(t, v, 0)
 	})
 
-	t.Run("copied put past Open", func(t *testing.T) {
+	// requireReopened checks that the copied put of name moved the Volume
+	// back to Open with the block in the run and on the front, and that the
+	// Volume no longer assumes Settled.
+	requireReopened := func(t *testing.T, v *Volume, store kvtx.Store, tr testTree, name string) {
+		t.Helper()
+		if gen := livenessGeneration(t, v); gen != block_gc.Generation_GENERATION_OPEN {
+			t.Fatalf("the generation after the copied put of %s is %v, want Open", name, gen)
+		}
+		if !has(t, store, run, tr[name].Ref) || !has(t, store, front, tr[name].Ref) {
+			t.Fatalf("the reopening put left %s off the run or the front", name)
+		}
+		if settledWord(v.settled.load()) {
+			t.Fatal("the reopened Volume still assumes Settled")
+		}
+	}
+
+	t.Run("copied put while Sweeping", func(t *testing.T) {
 		// Once the generation flips, no walk is left to check a copied
-		// list: a copied put of a new block, and of the unmarked U, is
-		// refused, and the same put from content lands.
-		v, clk, _, tr := oldU(t, false)
+		// list: a copied put of a new block waits for the sweep to settle,
+		// then reopens the Volume, and the walk decodes it.
+		v, clk, store, tr := oldU(t, false)
 		collectUntil(t, v, clk, flipped)
 		tr.add(t, "N")
-		for _, name := range []string{"N", "U"} {
-			err := v.SetBucketRoots(t.Context(), "b", []*block.PutBatchEntry{copied(tr, name)}, []block.NamedRoot{{Name: name, Ref: tr[name].Ref}})
-			if !errors.Is(err, block.ErrRefsUnknown) {
-				t.Fatalf("copied put of %s err %v, want refused", name, err)
-			}
+		put := func(ctx context.Context) error {
+			return v.SetBucketRoots(ctx, "b", []*block.PutBatchEntry{copied(tr, "N")}, []block.NamedRoot{{Name: "n", Ref: tr["N"].Ref}})
+		}
+		ctx, cancel := context.WithTimeout(t.Context(), 50*time.Millisecond)
+		defer cancel()
+		if err := put(ctx); !errors.Is(err, context.DeadlineExceeded) {
+			t.Fatalf("copied put while Sweeping err %v, want it to wait", err)
+		}
+		if gen := livenessGeneration(t, v); gen != block_gc.Generation_GENERATION_SWEEPING {
+			t.Fatalf("the generation after the waiting put is %v, want Sweeping", gen)
 		}
 		requireStored(t, v, tr, false, "N")
-		if err := rootOnto(t, v, tr, "N", "N"); err != nil {
+
+		// The put lands once the sweep settles.
+		done := make(chan error, 1)
+		go func() { done <- put(t.Context()) }()
+		collectUntil(t, v, clk, settled)
+		select {
+		case err := <-done:
+			if err != nil {
+				t.Fatal(err)
+			}
+		case <-time.After(10 * time.Second):
+			t.Fatal("the copied put still waits after the sweep settled")
+		}
+		requireReopened(t, v, store, tr, "N")
+		settleAll(t, v, clk, store, tr)
+		requireReads(t, v, tr, "N")
+		requireAudit(t, v, 0)
+	})
+
+	t.Run("reopen by a copied list lacking a child the sweep freed", func(t *testing.T) {
+		// The sweep frees the unreached U -> K. A copied put of U lacking K
+		// reopens the Volume. The walk decodes U and pushes the absent K,
+		// which no read resolves, so the Volume stays Open and frees
+		// nothing while U holds K; a put of K from content lets it settle.
+		v, clk, store, tr := oldU(t, false)
+		settleAll(t, v, clk, store, tr)
+		requireStored(t, v, tr, false, "U", "K")
+		if err := v.SetBucketRoots(t.Context(), "b", []*block.PutBatchEntry{copied(tr, "U")}, []block.NamedRoot{{Name: "u", Ref: tr["U"].Ref}}); err != nil {
 			t.Fatal(err)
 		}
+		requireReopened(t, v, store, tr, "U")
+		verify(t, v, tr, "U")
+		if !has(t, store, front, tr["K"].Ref) {
+			t.Fatal("the walk of U left the absent K off the front")
+		}
+		for range 4 {
+			if livenessAdoption(t, v) == block_gc.Adoption_ADOPTION_UNADOPTED {
+				if _, err := v.Adopt(t.Context()); err != nil {
+					t.Fatal(err)
+				}
+			}
+			clk.Add(block_gc.DefaultGrace + time.Second)
+			if res := collectAll(t, v); res.Flipped || res.Freed != 0 {
+				t.Fatalf("collect while U holds the absent K = %+v, want no flip and no free", res)
+			}
+		}
+		requireStored(t, v, tr, true, "U")
+		if err := v.SetBucketRoots(t.Context(), "b", tr.entries("K"), nil); err != nil {
+			t.Fatal(err)
+		}
+		if has(t, store, front, tr["K"].Ref) {
+			t.Fatal("K born from content stayed on the front, which would hold the flip")
+		}
+		settleAll(t, v, clk, store, tr)
+		requireReads(t, v, tr, "U", "K")
+		requireAudit(t, v, 0)
+	})
+
+	t.Run("reopen by a copied child of a parent that landed first", func(t *testing.T) {
+		// While Settled, R lands from content before its child H, and a
+		// root names R. A copied put of H lacking the stored X, which
+		// nothing else holds, reopens the Volume. No root or down names H,
+		// so only H's front entry makes the walk decode it: without it the
+		// flip counts H's copied list and the sweep frees X, which H names.
+		store := store_kvtx_inmem.NewStore()
+		v, clk := openLivenessVolume(t, store, true)
+		observePuts(v)
+		tr := testTree{}
+		tr.add(t, "X")
+		tr.add(t, "H", "X")
+		tr.add(t, "R", "H")
+		if _, err := v.PutBlockBatch(t.Context(), tr.entries("X", "R")); err != nil {
+			t.Fatal(err)
+		}
+		if err := v.SetBucketRoots(t.Context(), "b", []*block.PutBatchEntry{copied(tr, "H")}, []block.NamedRoot{{Name: "main", Ref: tr["R"].Ref}}); err != nil {
+			t.Fatal(err)
+		}
+		requireReopened(t, v, store, tr, "H")
+		settleAll(t, v, clk, store, tr)
+		requireReads(t, v, tr, "R", "H", "X")
+		requireAudit(t, v, 0)
+	})
+
+	t.Run("reopen by a copied list lacking a stored child, then a restart", func(t *testing.T) {
+		// A Settled Volume with frees off stores K, which nothing holds. A
+		// copied put of P lacking K reopens it, and it restarts with frees
+		// on, reopened. The recount finds K at zero, and the free parks it
+		// until the walk decodes P. P's list then gains K, a rewrite the
+		// flip recounts before it flips, and K stays.
+		store := store_kvtx_inmem.NewStore()
+		v, _ := openLivenessVolume(t, store, false)
+		if gen := livenessGeneration(t, v); gen != block_gc.Generation_GENERATION_SETTLED {
+			t.Fatalf("a new Volume's generation is %v, want Settled", gen)
+		}
+		observePuts(v)
+		tr := testTree{}
+		tr.add(t, "K")
+		tr.add(t, "P", "K")
+		if _, err := v.PutBlockBatch(t.Context(), tr.entries("K")); err != nil {
+			t.Fatal(err)
+		}
+		if err := v.SetBucketRoots(t.Context(), "b", []*block.PutBatchEntry{copied(tr, "P")}, []block.NamedRoot{{Name: "main", Ref: tr["P"].Ref}}); err != nil {
+			t.Fatal(err)
+		}
+		requireReopened(t, v, store, tr, "P")
+		if !v.hidesNone.Load() || settledWord(v.settled.load()) {
+			t.Fatal("a reopen with frees off left reads hiding blocks or the Volume Settled")
+		}
+		if err := v.Close(); err != nil {
+			t.Fatal(err)
+		}
+
+		// Restart with frees on: the Volume opens reopened, and frees park.
+		v2, clk := openLivenessVolume(t, store, true)
+		requireReopened(t, v2, store, tr, "P")
+		waitAdopted(t, v2)
+		for range 3 {
+			clk.Add(block_gc.DefaultGrace + time.Second)
+			if res := collectAll(t, v2); res.Flipped || res.Freed != 0 {
+				t.Fatalf("collect before the walk = %+v, want no flip and no free", res)
+			}
+		}
+		requireStored(t, v2, tr, true, "K", "P")
+
+		// The walk rewrites P's list to name K, and the flip recounts first.
+		if res := settleAll(t, v2, clk, store, tr); !res.Unadopted || res.Freed != 0 {
+			t.Fatalf("settle = %+v, want the rewrite recounted and nothing freed", res)
+		}
+		requireReads(t, v2, tr, "P", "K")
+		requireAudit(t, v2, 0)
 	})
 
 	for _, marked := range []bool{true, false} {

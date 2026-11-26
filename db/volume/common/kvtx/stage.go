@@ -414,10 +414,24 @@ func nextCut(cuts []bool, s, want int) int {
 }
 
 // landStaged stores entries under the open stage and moves the stage's roots
-// in one transaction, then records the moves. It returns how long the
-// transaction held the writer. A root the stage's record holds that the table
-// no longer does refuses the put, and the stage is lost.
+// in one transaction, once the Volume no longer sweeps, then records the
+// moves. It returns how long the last transaction held the writer. A root the
+// stage's record holds that the table no longer does refuses the put, and the
+// stage is lost.
 func (v *Volume) landStaged(ctx context.Context, stage string, entries []*block.PutBatchEntry) ([]bool, time.Duration, error) {
+	var existed []bool
+	var hold time.Duration
+	err := v.retrySwept(ctx, func() error {
+		var err error
+		existed, hold, err = v.landStagedOnce(ctx, stage, entries)
+		return err
+	})
+	return existed, hold, err
+}
+
+// landStagedOnce is one attempt of landStaged, reading the stage's roots
+// again.
+func (v *Volume) landStagedOnce(ctx context.Context, stage string, entries []*block.PutBatchEntry) ([]bool, time.Duration, error) {
 	// Land the entries with the moves that hold them.
 	names := newStageNames(stage, entries)
 	held, err := v.stageHeld(ctx, stage, names)

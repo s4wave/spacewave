@@ -1,7 +1,6 @@
 package kvtx
 
 import (
-	"errors"
 	"strconv"
 	"strings"
 	"testing"
@@ -15,9 +14,9 @@ import (
 // TestFlowsCountNewBlocksByPath proves each write path counts the blocks it
 // stored that the volume did not hold, so the flows name the caller that grows
 // the storage, and its puts of blocks the volume held. On a settled Volume each
-// path refuses a new block written without its references, and a fill drops
-// one; either stores nothing for it and counts it, and the path logs its first
-// caller once.
+// path stores a new block written without its references, the first reopening
+// the Volume, and a fill drops one, storing nothing and counting it; the path
+// logs its first caller once.
 func TestFlowsCountNewBlocksByPath(t *testing.T) {
 	// A direct write counts once, and writing the same block again counts as
 	// existing.
@@ -84,8 +83,8 @@ func TestFlowsCountNewBlocksByPath(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Each path but the fill refuses a block without its child list, and the
-	// fill drops it.
+	// Each path but the fill stores a block without its child list as a
+	// copied block, and the fill drops it.
 	unknown := func(path string) []byte { return []byte("unknown " + path) }
 	unknownEntry := func(path string) *block.PutBatchEntry {
 		ref, err := block.BuildBlockRef(unknown(path), nil)
@@ -94,7 +93,7 @@ func TestFlowsCountNewBlocksByPath(t *testing.T) {
 		}
 		return &block.PutBatchEntry{Ref: ref, Data: unknown(path)}
 	}
-	refused := unknownEntry("batch")
+	copiedBatch := unknownEntry("batch")
 	roots := unknownEntry("roots")
 	puts := map[string]func() error{
 		"direct": func() error {
@@ -102,7 +101,7 @@ func TestFlowsCountNewBlocksByPath(t *testing.T) {
 			return err
 		},
 		"batch": func() error {
-			return putBatch(ctx, v, []*block.PutBatchEntry{refused})
+			return putBatch(ctx, v, []*block.PutBatchEntry{copiedBatch})
 		},
 		"owned": func() error {
 			_, _, err := v.PrepareOwnedBlock(ctx, "bucket", unknown("owned"), nil)
@@ -117,11 +116,11 @@ func TestFlowsCountNewBlocksByPath(t *testing.T) {
 		},
 	}
 	for path, put := range puts {
-		if err := put(); !errors.Is(err, block.ErrRefsUnknown) {
-			t.Fatalf("path %s put without references = %v; want refused", path, err)
+		if err := put(); err != nil {
+			t.Fatalf("path %s put without references = %v; want it stored", path, err)
 		}
-		if found, err := v.GetBlockExists(ctx, unknownEntry(path).Ref); err != nil || found {
-			t.Fatalf("path %s stored its refused block: %v %v", path, found, err)
+		if found, err := v.GetBlockExists(ctx, unknownEntry(path).Ref); err != nil || !found {
+			t.Fatalf("path %s left its copied block unstored: %v %v", path, found, err)
 		}
 	}
 	if _, _, err := v.PrepareOwnedBlock(ctx, "bucket", unknown("fill"), &block.PutOpts{CacheFill: true}); err != nil {
@@ -131,14 +130,15 @@ func TestFlowsCountNewBlocksByPath(t *testing.T) {
 		t.Fatalf("the fill stored its dropped block: %v %v", found, err)
 	}
 
-	// Each path reports exactly its own blocks, its repeated puts and one
-	// refusal, or the fill's one drop.
+	// Each path reports exactly its own blocks and its repeated puts, or the
+	// fill's one drop.
+	size := func(path string) uint64 { return uint64(len(unknown(path))) }
 	want := []volume.PutFlow{
-		{Path: "direct", Blocks: 2, Bytes: uint64(len(direct) + len(batch[0].Data)), Existing: 2, Refused: 2},
-		{Path: "owned", Blocks: 1, Bytes: uint64(len(owned)), Refused: 1},
+		{Path: "direct", Blocks: 4, Bytes: uint64(len(direct)+len(batch[0].Data)) + size("direct") + size("batch"), Existing: 2},
+		{Path: "owned", Blocks: 2, Bytes: uint64(len(owned)) + size("owned")},
 		{Path: "fill", Blocks: 1, Bytes: uint64(len(fill)), Existing: 1, Dropped: 1},
-		{Path: "staged", Blocks: 2, Bytes: uint64(staged), Refused: 1},
-		{Path: "roots", Blocks: 1, Bytes: uint64(len(rootData)), Refused: 1},
+		{Path: "staged", Blocks: 3, Bytes: uint64(staged) + size("staged")},
+		{Path: "roots", Blocks: 2, Bytes: uint64(len(rootData)) + size("roots")},
 	}
 	flows := v.GetFlows()
 	if flows.VolumeID != v.GetID() || len(flows.Puts) != len(want) {

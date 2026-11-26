@@ -159,10 +159,14 @@ const (
 //     block gains no child, so the holders the list gives stay as they were.
 //     Its count is then absent, the implied holder; with no holder in the
 //     batch, the down appendLogs logs nets it to zero, which queues it.
-//  4. A copied entry of a recorded hole, and one of a block hidden or
-//     without a list past Open, refuses the Land with block.ErrRefsUnknown:
-//     no walk is left to check a copied list, and only content refills a
-//     hole.
+//  4. A copied entry of a recorded hole refuses the Land with
+//     block.ErrRefsUnknown, since only content refills a hole. While
+//     Sweeping, a copied entry of a block hidden or without a list refuses
+//     it with ErrSweeping, since no walk is left to check a copied list.
+//  5. While Settled, a copied entry of a block without a list moves the
+//     generation back to Open in the same transaction, through
+//     Records.reopen, and is then born as in invariant 2: from the commit
+//     on every free parks until a walk decodes the block.
 //
 // A Volume that is not adopted keeps no logs: Land writes the child lists
 // and roots and appends nothing, and an adoption counts every holder from
@@ -431,6 +435,12 @@ func (l *lander) checkLease(ctx context.Context, id string) error {
 	return nil
 }
 
+// ErrSweeping is returned by Land for a copied put of a block the Volume
+// does not store while it sweeps: no walk is left to check the copied list
+// before the flip, and a reopen then could undo a sweep in progress. It wraps
+// block.ErrRefsUnknown; the writer retries once the generation moves.
+var ErrSweeping = errors.Wrap(block.ErrRefsUnknown, "the volume is sweeping")
+
 // putEntries stores the entries' bytes and the child lists of the blocks
 // they give birth to, and evicts the tombstones' bytes.
 func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
@@ -457,8 +467,31 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 			b := &bornBlock{ref: entry.Ref, repark: true, keep: true}
 			l.born[key] = b
 			l.order = append(l.order, b)
-		case copied && l.gen != Generation_GENERATION_OPEN:
-			return errors.Wrapf(block.ErrRefsUnknown, "copied put of %s past the open generation", entry.Ref.MarshalString())
+		case copied && l.gen == Generation_GENERATION_SWEEPING:
+			return errors.Wrapf(ErrSweeping, "copied put of %s", entry.Ref.MarshalString())
+		case copied && l.gen == Generation_GENERATION_SETTLED:
+			// Reopen the Volume, then store the block as an Open Volume does.
+			// The reopen keeps these invariants, which Records.reopen
+			// details:
+			//  - No free deletes a block a holder reaches through a copied
+			//    list: the generation is Open from this transaction's commit,
+			//    so every free parks, and the Volume flips only after a walk
+			//    decodes this block from the front.
+			//  - A Settled Volume has no run, front, park or unmarked count,
+			//    so the reopen writes only the generation and the run's
+			//    completeness, and the block's birth through putCopied
+			//    writes the rest exactly as it would on a Volume Open all
+			//    along.
+			//  - A child the copied list lacks, freed under Settled, is the
+			//    one state an Open Volume never reaches: the walk finds it
+			//    absent and keeps it on the front, and the flip waits on it
+			//    as on any block a read may still fill.
+			if err := l.rec.reopen(ctx, l.state); err != nil {
+				return err
+			}
+			l.gen = Generation_GENERATION_OPEN
+			l.dirty = true
+			fallthrough
 		default:
 			b := &bornBlock{
 				ref:      entry.Ref,
@@ -561,6 +594,16 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 		}
 		if err != nil {
 			return nil, err
+		}
+		// A block born from content while Open leaves the front, where a
+		// walk that found it absent pushed it: the walk skips a marked
+		// list, and the pop never proves a block its holders hold, so the
+		// entry would hold the flip for good. holdOutside pushed its
+		// unverified children.
+		if !b.copied && !b.keep && l.gen == Generation_GENERATION_OPEN {
+			if err := l.rec.tx.Delete(ctx, l.rec.key(kindFront, BlockKey(b.ref))); err != nil {
+				return nil, err
+			}
 		}
 		if l.adopting && !b.keep {
 			if err := l.rec.tx.Set(ctx, l.rec.key(kindAdoptBorn, BlockKey(b.ref)), nil); err != nil {
@@ -1310,9 +1353,12 @@ func (l *lander) requireMoveHeld(ctx context.Context, move BucketRoots, held []*
 //  3. A put proves the block's own bytes, never its children: a block the
 //     batch stores, born or put again, may have been Dead with its children
 //     freed. So the requirement follows the batch down to its boundary, and
-//     the walk reads nothing for a block the batch stores. A boundary block
-//     may read at zero, since netting adds the holders a revival gives it
-//     only once its record is Grace old; an open stage then proves it, as
+//     the walk reads nothing for a block the batch stores. It walks the
+//     entries' refs as their children, which only RefsKnown proves; the
+//     admit's batch holds only its HeldRoots block, encoded from content
+//     with RefsKnown, so no copied entry's refs reach the walk. A boundary
+//     block may read at zero, since netting adds the holders a revival gives
+//     it only once its record is Grace old; an open stage then proves it, as
 //     every stage put lands a block's children before the block, with its
 //     stage roots, so a block a stage root holds is stored whole. Any open
 //     stage of the process is proof, not only the writer's. staged reads the

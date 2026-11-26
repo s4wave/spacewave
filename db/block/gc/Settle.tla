@@ -5,7 +5,8 @@
 \* list that lacks a child, so a count drawn from it misses a holder. Under
 \* hold until free a block's count is exact against the lists, as
 \* Liveness.tla proves, so the settle's whole question is which lists to
-\* trust. The generation moves Open, Sweeping, Settled and never back.
+\* trust. The generation moves Open, Sweeping, Settled, and a copied write
+\* of a block a Settled Volume lacks moves it back to Open.
 \*
 \* While Open nothing is deleted: the free parks each block at zero, and a
 \* parked block reads absent. Seeding pushes each unverified block a root
@@ -39,9 +40,19 @@
 \* proof, so the put never marks it. While Open it lands as an old block:
 \* not stored, it is stored with the unverified list and enters the run;
 \* parked, it leaves the park with its list and returns to the front; a
-\* marked one takes the put as a put from content does. Past Open it is
-\* refused unless the block's list is marked. short holds the blocks whose
-\* marked list is a copied one, which only a defect writes.
+\* marked one takes the put as a put from content does. While Settled, a
+\* block not stored lands the same way and reopens the generation: Settled
+\* holds no run, front or park, and every list is marked, so the run is
+\* complete and the roots seeded as they stand. While Sweeping it is refused
+\* unless the block's list is marked. short holds the blocks whose marked
+\* list is a copied one, which only a defect writes.
+\*
+\* A reopen differs from the first Open in one way: the sweep may already
+\* have freed a block that the copied list lacks, as k when h arrives cut.
+\* LiveStored then fails until the walk decodes the copied block and reads
+\* the child back through a peer, so a reopened generation is checked with
+\* SettledLive. With no peer holding the child, Lost, the child stays on the
+\* front while held and the generation never settles again.
 \*
 \* The spec does not represent three things. Holes: an audit's recorded
 \* hole, which a copied put refuses and only a put from content refills.
@@ -50,7 +61,12 @@
 \* a CopyWrite names: the spec requires each present, where Land refuses
 \* only a hidden one and lets an absent one join later, as a born block's
 \* child does; a copied list's children hold as Land's holdChildren counts
-\* them, which Liveness.tla covers.
+\* them, which Liveness.tla covers. Put likewise requires its children
+\* present, so while Settled no stored list names a block the Volume lacks,
+\* and the front entry of a reopening copied write changes nothing here:
+\* any later holder pushes the block itself. Land lets a parent land
+\* before its child, and that entry then holds the flip until the walk
+\* decodes the copied block; the Volume's run-through covers it.
 \*
 \* Counts here are derived from the stored lists, which hold until free
 \* makes exact; Liveness.tla models how the logs keep them. Callers found
@@ -63,7 +79,7 @@ EXTENDS Naturals, FiniteSets
 CONSTANTS
   MaxTxns,  \* bounds the Land transactions, so the model is finite
   Upgrade,  \* whether the format upgrade may run
-  Lost      \* whether no read resolves the absent block h
+  Lost      \* the blocks no read resolves once the Volume lacks them
 
 \* r is the root's block; a's old list was cut and lacks b; g is an old,
 \* unreachable block whose list was cut too; n is a block a writer may write;
@@ -183,8 +199,9 @@ MarkCopied(V) ==
 \* A block whose list is marked takes it as a put from content does, and a
 \* stored one keeps its list. While Open, a block not stored is stored with
 \* the copied list unverified and enters the run and the front, and a parked
-\* one leaves the park with its list and returns to the front. Past Open, a
-\* block that reads absent is refused.
+\* one leaves the park with its list and returns to the front. While
+\* Settled, a block not stored lands as while Open and reopens the
+\* generation. While Sweeping, a block that reads absent is refused.
 CopyWrite(b) ==
   /\ txns < MaxTxns
   /\ \A k \in Cut[b] : Present(k)
@@ -199,6 +216,13 @@ CopyWrite(b) ==
             /\ front' = front \cup {b}
             /\ txns' = txns + 1
             /\ UNCHANGED <<gen, verified, short, seeded, complete, parked, unmarked, root, fmt>>
+       [] gen = "settled" /\ b \notin stored ->
+            /\ stored' = stored \cup {b}
+            /\ run' = run \cup {b}
+            /\ front' = front \cup {b}
+            /\ gen' = "open"
+            /\ txns' = txns + 1
+            /\ UNCHANGED <<verified, short, seeded, complete, parked, unmarked, root, fmt>>
        [] gen = "open" /\ b \in parked /\ b \notin verified ->
             /\ parked' = parked \ {b}
             /\ front' = front \cup {b}
@@ -226,7 +250,7 @@ Walk(b) ==
   /\ \/ /\ b \in stored /\ ~Hidden(b)
         /\ Verify({b})
         /\ UNCHANGED stored
-     \/ /\ gen = "open" /\ b \notin stored /\ ~(Lost /\ b = "h")
+     \/ /\ gen = "open" /\ b \notin stored /\ b \notin Lost
         /\ stored' = stored \cup {b}
         /\ Verify({b})
      \/ /\ Hidden(b) \/ Count(b) = 0
@@ -322,6 +346,10 @@ SelfRetiring ==
   gen = "settled" =>
     /\ stored \subseteq verified
     /\ front = {} /\ run = {} /\ parked = {} /\ unmarked = {}
+
+\* Once Settled again every block the root reaches is stored: the walk of a
+\* reopened generation brought back what a copied list lacked.
+SettledLive == gen = "settled" => LiveStored
 
 \* The settle finishes once the writers stop.
 EventuallySettled == <>(gen = "settled")

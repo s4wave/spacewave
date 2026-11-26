@@ -56,6 +56,9 @@ type Volume struct {
 	statsFn StatsFn
 	// statsBcast wakes watchers when storage stats may have changed.
 	statsBcast broadcast.Broadcast
+	// genBcast wakes writers waiting for the generation to move, as
+	// retrySwept describes.
+	genBcast broadcast.Broadcast
 	// closeFn is the close func, may be nil.
 	closeFn func() error
 	// deleteFn removes the backing store after Close, may be nil.
@@ -63,14 +66,15 @@ type Volume struct {
 	// collector frees what no held named root reaches, nil without atomic
 	// commits.
 	collector *block_gc.Collector
-	// settled is set once a transaction saw the Volume's old generation
-	// Settled, which is final, so later transactions read no state to learn
-	// it and reads hide no block, as hideAbsent describes.
-	settled atomic.Bool
+	// settled caches that the Volume's generation is Settled, so later
+	// transactions read no state to learn it and reads hide no block, as
+	// hideAbsent describes. A reopen clears it, as settledFlag describes.
+	settled settledFlag
 	// hidesNone is set when the Volume opened Open with frees off and no
-	// parked block: only a free parks a block and only the settle moves
-	// the generation on, and both run only with frees on, so no read hides a
-	// block until the Volume opens again, as hideAbsent describes.
+	// parked block, or a reopen committed with frees off: only a free parks
+	// a block and only the settle moves the generation on, and both run only
+	// with frees on, so no read hides a block until the Volume opens again,
+	// as hideAbsent describes.
 	hidesNone atomic.Bool
 	// adoptMu runs one adoption of this Volume at a time.
 	adoptMu sync.Mutex
@@ -368,7 +372,9 @@ func (v *Volume) ReadLiveness(ctx context.Context) (*block_gc.LivenessState, boo
 // Volume parked any block. A read-only Volume only reads the liveness state.
 func (v *Volume) startLiveness(ctx context.Context, state *block_gc.LivenessState, parked bool) error {
 	// Record whether the Volume settled and hides no block.
-	v.settled.Store(state.GetGeneration() == block_gc.Generation_GENERATION_SETTLED)
+	if state.GetGeneration() == block_gc.Generation_GENERATION_SETTLED {
+		v.settled.set(v.settled.load())
+	}
 	v.hidesNone.Store(!v.readOnly && !v.collector.Frees() &&
 		state.GetGeneration() == block_gc.Generation_GENERATION_OPEN && !parked)
 

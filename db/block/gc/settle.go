@@ -16,7 +16,8 @@ import (
 // from a cut list misses a holder, so a free could take a block a live block
 // still names. The settle proves which old blocks are live before anything
 // frees. The generation, in the state record, moves Open, Sweeping,
-// Settled, and never back.
+// Settled, and a copied put of a block a Settled Volume does not store moves
+// it back to Open, as Records.reopen describes.
 //
 // A list is young or verified when it was written from its block's content:
 // by a Land or a refill, or by the typed walk, which decodes the block. Its
@@ -229,6 +230,52 @@ func (r *Records) putCopied(ctx context.Context, ref *block.BlockRef, children [
 		return err
 	}
 	return r.tx.Set(ctx, r.key(kindFront, key), nil)
+}
+
+// reopen moves a Settled Volume back to Open for a copied put of a block it
+// does not store, which Records.putCopied then writes, in the same
+// transaction, and sets state, which the caller writes. The reopened Volume
+// is one that was Open all along with the copied block in it:
+//
+//   - Settled holds no run, front, park, unmarked count or pop mark: the
+//     sweep deleted every unmarked block, the flip moved every parked block
+//     to the free queue and deleted the pop mark, and the settle's last step
+//     deleted the run. Every list is marked, since while Sweeping and
+//     Settled no writer stores an unmarked one. So the only unverified list
+//     is the copied block's, which putCopied enters in the run, and reopen
+//     writes the run's completion entry: the run is complete, as the build
+//     would find it.
+//   - The front needs only the copied block, which putCopied pushes even
+//     when a stored parent already names it: Land lets a parent land before
+//     its child and pushes nothing while Settled, so without that entry no
+//     seed or walk would reach the block before the flip unmarked it under
+//     its parent. Every other block a list names is marked or has no list,
+//     and one with no list is a block the Volume lacks, which needs no walk
+//     until a put stores it: from content it is born marked, and copied it
+//     enters the run and the front as this one does. The collector seeds the
+//     front again from the roots and downs, as Collector.restartSettle
+//     describes.
+//   - A child the copied list lacks may have been freed while Settled: that
+//     is the reopen's one difference from the first Open, which came from an
+//     adoption before any free. The walk decodes the copied block and reads
+//     such a child back through the full read chain, and while it reads
+//     absent and held it stays on the front and holds the flip, so no list
+//     it would give is cut short again. With no peer holding the child the
+//     Volume stays Open and every free parks, until a put stores it.
+//   - Every free from the commit on parks, and the free queue it reads is
+//     the one Settled left: a queued block parks, enters the run, and waits
+//     for the flip.
+//   - The adoption, its grace clock (LivenessState.AdoptAtUnixMilli), the
+//     logs and their cursors, a paged release in progress, the recorded
+//     holes and a pending recount (kindRewritten) are not the settle's and
+//     stay: the flip waits on the grace, the release, every hole and the
+//     recount as it does for a Volume Open all along.
+//
+// Cost: one write beside the state, once per reopen.
+func (r *Records) reopen(ctx context.Context, state *LivenessState) error {
+	state.Generation = Generation_GENERATION_OPEN
+	r.genKnown, r.gen, r.moved = true, Generation_GENERATION_OPEN, true
+	return r.tx.Set(ctx, r.key(kindUnmarked, runComplete), nil)
 }
 
 // keepParked finishes a copied put of the parked block at key, after
@@ -901,10 +948,21 @@ func (c *Collector) dropRunSlice(ctx context.Context, rec *Records, res *Collect
 	if err := rec.tx.Delete(ctx, rec.key(kindUnmarked, runComplete)); err != nil {
 		return from, false, err
 	}
-	c.sweptRun = false
+	c.restartSettle()
 	state.Generation = Generation_GENERATION_SETTLED
 	res.Settled = true
 	return from, false, rec.SetState(ctx, state)
+}
+
+// restartSettle forgets the settle's positions once the Volume settles, so
+// a Volume a copied put reopens builds, seeds and scans its front from the
+// start, as at the collector's start. A position kept from the generation
+// before would skip work: a seeding done then names no block a copied put
+// stored since, and a finished sweep pass would drop the next run unswept.
+func (c *Collector) restartSettle() {
+	c.runFrom, c.sweptRun = nil, false
+	c.seedRoot, c.seedDown, c.seededRoots, c.seeded = nil, 0, false, false
+	c.front = frontPos{}
 }
 
 // runEntries returns the block keys of up to a slice of base run entries

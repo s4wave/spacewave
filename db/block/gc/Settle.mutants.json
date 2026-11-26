@@ -168,8 +168,8 @@
     "name": "a copied put while Open does not enter the run",
     "replace": [
       [
-        "            /\\ run' = run \\cup {b}\n            /\\ front' = front \\cup {b}\n",
-        "            /\\ run' = run\n            /\\ front' = front \\cup {b}\n"
+        "            /\\ run' = run \\cup {b}\n            /\\ front' = front \\cup {b}\n            /\\ txns' = txns + 1\n            /\\ UNCHANGED <<gen,",
+        "            /\\ run' = run\n            /\\ front' = front \\cup {b}\n            /\\ txns' = txns + 1\n            /\\ UNCHANGED <<gen,"
       ]
     ],
     "expect": "SelfRetiring",
@@ -196,5 +196,38 @@
     ],
     "expect": "LiveStored",
     "config": "Settle.cfg"
+  },
+  {
+    "name": "a reopening copied put does not enter the run",
+    "replace": [
+      [
+        "            /\\ run' = run \\cup {b}\n            /\\ front' = front \\cup {b}\n            /\\ gen' = \"open\"",
+        "            /\\ run' = run\n            /\\ front' = front \\cup {b}\n            /\\ gen' = \"open\""
+      ]
+    ],
+    "expect": "SelfRetiring",
+    "config": "Settle-reopen.cfg"
+  },
+  {
+    "name": "a reopening copied put leaves the generation Settled",
+    "replace": [
+      [
+        "            /\\ front' = front \\cup {b}\n            /\\ gen' = \"open\"\n",
+        "            /\\ front' = front \\cup {b}\n            /\\ gen' = gen\n"
+      ]
+    ],
+    "expect": "SelfRetiring",
+    "config": "Settle-reopen.cfg"
+  },
+  {
+    "name": "a copied put while Sweeping reopens the generation",
+    "replace": [
+      [
+        "       [] gen = \"settled\" /\\ b \\notin stored ->",
+        "       [] gen \\in {\"settled\", \"sweeping\"} /\\ b \\notin stored ->"
+      ]
+    ],
+    "expect": "HeldPresent",
+    "config": "Settle-reopen.cfg"
   }
 ]

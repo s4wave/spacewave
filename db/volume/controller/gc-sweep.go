@@ -137,7 +137,9 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 				}
 			}
 		}
-		if res.More {
+		// Run the next pass at once while work is left, and after a flip,
+		// so the sweep that writers of copied blocks wait on starts now.
+		if res.More || res.Flipped {
 			timer.Reset(0)
 		} else {
 			timer.Reset(interval)

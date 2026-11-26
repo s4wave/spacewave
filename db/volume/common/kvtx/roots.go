@@ -29,23 +29,20 @@ func OpenRecords(tx kvtx.TxOps) *block_gc.Records {
 
 // readRecords runs fn over the liveness records in one read snapshot.
 func (v *Volume) readRecords(ctx context.Context, fn func(rec *block_gc.Records) error) error {
-	// Open a read snapshot and run fn over its records.
+	// Read the settled cache before the snapshot opens, so an assumed
+	// Settled is never newer than the snapshot, then run fn over its records.
+	// Only a write sets the cache, as settledFlag describes.
+	settled := settledWord(v.settled.load())
 	tx, err := v.kvtxStore.NewTransaction(ctx, false)
 	if err != nil {
 		return err
 	}
 	defer tx.Discard()
 	rec := block_gc.NewRecords(tx, livenessPrefix)
-	if v.settled.Load() {
+	if settled {
 		rec.AssumeSettled()
 	}
-	if err := fn(rec); err != nil {
-		return err
-	}
-	if rec.Settled() {
-		v.settled.Store(true)
-	}
-	return nil
+	return fn(rec)
 }
 
 // GetChildren returns the child list of a stored block and whether it is
@@ -162,13 +159,16 @@ func (v *Volume) SetBucketRoots(ctx context.Context, bucketID string, entries []
 		}
 	}
 
-	// Store the entries and move the roots in one transaction.
+	// Store the entries and move the roots in one transaction, once the
+	// Volume no longer sweeps.
 	v.noteUnknownRefsBatch(putRoots, entries)
 	var existed []bool
-	err := v.withDirectPlain(ctx, func(p *physicalTx) error {
-		var err error
-		existed, err = v.land(ctx, p, bucketID, entries, roots)
-		return err
+	err := v.retrySwept(ctx, func() error {
+		return v.withDirectPlain(ctx, func(p *physicalTx) error {
+			var err error
+			existed, err = v.land(ctx, p, bucketID, entries, roots)
+			return err
+		})
 	})
 
 	// Count the blocks the committed entries stored, or the refusal.

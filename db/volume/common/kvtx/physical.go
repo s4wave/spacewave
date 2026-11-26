@@ -45,6 +45,9 @@ type physicalTx struct {
 	blocks *txBlocks
 	// rec are the liveness records in tx.
 	rec *block_gc.Records
+	// settled is the Volume's settled word when tx opened, which a commit
+	// that saw the Volume Settled sets, as settledFlag describes.
+	settled uint64
 }
 
 // openPhysical opens a write transaction of the Volume's store. A BlockDomain
@@ -63,7 +66,8 @@ func (v *Volume) openPhysical(ctx context.Context) (*physicalTx, error) {
 		return nil, err
 	}
 	p.rec = block_gc.NewRecords(recTx, livenessPrefix)
-	if v.settled.Load() {
+	p.settled = v.settled.load()
+	if settledWord(p.settled) {
 		p.rec.AssumeSettled()
 	}
 
