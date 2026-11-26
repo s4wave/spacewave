@@ -71,7 +71,7 @@ func TestRequestRechecksAuthorityAtWriteSlot(t *testing.T) {
 	if err := remote.RecvMsg(&response); err != nil {
 		t.Fatal(err)
 	}
-	if response.GetFound() || len(response.GetData()) != 0 || len(response.GetRefs()) != 0 || !strings.Contains(response.GetError(), "access denied") {
+	if response.GetFound() || len(response.GetData()) != 0 || len(response.GetRefs()) != 0 || !response.GetDenied() || !strings.Contains(response.GetError(), "access denied") {
 		t.Fatalf("revoked queued response = %v", &response)
 	}
 

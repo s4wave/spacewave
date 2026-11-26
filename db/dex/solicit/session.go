@@ -505,7 +505,7 @@ func prepareSend(q *queuedSend) (preparedSend, error) {
 			p.msg = deniedResponse(q.msg.GetRequestId(), err)
 			p.closeOnCancel = true
 		} else if err = context.Cause(q.requestCtx); err != nil {
-			p.msg = &DexMessage{RequestId: q.msg.GetRequestId(), IsResponse: true, Error: err.Error()}
+			p.msg = deniedResponse(q.msg.GetRequestId(), err)
 		}
 	}
 	return p, nil
