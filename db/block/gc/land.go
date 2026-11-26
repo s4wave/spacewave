@@ -51,11 +51,13 @@ type NotHeldReason uint8
 
 const (
 	// NotHeldRoot is the block the root moves onto, which the batch does not
-	// store: a repeat that stores the tree again in its batch lands.
+	// store, or stores only through a copied entry: a repeat that stores the
+	// tree again in its batch, from content, lands.
 	NotHeldRoot NotHeldReason = iota
 	// NotHeldChild is a child outside the batch of a block the batch stores:
-	// one the writer stored in an earlier batch, or never did. Land cannot
-	// tell which, so a repeat lands only if it stores the child again.
+	// one the writer stored in an earlier batch, or never did, or one the
+	// batch stores only through a copied entry. Land cannot tell which, so a
+	// repeat lands only if it stores the child again, from content.
 	NotHeldChild
 	// NotHeldPut is a block the batch gives birth to and gives no holder: no
 	// root moves onto it, no block the batch stores names it, and its count
@@ -223,7 +225,7 @@ func Land(
 		gen:      state.GetGeneration(),
 		now:      now.UnixMilli(),
 		born:     make(map[string]*bornBlock),
-		touched:  make(map[string][]*block.BlockRef),
+		touched:  make(map[string]*block.PutBatchEntry),
 	}
 
 	// Check every root before writing anything.
@@ -355,8 +357,8 @@ type lander struct {
 	// leases caches whether each lease a root names is live at now.
 	leases map[string]bool
 	// touched maps the block keys of the entries already stored, each held
-	// as a born put is, to the refs each put names.
-	touched map[string][]*block.BlockRef
+	// as a born put is, to the last entry that put it.
+	touched map[string]*block.PutBatchEntry
 	// stored are the first entries of the blocks stored with a child list,
 	// whose lists markStored checks.
 	stored []*block.PutBatchEntry
@@ -461,12 +463,12 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 			return errors.Wrapf(block.ErrRefsUnknown, "copied put of the hole %s", entry.Ref.MarshalString())
 		case kind == putRefill:
 			l.refills = append(l.refills, entry)
-			l.touched[key] = entry.Refs
+			l.touched[key] = entry
 		case kind == putStored:
 			if !copied {
 				l.stored = append(l.stored, entry)
 			}
-			l.touched[key] = entry.Refs
+			l.touched[key] = entry
 		case copied && kind == putParked:
 			b := &bornBlock{ref: entry.Ref, repark: true, keep: true}
 			l.born[key] = b
@@ -1367,9 +1369,11 @@ func (l *lander) requireMoveHeld(ctx context.Context, move BucketRoots, held []*
 //     batch stores, born or put again, may have been Dead with its children
 //     freed. So the requirement follows the batch down to its boundary, and
 //     the walk reads nothing for a block the batch stores. It walks the
-//     entries' refs as their children, which only RefsKnown proves; the
-//     admit's batch holds only its HeldRoots block, encoded from content
-//     with RefsKnown, so no copied entry's refs reach the walk. A boundary
+//     entries' refs as their children, which only RefsKnown proves, so a
+//     block the batch stores only through a copied entry is not held: its
+//     refs prove nothing of its children, and its stored list may be one
+//     the settle has yet to check. The admit's batch holds only its
+//     HeldRoots block, encoded from content with RefsKnown. A boundary
 //     block may read at zero, since netting adds the holders a revival gives
 //     it only once its record is Grace old; an open stage then proves it, as
 //     every stage put lands a block's children before the block, with its
@@ -1391,12 +1395,17 @@ func (l *lander) requireMoveHeld(ctx context.Context, move BucketRoots, held []*
 // record read for each distinct boundary block, and staged's reads for one
 // not held.
 func (l *lander) requireTree(ctx context.Context, ref *block.BlockRef, staged stageHeld, notHeld func(NotHeldReason, *block.BlockRef) error) error {
-	// A root the batch does not store must be held itself.
-	if _, ok := l.carried(ref); !ok {
+	// A root the batch does not store must be held itself, and one it stores
+	// through a copied entry is not.
+	switch _, c := l.carried(ref); c {
+	case carryNone:
 		return l.requireHeld(ctx, ref, staged, NotHeldRoot, notHeld)
+	case carryCopied:
+		return notHeld(NotHeldRoot, ref)
 	}
 
-	// Walk the blocks the batch stores, requiring each boundary child held.
+	// Walk the blocks the batch stores from content, requiring each boundary
+	// child held.
 	walk := []*block.BlockRef{ref}
 	seen := map[string]struct{}{string(BlockKey(ref)): {}}
 	for len(walk) != 0 {
@@ -1411,9 +1420,16 @@ func (l *lander) requireTree(ctx context.Context, ref *block.BlockRef, staged st
 				continue
 			}
 			seen[key] = struct{}{}
-			if _, ok := l.carried(child); ok {
+			var err error
+			switch _, c := l.carried(child); c {
+			case carryKnown:
 				walk = append(walk, child)
-			} else if err := l.requireHeld(ctx, child, staged, NotHeldChild, notHeld); err != nil {
+			case carryCopied:
+				err = notHeld(NotHeldChild, child)
+			default:
+				err = l.requireHeld(ctx, child, staged, NotHeldChild, notHeld)
+			}
+			if err != nil {
 				return err
 			}
 		}
@@ -1421,15 +1437,46 @@ func (l *lander) requireTree(ctx context.Context, ref *block.BlockRef, staged st
 	return nil
 }
 
-// carried returns the children of ref when the batch stores it, born or put
-// again.
-func (l *lander) carried(ref *block.BlockRef) ([]*block.BlockRef, bool) {
+// carry is how a batch stores a block, as the held check reads it.
+type carry uint8
+
+const (
+	// carryNone is a block the batch does not store, or a copied put of a
+	// parked block, which keeps its stored list.
+	carryNone carry = iota
+	// carryKnown is a block the batch stores, born or put again, through an
+	// entry whose refs it read from content.
+	carryKnown
+	// carryCopied is a block the batch stores through a copied entry, whose
+	// refs prove nothing of its children.
+	carryCopied
+)
+
+// carried returns how the batch stores ref, and its children when it stores
+// it from content.
+func (l *lander) carried(ref *block.BlockRef) ([]*block.BlockRef, carry) {
+	// A born block carries its list unless the put keeps the stored one or
+	// copied it.
 	key := BlockKey(ref)
 	if b, ok := l.born[string(key)]; ok {
-		return b.children, !b.keep
+		switch {
+		case b.keep:
+			return nil, carryNone
+		case b.copied:
+			return nil, carryCopied
+		}
+		return b.children, carryKnown
 	}
-	children, ok := l.touched[string(key)]
-	return children, ok
+
+	// A block put again carries the refs of its last entry, if known.
+	entry, ok := l.touched[string(key)]
+	switch {
+	case !ok:
+		return nil, carryNone
+	case !entry.RefsKnown:
+		return nil, carryCopied
+	}
+	return entry.Refs, carryKnown
 }
 
 // requireHeld passes ref to notHeld for reason unless the records hold it or

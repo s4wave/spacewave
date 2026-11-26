@@ -4000,6 +4000,22 @@ func TestLivenessAdversarial(t *testing.T) {
 		requireNotHeld(t, v, tr, admit("P"))
 	})
 
+	t.Run("admit carrying P only through a copied entry", func(t *testing.T) {
+		// As (k), but the batch stores P through a copied entry whose refs
+		// omit the freed L, as a copy from a source that lost P's list
+		// would: P's refs prove nothing of its children, so the walk must
+		// not trust them, and the admit is refused whatever they say, both
+		// with P as H's child and as the root itself.
+		v, clk, tr, _ := newAdmitVolume(t, true)
+		buildAndRelease(t, v, clk, tr)
+		requireStored(t, v, tr, false, "P", "L")
+		p := &block.PutBatchEntry{Ref: tr["P"].Ref, Data: tr["P"].Data}
+		for _, root := range []string{"H", "P"} {
+			roots := []block.NamedRoot{{Name: "payloads", Ref: tr[root].Ref, Previous: tr["Q"].Ref, RequireHeld: true}}
+			requireNotHeld(t, v, tr, v.SetBucketRoots(t.Context(), "b", append(tr.entries("H"), p), roots))
+		}
+	})
+
 	t.Run("admit repeated with the tree in its batch", func(t *testing.T) {
 		// As (j), then the writer repeats the admit storing the whole tree in
 		// its batch, as ErrRootNotHeld promises: commits. The repeat moves
