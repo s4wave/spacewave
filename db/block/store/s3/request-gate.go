@@ -3,13 +3,16 @@
 package block_store_s3
 
 import (
+	"cmp"
+	"crypto/sha256"
+	"encoding/hex"
 	"slices"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/s4wave/spacewave/db/block/store/lanes"
+	"github.com/sirupsen/logrus"
 )
 
 // The gate's concurrency bounds. A service account, such as a Backblaze B2
@@ -20,20 +23,33 @@ const (
 	gateLanes = 256
 	// gateStart is the limit a new gate starts at.
 	gateStart = 128
-	// gateFloor is the lowest limit a throttle halves the gate to.
-	gateFloor = 4
 	// gateReserve is how many lanes of the limit refill and background
 	// requests leave for urgent and interactive ones.
 	gateReserve = 8
+	// gateCappedFloor is how many lanes refill and background requests,
+	// such as pack uploads and eviction confirms, may hold ahead of
+	// foreground ones, so they progress under any foreground load.
+	gateCappedFloor = 2
+	// gateFloor is the lowest limit a throttle halves the gate to: the
+	// reserve for foreground requests plus the capped floor.
+	gateFloor = gateReserve + gateCappedFloor
 	// gateDecreaseEvery is the least time between two halvings, so a burst
 	// of refusals of requests sent together counts as one signal.
 	gateDecreaseEvery = time.Second
-	// gateBackoffFirst is the pause after the first throttle of a run.
-	gateBackoffFirst = 500 * time.Millisecond
+	// gateBackoffFirst is the bound of the backoff after the first throttle
+	// of a run.
+	gateBackoffFirst = 250 * time.Millisecond
+	// gatePauseMin is the shortest pause a throttle starts, even right after
+	// a clean run reset the backoff.
+	gatePauseMin = 250 * time.Millisecond
+	// gateProbeEvery is how long a pause waits after its last throttle
+	// before it lets one urgent request through as a probe.
+	gateProbeEvery = time.Second
 )
 
-// gateBackoffMax caps the pause the backoff grows to.
-var gateBackoffMax = 30 * time.Second
+// gateBackoffMax caps the backoff, and with it a pause the service's
+// Retry-After does not lengthen.
+var gateBackoffMax = 8 * time.Second
 
 // RequestGate admits a service account's requests by read class and adapts
 // how many it keeps in flight to the service's throttling.
@@ -41,20 +57,29 @@ var gateBackoffMax = 30 * time.Second
 // The limit grows additively and shrinks multiplicatively: each run of limit
 // requests answered without a throttle adds one lane, up to gateLanes, and a
 // throttled answer halves it, at most once a gateDecreaseEvery, down to
-// gateFloor. A throttle also pauses the gate until the longer of the
-// service's Retry-After and a jittered backoff that doubles with each halving
-// and resets after a clean run. While paused, no request is sent: the
-// throttled requests queue again in their class behind the pause, so the
-// account sees a quiet period and then a reduced rate.
+// gateFloor. A throttle also pauses the gate until the longest of the
+// service's Retry-After, gatePauseMin and a jittered backoff that doubles
+// with each halving, up to gateBackoffMax, and resets after a clean run.
+// While paused, the throttled requests queue again in their class behind the
+// pause, so the account sees a quiet period and then a reduced rate. The one
+// exception is a probe: gateProbeEvery after the last throttle, one urgent
+// request may go, and a clean answer to it ends the pause early at the
+// current limit, while a throttle extends the pause as any other does.
 //
 // Lock order: bcast, then the pool's lock, which is a leaf.
 type RequestGate struct {
-	// name identifies the gate in metrics: the service endpoint.
-	name string
+	// endpoint is the service endpoint.
+	endpoint string
+	// account is a short hash of the access key ID.
+	account string
+	// le logs the requests that give up.
+	le *logrus.Entry
 	// pool holds the request lanes.
 	pool *lanes.Pool[struct{}]
 	// resume ends a pause at its deadline.
 	resume *time.Timer
+	// probe lets an urgent probe through a pause.
+	probe *time.Timer
 
 	// bcast guards the fields below and broadcasts each change of the
 	// limit or the pause.
@@ -99,7 +124,10 @@ func requestGate(endpoint, accessKey string) *RequestGate {
 	if gates.m == nil {
 		gates.m = make(map[string]*RequestGate)
 	}
-	g := newRequestGate(endpoint)
+
+	// Name the account by a short hash of its key ID, never the ID.
+	sum := sha256.Sum256([]byte(accessKey))
+	g := newRequestGate(endpoint, hex.EncodeToString(sum[:4]))
 	gates.m[key] = g
 	return g
 }
@@ -115,7 +143,7 @@ func VisitRequestGates(fn func(GateState)) {
 	}
 	gates.mtx.Unlock()
 	slices.SortFunc(list, func(a, b *RequestGate) int {
-		return strings.Compare(a.name, b.name)
+		return cmp.Or(cmp.Compare(a.endpoint, b.endpoint), cmp.Compare(a.account, b.account))
 	})
 	for _, g := range list {
 		st, _ := g.State()
@@ -123,17 +151,26 @@ func VisitRequestGates(fn func(GateState)) {
 	}
 }
 
-// newRequestGate builds an unpaused gate at the starting limit.
-func newRequestGate(name string) *RequestGate {
-	// Build the lanes at the starting limit, and a stopped resume timer.
+// newRequestGate builds an unpaused gate at the starting limit for an
+// endpoint and the short hash of an account.
+func newRequestGate(endpoint, account string) *RequestGate {
+	// Build the lanes at the starting limit, and stopped pause timers.
 	g := &RequestGate{
-		name:  name,
+		endpoint: endpoint,
+		account:  account,
+		le: logrus.WithFields(logrus.Fields{
+			"s3-endpoint": endpoint,
+			"s3-account":  account,
+		}),
 		pool:  lanes.New(make([]struct{}, gateLanes), gateReserve),
 		limit: gateStart,
 	}
 	g.pool.SetLimit(gateStart)
+	g.pool.SetCappedFloor(gateCappedFloor)
 	g.resume = time.AfterFunc(time.Hour, g.endPause)
 	g.resume.Stop()
+	g.probe = time.AfterFunc(time.Hour, g.openProbe)
+	g.probe.Stop()
 	return g
 }
 
@@ -145,13 +182,15 @@ func (g *RequestGate) State() (GateState, <-chan struct{}) {
 	g.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 		ps := g.pool.Stats()
 		st = GateState{
-			Name:              g.name,
+			Endpoint:          g.endpoint,
+			Account:           g.account,
 			Limit:             g.limit,
 			PausedUntil:       g.pausedUntil,
 			InFlight:          ps.Held,
 			QueuedUrgent:      ps.Urgent,
 			QueuedInteractive: ps.Interactive,
-			QueuedCapped:      ps.Capped,
+			QueuedRefill:      ps.Refill,
+			QueuedBackground:  ps.Background,
 			Throttles:         g.throttles,
 			Retries:           g.retries,
 		}
@@ -161,8 +200,9 @@ func (g *RequestGate) State() (GateState, <-chan struct{}) {
 }
 
 // throttled records a throttled answer whose Retry-After asked for wait:
-// halves the limit unless it halved within gateDecreaseEvery, and pauses the
-// gate until the longer of wait and a jittered backoff.
+// halves the limit unless it halved within gateDecreaseEvery, pauses the gate
+// until the longest of wait, gatePauseMin and a jittered backoff, and holds
+// the next probe for gateProbeEvery.
 func (g *RequestGate) throttled(wait time.Duration) {
 	g.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		// Halve the limit and double the backoff once per decrease window.
@@ -175,15 +215,17 @@ func (g *RequestGate) throttled(wait time.Duration) {
 			g.backoff = min(max(g.backoff*2, gateBackoffFirst), gateBackoffMax)
 		}
 
-		// Extend the pause to the longer of the service's wait and the
-		// jittered backoff.
-		pause := max(wait, g.backoff/2+jitter(g.backoff/2))
+		// Extend the pause to the longest of the service's wait, the
+		// minimum and the jittered backoff, and restart the probe's wait.
+		pause := max(wait, gatePauseMin, g.backoff/2+jitter(g.backoff/2))
 		until := now.Add(pause)
 		if until.After(g.pausedUntil) {
 			g.pausedUntil = until
 			g.pool.SetLimit(0)
 			g.resume.Reset(pause)
 		}
+		g.pool.SetProbes(0)
+		g.probe.Reset(gateProbeEvery)
 		broadcast()
 	})
 }
@@ -200,10 +242,40 @@ func (g *RequestGate) endPause() {
 			g.resume.Reset(left)
 			return
 		}
-		g.pausedUntil = time.Time{}
-		g.pool.SetLimit(g.limit)
+		g.resumeLocked()
 		broadcast()
 	})
+}
+
+// openProbe runs gateProbeEvery after a pause's last throttle: it lets one
+// urgent request through while the pause lasts.
+func (g *RequestGate) openProbe() {
+	g.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if !g.pausedUntil.IsZero() {
+			g.pool.SetProbes(1)
+		}
+	})
+}
+
+// probeAnswered records a probe the service answered without a throttle: it
+// ends the pause early at the current limit.
+func (g *RequestGate) probeAnswered() {
+	g.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if g.pausedUntil.IsZero() {
+			return
+		}
+		g.resume.Stop()
+		g.resumeLocked()
+		broadcast()
+	})
+}
+
+// resumeLocked ends the pause: it closes the probe and restores the limit.
+func (g *RequestGate) resumeLocked() {
+	g.pausedUntil = time.Time{}
+	g.probe.Stop()
+	g.pool.SetProbes(0)
+	g.pool.SetLimit(g.limit)
 }
 
 // answered records a request the service answered without a throttle. Each

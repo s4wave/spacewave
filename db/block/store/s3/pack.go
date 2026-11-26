@@ -29,7 +29,6 @@ import (
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
-	"golang.org/x/sync/singleflight"
 )
 
 // batchConcurrency bounds the concurrent requests of one batch call.
@@ -92,7 +91,7 @@ type PackStore struct {
 	le *logrus.Entry
 	// extentReads shares one range read among concurrent reads of a block
 	// whose h row holds its extent.
-	extentReads singleflight.Group
+	extentReads fetchGroup[*block.StoredBlock]
 	// client stores the objects.
 	client ObjectStore
 	// bucket is the bucket holding the objects.
@@ -829,7 +828,8 @@ func SetPackExactReads(on bool) {
 // the pack readers finds the right one. Any other failure of the read, such as
 // a throttled or failed request, returns its error, because the pack readers
 // would send the same bucket more and larger reads that fail the same way.
-// Concurrent reads of one block share the range read.
+// Concurrent reads of one block share the range read, which runs until its
+// last reader leaves, in the most urgent class of its readers.
 func (s *PackStore) readExtent(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	// Find the extent.
 	if s.index == nil || !extentReadsOn.Load() || ref.GetHash() == nil {
@@ -842,7 +842,7 @@ func (s *PackStore) readExtent(ctx context.Context, ref *block.BlockRef) (*block
 	}
 
 	// Read and verify the block's bytes, once for every concurrent reader.
-	value, err, _ := s.extentReads.Do(string(key), func() (any, error) {
+	return s.extentReads.do(ctx, string(key), func(ctx context.Context) (*block.StoredBlock, error) {
 		// A cached copy saves the read; anything wrong with it costs only that.
 		if s.readCache != nil {
 			if data, ok := s.readCache.ReadCached(ctx, id, off, size); ok {
@@ -875,8 +875,6 @@ func (s *PackStore) readExtent(ctx context.Context, ref *block.BlockRef) (*block
 		s.reads.bucket.Add(1)
 		return stored, nil
 	})
-	stored, _ := value.(*block.StoredBlock)
-	return stored, err
 }
 
 // GetBlockExists checks the packfiles for the block.

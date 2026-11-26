@@ -295,7 +295,8 @@ const drainRetryDelay = 5 * time.Second
 // retrying after a failed step, so a pack the backend refuses never stops
 // the queued block upload beside it.
 func (t *bstoreTracker) runDrain(ctx context.Context, drain *packahead.Drain, remote packahead.Remote) {
-	// The drain's reads of the remote are background reads.
+	// The drain's reads and writes of the remote, its uploads and
+	// presence checks, run in the background class.
 	ctx = block.WithBackground(ctx)
 	for {
 		err := drain.Run(ctx, remote)
