@@ -263,6 +263,22 @@
         }
       }
     },
+    "4949d8d28cdcb4286665753c91ea6fbb76f5b210789f3f5ad9805713ca74ce43": {
+      "protocFlagsHash": "f60c126929dea22bb34c7943348825cd0650bfdf1f02a74f8541bf7d5ea1b2c2",
+      "toolVersions": "protoc=embedded,generator=h1:PyfQFeourKBuI7y7aK3Ni+G0Eh9x4gjhlrfH/NjrN7A=,protobuf-go-lite=v0.19.1-0.20261028131920-f644656fc4a7,starpc=v0.52.3,protobuf-es-lite=1.2.6",
+      "packages": {
+        "github.com/s4wave/spacewave/db/dex/solicit": {
+          "hash": "c6629d17d96b31ebbe8ee09e20144b771fad04ad8a5b0c11864f6401c7d591ae",
+          "generatedFiles": [
+            "db/dex/solicit/dex.pb.go",
+            "db/dex/solicit/dex.pb.ts"
+          ],
+          "protoFiles": [
+            "db/dex/solicit/dex.proto"
+          ]
+        }
+      }
+    },
     "53093e1ed555e25c8d1d89eb0be100d9e4215fdf9b3274a801b8f2a5baf3e7ea": {
       "protocFlagsHash": "641054ce8cacc6009c9e5e7b7a0f04a99a13b3f78d4959e5ee499fe353b65951",
       "toolVersions": "protoc=embedded,generator=h1:PyfQFeourKBuI7y7aK3Ni+G0Eh9x4gjhlrfH/NjrN7A=,protobuf-go-lite=v0.19.1-0.20261028131920-f644656fc4a7,starpc=v0.52.3,protobuf-es-lite=1.2.6,uv.lock=e4c4bd2b1b09f2f90e1d7b987a9b18c5bf9158758fbd55f3b5d3d46656bd88be",

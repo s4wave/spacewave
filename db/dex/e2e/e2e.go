@@ -338,4 +338,78 @@ func TestMultiNodeDEX(
 		}
 		avRel.Release()
 	}
+
+	// An exchange that carries refs answers a subtree read with the blocks
+	// under the root too.
+	if retain == RetainStored {
+		checkSubtreeWriteback(subCtx, t, testbeds[0], testbeds[2], bc.GetId())
+	}
+}
+
+// checkSubtreeWriteback writes a small tree, with each block's refs, to the
+// bucket on src, reads its root through the bucket lookup on dst as a subtree
+// read, and checks that dst's Volume then holds every block of the tree, so a
+// walk reads the levels under the root locally.
+func checkSubtreeWriteback(ctx context.Context, t *testing.T, src, dst *testbed.Testbed, bucketID string) {
+	// Build the tree: the root names a and b, and a names c.
+	t.Helper()
+	var entries []*block.PutBatchEntry
+	put := func(data string, refs ...*block.BlockRef) *block.BlockRef {
+		// Name the block by its data and queue it with its refs.
+		ref, err := block.BuildBlockRef([]byte(data), nil)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		entries = append(entries, &block.PutBatchEntry{Ref: ref, Data: []byte(data), Refs: refs, RefsKnown: true})
+		return ref
+	}
+	c := put("subtree leaf c")
+	a := put("subtree node a", c)
+	b := put("subtree leaf b")
+	root := put("subtree root", a, b)
+
+	// Write it to the bucket on src.
+	srcAPI, _, srcRel, err := bucket.ExBuildBucketAPI(ctx, src.Bus, false, bucketID, src.Volume.GetID(), nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	_, err = srcAPI.GetBucket().PutBlockBatch(ctx, entries)
+	srcRel.Release()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Read the root on dst as a subtree read.
+	lkv, _, lkRel, err := bucket_lookup.ExBuildBucketLookup(ctx, dst.Bus, false, bucketID, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer lkRel.Release()
+	lk, err := lkv.GetLookup(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	stored, err := lk.LookupStoredBlock(block.WithSubtreeRead(ctx), root)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if stored == nil || string(stored.Data) != "subtree root" || len(stored.Refs) != 2 {
+		t.Fatalf("subtree root read %v", stored)
+	}
+
+	// Check that dst's Volume holds every block of the tree.
+	dstAPI, _, dstRel, err := bucket.ExBuildBucketAPI(ctx, dst.Bus, false, bucketID, dst.Volume.GetID(), nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer dstRel.Release()
+	held, err := dstAPI.GetBucket().GetBlockExistsBatch(ctx, []*block.BlockRef{root, a, b, c})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	for i, name := range []string{"root", "a", "b", "c"} {
+		if !held[i] {
+			t.Fatalf("the reading node does not hold subtree block %s", name)
+		}
+	}
 }

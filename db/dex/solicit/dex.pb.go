@@ -15,9 +15,17 @@ import (
 )
 
 // DexMessage is a message sent over a DEX stream.
-// Each message is a request, a response, or a cancel. A request has a
+// Each message is a request, a response, a cancel or a prune. A request has a
 // non-empty ref and a zero-value response. A response has is_response and the
 // response fields set. A cancel has cancel set and the request_id it withdraws.
+// A prune has prune set, the request_id of a subtree request and the refs its
+// requester holds.
+//
+// A response without more ends its request. A request with subtree_bytes set,
+// for a ref the responder holds with its refs known, is answered by a stream:
+// the response for ref with more set, then a response for each block under it
+// the responder sends, each with its ref and more set, then a last response
+// with neither. Any other request is answered by one response.
 type DexMessage struct {
 	unknownFields []byte
 	// RequestId is a unique ID for this request/response pair.
@@ -60,6 +68,17 @@ type DexMessage struct {
 	// reason in error (response only). It says nothing of whether the
 	// responder holds the block, so a grant makes the same request servable.
 	Denied bool `protobuf:"varint,13,opt,name=denied,proto3" json:"denied,omitempty"`
+	// SubtreeBytes asks, besides the block at ref, for the blocks under it that
+	// the responder holds with their refs known, depth first, up to this many
+	// bytes of block data, which the responder may lower (request only). Zero
+	// asks for the block alone.
+	SubtreeBytes uint32 `protobuf:"varint,14,opt,name=subtree_bytes,json=subtreeBytes,proto3" json:"subtreeBytes,omitempty"`
+	// More marks a response that further responses to the same request follow
+	// (response only).
+	More bool `protobuf:"varint,15,opt,name=more,proto3" json:"more,omitempty"`
+	// Prune names, in refs, blocks under a subtree request's ref that its
+	// requester holds, so the responder walks none of them (prune only).
+	Prune bool `protobuf:"varint,16,opt,name=prune,proto3" json:"prune,omitempty"`
 }
 
 func (x *DexMessage) Reset() {
@@ -159,6 +178,27 @@ func (x *DexMessage) GetDenied() bool {
 	return false
 }
 
+func (x *DexMessage) GetSubtreeBytes() uint32 {
+	if x != nil {
+		return x.SubtreeBytes
+	}
+	return 0
+}
+
+func (x *DexMessage) GetMore() bool {
+	if x != nil {
+		return x.More
+	}
+	return false
+}
+
+func (x *DexMessage) GetPrune() bool {
+	if x != nil {
+		return x.Prune
+	}
+	return false
+}
+
 func (m *DexMessage) CloneVT() *DexMessage {
 	if m == nil {
 		return (*DexMessage)(nil)
@@ -174,6 +214,9 @@ func (m *DexMessage) CloneVT() *DexMessage {
 	r.LinkedOk = m.LinkedOk
 	r.Linked = m.Linked
 	r.Denied = m.Denied
+	r.SubtreeBytes = m.SubtreeBytes
+	r.More = m.More
+	r.Prune = m.Prune
 	r.Ref = protobuf_go_lite.CloneVTValue(m.Ref)
 	r.Data = protobuf_go_lite.CloneBytes(m.Data)
 	r.Refs = protobuf_go_lite.CloneVTSlice(m.Refs)
@@ -230,6 +273,15 @@ func (this *DexMessage) EqualVT(that *DexMessage) bool {
 		return false
 	}
 	if this.Denied != that.Denied {
+		return false
+	}
+	if this.SubtreeBytes != that.SubtreeBytes {
+		return false
+	}
+	if this.More != that.More {
+		return false
+	}
+	if this.Prune != that.Prune {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -322,6 +374,21 @@ func (x *DexMessage) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("denied")
 		s.WriteBool(x.Denied)
 	}
+	if x.SubtreeBytes != 0 || s.HasField("subtreeBytes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("subtreeBytes")
+		s.WriteUint32(x.SubtreeBytes)
+	}
+	if x.More || s.HasField("more") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("more")
+		s.WriteBool(x.More)
+	}
+	if x.Prune || s.HasField("prune") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("prune")
+		s.WriteBool(x.Prune)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -397,6 +464,15 @@ func (x *DexMessage) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "denied":
 			s.AddField("denied")
 			x.Denied = s.ReadBool()
+		case "subtree_bytes", "subtreeBytes":
+			s.AddField("subtree_bytes")
+			x.SubtreeBytes = s.ReadUint32()
+		case "more":
+			s.AddField("more")
+			x.More = s.ReadBool()
+		case "prune":
+			s.AddField("prune")
+			x.Prune = s.ReadBool()
 		}
 	})
 }
@@ -434,6 +510,23 @@ func (m *DexMessage) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Prune {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Prune)
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	if m.More {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.More)
+		i--
+		dAtA[i] = 0x78
+	}
+	if m.SubtreeBytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.SubtreeBytes))
+		i--
+		dAtA[i] = 0x70
 	}
 	if m.Denied {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Denied)
@@ -540,6 +633,9 @@ func (m *DexMessage) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.LinkedOk)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Linked)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Denied)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.SubtreeBytes)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.More)
+	n += protobuf_go_lite.SizeBoolNonZero(2, m.Prune)
 	n += len(m.unknownFields)
 	return n
 }
@@ -606,6 +702,18 @@ func (x *DexMessage) MarshalProtoText() string {
 	if x.Denied != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "denied")
 		protobuf_go_lite.TextWriteBool(&sb, x.Denied)
+	}
+	if x.SubtreeBytes != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "subtree_bytes")
+		protobuf_go_lite.TextWriteUint(&sb, x.SubtreeBytes)
+	}
+	if x.More != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "more")
+		protobuf_go_lite.TextWriteBool(&sb, x.More)
+	}
+	if x.Prune != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "prune")
+		protobuf_go_lite.TextWriteBool(&sb, x.Prune)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -768,6 +876,35 @@ func (m *DexMessage) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Denied = bool(v)
+		case 14:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SubtreeBytes", wireType)
+			}
+			m.SubtreeBytes = 0
+			m.SubtreeBytes, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 15:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field More", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.More = bool(v)
+		case 16:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Prune", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Prune = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

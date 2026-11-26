@@ -8,9 +8,17 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 
 /**
  * DexMessage is a message sent over a DEX stream.
- * Each message is a request, a response, or a cancel. A request has a
+ * Each message is a request, a response, a cancel or a prune. A request has a
  * non-empty ref and a zero-value response. A response has is_response and the
  * response fields set. A cancel has cancel set and the request_id it withdraws.
+ * A prune has prune set, the request_id of a subtree request and the refs its
+ * requester holds.
+ *
+ * A response without more ends its request. A request with subtree_bytes set,
+ * for a ref the responder holds with its refs known, is answered by a stream:
+ * the response for ref with more set, then a response for each block under it
+ * the responder sends, each with its ref and more set, then a last response
+ * with neither. Any other request is answered by one response.
  *
  * @generated from message dex.solicit.DexMessage
  */
@@ -81,6 +89,23 @@ export interface DexMessage {
    * responder holds the block, so a grant makes the same request servable.
    */
   denied?: boolean
+  /**
+   * SubtreeBytes asks, besides the block at ref, for the blocks under it that
+   * the responder holds with their refs known, depth first, up to this many
+   * bytes of block data, which the responder may lower (request only). Zero
+   * asks for the block alone.
+   */
+  subtreeBytes?: number
+  /**
+   * More marks a response that further responses to the same request follow
+   * (response only).
+   */
+  more?: boolean
+  /**
+   * Prune names, in refs, blocks under a subtree request's ref that its
+   * requester holds, so the responder walks none of them (prune only).
+   */
+  prune?: boolean
 }
 
 export const DexMessage: MessageType<DexMessage> =
@@ -100,5 +125,8 @@ export const DexMessage: MessageType<DexMessage> =
       [11, 'linked_ok', 8],
       [12, 'linked', 8],
       [13, 'denied', 8],
+      [14, 'subtree_bytes', 13],
+      [15, 'more', 8],
+      [16, 'prune', 8],
     ],
   )

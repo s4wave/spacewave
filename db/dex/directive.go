@@ -1,6 +1,20 @@
+// Package dex fetches blocks from other peers.
+//
+// A local read that misses, with network lookup enabled in its bucket's
+// lookup configuration, emits a LookupBlockFromNetwork directive for the
+// block's ref, and any DEX controller on the bus may resolve it: package
+// psecho through want lists gossiped over a pub-sub channel, and package
+// solicit through a stream per peer that Bifrost protocol solicitation pairs.
+// Each verifies the bytes it receives against the requested ref before it
+// emits them, so a peer cannot substitute a block. A DEX serves the block
+// and stores nothing itself: the bucket lookup decides whether to write it
+// back, and it does so only when the block's outgoing refs are known.
 package dex
 
 import (
+	"context"
+	"strconv"
+
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -30,6 +44,10 @@ type LookupBlockFromNetworkValue interface {
 	// GetRefsKnown returns false when the source held the bytes without
 	// their refs.
 	GetRefsKnown() bool
+	// GetSubtree returns the blocks under the ref a LookupSubtreeFromNetwork
+	// was answered with, each verified against a ref a verified block named,
+	// with its refs known. It is empty for any other lookup.
+	GetSubtree() []*block.PutBatchEntry
 }
 
 // lookupBlockFromNetworkValue implements LookupBlockFromNetworkValue
@@ -38,6 +56,7 @@ type lookupBlockFromNetworkValue struct {
 	data      []byte
 	refs      []*block.BlockRef
 	refsKnown bool
+	subtree   []*block.PutBatchEntry
 }
 
 // NewLookupBlockFromNetworkValue builds a LookupBlockFromNetworkValue whose
@@ -50,6 +69,13 @@ func NewLookupBlockFromNetworkValue(data []byte, err error) LookupBlockFromNetwo
 // for a found block and its outgoing refs.
 func NewLookupBlockFromNetworkValueWithRefs(data []byte, refs []*block.BlockRef) LookupBlockFromNetworkValue {
 	return &lookupBlockFromNetworkValue{data: data, refs: refs, refsKnown: true}
+}
+
+// NewLookupSubtreeFromNetworkValue builds a LookupBlockFromNetworkValue for a
+// found block, its outgoing refs, and the blocks under it that the source
+// sent.
+func NewLookupSubtreeFromNetworkValue(data []byte, refs []*block.BlockRef, subtree []*block.PutBatchEntry) LookupBlockFromNetworkValue {
+	return &lookupBlockFromNetworkValue{data: data, refs: refs, refsKnown: true, subtree: subtree}
 }
 
 // GetError returns any error.
@@ -74,6 +100,11 @@ func (v *lookupBlockFromNetworkValue) GetRefsKnown() bool {
 	return v.refsKnown
 }
 
+// GetSubtree returns the blocks under the ref the source sent.
+func (v *lookupBlockFromNetworkValue) GetSubtree() []*block.PutBatchEntry {
+	return v.subtree
+}
+
 // NewLookupBlockFromNetwork constructs an LookupBlockFromNetwork.
 func NewLookupBlockFromNetwork(bucketID string, ref *block.BlockRef) LookupBlockFromNetwork {
 	return &LookupBlockFromNetworkRequest{
@@ -82,8 +113,7 @@ func NewLookupBlockFromNetwork(bucketID string, ref *block.BlockRef) LookupBlock
 	}
 }
 
-// Validate validates the directive.
-// This is a cursory validation to see if the values "look correct."
+// Validate checks that the directive names a ref.
 func (d *LookupBlockFromNetworkRequest) Validate() error {
 	if d.LookupBlockFromNetworkRef().GetEmpty() {
 		return errors.New("ref cannot be empty")
@@ -92,7 +122,7 @@ func (d *LookupBlockFromNetworkRequest) Validate() error {
 	return nil
 }
 
-// GetValueLookupBlockFromNetworkOptions returns options relating to value handling.
+// GetValueOptions returns the directive's value options, the defaults.
 func (d *LookupBlockFromNetworkRequest) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{}
 }
@@ -103,8 +133,7 @@ func (d *LookupBlockFromNetworkRequest) LookupBlockFromNetworkBucketId() string 
 	return d.GetBucketId()
 }
 
-// LookupBlockFromNetworkVolumeIDRe returns the volume ID constraint.
-// Can be empty.
+// LookupBlockFromNetworkRef returns the requested block ref.
 func (d *LookupBlockFromNetworkRequest) LookupBlockFromNetworkRef() *block.BlockRef {
 	return d.GetRef()
 }
@@ -141,7 +170,7 @@ func (d *LookupBlockFromNetworkRequest) GetName() string {
 	return "LookupBlockFromNetwork"
 }
 
-// GetDebugString returns the directive arguments stringified.
+// GetDebugVals returns the directive arguments stringified.
 func (d *LookupBlockFromNetworkRequest) GetDebugVals() directive.DebugValues {
 	vals := directive.DebugValues{}
 	if d.LookupBlockFromNetworkBucketId() != "" {
@@ -153,5 +182,76 @@ func (d *LookupBlockFromNetworkRequest) GetDebugVals() directive.DebugValues {
 	return vals
 }
 
-// _ is a type assertion
-var _ LookupBlockFromNetwork = (*LookupBlockFromNetworkRequest)(nil)
+// LookupSubtreeFromNetwork is a LookupBlockFromNetwork that also asks for the
+// blocks under its ref that the asker lacks, depth first, up to a budget of
+// block data, so a walk reads its next levels locally. Its value's GetSubtree
+// holds them. A resolver that cannot send them answers the ref alone.
+type LookupSubtreeFromNetwork interface {
+	LookupBlockFromNetwork
+
+	// LookupSubtreeBytes returns the budget of block data under the ref.
+	LookupSubtreeBytes() uint32
+	// LookupSubtreeHave reports which of refs the asker already holds, so
+	// no source sends them or walks the blocks under them.
+	LookupSubtreeHave(ctx context.Context, refs []*block.BlockRef) ([]bool, error)
+}
+
+// lookupSubtreeFromNetwork implements LookupSubtreeFromNetwork.
+type lookupSubtreeFromNetwork struct {
+	*LookupBlockFromNetworkRequest
+	bytes uint32
+	have  func(ctx context.Context, refs []*block.BlockRef) ([]bool, error)
+}
+
+// NewLookupSubtreeFromNetwork constructs a LookupSubtreeFromNetwork for ref in
+// bucketID, asking for up to bytes of block data under it, with have
+// reporting the blocks the asker holds.
+func NewLookupSubtreeFromNetwork(
+	bucketID string,
+	ref *block.BlockRef,
+	bytes uint32,
+	have func(ctx context.Context, refs []*block.BlockRef) ([]bool, error),
+) LookupSubtreeFromNetwork {
+	return &lookupSubtreeFromNetwork{
+		LookupBlockFromNetworkRequest: &LookupBlockFromNetworkRequest{BucketId: bucketID, Ref: ref},
+		bytes:                         bytes,
+		have:                          have,
+	}
+}
+
+// LookupSubtreeBytes returns the budget of block data under the ref.
+func (d *lookupSubtreeFromNetwork) LookupSubtreeBytes() uint32 {
+	return d.bytes
+}
+
+// LookupSubtreeHave reports which of refs the asker already holds.
+func (d *lookupSubtreeFromNetwork) LookupSubtreeHave(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	return d.have(ctx, refs)
+}
+
+// IsEquivalent checks if the other directive is a subtree lookup of the same
+// bucket and ref, whose answer carries the subtree this one asks for.
+func (d *lookupSubtreeFromNetwork) IsEquivalent(other directive.Directive) bool {
+	if _, ok := other.(LookupSubtreeFromNetwork); !ok {
+		return false
+	}
+	return d.LookupBlockFromNetworkRequest.IsEquivalent(other)
+}
+
+// GetName returns the directive's type name.
+func (d *lookupSubtreeFromNetwork) GetName() string {
+	return "LookupSubtreeFromNetwork"
+}
+
+// GetDebugVals returns the directive arguments stringified.
+func (d *lookupSubtreeFromNetwork) GetDebugVals() directive.DebugValues {
+	vals := d.LookupBlockFromNetworkRequest.GetDebugVals()
+	vals["subtree-bytes"] = []string{strconv.FormatUint(uint64(d.bytes), 10)}
+	return vals
+}
+
+// _ are type assertions.
+var (
+	_ LookupBlockFromNetwork   = (*LookupBlockFromNetworkRequest)(nil)
+	_ LookupSubtreeFromNetwork = (*lookupSubtreeFromNetwork)(nil)
+)

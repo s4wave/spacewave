@@ -246,7 +246,8 @@ func (c *LookupController) lookupBlock(
 }
 
 // lookupMissing reads a block that no bucket handle holds from the fallback
-// store, then the network, and writes a hit back to the bucket handles.
+// store, then the network, and writes a hit back to the bucket handles, with
+// the blocks under it the network sent.
 func (c *LookupController) lookupMissing(
 	reqCtx context.Context,
 	bh []bucket.BucketHandle,
@@ -277,12 +278,13 @@ func (c *LookupController) lookupMissing(
 	}
 
 	// Search the network when local sources miss and network lookup is allowed.
+	var subtree []*block.PutBatchEntry
 	if res == nil && !opts.LocalOnly {
 		notFoundBehavior := c.conf.GetNotFoundBehavior()
 		wait := notFoundBehavior == NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE_WAIT
 		if wait || notFoundBehavior == NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE {
 			var err error
-			res, err = c.lookupWithDirective(reqCtx, ref, wait)
+			res, subtree, err = c.lookupWithDirective(reqCtx, ref, wait)
 			if err != nil {
 				return nil, err
 			}
@@ -291,7 +293,7 @@ func (c *LookupController) lookupMissing(
 
 	// Write the recovered block and its edges back to the bucket handles.
 	if res != nil {
-		if err := c.writeback(reqCtx, bh, ref, res); err != nil {
+		if err := c.writeback(reqCtx, bh, ref, res, subtree); err != nil {
 			c.le.WithField("ref", ref.MarshalString()).
 				WithError(err).
 				Warn("unable to write-back block")
@@ -301,24 +303,32 @@ func (c *LookupController) lookupMissing(
 }
 
 // writeback writes a block found outside the bucket handles back to them
-// with its refs. A block without known refs is not written back, so a bucket
-// never holds a block whose edges were lost.
+// with its refs, together with subtree, the blocks under it the network sent,
+// as one batch per bucket. A block without known refs is not written back,
+// so a bucket never holds a block whose edges were lost; every subtree block
+// has its refs known.
 func (c *LookupController) writeback(
 	reqCtx context.Context,
 	bh []bucket.BucketHandle,
 	ref *block.BlockRef,
 	res *block.StoredBlock,
+	subtree []*block.PutBatchEntry,
 ) error {
 	// Require enabled writeback and known edges before storing the block.
-	if c.conf.GetWritebackBehavior() != WritebackBehavior_WritebackBehavior_ALL || !res.RefsKnown {
+	if !c.writesBack() || !res.RefsKnown {
 		return nil
 	}
 
-	// Preserve the block reference and edges in every bucket write. The copy
-	// is a cache fill: it takes no bucket ownership, so the collector removes
-	// it unless a retained root reaches it.
-	putOpts := res.PutOpts(ref)
-	putOpts.CacheFill = true
+	// Preserve each block reference and its edges in every bucket write. The
+	// copies are cache fills: they take no bucket ownership, so the collector
+	// removes them unless a retained root reaches them. The buckets share
+	// the entries, which they only read.
+	entries := make([]*block.PutBatchEntry, 0, 1+len(subtree))
+	entries = append(entries, &block.PutBatchEntry{Ref: ref.Clone(), Data: res.Data, Refs: res.Refs, RefsKnown: true})
+	entries = append(entries, subtree...)
+	for _, e := range entries {
+		e.CacheFill = true
+	}
 
 	// Queue writes to existing bucket handles and collect their outcomes.
 	doFns := make([]func(), 0, len(bh))
@@ -332,10 +342,10 @@ func (c *LookupController) writeback(
 
 		// Record whether this bucket write failed or added the block.
 		doFns = append(doFns, func() {
-			_, existed, werr := h.GetBucket().PutBlock(reqCtx, res.Data, putOpts)
+			existed, werr := h.GetBucket().PutBlockBatch(reqCtx, entries)
 			if werr != nil {
 				lastErr.Store(&werr)
-			} else if !existed {
+			} else if !existed[0] {
 				nw.Add(1)
 			}
 		})
@@ -593,11 +603,30 @@ func (c *LookupController) putBlockAllVolumes(
 	return refs, allExisted, rerr
 }
 
-// lookupWithDirective uses the dex directive to lookup a block.
-func (c *LookupController) lookupWithDirective(reqCtx context.Context, ref *block.BlockRef, wait bool) (*block.StoredBlock, error) {
+// writesBack reports whether blocks found outside the bucket handles are
+// written back to them.
+func (c *LookupController) writesBack() bool {
+	return c.conf.GetWritebackBehavior() == WritebackBehavior_WritebackBehavior_ALL
+}
+
+// subtreeLookupBytes is the block data a subtree read asks the network for
+// under a missing block, the most a DEX peer answers one request with.
+const subtreeLookupBytes = 4 << 20
+
+// lookupWithDirective uses the dex directive to lookup a block. A subtree
+// read that writes back also asks for the blocks under it that the bucket
+// handles lack, and returns those the network sent.
+func (c *LookupController) lookupWithDirective(reqCtx context.Context, ref *block.BlockRef, wait bool) (*block.StoredBlock, []*block.PutBatchEntry, error) {
 	// Build a network lookup directive for the configured bucket.
 	bucketID := c.conf.GetBucketConf().GetId()
-	dir := dex.NewLookupBlockFromNetwork(bucketID, ref)
+	var dir dex.LookupBlockFromNetwork
+	if block.IsSubtreeRead(reqCtx) && c.writesBack() {
+		dir = dex.NewLookupSubtreeFromNetwork(bucketID, ref, subtreeLookupBytes, func(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+			return c.LookupBlockExistsBatch(ctx, refs, lookup.WithLocalOnly())
+		})
+	} else {
+		dir = dex.NewLookupBlockFromNetwork(bucketID, ref)
+	}
 
 	// End idle network demand once a missing block has been reported.
 	var notFoundSeen atomic.Bool
@@ -649,19 +678,19 @@ func (c *LookupController) lookupWithDirective(reqCtx context.Context, ref *bloc
 
 	// Reject network lookup failures and missing block data.
 	if err != nil || lval == nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if err := lval.GetError(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if len(lval.GetData()) == 0 {
-		return nil, nil
+		return nil, nil, nil
 	}
 	return &block.StoredBlock{
 		Data:      lval.GetData(),
 		Refs:      lval.GetRefs(),
 		RefsKnown: lval.GetRefsKnown(),
-	}, nil
+	}, lval.GetSubtree(), nil
 }
 
 // getBucketHandles waits for the bucket handle set.

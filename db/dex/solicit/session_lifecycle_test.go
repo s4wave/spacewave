@@ -145,7 +145,7 @@ func TestPeerSessionCloseWakesPendingRequestsWithoutRunLoop(t *testing.T) {
 	// Start a pending block request on the stopped session.
 	requestDone := make(chan error, 1)
 	go func() {
-		_, err := sess.requestBlock(ctx, ref, 0, false)
+		_, _, err := sess.requestBlock(ctx, ref, 0, false, nil)
 		requestDone <- err
 	}()
 
@@ -196,7 +196,7 @@ func TestPeerSessionRejectsMismatchedBlockData(t *testing.T) {
 	}()
 
 	// Verify corrupt block bytes fail verification without returning a response.
-	resp, err := sess.requestBlock(ctx, testDexBlockRef(t, "expected"), 0, false)
+	resp, _, err := sess.requestBlock(ctx, testDexBlockRef(t, "expected"), 0, false, nil)
 	if err == nil {
 		t.Fatal("mismatched block data returned no error")
 	}
@@ -267,7 +267,7 @@ func TestPeerBlockFanoutCancelsLosersAfterFirstSuccess(t *testing.T) {
 	}()
 
 	// Verify the first successful fanout response cancels the slow request.
-	found, err := peerBlockFanout{sessions: []*peerSession{slow, fast}, ref: ref}.run(ctx)
+	found, _, err := peerBlockFanout{sessions: []*peerSession{slow, fast}, ref: ref}.run(ctx)
 	if err != nil || found == nil {
 		t.Fatalf("fanout did not return first successful response: %v", err)
 	}
@@ -324,7 +324,7 @@ func TestPeerBlockFanoutDeadlineClearsPendingRequests(t *testing.T) {
 
 	// Verify the caller deadline ends fanout with an error rather than a miss
 	// that keeps each peer's cause, and clears its pending request.
-	found, err := peerBlockFanout{sessions: []*peerSession{slow, failing}, ref: ref}.run(ctx)
+	found, _, err := peerBlockFanout{sessions: []*peerSession{slow, failing}, ref: ref}.run(ctx)
 	if found != nil {
 		t.Fatalf("fanout returned data after caller deadline: %q", found.GetData())
 	}

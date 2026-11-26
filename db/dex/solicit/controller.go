@@ -563,38 +563,33 @@ func (c *Controller) forwardToPeers(ctx context.Context, ref *block.BlockRef, ho
 	if err != nil {
 		return nil, err
 	}
-	return c.askPeers(ctx, sessions, ref, hops, exclude, nil)
+	found, _, err := c.askPeers(ctx, peerBlockFanout{sessions: sessions, ref: ref, hops: hops}, exclude)
+	return found, err
 }
 
-// askPeers runs a block fanout over sessions. A peer that replaces its link
+// askPeers runs fanout f. A peer that replaces its link
 // closes the session a request went out on while its new session comes up, so
 // a fanout that failed on a closed session waits up to sessionReplaceWait for
 // open sessions and asks again, at most maxSessionRetries times. The fanout
 // keeps every peer's failure, so it asks again when any peer's session closed,
 // whatever the other peers answered and in whatever order. Only a session
 // close is retried: a fanout whose failures include no close returns at once,
-// as does a miss or ctx ending. linked, when set, admits the peers that may
-// answer linked (peerBlockFanout).
-func (c *Controller) askPeers(
-	ctx context.Context,
-	sessions []*peerSession,
-	ref *block.BlockRef,
-	hops uint32,
-	exclude *peerSession,
-	linked func(peer.ID) bool,
-) (*DexMessage, error) {
-	found, err := peerBlockFanout{sessions: sessions, ref: ref, hops: hops, linked: linked}.run(ctx)
+// as does a miss or ctx ending. A retry asks the open sessions other than the
+// peer of exclude.
+func (c *Controller) askPeers(ctx context.Context, f peerBlockFanout, exclude *peerSession) (*DexMessage, []*block.PutBatchEntry, error) {
+	found, blocks, err := f.run(ctx)
 	for attempt := 0; attempt < maxSessionRetries && errors.Is(err, errSessionClosed) && ctx.Err() == nil; attempt++ {
 		waitCtx, waitCancel := context.WithTimeout(ctx, sessionReplaceWait)
 		next, waitErr := c.waitSessions(waitCtx, exclude, true)
 		waitCancel()
 		if waitErr != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		c.le.WithField("ref", ref.String()).WithField("attempt", attempt+1).Debug("dex block request retried after session close")
-		found, err = peerBlockFanout{sessions: next, ref: ref, hops: hops, linked: linked}.run(ctx)
+		c.le.WithField("ref", f.ref.String()).WithField("attempt", attempt+1).Debug("dex block request retried after session close")
+		f.sessions = next
+		found, blocks, err = f.run(ctx)
 	}
-	return found, err
+	return found, blocks, err
 }
 
 // waitSessions waits until the solicitation has settled and returns the
@@ -652,17 +647,29 @@ func (c *Controller) resolveLookupBlockFromNetwork(
 	_ directive.Instance,
 	dir dex.LookupBlockFromNetwork,
 ) ([]directive.Resolver, error) {
+	// Skip a lookup that names no block.
 	ref := dir.LookupBlockFromNetworkRef()
 	if ref.GetEmpty() {
 		return nil, nil
 	}
-	return directive.Resolvers(&lookupResolver{c: c, ref: ref}), nil
+
+	// Ask for the subtree too when the lookup carries a budget.
+	r := &lookupResolver{c: c, ref: ref}
+	if sub, ok := dir.(dex.LookupSubtreeFromNetwork); ok && sub.LookupSubtreeBytes() != 0 {
+		r.subtree = &subtreeAsk{
+			budget: min(sub.LookupSubtreeBytes(), maxSubtreeBytes),
+			have:   sub.LookupSubtreeHave,
+		}
+	}
+	return directive.Resolvers(r), nil
 }
 
 // lookupResolver resolves a block lookup from network peers.
 type lookupResolver struct {
 	c   *Controller
 	ref *block.BlockRef
+	// subtree, when set, asks for the blocks under ref as well.
+	subtree *subtreeAsk
 }
 
 // Resolve resolves the values, emitting them to the handler.
@@ -673,7 +680,8 @@ func (r *lookupResolver) Resolve(ctx context.Context, handler directive.Resolver
 	if err != nil {
 		return err
 	}
-	found, err := r.c.askPeers(ctx, sessions, r.ref, r.c.cc.GetMaxForwardHops(), nil, nil)
+	f := peerBlockFanout{sessions: sessions, ref: r.ref, hops: r.c.cc.GetMaxForwardHops(), subtree: r.subtree}
+	found, blocks, err := r.c.askPeers(ctx, f, nil)
 
 	// Emit the result, including a miss or a failed exchange.
 	switch {
@@ -682,7 +690,7 @@ func (r *lookupResolver) Resolve(ctx context.Context, handler directive.Resolver
 	case found == nil:
 		handler.AddValue(dex.NewLookupBlockFromNetworkValue(nil, nil))
 	case found.GetRefsKnown():
-		handler.AddValue(dex.NewLookupBlockFromNetworkValueWithRefs(found.GetData(), found.GetRefs()))
+		handler.AddValue(dex.NewLookupSubtreeFromNetworkValue(found.GetData(), found.GetRefs(), blocks))
 	default:
 		handler.AddValue(dex.NewLookupBlockFromNetworkValue(found.GetData(), nil))
 	}
@@ -699,60 +707,95 @@ type peerBlockFanout struct {
 	// linked answer fails its request, so the fanout takes another peer's
 	// data or reports the block unavailable.
 	linked func(peer.ID) bool
+	// subtree, when set, asks every peer for the blocks under ref as well;
+	// the first peer to verify the ref with blocks to follow claims the
+	// fanout and streams them, and the others stop at the ref.
+	subtree *subtreeAsk
 }
 
 // fanoutResult is one peer's answer to a fanout request.
 type fanoutResult struct {
-	resp *DexMessage
-	err  error
+	resp   *DexMessage
+	blocks []*block.PutBatchEntry
+	err    error
+	// claimed is set on the answer of the peer that claimed the fanout's
+	// subtree, and on every answer of a fanout that asks for none.
+	claimed bool
 }
 
 // run requests the block from every session and waits until each answers,
-// its session closes, or ctx ends. It returns the first verified response and
+// its session closes, or ctx ends. It returns the first verified response,
+// or, once a peer claimed the subtree, that peer's response and blocks, and
 // cancels the other requests, which tells their peers to stop serving them.
+// Should the claiming peer fail, it returns another peer's verified response.
 // It returns nil and no error only when every peer answered that it does not
 // have the block. When no peer had the block and a request failed, it returns
 // an error wrapping block.ErrUnavailable and each peer's failure, so a dropped link or a timeout is
 // never mistaken for a missing block.
-func (f peerBlockFanout) run(ctx context.Context) (*DexMessage, error) {
+func (f peerBlockFanout) run(ctx context.Context) (*DexMessage, []*block.PutBatchEntry, error) {
 	// Scope the peer requests to this fanout.
 	if len(f.sessions) == 0 {
-		return nil, nil
+		return nil, nil, nil
 	}
 	reqCtx, reqCancel := context.WithCancel(ctx)
 	defer reqCancel()
 
 	// Fan out the request to every session.
+	var subtreeClaimed atomic.Bool
 	results := make(chan fanoutResult, len(f.sessions))
 	for _, sess := range f.sessions {
 		go func() {
+			// Let this peer stream the subtree only if no other peer
+			// claimed it first.
 			linkedOK := f.linked != nil && f.linked(sess.ms.GetPeerID())
-			resp, err := sess.requestBlock(reqCtx, f.ref, f.hops, linkedOK)
+			claimed, sub := f.subtree == nil, f.subtree
+			if sub != nil {
+				ask := *sub
+				ask.claim = func() bool {
+					claimed = subtreeClaimed.CompareAndSwap(false, true)
+					return claimed
+				}
+				sub = &ask
+			}
+
+			// Ask, and report the answer with whether it claimed.
+			resp, blocks, err := sess.requestBlock(reqCtx, f.ref, f.hops, linkedOK, sub)
 			if err != nil {
 				sess.le.WithError(err).Debug("dex block request failed")
 			}
-			results <- fanoutResult{resp: resp, err: err}
+			results <- fanoutResult{resp: resp, blocks: blocks, err: err, claimed: claimed}
 		}()
 	}
 
-	// Return the first successful peer response, keeping every peer's
-	// failure so the caller can tell why each one did not serve it.
+	// Return the claiming peer's response, or the first while no peer
+	// claimed the subtree, keeping every peer's failure so the caller can
+	// tell why each one did not serve it.
 	var errs []error
+	var fallback *DexMessage
 	for range f.sessions {
 		res := <-results
 		if res.resp != nil {
-			return res.resp, nil
+			if res.claimed || !subtreeClaimed.Load() {
+				return res.resp, res.blocks, nil
+			}
+			fallback = res.resp
+			continue
 		}
 		if res.err != nil {
 			errs = append(errs, res.err)
 		}
 	}
 
-	// Report a failed exchange, or a miss every peer confirmed.
-	if len(errs) != 0 {
-		return nil, fmt.Errorf("%w: no peer served block %s: %w", block.ErrUnavailable, f.ref.MarshalString(), stderrors.Join(errs...))
+	// Report another peer's answer, a failed exchange, or a miss every peer
+	// confirmed.
+	switch {
+	case fallback != nil:
+		return fallback, nil, nil
+	case len(errs) != 0:
+		return nil, nil, fmt.Errorf("%w: no peer served block %s: %w", block.ErrUnavailable, f.ref.MarshalString(), stderrors.Join(errs...))
+	default:
+		return nil, nil, nil
 	}
-	return nil, nil
 }
 
 // GetControllerInfo returns information about the controller.

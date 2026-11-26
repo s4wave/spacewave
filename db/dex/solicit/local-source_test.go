@@ -29,7 +29,7 @@ func TestLocalSourceServesBlockBelowVolumes(t *testing.T) {
 	sess, _, cleanup := newTestPeerSessionPair(c, peer.ID("reader"))
 	defer cleanup()
 
-	resp := sess.buildResponse(ctx, &DexMessage{RequestId: 1, Ref: ref})
+	resp, _ := sess.buildResponse(ctx, &DexMessage{RequestId: 1, Ref: ref})
 	if resp.GetError() != "" {
 		t.Fatalf("error = %q", resp.GetError())
 	}
@@ -48,7 +48,7 @@ func TestLocalSourceErrorIsNotAMiss(t *testing.T) {
 	sess, _, cleanup := newTestPeerSessionPair(c, peer.ID("reader"))
 	defer cleanup()
 
-	resp := sess.buildResponse(ctx, &DexMessage{RequestId: 1, Ref: testDexBlockRef(t, "away")})
+	resp, _ := sess.buildResponse(ctx, &DexMessage{RequestId: 1, Ref: testDexBlockRef(t, "away")})
 	if resp.GetFound() || resp.GetError() == "" {
 		t.Fatalf("found = %v error = %q, want an error", resp.GetFound(), resp.GetError())
 	}
@@ -99,7 +99,7 @@ func TestLinkedAnswersSkipOnlyLinkedBlocks(t *testing.T) {
 		{linkedLeaf, false, false},
 		{linkedLeaf, true, true},
 	} {
-		resp := owner.buildResponse(ctx, &DexMessage{RequestId: 1, Ref: tc.ref, LinkedOk: tc.linkedOk})
+		resp, _ := owner.buildResponse(ctx, &DexMessage{RequestId: 1, Ref: tc.ref, LinkedOk: tc.linkedOk})
 		if !resp.GetFound() || resp.GetLinked() != tc.linked || (len(resp.GetData()) == 0) != tc.linked {
 			t.Fatalf("%s linked_ok=%v: found=%v linked=%v data=%q", tc.ref.MarshalString(), tc.linkedOk, resp.GetFound(), resp.GetLinked(), resp.GetData())
 		}
@@ -121,7 +121,7 @@ func TestLinkedAnswersSkipOnlyLinkedBlocks(t *testing.T) {
 		readCtx := WithLinkedAnswers(ctx, func(id peer.ID) bool { return id == "owner" })
 		return dst, block.CopyGraph(readCtx, NewStore(c), dst, root, &block.GraphCopyOptions{CountLinked: true})
 	}
-	ownerAnswer := func(req *DexMessage) *DexMessage { return owner.buildResponse(ctx, req) }
+	ownerAnswer := func(req *DexMessage) *DexMessage { resp, _ := owner.buildResponse(ctx, req); return resp }
 	liar := func(req *DexMessage) *DexMessage {
 		if req.GetLinkedOk() {
 			t.Errorf("reader was asked for a linked answer to %s", req.GetRef().MarshalString())

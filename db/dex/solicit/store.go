@@ -144,7 +144,8 @@ func (s *Store) fetch(ctx context.Context, ref *block.BlockRef, wantPeer bool, l
 	}
 
 	// Ask the settled peer sessions for the block.
-	found, err := s.controller.askPeers(ctx, sessions, ref, s.controller.cc.GetMaxForwardHops(), nil, linked)
+	f := peerBlockFanout{sessions: sessions, ref: ref, hops: s.controller.cc.GetMaxForwardHops(), linked: linked}
+	found, _, err := s.controller.askPeers(ctx, f, nil)
 	if err != nil {
 		if p := getReadProgress(ctx); p != nil && peerRefused(err) {
 			p.refuse()
