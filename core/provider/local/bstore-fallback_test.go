@@ -14,6 +14,7 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
+	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
@@ -351,6 +352,30 @@ func (f *fallbackTest) waitResident(want int64) {
 	}
 }
 
+// waitPaused waits until the pack store's backend reports paused as want.
+func (f *fallbackTest) waitPaused(want bool) {
+	// Watch the pack store's pause.
+	f.t.Helper()
+	w, ok := f.packs.(block_store.PauseWatcher)
+	if !ok {
+		f.t.Fatal("pack store cannot report a pause")
+	}
+
+	// Wait for each change until the pause matches.
+	timeout := time.After(10 * time.Second)
+	for {
+		paused, changed := w.WatchPause()
+		if paused == want {
+			return
+		}
+		select {
+		case <-changed:
+		case <-timeout:
+			f.t.Fatalf("backend paused = %v, want %v", paused, want)
+		}
+	}
+}
+
 // read reads the block through the store's read chain.
 func (f *fallbackTest) read(ref *block.BlockRef, want []byte) {
 	f.t.Helper()
@@ -533,6 +558,72 @@ func TestDeferredFetchRacesFallback(t *testing.T) {
 	}
 	if rounds := peerReads.Rounds(); rounds != 1 {
 		t.Fatalf("fetch rounds = %d, want the write committed on its second attempt", rounds)
+	}
+}
+
+// TestCorruptFallbackWaitsForBackend reads, under PeerReads as a World write
+// does, a block the packs hold and the fallback holds corrupt, while the
+// bucket throttles. A corrupt fallback row is no answer: each attempt during
+// the pause defers the block rather than failing, the fetch waits out the
+// pause, and once the bucket answers again the write commits on the backend's
+// block.
+func TestCorruptFallbackWaitsForBackend(t *testing.T) {
+	// Put the block in the packs and corrupt in the fallback, then throttle
+	// the bucket.
+	f := newIndexedFallbackTest(t)
+	data := []byte("pack block the fallback holds corrupt")
+	ref := f.putUploaded(data, true)
+	f.putSQL(data)
+	f.sql.corrupt.Store(true)
+	f.bucket.setUnavailable(true)
+
+	// The first attempt defers.
+	peerReads := block.NewPeerReads()
+	ctx := block.WithPeerReads(f.ctx, peerReads)
+	if _, found, err := f.reads.GetBlock(ctx, ref); found || !errors.Is(err, errBackendDeferred) {
+		t.Fatalf("first attempt = %v, %v; want the backend read deferred", found, err)
+	}
+
+	// Its fetch pauses the backend and waits.
+	fetched := make(chan error, 1)
+	go func() {
+		ok, err := peerReads.Fetch(f.ctx)
+		if err == nil && !ok {
+			err = errors.New("fetch missed the block")
+		}
+		fetched <- err
+	}()
+	f.waitPaused(true)
+
+	// An attempt during the pause defers too, rather than failing on the
+	// corrupt row.
+	during := block.NewPeerReads()
+	if _, found, err := f.reads.GetBlock(block.WithPeerReads(f.ctx, during), ref); found || !errors.Is(err, errBackendDeferred) {
+		t.Fatalf("attempt during the pause = %v, %v; want the backend read deferred", found, err)
+	}
+	select {
+	case err := <-fetched:
+		t.Fatalf("fetch ended during the pause: %v", err)
+	case <-time.After(300 * time.Millisecond):
+	}
+
+	// Once the bucket answers again the fetch reads the backend's block.
+	f.bucket.setUnavailable(false)
+	select {
+	case err := <-fetched:
+		if err != nil {
+			t.Fatalf("fetch after the pause = %v, want the backend's block", err)
+		}
+	case <-time.After(20 * time.Second):
+		t.Fatal("fetch still waiting after the bucket answered again")
+	}
+
+	// The next attempt commits on the backend's block with nothing pending.
+	if got, found, err := f.reads.GetBlock(ctx, ref); err != nil || !found || !bytes.Equal(got, data) {
+		t.Fatalf("attempt after the fetch = %q, %v, %v; want the backend's block", got, found, err)
+	}
+	if peerReads.Pending() || peerReads.Rounds() != 1 {
+		t.Fatalf("pending = %v, rounds = %d; want the write committed on its second attempt", peerReads.Pending(), peerReads.Rounds())
 	}
 }
 

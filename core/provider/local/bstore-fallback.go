@@ -2,6 +2,7 @@ package provider_local
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"sync/atomic"
 
@@ -486,8 +487,8 @@ func (r *fallbackReads) GetStoredBlock(ctx context.Context, ref *block.BlockRef)
 // or failed with primaryErr. Without a hit, it returns primaryErr, else the
 // fallback's error, else a miss. A backend read deferred to the caller's
 // PeerReads never asks the fallback, since the deferred fetch answers first;
-// one the paused backend left to the fallback, with errBackendPaused, reads
-// it.
+// one the paused backend left to the fallback serves the block the backend's
+// fallbackServed carries.
 func (r *fallbackReads) readFallback(ctx context.Context, ref *block.BlockRef, primaryErr error) (*block.StoredBlock, error) {
 	// A failure of the caller's own context is not the sources' failure.
 	if ctx.Err() != nil {
@@ -497,13 +498,11 @@ func (r *fallbackReads) readFallback(ctx context.Context, ref *block.BlockRef, p
 		return nil, primaryErr
 	}
 
-	// Serve the block a paused backend left to the fallback.
-	if errors.Is(primaryErr, errBackendPaused) {
-		stored, err := r.fallbackHit(ctx, ref)
-		if err != nil || stored == nil {
-			return nil, primaryErr
-		}
-		return stored, nil
+	// Serve and fill the fallback's block a paused backend handed up.
+	var served *fallbackServed
+	if errors.As(primaryErr, &served) {
+		r.fillHit(ctx, ref, served.stored)
+		return served.stored, nil
 	}
 	if primaryErr != nil && r.fills != nil {
 		r.fills.packErrors.Add(1)
@@ -523,22 +522,40 @@ func (r *fallbackReads) readFallback(ctx context.Context, ref *block.BlockRef, p
 // fallbackHit reads the block from the fallback, verifies it and fills it.
 // It returns nil on a miss. Corrupt bytes are a failure, not a miss.
 func (r *fallbackReads) fallbackHit(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
-	// Read the fallback.
-	stored, err := r.fallback.GetStoredBlock(ctx, ref)
+	// Read the fallback, counting bytes that do not hash to ref.
+	stored, err := readVerified(ctx, r.fallback, ref)
+	if errors.Is(err, errFallbackCorrupt) && r.fills != nil {
+		r.fills.failed.Add(1)
+	}
 	if err != nil || stored == nil {
 		return nil, err
 	}
 
-	// Serve and fill only bytes that hash to ref.
+	// Serve and fill the verified block.
+	r.fillHit(ctx, ref, stored)
+	return stored, nil
+}
+
+// errFallbackCorrupt marks a fallback block whose bytes do not hash to its
+// ref.
+var errFallbackCorrupt = errors.New("verify fallback block")
+
+// readVerified reads ref from fallback and returns the block only when its
+// bytes hash to ref. It returns nil on a miss; corrupt bytes are a failure
+// wrapping errFallbackCorrupt, not a miss.
+func readVerified(ctx context.Context, fallback block.StoreOps, ref *block.BlockRef) (*block.StoredBlock, error) {
+	// Read the fallback.
+	stored, err := fallback.GetStoredBlock(ctx, ref)
+	if err != nil || stored == nil {
+		return nil, err
+	}
+
+	// Return only bytes that hash to ref.
 	if !ref.GetEmpty() {
 		if _, err := ref.GetHash().VerifyData(stored.Data); err != nil {
-			if r.fills != nil {
-				r.fills.failed.Add(1)
-			}
-			return nil, errors.Wrap(err, "verify fallback block")
+			return nil, fmt.Errorf("%w: %w", errFallbackCorrupt, err)
 		}
 	}
-	r.fillHit(ctx, ref, stored)
 	return stored, nil
 }
 
