@@ -86,11 +86,20 @@ const (
 	kindHole byte = 'O'
 	// kindParked keys a Dead block the free held back while the generation
 	// is Open, by its big-endian ripe sequence, then the block, as the free
-	// queue keys it. It holds no value. A parked block is in the run, as
-	// Records.park describes. Once the generation leaves Open the collector
-	// moves each back onto the free queue, where the free drops it as
-	// unmarked and the sweep deletes it.
+	// queue keys it, when its list still holds its children, as a collector
+	// with ParkKeepsHolds parks. It holds no value. A parked block is in the
+	// run, as Records.park describes. Once the generation leaves Open the
+	// collector moves each back onto the free queue, where the free drops it
+	// as unmarked and the sweep deletes it, giving its children their downs.
 	kindParked byte = 'X'
+	// kindReleased keys a parked block as kindParked does, when its park
+	// released the holds its list gave, as the free does: its children have
+	// their downs, so its list holds nothing while the key stands. It holds
+	// no value. It is the one record of that fact, and every path that gives
+	// the block's list a down or an up reads it: an unpark or a put gives the
+	// ups back, and the sweep or a rebirth deletes the key and gives no down.
+	// The collector never requeues it, since the sweep deletes the block.
+	kindReleased byte = 'x'
 	// kindFront keys a block on the settle's front, by the block: a block
 	// with no list from content, stored or absent, named by a young or
 	// verified block, a root or a down page not netted yet, which the walk
@@ -159,8 +168,8 @@ const (
 // delete live records.
 var LiveKinds = []byte{
 	kindChildren, kindCount, kindRoot, kindUpLog, kindDownLog, kindQueue,
-	kindProof, kindState, kindLease, kindLeaseRoot, kindHole, kindParked, kindFront,
-	kindUnmarked, kindUnmarkedCount, kindAdoptBorn, kindAdoptRoot,
+	kindProof, kindState, kindLease, kindLeaseRoot, kindHole, kindParked, kindReleased,
+	kindFront, kindUnmarked, kindUnmarkedCount, kindAdoptBorn, kindAdoptRoot,
 	kindReleasePage, kindRewritten, kindPopMark,
 }
 
@@ -732,31 +741,51 @@ func (r *Records) Hidden(ctx context.Context, ref *block.BlockRef) (bool, error)
 }
 
 // parked reports whether the free parked the block at key: its count is a
-// zero record whose ripe sequence names a parked key. Call it only while
-// Open, when its count is the kindCount record and every parked key waits
-// for the flip.
+// zero record whose ripe sequence names a parked or released key. Call it
+// only while Open, when its count is the kindCount record and every parked
+// key waits for the flip.
 func (r *Records) parked(ctx context.Context, key []byte) (bool, error) {
-	// Read the count, and for a zero one its parked key.
+	_, parked, released, err := r.parkState(ctx, key)
+	return parked || released, err
+}
+
+// parkState reports whether the block at key, with a zero count record
+// ripe at ripe, has a parked key and whether it has a released key. The
+// flip freezes an unmarked block's kindCount record, so while Sweeping it
+// finds the key the park wrote. It reads the count, and for a zero one up to
+// two keys.
+func (r *Records) parkState(ctx context.Context, key []byte) (ripe uint64, parked, released bool, err error) {
+	// Read the count, then for a zero one its released and parked keys.
 	value, found, err := r.tx.Get(ctx, r.key(kindCount, key))
 	if err != nil || !found {
-		return false, err
+		return 0, false, false, err
 	}
 	holders, ripe, err := decodeHolders(value)
 	if err != nil || holders != 0 {
-		return false, err
+		return 0, false, false, err
 	}
-	return r.tx.Exists(ctx, r.parkedKey(ripe, key))
+	if released, err = r.tx.Exists(ctx, r.releasedKey(ripe, key)); err != nil || released {
+		return ripe, false, released, err
+	}
+	parked, err = r.tx.Exists(ctx, r.parkedKey(ripe, key))
+	return ripe, parked, false, err
 }
 
 // AnyParked reports whether the free parked any block that waits for the
-// flip, reading at most one key.
+// flip, reading at most two keys.
 func (r *Records) AnyParked(ctx context.Context) (bool, error) {
-	return r.anyKey(ctx, r.key(kindParked))
+	found, err := r.anyKey(ctx, r.key(kindParked))
+	if err != nil || found {
+		return found, err
+	}
+	return r.anyKey(ctx, r.key(kindReleased))
 }
 
 // park parks the Dead block at key, queued at the queue key queued, while
-// Open: its queue entry turns into its parked key, parked, and it joins the
-// run, so the flip unmarks it with the old blocks. The walk skips a parked
+// Open: its queue entry turns into its parked key, parked, a kindParked key
+// or, when the caller gives the children their downs in the same
+// transaction, a kindReleased one, and it joins the run, so the flip unmarks
+// it with the old blocks. The walk skips a parked
 // block, so its list may lack a child the flip leaves in the run; a block
 // that names such a child and stays present after the flip could be held
 // again over a child the sweep deletes. An old block's run entry is
@@ -776,11 +805,31 @@ func (r *Records) park(ctx context.Context, queued, parked, key []byte) error {
 // holder while Open, as an up gives it: its parked key
 // goes, and so does its run entry when its list is marked, which only the
 // park wrote. An old block's list stays unverified, so it stays in the run.
-// It reads the list record.
-func (r *Records) unpark(ctx context.Context, key []byte, ripe uint64) error {
+// A released park's list holds again once its key goes, and its children
+// lack those holders, so it records under state that the counts owe a
+// recount, which the flip runs before anything is deleted: a bounded write
+// in place of a cascade of ups. Land refuses a hold onto a parked block, so
+// only an up logged before the park or an underflow reaches it. It reads
+// the released key and the list record.
+func (r *Records) unpark(ctx context.Context, state *LivenessState, key []byte, ripe uint64) error {
+	// Delete the park's key, noting a recount for a released one.
+	released, err := r.tx.Exists(ctx, r.releasedKey(ripe, key))
+	if err != nil {
+		return err
+	}
+	if released {
+		if err := r.tx.Delete(ctx, r.releasedKey(ripe, key)); err != nil {
+			return err
+		}
+		if err := r.noteRewrite(ctx, state); err != nil {
+			return err
+		}
+	}
 	if err := r.tx.Delete(ctx, r.parkedKey(ripe, key)); err != nil {
 		return err
 	}
+
+	// Leave the run when the list is marked.
 	_, marked, err := r.listState(ctx, key)
 	if err != nil || !marked {
 		return err
@@ -788,34 +837,45 @@ func (r *Records) unpark(ctx context.Context, key []byte, ripe uint64) error {
 	return r.tx.Delete(ctx, r.key(kindUnmarked, key))
 }
 
-// unrunParked takes each of up to a slice of parked blocks after the parked
-// key after out of the run, as unpark does, while the generation is Open,
-// and returns the last parked key it read and whether more may follow. A
-// readoption calls it before it deletes the parked records. It reads one
-// list record per parked block.
-func (r *Records) unrunParked(ctx context.Context, after []byte) ([]byte, bool, error) {
+// unrunParked takes each of up to a slice of parked blocks after the key
+// after of kind, kindParked or kindReleased, out of the run, as unpark does,
+// while the generation is Open, and returns the last key it read and whether
+// more may follow. A readoption calls it before it deletes the parked
+// records, and its recount then counts every stored list, a released one
+// too. A released list holds its children again once counted, and the walk
+// may have popped a child while the park left it at zero, so each child the
+// walk owes a decode returns to the front, absent ones too: the count
+// returns only stored children of marked lists. It reads one list record
+// per parked block, and one per child of a released one.
+func (r *Records) unrunParked(ctx context.Context, kind byte, after []byte) ([]byte, bool, error) {
 	// Read a slice of parked keys while Open.
 	if gen, err := r.generation(ctx); err != nil || gen != Generation_GENERATION_OPEN {
 		return after, false, err
 	}
-	recs, err := r.scanAfter(ctx, kindParked, after, sliceRecords)
+	recs, err := r.scanAfter(ctx, kind, after, sliceRecords)
 	if err != nil {
 		return after, false, err
 	}
 
-	// Take each marked one out of the run; an unverified one stays.
+	// Take each marked one out of the run; an unverified one stays. Return
+	// a released one's owed children to the front.
 	for _, rec := range recs {
 		after = rec.key
 		if len(rec.key) < 8 {
 			return after, false, errBadBlockKey
 		}
 		key := rec.key[8:]
-		_, marked, err := r.listState(ctx, key)
+		list, listed, err := r.tx.Get(ctx, r.key(kindChildren, key))
 		if err != nil {
 			return after, false, err
 		}
-		if marked {
+		if listed && listMarked(list) {
 			if err := r.tx.Delete(ctx, r.key(kindUnmarked, key)); err != nil {
+				return after, false, err
+			}
+		}
+		if listed && kind == kindReleased {
+			if err := r.pushChildren(ctx, listKeys(list), nil); err != nil {
 				return after, false, err
 			}
 		}
@@ -830,46 +890,56 @@ func (r *Records) unrunParked(ctx context.Context, after []byte) ([]byte, bool, 
 // reparks it in any generation; while Sweeping its run entry stays, since
 // the run stays the run at the flip, and it is not unmarked. The caller
 // writes its list from content and logs a holder for each child as for a
-// born block. Its stored list still holds its children, since only a free
-// gives them their downs, so it returns the block keys of that list, which
-// lose this holder as a rebirth's released children do.
-func (r *Records) repark(ctx context.Context, state *LivenessState, key []byte) ([][]byte, error) {
-	// Read the ripe sequence that keys the parked entry.
+// born block. A park that kept its holds left the stored list holding its
+// children, so it returns the block keys of that list, which lose this
+// holder as a rebirth's released children do, and reports holds. A released
+// park already gave them their downs, so it returns that list with holds
+// false: the put's list gives the ups, and a copied put that keeps the stored
+// list gives that list's.
+func (r *Records) repark(ctx context.Context, state *LivenessState, key []byte) (children [][]byte, holds bool, err error) {
+	// Read the ripe sequence that keys the parked entry, and whether the
+	// park released the list's holds.
 	value, _, err := r.tx.Get(ctx, r.key(kindCount, key))
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	_, ripe, err := decodeHolders(value)
 	if err != nil {
-		return nil, err
+		return nil, false, err
+	}
+	released, err := r.tx.Exists(ctx, r.releasedKey(ripe, key))
+	if err != nil {
+		return nil, false, err
 	}
 
-	// Read the children the stored list still holds.
-	var released [][]byte
+	// Read the children of the stored list.
 	list, _, err := r.tx.Get(ctx, r.key(kindChildren, key))
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	for packed := listKeys(list); len(packed) != 0; {
 		child, ok := nextBlockKey(packed)
 		if !ok {
-			return nil, errBadBlockKey
+			return nil, false, errBadBlockKey
 		}
-		released = append(released, bytes.Clone(child))
+		children = append(children, bytes.Clone(child))
 		packed = packed[len(child):]
 	}
 
-	// Delete the count, the parked key, the queue entry, the front entry and,
-	// unless Sweeping, the run entry.
-	for _, del := range [][]byte{r.key(kindCount, key), r.parkedKey(ripe, key), r.queueKey(ripe, key), r.key(kindFront, key)} {
+	// Delete the count, the parked keys, the queue entry, the front entry
+	// and, unless Sweeping, the run entry.
+	for _, del := range [][]byte{
+		r.key(kindCount, key), r.parkedKey(ripe, key), r.releasedKey(ripe, key),
+		r.queueKey(ripe, key), r.key(kindFront, key),
+	} {
 		if err := r.tx.Delete(ctx, del); err != nil {
-			return nil, err
+			return nil, false, err
 		}
 	}
 	if state.GetGeneration() == Generation_GENERATION_SWEEPING {
-		return released, nil
+		return children, !released, nil
 	}
-	return released, r.tx.Delete(ctx, r.key(kindUnmarked, key))
+	return children, !released, r.tx.Delete(ctx, r.key(kindUnmarked, key))
 }
 
 // Held reports whether ref is present with holders: its count record is not
@@ -1135,6 +1205,11 @@ func (r *Records) queueKey(ripe uint64, key []byte) []byte {
 // parkedKey returns the parked key of the Dead block at key with ripe.
 func (r *Records) parkedKey(ripe uint64, key []byte) []byte {
 	return r.key(kindParked, binary.BigEndian.AppendUint64(nil, ripe), key)
+}
+
+// releasedKey returns the released key of the Dead block at key with ripe.
+func (r *Records) releasedKey(ripe uint64, key []byte) []byte {
+	return r.key(kindReleased, binary.BigEndian.AppendUint64(nil, ripe), key)
 }
 
 // queuePos returns the position on the free queue of the block at key,

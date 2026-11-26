@@ -5474,22 +5474,22 @@ func TestLivenessAdversarial(t *testing.T) {
 
 // The transactions of block_gc.Adopt, in order, on a Volume whose records
 // each fit in one slice: the claim, the pop mark's raise, the take-out of
-// parked blocks from the run, the clears of counts, the queue, parked
-// blocks, the up and down logs, born marks, moved-root marks, release pages,
-// recount records and unmarked counts, then the mark, the root count, the
-// child list count and the settle.
+// parked and released blocks from the run, the clears of counts, the queue,
+// parked blocks, released blocks, the up and down logs, born marks,
+// moved-root marks, release pages, recount records and unmarked counts, then
+// the mark, the root count, the child list count and the settle.
 const (
 	// adoptClearCounts clears the count records an earlier run left.
-	adoptClearCounts = 4
+	adoptClearCounts = 5
 	// adoptMark marks the Volume adopting.
-	adoptMark = 14
+	adoptMark = 16
 	// adoptCountRoots counts the roots.
-	adoptCountRoots = 15
+	adoptCountRoots = 17
 	// adoptCountChildren counts the child lists' holders.
-	adoptCountChildren = 16
+	adoptCountChildren = 18
 	// adoptSettle settles the stored blocks' counts and marks the Volume
 	// adopted.
-	adoptSettle = 17
+	adoptSettle = 19
 )
 
 // The transactions of a block_gc.Adopt that takes over a run whose cursor is
@@ -5728,6 +5728,75 @@ func TestLivenessSettle(t *testing.T) {
 			t.Fatal("the run built in one slice")
 		}
 	}
+
+	t.Run("a park releases its children", func(t *testing.T) {
+		// A -> L -> S, with P -> Q, S unheld beside them: P's list and Q's
+		// are from content, and S stays on the front so the generation
+		// stays Open. The free parks P and gives its children their downs:
+		// Q, which only P holds, parks in the same pass, and S, which L
+		// also holds, stays. Then either the flip and the sweep delete P
+		// and Q and give S no second down, or a writer roots main onto P
+		// and Q before the flip, and their rebirth gives S and Q back the
+		// ups the park took. The old park, kept selectable, parks P alone
+		// with its holds. Each way the settle keeps what main reaches, and
+		// the audit finds every count exact.
+		for _, tc := range []struct {
+			name   string
+			old    bool
+			reborn bool
+		}{
+			{name: "swept"},
+			{name: "reborn before the flip", reborn: true},
+			{name: "with the park keeping its holds", old: true},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				tr := testTree{}
+				tr.add(t, "S")
+				tr.add(t, "Q")
+				tr.add(t, "P", "Q", "S")
+				tr.add(t, "L", "S")
+				tr.add(t, "A", "L")
+				v, clk, store := oldStore(t, tr, "A", []string{"A", "L", "P", "Q", "S"})
+				if tc.old {
+					swapCollector(v, block_gc.NewCollector(collectorStore{v: v}, block_gc.CollectorOptions{Frees: true, Now: v.now, ParkKeepsHolds: true}))
+				}
+				verify(t, v, tr, "A", "L", "P", "Q")
+
+				// One pass while Open parks P, and Q below it unless the
+				// park keeps its holds.
+				clk.Add(block_gc.DefaultGrace + time.Second)
+				res := collectAll(t, v)
+				parks := uint64(2)
+				if tc.old {
+					parks = 1
+				}
+				if res.Parked != parks || res.Freed != 0 || res.Flipped {
+					t.Fatalf("collect while Open = %+v, want %d parked and no flip", res, parks)
+				}
+				requireReads(t, v, tr, "A", "L", "S")
+
+				// Root main onto P and Q again, or leave them to the sweep,
+				// and free what the settle released: the old park gives
+				// P's downs only when the sweep deletes it.
+				kept := []string{"A", "L", "S"}
+				if tc.reborn {
+					if err := rootOnto(t, v, tr, "P", "P", "Q"); err != nil {
+						t.Fatal(err)
+					}
+					kept = []string{"P", "Q", "S"}
+				}
+				settleAll(t, v, clk, store, tr)
+				clk.Add(block_gc.DefaultGrace + time.Second)
+				collectAll(t, v)
+				requireReads(t, v, tr, kept...)
+				if !tc.reborn {
+					requireStored(t, v, tr, false, "P", "Q")
+				}
+				requireListsStored(t, v, tr)
+				requireAudit(t, v, 0)
+			})
+		}
+	})
 
 	t.Run("frees off and on while the generation is open", func(t *testing.T) {
 		// B -> C -> D, with C's list cut, none reached, and one frees-on
@@ -6528,7 +6597,7 @@ func TestLivenessSettle(t *testing.T) {
 				if state := livenessState(t, v); state.GetAdoption() == block_gc.Adoption_ADOPTION_ADOPTED {
 					t.Fatalf("state %v after the refusal, want not adopted", state)
 				}
-				if left := livenessRecords(t, store, 'H', 'Q', 'X', 'u', 'd', 'B', 'A', 'D', 'Y', 'T'); len(left) != 0 {
+				if left := livenessRecords(t, store, 'H', 'Q', 'X', 'x', 'u', 'd', 'B', 'A', 'D', 'Y', 'T'); len(left) != 0 {
 					t.Fatalf("the refused adoption left %d records", len(left))
 				}
 			})
@@ -6582,6 +6651,7 @@ func TestLivenessSettle(t *testing.T) {
 		}
 		queuedKey := slices.Concat(livenessPrefix, []byte{'Q'})
 		parkedKey := slices.Concat(livenessPrefix, []byte{'X'})
+		releasedKey := slices.Concat(livenessPrefix, []byte{'x'})
 		states := []struct {
 			name string
 			// open builds the state and returns the Volume.
@@ -6644,7 +6714,7 @@ func TestLivenessSettle(t *testing.T) {
 						t.Fatalf("collect = %+v, want W to hold the flip", res)
 					}
 				}
-				if countPrefix(t, store, parkedKey) == 0 {
+				if countPrefix(t, store, parkedKey)+countPrefix(t, store, releasedKey) == 0 {
 					t.Fatal("U is not parked")
 				}
 				return v, clk, store, tr
@@ -7963,10 +8033,11 @@ func TestLivenessSettle(t *testing.T) {
 
 	for _, marked := range []bool{true, false} {
 		t.Run("copied put of a parked block marked="+strconv.FormatBool(marked), func(t *testing.T) {
-			// The free parks the unreached G -> X. A copied put of G
-			// lacking X keeps G's list: a marked one holds X as before, and
-			// an unverified one, cut to lack X, returns to the run and the
-			// front, where the walk decodes G and keeps X.
+			// The free parks the unreached G -> X. A copied put of G keeps
+			// G's list. A marked one released X, which the free then parked
+			// too, so the put of G alone is refused and the writer puts X
+			// with it. An unverified one, cut to lack X, returns to the run
+			// and the front, where the walk decodes G and keeps X.
 			tr := testTree{}
 			tr.add(t, "A")
 			tr.add(t, "X")
@@ -7983,7 +8054,15 @@ func TestLivenessSettle(t *testing.T) {
 			if res := collectAll(t, v); res.Parked == 0 || res.Freed != 0 {
 				t.Fatalf("collect while Open = %+v, want G parked", res)
 			}
-			if err := v.SetBucketRoots(t.Context(), "b", []*block.PutBatchEntry{copied(tr, "G")}, []block.NamedRoot{{Name: "main", Ref: tr["G"].Ref}}); err != nil {
+			puts := []*block.PutBatchEntry{copied(tr, "G")}
+			if marked {
+				var absent *block_gc.AbsentError
+				if err := v.SetBucketRoots(t.Context(), "b", puts, []block.NamedRoot{{Name: "main", Ref: tr["G"].Ref}}); !errors.As(err, &absent) || !absent.Ref.EqualsRef(tr["X"].Ref) {
+					t.Fatalf("copied put of G alone err %v, want the parked X refused", err)
+				}
+				puts = append(puts, copied(tr, "X"))
+			}
+			if err := v.SetBucketRoots(t.Context(), "b", puts, []block.NamedRoot{{Name: "main", Ref: tr["G"].Ref}}); err != nil {
 				t.Fatal(err)
 			}
 			if !marked && (!has(t, store, run, tr["G"].Ref) || !has(t, store, front, tr["G"].Ref)) {

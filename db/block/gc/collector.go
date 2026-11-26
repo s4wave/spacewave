@@ -97,6 +97,23 @@ import (
 //     parked blocks back onto the free queue, where invariant 3 checks each
 //     again, frees what the counts prove, and leaves each unmarked block to
 //     the sweep.
+//  10. A parked block holds nothing. A park is a free that keeps the
+//     bytes, the list and the proof: it gives each child its down in the
+//     transaction that parks the block, through the free's netting, move
+//     budget and paged release, and writes the block's kindReleased key,
+//     so the free cascades down an unreachable subtree while Open as it
+//     does once Settled. The released key is the one record that the list
+//     holds nothing, and every path that would give the list a down or an
+//     up reads it: the sweep and a rebirth give no down for a released list
+//     and delete the key, a put gives the ups its list gives a fresh block
+//     (a copied put of the stored list too), an unpark records a recount,
+//     and an adoption deletes every released key before it counts every
+//     stored list. The collector never requeues a released key. A count
+//     then counts only the holders that are not parked, so a block whose
+//     holders all parked reaches zero, ripens at the up log's end and parks
+//     in the same pass. ParkKeepsHolds selects the park that kept its holds
+//     until the sweep; both kinds of park may stand in one Volume, and each
+//     path reads which one a block has.
 type Collector struct {
 	// store runs the collector's transactions.
 	store Store
@@ -690,7 +707,9 @@ func (c *Collector) freeSlice(ctx context.Context, rec *Records, blocks block.St
 
 // requeueSlice moves up to a slice of parked blocks back onto the free queue
 // once the generation flipped, from the parked key position from, and
-// reports whether the slice was full. Each keeps its ripe sequence, which the
+// reports whether the slice was full. It reads only kindParked keys: a
+// released park gave its downs already, so it stays for the sweep, which
+// deletes its key and gives none. Each keeps its ripe sequence, which the
 // cursor passed before the free parked it, so the free step that follows
 // takes it, checking it is still at zero at that sequence, and drops an
 // unmarked one, which the sweep deletes. While the generation is Open, or the
@@ -745,7 +764,9 @@ func (c *Collector) freeable(state *LivenessState) bool {
 // f. It deletes only the queue entry when the entry is stale: the block has
 // no child list or no zero record at ripe, or it is unmarked, which the
 // sweep deletes. While the generation is Open it deletes nothing, and parks
-// the block instead, as invariant 9 describes. When the list does not fit
+// the block instead, as invariants 9 and 10 describe: a park gives the
+// children their downs as a free does, unless ParkKeepsHolds keeps them.
+// When the list does not fit
 // the moves f has left after an earlier free, it changes nothing and
 // reports false, so the next slice frees it first.
 //
@@ -789,13 +810,14 @@ func (c *Collector) freeBlock(
 		return true, rec.tx.Delete(ctx, queued)
 	}
 
-	// Park it while the generation is Open, in the run, and leave an
-	// unmarked one to the sweep.
-	switch state.GetGeneration() {
-	case Generation_GENERATION_OPEN:
+	// Park it while the generation is Open, in the run, keeping its holds
+	// only as ParkKeepsHolds asks, and leave an unmarked one to the sweep.
+	park := state.GetGeneration() == Generation_GENERATION_OPEN
+	switch {
+	case park && c.opts.ParkKeepsHolds:
 		res.Parked++
 		return true, rec.park(ctx, queued, rec.parkedKey(ripe, key), key)
-	case Generation_GENERATION_SWEEPING:
+	case state.GetGeneration() == Generation_GENERATION_SWEEPING:
 		unmarked, err := rec.Unmarked(ctx, key)
 		if err != nil {
 			return false, err
@@ -814,6 +836,16 @@ func (c *Collector) freeBlock(
 	}
 	if len(children) > f.moves-f.moved && f.moved != 0 {
 		return false, nil
+	}
+
+	// Park a block while Open with its holds released, keeping its bytes,
+	// list and proof, and give its children their downs as a free does.
+	if park {
+		res.Parked++
+		if err := rec.park(ctx, queued, rec.releasedKey(ripe, key), key); err != nil {
+			return false, err
+		}
+		return true, f.give(ctx, c, rec, state, res, key, children)
 	}
 
 	// Free its bytes and records.

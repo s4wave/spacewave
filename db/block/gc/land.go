@@ -155,10 +155,13 @@ const (
 //     a root, a parent in the batch or a parent outside it, so the walk
 //     decodes it and pushes any child the copied refs lack before the flip.
 //  3. While Open, a copied entry of a parked block keeps its stored list,
-//     through Records.keepParked: repark's releases are not logged and the
-//     block gains no child, so the holders the list gives stay as they were.
-//     Its count is then absent, the implied holder; with no holder in the
-//     batch, the down appendLogs logs nets it to zero, which queues it.
+//     through Records.keepParked, and the block gains no child. A park that
+//     kept its holds leaves the holders the list gives as they were, so
+//     repark's releases are not logged. A released park's list holds
+//     nothing, so the put gives that list's ups as a born block's, and
+//     refuses a hidden child as one does. Its count is then absent, the
+//     implied holder; with no holder in the batch, the down appendLogs logs
+//     nets it to zero, which queues it.
 //  4. A copied entry of a recorded hole refuses the Land with
 //     block.ErrRefsUnknown, since only content refills a hole. While
 //     Sweeping, a copied entry of a block hidden or without a list refuses
@@ -564,12 +567,20 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 		// holds those holders only if the count passed its list already.
 		release := l.logs && (!l.adopting || adoptCounted(l.state, BlockKey(b.ref)))
 		if b.repark {
-			released, err := l.rec.repark(ctx, l.state, BlockKey(b.ref))
+			children, holds, err := l.rec.repark(ctx, l.state, BlockKey(b.ref))
 			if err != nil {
 				return nil, err
 			}
-			if release && !b.keep {
-				l.down = append(l.down, released...)
+			switch {
+			case holds && release && !b.keep:
+				l.down = append(l.down, children...)
+			case !holds && b.keep:
+				// A released park's list holds nothing, so the kept list
+				// gives its ups as a born block's does, and holdChildren
+				// refuses a hidden child.
+				if b.children, _, err = l.rec.GetChildren(ctx, b.ref); err != nil {
+					return nil, err
+				}
 			}
 		}
 		if b.reborn {
@@ -584,8 +595,9 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 		}
 		switch {
 		case b.keep:
-			// The stored list stays, and with it the holders it gives, so
-			// the put logs neither the downs repark released nor ups.
+			// The stored list stays. Kept holds stay with it, so the put
+			// logs neither the downs repark released nor ups; released
+			// ones come back through the ups of b.children.
 			err = l.rec.keepParked(ctx, BlockKey(b.ref))
 		case b.copied:
 			err = l.rec.putCopied(ctx, b.ref, b.children)

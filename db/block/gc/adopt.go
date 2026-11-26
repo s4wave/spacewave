@@ -840,8 +840,8 @@ func (a *adoption) hold(ctx context.Context, rec *Records, h holds) error {
 // pages, the record that a recount is due, and the counts the settle froze
 // at the flip.
 var adoptionKinds = []byte{
-	kindCount, kindQueue, kindParked, kindUpLog, kindDownLog, kindAdoptBorn,
-	kindAdoptRoot, kindReleasePage, kindRewritten, kindUnmarkedCount,
+	kindCount, kindQueue, kindParked, kindReleased, kindUpLog, kindDownLog,
+	kindAdoptBorn, kindAdoptRoot, kindReleasePage, kindRewritten, kindUnmarkedCount,
 }
 
 // claimedBy reports whether state is unadopted under run's claim.
@@ -852,9 +852,17 @@ func claimedBy(state *LivenessState, run string) bool {
 // clearRun takes each parked block out of the run, then deletes every
 // record of the adoptionKinds, stopping, deleting nothing more, once the
 // Volume leaves run's claim. Land writes none of them while the Volume is
-// unadopted, so the clear ends with none left. A parked block is in the run, as Records.park describes, and the recount may
-// find it held, so it leaves the run with its parked record; if it is Dead
-// again, the free parks it again.
+// unadopted, so the clear ends with none left. A parked block is in the run,
+// as Records.park describes, and the recount may find it held, so it leaves
+// the run with its parked record; if it is Dead again, the free parks it
+// again.
+//
+// The released keys go before the recount reads a list: the clear deletes
+// every kindReleased record with the counts, and only then does the count
+// phase count every stored list, a released one too, so after it each list
+// holds its children and no record says otherwise. A sweep after the
+// recount then gives a formerly released block's children their downs, as
+// it does for any unmarked block.
 func clearRun(ctx context.Context, store Store, run string) error {
 	// Take the parked blocks out of the run while claimed. The recount gives
 	// a block Dead before it a new ripe sequence, so a pop mark covers every
@@ -878,7 +886,17 @@ func clearRun(ctx context.Context, store Store, run string) error {
 		if err != nil || !claimed(state) {
 			return nil, false, err
 		}
-		return rec.unrunParked(ctx, after)
+		return rec.unrunParked(ctx, kindParked, after)
+	})
+	if err != nil {
+		return err
+	}
+	_, err = eachSlice(ctx, store.Update, []byte(nil), nil, func(rec *Records, _ block.StoreOps, after []byte) ([]byte, bool, error) {
+		state, err := rec.GetState(ctx)
+		if err != nil || !claimed(state) {
+			return nil, false, err
+		}
+		return rec.unrunParked(ctx, kindReleased, after)
 	})
 	if err != nil {
 		return err

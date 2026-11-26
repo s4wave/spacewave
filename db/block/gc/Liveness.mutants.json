@@ -95,7 +95,7 @@
         "  /\\ WF_vars(NetDowns)"
       ]
     ],
-    "expect": "FreesProgress",
+    "expect": "EventuallyCollected",
     "config": "Liveness.cfg"
   },
   {
@@ -108,5 +108,27 @@
     ],
     "expect": "EventuallyCollected",
     "config": "Liveness.cfg"
+  },
+  {
+    "name": "the sweep releases a parked block's children again",
+    "replace": [
+      [
+        "  /\\ parked' = parked \\ {b}\n  /\\ UNCHANGED <<listed, H, queued, ripe, roots, upLog, upCursor, downLog, rel, seen, freed, under, txns>>",
+        "  /\\ parked' = parked \\ {b}\n  /\\ rel.todo = {}\n  /\\ rel' = [b |-> b, todo |-> Kids(b)]\n  /\\ UNCHANGED <<listed, H, queued, ripe, roots, upLog, upCursor, downLog, seen, freed, under, txns>>"
+      ]
+    ],
+    "expect": "CountsExact",
+    "config": "Liveness.cfg"
+  },
+  {
+    "name": "a parked block put again gives its children no ups",
+    "replace": [
+      [
+        "  LET born == batch \\ listed\n",
+        "  LET born == batch \\ (listed \\cup parked)\n"
+      ]
+    ],
+    "expect": "CountsExact",
+    "config": "Liveness-hole.cfg"
   }
 ]

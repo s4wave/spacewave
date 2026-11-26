@@ -17,6 +17,13 @@
 \* case where the steps follow at once. A listed block holds its children
 \* until it is freed itself.
 \*
+\* While a settle is Open the free parks instead of deleting: a park is a
+\* free that keeps the bytes and the list but releases the children as
+\* FreeStart and FreeStep do, and the block reads absent. Its list holds
+\* nothing, so it is not listed here. A batch that puts it again gives it
+\* birth, its list holding its children as a fresh put's does, and the
+\* sweep deletes it without releasing them again.
+\*
 \* A reader observes main, may pin what it observed within Window, and drops
 \* its pin. F1's held check lets a batch put again a block that is stored,
 \* even one queued at zero, and treats a born child that such a block names
@@ -60,9 +67,10 @@ VARIABLES
              \* releases, todo empty when none is
   seen,      \* the reader's observation: [b, age], b None when idle
   freed,     \* blocks freed and not stored again since
+  parked,    \* freed blocks a park kept, bytes and list, for the sweep
   under,     \* whether a decrement ever met a zero count
   txns       \* Land transactions so far
-vars == <<listed, H, queued, ripe, roots, upLog, upCursor, downLog, rel, seen, freed, under, txns>>
+vars == <<listed, H, queued, ripe, roots, upLog, upCursor, downLog, rel, seen, freed, parked, under, txns>>
 
 upSeq == upCursor + Len(upLog)
 
@@ -101,6 +109,7 @@ Init ==
   /\ rel = Idle
   /\ seen = [b |-> None, age |-> 0]
   /\ freed = {}
+  /\ parked = {}
   /\ under = FALSE
   /\ txns = 0
 
@@ -135,6 +144,7 @@ LandTx(n, t, batch) ==
   /\ \A b \in born : (move /\ b = t) \/ (\E p \in batch : b \in Kids(p)) \/ H[b] > 0
   /\ listed' = listed \cup batch
   /\ freed' = freed \ batch
+  /\ parked' = parked \ batch
   /\ H' = [b \in Blocks |-> IF b \in born THEN H[b] + birth(b) ELSE H[b]]
   /\ upLog' = upLog \o ups
   /\ queued' = queued \ named
@@ -157,7 +167,7 @@ ReaderObserve ==
   /\ seen.b = None
   /\ roots["pin"] = None
   /\ seen' = [b |-> roots["main"], age |-> 0]
-  /\ UNCHANGED <<listed, H, queued, ripe, roots, upLog, upCursor, downLog, rel, freed, under, txns>>
+  /\ UNCHANGED <<listed, H, queued, ripe, roots, upLog, upCursor, downLog, rel, freed, parked, under, txns>>
 
 ReaderPin ==
   /\ seen.b # None
@@ -178,7 +188,7 @@ NetUps ==
        /\ ripe' = [ripe EXCEPT ![b] = 0]
   /\ upLog' = Tail(upLog)
   /\ upCursor' = upCursor + 1
-  /\ UNCHANGED <<listed, roots, downLog, rel, seen, freed, under, txns>>
+  /\ UNCHANGED <<listed, roots, downLog, rel, seen, freed, parked, under, txns>>
 
 NetDowns ==
   /\ downLog # <<>>
@@ -187,8 +197,9 @@ NetDowns ==
        /\ e.age >= Grace
        /\ Decrement(e.b)
   /\ downLog' = Tail(downLog)
-  /\ UNCHANGED <<listed, roots, upLog, upCursor, rel, seen, freed, txns>>
+  /\ UNCHANGED <<listed, roots, upLog, upCursor, rel, seen, freed, parked, txns>>
 
+\* FreeStart frees b, deleting it or, while a settle is Open, parking it.
 FreeStart(b) ==
   /\ rel.todo = {}
   /\ b \in queued
@@ -196,6 +207,7 @@ FreeStart(b) ==
   /\ ripe[b] <= upCursor
   /\ listed' = listed \ {b}
   /\ freed' = freed \cup {b}
+  /\ \E park \in BOOLEAN : parked' = IF park THEN parked \cup {b} ELSE parked
   /\ queued' = queued \ {b}
   /\ ripe' = [ripe EXCEPT ![b] = 0]
   /\ rel' = [b |-> b, todo |-> Kids(b)]
@@ -205,7 +217,14 @@ FreeStep(k) ==
   /\ k \in rel.todo
   /\ Decrement(k)
   /\ rel' = [rel EXCEPT !.todo = @ \ {k}]
-  /\ UNCHANGED <<listed, roots, upLog, upCursor, downLog, seen, freed, txns>>
+  /\ UNCHANGED <<listed, roots, upLog, upCursor, downLog, seen, freed, parked, txns>>
+
+\* Sweep deletes a parked block's bytes and list. Its park released its
+\* children, so it releases none.
+Sweep(b) ==
+  /\ b \in parked
+  /\ parked' = parked \ {b}
+  /\ UNCHANGED <<listed, H, queued, ripe, roots, upLog, upCursor, downLog, rel, seen, freed, under, txns>>
 
 Tick ==
   /\ \/ \E i \in 1..Len(downLog) : downLog[i].age < Grace
@@ -214,7 +233,7 @@ Tick ==
                   [downLog[i] EXCEPT !.age = IF @ < Grace THEN @ + 1 ELSE @]]
   /\ seen' = IF seen.b # None /\ seen.age <= Window
                THEN [seen EXCEPT !.age = @ + 1] ELSE seen
-  /\ UNCHANGED <<listed, H, queued, ripe, roots, upLog, upCursor, rel, freed, under, txns>>
+  /\ UNCHANGED <<listed, H, queued, ripe, roots, upLog, upCursor, rel, freed, parked, under, txns>>
 
 Free == \E b \in Blocks : FreeStart(b)
 Step == \E k \in Blocks : FreeStep(k)
@@ -222,6 +241,7 @@ Step == \E k \in Blocks : FreeStep(k)
 Next ==
   \/ Land \/ ReaderObserve \/ ReaderPin \/ PinRelease
   \/ NetUps \/ NetDowns \/ Free \/ Step \/ Tick
+  \/ \E b \in Blocks : Sweep(b)
 
 Spec ==
   /\ Init /\ [][Next]_vars

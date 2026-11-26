@@ -37,6 +37,14 @@ type CollectorOptions struct {
 	// kvtx.WriterQueueStore does; nil reports none. The free loop stops at the
 	// next block, and a paged release at the next page, once one waits.
 	WritersWaiting func() bool
+	// ParkKeepsHolds selects the park that keeps a block's holds while the
+	// old generation is Open: its children keep the parked block as a
+	// holder until the sweep gives their downs, so the free stops at the
+	// first parked level until the flip. Off, the default, a park gives the
+	// children their downs as a free does and the free cascades, as
+	// Collector's invariant 10 describes. Each path reads which park a block
+	// has, so the option may change between passes.
+	ParkKeepsHolds bool
 }
 
 // sliceTarget is how long the collector's own work in one transaction aims

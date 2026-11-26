@@ -125,15 +125,34 @@ func (r *Records) countKind(ctx context.Context, key []byte) (byte, error) {
 // kindUnmarkedCount record, the holders it gained and lost since the flip,
 // over its frozen kindCount record. A child inside the run keeps no holder
 // from it, since the flip dropped the holders of every unmarked block.
+//
+// A block whose park released its holds gave every child its down when it
+// parked, so it returns none and deletes its released key, the record of
+// that fact, in the same transaction: no path gives such a list a second
+// down. The frozen kindCount record still names the key, since nothing
+// changes an unmarked block's kindCount after the flip. An adoption that
+// recounted after the flip deleted the key with the count, and its recount
+// gave the list its holds back, so the list then releases as any other.
 func (r *Records) releaseOld(ctx context.Context, key []byte) ([][]byte, error) {
-	// Release the old list's children outside the run.
-	value, _, err := r.tx.Get(ctx, r.key(kindChildren, key))
-	if err != nil {
+	// Release nothing for a released park, deleting its key, and otherwise
+	// the old list's children outside the run.
+	var released [][]byte
+	ripe, _, gone, err := r.parkState(ctx, key)
+	switch {
+	case err != nil:
 		return nil, err
-	}
-	released, err := r.outsideRun(ctx, bytes.Clone(listKeys(value)))
-	if err != nil {
-		return nil, err
+	case gone:
+		if err := r.tx.Delete(ctx, r.releasedKey(ripe, key)); err != nil {
+			return nil, err
+		}
+	default:
+		list, _, err := r.tx.Get(ctx, r.key(kindChildren, key))
+		if err != nil {
+			return nil, err
+		}
+		if released, err = r.outsideRun(ctx, bytes.Clone(listKeys(list))); err != nil {
+			return nil, err
+		}
 	}
 
 	// Move the count since the flip over the frozen one.
@@ -238,8 +257,9 @@ func (r *Records) putCopied(ctx context.Context, ref *block.BlockRef, children [
 // is one that was Open all along with the copied block in it:
 //
 //   - Settled holds no run, front, park, unmarked count or pop mark: the
-//     sweep deleted every unmarked block, the flip moved every parked block
-//     to the free queue and deleted the pop mark, and the settle's last step
+//     sweep deleted every unmarked block and every released key with it, the
+//     collector moved every other parked block to the free queue, the flip
+//     deleted the pop mark, and the settle's last step
 //     deleted the run. Every list is marked, since while Sweeping and
 //     Settled no writer stores an unmarked one. So the only unverified list
 //     is the copied block's, which putCopied enters in the run, and reopen
@@ -767,6 +787,9 @@ func (c *Collector) frontProven(ctx context.Context, rec *Records, blocks block.
 	}
 	if listed {
 		proven, err := rec.tx.Exists(ctx, rec.queueKey(ripe, key))
+		if err == nil && !proven {
+			proven, err = rec.tx.Exists(ctx, rec.releasedKey(ripe, key))
+		}
 		if err == nil && !proven {
 			proven, err = rec.tx.Exists(ctx, rec.parkedKey(ripe, key))
 		}

@@ -292,7 +292,7 @@ func (n *netting) writeNode(ctx context.Context, nd *node, holders0, ripe0 uint6
 	// A block that leaves zero while Open leaves the park and the run the
 	// park put it in, as Records.unpark describes.
 	if holders0 == 0 && holders != 0 && n.state.GetGeneration() == Generation_GENERATION_OPEN {
-		if err := n.rec.unpark(ctx, nd.key, ripe0); err != nil {
+		if err := n.rec.unpark(ctx, n.state, nd.key, ripe0); err != nil {
 			return err
 		}
 	}
