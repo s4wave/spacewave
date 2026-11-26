@@ -5,6 +5,8 @@ package spacewave_cli
 import (
 	"context"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/aperturerobotics/cli"
@@ -69,11 +71,14 @@ func (a *debugVolumeCollectArgs) Run(c *cli.Context) error {
 	}
 	path := c.Args().First()
 
-	// Turning frees on recounts the Volume.
+	// Turning frees on recounts the Volume. An interrupt or a TERM ends the
+	// run at its next commit, so a stopped run still prints its totals.
+	ctx, stop := signal.NotifyContext(c.Context, os.Interrupt, syscall.SIGTERM)
+	defer stop()
 	conf := a.upgrade.StoreConfig(&store_kvtx.Config{CollectorFrees: a.frees, CollectorGraceDur: a.grace})
-	rep, err := collectVolume(c.Context, logrus.NewEntry(logrus.New()), path, conf, a.load)
+	rep, err := collectVolume(ctx, logrus.NewEntry(logrus.New()), path, conf, a.load)
 
-	// Print the totals, including those a failed pass left.
+	// Print the totals, including those a failed or stopped pass left.
 	writeFields(os.Stdout, rep.fields())
 	return err
 }
@@ -97,10 +102,13 @@ func collectVolume(ctx context.Context, le *logrus.Entry, path string, conf *sto
 	start := time.Now()
 	defer func() { rep.res.Duration = time.Since(start) }()
 	if rep.frees {
-		if _, err := vol.Adopt(ctx); err != nil {
+		if err := adoptLogged(ctx, le, vol); err != nil {
 			return rep, errors.Wrap(err, "adopt before freeing")
 		}
 	}
+
+	// Log the passes' progress from here.
+	rep.le, rep.logged = le, time.Now()
 
 	// Collect, under the writer when it has a window, then read what the
 	// flip's checks find.
@@ -115,11 +123,40 @@ func collectVolume(ctx context.Context, le *logrus.Entry, path string, conf *sto
 	return rep, err
 }
 
+// adoptLogged adopts vol and logs what the count found and how long it took.
+// A recount of a large Volume runs for hours and the command's report prints
+// only at exit, so this line is what says the passes have begun.
+func adoptLogged(ctx context.Context, le *logrus.Entry, vol *volume_s4db.Volume) error {
+	// Adopt; a Volume already adopted counted nothing.
+	start := time.Now()
+	res, err := vol.Adopt(ctx)
+	if err != nil || res.Already {
+		return err
+	}
+
+	// Log the count.
+	le.WithFields(logrus.Fields{
+		"blocks":   res.Blocks,
+		"counted":  res.Counted,
+		"queued":   res.Queued,
+		"duration": time.Since(start).Round(time.Second).String(),
+	}).Info("counted the volume's holders")
+	return nil
+}
+
+// pass runs one collection pass on vol, adds its accounting and logs the
+// totals so far.
+func (r *collectReport) pass(ctx context.Context, vol *volume_s4db.Volume) (block_gc.CollectResult, error) {
+	res, err := vol.Collect(ctx)
+	r.add(res)
+	r.progress()
+	return res, err
+}
+
 // collectToEnd runs passes on vol until one reports no work left.
 func (r *collectReport) collectToEnd(ctx context.Context, vol *volume_s4db.Volume) error {
 	for {
-		res, err := vol.Collect(ctx)
-		r.add(res)
+		res, err := r.pass(ctx, vol)
 		if err != nil || !res.More {
 			return err
 		}
@@ -153,8 +190,7 @@ func (r *collectReport) collectUnderLoad(ctx context.Context, vol *volume_s4db.V
 	var passErr error
 	for passErr == nil && windowCtx.Err() == nil {
 		var res block_gc.CollectResult
-		res, passErr = vol.Collect(ctx)
-		r.add(res)
+		res, passErr = r.pass(ctx, vol)
 		if passErr == nil && !res.More {
 			select {
 			case <-windowCtx.Done():

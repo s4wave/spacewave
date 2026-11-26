@@ -10,7 +10,12 @@ import (
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
+	"github.com/sirupsen/logrus"
 )
+
+// collectProgressEvery is the least time between two progress lines of an
+// offline collection.
+const collectProgressEvery = 30 * time.Second
 
 // settleStatusLimit bounds the front entries and the holes the report
 // counts.
@@ -36,6 +41,10 @@ type collectReport struct {
 	status *block_gc.SettleStatus
 	// load is the writer run beside the passes, nil without one.
 	load *volumeLoad
+	// le logs the passes' progress, nil for none.
+	le *logrus.Entry
+	// logged is when the last progress line was written.
+	logged time.Time
 }
 
 // newCollectReport returns an empty report of a collection of the volume at
@@ -81,6 +90,26 @@ func (r *collectReport) add(res block_gc.CollectResult) {
 		sum.Front, sum.FrontDone = res.Front, true
 	}
 	sum.More = res.More
+}
+
+// progress logs the passes' totals so far, at most once in
+// collectProgressEvery, so a collection that runs for hours shows where it is
+// before its report prints.
+func (r *collectReport) progress() {
+	if r.le == nil || time.Since(r.logged) < collectProgressEvery {
+		return
+	}
+	r.logged = time.Now()
+	r.le.WithFields(logrus.Fields{
+		"passes":        r.passes,
+		"netted":        r.res.Netted,
+		"queued":        r.res.Queued,
+		"parked":        r.res.Parked,
+		"freed":         r.res.Freed,
+		"front-scanned": r.res.FrontScanned,
+		"popped":        r.res.Popped,
+		"swept":         r.res.Swept,
+	}).Info("collecting the volume")
 }
 
 // readStatus reads what the flip's checks find on vol.
