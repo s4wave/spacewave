@@ -525,10 +525,10 @@ func TestRetainApprovedProcessRuntimeKeepsFlowgraphRunAfterCommandRelease(t *tes
 	}}
 	spaceID := space.SpaceEngineId(ref)
 	registry := process_binding.NewBindingRegistry()
-	spaceResource := resource_space.NewSpaceResourceWithSessionPeerID(
-		tb.Logger, tb.Bus, &keeperTestSpaceBody{engine: tb.Engine, engineID: tb.EngineID, ref: ref}, tb.Volume.GetPeerID().String(),
+	spaceResource := resource_space.NewSpaceResourceWithSessionPeerIDAndHostPluginID(
+		tb.Logger, tb.Bus, &keeperTestSpaceBody{engine: tb.Engine, engineID: tb.EngineID, ref: ref},
+		tb.Volume.GetPeerID().String(), "", nil, registry,
 	)
-	spaceResource.SetBindingRegistry(registry)
 	client := s4wave_space.NewSRPCSpaceResourceServiceClient(
 		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(spaceResource.GetMux()))),
 	)

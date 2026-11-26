@@ -334,6 +334,7 @@ func (r *SessionResource) buildCryptoInfo() *s4wave_session.SessionCryptoInfo {
 	return info
 }
 
+// addSharedObjectResource mounts a SharedObject and transfers its release to the caller.
 func (r *SessionResource) addSharedObjectResource(
 	ctx context.Context,
 	resourceCtx resource_server.ResourceClientContext,
@@ -360,10 +361,10 @@ func (r *SessionResource) addSharedObjectResource(
 		soRef,
 		r.session.GetPeerId().String(),
 		r.hostPluginID,
+		r.accountPluginSource(),
+		r.bindingRegistry,
 	)
 	soResource.SetAppPluginIDs(r.appPluginIDs)
-	soResource.SetAccountPlugins(r.accountPluginSource())
-	soResource.SetBindingRegistry(r.bindingRegistry)
 	id, err := resourceCtx.AddResource(soResource.GetMux(), mountedSoRef.Release)
 	if err != nil {
 		mountedSoRef.Release()
@@ -430,6 +431,7 @@ func (r *SessionResource) createSpace(ctx context.Context, req *s4wave_session.C
 	return soRef, soMeta, nil
 }
 
+// mountSpaceResponse publishes the mounted Space, its World and its SharedObject.
 func (r *SessionResource) mountSpaceResponse(
 	ctx context.Context,
 	soRef *sobject.SharedObjectRef,
@@ -475,10 +477,10 @@ func (r *SessionResource) mountSpaceResponse(
 		mountedSpace.GetSharedObjectBody(),
 		r.session.GetPeerId().String(),
 		r.hostPluginID,
+		r.accountPluginSource(),
+		r.bindingRegistry,
 	)
 	spaceResource.SetAppPluginIDs(r.appPluginIDs)
-	spaceResource.SetAccountPlugins(r.accountPluginSource())
-	spaceResource.SetBindingRegistry(r.bindingRegistry)
 	releaseOpPlugins := spaceResource.StartOpPluginLoader(ctx)
 	releaseSpaceResource := func() {
 		releaseOpPlugins()
@@ -981,10 +983,10 @@ func (r *SessionResource) mountCdnSharedObject(
 		soRef,
 		r.session.GetPeerId().String(),
 		r.hostPluginID,
+		r.accountPluginSource(),
+		r.bindingRegistry,
 	)
 	soResource.SetAppPluginIDs(r.appPluginIDs)
-	soResource.SetAccountPlugins(r.accountPluginSource())
-	soResource.SetBindingRegistry(r.bindingRegistry)
 	id, err := resourceCtx.AddResource(soResource.GetMux(), func() {})
 	if err != nil {
 		return nil, err

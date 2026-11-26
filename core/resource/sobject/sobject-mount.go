@@ -100,10 +100,10 @@ func (r *SharedObjectResource) MountSharedObjectBody(ctx context.Context, req *s
 		body,
 		resource_space.MountedBodySessionPeerID(body, r.sessionPeerID),
 		r.hostPluginID,
+		r.accountPlugins,
+		r.bindingRegistry,
 	)
 	spaceResource.SetAppPluginIDs(r.appPluginIDs)
-	spaceResource.SetAccountPlugins(r.accountPlugins)
-	spaceResource.SetBindingRegistry(r.bindingRegistry)
 
 	// Run the plugins its replay waits for until the client releases it.
 	releaseOpPlugins := spaceResource.StartOpPluginLoader(ctx)
@@ -123,6 +123,7 @@ func (r *SharedObjectResource) MountSharedObjectBody(ctx context.Context, req *s
 	}, nil
 }
 
+// mountSharedObjectBodyHealthResponse reports a failed mount as body health.
 func mountSharedObjectBodyHealthResponse(err error) *s4wave_sobject.MountSharedObjectBodyResponse {
 	health, ok := sobject.GetSharedObjectHealthFromError(err)
 	if !ok {

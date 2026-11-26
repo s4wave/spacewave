@@ -153,10 +153,10 @@ func (r *SessionResource) MountSpace(
 		body,
 		resource_space.MountedBodySessionPeerID(body, r.session.GetPeerId().String()),
 		r.hostPluginID,
+		r.accountPluginSource(),
+		r.bindingRegistry,
 	)
 	spaceResource.SetAppPluginIDs(r.appPluginIDs)
-	spaceResource.SetAccountPlugins(r.accountPluginSource())
-	spaceResource.SetBindingRegistry(r.bindingRegistry)
 	releaseOpPlugins := spaceResource.StartOpPluginLoader(ctx)
 
 	// Release the operation plugins, then the body before the SharedObject.

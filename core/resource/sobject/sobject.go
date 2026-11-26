@@ -30,9 +30,10 @@ type SharedObjectResource struct {
 	hostPluginID  string
 	// appPluginIDs is the immutable application declaration supplied before publication.
 	appPluginIDs []string
-	// accountPlugins follows the account plugin list of each Space mounted.
+	// accountPlugins follows the account plugin list for this resource's life.
+	// It is nil without an account.
 	accountPlugins resource_space.AccountPluginSource
-	// bindingRegistry carries binding changes from the Resource root.
+	// bindingRegistry is the Resource root's binding event source for this resource's life.
 	bindingRegistry *process_binding.BindingRegistry
 }
 
@@ -45,11 +46,13 @@ func NewSharedObjectResource(
 	ref *sobject.SharedObjectRef,
 	sessionPeerID string,
 ) *SharedObjectResource {
-	return NewSharedObjectResourceWithHostPluginID(le, b, so, meta, ref, sessionPeerID, "")
+	return NewSharedObjectResourceWithHostPluginID(le, b, so, meta, ref, sessionPeerID, "", nil, nil)
 }
 
 // NewSharedObjectResourceWithHostPluginID creates a new SharedObjectResource
-// with the plugin id that owns the resource root.
+// with the plugin ID that owns the resource root and fixed plugin dependencies.
+// accountPlugins is nil when the resource has no account.
+// bindingRegistry is nil when the resource has no binding event source.
 func NewSharedObjectResourceWithHostPluginID(
 	le *logrus.Entry,
 	b bus.Bus,
@@ -58,16 +61,23 @@ func NewSharedObjectResourceWithHostPluginID(
 	ref *sobject.SharedObjectRef,
 	sessionPeerID string,
 	hostPluginID string,
+	accountPlugins resource_space.AccountPluginSource,
+	bindingRegistry *process_binding.BindingRegistry,
 ) *SharedObjectResource {
+	// Retain the mounted resource and its dependencies before exposing RPC methods.
 	soResource := &SharedObjectResource{
-		le:            le,
-		b:             b,
-		sharedObject:  so,
-		meta:          meta,
-		ref:           ref,
-		sessionPeerID: sessionPeerID,
-		hostPluginID:  hostPluginID,
+		le:              le,
+		b:               b,
+		sharedObject:    so,
+		meta:            meta,
+		ref:             ref,
+		sessionPeerID:   sessionPeerID,
+		hostPluginID:    hostPluginID,
+		accountPlugins:  accountPlugins,
+		bindingRegistry: bindingRegistry,
 	}
+
+	// Register RPC methods on the fully configured resource.
 	soResource.mux = resource_server.NewResourceMux(func(mux srpc.Mux) error {
 		return s4wave_sobject.SRPCRegisterSharedObjectResourceService(mux, soResource)
 	})
@@ -269,17 +279,6 @@ func waitSharedObjectHealth(
 // SetAppPluginIDs supplies application composition before the resource is published.
 func (r *SharedObjectResource) SetAppPluginIDs(ids []string) {
 	r.appPluginIDs = slices.Clone(ids)
-}
-
-// SetAccountPlugins supplies the account plugin list of each Space mounted
-// before the resource is published.
-func (r *SharedObjectResource) SetAccountPlugins(source resource_space.AccountPluginSource) {
-	r.accountPlugins = source
-}
-
-// SetBindingRegistry supplies the Resource root's binding event source.
-func (r *SharedObjectResource) SetBindingRegistry(registry *process_binding.BindingRegistry) {
-	r.bindingRegistry = registry
 }
 
 // _ is a type assertion

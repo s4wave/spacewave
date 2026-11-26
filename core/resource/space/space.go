@@ -42,7 +42,7 @@ type SpaceResource struct {
 	hostPluginID  string
 	// appPluginIDs is the immutable application declaration supplied before publication.
 	appPluginIDs []string
-	// bindingRegistry carries binding changes from the Resource root.
+	// bindingRegistry is the Resource root's binding event source for this resource's life.
 	bindingRegistry *process_binding.BindingRegistry
 	// accountPlugins reads the account plugin list, or is nil without an account.
 	accountPlugins AccountPluginSource
@@ -66,25 +66,34 @@ func NewSpaceResourceWithSessionPeerID(
 	sp space.SpaceSharedObjectBody,
 	sessionPeerID string,
 ) *SpaceResource {
-	return NewSpaceResourceWithSessionPeerIDAndHostPluginID(le, b, sp, sessionPeerID, "")
+	return NewSpaceResourceWithSessionPeerIDAndHostPluginID(le, b, sp, sessionPeerID, "", nil, nil)
 }
 
 // NewSpaceResourceWithSessionPeerIDAndHostPluginID creates a SpaceResource
-// with the mounted local session peer ID and host plugin ID.
+// with the mounted local session peer ID, host plugin ID and fixed plugin dependencies.
+// accountPlugins is nil when the resource has no account.
+// bindingRegistry is nil when the resource has no binding event source.
 func NewSpaceResourceWithSessionPeerIDAndHostPluginID(
 	le *logrus.Entry,
 	b bus.Bus,
 	sp space.SpaceSharedObjectBody,
 	sessionPeerID string,
 	hostPluginID string,
+	accountPlugins AccountPluginSource,
+	bindingRegistry *process_binding.BindingRegistry,
 ) *SpaceResource {
+	// Retain the mounted resource and its dependencies before exposing RPC methods.
 	spaceResource := &SpaceResource{
-		le:            le,
-		b:             b,
-		space:         sp,
-		sessionPeerID: sessionPeerID,
-		hostPluginID:  hostPluginID,
+		le:              le,
+		b:               b,
+		space:           sp,
+		sessionPeerID:   sessionPeerID,
+		hostPluginID:    hostPluginID,
+		accountPlugins:  accountPlugins,
+		bindingRegistry: bindingRegistry,
 	}
+
+	// Register RPC methods on the fully configured resource.
 	spaceResource.mux = resource_server.NewResourceMux(
 		func(mux srpc.Mux) error {
 			return s4wave_space.SRPCRegisterSpaceResourceService(mux, spaceResource)
@@ -1038,17 +1047,6 @@ func loadSharingParticipantPresentationState(
 // SetAppPluginIDs supplies application composition before the resource is published.
 func (r *SpaceResource) SetAppPluginIDs(ids []string) {
 	r.appPluginIDs = slices.Clone(ids)
-}
-
-// SetAccountPlugins supplies the account plugin list before the resource is
-// published. Each holder of the contents runtime follows it.
-func (r *SpaceResource) SetAccountPlugins(source AccountPluginSource) {
-	r.accountPlugins = source
-}
-
-// SetBindingRegistry supplies the Resource root's binding event source.
-func (r *SpaceResource) SetBindingRegistry(registry *process_binding.BindingRegistry) {
-	r.bindingRegistry = registry
 }
 
 // _ is a type assertion

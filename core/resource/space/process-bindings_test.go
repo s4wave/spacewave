@@ -103,8 +103,9 @@ func TestBindingWatchRetainsSharedRuntimeAfterCommandMountRelease(t *testing.T) 
 
 	// Watch local process decisions independently of a contents mount.
 	registry := process_binding.NewBindingRegistry()
-	spaceResource := NewSpaceResourceWithSessionPeerID(tb.Logger, tb.Bus, body, tb.Volume.GetPeerID().String())
-	spaceResource.SetBindingRegistry(registry)
+	spaceResource := NewSpaceResourceWithSessionPeerIDAndHostPluginID(
+		tb.Logger, tb.Bus, body, tb.Volume.GetPeerID().String(), "", nil, registry,
+	)
 	client := s4wave_space.NewSRPCSpaceResourceServiceClient(spaceResourceClient(t, spaceResource.GetMux()))
 	stream, err := client.WatchProcessBindings(ctx, &s4wave_space.WatchProcessBindingsRequest{})
 	if err != nil {
