@@ -526,6 +526,31 @@ func TestReadCacheNeverVouches(t *testing.T) {
 	if data, found, err := store.GetBlock(ctx, refs[0]); err != nil || !found || string(data) != "node block 0" {
 		t.Fatalf("read from the cache alone = %q, %v, %v", data, found, err)
 	}
+
+	// A batch asks the cache once for the run its blocks share.
+	waitFor(t, "every adopted block's row holds its extent", func() bool {
+		for _, key := range keys {
+			if _, _, _, ok, err := store.index.locateExtent(ctx, key); err != nil || !ok {
+				return false
+			}
+		}
+		return true
+	})
+	before := cache.reads.Load()
+	var answered int
+	err := store.GetStoredBlockBatch(ctx, refs, func(i int, stored *block.StoredBlock, err error) error {
+		if want := fmt.Sprintf("node block %d", i); err != nil || stored == nil || string(stored.Data) != want {
+			t.Fatalf("batch read %d = %v, %v, want %q", i, stored, err, want)
+		}
+		answered++
+		return nil
+	})
+	if err != nil || answered != len(refs) {
+		t.Fatalf("batch from the cache alone answered %d of %d: %v", answered, len(refs), err)
+	}
+	if n := cache.reads.Load() - before; n != 1 {
+		t.Fatalf("the batch asked the cache %d times, want once for its run", n)
+	}
 }
 
 // failingIndex fails its write transactions while failing is set.

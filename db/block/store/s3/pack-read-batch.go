@@ -181,19 +181,8 @@ func (s *PackStore) ReadBatch(ctx context.Context, refs []*block.BlockRef, fn fu
 // A foreground reader joining the batch raises every read of the batch to its
 // class, so a background batch never holds it behind the background lane.
 func (s *PackStore) readPlaced(ctx context.Context, extents []batchExtent, reads int, fn func(batchExtent, *block.StoredBlock, error) error) error {
-	// Answer the extents a cached copy holds.
-	pending := extents[:0]
-	for _, e := range extents {
-		if stored := s.cachedBlock(ctx, e.ref, e.id, e.off, e.size); stored != nil {
-			if err := fn(e, stored, nil); err != nil {
-				return err
-			}
-			continue
-		}
-		pending = append(pending, e)
-	}
-
 	// Join the reads already in flight, and claim the rest.
+	pending := extents
 	keys := make([]string, len(pending))
 	for j := range pending {
 		pending[j].claim = j
@@ -265,32 +254,18 @@ func (s *PackStore) readRuns(ctx context.Context, extents []batchExtent, reads i
 			// Return the run's bytes to the budget once its blocks are passed on.
 			defer budget.Release(weight)
 
-			// Read the span; a missing pack means its rows named the wrong one.
-			data, err := s.client.GetObjectRange(egCtx, s.bucket, s.prefix+packDir+run.id, run.off, int(run.end-run.off))
-			if errors.Is(err, ErrNotFound) {
-				data, err = nil, nil
-			}
-			if err == nil {
-				s.reads.batchReads.Add(1)
-				s.reads.downloaded(readBatch, len(data))
-			}
+			// Read and verify the run's blocks outside the lock.
+			blocks, err := s.readRun(egCtx, run)
 
-			// Pass on each block, as its own copy so a kept block does not
-			// pin the span, or the run's error.
+			// Pass on each block, or the run's error.
 			mtx.Lock()
 			defer mtx.Unlock()
-			for _, e := range run.extents {
-				if err != nil {
-					if ferr := fn(e, nil, err); ferr != nil {
-						return ferr
-					}
-					continue
+			for i, e := range run.extents {
+				var stored *block.StoredBlock
+				if err == nil {
+					stored = blocks[i]
 				}
-				stored := runBlock(data, run.off, e)
-				if stored != nil {
-					s.reads.batchBlocks.Add(1)
-				}
-				if ferr := fn(e, stored, nil); ferr != nil {
+				if ferr := fn(e, stored, err); ferr != nil {
 					return ferr
 				}
 			}
@@ -301,6 +276,54 @@ func (s *PackStore) readRuns(ctx context.Context, extents []batchExtent, reads i
 		return err
 	}
 	return stopped
+}
+
+// readRun returns the verified block of each of run's extents, in order, nil
+// for one its bytes do not hold. It takes the read cache's copy of the span
+// when that holds every block, so a batch asks the cache once per run, and
+// otherwise reads the span from the bucket.
+func (s *PackStore) readRun(ctx context.Context, run batchRun) ([]*block.StoredBlock, error) {
+	// Take the cache's copy only when it holds every block of the run.
+	size := int(run.end - run.off)
+	if s.readCache != nil {
+		if data, ok := s.readCache.ReadCached(ctx, run.id, run.off, size); ok {
+			if blocks, whole := runBlocks(data, run); whole {
+				s.reads.cached.Add(uint64(len(blocks)))
+				return blocks, nil
+			}
+			s.reads.cacheRejected.Add(1)
+		}
+	}
+
+	// Read the span; a missing pack means its rows named the wrong one.
+	data, err := s.client.GetObjectRange(ctx, s.bucket, s.prefix+packDir+run.id, run.off, size)
+	if errors.Is(err, ErrNotFound) {
+		return make([]*block.StoredBlock, len(run.extents)), nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	s.reads.batchReads.Add(1)
+	s.reads.downloaded(readBatch, len(data))
+	blocks, _ := runBlocks(data, run)
+	for _, stored := range blocks {
+		if stored != nil {
+			s.reads.batchBlocks.Add(1)
+		}
+	}
+	return blocks, nil
+}
+
+// runBlocks cuts and verifies each of run's blocks from data, the bytes of the
+// run's span, and reports whether data held every one.
+func runBlocks(data []byte, run batchRun) ([]*block.StoredBlock, bool) {
+	blocks := make([]*block.StoredBlock, len(run.extents))
+	whole := true
+	for i, e := range run.extents {
+		blocks[i] = runBlock(data, run.off, e)
+		whole = whole && blocks[i] != nil
+	}
+	return blocks, whole
 }
 
 // runBlock returns the verified block of extent e from data, the bytes of a
