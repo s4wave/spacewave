@@ -61,6 +61,7 @@ func (p *placementState) readStatus() ReadStatus {
 			Timeout:   p.peerReads.failed[peerTimeout].Load(),
 			NoSession: p.peerReads.failed[peerNoSession].Load(),
 			Exchange:  p.peerReads.failed[peerExchange].Load(),
+			Denied:    p.peerReads.failed[peerDenied].Load(),
 		},
 		PeerCanceled:   p.peerReads.canceled.Load(),
 		PeerRemembered: p.peerReads.remembered.Load(),

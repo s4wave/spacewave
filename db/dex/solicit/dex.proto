@@ -36,4 +36,8 @@ message DexMessage {
   // handling it and sends no response. A cancel for a request that already
   // completed is ignored.
   bool cancel = 10;
+  // Denied marks an error answer that rejected the requester's read
+  // authority rather than failed a lookup of the block (response only). It
+  // says nothing of whether the responder holds the block.
+  bool denied = 11;
 }

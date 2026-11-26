@@ -143,8 +143,9 @@ func (p *peerMissLog) fetch(ref *block.BlockRef) block.PeerFetch {
 // refused the block, as peerRefused proves, is remembered in unserved, which
 // may be nil, and a read of a ref unserved holds fails with
 // block.ErrUnavailable at once, asks no peer and counts as remembered instead.
-// A failed exchange, a missing session or a timeout in any attempt leaves the
-// ref unremembered, so a blip to a peer costs no more than the read it failed.
+// A denial, a failed exchange, a missing session or a timeout in any attempt
+// leaves the ref unremembered, so a blip to a peer, or a grant the requester
+// lacked, costs no more than the read it failed.
 func readPeers(ctx context.Context, le *logrus.Entry, store block.StoreOps, ref *block.BlockRef, counts *peerReadCounts, unserved *unservedRefs) (blk *block.StoredBlock, err error) {
 	// Answer a ref the peers recently refused from memory.
 	key := ref.MarshalString()

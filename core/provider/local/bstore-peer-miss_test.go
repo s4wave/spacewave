@@ -298,8 +298,8 @@ func TestPeerReadRemembersUnserved(t *testing.T) {
 		t.Fatalf("blip counts: %+v", st)
 	}
 
-	// Only a tree of refusals is proof: a refusal beside a failed exchange,
-	// a timeout or a closed session is not.
+	// Only a tree of refusals is proof: a denial, or a refusal beside a
+	// failed exchange, a timeout or a closed session, is not.
 	reset := errors.New("stream reset by the peer")
 	for _, tc := range []struct {
 		err  error
@@ -309,6 +309,7 @@ func TestPeerReadRemembersUnserved(t *testing.T) {
 		{fmt.Errorf("%w: no peer served block: %w", block.ErrUnavailable, errors.Join(refusal, reset)), false},
 		{fmt.Errorf("%w: no peer served block: %w", block.ErrUnavailable, errors.Join(refusal, context.DeadlineExceeded)), false},
 		{fmt.Errorf("%w: %w", block.ErrUnavailable, dex_solicit.ErrNoPeerSession), false},
+		{fmt.Errorf("%w: %w: not a participant", block.ErrUnavailable, dex_solicit.ErrPeerDenied), false},
 		{reset, false},
 	} {
 		if got := peerRefused(tc.err); got != tc.want {
