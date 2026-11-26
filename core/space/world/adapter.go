@@ -784,6 +784,11 @@ func (a *Adapter) Root(ctx context.Context, n int) ([]byte, func(context.Context
 		ctx, cancel := a.backgroundContext(ctx)
 		defer cancel()
 
+		// Let the test hold a page store before it touches the root lock.
+		if hook := checkpointStoreHook.Load(); hook != nil {
+			(*hook)(ctx)
+		}
+
 		// Hold it beside every World returned since the last install,
 		// unless an install already made it the replay base, which holds
 		// it.
@@ -1265,6 +1270,10 @@ func (a *Adapter) admitLocked(adm *spaceAdmission) {
 		a.writer = world.Head{Root: adm.candidate.Root, Seqno: adm.candidate.Seqno}
 	}
 }
+
+// checkpointStoreHook lets a test park checkpoint page storage before it
+// takes the root lock. A production adapter never sets the hook.
+var checkpointStoreHook atomic.Pointer[func(context.Context)]
 
 // admittedHook, when set, sees each candidate keepAdmitted keeps, so a test can
 // check what its writer reported.

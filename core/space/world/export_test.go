@@ -32,3 +32,9 @@ func SetAdmittedHook(fn func(world.Candidate)) func() {
 	admittedHook.Store(&fn)
 	return func() { admittedHook.Store(nil) }
 }
+
+// SetCheckpointStoreHook sets fn until the returned function clears it.
+func SetCheckpointStoreHook(fn func(context.Context)) func() {
+	checkpointStoreHook.Store(&fn)
+	return func() { checkpointStoreHook.Store(nil) }
+}

@@ -4,122 +4,81 @@ package space_world_test
 
 import (
 	"context"
-	"slices"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/s4wave/spacewave/core/sobject"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/db/world"
 )
 
-// TestAdapterDecidesWhileCheckpointStores checks that the driver keeps
-// deciding local writes while it stores a large checkpoint and saves its
-// cursor in the background: every write that lands before the checkpoint does
-// is decided within a quarter of the checkpoint's time, rather than after the
-// store, and the log compares them with writes while no checkpoint runs.
+// TestAdapterDecidesWhileCheckpointStores checks that the driver decides and
+// publishes a write even when checkpoint page storage cannot finish.
 func TestAdapterDecidesWhileCheckpointStores(t *testing.T) {
-	// Serve a Space and count the operations above its checkpoint.
-	ctx, cancel := context.WithTimeout(t.Context(), 180*time.Second)
+	// Serve a Space whose first checkpoint is still below its trim threshold.
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
 	f := newAdapterFixture(t)
 	_, engRef := f.start(t)
 	defer engRef.Release()
 	busEngine := world.NewBusEngine(ctx, f.tb.Bus, f.engineID)
 	so := f.space(t)
-	above := func() int {
-		t.Helper()
-		snap, err := so.GetSharedObjectState(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-		set, err := snap.GetOperationSet(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-		return set.Len()
-	}
 	var next int
-	write := func(objects int) time.Duration {
+	write := func() string {
 		t.Helper()
-		start := time.Now()
+		key := "decide-" + strconv.Itoa(next)
+		next++
 		if err := world.ExecTransaction(ctx, busEngine, true, func(ctx context.Context, ws world.WorldState) error {
-			for range objects {
-				obj, err := ws.CreateObject(ctx, "decide-"+strconv.Itoa(next), nil)
-				world.ReleaseObjectState(obj)
-				if err != nil {
-					return err
-				}
-				next++
-			}
-			return nil
+			obj, err := ws.CreateObject(ctx, key, nil)
+			world.ReleaseObjectState(obj)
+			return err
 		}); err != nil {
 			t.Fatal(err)
 		}
-		return time.Since(start)
+		return key
 	}
 
-	// Write until the driver owes a first checkpoint, then wait for it without
-	// writing, so the next counts from it: a write while it stores would stay
-	// above it and count toward the next.
-	for above() < sobject.MinCheckpointOperations {
-		write(1)
+	// Park the checkpoint before the page store takes the root lock. Either
+	// cleanup or cancellation can release the store before engine teardown.
+	reached, release := make(chan struct{}), make(chan struct{})
+	entered := sync.OnceFunc(func() { close(reached) })
+	resume := sync.OnceFunc(func() { close(release) })
+	defer space_world.SetCheckpointStoreHook(func(ctx context.Context) {
+		entered()
+		select {
+		case <-release:
+		case <-ctx.Done():
+		}
+	})()
+	defer resume()
+
+	// Fill the first stable prefix to the checkpoint threshold.
+	for range sobject.MinCheckpointOperations {
+		write()
 	}
-	waitCheckpointAbove(ctx, t, so, 0)
+	select {
+	case <-reached:
+	case <-ctx.Done():
+		t.Fatal("checkpoint store did not reach its gate")
+	}
+
+	// Decide and read back a later write before releasing checkpoint storage.
 	height := checkpointHeight(ctx, t, so)
-
-	// Time single-object writes with no checkpoint running, then grow the
-	// kept World with large writes. Each stays well under the write buffer's
-	// 4,096 entries: a larger one drains to its stage and is stored before
-	// the checkpoint, which would leave the checkpoint little to store.
-	var base []time.Duration
-	for range 8 {
-		base = append(base, write(1))
+	key := write()
+	if err := hasObjects(ctx, busEngine, key); err != nil {
+		t.Fatalf("write decided but was not visible while checkpoint storage was parked: %v", err)
 	}
-	for range 20 {
-		write(1000)
-	}
-	if above() >= sobject.MinCheckpointOperations {
-		t.Fatalf("%d operations above the checkpoint before the timed one", above())
+	if got := checkpointHeight(ctx, t, so); got != height {
+		t.Fatalf("checkpoint advanced from %d to %d while its store was parked", height, got)
 	}
 
-	// Write until the driver owes a checkpoint, then time writes until it
-	// lands: the first of them lands while it stores. The store takes from
-	// under a second to several on a loaded machine, so the writes are paced
-	// and bounded by time, which also bounds the operations above the
-	// checkpoint.
-	// A store fast enough to land before the first timed write leaves
-	// nothing to time, so the phase runs again from the checkpoint it left.
-	const pace, limit = 10 * time.Millisecond, 60 * time.Second
-	tick := time.NewTicker(pace)
-	defer tick.Stop()
-	var during []time.Duration
-	var stored time.Duration
-	for attempt := 0; len(during) == 0; attempt++ {
-		if attempt == 3 {
-			t.Fatal("the checkpoint landed before any write timed during it, three times")
-		}
-		for above() < sobject.MinCheckpointOperations {
-			write(1)
-		}
-		start := time.Now()
-		for checkpointHeight(ctx, t, so) == height {
-			if time.Since(start) > limit {
-				t.Fatalf("the checkpoint did not land within %v", limit)
-			}
-			during = append(during, write(1))
-			<-tick.C
-		}
-		stored = time.Since(start)
-		height = checkpointHeight(ctx, t, so)
+	// Let the held checkpoint land and leave its successor visible.
+	resume()
+	waitCheckpointAbove(ctx, t, so, height)
+	if err := hasObjects(ctx, busEngine, key); err != nil {
+		t.Fatalf("write was lost when the checkpoint landed: %v", err)
 	}
-
-	// The writes during it were decided about as fast as with none running.
-	slices.Sort(base)
-	baseMax, duringMax := base[len(base)-1], slices.Max(during)
-	t.Logf("checkpoint landed after %v and %d writes; write decision with none running: median %v, max %v; during it: max %v",
-		stored, len(during), base[len(base)/2], baseMax, duringMax)
-	if duringMax > stored/4 {
-		t.Fatalf("a write landing during a %v checkpoint was decided after %v", stored, duringMax)
-	}
+	t.Log("write decided and read back before the parked checkpoint landed")
 }
