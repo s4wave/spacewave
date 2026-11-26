@@ -659,7 +659,9 @@ func (c *Cursor) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts)
 	return c.GetBlockStore().PutBlock(ctx, data, opts)
 }
 
-// PutBlockBatch writes a batch into the store, applying any configured transforms.
+// PutBlockBatch writes a batch into the store, applying any configured
+// transforms. A transformed entry keeps every field of its entry but the data,
+// so a fill or an external block stays one.
 func (c *Cursor) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	if c.xfrm == nil {
 		return c.GetBlockStore().PutBlockBatch(ctx, entries)
@@ -675,13 +677,9 @@ func (c *Cursor) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEnt
 		if err != nil {
 			return nil, err
 		}
-		transformed[i] = &block.PutBatchEntry{
-			Ref:       entry.Ref,
-			Data:      data,
-			Refs:      entry.Refs,
-			RefsKnown: entry.RefsKnown,
-			Tombstone: entry.Tombstone,
-		}
+		next := *entry
+		next.Data = data
+		transformed[i] = &next
 	}
 	return c.GetBlockStore().PutBlockBatch(ctx, transformed)
 }

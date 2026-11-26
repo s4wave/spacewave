@@ -104,7 +104,8 @@ func (l *lookupBucket) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 	return blockRef, existed, err
 }
 
-// PutBlockBatch loops calling PutBlock or RmBlock per entry.
+// PutBlockBatch loops calling PutBlock or RmBlock per entry. An external
+// entry's bytes are stored, since PutOpts cannot say the caller keeps them.
 func (l *lookupBucket) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Apply each batch entry as either a tombstone removal or a block write.
 	existed := make([]bool, len(entries))
@@ -123,6 +124,7 @@ func (l *lookupBucket) PutBlockBatch(ctx context.Context, entries []*block.PutBa
 			ForceBlockRef: ref,
 			Refs:          block.CloneBlockRefs(entry.Refs),
 			RefsKnown:     entry.RefsKnown,
+			CacheFill:     entry.CacheFill,
 		})
 		if err != nil {
 			return nil, err

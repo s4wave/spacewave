@@ -177,6 +177,50 @@ func TestCursorCrossBucketExternalRootClearsSourceTransform(t *testing.T) {
 	}
 }
 
+// TestCursorTransformedBatchKeepsEntryFlags checks that a cursor with a
+// transform writes each batch entry with its flags: a fill stays a fill and an
+// external block stays external, so the Volume lands them as such.
+func TestCursorTransformedBatchKeepsEntryFlags(t *testing.T) {
+	xfrm, err := block_transform.NewTransformer(controller.ConstructOpts{}, transform_all.BuildFactorySet(), testTransformConf(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	store := &batchRecorder{}
+	cursor := &Cursor{xfrm: xfrm, transactionStore: store}
+	entries := []*block.PutBatchEntry{
+		{Ref: &block.BlockRef{}, Data: []byte("fill"), CacheFill: true},
+		{Ref: &block.BlockRef{}, Data: []byte("external"), RefsKnown: true, External: true},
+	}
+	if _, err := cursor.PutBlockBatch(context.Background(), entries); err != nil {
+		t.Fatal(err)
+	}
+	if len(store.entries) != 2 {
+		t.Fatalf("wrote %d entries, want 2", len(store.entries))
+	}
+	for i, got := range store.entries {
+		want := entries[i]
+		if got.CacheFill != want.CacheFill || got.External != want.External || got.RefsKnown != want.RefsKnown {
+			t.Fatalf("entry %d wrote fill %v, external %v, refs known %v; want %v, %v, %v",
+				i, got.CacheFill, got.External, got.RefsKnown, want.CacheFill, want.External, want.RefsKnown)
+		}
+		if bytes.Equal(got.Data, want.Data) {
+			t.Fatalf("entry %d wrote its data untransformed", i)
+		}
+	}
+}
+
+// batchRecorder is a block store that records the batches written to it.
+type batchRecorder struct {
+	block.StoreOps
+	entries []*block.PutBatchEntry
+}
+
+// PutBlockBatch records the entries.
+func (r *batchRecorder) PutBlockBatch(_ context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	r.entries = append(r.entries, entries...)
+	return make([]bool, len(entries)), nil
+}
+
 func TestCursorStoreWrappersFollowIntoAnotherBucket(t *testing.T) {
 	// Register two buckets and store a root in the second.
 	const (
