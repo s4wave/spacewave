@@ -14,7 +14,7 @@ func (e *Engine) ReadRoots() []*block.BlockRef {
 	var roots []*block.BlockRef
 	locked := e.bcast.Lock()
 	if p := e.pub.Load(); p != nil {
-		roots = append(roots, p.ref.GetRootRef())
+		roots = append(roots, p.rootRef())
 	}
 	if w := e.writeTx; w != nil {
 		roots = append(roots, w.baseHeadRef.GetRootRef())
@@ -31,7 +31,7 @@ func (e *Engine) ReadRoots() []*block.BlockRef {
 	// Gather every head a holder still holds.
 	e.liveMu.Lock()
 	for p := range e.live {
-		roots = append(roots, p.ref.GetRootRef())
+		roots = append(roots, p.rootRef())
 	}
 	e.liveMu.Unlock()
 	return roots

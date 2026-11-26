@@ -64,24 +64,21 @@ func (e *Engine) NewRehearsalTransaction(ctx context.Context) (world.Tx, error) 
 		RecordWrites:    true,
 		WithoutPeerWait: true,
 	})
-	ws, err := e.newWorldState(ctx, false, root, buffered, func() {}, rootBlock)
-	if err != nil {
-		releaseStage()
-		if private != nil {
-			private.Release()
-		}
-		return nil, err
-	}
 
 	// Hold the published head, the private base and the stage until Discard.
-	ws.ownedStore, ws.releaseOwned = buffered, true
 	held := e.pub.Load().hold()
-	ws.readRelease = func() {
-		releaseStage()
-		held()
-		if private != nil {
-			private.Release()
-		}
+	ws, err := e.newWorldState(ctx, false, root, buffered, worldStateHolds{
+		release: func() {
+			releaseStage()
+			held()
+			if private != nil {
+				private.Release()
+			}
+		},
+		buffer: buffered,
+	}, rootBlock)
+	if err != nil {
+		return nil, err
 	}
 	return &rehearsalTx{Tx: NewTx(ws)}, nil
 }

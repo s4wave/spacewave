@@ -27,6 +27,12 @@ func newHeldHead(root *bucket_lookup.Cursor, free func()) *heldHead {
 	return h
 }
 
+// cloneRoot returns a cursor on the held root that the caller releases. The
+// caller must hold the head.
+func (h *heldHead) cloneRoot() *bucket_lookup.Cursor {
+	return h.root.Clone()
+}
+
 // tryHold adds a holder unless the head was released.
 func (h *heldHead) tryHold() bool {
 	// Count up only from a live count, so a released head stays released.

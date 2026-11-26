@@ -23,7 +23,7 @@ func (t *callerTurn) Base() world.Head {
 	if p == nil {
 		return world.Head{}
 	}
-	return world.Head{Root: p.ref.GetRootRef().Clone(), Seqno: p.seqno, Durable: true}
+	return world.Head{Root: p.rootRef().Clone(), Seqno: p.seqno, Durable: true}
 }
 
 // Admit stores the candidate's entries and accepts it. In deferred mode the

@@ -240,7 +240,7 @@ func (o *ObjectState) WaitRev(
 		}
 
 		// Take the key's wake before reading the revision.
-		woken := o.w.revs.wait(o.key)
+		woken := o.w.objectWake(o.key)
 
 		_, currRev, err := o.GetRootRef(ctx)
 		if err != nil && (err != world.ErrObjectNotFound || !ignoreNotFound) {

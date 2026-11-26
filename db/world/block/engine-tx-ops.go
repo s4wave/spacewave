@@ -52,7 +52,7 @@ func (e *EngineTx) AccessWorldState(
 	// the head so a concurrent detach cannot release it mid-clone.
 	if held := e.readHead.Load(); held != nil && !e.rel.Load() && held.tryHold() {
 		defer held.release()
-		root := held.root.Clone()
+		root := held.cloneRoot()
 		defer root.Release()
 		return e.engine.accessFrom(ctx, root, ref, func(cursor *bucket_lookup.Cursor) error {
 			setReadOnlyCursor(ctx, cursor)
@@ -306,7 +306,7 @@ func (e *EngineTx) refreshReadSnapshot(ctx context.Context, previous *Tx) error 
 		locked.Unlock()
 		return err
 	}
-	state, err := e.engine.buildWorldStateForRoot(ctx, true, root, nil)
+	state, err := e.engine.buildWorldStateForRoot(ctx, true, root, nil, worldStateHolds{})
 	root.Release()
 	if err != nil {
 		locked.Unlock()

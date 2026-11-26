@@ -23,7 +23,7 @@ func (t *Tx) WaitObjectRev(ctx context.Context, key string, rev uint64, ignoreNo
 		var found bool
 		err := t.lockedLive(ctx, func() error {
 			// Take the wake first, so a later change closes it.
-			woken = t.state.revs.wait(key)
+			woken = t.state.objectWake(key)
 
 			// Read the object's revision, if it exists.
 			obj, ok, err := t.state.getObject(ctx, key)

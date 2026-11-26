@@ -278,7 +278,7 @@ func (e *EngineTx) admit(ctx context.Context, turn world.Turn) (*bucket.ObjectRe
 	// from the write buffer, children before parents, and read the seqno and
 	// root the head's readers need.
 	state := e.writeTx.state
-	batch, err := state.ownedStore.TakeReachable(ctx, slices.Concat([]*block.BlockRef{nroot}, e.recordedRoots)...)
+	batch, err := state.takeReachable(ctx, slices.Concat([]*block.BlockRef{nroot}, e.recordedRoots)...)
 	if err != nil {
 		return nil, nil, nil, nil, nil, err
 	}

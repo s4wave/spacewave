@@ -43,7 +43,9 @@ type WorldState struct {
 	// ended is the error a discarded state reports when the engine that
 	// served it ended it, such as a retired engine's; unset, it reports
 	// tx.ErrDiscarded.
-	ended       atomic.Pointer[error]
+	ended atomic.Pointer[error]
+	// readRelease ends the holds that keep the state's blocks readable, or
+	// is nil. Discard runs it once.
 	readRelease func()
 	// base is the root the block state was loaded from. Writes prove their
 	// root complete only when base is.
@@ -53,13 +55,9 @@ type WorldState struct {
 	// owns physical reachability.
 	store block.StoreOps
 	// ownedStore is the write buffer this state created, nil for forks that
-	// share their parent's. It records the blocks it writes.
+	// share their parent's. It records the blocks it writes, and Discard
+	// releases those the final root does not reach.
 	ownedStore *block.BufferedStore
-	// releaseOwned reports that ownedStore writes to the engine store, so
-	// Discard releases the blocks it wrote that the final root does not reach.
-	// A buffer over a staged session store leaves them to the publication,
-	// since releasing through that store would publish it early.
-	releaseOwned bool
 
 	objTree kvtx.BlockTx
 	// writeErr is the error of a write that stopped after changing part of
@@ -144,6 +142,20 @@ type WorldState struct {
 	revs revWatch
 }
 
+// worldStateHolds is what a WorldState owns beyond its blocks, given at
+// construction so no reader sees a state without it.
+type worldStateHolds struct {
+	// release ends the holds that keep the state's blocks readable, or is
+	// nil. The state runs it on Discard, and the constructor on failure.
+	release func()
+	// localBucketID marks same-bucket object roots as local DAG edges.
+	localBucketID string
+	// budget is the WriteBudget of the engine write the state serves, or nil.
+	budget *world.WriteBudget
+	// buffer is the write buffer the state owns, or nil.
+	buffer *block.BufferedStore
+}
+
 // NewWorldState constructs a new world handle.
 // btx can be nil to not write during Commit()
 // bcs is located at the root of the world (the World block).
@@ -161,6 +173,23 @@ func NewWorldState(
 	lookupOp world.LookupOp,
 	verbose bool,
 ) (*WorldState, error) {
+	return newWorldStateHolding(ctx, le, write, btx, bcs, store, storage, lookupOp, verbose, worldStateHolds{})
+}
+
+// newWorldStateHolding constructs a world handle as NewWorldState does that
+// owns holds from the start, releasing them if construction fails.
+func newWorldStateHolding(
+	ctx context.Context,
+	le *logrus.Entry,
+	write bool,
+	btx *block.Transaction,
+	bcs *block.Cursor,
+	store block.StoreOps,
+	storage world.WorldStorage,
+	lookupOp world.LookupOp,
+	verbose bool,
+	holds worldStateHolds,
+) (*WorldState, error) {
 	// Start the World-state trace.
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/world-state/new")
 	defer task.End()
@@ -177,12 +206,20 @@ func NewWorldState(
 
 		storage:  storage,
 		lookupOp: lookupOp,
+
+		readRelease:   holds.release,
+		localBucketID: holds.localBucketID,
+		budget:        holds.budget,
+		ownedStore:    holds.buffer,
 	}
 	subtask.End()
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/world-state/new/set-block-transaction")
 	err := tx.SetBlockTransaction(taskCtx, btx, bcs)
 	subtask.End()
 	if err != nil {
+		if holds.release != nil {
+			holds.release()
+		}
 		return nil, err
 	}
 	return tx, nil
@@ -208,14 +245,10 @@ func BuildWorldStateFromCursor(
 
 	// Build the state, which releases the pin on Discard and keeps objects in
 	// the cursor's bucket as local edges of the World DAG.
-	state, err := NewWorldState(ctx, le, write, btx, bcs, store, storage, lookupOp, verbose)
-	if err != nil {
-		releaseRoot()
-		return nil, err
-	}
-	state.readRelease = releaseRoot
-	state.localBucketID = bls.GetRefWithOpArgs().GetBucketId()
-	return state, nil
+	return newWorldStateHolding(ctx, le, write, btx, bcs, store, storage, lookupOp, verbose, worldStateHolds{
+		release:       releaseRoot,
+		localBucketID: bls.GetRefWithOpArgs().GetBucketId(),
+	})
 }
 
 // GetReadOnly returns if the world handle is read-only.
@@ -269,6 +302,18 @@ func (t *WorldState) TakePending(ctx context.Context) (*block.PendingBatch, erro
 		return &block.PendingBatch{}, nil
 	}
 	return t.ownedStore.TakePending(ctx)
+}
+
+// takeReachable borrows from the write buffer the blocks roots reach,
+// children before parents, as TakePending does for every buffered block. The
+// state must own a write buffer.
+func (t *WorldState) takeReachable(ctx context.Context, roots ...*block.BlockRef) (*block.PendingBatch, error) {
+	return t.ownedStore.TakeReachable(ctx, roots...)
+}
+
+// objectWake returns the channel the next change naming key closes.
+func (t *WorldState) objectWake(key string) <-chan struct{} {
+	return t.revs.wait(key)
 }
 
 // SetBufferedStoreSettings overrides the BufferedStore settings used by the
@@ -497,7 +542,7 @@ func (t *WorldState) Fork(ctx context.Context) (world.WorldState, error) {
 	if err != nil {
 		return nil, err
 	}
-	ows, err := NewWorldState(
+	return newWorldStateHolding(
 		ctx,
 		t.le,
 		t.write,
@@ -507,15 +552,8 @@ func (t *WorldState) Fork(ctx context.Context) (world.WorldState, error) {
 		t.storage,
 		t.lookupOp,
 		t.verbose,
+		worldStateHolds{release: release, localBucketID: t.localBucketID, budget: t.budget},
 	)
-	if err != nil {
-		release()
-		return nil, err
-	}
-	ows.readRelease = release
-	ows.localBucketID = t.localBucketID
-	ows.budget = t.budget
-	return ows, nil
 }
 
 // SetBlockTransaction loads the state from the given block transaction and cursor.
@@ -653,7 +691,7 @@ func (t *WorldState) Discard() {
 	t.btx.DiscardStagedWrites()
 
 	// Release the written blocks the final root does not reach.
-	if t.releaseOwned {
+	if t.ownedStore != nil {
 		if err := t.ownedStore.ReleaseUnreached(context.Background(), t.GetRootRef()); err != nil {
 			t.le.WithError(err).Warn("unable to release unreached world blocks")
 		}

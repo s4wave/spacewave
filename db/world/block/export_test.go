@@ -79,7 +79,7 @@ func (s *readThroughStore) OpenStage(ctx context.Context) (block.StoreOps, func(
 // ObjectRevWake returns the channel the next change to key closes in the
 // write transaction's World state.
 func ObjectRevWake(t *EngineTx, key string) <-chan struct{} {
-	return t.writeTx.state.revs.wait(key)
+	return t.writeTx.state.objectWake(key)
 }
 
 // BuildNodeGraphRoot exposes the regeneration build to the external tests.

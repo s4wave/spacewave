@@ -85,17 +85,17 @@ func updateWorld(
 	base *bucket.ObjectRef,
 	update func(context.Context, *WorldState) error,
 ) (*block.BlockRef, error) {
-	// Open a write transaction at the base root with a World state over it.
+	// Open a write transaction at the base root with a World state over it
+	// whose local bucket is the destination.
 	local := world.NewWorldStorageFromCursor(bucketCursor)
 	transaction, cursor := bucketCursor.BuildTransactionAtRef(nil, base.GetRootRef())
-	state, err := NewWorldState(ctx, le, true, nil, cursor, nil, local, nil, false)
+	state, err := newWorldStateHolding(ctx, le, true, nil, cursor, nil, local, nil, false, worldStateHolds{
+		localBucketID: bucketCursor.GetRefWithOpArgs().GetBucketId(),
+	})
 	if err != nil {
 		return nil, err
 	}
 	defer state.Discard()
-
-	// Point the state's local bucket at the destination.
-	state.localBucketID = bucketCursor.GetRefWithOpArgs().GetBucketId()
 
 	// Apply the update, commit it, and write the transaction root.
 	if err := update(ctx, state); err != nil {

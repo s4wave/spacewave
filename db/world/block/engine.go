@@ -338,7 +338,7 @@ func (e *Engine) deferredDurability() bool {
 func (e *Engine) GetRootRef() *bucket.ObjectRef {
 	// Clone the published head ref without the engine lock.
 	if p := e.pub.Load(); p != nil {
-		return p.ref.Clone()
+		return p.cloneRef()
 	}
 	return nil
 }
@@ -490,7 +490,7 @@ func (e *Engine) followHead(head world.Head) {
 		e.direct = nil
 		direct = nil
 	}
-	if e.closed || p == nil || head.Root.EqualsRef(p.ref.GetRootRef()) {
+	if e.closed || p == nil || head.Root.EqualsRef(p.rootRef()) {
 		locked.Unlock()
 		return
 	}
@@ -511,7 +511,7 @@ func (e *Engine) followHead(head world.Head) {
 	}
 
 	// Decode the head's World root before taking the Engine lock.
-	ref := p.ref.Clone()
+	ref := p.cloneRef()
 	ref.RootRef = head.Root.Clone()
 	rootBlock, err := e.decodeRoot(ctx, ref)
 	if err != nil {
@@ -605,7 +605,7 @@ func (e *Engine) installRootRefLocked(
 	// from the decoded root a committing writer already holds, when it does.
 	// The head's own reader takes no pin: the Authority's root holds the head.
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/engine/set-root-ref/build-world-state")
-	nextWorld, err := e.newWorldState(taskCtx, true, nextRoot, e.writeBlockStore, func() {}, rootBlock)
+	nextWorld, err := e.newWorldState(taskCtx, true, nextRoot, e.writeBlockStore, worldStateHolds{}, rootBlock)
 	subtask.End()
 	if err != nil {
 		nextRoot.Release()
@@ -659,16 +659,19 @@ func (e *Engine) publishHeadLocked(ctx context.Context, seqno uint64) *published
 	if err != nil {
 		rootBlock = nil
 	}
-	p := newPublishedHead(e.head.root, rootBlock, seqno)
+	p := newPublishedHead(e.head.root, rootBlock, seqno, e.forgetLive)
 	e.liveMu.Lock()
 	e.live[p] = struct{}{}
 	e.liveMu.Unlock()
-	p.gone = func() {
-		e.liveMu.Lock()
-		delete(e.live, p)
-		e.liveMu.Unlock()
-	}
 	return e.pub.Swap(p)
+}
+
+// forgetLive drops p, which its last holder released, from the heads
+// ReadRoots reports.
+func (e *Engine) forgetLive(p *publishedHead) {
+	e.liveMu.Lock()
+	delete(e.live, p)
+	e.liveMu.Unlock()
 }
 
 // acquireHead holds the published head without the Engine lock, or returns
@@ -886,8 +889,8 @@ func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*En
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/new-block-engine-transaction/build-world-state")
 	defer subtask.End()
 	var baseBlock *World
-	if p := e.pub.Load(); p != nil && !base.Root.GetEmpty() && !base.Root.EqualsRef(p.ref.GetRootRef()) {
-		ref := p.ref.Clone()
+	if p := e.pub.Load(); p != nil && !base.Root.GetEmpty() && !base.Root.EqualsRef(p.rootRef()) {
+		ref := p.cloneRef()
 		ref.RootRef = base.Root.Clone()
 		if baseBlock, err = e.decodeRoot(taskCtx, ref); err != nil {
 			turn.Release()
@@ -944,14 +947,13 @@ func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*En
 
 	// Build the write state on the base.
 	baseHeadRef := root.GetRef().Clone()
-	ws, err := e.buildWriteState(taskCtx, root, rootBlock)
+	ws, err := e.buildWriteState(taskCtx, root, rootBlock, budget)
 	if err != nil {
 		if private != nil {
 			private.Release()
 		}
 		return fail(retirement, err)
 	}
-	ws.budget = budget
 
 	// Register the writer only once it carries its base and turn.
 	engTx := newEngineTx(e, NewTx(ws))
@@ -999,8 +1001,8 @@ func (e *Engine) openReadTx(ctx context.Context) (*EngineTx, error) {
 	head := e.acquireHead()
 	var root *bucket_lookup.Cursor
 	if head != nil {
-		root = head.root.Clone()
-		world, err = e.newWorldState(ctx, true, root, e.writeBlockStore, head.hold(), head.rootBlock)
+		root = head.cloneRoot()
+		world, err = e.newWorldState(ctx, true, root, e.writeBlockStore, worldStateHolds{release: head.hold()}, head.rootBlock)
 	}
 
 	// Register the snapshot for Engine.Close unless it closed meanwhile.
@@ -1011,7 +1013,7 @@ func (e *Engine) openReadTx(ctx context.Context) (*EngineTx, error) {
 	if err == nil && !closed {
 		engTx = newEngineTx(e, nil)
 		engTx.readTx.Store(NewTx(world))
-		engTx.readRoot = head.ref.Clone()
+		engTx.readRoot = head.cloneRef()
 		engTx.readHead.Store(newHeldHead(root, func() {
 			root.Release()
 			head.release()
@@ -1094,18 +1096,18 @@ func (e *Engine) ForkBlockTransaction(ctx context.Context, write bool) (*Tx, err
 		store = buffered
 	}
 
-	// Build a distinct World state over the retained root.
+	// Build a distinct World state over the retained root, holding the
+	// published head for the lifetime of the fork, so a fork that outlives
+	// the head pins it.
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/fork-block-transaction/build-world-state")
-	ws, err := e.buildWorldStateForRoot(taskCtx, !write, e.head.root, store)
+	ws, err := e.buildWorldStateForRoot(taskCtx, !write, e.head.root, store, worldStateHolds{
+		release: e.pub.Load().hold(),
+		buffer:  buffered,
+	})
 	subtask.End()
 	if err != nil {
 		return nil, err
 	}
-	ws.ownedStore, ws.releaseOwned = buffered, buffered != nil
-
-	// Hold the published head for the lifetime of the fork, so a fork that
-	// outlives the head pins it.
-	ws.readRelease = e.pub.Load().hold()
 
 	// Wrap the World state in a transaction.
 	_, subtask = trace.NewTask(ctx, "hydra/world-block/engine/fork-block-transaction/new-tx")
@@ -1243,7 +1245,7 @@ func (e *Engine) accessStorage(
 		return e.closedErr()
 	}
 	defer head.release()
-	ncs := head.root.Clone()
+	ncs := head.cloneRoot()
 	defer ncs.Release()
 	return e.accessFrom(ctx, ncs, ref, cb)
 }
@@ -1532,8 +1534,9 @@ func (e *Engine) initializeHeadReadTx(ctx context.Context) error {
 // no Volume transaction.
 // The caller must hold bcast after construction.
 // rootBlock, when set, is the decoded World root at root, which a writer
-// building on an admitted candidate's root takes from the engine.
-func (e *Engine) buildWriteState(ctx context.Context, root *bucket_lookup.Cursor, rootBlock *World) (*WorldState, error) {
+// building on an admitted candidate's root takes from the engine. budget is
+// the WriteBudget the write spends.
+func (e *Engine) buildWriteState(ctx context.Context, root *bucket_lookup.Cursor, rootBlock *World, budget *world.WriteBudget) (*WorldState, error) {
 	// Open the stage the early drains write under.
 	staged, releaseStage, err := block.OpenStage(ctx, e.writeBlockStore)
 	if err != nil {
@@ -1543,26 +1546,18 @@ func (e *Engine) buildWriteState(ctx context.Context, root *bucket_lookup.Cursor
 	// Buffer the writes over the stage.
 	writes := block.NewBufferedStoreWithSettings(ctx, staged, &block.BufferedStoreSettings{RecordWrites: true})
 
-	// Build the state and give it the buffer and the stage.
-	var ws *WorldState
+	// Build the state owning the buffer, the stage and the budget.
+	holds := worldStateHolds{release: releaseStage, budget: budget, buffer: writes}
 	if rootBlock != nil {
-		ws, err = e.newWorldState(ctx, false, root, writes, func() {}, rootBlock)
-	} else {
-		ws, err = e.buildWorldStateForRoot(ctx, false, root, writes)
+		return e.newWorldState(ctx, false, root, writes, holds, rootBlock)
 	}
-	if err != nil {
-		releaseStage()
-		return nil, err
-	}
-	ws.ownedStore, ws.releaseOwned = writes, true
-	ws.readRelease = releaseStage
-	return ws, nil
+	return e.buildWorldStateForRoot(ctx, false, root, writes, holds)
 }
 
 // buildReadWorldState builds a read-only state at the head root.
 // The caller must hold bcast.
 func (e *Engine) buildReadWorldState(ctx context.Context) (*WorldState, error) {
-	return e.buildWorldStateForRoot(ctx, true, e.head.root, nil)
+	return e.buildWorldStateForRoot(ctx, true, e.head.root, nil, worldStateHolds{})
 }
 
 // headRootBlockLocked returns the published head's decoded World root, or nil
@@ -1576,13 +1571,14 @@ func (e *Engine) headRootBlockLocked(ctx context.Context) (*World, error) {
 	return e.head.readTx.state.GetRoot(ctx)
 }
 
-// buildWorldStateForRoot builds state using the engine's stores and lookup policy.
-// The caller must hold bcast.
+// buildWorldStateForRoot builds state using the engine's stores and lookup
+// policy, owning holds as newWorldState does. The caller must hold bcast.
 func (e *Engine) buildWorldStateForRoot(
 	ctx context.Context,
 	readOnly bool,
 	root *bucket_lookup.Cursor,
 	transactionStore block.StoreOps,
+	holds worldStateHolds,
 ) (*WorldState, error) {
 	// Select the store under the existing transaction authority. Both read and
 	// write transactions read and write through writeBlockStore so that, in
@@ -1595,18 +1591,20 @@ func (e *Engine) buildWorldStateForRoot(
 
 	// The Authority's root holds the published head and a writer's base, so
 	// reading them takes no pin and opening does no block I/O under bcast.
-	// Another root takes its own pin.
-	releaseRoot := func() {}
+	// Another root takes its own pin, which the state releases with holds.
 	atHead := e.head != nil && e.head.root.GetRef().EqualsRef(root.GetRef())
 	switch {
 	case !readOnly:
 	case atHead && e.head.root == root && store == e.writeBlockStore:
 	default:
-		var err error
-		releaseRoot, err = block.PinRoot(ctx, store, root.GetRef().GetRootRef())
+		releaseRoot, err := block.PinRoot(ctx, store, root.GetRef().GetRootRef())
 		if err != nil {
+			if holds.release != nil {
+				holds.release()
+			}
 			return nil, err
 		}
+		holds.release = joinReleases(releaseRoot, holds.release)
 	}
 
 	// The published read head already holds this immutable root.
@@ -1615,23 +1613,38 @@ func (e *Engine) buildWorldStateForRoot(
 		var err error
 		rootBlock, err = e.headRootBlockLocked(ctx)
 		if err != nil {
-			releaseRoot()
+			if holds.release != nil {
+				holds.release()
+			}
 			return nil, err
 		}
 	}
-	return e.newWorldState(ctx, readOnly, root, store, releaseRoot, rootBlock)
+	return e.newWorldState(ctx, readOnly, root, store, holds, rootBlock)
+}
+
+// joinReleases returns a release running first and then next, which may be
+// nil.
+func joinReleases(first, next func()) func() {
+	if next == nil {
+		return first
+	}
+	return func() {
+		first()
+		next()
+	}
 }
 
 // newWorldState builds a state at root over store. It reads no Engine fields
 // guarded by bcast, so a caller holding root and its pin may build without the
-// lock. The state owns releaseRoot, which is called on failure. rootBlock, when
-// set, is the decoded World root, cloned so the state owns its mutable fields.
+// lock. The state owns holds, which are released on failure, and resolves
+// same-bucket objects locally. rootBlock, when set, is the decoded World root,
+// cloned so the state owns its mutable fields.
 func (e *Engine) newWorldState(
 	ctx context.Context,
 	readOnly bool,
 	root *bucket_lookup.Cursor,
 	store block.StoreOps,
-	releaseRoot func(),
+	holds worldStateHolds,
 	rootBlock *World,
 ) (*WorldState, error) {
 	// Trace the build.
@@ -1650,16 +1663,8 @@ func (e *Engine) newWorldState(
 		btx.SetReadOnly()
 		btx = nil
 	}
-	ws, err := NewWorldState(ctx, e.le, !readOnly, btx, bcs, store, e, e.lookupOp, e.verbose)
-	if err != nil {
-		releaseRoot()
-		return nil, err
-	}
-
-	// The state owns the root pin and resolves same-bucket objects locally.
-	ws.readRelease = releaseRoot
-	ws.localBucketID = root.GetRefWithOpArgs().GetBucketId()
-	return ws, nil
+	holds.localBucketID = root.GetRefWithOpArgs().GetBucketId()
+	return newWorldStateHolding(ctx, e.le, !readOnly, btx, bcs, store, e, e.lookupOp, e.verbose, holds)
 }
 
 // Verify the World engine contract.

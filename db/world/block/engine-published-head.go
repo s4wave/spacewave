@@ -45,21 +45,40 @@ type publishedHead struct {
 	// pinTimer pins the root once the head stayed held past the pin delay
 	// after it was replaced, or is nil.
 	pinTimer *time.Timer
-	// gone runs once after the last holder released the head, or is nil.
-	gone func()
+	// gone runs once with the head after the last holder released it, or is
+	// nil.
+	gone func(*publishedHead)
 }
 
 // newPublishedHead returns a head at root holding one reference for the
-// Engine.
-func newPublishedHead(root *bucket_lookup.Cursor, rootBlock *World, seqno uint64) *publishedHead {
+// Engine, which calls gone, when set, after the last holder releases it.
+func newPublishedHead(root *bucket_lookup.Cursor, rootBlock *World, seqno uint64, gone func(*publishedHead)) *publishedHead {
 	p := &publishedHead{
 		root:      root.Clone(),
 		ref:       root.GetRef().Clone(),
 		rootBlock: rootBlock,
 		seqno:     seqno,
+		gone:      gone,
 	}
 	p.refs.Store(1)
 	return p
+}
+
+// cloneRoot returns a cursor on the head root that the caller releases. The
+// caller must hold the head.
+func (p *publishedHead) cloneRoot() *bucket_lookup.Cursor {
+	return p.root.Clone()
+}
+
+// cloneRef returns a copy of the head root reference the caller may change.
+func (p *publishedHead) cloneRef() *bucket.ObjectRef {
+	return p.ref.Clone()
+}
+
+// rootRef returns the head's root block reference, which the caller must not
+// change.
+func (p *publishedHead) rootRef() *block.BlockRef {
+	return p.ref.GetRootRef()
 }
 
 // tryHold adds a holder unless the head has retired.
@@ -102,7 +121,7 @@ func (p *publishedHead) release() {
 	}
 	p.root.Release()
 	if p.gone != nil {
-		p.gone()
+		p.gone(p)
 	}
 }
 
