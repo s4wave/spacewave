@@ -12,7 +12,6 @@ import (
 	signaling_rpc_client "github.com/s4wave/spacewave/net/signaling/rpc/client"
 	signaling_server "github.com/s4wave/spacewave/net/signaling/rpc/server"
 	"github.com/s4wave/spacewave/net/sim/graph"
-	"github.com/s4wave/spacewave/net/sim/simulate"
 	"github.com/s4wave/spacewave/net/sim/tests"
 	stream_srpc_client "github.com/s4wave/spacewave/net/stream/srpc/client"
 	stream_srpc_server "github.com/s4wave/spacewave/net/stream/srpc/server"
@@ -111,11 +110,7 @@ func TestTransport(t *testing.T) {
 
 	// Verify endpoint connectivity through the WebRTC transport.
 	le.Infof("attempting to dial %v", descrip)
-	if err := simulate.TestConnectivity(
-		ctx,
-		sim.GetPeerByID(p0.GetPeerID()),
-		sim.GetPeerByID(p2.GetPeerID()),
-	); err != nil {
+	if err := sim.GetPeerByID(p0.GetPeerID()).TestConnectivity(ctx, sim.GetPeerByID(p2.GetPeerID())); err != nil {
 		t.Fatal(err.Error())
 	}
 

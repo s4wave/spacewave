@@ -205,7 +205,7 @@ func waitConnectivity(
 	var lastErr error
 	for {
 		probeCtx, cancelProbe := context.WithTimeout(ctx, 2*time.Second)
-		err := simulate.TestConnectivity(probeCtx, a, b)
+		err := a.TestConnectivity(probeCtx, b)
 		cancelProbe()
 		if err == nil {
 			le.Infof("connectivity ok: %s after %v", stage, time.Since(start))

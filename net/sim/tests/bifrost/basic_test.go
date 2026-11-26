@@ -34,11 +34,7 @@ func TestBasic(t *testing.T) {
 		simulate.WithVerbose(),
 	)
 	le.Infof("attempting to dial %v", descrip)
-	if err := simulate.TestConnectivity(
-		ctx,
-		sim.GetPeerByID(p0.GetPeerID()),
-		sim.GetPeerByID(p1.GetPeerID()),
-	); err != nil {
+	if err := sim.GetPeerByID(p0.GetPeerID()).TestConnectivity(ctx, sim.GetPeerByID(p1.GetPeerID())); err != nil {
 		t.Fatal(err.Error())
 	}
 	le.Infof("successful connectivity test: %v", descrip)

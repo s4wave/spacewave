@@ -18,7 +18,6 @@ import (
 	floodsub_controller "github.com/s4wave/spacewave/net/pubsub/floodsub/controller"
 	pubsub_relay "github.com/s4wave/spacewave/net/pubsub/relay"
 	"github.com/s4wave/spacewave/net/sim/graph"
-	"github.com/s4wave/spacewave/net/sim/simulate"
 	"github.com/sirupsen/logrus"
 )
 
@@ -76,7 +75,7 @@ func testPubsubFloodsub(t *testing.T, churn bool) {
 		// Exercise each pair's actual transport connection.
 		px0 := sim.GetPeerByID(p0.GetPeerID())
 		px1 := sim.GetPeerByID(p1.GetPeerID())
-		if err := simulate.TestConnectivity(ctx, px0, px1); err != nil {
+		if err := px0.TestConnectivity(ctx, px1); err != nil {
 			t.Fatal(err.Error())
 		}
 

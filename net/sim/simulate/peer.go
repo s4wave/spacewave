@@ -8,9 +8,13 @@ import (
 	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/net/crypto"
+	"github.com/s4wave/spacewave/net/link"
 	bp "github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/sim/graph"
+	"github.com/s4wave/spacewave/net/stream"
+	stream_echo "github.com/s4wave/spacewave/net/stream/echo"
 	"github.com/s4wave/spacewave/net/testbed"
 	"github.com/s4wave/spacewave/net/transport/common/dialer"
 	"github.com/s4wave/spacewave/net/transport/common/pconn"
@@ -20,7 +24,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Peer holds state about an executing Peer
+// Peer holds state about an executing Peer.
 type Peer struct {
 	// graphPeer is the underlying graph peer.
 	graphPeer *graph.Peer
@@ -76,12 +80,7 @@ func newPeer(ctx context.Context, le *logrus.Entry, gp *graph.Peer, verbose bool
 
 	// Register the in-process transport and graph-specific peer factories.
 	np.testbed.StaticResolver.AddFactory(inproc.NewFactory(np.testbed.Bus))
-	for _, extraFactoryCtor := range gp.GetExtraFactories() {
-		np.testbed.StaticResolver.AddFactory(extraFactoryCtor(np.testbed.Bus))
-	}
-	for _, extraFactoryCtor := range gp.GetExtraFactoryAdders() {
-		extraFactoryCtor(np.testbed.Bus, np.testbed.StaticResolver)
-	}
+	gp.RegisterFactories(np.testbed.Bus, np.testbed.StaticResolver)
 
 	// Start the in-process transport controller with configured dialers.
 	tpc, _, tp1Ref, err := loader.WaitExecControllerRunningTyped[*transport_controller.Controller](
@@ -167,11 +166,6 @@ func (p *Peer) GetTestbed() *testbed.Testbed {
 	return p.testbed
 }
 
-// GetInproc returns the in-proc transport.
-func (p *Peer) GetInproc() *inproc.Inproc {
-	return p.inproc
-}
-
 // GetTransportController returns the transport controller.
 func (p *Peer) GetTransportController() *transport_controller.Controller {
 	return p.transportController
@@ -184,4 +178,94 @@ func (p *Peer) Close() {
 	for _, rel := range rels {
 		rel()
 	}
+}
+
+// connect connects both peers and installs their static dialers during simulator setup.
+func (p *Peer) connect(ctx context.Context, other *Peer) {
+	// Connect both packet endpoints under the simulator's context.
+	other.inproc.ConnectToInproc(ctx, p.inproc)
+	p.inproc.ConnectToInproc(ctx, other.inproc)
+
+	// Publish both addresses before either peer's deferred configuration starts.
+	p.staticPeerMap[other.GetPeerID().String()] = &dialer.DialerOpts{
+		Address: other.inproc.LocalAddr().String(),
+	}
+	other.staticPeerMap[p.GetPeerID().String()] = &dialer.DialerOpts{
+		Address: p.inproc.LocalAddr().String(),
+	}
+}
+
+// TestConnectivity tests for basic connectivity between two peers.
+// Uses an echo test: dials the Echo controller.
+func (p *Peer) TestConnectivity(ctx context.Context, other *Peer) error {
+	// Retain a directive establishing the link between the simulated peers.
+	_, esRef, err := p.testbed.Bus.AddDirective(ctx, link.NewEstablishLinkWithPeer(
+		p.GetPeerID(),
+		other.GetPeerID(),
+	), nil)
+	if err != nil {
+		return err
+	}
+	defer esRef.Release()
+
+	// Open the echo stream over the simulated peer link.
+	ms1, ms1Rel, err := link.OpenStreamWithPeerEx(
+		ctx,
+		p.testbed.Bus,
+		stream_echo.DefaultProtocolID,
+		p.GetPeerID(),
+		other.GetPeerID(),
+		0,
+		stream.OpenOpts{},
+	)
+	if err != nil {
+		return err
+	}
+	defer ms1Rel()
+
+	// Verify that the stream reports the expected remote peer.
+	mns1rp := ms1.GetLink().GetRemotePeer().String()
+	if px1p := other.GetPeerID().String(); px1p != mns1rp {
+		return errors.Errorf(
+			"stream on p0 remote peer id %s != expected %s",
+			mns1rp,
+			px1p,
+		)
+	}
+
+	// Verify that the stream reports the expected local peer.
+	mns1lp := ms1.GetLink().GetLocalPeer().String()
+	if px0p := p.GetPeerID().String(); px0p != mns1lp {
+		return errors.Errorf(
+			"stream on p0 local peer id %s != expected %s",
+			mns1lp,
+			px0p,
+		)
+	}
+
+	// Send the connectivity probe through the simulated peer stream.
+	data := []byte("testing 1234")
+	_, err = ms1.GetStream().Write(data)
+	if err != nil {
+		return err
+	}
+
+	// expect remote to echo back exactly len(data) bytes
+	outData := make([]byte, len(data)*2)
+	on, oe := ms1.GetStream().Read(outData)
+	if oe != nil {
+		return oe
+	}
+
+	// Verify the echoed probe has the expected byte count.
+	outData = outData[:on]
+	if on != len(data) {
+		return errors.Errorf(
+			"length incorrect received %v != %v data: %v",
+			on,
+			len(data),
+			string(outData),
+		)
+	}
+	return nil
 }

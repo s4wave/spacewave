@@ -6,7 +6,6 @@ import (
 
 	bpeer "github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/sim/graph"
-	"github.com/s4wave/spacewave/net/transport/common/dialer"
 	"github.com/sirupsen/logrus"
 )
 
@@ -23,7 +22,7 @@ type Simulator struct {
 	// mtx guards below fields
 	mtx sync.Mutex
 	// peers contains running peer nodes
-	peers map[string]*Peer
+	peers map[bpeer.ID]*Peer
 }
 
 // NewSimulator constructs a new sim.
@@ -36,7 +35,7 @@ func NewSimulator(
 	// Initialize simulator state and apply construction options.
 	s := &Simulator{
 		le:    le,
-		peers: make(map[string]*Peer),
+		peers: make(map[bpeer.ID]*Peer),
 	}
 
 	// Create the simulator cancellation context before starting peers.
@@ -63,8 +62,7 @@ func NewSimulator(
 		}
 
 		peerID := peer.GetPeerID()
-		peerIDStr := peerID.String()
-		if _, epOk := s.peers[peerIDStr]; epOk {
+		if _, epOk := s.peers[peerID]; epOk {
 			continue
 		}
 
@@ -77,26 +75,18 @@ func NewSimulator(
 
 		// Discover peers linked through the graph.
 		linkedPeers := peer.GetLinkedPeers(grp)
-		le.Debugf("peer %s has %d linked peers", peerIDStr, len(linkedPeers))
+		le.Debugf("peer %s has %d linked peers", peerID, len(linkedPeers))
 
 		// Connect each discovered peer in both directions.
 		for _, lpeer := range linkedPeers {
-			lpeerPeerIDStr := lpeer.GetPeerID().String()
-			op, ok := s.peers[lpeerPeerIDStr]
+			linkedPeerID := lpeer.GetPeerID()
+			op, ok := s.peers[linkedPeerID]
 			if !ok {
 				continue
 			}
 
-			le.Debugf("added in-memory link from %s to %s", lpeerPeerIDStr, peerIDStr)
-			op.inproc.ConnectToInproc(s.ctx, pushedPeer.inproc)
-			pushedPeer.inproc.ConnectToInproc(s.ctx, op.inproc)
-
-			pushedPeer.staticPeerMap[lpeerPeerIDStr] = &dialer.DialerOpts{
-				Address: op.inproc.LocalAddr().String(),
-			}
-			op.staticPeerMap[peerIDStr] = &dialer.DialerOpts{
-				Address: pushedPeer.inproc.LocalAddr().String(),
-			}
+			le.Debugf("added in-memory link from %s to %s", linkedPeerID, peerID)
+			pushedPeer.connect(s.ctx, op)
 		}
 	}
 
@@ -122,8 +112,8 @@ func (s *Simulator) pushPeer(peer *graph.Peer) (*Peer, error) {
 	}
 
 	// Register the running graph peer under its peer ID.
-	peerIDStr := p.GetPeerID().String()
-	s.peers[peerIDStr] = p
+	peerID := p.GetPeerID()
+	s.peers[peerID] = p
 	return p, nil
 }
 
@@ -131,7 +121,7 @@ func (s *Simulator) pushPeer(peer *graph.Peer) (*Peer, error) {
 func (s *Simulator) GetPeerByID(id bpeer.ID) *Peer {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
-	return s.peers[id.String()]
+	return s.peers[id]
 }
 
 // Close closes the simulator.

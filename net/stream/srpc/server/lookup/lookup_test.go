@@ -43,7 +43,7 @@ func TestLookup(t *testing.T) {
 
 	// Verify simulated connectivity and select the server testbed.
 	// Verify connectivity first.
-	if err := simulate.TestConnectivity(ctx, sp0, sp1); err != nil {
+	if err := sp0.TestConnectivity(ctx, sp1); err != nil {
 		t.Fatal(err.Error())
 	}
 	tb1 := sp1.GetTestbed()

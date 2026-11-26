@@ -51,7 +51,7 @@ func TestSimpleSimulate(t *testing.T) {
 	assertConnectivity := func(p0, p1 *graph.Peer) {
 		px0 := sim.GetPeerByID(p0.GetPeerID())
 		px1 := sim.GetPeerByID(p1.GetPeerID())
-		if err := TestConnectivity(ctx, px0, px1); err != nil {
+		if err := px0.TestConnectivity(ctx, px1); err != nil {
 			t.Fatal(err.Error())
 		}
 		le.Infof(

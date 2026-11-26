@@ -43,7 +43,7 @@ func TestDirectChat(t *testing.T) {
 
 	// Verify connectivity
 	le.Info("Testing peer-to-peer connectivity...")
-	if err := simulate.TestConnectivity(ctx, sim.GetPeerByID(p0.GetPeerID()), sim.GetPeerByID(p1.GetPeerID())); err != nil {
+	if err := sim.GetPeerByID(p0.GetPeerID()).TestConnectivity(ctx, sim.GetPeerByID(p1.GetPeerID())); err != nil {
 		t.Fatalf("p0-p1 connectivity failed: %v", err)
 	}
 	le.Info("p0 <-> p1: connected")
@@ -121,7 +121,7 @@ func TestMultiPeerTopology(t *testing.T) {
 	// Test connectivity from center to all peers
 	centerSim := sim.GetPeerByID(center.GetPeerID())
 	for i, p := range peers {
-		if err := simulate.TestConnectivity(ctx, centerSim, sim.GetPeerByID(p.GetPeerID())); err != nil {
+		if err := centerSim.TestConnectivity(ctx, sim.GetPeerByID(p.GetPeerID())); err != nil {
 			t.Fatalf("center-p%d connectivity failed: %v", i, err)
 		}
 		le.Infof("Center <-> Peer %d: connected", i)

@@ -80,14 +80,17 @@ func (p *Peer) AddFactoryAdder(ct FactoryAdder) {
 	p.extraFactoryAdders = append(p.extraFactoryAdders, ct)
 }
 
-// GetExtraFactories returns the slice of extra factories.
-func (p *Peer) GetExtraFactories() []FactoryCtor {
-	return p.extraFactories
-}
+// RegisterFactories installs the peer's factory constructors before its factory adders.
+func (p *Peer) RegisterFactories(b bus.Bus, sr *static.Resolver) {
+	// Register directly constructed factories before invoking custom registrations.
+	for _, ctor := range p.extraFactories {
+		sr.AddFactory(ctor(b))
+	}
 
-// GetExtraFactoryAdders returns the slice of extra factory adders.
-func (p *Peer) GetExtraFactoryAdders() []FactoryAdder {
-	return p.extraFactoryAdders
+	// Let custom registrations use the complete set of constructed factories.
+	for _, add := range p.extraFactoryAdders {
+		add(b, sr)
+	}
 }
 
 // MergeConfigSet merges in a configset to the extra controllers set.

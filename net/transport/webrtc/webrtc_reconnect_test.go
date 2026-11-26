@@ -20,7 +20,6 @@ import (
 	signaling_rpc_client "github.com/s4wave/spacewave/net/signaling/rpc/client"
 	signaling_server "github.com/s4wave/spacewave/net/signaling/rpc/server"
 	"github.com/s4wave/spacewave/net/sim/graph"
-	"github.com/s4wave/spacewave/net/sim/simulate"
 	stream_srpc_client "github.com/s4wave/spacewave/net/stream/srpc/client"
 	stream_srpc_server "github.com/s4wave/spacewave/net/stream/srpc/server"
 	transport_controller "github.com/s4wave/spacewave/net/transport/controller"
@@ -177,7 +176,7 @@ func TestTransportReconnect(t *testing.T) {
 		var lastErr error
 		for {
 			probeCtx, cancelProbe := context.WithTimeout(ctx, connectivityProbeTimeout)
-			err := simulate.TestConnectivity(probeCtx, px0, px2)
+			err := px0.TestConnectivity(probeCtx, px2)
 			cancelProbe()
 			if err == nil {
 				le.Infof("connectivity ok: %s", stage)
