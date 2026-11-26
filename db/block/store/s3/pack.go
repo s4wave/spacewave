@@ -1060,8 +1060,11 @@ func (s *PackStore) listEntries(ctx context.Context, listed uint64) error {
 func (s *PackStore) listEntriesLocked(ctx context.Context) error {
 	// Start from the index's pack table when it holds any pack, or always
 	// when index-only, and list in the background: the table holds the packs
-	// the last run knew. An index-only store never lists.
+	// the last run knew. An index-only store lists only once after
+	// RequestPackListing marked its index, as part of this first load, so a
+	// lookup waits for the packs a restored index lacks rather than miss them.
 	first := !s.loaded.Load()
+	var restored bool
 	if s.index != nil && first {
 		start := time.Now()
 		packs, unindexed, err := s.index.load(ctx)
@@ -1070,16 +1073,23 @@ func (s *PackStore) listEntriesLocked(ctx context.Context) error {
 		}
 		if packs != 0 || s.indexOnly {
 			s.updateEntries(unindexed, nil)
-			s.setLoaded()
 			s.le.WithFields(logrus.Fields{
 				"packs":     packs,
 				"unindexed": len(unindexed),
 				"elapsed":   time.Since(start).Round(time.Millisecond).String(),
 			}).Info("loaded the pack index table")
-			return nil
+			if s.indexOnly {
+				if restored, err = s.index.listRequested(ctx); err != nil {
+					return err
+				}
+			}
+			if !restored {
+				s.setLoaded()
+				return nil
+			}
 		}
 	}
-	if s.indexOnly {
+	if s.indexOnly && !restored {
 		return nil
 	}
 	s.listings.Add(1)
@@ -1136,16 +1146,27 @@ func (s *PackStore) listEntriesLocked(ctx context.Context) error {
 	}
 
 	// Publish them and drop the known entries the listing no longer holds.
+	// The listing of a restored index drops none: its table is the record an
+	// index-only store keeps, and a pack missing from one listing stays.
 	var removed []string
 	for id := range known {
-		if !ids[id] {
+		if !ids[id] && !restored {
 			removed = append(removed, id)
 		}
 	}
 	s.updateEntries(entries, removed)
 
-	// Mark the entries loaded, and full after the first listing.
-	if first {
+	// Clear the listing request now that the listed packs are recorded.
+	if restored {
+		if err := s.index.clearListRequest(ctx); err != nil {
+			return err
+		}
+		s.le.WithField("added", len(entries)).Info("listed the packs a restored pack index lacked")
+	}
+
+	// Mark the entries loaded, and full after the first listing of every
+	// entry: a restored index's listing read only the packs its table lacks.
+	if first && !restored {
 		s.full.Store(true)
 	}
 	s.setLoaded()

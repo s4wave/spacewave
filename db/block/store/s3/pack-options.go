@@ -60,8 +60,10 @@ type PackStoreOptions struct {
 	// store never lists the bucket, not at a start with an empty table nor
 	// after a read that finds a pack gone, so a block the index does not place
 	// costs no request. Packs under the prefix that another writer left stay
-	// invisible. It implies SoleWriter and needs Index; without Index it is
-	// ignored.
+	// invisible. The one exception is an index RequestPackListing marked,
+	// such as one restored from a backup: the first load lists the bucket
+	// once and adds the packs the table lacks. It implies SoleWriter and needs
+	// Index; without Index it is ignored.
 	IndexOnly bool
 	// ReadOnlyIndex makes the store write nothing to Index: a listing
 	// publishes the packs it finds in memory only, a removed pack leaves its

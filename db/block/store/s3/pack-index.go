@@ -27,6 +27,7 @@ import (
 //	h{digest tail} the number of a pack that holds the block, 4 bytes
 //	t/{pack id}   the raw kvfile index tail of the pack, as its reader read it
 //	n/next        the lowest pack number not yet given, 4 bytes
+//	n/list        present when the index may lack packs the bucket holds
 //
 // Pack numbers grow by one for each pack the index learns and are never reused,
 // so an h row of a removed pack names a number no pack holds and reads as a
@@ -58,6 +59,7 @@ const (
 	indexHashPrefix  = "h"
 	indexTailPrefix  = "t/"
 	indexNextKey     = "n/next"
+	indexListKey     = "n/list"
 	// indexKeyBytes is the bytes of a block key an h row key keeps.
 	indexKeyBytes = 16
 
@@ -358,6 +360,59 @@ func readNext(ctx context.Context, tx kvtx.Tx) (uint32, error) {
 		return 0, err
 	}
 	return binary.BigEndian.Uint32(value), nil
+}
+
+// RequestPackListing marks the pack index in index, a view with the prefix a
+// PackStore uses, as possibly missing packs the bucket holds, such as a copy
+// restored from a backup taken before the last packs were written. The next
+// start of an index-only PackStore on it then lists the bucket once before it
+// serves a lookup, adding the packs its table lacks and removing none, and
+// clears the mark once those packs are recorded. A store that is not
+// index-only lists at each start anyway and ignores the mark.
+func RequestPackListing(ctx context.Context, index kvtx.Store) error {
+	return writeListMark(ctx, index, true)
+}
+
+// listRequested reports whether RequestPackListing marked the index.
+func (x *packIndex) listRequested(ctx context.Context) (bool, error) {
+	// Read the mark in its own snapshot.
+	tx, err := x.store.NewTransaction(ctx, false)
+	if err != nil {
+		return false, err
+	}
+	defer tx.Discard()
+	_, ok, err := tx.Get(ctx, []byte(indexListKey))
+	return ok, err
+}
+
+// clearListRequest removes the RequestPackListing mark. Call it only once the
+// listed packs are recorded, so a crash before it lists again. A read-only
+// index keeps the mark.
+func (x *packIndex) clearListRequest(ctx context.Context) error {
+	if x.readOnly {
+		return nil
+	}
+	return writeListMark(ctx, x.store, false)
+}
+
+// writeListMark sets or removes the RequestPackListing mark in store.
+func writeListMark(ctx context.Context, store kvtx.Store, set bool) error {
+	// Change the mark in one write transaction.
+	tx, err := store.NewTransaction(ctx, true)
+	if err != nil {
+		return err
+	}
+	defer tx.Discard()
+	key := []byte(indexListKey)
+	if set {
+		err = tx.Set(ctx, key, []byte{1})
+	} else {
+		err = tx.Delete(ctx, key)
+	}
+	if err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 // register adds a persisted pack to the table.
