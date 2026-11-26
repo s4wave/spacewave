@@ -1,6 +1,9 @@
 package space_world
 
 import (
+	"bytes"
+	"os"
+
 	"github.com/s4wave/spacewave/core/sobject"
 )
 
@@ -109,6 +112,9 @@ func heldChain(held func(h []byte) *sobject.SOOperationInner, peerID string, tip
 	return chain
 }
 
+// checkpointTipOutcomeEnv disables membership proof from the signed tip alone.
+const checkpointTipOutcomeEnv = "SPACEWAVE_WORLD_CHECKPOINT_TIP_OUTCOME"
+
 // outcome returns what the cover decides about this device's operation at pos.
 func (c *checkpointCover) outcome(pos *sobject.SOOperationPosition) coverOutcome {
 	// An operation above the covered head waits for replay.
@@ -125,6 +131,16 @@ func (c *checkpointCover) outcome(pos *sobject.SOOperationPosition) coverOutcome
 		return coverRefused
 	}
 	if _, ok := c.chain[string(pos.GetOpHash())]; ok {
+		return coverApplied
+	}
+
+	// The verified checkpoint names its exact tip even if replay did not
+	// see the operation body. This is membership proof only for that hash,
+	// and only because the interval and refusal checks above established
+	// that the checkpoint records the operation's outcome.
+	if pos.GetPeerId() == c.head.GetPeerId() && pos.GetNonce() == c.head.GetNonce() &&
+		len(pos.GetOpHash()) != 0 && bytes.Equal(pos.GetOpHash(), c.head.GetOpHash()) &&
+		os.Getenv(checkpointTipOutcomeEnv) != "off" {
 		return coverApplied
 	}
 	return coverUnknown

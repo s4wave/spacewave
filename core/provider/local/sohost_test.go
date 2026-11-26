@@ -55,32 +55,41 @@ func TestWaitPublishedConfigFencesBodySnapshot(t *testing.T) {
 }
 
 // TestQueueOperationFencesPublishedSnapshot checks that QueueOperation returns
-// only once the snapshot body readers see holds the operation.
+// only once the snapshot body readers see holds the operation, while its
+// receipt already names the operation in the state the signer wrote.
 func TestQueueOperationFencesPublishedSnapshot(t *testing.T) {
 	// Queue an operation while no snapshot is published.
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
 	host := newTestLocalSOHost(t, t.Context())
 	type queued struct {
+		// localID identifies the operation in the published snapshot.
 		localID string
-		err     error
+		// err is the error the queue returned.
+		err error
 	}
+	receipt := &sobject.SignedOperationReceipt{}
 	done := make(chan queued, 1)
 	go func() {
-		localID, _, err := host.QueueOperation(ctx, []byte("op"))
+		localID, _, err := host.QueueOperationWithReceipt(ctx, []byte("op"), receipt)
 		done <- queued{localID, err}
 	}()
 
-	// The host state holds the operation, yet the call has not returned.
+	// The state already holds the signed operation and the receipt names it,
+	// yet the call has not returned.
 	states, rel, err := host.soHost.GetSOStateCtr(ctx, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer rel()
-	if _, err := states.WaitValueWithValidator(ctx, func(state *sobject.SOState) (bool, error) {
+	state, err := states.WaitValueWithValidator(ctx, func(state *sobject.SOState) (bool, error) {
 		return len(state.GetOps()) != 0, nil
-	}, nil); err != nil {
+	}, nil)
+	if err != nil {
 		t.Fatal(err)
+	}
+	if op := state.GetOps()[0]; !receipt.MatchesHash(op.Hash()) {
+		t.Fatal("receipt does not identify the operation written by the signer")
 	}
 	select {
 	case res := <-done:

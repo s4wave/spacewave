@@ -41,7 +41,13 @@ type SOHost struct {
 //
 // ctx can be nil.
 func NewSOHost(ctx context.Context, watchFn SOStateWatchFunc, lockFn SOStateLockFunc, sharedObjectID string, syncFuncs ...*SOHostSyncFuncs) *SOHost {
-	h := &SOHost{watchFn: watchFn, lockFn: lockFn, sharedObjectID: sharedObjectID, verifier: NewSOOperationVerifier(sharedObjectID), keyring: NewSOGrantKeyring(sharedObjectID)}
+	h := &SOHost{
+		watchFn:        watchFn,
+		lockFn:         lockFn,
+		sharedObjectID: sharedObjectID,
+		verifier:       NewSOOperationVerifier(sharedObjectID),
+		keyring:        NewSOGrantKeyring(sharedObjectID),
+	}
 	if len(syncFuncs) != 0 && syncFuncs[0] != nil {
 		h.syncFuncs = *syncFuncs[0]
 	}
@@ -575,6 +581,19 @@ func (s *SOHost) AddLocalOperation(
 	privKey crypto.PrivKey,
 	opData []byte,
 ) (string, *SOOperationPosition, error) {
+	return s.AddLocalOperationWithReceipt(ctx, le, sfs, privKey, opData, nil)
+}
+
+// AddLocalOperationWithReceipt is AddLocalOperation with an optional receipt.
+// The signed position is published before WriteSOState can expose it to replay.
+func (s *SOHost) AddLocalOperationWithReceipt(
+	ctx context.Context,
+	le *logrus.Entry,
+	sfs *block_transform.StepFactorySet,
+	privKey crypto.PrivKey,
+	opData []byte,
+	receipt *SignedOperationReceipt,
+) (string, *SOOperationPosition, error) {
 	// Serialize nonce selection and admission under the provider lock.
 	peerID, err := peer.IDFromPrivateKey(privKey)
 	if err != nil {
@@ -607,7 +626,7 @@ func (s *SOHost) AddLocalOperation(
 		}
 	}
 
-	// Sign it, add it to the set and commit.
+	// Sign the operation and add it to the next state.
 	localID := NewSOOperationLocalID()
 	op, err := BuildSOOperation(s.sharedObjectID, privKey, opDataEnc, link, localID)
 	if err != nil {
@@ -622,8 +641,14 @@ func (s *SOHost) AddLocalOperation(
 	if _, err := next.sequenceOperations(s.verifier, privKey); err != nil {
 		return "", nil, err
 	}
+
+	// Publish the immutable identity before any reader can see this operation.
+	position := &SOOperationPosition{PeerId: peerID.String(), Nonce: link.Nonce, OpHash: op.Hash()}
+	if receipt != nil && !receipt.Publish(position) {
+		return "", nil, errors.New("cannot publish signed operation receipt")
+	}
 	if err := lk.WriteSOState(ctx, next); err != nil {
 		return "", nil, err
 	}
-	return localID, &SOOperationPosition{PeerId: peerID.String(), Nonce: link.Nonce, OpHash: op.Hash()}, nil
+	return localID, position, nil
 }

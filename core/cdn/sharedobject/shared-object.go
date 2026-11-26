@@ -216,6 +216,11 @@ func (s *CdnSharedObject) QueueOperation(_ context.Context, _ []byte) (string, *
 	return "", nil, ErrCdnReadOnly
 }
 
+// QueueOperationWithReceipt is not supported on a read-only CDN mount.
+func (s *CdnSharedObject) QueueOperationWithReceipt(_ context.Context, _ []byte, _ *sobject.SignedOperationReceipt) (string, *sobject.SOOperationPosition, error) {
+	return "", nil, ErrCdnReadOnly
+}
+
 // cdnStateSnapshot is a minimal sobject.SharedObjectStateSnapshot tied to a
 // CdnSharedObject. Methods that require grants or a local participant return
 // errors because anonymous CDN mounts have neither.
@@ -325,6 +330,7 @@ func (s *cdnStateSnapshot) DecodeOperation(_ context.Context, _ *sobject.SOOpera
 // _ is a type assertion.
 var (
 	_ sobject.SharedObject               = (*CdnSharedObject)(nil)
+	_ sobject.SignedOperationQueuer      = (*CdnSharedObject)(nil)
 	_ sobject.SharedObjectHealthAccessor = (*CdnSharedObject)(nil)
 	_ sobject.SharedObjectStateSnapshot  = (*cdnStateSnapshot)(nil)
 )

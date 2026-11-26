@@ -332,6 +332,153 @@ func TestEngineAuthorityRunThrough(t *testing.T) {
 		store.failRoot(nil)
 	})
 
+	// An undecided admission outlives the request and its durability wait.
+	t.Run("durability deadline before decision", func(t *testing.T) {
+		// Use a private Volume so pending roots cannot leak between cases.
+		f := newVolumeFixture(t)
+		ctx := t.Context()
+
+		// Hold an admitted operation before the queue can decide it.
+		t.Setenv("SPACEWAVE_WORLD_DURABILITY_TIMEOUT", "250ms")
+		head, err := f.engine.authority.Head(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		pipe := newPipeAuthority(f.store, head)
+		engine := f.openEngine(t, pipe)
+		before := engine.GetRootRef()
+
+		// Cancel the request only after the authority owns the admission.
+		request, cancel := context.WithCancel(ctx)
+		defer cancel()
+		var runs atomic.Int32
+		started := time.Now()
+		done := make(chan error, 1)
+		go func() {
+			done <- world.ExecTransaction(request, engine, true, func(ctx context.Context, ws world.WorldState) error {
+				if runs.Add(1) > 1 {
+					return errors.New("the write ran twice")
+				}
+				obj, err := ws.CreateObject(ctx, "deadline-late", nil)
+				world.ReleaseObjectState(obj)
+				return err
+			})
+		}()
+		adm := pipe.waitAdmitted(t, 1)
+		cancel()
+
+		// The server bound, not the canceled request, ends the wait. The
+		// waiter cannot remove the queued operation or expose it to readers.
+		select {
+		case err := <-done:
+			if !errors.Is(err, world.ErrDurabilityUnknown) || world.IsSuperseded(err) || runs.Load() != 1 {
+				t.Fatalf("ExecTransaction = %v after %d runs, want durability unknown after 1", err, runs.Load())
+			}
+			if time.Since(started) < 250*time.Millisecond {
+				t.Fatal("the request cancellation ended the durability wait")
+			}
+		case <-time.After(3 * time.Second):
+			t.Fatal("post-admission commit still waiting after its 250ms durability budget")
+		}
+		if adm.releases.Load() != 0 || !engine.GetRootRef().EqualsRef(before) {
+			t.Fatal("the unconfirmed admission was released or published")
+		}
+
+		// The authority completes the same admission after the client returns.
+		c := adm.candidate
+		if err := f.store.SetRoots(ctx, nil, []block.NamedRoot{
+			{Name: fixtureRootName, Ref: c.Root, Previous: c.Base},
+			{Name: pendingRootName(c.Seqno), Previous: c.Root},
+		}); err != nil {
+			t.Fatal(err)
+		}
+		pipe.decide(t, 1, nil, 0)
+		r, err := engine.NewTransaction(ctx, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer r.Discard()
+		fixtureHas(t, r, "deadline-late", true)
+		if runs.Load() != 1 || !f.worldRoot(t).EqualsRef(c.Root) {
+			t.Fatal("the original admission did not become durable exactly once")
+		}
+	})
+
+	// A later head read racing expiry cannot answer for an accepted write.
+	t.Run("durability deadline during reconciliation", func(t *testing.T) {
+		// Use a private Volume so pending roots cannot leak between cases.
+		f := newVolumeFixture(t)
+		ctx := t.Context()
+
+		// Once reconciliation starts, report a later sequence at an unrelated
+		// root as soon as the wait ends, even though its context is canceled.
+		t.Setenv("SPACEWAVE_WORLD_DURABILITY_TIMEOUT", "500ms")
+		guard, stop := context.WithTimeout(ctx, 3*time.Second)
+		defer stop()
+		inspect := make(chan struct{})
+		reading := make(chan struct{}, 1)
+		local := f.authority()
+		unrelated := f.worldRoot(t)
+		pending := newPendingAuthority(local)
+		pending.readHead = func(wait context.Context) (world.Head, error) {
+			// Let engine initialization read the actual head.
+			select {
+			case <-inspect:
+			default:
+				return local.Head(wait)
+			}
+
+			// Make a successful head read ready at the cancellation edge.
+			reading <- struct{}{}
+			select {
+			case <-wait.Done():
+			case <-guard.Done():
+			}
+			return world.Head{Root: unrelated, Seqno: ^uint64(0), Durable: true}, nil
+		}
+		engine := f.openEngine(t, pending)
+		before := engine.GetRootRef()
+
+		// Lose the durability report while the server budget is still live.
+		entered := pending.entered
+		var runs atomic.Int32
+		done := make(chan error, 1)
+		go func() {
+			done <- world.ExecTransaction(ctx, engine, true, func(ctx context.Context, ws world.WorldState) error {
+				if runs.Add(1) > 1 {
+					return errors.New("the write ran twice")
+				}
+				obj, err := ws.CreateObject(ctx, "deadline-reconcile", nil)
+				world.ReleaseObjectState(obj)
+				return err
+			})
+		}()
+		select {
+		case <-entered:
+		case err := <-done:
+			t.Fatalf("commit ended before admission: %v", err)
+		case <-guard.Done():
+			t.Fatal("the authority did not admit the candidate")
+		}
+		close(inspect)
+		pending.fail(t, errors.New("durability report was lost"))
+		select {
+		case <-reading:
+		case <-guard.Done():
+			t.Fatal("the authority was never asked to reconcile the lost report")
+		}
+
+		// The advanced head is not proof of application, and the live
+		// request must not replay a write that may have become durable.
+		err := <-done
+		if !errors.Is(err, world.ErrDurabilityUnknown) || world.IsSuperseded(err) || runs.Load() != 1 {
+			t.Fatalf("ExecTransaction = %v after %d runs, want durability unknown after 1", err, runs.Load())
+		}
+		if !engine.GetRootRef().EqualsRef(before) {
+			t.Fatal("reconciliation published an unrelated head")
+		}
+	})
+
 	// An authority that pipelines lets a writer begin on the previous
 	// writer's admitted candidate before it is durable: the later commit's
 	// Admit returns while the earlier one waits, readers see each head only
@@ -457,6 +604,76 @@ func TestEngineAuthorityRunThrough(t *testing.T) {
 			t.Fatal(err)
 		}
 		published("pipe-4", true)
+	})
+
+	// A provisional deletion must not give a second writer false success.
+	t.Run("provisional no-op", func(t *testing.T) {
+		for _, mode := range []string{"default", "off"} {
+			t.Run(mode, func(t *testing.T) {
+				// Seed a durable graph edge before opening the pipelined engine.
+				t.Setenv(ProvisionalNoopGuardEnv, mode)
+				q := world.NewGraphQuadWithKeys("provisional-source-"+mode, "<next>", "provisional-target-"+mode, "")
+				seed := fixtureWriter(t, f.engine)
+				fixtureObject(t, seed, "provisional-source-"+mode, "source")
+				fixtureObject(t, seed, "provisional-target-"+mode, "target")
+				if err := seed.SetGraphQuad(ctx, q); err != nil {
+					t.Fatal(err)
+				}
+				if err := seed.Commit(ctx); err != nil {
+					t.Fatal(err)
+				}
+				head, err := f.engine.authority.Head(ctx)
+				if err != nil {
+					t.Fatal(err)
+				}
+				pipe := newPipeAuthority(f.store, head)
+				engine := f.openEngine(t, pipe)
+
+				// Admit A's deletion but leave A undecided while B opens.
+				a := fixtureWriter(t, engine)
+				if err := a.DeleteGraphQuad(ctx, q); err != nil {
+					t.Fatal(err)
+				}
+				done := make(chan error, 1)
+				go func() { done <- a.Commit(ctx) }()
+				pipe.waitAdmitted(t, 1)
+
+				// B records the same deletion on A's root, where the edge is absent.
+				b, err := newRecordedTx(ctx, fixtureWriter(t, engine))
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer b.Discard()
+				if err := b.DeleteGraphQuad(ctx, q); err != nil {
+					t.Fatal(err)
+				}
+				bErr := b.Commit(ctx)
+
+				// Refuse A and verify the edge survived in a fresh read snapshot.
+				pipe.refuse(t, 1)
+				if err := <-done; !world.IsSuperseded(err) {
+					t.Fatalf("A returned %v after refusal, want superseded", err)
+				}
+				r, err := engine.NewTransaction(ctx, false)
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer r.Discard()
+				edges, err := r.LookupGraphQuads(ctx, q, 1)
+				if err != nil || len(edges) != 1 {
+					t.Fatalf("durable edge after refusal = %v, %v; want one edge", edges, err)
+				}
+
+				// Only the rollback switch lets B report success on that edge.
+				if mode == "off" {
+					if bErr != nil {
+						t.Fatalf("B returned %v with the guard off, want legacy success", bErr)
+					}
+				} else if !world.IsSuperseded(bErr) {
+					t.Fatalf("B returned %v although the durable edge remains, want superseded", bErr)
+				}
+			})
+		}
 	})
 
 	// A reader that holds a replaced head past the pin delay has it pinned,

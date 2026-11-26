@@ -25,6 +25,8 @@ func pendingRootName(seqno uint64) string {
 // transaction. Head and the turn come from the local authority it wraps.
 type pendingAuthority struct {
 	*LocalAuthority
+	// readHead overrides Head when the test controls the reconciliation read.
+	readHead func(context.Context) (world.Head, error)
 	// mtx guards admitted.
 	mtx sync.Mutex
 	// admitted is the candidate waiting to become durable, or nil.
@@ -36,6 +38,14 @@ type pendingAuthority struct {
 // newPendingAuthority wraps a.
 func newPendingAuthority(a *LocalAuthority) *pendingAuthority {
 	return &pendingAuthority{LocalAuthority: a, entered: make(chan struct{})}
+}
+
+// Head reads the local head unless the test controls reconciliation.
+func (a *pendingAuthority) Head(ctx context.Context) (world.Head, error) {
+	if a.readHead != nil {
+		return a.readHead(ctx)
+	}
+	return a.LocalAuthority.Head(ctx)
 }
 
 // Begin opens the local turn and makes its Admit answer later.

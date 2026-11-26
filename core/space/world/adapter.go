@@ -3,6 +3,7 @@ package space_world
 import (
 	"bytes"
 	"context"
+	"os"
 	"slices"
 	"sync"
 	"sync/atomic"
@@ -25,6 +26,17 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
+
+// ReplayIdentityEnv selects the legacy replay matcher when set to "off"
+// before opening the adapter.
+const ReplayIdentityEnv = "SPACEWAVE_WORLD_REPLAY_IDENTITY"
+
+// RefusalHandoffEnv selects the local-ID-only refusal cache in legacy replay
+// mode when set to "off" before process start.
+const RefusalHandoffEnv = "SPACEWAVE_WORLD_REFUSAL_HANDOFF"
+
+// refusalHandoffOff keeps the previous refusal path selectable at startup.
+var refusalHandoffOff = os.Getenv(RefusalHandoffEnv) == "off"
 
 // Adapter serves a Space whose body is a World: it is the sobject.Body the
 // SharedObject replays its agreed order into, the world.Authority of the one
@@ -162,8 +174,9 @@ type Adapter struct {
 	// fences are the storage fences the driver applied, by hash, with their
 	// answers. Guarded by bcast.
 	fences map[string]*spaceFence
-	// unmatched are this device's refused operations no admission matched,
-	// by local ID, until a checkpoint covers them. Guarded by bcast.
+	// legacyReplayMatcher selects the pre-receipt replay and queue paths.
+	legacyReplayMatcher bool
+	// unmatched holds early refusals only in legacy mode. Guarded by bcast.
 	unmatched map[string]spacePosition
 	// cover is what the installed checkpoint says about this device's
 	// operations, or nil before the first install. Guarded by bcast.
@@ -253,18 +266,18 @@ func NewAdapter(le *logrus.Entry, so sobject.SharedObject, opts AdapterOptions) 
 		decoded = block.NewDecodedBlockCache()
 	}
 	a := &Adapter{
-		le:        le,
-		opened:    make(chan struct{}),
-		so:        so,
-		opts:      opts,
-		bucketID:  store.GetID(),
-		decoded:   decoded,
-		pages:     block.NewPendingStore(store, opts.MaxPendingBytes),
-		queue:     &opQueue{so: so},
-		missing:   make(map[string]struct{}),
-		unmatched: make(map[string]spacePosition),
-		fences:    make(map[string]*spaceFence),
-		held:      make(map[string]*block.BlockRef),
+		le:                  le,
+		opened:              make(chan struct{}),
+		so:                  so,
+		opts:                opts,
+		bucketID:            store.GetID(),
+		decoded:             decoded,
+		pages:               block.NewPendingStore(store, opts.MaxPendingBytes),
+		queue:               &opQueue{so: so},
+		missing:             make(map[string]struct{}),
+		legacyReplayMatcher: os.Getenv(ReplayIdentityEnv) == "off",
+		fences:              make(map[string]*spaceFence),
+		held:                make(map[string]*block.BlockRef),
 
 		cursorWorlds:     rootSet{name: RootReplayCursor},
 		pendingWorlds:    rootSet{name: RootPending},
@@ -882,7 +895,7 @@ func (a *Adapter) Apply(ctx context.Context, index int, op *sobject.OrderedOpera
 	// nothing.
 	if adm != nil {
 		a.place(adm, pos, adopt == nil)
-	} else {
+	} else if a.legacyReplayMatcher {
 		a.noteUnmatched(op, pos)
 	}
 	if err := a.noteFence(ctx, op, pos); err != nil {
@@ -1343,12 +1356,41 @@ func (a *Adapter) holdAdmitted(ctx context.Context, adm *spaceAdmission, stored 
 	return a.addRoot(ctx, &a.pendingWorlds, adm.candidate.Root)
 }
 
-// match returns this device's pending admission of op, or nil: the one the
-// driver placed op for before, or the first queued one with op's data.
+// match finds the pending admission of this exact signed operation. Neither
+// identical WorldOp bytes nor a reused local ID proves replay attribution.
 func (a *Adapter) match(op *sobject.OrderedOperation) *spaceAdmission {
+	// Only this device's operations can match its pending admissions.
 	if op.Inner.GetPeerId() != a.so.GetPeerID().String() {
 		return nil
 	}
+
+	// Keep the previous matcher selectable at adapter open.
+	if a.legacyReplayMatcher {
+		return a.matchLegacy(op)
+	}
+
+	// Match only the signer's receipt, including when a refusal has no body.
+	var out *spaceAdmission
+	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		for _, adm := range a.pending {
+			if adm.receipt.MatchesHash(op.Hash) {
+				adm.hash = slices.Clone(op.Hash)
+				out = adm
+				return
+			}
+		}
+	})
+	return out
+}
+
+// matchLegacy is the matcher used before the signer published receipts.
+func (a *Adapter) matchLegacy(op *sobject.OrderedOperation) *spaceAdmission {
+	// Body-less refusals use the callback identity at noteUnmatched.
+	if !refusalHandoffOff && op.Refused != "" {
+		return nil
+	}
+
+	// Match a previously placed hash or a candidate still waiting for replay.
 	var out *spaceAdmission
 	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		for _, adm := range a.pending {
@@ -1371,16 +1413,59 @@ func (a *Adapter) match(op *sobject.OrderedOperation) *spaceAdmission {
 	return out
 }
 
-// noteUnmatched records a refused operation of this device that matched no
-// admission, which its admission finds by local ID once QueueOperation
-// returns.
+// unmatchedRefusalKey indexes cached refusals by the signed hash. The legacy
+// handoff keyed by the local ID alone, which can be shared by a fork.
+func unmatchedRefusalKey(localID string, hash []byte) string {
+	if refusalHandoffOff {
+		return localID
+	}
+	return string(hash)
+}
+
+// noteUnmatched is the legacy path that records a refusal Apply did not find, or
+// delivers it to the admission whose queue callback filled in its identity
+// since Apply looked. The callback can instead arrive after this method and
+// consume the refusal it leaves behind.
 func (a *Adapter) noteUnmatched(op *sobject.OrderedOperation, pos spacePosition) {
+	// A local refusal must name an exact operation.
 	if pos.reason == "" || op.Inner.GetPeerId() != a.so.GetPeerID().String() {
 		return
 	}
+	localID := op.Inner.GetLocalId()
+	if !refusalHandoffOff && (localID == "" || len(op.Hash) == 0) {
+		return
+	}
+
+	// Find the admission or leave the refusal in the same lock section that
+	// queued uses to publish the operation's identity and check the cache.
+	var target *spaceAdmission
 	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		a.unmatched[op.Inner.GetLocalId()] = pos
+		// The queue callback may already have returned since Apply looked.
+		if !refusalHandoffOff {
+			for _, adm := range a.pending {
+				if adm.localID == localID && bytes.Equal(adm.pos.GetOpHash(), op.Hash) {
+					target = adm
+					return
+				}
+			}
+		}
+
+		// Let the later queue callback consume the refusal if it needs it.
+		if a.unmatched == nil {
+			a.unmatched = make(map[string]spacePosition)
+		}
+		a.unmatched[unmatchedRefusalKey(localID, op.Hash)] = pos
 	})
+
+	// Refuse only the matching admission, outside the broadcast lock.
+	if target != nil {
+		a.rejectAdmission(target, pos.reason)
+	}
+}
+
+// rejectAdmission reports this operation's replay refusal to its waiter.
+func (a *Adapter) rejectAdmission(adm *spaceAdmission, reason string) {
+	a.decide([]*spaceAdmission{adm}, world.Rejected, reason, errors.Wrap(sobject.ErrRejectedOp, reason))
 }
 
 // getCandidate returns the admission's candidate, or nil for none.
@@ -1504,11 +1589,9 @@ func (a *Adapter) decideCovered(refused, unknown []*spaceAdmission) {
 	}
 }
 
-// queued ends an admission QueueOperation failed, an acknowledgment, which
-// applies nothing for the driver to decide, and an operation the driver
-// already refused before QueueOperation returned, which it could not find by
-// data a refused operation does not carry. It decides one the installed
-// checkpoint already covers as Install would have.
+// queued handles queue failures and acknowledgments, and decides an operation
+// a proven installed checkpoint already covers. In legacy mode it also
+// consumes early replay refusals that lacked a matching admission.
 func (a *Adapter) queued(adm *spaceAdmission, localID string, pos *sobject.SOOperationPosition, err error) {
 	// End a failure or an acknowledgment. A write whose outcome is unknown
 	// may hold the operation, so it ends as durability unknown, like one
@@ -1534,18 +1617,26 @@ func (a *Adapter) queued(adm *spaceAdmission, localID string, pos *sobject.SOOpe
 	var outcome coverOutcome
 	var installedHead bool
 	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		adm.localID, adm.pos = localID, pos
-		if pos, ok := a.unmatched[localID]; ok {
-			delete(a.unmatched, localID)
-			refused = &pos
-			return
+		// Retain the durable position for checkpoint coverage. Only legacy
+		// replay learns attribution from the callback.
+		adm.pos = pos
+		if a.legacyReplayMatcher {
+			adm.localID = localID
+			key := unmatchedRefusalKey(localID, pos.GetOpHash())
+			if replayed, ok := a.unmatched[key]; ok && (refusalHandoffOff || replayed.op.Inner.GetLocalId() == localID) {
+				delete(a.unmatched, key)
+				refused = &replayed
+				return
+			}
 		}
+
+		// Check the installed checkpoint only when replay did not answer.
 		outcome = a.coverLocked(adm)
 		installedHead = outcome == coverApplied && a.acceptHeight >= a.cover.height
 	})
 	switch {
 	case refused != nil:
-		a.decide([]*spaceAdmission{adm}, world.Rejected, refused.reason, errors.Wrap(sobject.ErrRejectedOp, refused.reason))
+		a.rejectAdmission(adm, refused.reason)
 	case outcome == coverRefused:
 		a.decideCovered([]*spaceAdmission{adm}, nil)
 	case outcome == coverUnknown:

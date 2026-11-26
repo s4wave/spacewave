@@ -1,0 +1,32 @@
+[
+  {
+    "name": "pre-fix wait has no deadline",
+    "replace": [
+      [
+        "BudgetExpiry == /\\ TRUE",
+        "BudgetExpiry == /\\ FALSE"
+      ]
+    ],
+    "expect": "WaitEnds"
+  },
+  {
+    "name": "timeout releases a queued operation",
+    "replace": [
+      [
+        "IF cause = \"close\" /\\ work = \"queued\"",
+        "IF work = \"queued\""
+      ]
+    ],
+    "expect": "TimeoutKeepsWork"
+  },
+  {
+    "name": "timeout infers apply from head progress",
+    "replace": [
+      [
+        "/\\ result' = \"unknown\"",
+        "/\\ result' = IF laterHead THEN \"applied\" ELSE \"unknown\""
+      ]
+    ],
+    "expect": "ExactOutcome"
+  }
+]

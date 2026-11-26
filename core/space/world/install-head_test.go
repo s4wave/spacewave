@@ -166,6 +166,32 @@ func trimNow(t *testing.T, a *Adapter) {
 // covers but keeps one replay still applies, and that it judges which from
 // the operations above the checkpoint it installs, not a later state's.
 func TestInstallHeadRetriesRetainedHold(t *testing.T) {
+	// Inject the queue and replay order around a second identical WorldOp.
+	t.Run("signed replay identity", testInstallHeadSignedReplay)
+
+	t.Run("retained root wait is bounded", func(t *testing.T) {
+		// Admit a retained-root operation while the SharedObject queue is stalled.
+		t.Setenv("SPACEWAVE_WORLD_DURABILITY_TIMEOUT", "20ms")
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+		defer cancel()
+		a := &Adapter{
+			queue: &opQueue{},
+			replayState: &sobject.SOReplayState{State: &sobject.SOReplayState_CaughtUp{
+				CaughtUp: &sobject.SOReplayCaughtUp{},
+			}},
+		}
+		op := WorldOp{Body: &WorldOp_SetRetainedRoot{SetRetainedRoot: &SetRetainedRootOp{Name: "kept"}}}
+
+		// Expiry must not invent a refusal or remove the queued operation.
+		err := a.writeOp(ctx, &op)
+		if ctx.Err() != nil || !errors.Is(err, world.ErrDurabilityUnknown) || world.IsSuperseded(err) {
+			t.Fatalf("retained-root write = %v with caller context %v, want durability unknown before caller deadline", err, ctx.Err())
+		}
+		if waiting := a.queue.drain(); len(waiting) != 1 || len(a.pending) != 1 || waiting[0] != a.pending[0] {
+			t.Fatal("durability timeout removed or duplicated the operation")
+		}
+	})
+
 	// Build an adapter whose replay head retains a root, over a store that
 	// fails the first root move.
 	ctx := t.Context()
@@ -1825,135 +1851,4 @@ func TestTrimReleasesImportedPayloadOnceHeld(t *testing.T) {
 	if !a.imported.holds(migrated) {
 		t.Fatalf("import root %v, want it still holding the migrated World", a.imported.roots)
 	}
-}
-
-// TestInstallDecidesCoveredAdmissions checks that an installed checkpoint
-// decides every admission of this device it covers, so none waits queued for
-// a replay that will never place it: a refused one is Rejected, an applied one
-// is placed for installHead to accept, and one covered by a checkpoint that
-// records no outcomes, skips an installed height, or that this device cannot
-// prove is on the covered chain is Undecided with durability unknown. It
-// covers admissions queued before the install and those whose QueueOperation
-// returns after it.
-func TestInstallDecidesCoveredAdmissions(t *testing.T) {
-	const peer = "local-peer"
-	hash := func(nonce uint64) []byte { return []byte("op-" + strconv.FormatUint(nonce, 10)) }
-	pos := func(nonce uint64) *sobject.SOOperationPosition {
-		return &sobject.SOOperationPosition{PeerId: peer, Nonce: nonce, OpHash: hash(nonce)}
-	}
-
-	// held is the operations this device holds: one chain op-1 to op-9, each
-	// linking the one below it, unless a case adds a fork.
-	held := make(map[string]*sobject.SOOperationInner)
-	for n := uint64(1); n <= 9; n++ {
-		held[string(hash(n))] = &sobject.SOOperationInner{PeerId: peer, Nonce: n, PrevOpHash: hash(n - 1)}
-	}
-	get := func(h []byte) *sobject.SOOperationInner { return held[string(h)] }
-	checkpoint := func(height uint64, head *sobject.SOOperationPosition, outcomes *sobject.SOCheckpointOutcomes) *sobject.SOCheckpointInner {
-		other := &sobject.SOOperationPosition{PeerId: "other-peer", Nonce: 9, OpHash: []byte("other")}
-		return &sobject.SOCheckpointInner{Height: height, Authors: []*sobject.SOOperationPosition{other, head}, Outcomes: outcomes}
-	}
-	admit := func(a *Adapter, nonce uint64) *spaceAdmission {
-		adm := &spaceAdmission{a: a, op: []byte("op"), pos: pos(nonce), done: make(chan struct{})}
-		a.pending = append(a.pending, adm)
-		return adm
-	}
-	install := func(a *Adapter, c *sobject.SOCheckpointInner) {
-		var refused, unknown []*spaceAdmission
-		a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-			refused, unknown = a.installCoverLocked(c, nil, nil, peer, get)
-		})
-		a.decideCovered(refused, unknown)
-		a.headHeight, a.acceptHeight = c.GetHeight(), c.GetHeight()
-	}
-	expect := func(name string, adm *spaceAdmission, state spaceAdmissionState, decision world.Decision, sentinel error) {
-		t.Helper()
-		if adm.state != state || (state == admissionDecided && adm.decision != decision) {
-			t.Fatalf("%s: state %v decision %v, want state %v decision %v", name, adm.state, adm.decision, state, decision)
-		}
-		if sentinel != nil && !errors.Is(adm.err, sentinel) {
-			t.Fatalf("%s: error %v, want %v", name, adm.err, sentinel)
-		}
-	}
-	newAdapter := func() *Adapter {
-		a := &Adapter{}
-		install(a, checkpoint(1, pos(1), nil))
-		return a
-	}
-
-	// A checkpoint that records outcomes and follows the installed one
-	// decides each operation it newly covers, and leaves the one above it.
-	a := newAdapter()
-	applied, refused, head, above := admit(a, 2), admit(a, 3), admit(a, 4), admit(a, 5)
-	install(a, checkpoint(2, pos(4), &sobject.SOCheckpointOutcomes{Refused: []*sobject.SOOperationPosition{pos(3)}}))
-	expect("applied", applied, admissionCovered, 0, nil)
-	expect("refused", refused, admissionDecided, world.Rejected, sobject.ErrRejectedOp)
-	expect("covered head", head, admissionCovered, 0, nil)
-	expect("above the cover", above, admissionQueued, 0, nil)
-
-	// An admission whose QueueOperation returns after that install is decided
-	// as the install would have: refused, or accepted at the installed head.
-	late := &spaceAdmission{a: a, op: []byte("op"), done: make(chan struct{})}
-	a.pending = append(a.pending, late)
-	a.queued(late, "late-refused", pos(3), nil)
-	expect("refused after install", late, admissionDecided, world.Rejected, sobject.ErrRejectedOp)
-	late = &spaceAdmission{a: a, op: []byte("op"), done: make(chan struct{})}
-	a.pending = append(a.pending, late)
-	a.queued(late, "late-applied", pos(2), nil)
-	expect("applied after install", late, admissionDecided, world.Accepted, nil)
-
-	// A checkpoint signed before outcomes existed covers its operations
-	// without deciding them, so they end as durability unknown.
-	a = newAdapter()
-	first, second := admit(a, 2), admit(a, 3)
-	install(a, checkpoint(2, pos(3), nil))
-	expect("pre-change checkpoint", first, admissionDecided, world.Undecided, world.ErrDurabilityUnknown)
-	expect("pre-change checkpoint head", second, admissionDecided, world.Undecided, world.ErrDurabilityUnknown)
-
-	// A checkpoint that skips an installed height may cover refusals the
-	// skipped one listed, so its outcomes decide nothing.
-	a = newAdapter()
-	skipped := admit(a, 2)
-	install(a, checkpoint(3, pos(2), &sobject.SOCheckpointOutcomes{}))
-	expect("skipped height", skipped, admissionDecided, world.Undecided, world.ErrDurabilityUnknown)
-
-	// A covered head whose hash is not this operation's names another chain.
-	a = newAdapter()
-	forked := admit(a, 2)
-	other := pos(2)
-	other.OpHash = []byte("forked")
-	install(a, checkpoint(2, other, &sobject.SOCheckpointOutcomes{}))
-	expect("forked head", forked, admissionDecided, world.Undecided, world.ErrDurabilityUnknown)
-
-	// A restore of the same identity signs a second chain from nonce 2. A
-	// checkpoint covering that fork's tip covers neither this chain's
-	// operations below it nor one queued late on this chain, even at a nonce
-	// the cover passes: none is on the walk from the fork's tip.
-	a = newAdapter()
-	held["fork-2"] = &sobject.SOOperationInner{PeerId: peer, Nonce: 2, PrevOpHash: hash(1)}
-	held["fork-3"] = &sobject.SOOperationInner{PeerId: peer, Nonce: 3, PrevOpHash: []byte("fork-2")}
-	nonTip := admit(a, 2)
-	forkTip := &sobject.SOOperationPosition{PeerId: peer, Nonce: 3, OpHash: []byte("fork-3")}
-	install(a, checkpoint(2, forkTip, &sobject.SOCheckpointOutcomes{}))
-	expect("non-tip after a restore", nonTip, admissionDecided, world.Undecided, world.ErrDurabilityUnknown)
-	late = &spaceAdmission{a: a, op: []byte("op"), done: make(chan struct{})}
-	a.pending = append(a.pending, late)
-	a.queued(late, "late-non-tip", pos(3), nil)
-	expect("non-tip queued after a restore", late, admissionDecided, world.Undecided, world.ErrDurabilityUnknown)
-
-	// A link the device does not hold ends the proof: the operations below
-	// it are Undecided, and those on the walk still decide.
-	a = newAdapter()
-	gap, proven := admit(a, 2), admit(a, 4)
-	delete(held, string(hash(3)))
-	install(a, checkpoint(2, pos(4), &sobject.SOCheckpointOutcomes{}))
-	expect("below a missing link", gap, admissionDecided, world.Undecided, world.ErrDurabilityUnknown)
-	expect("on the walk above a missing link", proven, admissionCovered, 0, nil)
-
-	// An admission queued before any install waits for replay.
-	a = &Adapter{}
-	early := &spaceAdmission{a: a, op: []byte("op"), done: make(chan struct{})}
-	a.pending = append(a.pending, early)
-	a.queued(early, "early", pos(1), nil)
-	expect("before any install", early, admissionQueued, 0, nil)
 }

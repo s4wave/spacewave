@@ -33,8 +33,8 @@ const (
 )
 
 // spaceAdmission is a Space candidate, or an operation queued without one,
-// from its admission until the driver decides it. Its fields after op are
-// guarded by the adapter's bcast.
+// from its admission until the driver decides it. The receipt is published
+// by the signer; the adapter's bcast guards the decision and replay evidence.
 type spaceAdmission struct {
 	// a is the adapter.
 	a *Adapter
@@ -49,15 +49,17 @@ type spaceAdmission struct {
 	handlers *PayloadHandlers
 	// done closes once state is admissionDecided.
 	done chan struct{}
+	// receipt is the operation's signed identity before it can enter replay.
+	receipt sobject.SignedOperationReceipt
 
 	// state is the lifecycle state.
 	state spaceAdmissionState
-	// localID is the operation's local ID once QueueOperation returned.
+	// localID is the queue callback's ID for the legacy matcher.
 	localID string
 	// pos is the operation's position in this device's chain once
 	// QueueOperation returned, which an installed checkpoint decides.
 	pos *sobject.SOOperationPosition
-	// hash identifies the operation once the driver applied it.
+	// hash identifies the replay position the driver matched to this admission.
 	hash []byte
 	// decision is the decision once decided.
 	decision world.Decision

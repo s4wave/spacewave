@@ -3,8 +3,10 @@ package world_block
 import (
 	"context"
 	stderrors "errors"
+	"os"
 	"slices"
 	"sync/atomic"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -130,9 +132,6 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 	if releasePending != nil {
 		defer releasePending()
 	}
-	if adm != nil {
-		defer adm.Release()
-	}
 	if e.engine.authority == nil {
 		return e.publishCallerHead(ctx, turn, nextRootRef, rootBlock, changes, err)
 	}
@@ -159,8 +158,12 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 		return nextRootRef, err
 	}
 
-	// Wait for the decision and for the head to be durable, outside the turn.
+	// Wait outside the turn. On deadline, leave the queued operation with
+	// the Authority: Release could remove it before the driver takes it.
 	published, err := e.waitDurable(ctx, adm, nextRootRef)
+	if !errors.Is(err, errDurabilityDeadline) {
+		defer adm.Release()
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -241,12 +244,15 @@ func (e *EngineTx) publishCallerHead(
 	return next, nil
 }
 
+// ProvisionalNoopGuardEnv set to "off" restores success for unchanged writes
+// built on provisional heads. With the guard on, those writes must retry.
+const ProvisionalNoopGuardEnv = "SPACEWAVE_WORLD_PROVISIONAL_NOOP_GUARD"
+
 // admit seals the transaction's blocks under its new root and proposes them
 // to the Authority as the head after the base. It returns the root, the
 // Admission, the decoded World root for the head's readers, the transaction's
 // ChangeSet, and a cleanup func for the pending ChangeSet registration when an
-// Authority is present. A transaction that changed nothing returns its base
-// and no Admission.
+// Authority is present. A transaction that changed nothing needs no Admission.
 func (e *EngineTx) admit(ctx context.Context, turn world.Turn) (*bucket.ObjectRef, world.Admission, *World, *world.ChangeSet, func(), error) {
 	// Capture the transaction's ChangeSet before CommitBlockTransaction
 	// rebuilds the block state onto the written root.
@@ -266,9 +272,18 @@ func (e *EngineTx) admit(ctx context.Context, turn world.Turn) (*bucket.ObjectRe
 		return nil, nil, nil, nil, nil, err
 	}
 
-	// A transaction that changed no root data has nothing to propose.
+	// An unchanged root is success only if the write did not depend on a
+	// provisional predecessor. That predecessor can still be refused. The
+	// unchanged candidate was never admitted, so the caller can retry it.
 	base := e.baseHeadRef.GetRootRef()
 	if nroot.EqualVT(base) {
+		if e.engine.authority != nil {
+			// A zero turn base is an empty World, not a pending candidate.
+			turnBase := turn.Base()
+			if !turnBase.Durable && !turnBase.Root.GetEmpty() && os.Getenv(ProvisionalNoopGuardEnv) != "off" {
+				return nil, nil, nil, nil, nil, errors.Wrap(world.ErrSuperseded, "unchanged write on provisional World head")
+			}
+		}
 		return e.baseHeadRef.Clone(), nil, nil, nil, nil, nil
 	}
 	next := e.baseHeadRef.Clone()
@@ -319,31 +334,67 @@ func (e *EngineTx) admit(ctx context.Context, turn world.Turn) (*bucket.ObjectRe
 	return next, adm, rootBlock, changes, releasePending, nil
 }
 
-// waitDurable waits for the Authority's decision and then for the head to be
-// durable, and returns the head to publish. Admission committed the writer to
-// the outcome, so the waits outlive the request context, until the engine
-// closes, which ends them with world.ErrDurabilityUnknown. A superseded
-// candidate returns world.ErrSuperseded naming the head that won.
-//
-// A wait for durability that fails after the Authority accepted the candidate
-// leaves its durability unknown, a state rather than a failure: the engine
-// reconciles it with the Authority's head. A head at the candidate's root, or
-// past the candidate's seqno, which the Authority's linear order can only
-// reach through the candidate, means the commit is durable, and that head is
-// published. Any other head means the candidate is gone: Superseded. A commit
-// the Authority made durable is never reported failed.
+// DurabilityTimeoutEnv names the server-side budget for waiting on an
+// admitted World write. It accepts a positive Go duration or "off" for the
+// unbounded wait. An unset or invalid setting uses 30 seconds.
+const DurabilityTimeoutEnv = "SPACEWAVE_WORLD_DURABILITY_TIMEOUT"
+
+// defaultDurabilityTimeout bounds the wait when no valid override is set.
+const defaultDurabilityTimeout = 30 * time.Second
+
+// errDurabilityDeadline marks a wait that spent the server budget, not a
+// decision by the Authority.
+var errDurabilityDeadline = errors.Wrap(world.ErrDurabilityUnknown, "durability wait deadline exceeded")
+
+// durabilityTimeout reads the current budget for a newly admitted write.
+func durabilityTimeout() time.Duration {
+	// Keep the previous unbounded wait available at runtime.
+	value := os.Getenv(DurabilityTimeoutEnv)
+	if value == "off" {
+		return 0
+	}
+
+	// An invalid duration must not disable the bound.
+	if budget, err := time.ParseDuration(value); err == nil && budget > 0 {
+		return budget
+	}
+	return defaultDurabilityTimeout
+}
+
+// WithDurabilityTimeout bounds a wait for an already admitted World write.
+// Expiry reports an unknown outcome, never a refusal or permission to replay.
+func WithDurabilityTimeout(ctx context.Context) (context.Context, context.CancelFunc) {
+	if budget := durabilityTimeout(); budget > 0 {
+		return context.WithTimeoutCause(ctx, budget, errDurabilityDeadline)
+	}
+	return context.WithCancel(ctx)
+}
+
+// waitDurable waits for the Authority's decision and record, and returns the
+// head to publish. The writer turn has ended but the Authority still owns the
+// admitted operation and its payloads. The request's cancellation cannot end
+// the wait. Expiry leaves queued work with the Authority and never permits
+// replay: neither elapsed time nor head progress proves that this candidate
+// applied or was refused.
 func (e *EngineTx) waitDurable(ctx context.Context, adm world.Admission, next *bucket.ObjectRef) (*bucket.ObjectRef, error) {
-	// Wait for the decision past the request's cancellation, until the
-	// engine closes, which leaves the durability unknown.
+	// Keep the request values, but bound the wait by engine close or the
+	// server's budget, with one budget for both waits and reconciliation.
 	ctx, cancel := context.WithCancelCause(context.WithoutCancel(ctx))
 	defer cancel(nil)
 	stop := context.AfterFunc(e.engine.closing, func() { cancel(world.ErrDurabilityUnknown) })
 	defer stop()
+	ctx, stopWait := WithDurabilityTimeout(ctx)
+	defer stopWait()
+
+	// A decision returned by the Authority can settle the write even if
+	// the wait was canceled at the same time.
 	decision, err := adm.WaitDecided(ctx)
 	switch {
 	case decision == world.Superseded:
 		head := adm.Head()
 		return nil, errors.Wrapf(world.ErrSuperseded, "head moved to seqno %d", head.Seqno)
+	case decision == world.Undecided && ctx.Err() != nil:
+		return nil, context.Cause(ctx)
 	case decision != world.Accepted && err == nil:
 		return nil, errors.Errorf("world candidate %s", decision)
 	case err != nil:
@@ -352,18 +403,24 @@ func (e *EngineTx) waitDurable(ctx context.Context, adm world.Admission, next *b
 
 	// Wait for the record that makes the head durable, and publish the head
 	// the Admission reports, which holds the candidate's change.
-	if _, err = adm.WaitDurable(ctx); err == nil || e.engine.authority == nil {
-		if head := adm.Head(); err == nil && !head.Root.GetEmpty() && !head.Root.EqualsRef(next.GetRootRef()) {
+	if _, err = adm.WaitDurable(ctx); err == nil {
+		if head := adm.Head(); !head.Root.GetEmpty() && !head.Root.EqualsRef(next.GetRootRef()) {
 			published := next.Clone()
 			published.RootRef = head.Root.Clone()
 			return published, nil
 		}
-		return next, err
+		return next, nil
 	}
 
-	// Reconcile an unknown durability with the Authority's head.
+	// Reconcile a lost report only while the wait is live. An Authority's
+	// Head may return a result even when its context ended during the read.
+	if cause := context.Cause(ctx); cause != nil {
+		return nil, cause
+	}
 	head, herr := e.engine.authority.Head(ctx)
 	switch {
+	case ctx.Err() != nil:
+		return nil, context.Cause(ctx)
 	case herr != nil:
 		// The Authority accepted the candidate, so a failed reconcile leaves
 		// its outcome unknown. The head read's error stays text: its
@@ -373,6 +430,8 @@ func (e *EngineTx) waitDurable(ctx context.Context, adm world.Admission, next *b
 			err = stderrors.Join(world.ErrDurabilityUnknown, err)
 		}
 		return nil, errors.Wrapf(err, "read head: %v", herr)
+	// For a live wait, the accepted candidate is on the Authority's linear
+	// order: its root or a later head confirms an ordinary lost report.
 	case head.Root.EqualsRef(next.GetRootRef()):
 		return next, nil
 	case head.Seqno > adm.Seqno():
