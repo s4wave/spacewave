@@ -12,6 +12,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/packfile"
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/semaphore"
 )
 
 // readBatchLatency and readBatchBandwidth are a range read's fixed cost and
@@ -48,9 +49,14 @@ const readBatchRun = 4 << 20
 const readBatchReads = 2
 
 // readBatchForegroundReads is the number of range reads a foreground batch
-// keeps in flight. The account's request gate admits each one; this bounds
-// only the batch's goroutines.
-const readBatchForegroundReads = 16
+// keeps in flight, so a batch of small runs, such as a tree level's pages,
+// reads in one or two rounds. The account's request gate admits each one.
+const readBatchForegroundReads = 64
+
+// readBatchBytes bounds the bytes of the range reads one batch has in flight,
+// so a batch of large runs holds at most this much in memory: sixteen runs of
+// readBatchRun.
+const readBatchBytes = 16 * readBatchRun
 
 // batchExtent is the place of one block of a batch in its pack.
 type batchExtent struct {
@@ -235,7 +241,7 @@ func (s *PackStore) readPlaced(ctx context.Context, extents []batchExtent, reads
 }
 
 // readRuns reads extents in runs, as batchRuns merges them, with at most reads
-// range reads in flight, and calls fn once for each extent: with its verified
+// range reads and readBatchBytes of runs in flight, and calls fn once for each extent: with its verified
 // block, with neither a block nor an error when its pack is missing or its
 // bytes do not hold it, or with the run's error when the range read failed.
 // Calls of fn never overlap. An error from fn ends the reads.
@@ -243,12 +249,22 @@ func (s *PackStore) readPlaced(ctx context.Context, extents []batchExtent, reads
 // Runs span gaps up to batchGap of the bucket's prices, so a read carries every
 // unwanted byte cheaper than a second request.
 func (s *PackStore) readRuns(ctx context.Context, extents []batchExtent, reads int, fn func(batchExtent, *block.StoredBlock, error) error) error {
-	// Read the runs, at most reads at a time.
+	// Read the runs, at most reads and readBatchBytes at a time.
 	var mtx sync.Mutex
 	eg, egCtx := errgroup.WithContext(ctx)
 	eg.SetLimit(reads)
+	budget := semaphore.NewWeighted(readBatchBytes)
+	var stopped error
 	for run := range batchRuns(extents, s.batchGap) {
+		weight := min(run.end-run.off, readBatchBytes)
+		if budget.Acquire(egCtx, weight) != nil {
+			stopped = context.Cause(egCtx)
+			break
+		}
 		eg.Go(func() error {
+			// Return the run's bytes to the budget once its blocks are passed on.
+			defer budget.Release(weight)
+
 			// Read the span; a missing pack means its rows named the wrong one.
 			data, err := s.client.GetObjectRange(egCtx, s.bucket, s.prefix+packDir+run.id, run.off, int(run.end-run.off))
 			if errors.Is(err, ErrNotFound) {
@@ -281,7 +297,10 @@ func (s *PackStore) readRuns(ctx context.Context, extents []batchExtent, reads i
 			return nil
 		})
 	}
-	return eg.Wait()
+	if err := eg.Wait(); err != nil {
+		return err
+	}
+	return stopped
 }
 
 // runBlock returns the verified block of extent e from data, the bytes of a
