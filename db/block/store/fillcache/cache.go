@@ -10,8 +10,10 @@
 // The packs are a packfile/packcache Cache: fills append to the open pack
 // without a sync, a hit is a lookup in a table in memory and one read of a
 // pack, and eviction drops the oldest pack after carrying forward the blocks
-// read since their write. A pack holds each block as the bucket's packs do, its
-// bytes with its refs, under packfile.BlockKey of its hash.
+// read since their write. At open the resident lists mark the blocks they name
+// read, so eviction under a lowered limit can carry them forward. A pack holds
+// each block as the bucket's packs do, its bytes with its refs, under
+// packfile.BlockKey of its hash.
 package block_store_fillcache
 
 import (
@@ -87,7 +89,7 @@ func Open(ctx context.Context, le *logrus.Entry, dir string, opts Options) (*Cac
 	}
 	removeResidentTemps(dir)
 
-	// Start loading the packs and the writer.
+	// Apply the default bounds.
 	limit, queueBytes := opts.LimitBytes, opts.QueueBytes
 	if limit <= 0 {
 		limit = DefaultLimitBytes
@@ -95,17 +97,20 @@ func Open(ctx context.Context, le *logrus.Entry, dir string, opts Options) (*Cac
 	if queueBytes <= 0 {
 		queueBytes = DefaultQueueBytes
 	}
+
+	// Start loading the packs, whose resident lists mark the blocks eviction
+	// keeps, and the writer.
 	cctx, cancel := context.WithCancel(ctx)
 	c := &Cache{
 		le:        le,
 		warn:      rateLog{le: le},
 		dir:       dir,
-		packs:     packcache.Open(cctx, filepath.Join(dir, packsDir), packcache.Options{LimitBytes: limit}),
 		cancel:    cancel,
 		exited:    make(chan struct{}),
 		queue:     newFillQueue(queueBytes),
 		warmBytes: queueBytes / 8,
 	}
+	c.packs = packcache.Open(cctx, filepath.Join(dir, packsDir), packcache.Options{LimitBytes: limit, Recent: c.markResident})
 	c.view = &view{cache: c}
 	go c.run(cctx)
 	return c, nil

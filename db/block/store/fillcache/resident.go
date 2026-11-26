@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -23,8 +24,7 @@ const residentMagic = "spacewave fill cache resident list 1\n"
 // residentDir is the directory of the lists, inside the cache's directory.
 const residentDir = "resident"
 
-// residentSlice is the number of listed refs MissingResident checks and
-// yields at once, which bounds the memory a read of the list holds.
+// residentSlice bounds the number of refs processed at once from a list.
 const residentSlice = 1 << 14
 
 // residentKeyMax bounds one listed ref key. A longer length marks a damaged
@@ -92,19 +92,11 @@ func (c *Cache) SaveResident(ctx context.Context, scope string, refKeys iter.Seq
 // before then every ref reads as missing.
 func (c *Cache) MissingResident(ctx context.Context, scope string, fn func([]*block.BlockRef) error) (int, error) {
 	// Open the list, reading a missing or foreign file as empty.
-	f, err := os.Open(c.residentPath(scope))
-	if errors.Is(err, os.ErrNotExist) {
-		return 0, nil
-	}
-	if err != nil {
-		return 0, errors.Wrap(err, "open the resident list")
+	f, r, err := openResident(c.residentPath(scope))
+	if err != nil || f == nil {
+		return 0, err
 	}
 	defer f.Close()
-	r := bufio.NewReaderSize(f, 1<<20)
-	magic := make([]byte, len(residentMagic))
-	if _, err := io.ReadFull(r, magic); err != nil || string(magic) != residentMagic {
-		return 0, nil
-	}
 
 	// Read the list a slice at a time, passing on the refs the cache lacks.
 	var listed int
@@ -121,6 +113,86 @@ func (c *Cache) MissingResident(ctx context.Context, scope string, fn func([]*bl
 			return listed, context.Cause(ctx)
 		}
 	}
+}
+
+// markResident restores reads from every saved resident list before eviction.
+func (c *Cache) markResident(ctx context.Context, mark func(keys [][]byte)) {
+	// Open the directory only if the cache still needs the lists.
+	if ctx.Err() != nil {
+		return
+	}
+	dir := filepath.Join(c.dir, residentDir)
+	d, err := os.Open(dir)
+	if err != nil {
+		return
+	}
+	defer d.Close()
+
+	// Walk the directory in batches, skipping unfinished saves.
+	for ctx.Err() == nil {
+		entries, err := d.ReadDir(64)
+		for _, entry := range entries {
+			if ctx.Err() != nil {
+				return
+			}
+			if !entry.IsDir() && !strings.HasSuffix(entry.Name(), ".tmp") {
+				markResidentFile(ctx, filepath.Join(dir, entry.Name()), mark)
+			}
+		}
+		if err != nil {
+			return
+		}
+	}
+}
+
+// markResidentFile marks the pack keys of the refs read from one list.
+func markResidentFile(ctx context.Context, path string, mark func(keys [][]byte)) {
+	// Ignore lists that cannot supply any hints.
+	f, r, err := openResident(path)
+	if err != nil || f == nil {
+		return
+	}
+	defer f.Close()
+
+	// Decode one slice at a time so each mark holds the Log's lock briefly.
+	for ctx.Err() == nil {
+		keys, done := readResidentKeys(r, residentSlice)
+		packKeys := make([][]byte, 0, len(keys))
+		for _, key := range keys {
+			var ref block.BlockRef
+			if ref.UnmarshalVT(key) == nil && !ref.GetEmpty() {
+				packKeys = append(packKeys, packfile.BlockKey(ref.GetHash()))
+			}
+		}
+		if len(packKeys) != 0 && ctx.Err() == nil {
+			mark(packKeys)
+		}
+		if done {
+			return
+		}
+	}
+}
+
+// openResident opens a resident list and positions the reader after the magic.
+// A missing or foreign file returns nil for the file, reader and error.
+func openResident(path string) (*os.File, *bufio.Reader, error) {
+	// Open the saved file if it still exists.
+	f, err := os.Open(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, nil, nil
+	}
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "open the resident list")
+	}
+
+	// Hand off the file only when it starts with the list magic.
+	r := bufio.NewReaderSize(f, 1<<20)
+	var magic [len(residentMagic)]byte
+	if _, err := io.ReadFull(r, magic[:]); err != nil || string(magic[:]) != residentMagic {
+		_ = f.Close()
+		return nil, nil, nil
+	}
+	return f, r, nil
 }
 
 // missing decodes keys into refs, sorted and without duplicates, and returns

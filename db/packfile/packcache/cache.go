@@ -13,9 +13,11 @@
 //     pack's batch checksums matched at recovery: a torn batch is a miss, not
 //     wrong data. The caller still checks a value against its key's hash.
 //   - Losing the cache loses only copies, so nothing here syncs for a reader.
+//   - Marking keys read only changes which values eviction carries. It never
+//     adds or changes a value.
 //   - Eviction takes the oldest finalized pack once the Log passes the limit,
-//     carrying forward the values read since their write, at most half the
-//     pack's bytes, so each eviction frees at least half a pack.
+//     carrying forward values read since their write or named by Recent, at
+//     most half the pack's bytes, so each eviction frees at least half a pack.
 //   - Until the Log has loaded, Get misses and Put stores nothing, so opening
 //     the cache never delays its caller.
 package packcache
@@ -90,6 +92,11 @@ func (c *Cache) run(ctx context.Context, dir string) {
 	}
 	c.log.Store(l)
 	c.settle(stateReady, nil)
+
+	// Restore reads from before the restart so the first eviction sees them.
+	if c.opts.Recent != nil {
+		c.opts.Recent(ctx, func(keys [][]byte) { l.MarkRead(keys) })
+	}
 
 	// Evict until the end, then stop serving and close the Log.
 	err = c.evict(ctx, l)
