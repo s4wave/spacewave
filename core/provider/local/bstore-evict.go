@@ -514,7 +514,8 @@ const evictBusyWait = 30 * time.Second
 // such as SetResidentMarks lowering the high mark, starts it at once either
 // way. A pass that ends on a busy database, after its own retries, is retried
 // after evictBusyWait instead of ending the loop. Between passes it saves the
-// recorded reads every readSaveInterval. It logs the passes' summed counts at
+// recorded reads every readSaveInterval. It logs each pass's start and cause,
+// as passStartLog describes, and the passes' summed counts at
 // most every evictLogInterval, as evictPassLog describes, and the counts left
 // unlogged when it returns.
 func (p *placementState) runEviction(ctx context.Context, le *logrus.Entry) error {
@@ -528,6 +529,7 @@ func (p *placementState) runEviction(ctx context.Context, le *logrus.Entry) erro
 	// Count reads served from decoded-block caches and held by live values,
 	// which never reach the local store, unless CacheReadsEnv turns that off.
 	startCacheHits()
+	cause := "start"
 	for {
 		// Run a pass while the store is past its budget.
 		// Before the upload opens the backend no pass can run, so wait for
@@ -542,6 +544,7 @@ func (p *placementState) runEviction(ctx context.Context, le *logrus.Entry) erro
 		status, changed := p.wb.GetStatus()
 		var retry <-chan time.Time
 		if want := p.evictLatch.Bytes(status); want > 0 && p.remote.Load() != nil {
+			passStartLog(le, cause, want)
 			result, err := p.evict(ctx, want)
 			passLog.add(result, time.Now())
 			switch {
@@ -562,11 +565,11 @@ func (p *placementState) runEviction(ctx context.Context, le *logrus.Entry) erro
 			case <-ctx.Done():
 				return context.Canceled
 			case <-changed:
-				waiting = false
+				waiting, cause = false, "status"
 			case <-retry:
-				waiting = false
+				waiting, cause = false, "retry"
 			case <-p.policyWake:
-				waiting = false
+				waiting, cause = false, "wake"
 			case <-save.C:
 				// Time the log limit by the clock now, not the tick's time,
 				// which lags when a slow save delays the tick.
@@ -577,6 +580,20 @@ func (p *placementState) runEviction(ctx context.Context, le *logrus.Entry) erro
 			}
 		}
 	}
+}
+
+// passStartLog says that an eviction pass starts, why, and how many bytes it
+// wants to drop. A pass the loop's first check, a policy wake or a retry
+// starts logs at info, so a resume or a retry shows when it takes effect;
+// one a status change starts logs at debug, since those follow every upload
+// round while the store is past its budget, and evictPassLog sums them.
+func passStartLog(le *logrus.Entry, cause string, want int64) {
+	entry := le.WithFields(logrus.Fields{"cause": cause, "want-bytes": want})
+	if cause == "status" {
+		entry.Debug("eviction pass starting")
+		return
+	}
+	entry.Info("eviction pass starting")
 }
 
 // evict drops up to maxBytes of uploaded local values that the backend holds,
