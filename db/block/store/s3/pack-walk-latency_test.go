@@ -215,7 +215,7 @@ func (s *packWalkRefs) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 	ref, exists, err := s.StoreOps.PutBlock(ctx, data, opts)
 	if err == nil {
 		s.mtx.Lock()
-		s.refs[ref.MarshalString()] = opts.GetRefs()
+		s.refs[ref.MapKey()] = opts.GetRefs()
 		s.mtx.Unlock()
 	}
 	return ref, exists, err
@@ -227,7 +227,7 @@ func (s *packWalkRefs) PutBlockBatch(ctx context.Context, entries []*block.PutBa
 	if err == nil {
 		s.mtx.Lock()
 		for _, entry := range entries {
-			s.refs[entry.Ref.MarshalString()] = entry.Refs
+			s.refs[entry.Ref.MapKey()] = entry.Refs
 		}
 		s.mtx.Unlock()
 	}
@@ -241,7 +241,7 @@ func (s *packWalkRefs) GetStoredBlock(ctx context.Context, ref *block.BlockRef) 
 		return nil, err
 	}
 	s.mtx.Lock()
-	refs, known := s.refs[ref.MarshalString()]
+	refs, known := s.refs[ref.MapKey()]
 	s.mtx.Unlock()
 	return &block.StoredBlock{Data: data, Refs: refs, RefsKnown: known}, nil
 }
@@ -262,14 +262,14 @@ func writePackWalkTree(t *testing.T, ctx context.Context, src block.StoreOps, ds
 	seen := make(map[string]struct{})
 	var visit func(ref *block.BlockRef)
 	visit = func(ref *block.BlockRef) {
-		key := ref.MarshalString()
+		key := ref.MapKey()
 		if _, ok := seen[key]; ok || ref.GetEmpty() {
 			return
 		}
 		seen[key] = struct{}{}
 		stored, err := src.GetStoredBlock(ctx, ref)
 		if err != nil || stored == nil || !stored.RefsKnown {
-			t.Fatalf("read %s: %v", key, err)
+			t.Fatalf("read %s: %v", ref.MarshalString(), err)
 		}
 		batch = append(batch, &block.PutBatchEntry{Ref: ref, Data: stored.Data, Refs: stored.Refs, RefsKnown: true})
 		blocks++

@@ -118,5 +118,10 @@ func graphBlockErr(ref *BlockRef, stored *StoredBlock, err error) error {
 	if err == nil && !stored.RefsKnown {
 		err = ErrRefsUnknown
 	}
+
+	// Name the ref only on failure: encoding it costs more than the read.
+	if err == nil {
+		return nil
+	}
 	return errors.Wrap(err, ref.MarshalString())
 }
