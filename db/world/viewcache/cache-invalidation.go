@@ -5,7 +5,6 @@ import (
 	"errors"
 	"slices"
 
-	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 )
 
@@ -136,14 +135,13 @@ func (c *Cache) refreshFacets(ctx context.Context, changes *world.ChangeSet, thr
 	c.mtx.Lock()
 	seen := make(map[*revisionEntry]bool)
 	for entry := range c.faceted {
-		for _, facet := range entry.facets {
-			part := facet.part
+		for part, compute := range entry.facetComputations() {
 			if seen[part] || c.entries[part.name] != part {
 				continue
 			}
 			seen[part] = true
 			if part.touched(changes, nil) {
-				wanted = append(wanted, refresh{part, facet.compute})
+				wanted = append(wanted, refresh{part, compute})
 			}
 		}
 	}
@@ -176,21 +174,22 @@ func (c *Cache) recompute(ctx context.Context, name string, through uint64, comp
 	defer tx.Discard()
 
 	// Compute and track this value apart from the retained entry.
-	entry := &revisionEntry{name: name, done: make(chan struct{}), at: through, reads: world.NewReadSet(), blocks: block.NewRefHold()}
-	child, finish := world.WithViewReads(block.WithRefHold(ctx, entry.blocks), entry.reads)
-	child, parts := c.withParts(context.WithValue(child, computingKey{}, true))
-	entry.value, entry.err = c.observe(name, "shared", func() (any, error) {
-		return compute(child, entry.reads.Track(tx))
-	})
-	entry.wake = finish()
-	if entry.err != nil {
-		return nil, entry.err
+	entry := newRevisionEntry(name, through, nil)
+	var parts *entryParts
+	if err := entry.evaluate(ctx, tx, func(child context.Context, tracked world.WorldState) (any, error) {
+		// Collect shared dependencies apart from the entry's direct reads.
+		child, parts = c.withParts(context.WithValue(child, computingKey{}, true))
+		return c.observe(name, "shared", func() (any, error) {
+			return compute(child, tracked)
+		})
+	}); err != nil {
+		return nil, err
 	}
 
 	// Finish the entry before exposing its value to dependent projections.
-	entry.parts, entry.facets = parts.collected()
-	entry.finished = true
-	close(entry.done)
+	entry.collectParts(parts.collected)
+	entry.finishComputation()
+	entry.signalDone()
 	return entry, nil
 }
 
@@ -244,11 +243,8 @@ func (c *Cache) dropTouchedLocked(changes *world.ChangeSet, next map[*revisionEn
 	// finished values: one still computing sets its facets without the mtx.
 	repointed := make(map[*revisionEntry]bool)
 	for entry := range c.faceted {
-		for i := range entry.facets {
-			if replaced := next[entry.facets[i].part]; replaced != nil {
-				entry.facets[i].part = replaced
-				repointed[entry] = true
-			}
+		if entry.replaceFacetsLocked(next) {
+			repointed[entry] = true
 		}
 	}
 

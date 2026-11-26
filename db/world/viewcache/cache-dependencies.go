@@ -77,15 +77,7 @@ func (c *Cache) retirement(ctx context.Context, entry *revisionEntry) (retired, 
 	// Only a view of a done value reaching a facet goes further, checked
 	// without the mtx: every cached read a view makes passes here, and a
 	// value's parts and facets are set before done closes.
-	if computing(ctx) {
-		return nil, nil, false
-	}
-	select {
-	case <-entry.done:
-	default:
-		return nil, nil, false
-	}
-	if _, free := entry.checkedSet(); free {
+	if computing(ctx) || !entry.followsFacets() {
 		return nil, nil, false
 	}
 
@@ -97,10 +89,7 @@ func (c *Cache) retirement(ctx context.Context, entry *revisionEntry) (retired, 
 	}
 
 	// The first such view creates the context the cache ends on removal.
-	if entry.retired == nil {
-		entry.retired, entry.retire = context.WithCancel(context.Background())
-	}
-	return entry.retired, c.following, true
+	return entry.retirementLocked(), c.following, true
 }
 
 // withParts returns a context that collects the cached values computed or

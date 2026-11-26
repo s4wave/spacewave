@@ -24,6 +24,7 @@ import (
 // (WithFloor) takes the name's last built value at or past the floor instead
 // of waiting on a build that a change passed, as Recent answers it.
 func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compute func(context.Context, world.WorldState) (any, error)) (any, error) {
+	// Reach the snapshot revision before choosing or claiming a value.
 	seqno, err := tx.GetSeqno(ctx)
 	if err != nil {
 		return nil, err
@@ -32,6 +33,7 @@ func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compu
 		return nil, err
 	}
 
+	// Retry a claim when its computer was abandoned or its result went stale.
 	for {
 		// Reuse a value that holds at this revision, or claim its computation.
 		c.mtx.Lock()
@@ -40,7 +42,7 @@ func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compu
 			c.mtx.Unlock()
 			// A reader that leaves stops waiting, so streams a client
 			// abandoned during a slow build do not pile up behind it.
-			if err := awaitComputation(ctx, entry); err != nil {
+			if err := entry.await(ctx); err != nil {
 				return nil, err
 			}
 			if entry.err != nil {
@@ -73,6 +75,7 @@ func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compu
 			c.addViewReads(ctx, entry)
 			return entry.value, nil
 		}
+
 		// A reader behind the cache reads at the head, but a part of a value
 		// being computed is read in that value's snapshot. While no value is
 		// kept, it claims the entry like one at the head, so the parts many
@@ -89,25 +92,30 @@ func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compu
 			}
 			path = "stale"
 		}
-		entry = &revisionEntry{name: name, done: make(chan struct{}), gate: block.ColdReadGateOf(ctx), at: seqno, reads: world.NewReadSet(), blocks: block.NewRefHold()}
+
+		// Keep the claim visible while its computation runs without the lock.
+		entry = newRevisionEntry(name, seqno, block.ColdReadGateOf(ctx))
 		c.keepLocked(entry)
 		c.mtx.Unlock()
 
 		// Compute in a child evaluation, then share its reads with this caller.
-		child, finish := world.WithViewReads(block.WithRefHold(ctx, entry.blocks), entry.reads)
-		child, parts := c.withParts(context.WithValue(child, computingKey{}, true))
-		entry.value, entry.err = c.observe(name, path, func() (any, error) {
-			return compute(child, entry.reads.Track(world.Untracked(tx)))
+		var parts *entryParts
+		err := entry.evaluate(ctx, world.Untracked(tx), func(child context.Context, tracked world.WorldState) (any, error) {
+			// Collect shared dependencies apart from the entry's direct reads.
+			child, parts = c.withParts(context.WithValue(child, computingKey{}, true))
+			return c.observe(name, path, func() (any, error) {
+				return compute(child, tracked)
+			})
 		})
-		entry.wake = finish()
-		if entry.err != nil {
+		if err != nil {
 			c.drop(name, entry)
-			close(entry.done)
-			return nil, entry.err
+			entry.signalDone()
+			return nil, err
 		}
+
 		// Its parts are set under mtx, since a catch-up reads every entry's.
 		c.mtx.Lock()
-		entry.parts, entry.facets = parts.collected()
+		entry.collectParts(parts.collected)
 		c.mtx.Unlock()
 
 		// Check the value against the changes passed while it computed. One
@@ -115,18 +123,18 @@ func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compu
 		// that joined there share it instead of each starting another.
 		c.mtx.Lock()
 		if !c.heldSinceLocked(entry, seqno) {
-			entry.stale = true
+			entry.markStale()
 			if c.entries[name] == entry {
 				c.removeLocked(name)
 			}
 			c.keepBuiltLocked(entry)
 			c.countDrop(name, "computing")
 		}
-		entry.finished = true
+		entry.finishComputation()
 		if c.entries[name] == entry {
 			c.indexLocked(entry)
 		}
-		close(entry.done)
+		entry.signalDone()
 		c.mtx.Unlock()
 
 		// Share its reads, or its retirement, once it is checked and kept.
@@ -151,7 +159,10 @@ func (c *Cache) computeBehind(
 	name string,
 	compute func(context.Context, world.WorldState) (any, error),
 ) (any, error) {
+	// Identify the snapshot whose callers share one behind computation.
 	key := behindKey{name: name, seqno: seqno}
+
+	// Retry the claim only when its computing caller was abandoned.
 	for {
 		// Wait on the computation another caller claimed, or claim it. A
 		// caller inside the claimed computation, reading the value from
@@ -161,7 +172,7 @@ func (c *Cache) computeBehind(
 		entry := c.behind[key]
 		if entry != nil && ctx.Value(behindClaimKey{entry}) == nil {
 			c.mtx.Unlock()
-			if err := awaitComputation(ctx, entry); err != nil {
+			if err := entry.await(ctx); err != nil {
 				return nil, err
 			}
 			if entry.err != nil {
@@ -178,7 +189,9 @@ func (c *Cache) computeBehind(
 			c.addViewReads(ctx, entry)
 			return entry.value, nil
 		}
-		entry = &revisionEntry{name: name, done: make(chan struct{}), gate: block.ColdReadGateOf(ctx), at: seqno, reads: world.NewReadSet(), blocks: block.NewRefHold()}
+
+		// Publish a claim only when no other caller owns this snapshot.
+		entry = newRevisionEntry(name, seqno, block.ColdReadGateOf(ctx))
 		claimed := c.behind[key] == nil
 		if claimed {
 			if c.behind == nil {
@@ -189,15 +202,17 @@ func (c *Cache) computeBehind(
 		c.mtx.Unlock()
 
 		// Compute in a child evaluation, then share its reads with this caller.
-		child, finish := world.WithViewReads(block.WithRefHold(ctx, entry.blocks), entry.reads)
-		child, parts := c.withParts(context.WithValue(child, behindClaimKey{entry}, true))
-		entry.value, entry.err = c.observe(name, "stale", func() (any, error) {
-			return compute(child, entry.reads.Track(world.Untracked(tx)))
+		var parts *entryParts
+		err := entry.evaluate(ctx, world.Untracked(tx), func(child context.Context, tracked world.WorldState) (any, error) {
+			// Collect shared dependencies apart from the entry's direct reads.
+			child, parts = c.withParts(context.WithValue(child, behindClaimKey{entry}, true))
+			return c.observe(name, "stale", func() (any, error) {
+				return compute(child, tracked)
+			})
 		})
-		entry.wake = finish()
-		if entry.err == nil {
-			entry.parts, entry.facets = parts.collected()
-			entry.finished = true
+		if err == nil {
+			entry.collectParts(parts.collected)
+			entry.finishComputation()
 		}
 
 		// End the claim, and keep the value when it still holds at the
@@ -209,7 +224,7 @@ func (c *Cache) computeBehind(
 		if entry.err == nil && c.entries[name] == nil && c.heldSinceLocked(entry, seqno) {
 			c.keepLocked(entry)
 		}
-		close(entry.done)
+		entry.signalDone()
 		c.mtx.Unlock()
 		if entry.err != nil {
 			return nil, entry.err
@@ -297,28 +312,4 @@ func Value[T any](ctx context.Context, c *Cache, tx world.WorldState, name strin
 		return zero, err
 	}
 	return value.(T), nil
-}
-
-// awaitComputation waits for another caller's computation of entry, or for
-// ctx to end. A waiter about to block lends back its cold read admission
-// first: the computer may be waiting at the gate for a slot, and a slot held
-// by its own waiters would never free. It also lends the computer its
-// priority while it waits, so a computer claimed by a less urgent reader is
-// admitted as urgently as its most urgent waiter.
-func awaitComputation(ctx context.Context, entry *revisionEntry) error {
-	select {
-	case <-entry.done:
-		return nil
-	default:
-	}
-	block.LendColdRead(ctx)
-	if entry.gate != nil {
-		defer entry.gate.Inherit(ctx)()
-	}
-	select {
-	case <-entry.done:
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
 }

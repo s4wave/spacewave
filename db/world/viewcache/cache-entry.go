@@ -2,6 +2,7 @@ package viewcache
 
 import (
 	"context"
+	"iter"
 	"sync"
 	"time"
 
@@ -68,6 +69,149 @@ type revisionEntry struct {
 	// with retire, under the cache's mtx when the first such view reads it.
 	retired context.Context
 	retire  context.CancelFunc
+}
+
+// newRevisionEntry creates an unpublished computation at one revision.
+func newRevisionEntry(name string, at uint64, gate block.ColdReadGate) *revisionEntry {
+	return &revisionEntry{name: name, done: make(chan struct{}), gate: gate, at: at, reads: world.NewReadSet(), blocks: block.NewRefHold()}
+}
+
+// evaluate records the computation's result and direct reads, then its wake
+// deadline. The entry is not ready until its caller attaches dependencies,
+// checks cache membership and signals completion. tx has the tracking policy
+// chosen by the caller; ordinary and behind computations pass an untracked tx.
+func (e *revisionEntry) evaluate(ctx context.Context, tx world.WorldState, compute func(context.Context, world.WorldState) (any, error)) error {
+	// Record the result in an evaluation that holds its blocks and reads.
+	child, finish := world.WithViewReads(block.WithRefHold(ctx, e.blocks), e.reads)
+	e.value, e.err = compute(child, e.reads.Track(tx))
+	e.wake = finish()
+	return e.err
+}
+
+// collectParts collects and attaches the completed computation's dependencies.
+// The collector supplies plain and facet reads without exposing its cache to e.
+// The caller holds the cache's mtx if the entry is already visible to a catch-up.
+func (e *revisionEntry) collectParts(collect func() ([]*revisionEntry, []facetRead)) {
+	e.parts, e.facets = collect()
+}
+
+// finishComputation marks the result checked for indexing. An entry retained in
+// the cache requires its mtx; a behind claim finishes before retention.
+// Signaling remains separate because cache indexing or claim removal comes next.
+func (e *revisionEntry) finishComputation() {
+	e.finished = true
+}
+
+// signalDone exposes the recorded result to waiters after the caller's final
+// cache updates. The computing caller signals exactly once, even on failure.
+func (e *revisionEntry) signalDone() {
+	close(e.done)
+}
+
+// markStale limits the result to its build revision before completion is
+// signaled. The caller holds the cache's mtx while checking intervening changes.
+func (e *revisionEntry) markStale() {
+	e.stale = true
+}
+
+// markRecentLocked retains the reader's interest in a finished value, so a
+// catch-up keeps it as the previous value. The caller holds the cache's mtx.
+func (e *revisionEntry) markRecentLocked() {
+	e.recent = true
+}
+
+// await waits for the computation or ctx to end. A blocking waiter lends back
+// its cold-read admission and lends the computer its priority until done closes.
+func (e *revisionEntry) await(ctx context.Context) error {
+	// Completed computations need neither admission lending nor inheritance.
+	select {
+	case <-e.done:
+		return nil
+	default:
+	}
+
+	// Free a slot for the computer and retain this waiter's urgency.
+	block.LendColdRead(ctx)
+	if e.gate != nil {
+		defer e.gate.Inherit(ctx)()
+	}
+
+	// Stop waiting when either the computation or this reader finishes.
+	select {
+	case <-e.done:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+// finishedValue returns a completed, successful, unexpired value holding at
+// seqno. The done signal makes the computation's fields safe to inspect.
+func (e *revisionEntry) finishedValue(seqno uint64) (any, bool) {
+	// Read the result only after its computer exposed it.
+	select {
+	case <-e.done:
+	default:
+		return nil, false
+	}
+
+	// Accept only a result that still holds at the requested revision.
+	if e.err != nil || (e.stale && seqno != e.at) || e.expired() {
+		return nil, false
+	}
+	return e.value, true
+}
+
+// followsFacets reports whether the completed result reaches a facet, making
+// retirement notification useful in place of its full read set.
+func (e *revisionEntry) followsFacets() bool {
+	// Unpublished dependencies are not safe to inspect without the cache lock.
+	select {
+	case <-e.done:
+	default:
+		return false
+	}
+
+	// A facet-free result continues to use its ordinary read dependencies.
+	_, free := e.checkedSet()
+	return !free
+}
+
+// retirementLocked returns the context ended when the cache stops keeping e,
+// creating it for the first interested view. The caller holds the cache's mtx.
+func (e *revisionEntry) retirementLocked() context.Context {
+	// Share one retirement signal among all views of this retained entry.
+	if e.retired == nil {
+		e.retired, e.retire = context.WithCancel(context.Background())
+	}
+	return e.retired
+}
+
+// facetComputations streams the dependencies that may need refreshing without
+// exposing their storage. The caller holds the cache's mtx while iterating.
+func (e *revisionEntry) facetComputations() iter.Seq2[*revisionEntry, func(context.Context, world.WorldState) (any, error)] {
+	return func(yield func(*revisionEntry, func(context.Context, world.WorldState) (any, error)) bool) {
+		// Stop as soon as the consumer has enough facet computations.
+		for _, facet := range e.facets {
+			if !yield(facet.part, facet.compute) {
+				return
+			}
+		}
+	}
+}
+
+// replaceFacetsLocked repoints each refreshed dependency and reports whether
+// the entry needs reindexing. The caller holds the cache's mtx.
+func (e *revisionEntry) replaceFacetsLocked(next map[*revisionEntry]*revisionEntry) bool {
+	// Retain the facet comparisons while advancing their current parts.
+	replaced := false
+	for i := range e.facets {
+		if part := next[e.facets[i].part]; part != nil {
+			e.facets[i].part = part
+			replaced = true
+		}
+	}
+	return replaced
 }
 
 // retireLocked ends e's retirement context, waking the views that read e in

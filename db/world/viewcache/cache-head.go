@@ -185,16 +185,15 @@ func (c *Cache) Peek(ctx context.Context, seqno uint64, name string) (any, bool)
 // finishedValue returns entry's value when it is finished, current at seqno
 // and unexpired, and adds what it read to the view evaluation in ctx.
 func (c *Cache) finishedValue(ctx context.Context, entry *revisionEntry, seqno uint64) (any, bool) {
-	select {
-	case <-entry.done:
-	default:
+	// Read only a completed result that still holds at this revision.
+	value, ok := entry.finishedValue(seqno)
+	if !ok {
 		return nil, false
 	}
-	if entry.err != nil || (entry.stale && seqno != entry.at) || entry.expired() {
-		return nil, false
-	}
+
+	// Preserve the caller's dependency on the accepted result.
 	c.addViewReads(ctx, entry)
-	return entry.value, true
+	return value, true
 }
 
 // Recent returns the named value at seqno, a revision head returned for
@@ -216,7 +215,7 @@ func (c *Cache) Recent(ctx context.Context, seqno, floor uint64, name string, co
 	if held {
 		if value, ok := c.finishedValue(ctx, entry, seqno); ok {
 			c.mtx.Lock()
-			entry.recent = true
+			entry.markRecentLocked()
 			c.mtx.Unlock()
 			return value, seqno, true
 		}
