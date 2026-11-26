@@ -4,6 +4,7 @@ import (
 	"context"
 	"iter"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -11,11 +12,21 @@ import (
 )
 
 // revisionEntry is one value computed, or being computed, at revision at.
+// Its computation is in one of four states. While computing, done is open.
+// When done, done is closed and err is nil. When failed, done is closed and
+// err comes from compute. When abandoned, done is closed and err is the
+// cancellation of the computation's own context after every caller left.
 type revisionEntry struct {
 	// name is the key the value is kept under.
 	name string
 	// done is closed once the fields below are set.
 	done chan struct{}
+	// waiters counts the callers waiting on the computation, including the
+	// computing caller. The computation is abandoned when it falls to zero.
+	waiters atomic.Int32
+	// abandon cancels the computation's own context. It is nil for entries
+	// recomputed by the cache or detached from it.
+	abandon context.CancelFunc
 	// gate is the cold read gate of the caller computing the value, or nil;
 	// a waiter lends it its priority until done closes.
 	gate block.ColdReadGate
@@ -76,6 +87,33 @@ func newRevisionEntry(name string, at uint64, gate block.ColdReadGate) *revision
 	return &revisionEntry{name: name, done: make(chan struct{}), gate: gate, at: at, reads: world.NewReadSet(), blocks: block.NewRefHold()}
 }
 
+// own returns the context the entry's computation runs on. It keeps ctx's
+// values so view reads, block holds and the cold-read gate attach as before.
+// A caller's cancellation or deadline counts as a departure.
+// The context ends when every caller waiting on the entry has left, including
+// the computing caller counted here, or when release ends it after the
+// computation returns. Call own before publishing the entry.
+func (e *revisionEntry) own(ctx context.Context) (owned context.Context, release func()) {
+	// Keep the caller's values and track its cancellation as a departure.
+	owned, cancel := context.WithCancel(context.WithoutCancel(ctx))
+	e.abandon = cancel
+	e.waiters.Store(1)
+	stop := context.AfterFunc(ctx, e.leave)
+
+	// End the owned context and stop watching the caller once compute returns.
+	return owned, func() {
+		stop()
+		cancel()
+	}
+}
+
+// leave ends one caller's wait, abandoning the computation when it was the last.
+func (e *revisionEntry) leave() {
+	if e.waiters.Add(-1) == 0 && e.abandon != nil {
+		e.abandon()
+	}
+}
+
 // evaluate records the computation's result and direct reads, then its wake
 // deadline. The entry is not ready until its caller attaches dependencies,
 // checks cache membership and signals completion. tx has the tracking policy
@@ -120,8 +158,10 @@ func (e *revisionEntry) markRecentLocked() {
 	e.recent = true
 }
 
-// await waits for the computation or ctx to end. A blocking waiter lends back
-// its cold-read admission and lends the computer its priority until done closes.
+// await waits for the computation or ctx to end. A waiter that leaves returns
+// its own context error, and the computation continues while another caller
+// waits on it. A blocking waiter lends back its cold-read admission and lends
+// the computer its priority while it waits.
 func (e *revisionEntry) await(ctx context.Context) error {
 	// Completed computations need neither admission lending nor inheritance.
 	select {
@@ -130,7 +170,9 @@ func (e *revisionEntry) await(ctx context.Context) error {
 	default:
 	}
 
-	// Free a slot for the computer and retain this waiter's urgency.
+	// Count this waiter and lend the computer its slot and priority.
+	e.waiters.Add(1)
+	defer e.leave()
 	block.LendColdRead(ctx)
 	if e.gate != nil {
 		defer e.gate.Inherit(ctx)()

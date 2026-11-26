@@ -14,13 +14,18 @@ import (
 // while the World leaves its reads untouched. A view evaluation in ctx depends
 // on everything the value read, whether or not this call computed it. A
 // reader behind the cache shares the value at the newest revision. A
-// computation abandoned with its caller's context is claimed again by a
-// waiter; another failure is retried without the cache. A part read while
-// computing another value, from a snapshot the cache has moved past, is
-// computed in that snapshot: the outer value is already shared, and opening
-// the newest revision for each part costs more than reading it. A value
-// computed at a revision the cache passed is kept for later readers when the
-// changes since left its reads alone. A reader whose ctx carries a floor
+// computation runs on a context the cache owns and ends early only when
+// every caller waiting on it has left. A reader that leaves returns its own
+// context error at once, except the computing caller, which waits for the
+// computation to end because it reads that caller's snapshot. The next
+// reader claims an abandoned computation again. Another failure is retried
+// without the cache.
+//
+// A part read while computing another value, from a snapshot the cache has
+// moved past, is computed in that snapshot. The outer value is already shared,
+// and opening the newest revision for each part costs more than reading it.
+// A value computed at a revision the cache passed is kept for later readers
+// when the changes since left its reads alone. A reader whose ctx carries a floor
 // (WithFloor) takes the name's last built value at or past the floor instead
 // of waiting on a build that a change passed, as Recent answers it.
 func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compute func(context.Context, world.WorldState) (any, error)) (any, error) {
@@ -33,7 +38,7 @@ func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compu
 		return nil, err
 	}
 
-	// Retry a claim when its computer was abandoned or its result went stale.
+	// Retry a claim when the computation was abandoned or its result went stale.
 	for {
 		// Reuse a value that holds at this revision, or claim its computation.
 		c.mtx.Lock()
@@ -46,10 +51,9 @@ func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compu
 				return nil, err
 			}
 			if entry.err != nil {
-				// A computation its own caller abandoned failed for that
-				// caller alone: claim it again, so its waiters still share
-				// one. Another failure is retried alone in this snapshot,
-				// its parts read from tx rather than a transaction each.
+				// Claim an abandoned computation again so its waiters still
+				// share one. Retry another failure alone in this snapshot,
+				// reading each part from tx.
 				if err := ctx.Err(); err != nil {
 					return nil, err
 				}
@@ -95,21 +99,26 @@ func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compu
 
 		// Keep the claim visible while its computation runs without the lock.
 		entry = newRevisionEntry(name, seqno, block.ColdReadGateOf(ctx))
+		owned, release := entry.own(ctx)
 		c.keepLocked(entry)
 		c.mtx.Unlock()
 
 		// Compute in a child evaluation, then share its reads with this caller.
 		var parts *entryParts
-		err := entry.evaluate(ctx, world.Untracked(tx), func(child context.Context, tracked world.WorldState) (any, error) {
+		err := entry.evaluate(owned, world.Untracked(tx), func(child context.Context, tracked world.WorldState) (any, error) {
 			// Collect shared dependencies apart from the entry's direct reads.
 			child, parts = c.withParts(context.WithValue(child, computingKey{}, true))
 			return c.observe(name, path, func() (any, error) {
 				return compute(child, tracked)
 			})
 		})
+		release()
 		if err != nil {
 			c.drop(name, entry)
 			entry.signalDone()
+			if err := ctx.Err(); err != nil {
+				return nil, err
+			}
 			return nil, err
 		}
 
@@ -137,7 +146,10 @@ func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compu
 		entry.signalDone()
 		c.mtx.Unlock()
 
-		// Share its reads, or its retirement, once it is checked and kept.
+		// Share the completed dependency set with a caller still waiting.
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		c.addViewReads(ctx, entry)
 		return entry.value, entry.err
 	}
@@ -149,9 +161,12 @@ func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compu
 // changes since seqno left its reads alone. The callers reading name at seqno
 // share one computation: a burst of writes moving the head past many outer
 // values computing at once would otherwise have each compute the same part.
-// A computation abandoned with its caller's context is claimed again by a
-// waiter; another failure is retried alone by each waiter, in its own
-// snapshot, as Get retries one, and is not kept.
+// As in Get, the cache owns the computation's context and cancels it once
+// every caller has left. A reader that leaves returns its own context error
+// at once, except the computing caller, which waits for the computation to
+// finish because it reads that caller's snapshot. The next reader claims an
+// abandoned computation again. Each waiter retries another failure alone in
+// its own snapshot, without keeping the result.
 func (c *Cache) computeBehind(
 	ctx context.Context,
 	tx world.WorldState,
@@ -162,7 +177,7 @@ func (c *Cache) computeBehind(
 	// Identify the snapshot whose callers share one behind computation.
 	key := behindKey{name: name, seqno: seqno}
 
-	// Retry the claim only when its computing caller was abandoned.
+	// Retry the claim only when the computation was abandoned.
 	for {
 		// Wait on the computation another caller claimed, or claim it. A
 		// caller inside the claimed computation, reading the value from
@@ -192,6 +207,7 @@ func (c *Cache) computeBehind(
 
 		// Publish a claim only when no other caller owns this snapshot.
 		entry = newRevisionEntry(name, seqno, block.ColdReadGateOf(ctx))
+		owned, release := entry.own(ctx)
 		claimed := c.behind[key] == nil
 		if claimed {
 			if c.behind == nil {
@@ -203,13 +219,14 @@ func (c *Cache) computeBehind(
 
 		// Compute in a child evaluation, then share its reads with this caller.
 		var parts *entryParts
-		err := entry.evaluate(ctx, world.Untracked(tx), func(child context.Context, tracked world.WorldState) (any, error) {
+		err := entry.evaluate(owned, world.Untracked(tx), func(child context.Context, tracked world.WorldState) (any, error) {
 			// Collect shared dependencies apart from the entry's direct reads.
 			child, parts = c.withParts(context.WithValue(child, behindClaimKey{entry}, true))
 			return c.observe(name, "stale", func() (any, error) {
 				return compute(child, tracked)
 			})
 		})
+		release()
 		if err == nil {
 			entry.collectParts(parts.collected)
 			entry.finishComputation()
@@ -226,6 +243,11 @@ func (c *Cache) computeBehind(
 		}
 		entry.signalDone()
 		c.mtx.Unlock()
+
+		// Return this caller's cancellation after publishing the shared result.
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		if entry.err != nil {
 			return nil, entry.err
 		}

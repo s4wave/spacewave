@@ -417,11 +417,10 @@ func TestRevisionCachePartBehindHead(t *testing.T) {
 	}
 }
 
-// TestRevisionCacheAbandoned cancels the caller computing a shared value while
-// others wait on it: the waiters share one computation again instead of each
-// computing the value alone, with a transaction for each part.
-func TestRevisionCacheAbandoned(t *testing.T) {
-	// The first computation blocks until its caller is cancelled.
+// TestRevisionCacheClaimantLeaves keeps one computation running for its
+// waiters after the caller computing it leaves.
+func TestRevisionCacheClaimantLeaves(t *testing.T) {
+	// Open the snapshot shared by the claimant and its waiters.
 	store, engine := readsStore(t)
 	ctx := t.Context()
 	opens := &countingEngine{Engine: engine}
@@ -431,17 +430,30 @@ func TestRevisionCacheAbandoned(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(tx.Discard)
+
+	// Hold the first computation until the test lets it finish.
 	started := make(chan struct{})
+	release := make(chan struct{})
+	finish := sync.OnceFunc(func() { close(release) })
+	defer finish()
 	var calls atomic.Int32
-	compute := func(ctx context.Context, tx world.WorldState) (any, error) {
+	compute := func(ctx context.Context, _ world.WorldState) (any, error) {
 		if calls.Add(1) == 1 {
 			close(started)
-			<-ctx.Done()
-			return nil, ctx.Err()
+			select {
+			case <-release:
+				return 5, nil
+			case <-ctx.Done():
+				t.Error("the computation ended with its claimant")
+				return nil, ctx.Err()
+			}
 		}
-		return cache.Get(ctx, tx, "part", func(context.Context, world.WorldState) (any, error) { return 5, nil })
+		return 5, nil
 	}
+
+	// Claim the computation with a context the test can cancel.
 	owner, cancel := context.WithCancel(ctx)
+	defer cancel()
 	ownerErr := make(chan error, 1)
 	go func() {
 		_, err := cache.Get(owner, tx, "v", compute)
@@ -463,8 +475,17 @@ func TestRevisionCacheAbandoned(t *testing.T) {
 	}
 	time.Sleep(20 * time.Millisecond)
 	cancel()
+	time.Sleep(20 * time.Millisecond)
+	select {
+	case err := <-ownerErr:
+		t.Fatal("the claimant returned before the computation ended", err)
+	default:
+	}
+
+	// Finish the computation so the claimant can return its own error.
+	finish()
 	if err := <-ownerErr; !errors.Is(err, context.Canceled) {
-		t.Fatal("the abandoned caller got", err)
+		t.Fatal("the claimant got", err)
 	}
 
 	// The waiters share one computation and open no transaction.
@@ -473,8 +494,118 @@ func TestRevisionCacheAbandoned(t *testing.T) {
 			t.Fatal("a waiter got", got)
 		}
 	}
-	if calls.Load() != 2 || opens.opened.Load() != 0 {
-		t.Fatal("waiters computed", calls.Load()-1, "times and opened", opens.opened.Load(), "transactions")
+	if calls.Load() != 1 || opens.opened.Load() != 0 {
+		t.Fatal("computed", calls.Load(), "times and opened", opens.opened.Load(), "transactions")
+	}
+}
+
+// TestRevisionCacheAbandoned cancels every reader of a shared value and checks
+// that the computation ends and the next reader claims it again.
+func TestRevisionCacheAbandoned(t *testing.T) {
+	// Open the snapshot shared by the claimant and its waiters.
+	store, engine := readsStore(t)
+	ctx := t.Context()
+	cache := &Cache{engine: engine}
+	tx, err := store.engine.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tx.Discard)
+
+	// Record the first computation's context so the test can watch it end.
+	started := make(chan context.Context, 1)
+	stop := make(chan struct{})
+	defer close(stop)
+	var calls atomic.Int32
+	compute := func(ctx context.Context, _ world.WorldState) (any, error) {
+		if calls.Add(1) != 1 {
+			return 7, nil
+		}
+		started <- ctx
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-stop:
+			return nil, context.Canceled
+		}
+	}
+
+	// Claim the computation and take its entry once it is published.
+	owner, cancelOwner := context.WithCancel(ctx)
+	defer cancelOwner()
+	ownerErr := make(chan error, 1)
+	go func() {
+		_, err := cache.Get(owner, tx, "v", compute)
+		ownerErr <- err
+	}()
+	computation := <-started
+	cache.mtx.Lock()
+	entry := cache.entries["v"]
+	cache.mtx.Unlock()
+
+	// Wait for both readers to join the computation before cancelling them.
+	var cancelWaiters [2]context.CancelFunc
+	waiterErr := make(chan error, len(cancelWaiters))
+	for i := range cancelWaiters {
+		waiter, cancel := context.WithCancel(ctx)
+		cancelWaiters[i] = cancel
+		defer cancel()
+		go func() {
+			_, err := cache.Get(waiter, tx, "v", compute)
+			waiterErr <- err
+		}()
+	}
+	deadline := time.After(5 * time.Second)
+	tick := time.NewTicker(time.Millisecond)
+	defer tick.Stop()
+	for entry.waiters.Load() != 3 {
+		select {
+		case <-tick.C:
+		case <-deadline:
+			t.Fatal("the waiters did not join the computation")
+		}
+	}
+
+	// The waiters return their own errors while the claimant still needs the value.
+	for _, cancel := range cancelWaiters {
+		cancel()
+	}
+	for range cancelWaiters {
+		select {
+		case err := <-waiterErr:
+			if !errors.Is(err, context.Canceled) {
+				t.Fatal("a leaving waiter got", err)
+			}
+		case <-deadline:
+			t.Fatal("a leaving waiter did not return")
+		}
+	}
+	if err := computation.Err(); err != nil {
+		t.Fatal("the computation ended while the claimant was still waiting", err)
+	}
+
+	// The last departure cancels the computation and lets the claimant return.
+	cancelOwner()
+	select {
+	case <-computation.Done():
+	case <-deadline:
+		t.Fatal("the computation did not end after every caller left")
+	}
+	select {
+	case err := <-ownerErr:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatal("the claimant got", err)
+		}
+	case <-deadline:
+		t.Fatal("the claimant did not return after the computation ended")
+	}
+
+	// The next reader claims a fresh computation at the same revision.
+	if got, err := cache.Get(ctx, tx, "v", compute); err != nil || got != 7 {
+		t.Fatal("the next reader got", got, err)
+	}
+	if calls.Load() != 2 {
+		t.Fatal("computed", calls.Load(), "times")
 	}
 }
 
@@ -856,30 +987,43 @@ func TestRevisionCacheBehindShared(t *testing.T) {
 	}
 }
 
-// TestRevisionCacheBehindAbandoned cancels the caller computing a shared part
-// behind the cache: its waiters still get the value, computed once more.
+// TestRevisionCacheBehindAbandoned checks that a shared part behind the cache
+// keeps computing while any caller still waits for it.
 func TestRevisionCacheBehindAbandoned(t *testing.T) {
+	// Hold the first computation at a revision the cache passed.
 	const waiters = 8
 	cache, _, old := behindSnapshots(t, "part", waiters+1)
 	ctx := computingCtx(t.Context())
 	started := make(chan struct{})
+	release := make(chan struct{})
+	finish := sync.OnceFunc(func() { close(release) })
+	defer finish()
 	var calls atomic.Int32
 	compute := func(ctx context.Context, _ world.WorldState) (any, error) {
 		if calls.Add(1) == 1 {
 			close(started)
-			<-ctx.Done()
-			return nil, ctx.Err()
+			select {
+			case <-release:
+				return 5, nil
+			case <-ctx.Done():
+				t.Error("the computation ended with its claimant")
+				return nil, ctx.Err()
+			}
 		}
-		time.Sleep(50 * time.Millisecond)
 		return 5, nil
 	}
+
+	// Claim the computation with a context the test can cancel.
 	owner, cancel := context.WithCancel(ctx)
+	defer cancel()
 	ownerErr := make(chan error, 1)
 	go func() {
 		_, err := cache.Get(owner, old[0], "part", compute)
 		ownerErr <- err
 	}()
 	<-started
+
+	// Keep waiters on the same computation when its claimant leaves.
 	results := make(chan any, waiters)
 	for i := range waiters {
 		go func() {
@@ -892,21 +1036,32 @@ func TestRevisionCacheBehindAbandoned(t *testing.T) {
 	}
 	time.Sleep(20 * time.Millisecond)
 	cancel()
+	time.Sleep(20 * time.Millisecond)
+	select {
+	case err := <-ownerErr:
+		t.Fatal("the claimant returned before the computation ended", err)
+	default:
+	}
+
+	// Finish once for all readers and let the claimant return its own error.
+	finish()
 	if err := <-ownerErr; !errors.Is(err, context.Canceled) {
-		t.Fatal("the abandoned caller got", err)
+		t.Fatal("the claimant got", err)
 	}
 	for range waiters {
 		if got := <-results; got != 5 {
 			t.Fatal("a waiter got", got)
 		}
 	}
-	if calls.Load() != 2 {
-		t.Fatal("the waiters computed", calls.Load()-1, "times")
+	if calls.Load() != 1 {
+		t.Fatal("computed", calls.Load(), "times")
 	}
 
 	// A waiter that leaves returns its own error while the computation it
 	// waited on still runs.
 	hold, holding := make(chan struct{}), make(chan struct{})
+	finishHold := sync.OnceFunc(func() { close(hold) })
+	defer finishHold()
 	claimed := make(chan error, 1)
 	go func() {
 		_, err := cache.Get(ctx, old[0], "part", func(context.Context, world.WorldState) (any, error) {
@@ -918,6 +1073,7 @@ func TestRevisionCacheBehindAbandoned(t *testing.T) {
 	}()
 	<-holding
 	leaving, leave := context.WithCancel(ctx)
+	defer leave()
 	left := make(chan error, 1)
 	go func() {
 		_, err := cache.Get(leaving, old[1], "part", func(context.Context, world.WorldState) (any, error) {
@@ -928,10 +1084,15 @@ func TestRevisionCacheBehindAbandoned(t *testing.T) {
 	}()
 	time.Sleep(20 * time.Millisecond)
 	leave()
-	if err := <-left; !errors.Is(err, context.Canceled) {
-		t.Fatal("the leaving waiter got", err)
+	select {
+	case err := <-left:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatal("the leaving waiter got", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("the leaving waiter did not return")
 	}
-	close(hold)
+	finishHold()
 	if err := <-claimed; err != nil {
 		t.Fatal(err)
 	}
