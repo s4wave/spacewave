@@ -19,7 +19,7 @@ type refsUnknownStore struct {
 func (s *refsUnknownStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	data, found, err := s.StoreOps.GetBlock(ctx, ref)
 	if found {
-		block.KeepDecodedRefs(ctx, ref, data, func(context.Context, []byte, []*block.BlockRef) { s.kept++ })
+		block.KeepDecodedRefs(ctx, ref, &block.StoredBlock{Data: data}, func(context.Context, *block.StoredBlock) { s.kept++ })
 	}
 	return data, found, err
 }

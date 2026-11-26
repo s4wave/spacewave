@@ -36,9 +36,9 @@ func (p *placementState) peerDecoded(peers block_store.StoreSource) block_store.
 // not asserted to be kept once the reader decodes it: a peer's refs are only
 // listed, and a fill of them is dropped where a mark would trust them.
 func (r *peerDecodedReads) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
-	// Return misses and blocks whose child refs are asserted.
+	// Return misses.
 	stored, err := r.StoreOps.GetStoredBlock(ctx, ref)
-	if err != nil || stored == nil || stored.RefsSource.Asserted() {
+	if err != nil || stored == nil {
 		return stored, err
 	}
 
@@ -46,8 +46,8 @@ func (r *peerDecodedReads) GetStoredBlock(ctx context.Context, ref *block.BlockR
 	// reader, which may hold the World's writer, never waits on the local
 	// writer.
 	p := r.p
-	block.KeepDecodedRefs(ctx, ref, stored.Data, func(_ context.Context, data []byte, refs []*block.BlockRef) {
-		p.fallbackFills.start(ref, &block.StoredBlock{Data: data, Refs: refs, RefsSource: block.RefsAsserted}, p.fillFromFallback)
+	block.KeepDecodedRefs(ctx, ref, stored, func(_ context.Context, kept *block.StoredBlock) {
+		p.fallbackFills.start(ref, kept, p.fillFromFallback)
 	})
 	return stored, nil
 }

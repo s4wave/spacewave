@@ -635,10 +635,10 @@ func (c *Cursor) fetchLeafAt(ctx context.Context, ref *BlockRef) ([]byte, bool, 
 }
 
 // FetchWithKeep is Fetch for a caller that decodes the block itself. keep is
-// non-nil when the store served the block without its refs and asks to keep
-// it once they are known, as KeepDecodedRefs describes: the caller calls keep
-// with the refs of the block it decodes from data, as Unmarshal does, or drops
-// it when it cannot decode the block.
+// non-nil when the store served the block without refs it asserts and asks to
+// keep it once they are known, as KeepDecodedRefs describes: the caller calls
+// keep with the refs of the block it decodes from data, as Unmarshal does, or
+// drops it when it cannot decode the block.
 func (c *Cursor) FetchWithKeep(ctx context.Context) (data []byte, keep func(context.Context, []*BlockRef), found bool, err error) {
 	// A nil cursor reads nothing.
 	if c == nil {

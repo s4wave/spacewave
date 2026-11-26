@@ -161,8 +161,8 @@ func (v *Volume) prepareCacheFills(ctx context.Context, owner string, fills []*c
 	}
 
 	// Store the fills, each through its caller's marker, without the store's
-	// writer unless one marks its block. A dropped fill stores nothing; its
-	// caller still gets its ref, as for any fill a later read can redo.
+	// writer unless one marks its block. A dropped fill stores nothing and
+	// marks nothing.
 	dropped := make([]block_gc.FillDrops, len(fills))
 	err := direct(ctx, func(p *physicalTx) error {
 		for i, fill := range fills {
@@ -175,11 +175,14 @@ func (v *Volume) prepareCacheFills(ctx context.Context, owner string, fills []*c
 		return nil
 	})
 
-	// Count the blocks they stored and dropped, or the refusal.
+	// Count the blocks they stored and dropped, or the refusal. A dropped
+	// fill's caller gets block.ErrRefsUnknown: the block is not stored, and
+	// the caller must not count it resident, though a later read can redo it.
 	if err == nil {
 		for i, fill := range fills {
 			if len(dropped[i].At) != 0 {
 				v.countDropped(putFill, dropped[i])
+				fill.err = refsUnknown(fill.ref, len(fill.data))
 				continue
 			}
 			v.countPut(putFill, len(fill.data), fill.existed)

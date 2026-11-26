@@ -393,24 +393,36 @@ func (m *blockReadMark) adopt(from *blockReadMark) {
 	}
 }
 
-// KeepDecodedRefs asks the reader of ref on ctx to call keep with a copy of
-// data, the block's stored bytes, and the block's refs once it decodes the
-// block. A store that served the block without its refs, which it cannot store
-// as a leaf, stores it this way with the refs a write of the block records.
-// keep runs at most once, after the read returns, and only for a block the
-// reader decoded. A read nobody marks drops it without copying data.
-func KeepDecodedRefs(ctx context.Context, ref *BlockRef, data []byte, keep func(ctx context.Context, data []byte, refs []*BlockRef)) {
-	// Ignore reads nobody tracks and requests for another block.
+// KeepDecodedRefs asks the reader of ref on ctx to hand keep the block stored
+// with the refs the reader decodes from it, asserted, once it decodes the block.
+// A store that served the block with refs it only lists or does not know, which
+// a Volume does not trust to mark the block's child list, keeps it this way
+// with the refs a write of the block records. It does nothing for a block whose
+// refs stored already asserts. keep runs at most once, after the read returns,
+// and only for a block the reader decoded; it gets a copy of the bytes. A read
+// keeps the first keep asked of it, so the store nearest the source decides.
+// A read nobody marks drops the request without copying the bytes.
+func KeepDecodedRefs(ctx context.Context, ref *BlockRef, stored *StoredBlock, keep func(ctx context.Context, stored *StoredBlock)) {
+	// Ignore asserted refs, reads nobody tracks and requests for another block.
+	if stored.RefsSource.Asserted() {
+		return
+	}
 	mark := blockReadMarkFor(ctx, ref)
 	if mark == nil {
 		return
 	}
 
-	// Copy the bytes: the reader may decode them in place.
-	data = append([]byte(nil), data...)
+	// Keep the first request, copying the bytes: the reader may decode them
+	// in place.
 	mark.mtx.Lock()
-	mark.keep = func(ctx context.Context, refs []*BlockRef) { keep(ctx, data, refs) }
-	mark.mtx.Unlock()
+	defer mark.mtx.Unlock()
+	if mark.keep != nil {
+		return
+	}
+	data := append([]byte(nil), stored.Data...)
+	mark.keep = func(ctx context.Context, refs []*BlockRef) {
+		keep(ctx, &StoredBlock{Data: data, Refs: refs, RefsSource: RefsAsserted})
+	}
 }
 
 // takeKeep returns and clears the read's keep, or nil.

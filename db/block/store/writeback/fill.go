@@ -2,6 +2,7 @@ package block_store_writeback
 
 import (
 	"context"
+	"slices"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -42,11 +43,27 @@ type fillQueue struct {
 	bytes int
 	// limit bounds bytes; zero uses defaultFillQueueBytes.
 	limit int64
-	// queued holds the hash of each block pending or being written, so a block
+	// queued holds, by hash, each block pending or being written, so a block
 	// read again before its write lands is not queued twice.
-	queued map[string]struct{}
+	queued map[string]*queuedFill
 	// draining records that a drain goroutine runs.
 	draining bool
+}
+
+// queuedFill is the queue state of a block pending or being written. A fill
+// with asserted refs that arrives for a block queued with refs it did not
+// assert replaces the queued one, since the volume may drop the fill whose
+// refs it does not trust: in place while the fill is pending, and after the
+// write ends when a drain step took it.
+type queuedFill struct {
+	// asserted records that the queued fill asserts its refs.
+	asserted bool
+	// taken records that a drain step took the fill.
+	taken bool
+	// upgrade replaces the pending fill when the step takes it.
+	upgrade *fill
+	// again queues once the taken fill's write ends.
+	again *fill
 }
 
 // setLimit sets the byte bound of the queue; zero uses defaultFillQueueBytes.
@@ -80,31 +97,28 @@ func (s *Store) CacheFill(ref *block.BlockRef, stored *block.StoredBlock) {
 
 // queueFill queues f, starting a drain when none runs.
 func (s *Store) queueFill(f fill) {
-	// Skip a block already queued, and drop a fill past the byte bound.
+	// Upgrade a queued block to asserted refs, or skip it.
 	q := &s.fills
-	key := fillKey(f.ref)
 	q.mu.Lock()
-	if _, ok := q.queued[key]; ok {
+	if queued, ok := q.queued[fillKey(f.ref)]; ok {
+		if f.stored.RefsSource.Asserted() && !queued.asserted {
+			if queued.taken {
+				queued.again = &f
+			} else {
+				queued.upgrade = &f
+			}
+			queued.asserted = true
+		}
 		q.mu.Unlock()
 		return
 	}
-	limit := q.limit
-	if limit == 0 {
-		limit = defaultFillQueueBytes
-	}
-	if int64(q.bytes+len(f.stored.Data)) > limit {
+
+	// Queue it, or drop a fill past the byte bound.
+	if !q.pushLocked(f) {
 		q.mu.Unlock()
 		s.addFillStatus(0, 0, 1)
 		return
 	}
-
-	// Queue it.
-	if q.queued == nil {
-		q.queued = make(map[string]struct{})
-	}
-	q.queued[key] = struct{}{}
-	q.pending = append(q.pending, f)
-	q.bytes += len(f.stored.Data)
 	drain := !q.draining
 	q.draining = true
 	q.mu.Unlock()
@@ -113,6 +127,28 @@ func (s *Store) queueFill(f fill) {
 	if drain {
 		go s.drainFills()
 	}
+}
+
+// pushLocked appends f to the pending fills, and reports false when it would
+// pass the byte bound. The caller holds mu.
+func (q *fillQueue) pushLocked(f fill) bool {
+	// Refuse a fill past the byte bound.
+	limit := q.limit
+	if limit == 0 {
+		limit = defaultFillQueueBytes
+	}
+	if int64(q.bytes+len(f.stored.Data)) > limit {
+		return false
+	}
+
+	// Queue it under its hash.
+	if q.queued == nil {
+		q.queued = make(map[string]*queuedFill)
+	}
+	q.queued[fillKey(f.ref)] = &queuedFill{asserted: f.stored.RefsSource.Asserted()}
+	q.pending = append(q.pending, f)
+	q.bytes += len(f.stored.Data)
+	return true
 }
 
 // drainFills writes the queued fills in bounded steps until none are left.
@@ -142,6 +178,13 @@ func (s *Store) drainFills() {
 		batch := q.pending[:n:n]
 		q.pending = q.pending[n:]
 		q.bytes -= size
+		for i, f := range batch {
+			queued := q.queued[fillKey(f.ref)]
+			queued.taken = true
+			if queued.upgrade != nil {
+				batch[i], queued.upgrade = *queued.upgrade, nil
+			}
+		}
 		q.mu.Unlock()
 
 		// Write the step; a failure drops it, as the next reads fill again.
@@ -149,12 +192,22 @@ func (s *Store) drainFills() {
 			s.addFillStatus(0, 0, int64(len(batch)))
 		}
 
-		// Let the step's blocks queue again, now that their write ended.
+		// Let the step's blocks queue again, now that their write ended, and
+		// queue the asserted fills that waited on it.
+		var dropped int64
 		q.mu.Lock()
 		for _, f := range batch {
-			delete(q.queued, fillKey(f.ref))
+			key := fillKey(f.ref)
+			again := q.queued[key].again
+			delete(q.queued, key)
+			if again != nil && !q.pushLocked(*again) {
+				dropped++
+			}
 		}
 		q.mu.Unlock()
+		if dropped != 0 {
+			s.addFillStatus(0, 0, dropped)
+		}
 	}
 }
 
@@ -165,6 +218,11 @@ func (s *Store) drainFills() {
 // crash leaves only surplus queue entries, which a later pass cleans. With
 // indexed accounting a marker covers a fill; every retry-on clear restores
 // coverage in its marker transaction.
+//
+// The volume drops a cache fill whose refs it does not trust, returning
+// block.ErrRefsUnknown: such a fill stores nothing, so it counts as dropped,
+// not resident, and its reserved entry is removed before fillMtx releases the
+// epoch, or is never queued with retry off.
 //
 // This store upkeep runs below Flowgraphs: it must work before a Space loads.
 // Retry off retains the former value-before-queue ordering.
@@ -213,14 +271,19 @@ func (s *Store) writeFills(ctx context.Context, batch []fill) error {
 	// turn would flush once per block and every durable commit of the store
 	// would queue behind those flushes.
 	var puts errgroup.Group
-	for _, f := range batch {
+	dropped := make([]bool, len(batch))
+	for i, f := range batch {
 		if f.refill {
 			continue
 		}
 		puts.Go(func() error {
+			// Store the fill, and note a drop, which is not a failure.
 			opts := f.stored.PutOpts(f.ref)
 			opts.CacheFill = true
 			_, _, err := s.local.PutBlock(ctx, f.stored.Data, opts)
+			if errors.Is(err, block.ErrRefsUnknown) {
+				dropped[i], err = true, nil
+			}
 			return err
 		})
 	}
@@ -228,8 +291,30 @@ func (s *Store) writeFills(ctx context.Context, batch []fill) error {
 		return errors.Wrap(err, "cache remote block")
 	}
 
-	// Keep the legacy ordering selectable, then count completed refills.
+	// Split off the dropped fills, which hold nothing resident.
+	var gone []fill
+	if slices.Contains(dropped, true) {
+		kept := make([]fill, 0, len(batch))
+		for i, f := range batch {
+			if dropped[i] {
+				gone = append(gone, f)
+			} else {
+				kept = append(kept, f)
+			}
+		}
+		batch = kept
+	}
+
+	// Remove the dropped fills' reserved coverage, or keep the legacy
+	// ordering selectable, then count completed refills.
 	var queued int64
+	if repairQueue && len(gone) != 0 {
+		removed, err := s.unqueueFills(ctx, gone)
+		if err != nil {
+			return err
+		}
+		queued = removed
+	}
 	if !repairQueue {
 		var err error
 		queued, err = s.queueFills(ctx, batch)
@@ -243,8 +328,8 @@ func (s *Store) writeFills(ctx context.Context, batch []fill) error {
 			refilled++
 		}
 	}
-	if !repairQueue || refilled != 0 {
-		s.addFillStatus(queued, refilled, 0)
+	if !repairQueue || refilled != 0 || len(gone) != 0 {
+		s.addFillStatus(queued, refilled, int64(len(gone)))
 	}
 	return nil
 }
@@ -281,6 +366,38 @@ func (s *Store) queueFills(ctx context.Context, batch []fill) (int64, error) {
 		return 0, errors.Wrap(err, "queue filled blocks")
 	}
 	return added, nil
+}
+
+// unqueueFills removes the eviction entries queueFills reserved at the current
+// epoch for fills the volume dropped, and returns the bytes removed, negated.
+// The caller holds fillMtx from the reservation on, so the epoch has not moved.
+// A marker-covered fill reserved no entry and removes nothing. The caller
+// projects the bytes only after this transaction commits.
+func (s *Store) unqueueFills(ctx context.Context, gone []fill) (int64, error) {
+	var removed int64
+	err := kvtx.RunOptimisticTransaction(ctx, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
+		// Read the epoch the reservation queued under.
+		removed = 0
+		epoch, err := readEpoch(ctx, tx)
+		if err != nil {
+			return err
+		}
+
+		// Delete each reserved entry and count its bytes once.
+		for _, f := range gone {
+			h := f.ref.GetHash()
+			n, _, err := deleteEvictEntry(ctx, tx, evictEntry{key: evictKey(epoch, h), epoch: epoch, hash: h})
+			if err != nil {
+				return err
+			}
+			removed += n
+		}
+		return addEvictableBytes(ctx, tx, removed)
+	}, kvtx.RetryInvalidSnapshot)
+	if err != nil {
+		return 0, errors.Wrap(err, "unqueue dropped fills")
+	}
+	return removed, nil
 }
 
 // addFillStatus projects a drain step or a dropped fill into the status.

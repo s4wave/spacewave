@@ -769,7 +769,9 @@ func TestLoweredHighMarkKeepsBatchesShort(t *testing.T) {
 // TestFillQueueBoundsAndDedupes checks that a block read twice before its
 // write queues once, that a fill past the policy's byte bound is dropped and
 // counted, and that the drain writes every queued block and lets them queue
-// again.
+// again. Under either retry policy, a fill with asserted refs replaces a
+// queued one with listed refs, and a fill the volume drops counts as dropped,
+// holds no resident bytes and leaves no eviction entry.
 func TestFillQueueBoundsAndDedupes(t *testing.T) {
 	// Open a placed store whose fill queue holds three blocks of eight bytes,
 	// and hold the drain off so the queue keeps what it takes.
@@ -823,6 +825,68 @@ func TestFillQueueBoundsAndDedupes(t *testing.T) {
 	if n := len(s.fills.queued); n != 0 || s.fills.draining {
 		t.Fatalf("after the drain %d blocks are queued, draining=%v; want none", n, s.fills.draining)
 	}
+
+	// The volume drops a cache fill whose refs are only listed.
+	for _, retry := range []bool{false, true} {
+		t.Run(fmt.Sprintf("retry=%t", retry), func(t *testing.T) {
+			SetEvictRefusedRetry(retry)
+			t.Cleanup(func() { SetEvictRefusedRetry(false) })
+			env := newTestEnv(t)
+			s := env.newStore(t, true)
+			s.local = listedFillDrops{s.local}
+			put := func(data string) (*block.BlockRef, *block.StoredBlock) {
+				ref, _, err := remote.PutBlock(ctx, []byte(data), leafOpts)
+				if err != nil {
+					t.Fatal(err)
+				}
+				return ref, &block.StoredBlock{Data: []byte(data)}
+			}
+			before, _ := s.GetStatus()
+
+			// A decoded read's asserted fill replaces the pending listed one.
+			upgraded, listed := put(fmt.Sprintf("upgraded-%t", retry))
+			s.fills.draining = true
+			s.CacheFill(upgraded, listed)
+			s.CacheFill(upgraded, &block.StoredBlock{Data: listed.Data, RefsSource: block.RefsAsserted})
+			s.drainFills()
+
+			// A fill with listed refs alone is dropped.
+			dropped, listed := put(fmt.Sprintf("dropped-%t", retry))
+			s.fills.draining = true
+			s.CacheFill(dropped, listed)
+			s.drainFills()
+
+			// Only the asserted fill is stored and resident, before and after
+			// a reopen reloads the counters from the eviction queue.
+			held, err := s.local.GetBlockExistsBatch(ctx, []*block.BlockRef{upgraded, dropped})
+			if err != nil || !held[0] || held[1] {
+				t.Fatalf("held = %v, %v; want the upgraded fill alone", held, err)
+			}
+			want := before.EvictableBytes + int64(len(fmt.Sprintf("upgraded-%t", retry)))
+			if status, _ := s.GetStatus(); status.EvictableBytes != want || status.DroppedFills != before.DroppedFills+1 {
+				t.Fatalf("status = %+v, want %d evictable bytes and one more dropped fill", status, want)
+			}
+			env.open(t)
+			if status, _ := env.newStore(t, true).GetStatus(); status.EvictableBytes != want {
+				t.Fatalf("reopened evictable bytes = %d, want %d", status.EvictableBytes, want)
+			}
+		})
+	}
+}
+
+// listedFillDrops drops a cache fill whose refs are not asserted, returning
+// block.ErrRefsUnknown, as a volume drops a fill of a block whose list it has
+// not marked.
+type listedFillDrops struct {
+	block.StoreOps
+}
+
+// PutBlock drops a cache fill without known refs and stores any other block.
+func (s listedFillDrops) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	if opts.GetCacheFill() && !opts.GetRefsKnown() {
+		return nil, false, errors.Wrap(block.ErrRefsUnknown, "listed fill")
+	}
+	return s.StoreOps.PutBlock(ctx, data, opts)
 }
 
 // TestDroppedClearAfterFillKeepsEvictionCoverage reproduces a dropped upload

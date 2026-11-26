@@ -14,6 +14,10 @@ type FallbackStatus struct {
 	RefsUnknown uint64
 	// Filled counts hits stored locally with an upload marker.
 	Filled uint64
+	// FillDropped counts hits the local Volume did not store because it does
+	// not trust their listed refs to mark the block's list. A read that
+	// decodes the block fills it again with the refs it decodes.
+	FillDropped uint64
 	// FillFailed counts hits whose local store failed or whose bytes did not
 	// match their hash. The next read of the block tries again.
 	FillFailed uint64

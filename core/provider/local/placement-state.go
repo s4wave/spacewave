@@ -2,6 +2,7 @@ package provider_local
 
 import (
 	"context"
+	"errors"
 	"sync/atomic"
 	"time"
 
@@ -238,11 +239,22 @@ func (p *placementState) live(ctx context.Context, refs []*block.BlockRef) ([]bo
 
 // fill writes a block read from the backend or a peer into the local store. A
 // block the graph tracks lost only its value to eviction, so it is refilled
-// below the ownership layer; any other block is a cache fill.
+// below the ownership layer; any other block is a cache fill. The Volume drops
+// a fill whose refs are only listed when it has not marked the block's list, so
+// such a block, as one the packs alone hold, is filled again with its decoded
+// refs once the reader decodes it.
 func (p *placementState) fill(ctx context.Context, primary block.StoreOps, ref *block.BlockRef, stored *block.StoredBlock) error {
 	// Serve mode writes nothing.
 	if p.serveOnly {
 		return nil
+	}
+
+	// Fill again with asserted refs once the reader decodes the block. A
+	// failed refill leaves the block to its next read, as a failed fill does.
+	keepDecoded := func() {
+		block.KeepDecodedRefs(ctx, ref, stored, func(ctx context.Context, kept *block.StoredBlock) {
+			_ = p.fill(ctx, primary, ref, kept)
+		})
 	}
 
 	// Refill a tracked block of a placed store.
@@ -256,10 +268,12 @@ func (p *placementState) fill(ctx context.Context, primary block.StoreOps, ref *
 		// omitted during migration. An untracked fill also records child refs
 		// without taking ownership; eviction checks the target before dropping
 		// either value, including a fill served by a peer. Both queue behind
-		// the volume's writers.
+		// the volume's writers. The Volume keeps no list of an untracked
+		// block, so its fill is also kept for the decode.
 		if tracked[0] {
 			p.wb.Refill(ref, stored)
 		} else {
+			keepDecoded()
 			p.wb.CacheFill(ref, stored)
 		}
 
@@ -268,8 +282,13 @@ func (p *placementState) fill(ctx context.Context, primary block.StoreOps, ref *
 		return nil
 	}
 
-	// Fill any other block as a cache fill.
-	return block_store.CacheFill(ctx, primary, ref, stored)
+	// Fill any other block as a cache fill, kept for the decode when the
+	// Volume dropped it.
+	err := block_store.CacheFill(ctx, primary, ref, stored)
+	if errors.Is(err, block.ErrRefsUnknown) {
+		keepDecoded()
+	}
+	return err
 }
 
 // uploadedBefore reports whether the storage backend holds every block written

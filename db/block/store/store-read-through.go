@@ -19,7 +19,8 @@ type StoreSource func() block.StoreOps
 type Fill func(ctx context.Context, primary block.StoreOps, ref *block.BlockRef, stored *block.StoredBlock) error
 
 // CacheFill writes the block into primary as a cache fill, which takes no
-// ownership.
+// ownership. It returns block.ErrRefsUnknown when primary drops the fill
+// without storing it.
 func CacheFill(ctx context.Context, primary block.StoreOps, ref *block.BlockRef, stored *block.StoredBlock) error {
 	opts := stored.PutOpts(ref)
 	opts.CacheFill = true

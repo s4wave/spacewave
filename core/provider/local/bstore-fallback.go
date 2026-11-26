@@ -406,9 +406,9 @@ func (p *placementState) backendPlaces(ctx context.Context, ref *block.BlockRef)
 // fallbackFills is the state of a placed store's fallback fills, shared by the
 // read scopes of its fallback reads.
 //
-// A fill is Queued, then Filling on a worker, then gone: Filled, Failed, or
-// Skipped when the queue was full, the budget spent, or the mount ended
-// before its turn. FallbackFillQueue.tla models these states.
+// A fill is Queued, then Filling on a worker, then gone: Filled, Dropped by
+// the Volume, Failed, or Skipped when the queue was full, the budget spent, or
+// the mount ended before its turn. FallbackFillQueue.tla models these states.
 type fallbackFills struct {
 	// ctx is the mount's context. The fills run under it, and once it ends
 	// the queue takes no fill and its workers drop the rest without running
@@ -427,19 +427,22 @@ type fallbackFills struct {
 	refsUnknown atomic.Uint64
 	// filled counts fills that landed.
 	filled atomic.Uint64
+	// dropped counts fills the Volume did not store, as block.ErrRefsUnknown
+	// describes.
+	dropped atomic.Uint64
 	// failed counts failed fills and corrupt fallback blocks rejected before filling.
 	failed atomic.Uint64
 	// skipped counts fills dropped because the queue or the budget was full,
 	// or the mount ended.
 	skipped atomic.Uint64
 
-	// mtx guards the queue.
+	// mtx guards the queue and the queued fills.
 	mtx sync.Mutex
 	// queue holds the fills waiting for a slot, oldest first.
-	queue []fallbackFill
-	// queued holds the refs queued or filling, by marshaled ref, so a block
+	queue []*fallbackFill
+	// queued holds the fills queued or filling, by marshaled ref, so a block
 	// read again before its fill lands is not queued twice.
-	queued map[string]struct{}
+	queued map[string]*fallbackFill
 }
 
 // fallbackFill is one block waiting to fill the local store.
@@ -448,6 +451,11 @@ type fallbackFill struct {
 	ref    *block.BlockRef
 	stored *block.StoredBlock
 	fill   func(context.Context, *block.BlockRef, *block.StoredBlock) error
+	// taken records that a worker took the fill.
+	taken bool
+	// again holds the fill with asserted refs that arrived while a worker
+	// wrote this one with refs it did not assert, to queue once it ends.
+	again *fallbackFill
 }
 
 // status returns the counters.
@@ -457,6 +465,7 @@ func (f *fallbackFills) status() FallbackStatus {
 		Hits:        f.hits.Load(),
 		RefsUnknown: f.refsUnknown.Load(),
 		Filled:      f.filled.Load(),
+		FillDropped: f.dropped.Load(),
 		FillFailed:  f.failed.Load(),
 		FillSkipped: f.skipped.Load(),
 	}
@@ -483,36 +492,36 @@ func (f *fallbackFills) recordFailedFill() {
 // start queues fill to run in the background, and starts a worker when a
 // slot is free; the workers run the queue in order, so a burst of fills waits
 // for a slot rather than being dropped. A block already queued or filling is
-// not queued again. When the queue or the budget is full, or the mount has
-// ended, it counts a skip and leaves the block for the next read. The fill runs
-// under the mount's context, not the reader's, which ends with the read.
+// not queued again, unless the new fill asserts refs the queued one does not:
+// it then replaces a waiting fill, or queues after a running one, since the
+// Volume may drop the fill whose refs it does not trust. When the queue or the
+// budget is full, or the mount has ended, it counts a skip and leaves the
+// block for the next read. The fill runs under the mount's context, not the
+// reader's, which ends with the read.
 func (f *fallbackFills) start(ref *block.BlockRef, stored *block.StoredBlock, fill func(context.Context, *block.BlockRef, *block.StoredBlock) error) {
-	// Key the fill by its block and size it by its data.
-	key := ref.MarshalString()
-	size := len(stored.Data)
+	// Key the fill by its block.
+	job := &fallbackFill{key: ref.MarshalString(), ref: ref, stored: stored, fill: fill}
 
-	// Queue the fill, unless it is queued, nothing has room, or the mount
-	// ended.
+	// Upgrade a queued fill to asserted refs, or skip the block.
 	f.mtx.Lock()
-	if _, ok := f.queued[key]; ok {
+	if queued, ok := f.queued[job.key]; ok {
+		if stored.RefsSource.Asserted() && !queued.stored.RefsSource.Asserted() {
+			if queued.taken {
+				queued.again = job
+			} else {
+				queued.stored, queued.fill = stored, fill
+			}
+		}
 		f.mtx.Unlock()
 		return
 	}
-	if f.ctx.Err() != nil || len(f.queue) >= fallbackFillQueueBlocks || !f.budget.take(size) {
+
+	// Queue the fill, unless nothing has room or the mount ended.
+	if !f.pushLocked(job) {
 		f.mtx.Unlock()
 		f.skipped.Add(1)
 		return
 	}
-	if f.queued == nil {
-		f.queued = make(map[string]struct{})
-	}
-	f.queued[key] = struct{}{}
-	f.queue = append(f.queue, fallbackFill{
-		key:    key,
-		ref:    ref,
-		stored: stored,
-		fill:   fill,
-	})
 
 	// Start a worker when a slot is free. A full set of workers drains the
 	// queue before any exits, so a queued fill always has one.
@@ -524,6 +533,24 @@ func (f *fallbackFills) start(ref *block.BlockRef, stored *block.StoredBlock, fi
 	if spawn {
 		go f.drain()
 	}
+}
+
+// pushLocked queues job, taking its share of the budget, and reports false
+// when the queue or the budget is full or the mount ended. The caller holds
+// mtx.
+func (f *fallbackFills) pushLocked(job *fallbackFill) bool {
+	// Refuse the fill when nothing has room or the mount ended.
+	if f.ctx.Err() != nil || len(f.queue) >= fallbackFillQueueBlocks || !f.budget.take(len(job.stored.Data)) {
+		return false
+	}
+
+	// Queue it under its key.
+	if f.queued == nil {
+		f.queued = make(map[string]*fallbackFill)
+	}
+	f.queued[job.key] = job
+	f.queue = append(f.queue, job)
+	return true
 }
 
 // drain runs queued fills until the queue is empty, then frees its slot. The
@@ -540,8 +567,9 @@ func (f *fallbackFills) drain() {
 			return
 		}
 		job := f.queue[0]
-		f.queue[0] = fallbackFill{}
+		f.queue[0] = nil
 		f.queue = f.queue[1:]
+		job.taken = true
 		f.budget.give(len(job.stored.Data))
 		f.mtx.Unlock()
 
@@ -552,12 +580,20 @@ func (f *fallbackFills) drain() {
 		if !ended {
 			err = job.fill(f.ctx, job.ref, job.stored)
 		}
+
+		// Release the block, or queue the asserted fill that waited on it.
 		f.mtx.Lock()
 		delete(f.queued, job.key)
+		again := job.again != nil && f.pushLocked(job.again)
 		f.mtx.Unlock()
+		if job.again != nil && !again {
+			f.skipped.Add(1)
+		}
 		switch {
 		case ended:
 			f.skipped.Add(1)
+		case errors.Is(err, block.ErrRefsUnknown):
+			f.dropped.Add(1)
 		case err != nil:
 			f.recordFailedFill()
 		default:
@@ -766,13 +802,11 @@ func (r *fallbackReads) fillHit(ctx context.Context, ref *block.BlockRef, stored
 	}
 
 	// Fill it, and refill it with asserted refs once the reader decodes it.
-	r.fills.start(ref, stored, r.fill)
-	if !stored.RefsSource.Asserted() {
-		fills, fill := r.fills, r.fill
-		block.KeepDecodedRefs(ctx, ref, stored.Data, func(_ context.Context, data []byte, refs []*block.BlockRef) {
-			fills.start(ref, &block.StoredBlock{Data: data, Refs: refs, RefsSource: block.RefsAsserted}, fill)
-		})
-	}
+	fills, fill := r.fills, r.fill
+	fills.start(ref, stored, fill)
+	block.KeepDecodedRefs(ctx, ref, stored, func(_ context.Context, kept *block.StoredBlock) {
+		fills.start(ref, kept, fill)
+	})
 }
 
 // GetBlockExists checks the sources, then the fallback.

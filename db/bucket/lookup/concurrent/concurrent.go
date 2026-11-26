@@ -340,9 +340,14 @@ func (c *LookupController) writeback(
 			continue
 		}
 
-		// Record whether this bucket write failed or added the block.
+		// Record whether this bucket write failed or added the block. A
+		// bucket that drops the fill, as block.ErrRefsUnknown describes,
+		// neither failed nor gained it.
 		doFns = append(doFns, func() {
 			existed, werr := h.GetBucket().PutBlockBatch(reqCtx, entries)
+			if errors.Is(werr, block.ErrRefsUnknown) {
+				return
+			}
 			if werr != nil {
 				lastErr.Store(&werr)
 			} else if !existed[0] {

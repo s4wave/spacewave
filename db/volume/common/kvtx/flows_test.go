@@ -1,6 +1,7 @@
 package kvtx
 
 import (
+	"errors"
 	"strconv"
 	"strings"
 	"testing"
@@ -15,7 +16,8 @@ import (
 // stored that the volume did not hold, so the flows name the caller that grows
 // the storage, and its puts of blocks the volume held. On a settled Volume each
 // path stores a new block written without its references, the first reopening
-// the Volume, and a fill drops one, storing nothing and counting it; the path
+// the Volume, and a fill drops one, storing nothing, counting it and returning
+// block.ErrRefsUnknown; the path
 // logs its first caller once.
 func TestFlowsCountNewBlocksByPath(t *testing.T) {
 	// A direct write counts once, and writing the same block again counts as
@@ -123,7 +125,7 @@ func TestFlowsCountNewBlocksByPath(t *testing.T) {
 			t.Fatalf("path %s left its copied block unstored: %v %v", path, found, err)
 		}
 	}
-	if _, _, err := v.PrepareOwnedBlock(ctx, "bucket", unknown("fill"), &block.PutOpts{CacheFill: true}); err != nil {
+	if _, _, err := v.PrepareOwnedBlock(ctx, "bucket", unknown("fill"), &block.PutOpts{CacheFill: true}); !errors.Is(err, block.ErrRefsUnknown) {
 		t.Fatalf("fill without references = %v; want it dropped", err)
 	}
 	if found, err := v.GetBlockExists(ctx, unknownEntry("fill").Ref); err != nil || found {

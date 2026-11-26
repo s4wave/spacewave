@@ -22,6 +22,7 @@ import (
 	ftpserver "github.com/fclairamb/ftpserverlib"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/db/packfile"
@@ -230,16 +231,46 @@ func TestFTPSPlacementAndFallback(t *testing.T) {
 	f.read(ref, data)
 	f.waitResident(int64(len(data)))
 
-	// A migrated parent has no local graph entry. Its cache fill must retain
-	// child refs and enter the same resident budget as the evicted block.
-	parentData := []byte("parent only in an ftps pack")
+	// A migrated parent has no local graph entry, and the packs only list its
+	// refs. A read that does not decode it fills it, and the Volume drops the
+	// fill, since it marks no list from refs it did not read from content:
+	// the parent is not cached, not resident, and counted as dropped.
+	parentData, err := (&block_mock.Pair{Left: ref, Msg: "parent only in an ftps pack"}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
 	parent, _, err := f.packs.PutBlock(f.ctx, parentData, &block.PutOpts{Refs: []*block.BlockRef{ref}, RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
 	}
+	fillDrops := func() uint64 {
+		for _, flow := range f.local.(ownedStore).Volume.GetFlows().Puts {
+			if flow.Path == "fill" {
+				return flow.Dropped
+			}
+		}
+		return 0
+	}
+	droppedFills, volumeDrops := f.status().DroppedFills, fillDrops()
 	f.read(parent, parentData)
+	f.waitDroppedFills(droppedFills + 1)
+	if f.held(parent) || f.status().ResidentBytes() != int64(len(data)) || fillDrops() != volumeDrops+1 {
+		t.Fatalf("undecoded parent read: held=%v status=%+v volume drops=%d; want it dropped and not resident", f.held(parent), f.status(), fillDrops()-volumeDrops)
+	}
+
+	// A read that decodes the parent fills it again with the refs it decodes,
+	// so the cache fill retains its child refs and enters the same resident
+	// budget as the evicted block. The read's own listed fill drops too when
+	// a drain step takes it before the decode replaces it.
+	_, cursor := block.NewTransaction(f.reads, nil, parent, nil)
+	if _, err := cursor.Unmarshal(f.ctx, block_mock.NewPairBlock); err != nil {
+		t.Fatal(err)
+	}
 	wantResident := int64(len(data) + len(parentData))
 	f.waitResident(wantResident)
+	if status := f.status(); status.DroppedFills > droppedFills+2 {
+		t.Fatalf("dropped fills = %d, want at most the two listed fills", status.DroppedFills-droppedFills)
+	}
 
 	// A first-time fill preserves child refs without inflating Refills.
 	if status := f.status(); status.Refills != 1 {

@@ -352,6 +352,25 @@ func (f *fallbackTest) waitResident(want int64) {
 	}
 }
 
+// waitDroppedFills waits for the writeback status to count want dropped fills.
+func (f *fallbackTest) waitDroppedFills(want int64) {
+	// Wait on the writeback status.
+	f.t.Helper()
+	ctx, cancel := context.WithTimeout(f.ctx, 10*time.Second)
+	defer cancel()
+	for {
+		status, changed := f.wb.GetStatus()
+		if status.DroppedFills == want {
+			return
+		}
+		select {
+		case <-ctx.Done():
+			f.t.Fatalf("dropped fills = %d, want %d: %+v", status.DroppedFills, want, status)
+		case <-changed:
+		}
+	}
+}
+
 // waitPending waits for the writeback status to count want blocks awaiting
 // upload. A fill stores its block before it marks it, so the block reads as
 // held before the mark lands.

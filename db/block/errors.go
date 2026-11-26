@@ -35,8 +35,10 @@ var (
 	// does not report the block missing.
 	ErrUnavailable = errors.New("block unavailable")
 	// ErrRefsUnknown is returned when a graph copy reaches a block whose source
-	// holds its bytes without its outgoing refs, and when a Volume refuses a
-	// put that declares no child list.
+	// holds its bytes without its outgoing refs, when a Volume refuses a put
+	// that declares no child list, and when a Volume drops a cache fill whose
+	// refs it does not trust: it stored nothing, so the caller counts no
+	// resident block, and a later read may fill it again.
 	ErrRefsUnknown = errors.New("block refs unknown")
 	// ErrSkipRefs is returned by a WalkGraph visit to leave the visited block's
 	// refs unwalked. It is not an error.
