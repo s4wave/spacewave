@@ -152,6 +152,16 @@ async function generateGoLicenses(): Promise<GoLicenseEntry[]> {
   console.log('Generating Go licenses...')
   const binPath = await buildGoLicenses()
 
+  // go-licenses treats every file under build.Default.GOROOT as standard
+  // library. A reporter built by a toolchain that embeds no GOROOT sees an
+  // empty one, matches every path, and silently reports no packages, so the
+  // reporter gets the GOROOT of the go command that lists the packages.
+  const goroot = await run('go', ['env', 'GOROOT'], rootDir)
+  if (goroot.code !== 0 || !goroot.stdout.trim()) {
+    console.error('go env GOROOT failed:', goroot.stderr)
+    process.exit(1)
+  }
+
   // Run go-licenses once per supported (GOOS, GOARCH) pair and union the
   // results. Without iterating over platforms, packages behind build
   // constraints (e.g. bazil.org/fuse on linux/darwin, syscall/js on
@@ -176,6 +186,7 @@ async function generateGoLicenses(): Promise<GoLicenseEntry[]> {
       GOOS: goos,
       GOARCH: goarch,
       CGO_ENABLED: cgo,
+      GOROOT: goroot.stdout.trim(),
     })
 
     if (result.code !== 0) {
