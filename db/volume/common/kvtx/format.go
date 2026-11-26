@@ -49,12 +49,14 @@ const (
 // older version fails with a permanent volume.ErrFormatUpgradeRefused and is
 // left as it was.
 //
-// Format 11 keeps liveness in child lists, named roots, count records with
-// zero records for blocks at zero, the ripe queue, the up and down logs, and
-// the leases that hold leased roots. A format 10 store keeps its state and
-// has its leased roots carried onto leases that keep their expiries, as
-// carryFormat10Leases describes. A format 7, 8 or 9 store has the same carry and opens unadopted, as unadoptFormat describes, so
-// an adoption counts every holder again before any free. Format 9 kept a
+// Format 12 keeps liveness in child lists, named roots, count records with zero
+// records for blocks at zero, the ripe queue, the up and down logs, the leases
+// that hold leased roots, and the released keys of blocks parked while Open. A
+// format 11 store keeps every record and is stamped. A format 10 store keeps
+// its state and has its leased roots carried onto leases that keep their
+// expiries, as carryFormat10Leases describes. A format 7, 8 or 9 store has the
+// same carry and opens unadopted, as unadoptFormat describes, so an adoption
+// counts every holder again before any free. Format 9 kept a
 // journal, cascade records and fill records instead of the logs; format 8
 // kept a count record only for a block with holders, a queue entry for one
 // without, and an index of the journal's up pairs; format 7 kept fill marks
@@ -104,6 +106,12 @@ func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 	// Leave a store with data as it was when this build may not upgrade it.
 	if refuse {
 		return version, false, volume.Permanent(errors.Wrapf(volume.ErrFormatUpgradeRefused, "store format version %d, current %d", version, store_kvkey.FormatVersion))
+	}
+
+	// Stamp a format 11 store: its records are those of format 12, which
+	// only a build that reads the released key may open.
+	if version == 11 {
+		return version, true, keepFormat(ctx, store, keys)
 	}
 
 	// Carry the leased roots of a format 7 to 10 store, which kept each

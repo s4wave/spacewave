@@ -42,7 +42,10 @@ import (
 // by expiry, so a version 7 to 10 store has its leased roots carried onto
 // leases that keep their expiries, and a version 10 store keeps its liveness
 // state.
-const FormatVersion = 11
+// Version 12 keys are those of version 11. A park while Open records a
+// released key and gives its children their downs, so a build whose sweep
+// gives them again refuses the store, and a version 11 store is stamped.
+const FormatVersion = 12
 
 // formatVersionKey names the key holding the store's format version.
 var formatVersionKey = []byte("format")

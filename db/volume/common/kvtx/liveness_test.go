@@ -8839,6 +8839,50 @@ func TestFormatUpgradeCarriesLiveness(t *testing.T) {
 	requireStored(t, v3, tr3, true, "B", "C")
 	requireAudit(t, v3, 0)
 
+	// A format 11 store opens stamped at format 12 with every other record
+	// as it was, since its records are format 12's: the version is what
+	// keeps a build whose sweep gives a released park's downs again off it.
+	t.Run("format 11 stamped", func(t *testing.T) {
+		store := store_kvtx_inmem.NewStore()
+		writeLegacyStore(t, store, keys, tr, "R1", true, "C", "R1")
+		v, err := NewVolume(ctx, "test/liveness", keys, store, &store_kvtx.Config{}, false, false, nil, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if v.obsoleteDone != nil {
+			<-v.obsoleteDone
+		}
+		if err := v.Close(); err != nil {
+			t.Fatal(err)
+		}
+		tx, err := store.NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := tx.Set(ctx, keys.GetFormatVersionKey(), store_kvkey.MarshalFormatVersion(11)); err != nil {
+			t.Fatal(err)
+		}
+		if err := tx.Commit(ctx); err != nil {
+			t.Fatal(err)
+		}
+		before := storeRecords(t, store, keys)
+
+		// A refusing open leaves it at 11; an open that may upgrade stamps it.
+		if _, err := NewVolume(ctx, "test/liveness", keys, store, refuse, false, false, nil, nil); !errors.Is(err, volume.ErrFormatUpgradeRefused) {
+			t.Fatalf("refused stamp = %v, want ErrFormatUpgradeRefused", err)
+		}
+		v, _ = openUnadoptedVolume(t, store)
+		if from, upgraded := v.FormatUpgrade(); !upgraded || from != 11 {
+			t.Fatalf("format upgrade = %d %v, want from 11", from, upgraded)
+		}
+		if version, err := readFormatVersion(ctx, store, keys); err != nil || version != store_kvkey.FormatVersion {
+			t.Fatalf("version after the stamp = %d err %v, want %d", version, err, store_kvkey.FormatVersion)
+		}
+		if after := storeRecords(t, store, keys); !maps.EqualFunc(before, after, bytes.Equal) {
+			t.Fatalf("the stamp changed records: %d before, %d after", len(before), len(after))
+		}
+	})
+
 	// An adopted format 9 store that owes releases, P's through a cascade
 	// record and R2's through a paged release, opens unadopted with its
 	// release dropped, its old kinds obsolete and its pop mark moved. The
@@ -9679,4 +9723,26 @@ func putFlow(t *testing.T, v *Volume, path string) volume.PutFlow {
 	}
 	t.Fatalf("no flow for the path %s", path)
 	return volume.PutFlow{}
+}
+
+// storeRecords returns every record of store but its format version, by key.
+func storeRecords(t *testing.T, store kvtx.Store, keys *store_kvkey.KVKey) map[string][]byte {
+	t.Helper()
+	tx, err := store.NewTransaction(t.Context(), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+	records := make(map[string][]byte)
+	version := string(keys.GetFormatVersionKey())
+	err = tx.ScanPrefix(t.Context(), nil, func(key, value []byte) error {
+		if string(key) != version {
+			records[string(key)] = bytes.Clone(value)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return records
 }

@@ -74,7 +74,7 @@ func (s *Scanner) inventory(ctx context.Context) error {
 			format, parseErr = 0, nil
 		}
 		if parseErr != nil || format > store_kvkey.FormatVersion {
-			return errors.New("source table is not a supported Volume format (0 through 9)")
+			return errors.New("source table is not a supported Volume format (0 through " + strconv.Itoa(store_kvkey.FormatVersion) + ")")
 		}
 		if format < 7 {
 			legacy = format + 1
