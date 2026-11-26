@@ -505,7 +505,12 @@ describe('useResource', () => {
     const factory = vi.fn(async (value: string) => `child:${value}`)
     const parent = (value: string | null, error: Error | null) =>
       React.createElement(TestRetryChild, {
-        parent: resourceOf({ value, loading: false, error, retry: parentRetry }),
+        parent: resourceOf({
+          value,
+          loading: false,
+          error,
+          retry: parentRetry,
+        }),
         factory,
       })
     mount()
@@ -621,13 +626,17 @@ describe('useResource', () => {
     const { pending, factory } = deferredFactory<string>()
     const renders: string[] = []
     mount()
-    await render(React.createElement(TestValue, { factory, version: 1, renders }))
+    await render(
+      React.createElement(TestValue, { factory, version: 1, renders }),
+    )
     await update(() => pending.get(1)?.resolve('value-1'))
     expect(view('data-value')).toBe('value-1')
     expect(view('data-loading')).toBe('false')
 
     // No render under the second version shows the first value.
-    await render(React.createElement(TestValue, { factory, version: 2, renders }))
+    await render(
+      React.createElement(TestValue, { factory, version: 2, renders }),
+    )
     expect(view('data-value')).toBe('')
     expect(view('data-loading')).toBe('true')
     const second = renders.filter((r) => r.startsWith('2:'))
@@ -645,7 +654,9 @@ describe('useResource', () => {
     const { results, errors, factory } = settledByHand()
     const renders: string[] = []
     mount()
-    await render(React.createElement(TestValue, { factory, version: 1, renders }))
+    await render(
+      React.createElement(TestValue, { factory, version: 1, renders }),
+    )
     await update(() => results[0]('value-1'))
     await click()
     await update(() => errors[1](new Error('read failed')))
@@ -1033,6 +1044,53 @@ describe('useResource', () => {
     }
   })
 
+  it('reopens a stream that gives no first value by its deadline', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    try {
+      // Open a stream that never yields.
+      const { streams, streamFactory } = manualStreams<Row>()
+      mount()
+      await render(
+        React.createElement(TestStreamOptions, {
+          streamFactory,
+          options: { firstValueTimeout: 1000 },
+          seen: [],
+        }),
+        2,
+      )
+      expect(streamFactory).toHaveBeenCalledTimes(1)
+
+      // At the deadline it closes and reopens after the backoff, loading.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1100)
+      })
+      expect(streamFactory).toHaveBeenCalledTimes(2)
+      expect(view('data-loading')).toBe('true')
+      expect(view('data-error')).toBe('')
+
+      // The second deadline is twice the first.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1500)
+      })
+      expect(streamFactory).toHaveBeenCalledTimes(2)
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(800)
+      })
+      expect(streamFactory).toHaveBeenCalledTimes(3)
+
+      // A value from the reopened stream settles it and stops the deadline.
+      await update(() => streams[2].push({ id: 1, label: 'first' }))
+      expect(view('data-value')).toBe('first')
+      expect(view('data-loading')).toBe('false')
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10_000)
+      })
+      expect(streamFactory).toHaveBeenCalledTimes(3)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('reports a reconnecting stream that fails before yielding', async () => {
     // Open a reconnecting stream that fails at once.
     const stream = createManualAsyncIterable<Row>()
@@ -1077,7 +1135,9 @@ describe('useResource', () => {
     // Stream a value under a ready parent.
     const { streams, streamFactory } = manualStreams<string>()
     const renderParent = (parent: Resource<{ version: number }>) =>
-      render(React.createElement(TestStreamingFromParent, { parent, streamFactory }))
+      render(
+        React.createElement(TestStreamingFromParent, { parent, streamFactory }),
+      )
     const ready = resourceOf({
       value: { version: 1 },
       loading: false,

@@ -42,7 +42,21 @@ export interface UseStreamingResourceOptions<T> {
    * value while loading.
    */
   keepWhileLoading?: boolean
+  /**
+   * firstValueTimeout is how long, in milliseconds, an opened stream may go
+   * without its first value before the hook closes it and reopens it after a
+   * backoff, staying in its loading state, so a stream stuck behind a stalled
+   * or restarted computation recovers without a reload. The deadline doubles
+   * with each consecutive stall, up to eight times this value, so a slow
+   * computation still finishes; a yielded value resets it. Each open has its
+   * own deadline, a reconnect included. Zero disables it. Defaults to
+   * defaultFirstValueTimeout.
+   */
+  firstValueTimeout?: number
 }
+
+/** defaultFirstValueTimeout is the default first-value deadline in ms. */
+export const defaultFirstValueTimeout = 15_000
 
 /**
  * useStreamingResource subscribes to an async iterable derived from a parent
@@ -59,6 +73,8 @@ export function useStreamingResource<P, T>(
     (prev: T, next: T) => options?.equals?.(prev, next) ?? false,
   )
   const reconnect = options?.reconnect ?? false
+  const firstValueTimeout =
+    options?.firstValueTimeout ?? defaultFirstValueTimeout
   const parentValueChangeCount = useResourceTransitionVersion([parent.value])
   const [retryCount, setRetryCount] = useState(0)
   const abortRetriedParentValueChangeRef = useRef<number | null>(null)
@@ -68,6 +84,9 @@ export function useStreamingResource<P, T>(
   // stays failed even with nothing kept.
   const reconnectingRef = useRef(false)
   const quietRef = useRef(false)
+  // stallsRef counts the consecutive opens that missed their first-value
+  // deadline, which doubles with each.
+  const stallsRef = useRef(0)
   const [backoff] = useState(exponentialBackoff)
 
   // Restart the stream when the factory or the parent value changes. key
@@ -81,19 +100,8 @@ export function useStreamingResource<P, T>(
   ])
 
   // Track the current run and the value it reports.
-  const {
-    state,
-    startAfter,
-    complete,
-    fail,
-    isCurrent,
-    isPending,
-    waitAgain,
-  } = useResourceTransitionState<T>(
-    true,
-    key,
-    options?.keepWhileLoading ?? false,
-  )
+  const { state, startAfter, complete, fail, isCurrent, isPending, waitAgain } =
+    useResourceTransitionState<T>(true, key, options?.keepWhileLoading ?? false)
   const effectiveLoading =
     parent.loading || isPending(transitionVersion) || state.loading
 
@@ -107,6 +115,7 @@ export function useStreamingResource<P, T>(
       valueRef.current = null
       reconnectingRef.current = false
       quietRef.current = false
+      stallsRef.current = 0
       backoff.reset()
     }
 
@@ -119,6 +128,23 @@ export function useStreamingResource<P, T>(
 
     // Follow the stream, keeping the current value for an equal item.
     let reconnectTimer: ReturnType<typeof setTimeout> | undefined
+
+    // Close a stream that gives no first value by its deadline and reopen it
+    // after a backoff. The run stays loading: begin keeps the state as it is.
+    let deadlineTimer: ReturnType<typeof setTimeout> | undefined
+    if (firstValueTimeout > 0) {
+      const deadline = firstValueTimeout * 2 ** Math.min(stallsRef.current, 3)
+      deadlineTimer = setTimeout(() => {
+        if (!isCurrent(run)) return
+        stallsRef.current += 1
+        run.abort()
+        reconnectTimer = setTimeout(
+          () => setRetryCount((c) => c + 1),
+          backoff(),
+        )
+      }, deadline)
+    }
+
     void (async () => {
       let emitted = false
       try {
@@ -126,6 +152,8 @@ export function useStreamingResource<P, T>(
           if (!isCurrent(run)) {
             break
           }
+          clearTimeout(deadlineTimer)
+          stallsRef.current = 0
           backoff.reset()
           reconnectingRef.current = false
           quietRef.current = false
@@ -141,6 +169,7 @@ export function useStreamingResource<P, T>(
           valueRef.current = value
           complete(run, value)
         }
+        clearTimeout(deadlineTimer)
         if (!isCurrent(run)) {
           return
         }
@@ -148,6 +177,7 @@ export function useStreamingResource<P, T>(
           complete(run, null)
         }
       } catch (err) {
+        clearTimeout(deadlineTimer)
         if (!isCurrent(run)) return
         const e = err instanceof Error ? err : new Error(String(err))
         if (isAbortError(err) || e.name === 'AbortError') {
@@ -184,6 +214,7 @@ export function useStreamingResource<P, T>(
 
     return () => {
       run.abort()
+      clearTimeout(deadlineTimer)
       clearTimeout(reconnectTimer)
     }
     // parent stands for its value, loading and error, listed below.
@@ -191,6 +222,7 @@ export function useStreamingResource<P, T>(
   }, [
     backoff,
     reconnect,
+    firstValueTimeout,
     parent.loading,
     parent.value,
     parent.error,
