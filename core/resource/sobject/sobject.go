@@ -178,13 +178,19 @@ func (r *SharedObjectResource) GetSharedObjectTrim(
 		UnplacedHeads:       set.UnplacedHeads(),
 	}
 
+	// Index the trim roster once for the writer membership checks.
+	rosterMembers := make(map[string]bool, len(roster))
+	for _, peerID := range roster {
+		rosterMembers[peerID] = true
+	}
+
 	// Report each writer's latest operation and whether it built on the
 	// checkpointer's.
 	for _, peerID := range cfg.Writers() {
 		nonce, _ := set.AuthorHead(peerID)
 		trim.Writers = append(trim.Writers, &s4wave_sobject.SharedObjectTrimWriter{
 			PeerId:              peerID,
-			Dropped:             !slices.Contains(roster, peerID),
+			Dropped:             !rosterMembers[peerID],
 			LatestNonce:         nonce,
 			BuiltOnCheckpointer: set.BuiltOnLatest(peerID, checkpointer),
 		})
