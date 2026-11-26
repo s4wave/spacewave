@@ -222,9 +222,13 @@ func (l *linkedLane) Execute(ctx context.Context) {
 		}
 
 		// Hold on the account's state, or back off.
-		if clouderror.IsAccessGated(err) || clouderror.IsLimitReached(err) {
+		if errors.Is(err, ErrSigningUnavailable) || clouderror.IsAccessGated(err) || clouderror.IsLimitReached(err) {
 			bo.Reset()
-			l.s.le.WithError(err).Warn("linked chunk upload held, waiting for account state change")
+			if errors.Is(err, ErrSigningUnavailable) {
+				l.s.le.WithError(err).Warn("no live session signer, waiting for account state change")
+			} else {
+				l.s.le.WithError(err).Warn("linked chunk upload held, waiting for account state change")
+			}
 			if l.waitGate(ctx) != nil {
 				return
 			}

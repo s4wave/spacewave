@@ -27,7 +27,10 @@ func (r *SpacewaveSessionResource) StartDesktopSSOLink(
 	}
 
 	// Ask the session client to start the desktop SSO link.
-	cli := r.swAcc.GetSessionClient()
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	startResp, err := cli.StartDesktopSSOLink(ctx, provider)
 	if err != nil {
 		return nil, errors.Wrap(err, "start desktop sso link")
@@ -47,6 +50,7 @@ func (r *SpacewaveSessionResource) StartDesktopSSOLink(
 		return nil, errors.Wrap(err, "wait for desktop sso-link result")
 	}
 
+	// Return the SSO link ceremony artifacts.
 	return &s4wave_provider_spacewave.StartDesktopSSOLinkResponse{
 		SsoProvider: result.GetProvider(),
 		Code:        result.GetCode(),

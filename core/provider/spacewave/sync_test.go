@@ -295,7 +295,7 @@ func TestSyncControllerInitSkipsPullForRemoteManifest(t *testing.T) {
 	s := &syncController{
 		le:         logrus.NewEntry(logrus.New()),
 		store:      store,
-		client:     cli,
+		client:     func() (*SessionClient, error) { return cli, nil },
 		resourceID: "space-1",
 		mfst:       mfst,
 		lower:      lower,
@@ -348,7 +348,7 @@ func TestSyncControllerPullNowRecordsLatestSequenceFromEmptyPull(t *testing.T) {
 	s := &syncController{
 		le:         logrus.NewEntry(logrus.New()),
 		store:      store,
-		client:     cli,
+		client:     func() (*SessionClient, error) { return cli, nil },
 		resourceID: "test-res",
 		mfst:       mfst,
 		lower:      packfile_store.NewPackfileStore(nil, nil, nil),
@@ -414,7 +414,7 @@ func TestSyncControllerPullDuringPush(t *testing.T) {
 	s := &syncController{
 		le:         logrus.NewEntry(logrus.New()),
 		store:      newSyncTestKvStore(),
-		client:     cli,
+		client:     func() (*SessionClient, error) { return cli, nil },
 		resourceID: "test-res",
 		mfst:       mfst,
 		lower:      push.lower(t),
@@ -485,7 +485,7 @@ func TestSyncControllerInitReturnsAccessGatedPullError(t *testing.T) {
 	s := &syncController{
 		le:         logrus.NewEntry(logrus.New()),
 		store:      store,
-		client:     cli,
+		client:     func() (*SessionClient, error) { return cli, nil },
 		resourceID: "space-1",
 		mfst:       mfst,
 		lower:      packfile_store.NewPackfileStore(nil, nil, nil),
@@ -1022,7 +1022,7 @@ func newDirtySyncExecuteTestController(
 	s := &syncController{
 		le:         logrus.NewEntry(logrus.New()),
 		store:      dirtyStore,
-		client:     cli,
+		client:     func() (*SessionClient, error) { return cli, nil },
 		resourceID: "test-res",
 		mfst:       mfst,
 		lower:      packfile_store.NewPackfileStore(nil, nil, nil),
@@ -1129,9 +1129,11 @@ func TestSyncControllerFlushChunksLargeDirtySet(t *testing.T) {
 	// Flush the dirty set through a controller.
 	priv, pid := generateTestKeypair(t)
 	s := &syncController{
-		le:         logrus.NewEntry(logrus.New()),
-		store:      dirtyStore,
-		client:     NewSessionClient(http.DefaultClient, push.base, DefaultSigningEnvPrefix, priv, pid.String()),
+		le:    logrus.NewEntry(logrus.New()),
+		store: dirtyStore,
+		client: func() (*SessionClient, error) {
+			return NewSessionClient(http.DefaultClient, push.base, DefaultSigningEnvPrefix, priv, pid.String()), nil
+		},
 		resourceID: "test-res",
 		mfst:       mfst,
 		lower:      push.lower(t),
@@ -1204,9 +1206,11 @@ func TestSyncControllerFlushCommitsPushedPacksBeforeFailure(t *testing.T) {
 	// Flush the dirty set until the refusal.
 	priv, pid := generateTestKeypair(t)
 	s := &syncController{
-		le:         logrus.NewEntry(logrus.New()),
-		store:      dirtyStore,
-		client:     NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String()),
+		le:    logrus.NewEntry(logrus.New()),
+		store: dirtyStore,
+		client: func() (*SessionClient, error) {
+			return NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String()), nil
+		},
 		resourceID: "test-res",
 		mfst:       mfst,
 		lower:      push.lower(t),
@@ -1283,7 +1287,7 @@ func TestSyncControllerFlushDedupesLowerBlocks(t *testing.T) {
 	s := &syncController{
 		le:         logrus.NewEntry(logrus.New()),
 		store:      dirtyStore,
-		client:     cli,
+		client:     func() (*SessionClient, error) { return cli, nil },
 		resourceID: "test-res",
 		mfst:       mfst,
 		lower: newSyncTestLowerPackfileStore(t, map[string][]byte{
@@ -1362,7 +1366,7 @@ func TestSyncControllerFlushAllDuplicateDirtyBlocksSkipsPush(t *testing.T) {
 	s := &syncController{
 		le:         logrus.NewEntry(logrus.New()),
 		store:      dirtyStore,
-		client:     cli,
+		client:     func() (*SessionClient, error) { return cli, nil },
 		resourceID: "test-res",
 		mfst:       mfst,
 		lower: newSyncTestLowerPackfileStore(t, map[string][]byte{
@@ -1430,7 +1434,7 @@ func TestSyncControllerFlushDuplicateProbeErrorPreservesDirty(t *testing.T) {
 	s := &syncController{
 		le:         logrus.NewEntry(logrus.New()),
 		store:      dirtyStore,
-		client:     cli,
+		client:     func() (*SessionClient, error) { return cli, nil },
 		resourceID: "test-res",
 		mfst:       mfst,
 		lower:      newSyncTestErrorLowerPackfileStore(),
@@ -1485,7 +1489,7 @@ func TestSyncControllerFlushOrdersBlocksByGCGraph(t *testing.T) {
 	s := &syncController{
 		le:         logrus.NewEntry(logrus.New()),
 		store:      dirtyStore,
-		client:     cli,
+		client:     func() (*SessionClient, error) { return cli, nil },
 		resourceID: "test-res",
 		mfst:       mfst,
 		lower:      push.lower(t),
@@ -1554,7 +1558,7 @@ func TestSyncControllerFlushChunksBlockCountCeiling(t *testing.T) {
 	s := &syncController{
 		le:         logrus.NewEntry(logrus.New()),
 		store:      dirtyStore,
-		client:     cli,
+		client:     func() (*SessionClient, error) { return cli, nil },
 		resourceID: "test-res",
 		mfst:       mfst,
 		lower:      push.lower(t),
@@ -1637,9 +1641,11 @@ func TestSyncControllerFlushSkipsCorruptDirtyBlock(t *testing.T) {
 	push.base = srv.URL
 	priv, pid := generateTestKeypair(t)
 	s := &syncController{
-		le:         logrus.NewEntry(logrus.New()),
-		store:      dirtyStore,
-		client:     NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String()),
+		le:    logrus.NewEntry(logrus.New()),
+		store: dirtyStore,
+		client: func() (*SessionClient, error) {
+			return NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String()), nil
+		},
 		resourceID: "test-res",
 		mfst:       mfst,
 		lower:      push.lower(t),

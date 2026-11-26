@@ -13,6 +13,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/provider"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/session"
@@ -124,7 +125,7 @@ func TestLogoutReleasesCloudSessionForNextLogin(t *testing.T) {
 	if err := controller.DeleteSession(ctx, oldRef); err != nil {
 		t.Fatal(err)
 	}
-	if account.GetSessionClient() != nil {
+	if _, err := account.GetSessionClient(); !errors.Is(err, ErrSigningUnavailable) {
 		t.Fatal("logged-out Session still holds the account Cloud client")
 	}
 	if got := account.sessions.GetKeys(); len(got) != 0 {
@@ -142,8 +143,8 @@ func TestLogoutReleasesCloudSessionForNextLogin(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(releaseNew)
-	client := account.GetSessionClient()
-	if client == nil {
+	client, err := account.GetSessionClient()
+	if err != nil {
 		t.Fatal("new Session did not install the account Cloud client")
 	}
 

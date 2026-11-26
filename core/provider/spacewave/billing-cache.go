@@ -20,11 +20,20 @@ func (a *ProviderAccount) GetBillingSnapshot(
 	ctx context.Context,
 	baID string,
 ) (*api.BillingStateResponse, *api.BillingUsageResponse, error) {
+	// Capture the billing cache under its broadcast lock.
 	var cache *billingcache.Store
 	a.accountBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		cache = a.getBillingCacheLocked()
 	})
-	return cache.Get(ctx, baID, a.GetSessionClient())
+
+	// Keep the cache's nil-fetcher behavior while the account has no signer.
+	var fetcher billingcache.Fetcher
+	if cli, err := a.GetSessionClient(); err == nil {
+		fetcher = cli
+	}
+
+	// Let the cache serve or refresh its snapshot.
+	return cache.Get(ctx, baID, fetcher)
 }
 
 func (a *ProviderAccount) getBillingCacheLocked() *billingcache.Store {

@@ -16,6 +16,7 @@ import (
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
 )
 
+// TestProviderAccountCreateSpaceSeedsWorldHead checks a newly created Space retains its initial World head.
 func TestProviderAccountCreateSpaceSeedsWorldHead(t *testing.T) {
 	// Serve the Cloud routes a Space create uses, recording each call.
 	var calls []string
@@ -102,8 +103,8 @@ func TestProviderAccountCreateSpaceSeedsWorldHead(t *testing.T) {
 	stateData := decodePostedCheckpointState(
 		t,
 		soID,
-		acc.sessionClient.priv,
-		acc.sessionClient.peerID.String(),
+		acc.sessionClient.GetSessionSigner().PrivKey(),
+		acc.sessionClient.GetPeerID().String(),
 		postedEpoch,
 		postedCheckpoint,
 	)
@@ -128,6 +129,7 @@ func TestProviderAccountCreateSpaceSeedsWorldHead(t *testing.T) {
 	}
 }
 
+// TestEnsureAccountSettingsSharedObject_CreatesWhenMissing checks missing account settings are created.
 func TestEnsureAccountSettingsSharedObject_CreatesWhenMissing(t *testing.T) {
 	// Serve the Cloud routes a settings object create uses, recording each call.
 	var calls []string
@@ -282,8 +284,8 @@ func TestEnsureAccountSettingsSharedObject_CreatesWhenMissing(t *testing.T) {
 	stateData := decodePostedCheckpointState(
 		t,
 		soID,
-		acc.sessionClient.priv,
-		acc.sessionClient.peerID.String(),
+		acc.sessionClient.GetSessionSigner().PrivKey(),
+		acc.sessionClient.GetPeerID().String(),
 		postedEpoch,
 		postedCheckpoint,
 	)

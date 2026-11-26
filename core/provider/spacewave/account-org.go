@@ -67,9 +67,9 @@ func (a *ProviderAccount) reconcilePendingParticipant(ctx context.Context, soID,
 	if !a.canMutateCloudObjects() {
 		return nil
 	}
-	cli := a.GetSessionClient()
-	if cli == nil {
-		return errors.New("session client not available")
+	cli, err := a.GetSessionClient()
+	if err != nil {
+		return err
 	}
 
 	// Resolve the organization that owns the shared object.
@@ -95,6 +95,7 @@ func (a *ProviderAccount) reconcilePendingParticipant(ctx context.Context, soID,
 			return err
 		}
 
+		// Refresh the organization list before retrying the owner lookup.
 		a.fetchAndUpdateOrgList(ctx)
 		if recErr := a.reconcileOwnedOrganizationSpaces(ctx, orgID); recErr != nil {
 			return errors.Wrapf(
@@ -104,6 +105,7 @@ func (a *ProviderAccount) reconcilePendingParticipant(ctx context.Context, soID,
 			)
 		}
 
+		// Read the member role from the organization that owns the Space.
 		role, err = a.getOrganizationMemberRole(ctx, orgID, accountID)
 		if err != nil {
 			if isOrganizationMemberNotFound(err) {
@@ -120,6 +122,7 @@ func (a *ProviderAccount) reconcilePendingParticipant(ctx context.Context, soID,
 	}
 	defer rel()
 
+	// Enroll the member in the mounted Space with that role.
 	return a.enrollMountedSpaceMember(ctx, cli, swSO, soID, accountID, role)
 }
 
@@ -139,9 +142,9 @@ func (a *ProviderAccount) reconcileMemberSession(ctx context.Context, soID, acco
 	if !a.canMutateCloudObjects() {
 		return nil
 	}
-	cli := a.GetSessionClient()
-	if cli == nil {
-		return errors.New("session client not available")
+	cli, err := a.GetSessionClient()
+	if err != nil {
+		return err
 	}
 
 	// Mount the shared object and read its state.
@@ -220,9 +223,9 @@ func (a *ProviderAccount) getOrganizationList(ctx context.Context) ([]*api.OrgRe
 	}
 
 	// Otherwise fetch it from the Cloud.
-	cli := a.GetSessionClient()
-	if cli == nil {
-		return nil, errors.New("session client not available")
+	cli, err := a.GetSessionClient()
+	if err != nil {
+		return nil, err
 	}
 
 	// List the organizations.
@@ -255,9 +258,9 @@ func (a *ProviderAccount) reconcileOrganization(ctx context.Context, orgID strin
 	}
 
 	// Require a session client for the enrollments.
-	cli := a.GetSessionClient()
-	if cli == nil {
-		return errors.New("session client not available")
+	cli, err := a.GetSessionClient()
+	if err != nil {
+		return err
 	}
 
 	// Reconcile each space with its own mount.
@@ -267,11 +270,13 @@ func (a *ProviderAccount) reconcileOrganization(ctx context.Context, orgID strin
 			continue
 		}
 
+		// Mount this organization Space for reconciliation.
 		swSO, rel, err := a.mountSpaceSO(ctx, spaceID)
 		if err != nil {
 			return errors.Wrapf(err, "mount space %s", spaceID)
 		}
 
+		// Reconcile the mounted Space and release its reference.
 		err = a.reconcileMountedOrganizationSpace(
 			ctx,
 			cli,
@@ -284,16 +289,15 @@ func (a *ProviderAccount) reconcileOrganization(ctx context.Context, orgID strin
 			return errors.Wrapf(err, "reconcile mounted space %s", spaceID)
 		}
 	}
-
 	return nil
 }
 
 // getOrganizationInfo retrieves full org info including members and spaces.
 func (a *ProviderAccount) getOrganizationInfo(ctx context.Context, orgID string) (*api.GetOrgResponse, error) {
 	// Require a session client.
-	cli := a.GetSessionClient()
-	if cli == nil {
-		return nil, errors.New("session client not available")
+	cli, err := a.GetSessionClient()
+	if err != nil {
+		return nil, err
 	}
 
 	// Fetch the organization.

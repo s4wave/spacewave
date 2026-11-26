@@ -127,16 +127,19 @@ func (a *ProviderAccount) GetCachedSharedObjectOrganizationID(
 func (a *ProviderAccount) fetchOrganizationList(
 	ctx context.Context,
 ) ([]*api.OrgResponse, error) {
-	cli := a.GetSessionClient()
-	if cli == nil {
-		return nil, errors.New("session client not available")
+	// Resolve the current signer before the cloud request.
+	cli, err := a.GetSessionClient()
+	if err != nil {
+		return nil, err
 	}
 
+	// List organizations through the account signer.
 	data, err := cli.ListOrganizations(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Decode the cloud organization list.
 	var resp api.ListOrgsResponse
 	if err := resp.UnmarshalVT(data); err != nil {
 		return nil, errors.Wrap(err, "unmarshal organization list")

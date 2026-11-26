@@ -766,7 +766,10 @@ func (r *AccountResource) sendMultiSig(
 	if err != nil {
 		return nil, err
 	}
-	cli := acc.GetSessionClient()
+	cli, err := acc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	msReq := &api.MultiSigRequest{
 		Envelope:   envelope,
 		Signatures: sigs,
@@ -922,7 +925,10 @@ func (r *AccountResource) RevokeSession(
 	if err != nil {
 		return nil, errors.Wrap(err, "session revoke")
 	}
-	cli := acc.GetSessionClient()
+	cli, err := acc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 
 	// Self-revoke path: no credential provided, current session.
 	if req.GetCredential() == nil {

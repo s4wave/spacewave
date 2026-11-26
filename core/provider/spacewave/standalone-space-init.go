@@ -38,16 +38,19 @@ func (c *SessionClient) InitEmptyStandaloneSpace(
 	if c == nil {
 		return false, errors.New("session client is required")
 	}
+
+	// Read the key for this operation while the signer is live.
+	priv := c.signer.PrivKey()
 	if accountID == "" {
 		return false, errors.New("account id is required")
 	}
 	if spaceID == "" {
 		return false, errors.New("space id is required")
 	}
-	if c.priv == nil {
+	if priv == nil {
 		return false, errors.New("session private key not available")
 	}
-	if c.peerID == "" {
+	if c.signer.GetPeerID() == "" {
 		return false, errors.New("session peer id not available")
 	}
 	if le == nil {
@@ -61,7 +64,7 @@ func (c *SessionClient) InitEmptyStandaloneSpace(
 	}
 
 	// Verify local owner participation and grant state.
-	localPeerID := c.peerID.String()
+	localPeerID := c.signer.GetPeerID().String()
 	localParticipant := participantConfigForPeer(state.GetConfig(), localPeerID)
 	if localParticipant == nil {
 		return false, errors.New("local participant missing on empty space")
@@ -86,7 +89,7 @@ func (c *SessionClient) InitEmptyStandaloneSpace(
 		accountID,
 		username,
 		spaceID,
-		c.priv,
+		priv,
 		buildStandaloneSpaceInitStepFactorySet(),
 		false,
 	); err != nil {

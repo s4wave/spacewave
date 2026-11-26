@@ -47,19 +47,14 @@ func NewSessionClient(
 	priv crypto.PrivKey,
 	peerIDStr string,
 ) *SessionClient {
+	// Decode the session identity.
 	var pid peer.ID
 	if peerIDStr != "" {
 		pid, _ = peer.IDB58Decode(peerIDStr)
 	}
-	return &SessionClient{
-		SignedHTTPClient: &SignedHTTPClient{
-			httpCli: httpCli,
-			baseURL: endpoint,
-			envPfx:  normalizeSigningEnvPrefix(signingEnvPfx),
-			priv:    priv,
-			peerID:  pid,
-		},
-	}
+
+	// Bind this standalone client to its session key.
+	return newSessionClientFromSigner(httpCli, endpoint, signingEnvPfx, newSessionSigner("", pid, 0, priv, nil))
 }
 
 // NewSessionClientSigner constructs a SessionClient backed by a request-signing callback.
@@ -70,19 +65,34 @@ func NewSessionClientSigner(
 	peerIDStr string,
 	sign SigningFunc,
 ) *SessionClient {
+	// Decode the session identity.
 	var pid peer.ID
 	if peerIDStr != "" {
 		pid, _ = peer.IDB58Decode(peerIDStr)
 	}
+
+	// Bind this standalone client to its external signing callback.
+	return newSessionClientFromSigner(httpCli, endpoint, signingEnvPfx, newSessionSigner("", pid, 0, nil, sign))
+}
+
+// newSessionClientFromSigner constructs a client bound to one revocable signer.
+func newSessionClientFromSigner(httpCli *http.Client, endpoint, signingEnvPfx string, signer *SessionSigner) *SessionClient {
 	return &SessionClient{
 		SignedHTTPClient: &SignedHTTPClient{
 			httpCli: httpCli,
 			baseURL: endpoint,
 			envPfx:  normalizeSigningEnvPrefix(signingEnvPfx),
-			peerID:  pid,
-			sign:    sign,
+			signer:  signer,
 		},
 	}
+}
+
+// GetSessionSigner returns this client's signer, or nil when the client has none.
+func (c *SessionClient) GetSessionSigner() *SessionSigner {
+	if c == nil || c.SignedHTTPClient == nil {
+		return nil
+	}
+	return c.signer
 }
 
 // GetAdminJSON sends a signed admin GET request and returns the JSON response body.
@@ -748,7 +758,7 @@ func (c *SessionClient) GetAccountInfo(ctx context.Context) (*api.AccountInfoRes
 
 // GetPeerID returns the session peer ID.
 func (c *SessionClient) GetPeerID() peer.ID {
-	return c.peerID
+	return c.signer.GetPeerID()
 }
 
 // SelfRevoke revokes the current session using session-signed auth headers.
@@ -908,10 +918,11 @@ func (c *SessionClient) CreateTargetedInvitation(ctx context.Context, req *api.C
 // current session key after clearing the signature field.
 func (c *SessionClient) SignTargetedInvitationEnvelope(envelope *api.TargetedInvitationEnvelope) error {
 	// Require an envelope and the session key.
+	priv := c.signer.PrivKey()
 	if envelope == nil {
 		return errors.New("targeted invitation envelope is nil")
 	}
-	if c.priv == nil {
+	if priv == nil {
 		return errors.New("no private key configured for signing")
 	}
 
@@ -920,7 +931,7 @@ func (c *SessionClient) SignTargetedInvitationEnvelope(envelope *api.TargetedInv
 	if err != nil {
 		return err
 	}
-	sig, err := c.priv.Sign(payload)
+	sig, err := priv.Sign(payload)
 	if err != nil {
 		return errors.Wrap(err, "sign targeted invitation envelope")
 	}

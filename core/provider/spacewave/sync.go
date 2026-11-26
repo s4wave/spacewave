@@ -52,8 +52,8 @@ type syncController struct {
 	le *logrus.Entry
 	// store holds the durable dirty queue.
 	store kvtx.Store
-	// client calls the cloud block store.
-	client *SessionClient
+	// client resolves the account's current session client for each request.
+	client func() (*SessionClient, error)
 	// resourceID is the cloud block store ID.
 	resourceID string
 	// mfst is the local packfile manifest.
@@ -421,6 +421,7 @@ func (s *syncController) Execute(ctx context.Context) error {
 			}
 		}
 
+		// Observe writes that arrive while a corrupt block is held.
 		writes, _ := s.writeSnapshot()
 		err := s.FlushNow(ctx)
 
@@ -459,9 +460,13 @@ func (s *syncController) Execute(ctx context.Context) error {
 			if ctx.Err() != nil {
 				return nil
 			}
-			if clouderror.IsAccessGated(err) || clouderror.IsLimitReached(err) {
+			if errors.Is(err, ErrSigningUnavailable) || clouderror.IsAccessGated(err) || clouderror.IsLimitReached(err) {
 				bo.Reset()
-				s.le.WithError(err).Warn("block upload gated, waiting for account state change")
+				if errors.Is(err, ErrSigningUnavailable) {
+					s.le.WithError(err).Warn("no live session signer, waiting for account state change")
+				} else {
+					s.le.WithError(err).Warn("block upload gated, waiting for account state change")
+				}
 				if err := s.waitDirtySyncGate(ctx); err != nil {
 					return nil
 				}
@@ -475,6 +480,7 @@ func (s *syncController) Execute(ctx context.Context) error {
 			continue
 		}
 
+		// Clear retry state after a successful flush.
 		bo.Reset()
 		retryAt = time.Time{}
 		corruptDelay, recheckAt, rechecked = 0, time.Time{}, false
@@ -1371,7 +1377,14 @@ func (s *syncController) pushPreparedChunk(ctx context.Context, chunk *preparedS
 		entry.GetId(),
 		int(entry.GetBlockCount()), //nolint:gosec // prepared entries are produced under writer.DefaultMaxBlocksPerPack (4096).
 		func(ctx context.Context, packID string, blockCount int) error {
-			return s.client.syncPushDataWithProgress(
+			// Resolve the current signer for this upload attempt.
+			client, err := s.client()
+			if err != nil {
+				return err
+			}
+
+			// Upload the prepared pack and report progress.
+			return client.syncPushDataWithProgress(
 				ctx,
 				s.resourceID,
 				&syncPushPack{
@@ -1448,10 +1461,15 @@ func (s *syncController) pull(ctx context.Context) error {
 	// listed holds the packs a restarted pull has listed so far.
 	var listed map[string]bool
 	for {
+		// Resolve the current signer for this catalog page, then pull it.
+		client, err := s.client()
+		if err != nil {
+			return err
+		}
 		s.telemetrySafeCall(func(t *synctelemetry.Store, id string) {
 			t.StartPull(id)
 		})
-		page, err := s.client.SyncPull(ctx, s.resourceID, since)
+		page, err := client.SyncPull(ctx, s.resourceID, since)
 		s.telemetrySafeCall(func(t *synctelemetry.Store, id string) {
 			t.FinishPull(id, err)
 		})
@@ -1487,6 +1505,7 @@ func (s *syncController) pull(ctx context.Context) error {
 			cursor = next
 		}
 
+		// Commit the catalog page before advancing the pull cursor.
 		if err := s.applyManifestDelta(ctx, page.GetEntries(), events, cursor); err != nil {
 			return errors.Wrap(err, "applying pull delta")
 		}

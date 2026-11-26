@@ -97,13 +97,7 @@ func TestFillParticipantAccounts(t *testing.T) {
 	// Mount the Space as the owner peer.
 	le := logrus.New().WithField("test", t.Name())
 	acc := NewTestProviderAccount(t, srv.URL)
-	acc.ReplaceSessionClient(NewSessionClient(
-		http.DefaultClient,
-		srv.URL,
-		DefaultSigningEnvPrefix,
-		ownerPriv,
-		ownerPID.String(),
-	))
+	acc.ReplaceSessionClient("", ownerPriv, ownerPID)
 	host := newCloudSOHost(
 		le,
 		acc.sessionClient,

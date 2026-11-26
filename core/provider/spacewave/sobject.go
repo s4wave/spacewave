@@ -252,8 +252,19 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 		return err
 	}
 
+	// End this mount when its retained session signer is revoked.
+	hostCtx, hostCancel := context.WithCancelCause(ctx)
+	defer hostCancel(nil)
+	go func() {
+		select {
+		case <-sessionCli.GetSessionSigner().Done():
+			hostCancel(errSessionSignerRevoked)
+		case <-hostCtx.Done():
+		}
+	}()
+
 	// Load the verified cache; a failed read starts the host cold.
-	verifiedCache, written, err := t.a.loadVerifiedSOStateCacheFrom(ctx, sharedObjectID)
+	verifiedCache, written, err := t.a.loadVerifiedSOStateCacheFrom(hostCtx, sharedObjectID)
 	if err != nil {
 		le.WithError(err).Warn("failed to load verified SO state cache")
 	}
@@ -302,16 +313,16 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 	// Run the host, publishing the SharedObject once its first state is ready.
 	so := &SharedObject{
 		tkr:      t,
-		ctx:      ctx,
+		ctx:      hostCtx,
 		blkStore: blkStore,
 		host:     host,
 		privKey:  sessionPriv,
 		localPid: sessionPeerID,
 	}
 	so.body = sobject.NewBodyHost(le, so, so.showReplay, host.newBodyCheckpointer(sessionPriv, t.a.sfs))
-	so.body.SetContext(ctx)
+	so.body.SetContext(hostCtx)
 	defer t.sobjectProm.SetPromise(nil)
-	err = host.execute(ctx, func(ctx context.Context) error {
+	err = host.execute(hostCtx, func(ctx context.Context) error {
 		// Restore this peer's membership, then publish the Space.
 		if err := t.tryRecoverMissingSharedObjectPeer(ctx, sobjectRef, so, sessionCli); err != nil {
 			return err
@@ -327,6 +338,11 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 		}
 		return nil
 	})
+
+	// Retry the mount with the slot's current signer after revocation.
+	if ctx.Err() == nil && errors.Is(context.Cause(hostCtx), errSessionSignerRevoked) {
+		return errSessionSignerRevoked
+	}
 	if isTerminalSharedObjectMountError(err) {
 		return t.holdTerminalMountError(ctx, err)
 	}

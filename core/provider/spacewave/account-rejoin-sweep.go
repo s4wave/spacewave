@@ -37,6 +37,7 @@ func equalSelfRejoinSweepState(
 // buildSelfRejoinSweepStateLocked builds the desired sweep state.
 // Must be called within an accountBcast HoldLock scope.
 func (a *ProviderAccount) buildSelfRejoinSweepStateLocked() *selfRejoinSweepState {
+	// Wait until bootstrap and self-enrollment allow a sweep.
 	if !a.state.accountBootstrapFetched || a.state.selfRejoinSweepGeneration == 0 {
 		return nil
 	}
@@ -44,11 +45,13 @@ func (a *ProviderAccount) buildSelfRejoinSweepStateLocked() *selfRejoinSweepStat
 		return nil
 	}
 
+	// Require a live session signer before starting the sweep.
 	cli := a.sessionClient
-	if cli == nil || cli.priv == nil || cli.peerID == "" {
+	if !cli.GetSessionSigner().CanSign() || cli.GetPeerID() == "" {
 		return nil
 	}
 
+	// Capture the fetched epoch, trigger generation and entity keys.
 	return &selfRejoinSweepState{
 		fetchedEpoch: a.state.lastFetchedEpoch,
 		generation:   a.state.selfRejoinSweepGeneration,

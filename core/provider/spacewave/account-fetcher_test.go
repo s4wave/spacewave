@@ -263,6 +263,7 @@ func TestAccountFetcherRetryWakesOnEpochChangeAndWritesCache(t *testing.T) {
 	}
 }
 
+// TestAccountFetcherRetryWakesOnSessionClientChange checks replacement wakes a failed account fetch.
 func TestAccountFetcherRetryWakesOnSessionClientChange(t *testing.T) {
 	var stateHits atomic.Int32
 	firstStateHit := make(chan struct{})
@@ -289,6 +290,7 @@ func TestAccountFetcherRetryWakesOnSessionClientChange(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// Start the account with the test server and an initial signer.
 	acc := NewTestProviderAccount(t, srv.URL)
 	cacheStore := newAccountFetcherCacheStore()
 	acc.objStore = cacheStore
@@ -305,9 +307,10 @@ func TestAccountFetcherRetryWakesOnSessionClientChange(t *testing.T) {
 		}
 	}()
 
+	// Wait for the failed fetch before replacing its signer.
 	waitForAccountFetcherSignal(t, firstStateHit, time.Second, "first account-state hit")
 	priv, pid := generateTestKeypair(t)
-	acc.ReplaceSessionClient(NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String()))
+	acc.ReplaceSessionClient("", priv, pid)
 	waitForAccountFetcherSignal(t, secondStateHit, 500*time.Millisecond, "second account-state hit")
 	waitForAccountBootstrapFetched(t, acc, time.Second)
 	waitForAccountFetcherSignal(t, cacheStore.committed, time.Second, "account state cache commit")
@@ -435,6 +438,7 @@ func TestGetAccountStateWaitsForSigningSession(t *testing.T) {
 	}
 }
 
+// TestGetAccountStateWaitsForSigningSessionThenFetches checks a missing signer waits until an install.
 func TestGetAccountStateWaitsForSigningSessionThenFetches(t *testing.T) {
 	var stateHits atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -449,6 +453,7 @@ func TestGetAccountStateWaitsForSigningSessionThenFetches(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// Start the account with the test server and an initial signer.
 	acc := NewTestProviderAccount(t, srv.URL)
 	_, initialPID := generateTestKeypair(t)
 	acc.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
@@ -464,6 +469,7 @@ func TestGetAccountStateWaitsForSigningSessionThenFetches(t *testing.T) {
 		broadcast()
 	})
 
+	// Start the account-state read before any signer is available.
 	ctx := t.Context()
 	resultCh := make(chan struct {
 		state *api.AccountStateResponse
@@ -486,14 +492,9 @@ func TestGetAccountStateWaitsForSigningSessionThenFetches(t *testing.T) {
 		t.Fatalf("GetAccountState returned before signer: state=%v err=%v", result.state, result.err)
 	}
 
+	// Install a signer and wake the pending account-state read.
 	priv, pid := generateTestKeypair(t)
-	acc.ReplaceSessionClient(NewSessionClient(
-		http.DefaultClient,
-		srv.URL,
-		DefaultSigningEnvPrefix,
-		priv,
-		pid.String(),
-	))
+	acc.ReplaceSessionClient("", priv, pid)
 
 	select {
 	case result := <-resultCh:

@@ -22,7 +22,10 @@ func (r *AccountResource) StartDesktopPasskeyRegisterHandoff(
 	if err != nil {
 		return nil, err
 	}
-	cli := acc.GetSessionClient()
+	cli, err := acc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	startResp, err := cli.StartDesktopPasskeyRegister(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "start desktop passkey register")
@@ -46,6 +49,7 @@ func (r *AccountResource) StartDesktopPasskeyRegisterHandoff(
 		return nil, errors.New("desktop passkey register returned no result")
 	}
 
+	// Return the registration handoff artifacts.
 	return &s4wave_account.StartDesktopPasskeyRegisterHandoffResponse{
 		Username:       result.GetUsername(),
 		CredentialJson: result.GetCredentialJson(),

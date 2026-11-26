@@ -1190,18 +1190,13 @@ func (s *SpacewaveProviderResource) ReauthenticateSession(ctx context.Context, r
 	}
 
 	// Replace SessionClient on the ProviderAccount with the new key.
-	swAcc.ReplaceSessionClient(provider_spacewave.NewSessionClient(
-		s.provider.GetHTTPClient(),
-		s.provider.GetEndpoint(),
-		s.provider.GetSigningEnvPrefix(),
-		sessionPriv,
-		sessionPeerID.String(),
-	))
+	swAcc.ReplaceSessionClient(sessionID, sessionPriv, sessionPeerID)
 
 	// Clear UNAUTHENTICATED status and trigger a fresh fetch.
 	swAcc.SetAccountStatus(provider.ProviderAccountStatus_ProviderAccountStatus_READY)
 	swAcc.BumpLocalEpoch()
 
+	// Return the newly registered session peer to the caller.
 	return &s4wave_provider_spacewave.ReauthenticateSessionResponse{
 		AccountStatus: provider.ProviderAccountStatus_ProviderAccountStatus_READY,
 	}, nil

@@ -127,7 +127,14 @@ func (t *SpacewaveTransferTarget) ReadSharedObject(ctx context.Context, le *logr
 // configured reports whether the cloud holds a config chain for the Space.
 func (t *SpacewaveTransferTarget) configured(ctx context.Context, sharedObjectID string) (bool, error) {
 	// Fetch the Space's config chain from the cloud.
-	data, err := t.account.GetSessionClient().GetConfigChain(ctx, sharedObjectID)
+	// Resolve the current signer before the cloud request.
+	cli, err := t.account.GetSessionClient()
+	if err != nil {
+		return false, err
+	}
+
+	// Fetch the config chain with the current signer.
+	data, err := cli.GetConfigChain(ctx, sharedObjectID)
 	if err != nil {
 		return false, errors.Wrap(err, "read the listed Space's config")
 	}
@@ -147,7 +154,15 @@ func (t *SpacewaveTransferTarget) replayHead(ctx context.Context, le *logrus.Ent
 	// Read the state the cloud holds, refusing to mount a Space without a
 	// checkpoint to replay.
 	soID := ref.GetProviderResourceRef().GetId()
-	data, err := t.account.GetSessionClient().GetSOState(ctx, soID, 0, provider_spacewave.SeedReasonColdSeed)
+
+	// Resolve the current signer before the cloud request.
+	cli, err := t.account.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
+
+	// Read the checkpoint state the cloud currently holds.
+	data, err := cli.GetSOState(ctx, soID, 0, provider_spacewave.SeedReasonColdSeed)
 	if err != nil {
 		return nil, errors.Wrap(err, "read the listed Space's state")
 	}
@@ -179,7 +194,15 @@ func (t *SpacewaveTransferTarget) AddSharedObject(
 ) (*TargetSpace, error) {
 	// Create the Space, refusing an id the cloud lists.
 	soID := ref.GetProviderResourceRef().GetId()
-	err := t.account.GetSessionClient().CreateSharedObject(ctx, soID, "", meta.GetBodyType(), "", "", meta.GetAccountPrivate())
+
+	// Resolve the current signer before the cloud request.
+	cli, err := t.account.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
+
+	// Create the cloud Space and preserve its existing duplicate handling.
+	err = cli.CreateSharedObject(ctx, soID, "", meta.GetBodyType(), "", "", meta.GetAccountPrivate())
 	if provider_spacewave.IsCloudErrorStatus(err, 409) {
 		return nil, sobject.ErrSharedObjectExists
 	}
@@ -214,7 +237,10 @@ func (t *SpacewaveTransferTarget) WriteSharedObjectState(
 
 	// Post its config, which the cloud refuses on a configured Space, then
 	// its checkpoint.
-	cli := t.account.GetSessionClient()
+	cli, err := t.account.GetSessionClient()
+	if err != nil {
+		return err
+	}
 	err = cli.PostConfigState(ctx, sharedObjectID, genesisData, nil, state.CurrentKeyEpoch(), nil)
 	if provider_spacewave.IsCloudErrorStatus(err, 409) {
 		return ErrTargetChanged

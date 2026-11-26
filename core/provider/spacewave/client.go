@@ -21,9 +21,7 @@ import (
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/provider/spacewave/clouderror"
 	"github.com/s4wave/spacewave/core/provider/spacewave/entitykeystore"
-	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/httpclient"
-	"github.com/s4wave/spacewave/net/peer"
 )
 
 // maxResponseBodySize is the maximum HTTP response body size (10 MiB).
@@ -87,12 +85,8 @@ type SignedHTTPClient struct {
 	baseURL string
 	// envPfx is the environment prefix for signed payloads
 	envPfx string
-	// priv is the Ed25519 private key for signing
-	priv crypto.PrivKey
-	// peerID is the peer ID (base58 encoded for headers)
-	peerID peer.ID
-	// sign signs payloads when the private key is held elsewhere.
-	sign SigningFunc
+	// signer holds the revocable signing capability for this client.
+	signer *SessionSigner
 }
 
 // signRequest signs an HTTP request with the Ed25519 private key.
@@ -104,7 +98,7 @@ func (c *SignedHTTPClient) signRequest(req *http.Request, body []byte) error {
 // signRequestPrecomputed signs an HTTP request using a pre-computed body hash and content length.
 func (c *SignedHTTPClient) signRequestPrecomputed(req *http.Request, bodyHash []byte, contentLength int64) error {
 	// Refuse to sign without a key or an external signer.
-	if c.priv == nil && c.sign == nil {
+	if !c.signer.CanSign() {
 		return ErrSigningUnavailable
 	}
 
@@ -147,29 +141,19 @@ func (c *SignedHTTPClient) signRequestPrecomputed(req *http.Request, bodyHash []
 	}
 
 	// Sign with the held key, or with the external signer when one is set.
-	signPayload := func(payload []byte) ([]byte, error) {
-		return c.priv.Sign(payload)
-	}
-	if c.sign != nil {
-		reqCtx := req.Context()
-		signPayload = func(payload []byte) ([]byte, error) {
-			return c.sign(reqCtx, payload)
-		}
-	}
-	sig, err := signPayload(payloadBytes)
+	sig, err := c.signer.Sign(req.Context(), payloadBytes)
 	if err != nil {
 		return errors.Wrap(err, "sign payload")
 	}
 
 	// Set auth headers.
-	req.Header.Set("X-Peer-ID", c.peerID.String())
+	req.Header.Set("X-Peer-ID", c.signer.GetPeerID().String())
 	req.Header.Set("X-Timestamp", strconv.FormatInt(timestampMs, 10))
 	req.Header.Set("X-Sw-Hash", bodyHashHex)
 	req.Header.Set("X-Signature", base64.StdEncoding.EncodeToString(sig))
 	if len(keys) > 0 {
 		req.Header.Set("X-Signed-Headers", strings.Join(keys, ","))
 	}
-
 	return nil
 }
 

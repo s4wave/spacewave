@@ -14,15 +14,18 @@ import (
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 )
 
+// accessSessionClient retains the account and returns its live signing client for the test.
 func accessSessionClient(ctx context.Context, t *testing.T, accountID string) *provider_spacewave.SessionClient {
 	t.Helper()
 
+	// Retain the Spacewave provider for the test.
 	prov, provRef, err := provider.ExLookupProvider(ctx, env.tb.Bus, "spacewave", false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer provRef.Release()
 
+	// Retain the requested account for the test lifetime.
 	swProv := prov.(*provider_spacewave.Provider)
 	accIface, relAcc, err := swProv.AccessProviderAccount(ctx, accountID, nil)
 	if err != nil {
@@ -30,8 +33,13 @@ func accessSessionClient(ctx context.Context, t *testing.T, accountID string) *p
 	}
 	t.Cleanup(relAcc)
 
+	// Resolve the account signing client or fail this test.
 	swAcc := accIface.(*provider_spacewave.ProviderAccount)
-	return swAcc.GetSessionClient()
+	cli, err := swAcc.GetSessionClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return cli
 }
 
 func createOrganization(t *testing.T, cli *provider_spacewave.SessionClient, ctx context.Context) string {

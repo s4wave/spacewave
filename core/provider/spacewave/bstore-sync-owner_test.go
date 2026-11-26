@@ -141,9 +141,11 @@ func TestSyncControllerCoalescesNonceTriggersIntoPullNow(t *testing.T) {
 		t.Fatalf("new manifest: %v", err)
 	}
 	sc := &syncController{
-		le:         logrus.NewEntry(logrus.New()),
-		store:      store,
-		client:     NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String()),
+		le:    logrus.NewEntry(logrus.New()),
+		store: store,
+		client: func() (*SessionClient, error) {
+			return NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String()), nil
+		},
 		resourceID: "space-1",
 		mfst:       mfst,
 		lower:      packfile_store.NewPackfileStore(nil, nil, nil),

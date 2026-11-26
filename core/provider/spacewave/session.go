@@ -233,13 +233,7 @@ func (s *Session) UnlockSession(ctx context.Context, pin []byte) error {
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		s.sessionPriv = privKey
 	})
-	s.tkr.a.maybeSetSessionClient(s.tkr.id, NewSessionClient(
-		s.tkr.a.p.httpCli,
-		s.tkr.a.p.endpoint,
-		s.tkr.a.p.signingEnvPfx,
-		privKey,
-		s.sessionPid.String(),
-	))
+	s.tkr.a.maybeSetSessionClient(s.tkr.id, privKey, s.sessionPid)
 	if err := s.tkr.a.ConfigureSessionTransport(
 		s.lifecycleCtx,
 		s.tkr.id,
@@ -266,7 +260,6 @@ func (s *Session) UnlockSession(ctx context.Context, pin []byte) error {
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		broadcast()
 	})
-
 	return nil
 }
 

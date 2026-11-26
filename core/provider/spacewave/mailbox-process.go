@@ -55,9 +55,9 @@ func (a *ProviderAccount) ProcessMailboxEntry(
 	if entryID == 0 {
 		return errors.New("entry id is required")
 	}
-	cli := a.GetSessionClient()
-	if cli == nil {
-		return errors.New("session client not available")
+	cli, err := a.GetSessionClient()
+	if err != nil {
+		return err
 	}
 
 	// Load the pending mailbox snapshot.
@@ -98,9 +98,9 @@ func (a *ProviderAccount) processPendingMailboxEntries(
 	if !a.canAccessOwnerMailbox() {
 		return nil
 	}
-	cli := a.GetSessionClient()
-	if cli == nil {
-		return errors.New("session client not available")
+	cli, err := a.GetSessionClient()
+	if err != nil {
+		return err
 	}
 
 	// Load pending entries and process them in order.
@@ -115,7 +115,6 @@ func (a *ProviderAccount) processPendingMailboxEntries(
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -163,9 +162,9 @@ func (a *ProviderAccount) buildMailboxAutoProcessRoutine(key mailboxAutoProcessK
 		if entry == nil {
 			return nil
 		}
-		cli := a.GetSessionClient()
-		if cli == nil {
-			return errors.New("session client not available")
+		cli, err := a.GetSessionClient()
+		if err != nil {
+			return err
 		}
 
 		// Process the queued entry and preserve cancellation errors.

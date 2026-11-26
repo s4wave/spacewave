@@ -63,6 +63,7 @@ func (s *syncStatusWatchStream) Close() error {
 	return nil
 }
 
+// TestCloudSyncStatusUploadLifecycle checks upload telemetry through the real cloud lifecycle.
 func TestCloudSyncStatusUploadLifecycle(t *testing.T) {
 	// Bound the upload lifecycle.
 	ctx, cancel := context.WithTimeout(env.ctx, 75*time.Second)
@@ -100,7 +101,14 @@ func TestCloudSyncStatusUploadLifecycle(t *testing.T) {
 
 	// Create the Space whose block store the test uploads to.
 	soID := ulid.NewULID()
-	if err := swAcc.GetSessionClient().CreateSharedObject(ctx, soID, "Sync Status", "space", "", "", false); err != nil {
+	// Resolve the current cloud signing client.
+	cli, err := swAcc.GetSessionClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Create the Space whose upload telemetry will be observed.
+	if err := cli.CreateSharedObject(ctx, soID, "Sync Status", "space", "", "", false); err != nil {
 		t.Fatal(err)
 	}
 

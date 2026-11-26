@@ -32,7 +32,7 @@ func NewEntityClient(
 			httpCli: httpCli,
 			baseURL: endpoint,
 			envPfx:  normalizeSigningEnvPrefix(signingEnvPfx),
-			peerID:  p.GetPeerID(),
+			signer:  newSessionSigner("", p.GetPeerID(), 0, nil, nil),
 		},
 	}
 }
@@ -50,8 +50,7 @@ func NewEntityClientDirect(
 			httpCli: httpCli,
 			baseURL: endpoint,
 			envPfx:  normalizeSigningEnvPrefix(signingEnvPfx),
-			priv:    priv,
-			peerID:  pid,
+			signer:  newSessionSigner("", pid, 0, priv, nil),
 		},
 	}
 }
@@ -69,8 +68,7 @@ func NewEntityClientSigner(
 			httpCli: httpCli,
 			baseURL: endpoint,
 			envPfx:  normalizeSigningEnvPrefix(signingEnvPfx),
-			peerID:  pid,
-			sign:    sign,
+			signer:  newSessionSigner("", pid, 0, nil, sign),
 		},
 	}
 }
@@ -78,14 +76,16 @@ func NewEntityClientSigner(
 // initPrivKey initializes the private key from the peer if not already set.
 func (c *EntityClient) initPrivKey(ctx context.Context, p peer.Peer) error {
 	// Load the entity key from the peer once.
-	if c.priv != nil {
+	if c.signer.PrivKey() != nil {
 		return nil
 	}
+
+	// Resolve the key before publishing the signer.
 	priv, err := p.GetPrivKey(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get entity private key")
 	}
-	c.priv = priv
+	c.signer = newSessionSigner("", c.signer.GetPeerID(), 0, priv, nil)
 	return nil
 }
 
@@ -94,7 +94,8 @@ func (c *EntityClient) initPrivKey(ctx context.Context, p peer.Peer) error {
 // Returns the server-generated account ID.
 func (c *EntityClient) RegisterAccount(ctx context.Context, entityID, authMethod string, authParams []byte, turnstileToken string) (string, error) {
 	// Require the entity key that signs the registration.
-	if c.priv == nil {
+	priv := c.signer.PrivKey()
+	if priv == nil {
 		return "", errors.New("no private key configured")
 	}
 
@@ -102,7 +103,7 @@ func (c *EntityClient) RegisterAccount(ctx context.Context, entityID, authMethod
 	req := &api.RegisterAccountRequest{
 		EntityId: entityID,
 		Keypairs: []*session.EntityKeypair{{
-			PeerId:     c.peerID.String(),
+			PeerId:     c.signer.GetPeerID().String(),
 			AuthMethod: authMethod,
 			AuthParams: authParams,
 		}},

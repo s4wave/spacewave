@@ -244,7 +244,7 @@ func TestSelfEnrollmentSummaryRefreshesOnSessionPeerChange(t *testing.T) {
 
 	// Replacing the session client must produce a new generation key.
 	nextPriv, nextPID, _ := generateEntityKey(t)
-	acc.ReplaceSessionClient(NewSessionClient(http.DefaultClient, "http://example.invalid", DefaultSigningEnvPrefix, nextPriv, nextPID.String()))
+	acc.ReplaceSessionClient("", nextPriv, nextPID)
 	waitSelfEnrollmentSummary(t, acc, "new generation key", func(got *SelfEnrollmentSummary) bool {
 		key := got.GetGenerationKey()
 		return key != "" && key != first.GetGenerationKey()
@@ -308,6 +308,7 @@ func newSelfEnrollmentSummaryTestAccount(
 	// Build the account with its summary refresh running for the test.
 	t.Helper()
 	acc := &ProviderAccount{
+		p:             &Provider{httpCli: http.DefaultClient, endpoint: "http://example.invalid", signingEnvPfx: DefaultSigningEnvPrefix},
 		accountID:     "acct-1",
 		le:            logrus.New().WithField("test", t.Name()),
 		objStore:      hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]()),

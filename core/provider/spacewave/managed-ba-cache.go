@@ -22,11 +22,20 @@ func (a *ProviderAccount) InvalidateManagedBAsList() {
 func (a *ProviderAccount) GetManagedBAsSnapshot(
 	ctx context.Context,
 ) ([]*s4wave_provider_spacewave.ManagedBillingAccount, error) {
+	// Capture the managed billing account cache under its broadcast lock.
 	var cache *managedbacache.Store
 	a.accountBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		cache = a.getManagedBAsCacheLocked()
 	})
-	accounts, err := cache.Get(ctx, a.GetSessionClient())
+
+	// Keep the cache's nil-fetcher behavior while the account has no signer.
+	var fetcher managedbacache.Fetcher
+	if cli, err := a.GetSessionClient(); err == nil {
+		fetcher = cli
+	}
+
+	// Let the cache serve or refresh its snapshot.
+	accounts, err := cache.Get(ctx, fetcher)
 	if err != nil {
 		a.handleManagedBAsFetchError(err)
 		return nil, err

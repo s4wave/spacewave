@@ -87,7 +87,7 @@ func TestRecoveryEntityKeypairsFollowReadableEntities(t *testing.T) {
 		t.Fatal(err)
 	}
 	priv, pid := generateTestKeypair(t)
-	acc.ReplaceSessionClient(NewSessionClient(http.DefaultClient, srv.URL, "", priv, pid.String()))
+	acc.ReplaceSessionClient("", priv, pid)
 	cli = acc.sessionClient
 	if err := build(1, "alice", "peer-a1", "alice", "peer-a2"); err != nil {
 		t.Fatal(err)

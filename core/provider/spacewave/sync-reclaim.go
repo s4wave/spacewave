@@ -386,7 +386,14 @@ func (s *syncController) markTrash(ctx context.Context, packs []*reclaimPack) er
 // syncTrash sends one trash request and pulls its result. A conflict means
 // another writer changed the packs first, so the pull alone settles it.
 func (s *syncController) syncTrash(ctx context.Context, req *packfile.TrashRequest) error {
-	err := s.client.SyncTrash(ctx, s.resourceID, req)
+	// Resolve the current signer before changing remote trash state.
+	client, err := s.client()
+	if err != nil {
+		return err
+	}
+
+	// Submit the trash request and reconcile a concurrent change by pulling.
+	err = client.SyncTrash(ctx, s.resourceID, req)
 	if err != nil && !clouderror.IsPackReplacementConflict(err) {
 		return err
 	}

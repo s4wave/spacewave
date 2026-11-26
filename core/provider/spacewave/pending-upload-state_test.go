@@ -248,8 +248,10 @@ func newPushQueueController(t *testing.T, store kvtx.Store, push *testPushServer
 	logger.SetOutput(io.Discard)
 	return &syncController{
 		le: logrus.NewEntry(logger), store: store, resourceID: "queue",
-		client: NewSessionClient(http.DefaultClient, push.base, DefaultSigningEnvPrefix, key, peer.String()),
-		mfst:   catalog, lower: push.lower(t), upper: newSyncTestBlockStore(),
+		client: func() (*SessionClient, error) {
+			return NewSessionClient(http.DefaultClient, push.base, DefaultSigningEnvPrefix, key, peer.String()), nil
+		},
+		mfst: catalog, lower: push.lower(t), upper: newSyncTestBlockStore(),
 	}
 }
 

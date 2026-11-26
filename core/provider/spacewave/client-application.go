@@ -103,7 +103,7 @@ func (c *SessionClient) ListApplicationFunding(ctx context.Context, req *api.Lis
 // The application integration authenticates the external identity before submitting the result.
 func (c *EntityClient) SignManagedAccountEnrollment(ctx context.Context, enrollment *api.ManagedAccountEnrollment) (*api.EnrollManagedAccountRequest, error) {
 	// Bind the proof to this credential and the caller-selected application revision.
-	if enrollment.GetKeypairPeerId() != c.peerID.String() {
+	if enrollment.GetKeypairPeerId() != c.signer.GetPeerID().String() {
 		return nil, errors.New("enrollment credential does not match entity client")
 	}
 	body, err := enrollment.MarshalVT()
@@ -113,14 +113,10 @@ func (c *EntityClient) SignManagedAccountEnrollment(ctx context.Context, enrollm
 	payload := append([]byte("spacewave 2026-09-06 managed account enrollment v1."), body...)
 
 	// Retain callback-based key custody when this client has no directly held key.
-	var signature []byte
-	if c.sign != nil {
-		signature, err = c.sign(ctx, payload)
-	} else if c.priv != nil {
-		signature, err = c.priv.Sign(payload)
-	} else {
+	if !c.signer.CanSign() {
 		return nil, errors.New("no signing credential configured")
 	}
+	signature, err := c.signer.Sign(ctx, payload)
 	if err != nil {
 		return nil, errors.Wrap(err, "sign managed account enrollment")
 	}

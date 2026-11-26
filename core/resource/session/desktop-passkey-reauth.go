@@ -24,7 +24,15 @@ func (r *SpacewaveSessionResource) StartDesktopPasskeyReauth(
 	if peerID == "" {
 		return errors.New("peer_id is required")
 	}
-	startResp, err := r.swAcc.GetSessionClient().StartDesktopPasskeyReauth(ctx, peerID)
+
+	// Resolve the current signer before the cloud request.
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return err
+	}
+
+	// Start the passkey ceremony with the current session signer.
+	startResp, err := cli.StartDesktopPasskeyReauth(ctx, peerID)
 	if err != nil {
 		return errors.Wrap(err, "start desktop passkey reauth")
 	}

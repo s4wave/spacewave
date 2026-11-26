@@ -56,7 +56,7 @@ func TestSyncDrainScaling(t *testing.T) {
 			logger := logrus.New()
 			logger.SetOutput(io.Discard)
 			syncer := &syncController{
-				le: logrus.NewEntry(logger), store: metadata, client: client, resourceID: "scaling",
+				le: logrus.NewEntry(logger), store: metadata, client: func() (*SessionClient, error) { return client, nil }, resourceID: "scaling",
 				mfst: catalog, lower: push.lower(t), upper: newSyncTestBlockStore(),
 			}
 

@@ -361,7 +361,10 @@ func (r *SpacewaveSessionResource) CreateCheckoutSession(
 	}
 
 	// Create the Cloud Checkout Session and retain its status ticket.
-	cli := r.swAcc.GetSessionClient()
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	resp, err := cli.CreateCheckoutSession(ctx, req)
 	if err != nil {
 		return nil, err
@@ -372,6 +375,7 @@ func (r *SpacewaveSessionResource) CreateCheckoutSession(
 		r.swAcc.GetCheckoutWatcher().SetTicket(resp.GetWsTicket())
 	}
 
+	// Return the cloud result in the resource response.
 	return &s4wave_provider_spacewave.CreateCheckoutSessionResponse{
 		CheckoutUrl: resp.GetCheckoutUrl(),
 		WsTicket:    resp.GetWsTicket(),
@@ -384,12 +388,17 @@ func (r *SpacewaveSessionResource) CancelCheckoutSession(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.CancelCheckoutSessionRequest,
 ) (*s4wave_provider_spacewave.CancelCheckoutSessionResponse, error) {
-	cli := r.swAcc.GetSessionClient()
+	// Resolve the current signer before the cloud request.
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	resp, err := cli.CancelCheckoutSession(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Return the cloud result in the resource response.
 	return &s4wave_provider_spacewave.CancelCheckoutSessionResponse{
 		Status: mapCheckoutStatus(resp.GetStatus()),
 	}, nil
@@ -528,7 +537,10 @@ func (r *SpacewaveSessionResource) CancelSubscription(
 	}
 
 	// Cancel the Cloud subscription and invalidate its cached snapshot.
-	cli := r.swAcc.GetSessionClient()
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	if _, err := cli.CancelSubscription(ctx, baID); err != nil {
 		return nil, err
 	}
@@ -551,7 +563,10 @@ func (r *SpacewaveSessionResource) ReactivateSubscription(
 	}
 
 	// Reactivate the Cloud subscription and interpret its next step.
-	cli := r.swAcc.GetSessionClient()
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	cloudResp, err := cli.ReactivateSubscription(ctx, baID)
 	if err != nil {
 		return nil, err
@@ -579,7 +594,15 @@ func (r *SpacewaveSessionResource) SetBillingSpendingLimit(
 	if baID == "" {
 		return nil, errors.New("no billing account found")
 	}
-	if err := r.swAcc.GetSessionClient().SetBillingSpendingLimit(ctx, baID, req.GetConsent()); err != nil {
+
+	// Resolve the current signer before the cloud request.
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
+
+	// Update the spending limit and invalidate the billing snapshot.
+	if err := cli.SetBillingSpendingLimit(ctx, baID, req.GetConsent()); err != nil {
 		return nil, err
 	}
 	r.swAcc.InvalidateBillingSnapshot(baID)
@@ -601,7 +624,10 @@ func (r *SpacewaveSessionResource) CreateBillingPortal(
 	}
 
 	// Create a portal URL for the selected billing account.
-	cli := r.swAcc.GetSessionClient()
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	url, err := cli.CreateBillingPortal(ctx, baID)
 	if err != nil {
 		return nil, err
@@ -614,7 +640,11 @@ func (r *SpacewaveSessionResource) RequestDeleteNowEmail(
 	ctx context.Context,
 	_ *s4wave_provider_spacewave.RequestDeleteNowEmailRequest,
 ) (*s4wave_provider_spacewave.RequestDeleteNowEmailResponse, error) {
-	cli := r.swAcc.GetSessionClient()
+	// Resolve the current signer before the cloud request.
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	result, err := cli.RequestDeleteNowEmail(ctx)
 	if err != nil {
 		return nil, err
@@ -632,7 +662,10 @@ func (r *SpacewaveSessionResource) ConfirmDeleteNowCode(
 	req *s4wave_provider_spacewave.ConfirmDeleteNowCodeRequest,
 ) (*s4wave_provider_spacewave.ConfirmDeleteNowCodeResponse, error) {
 	// Confirm the emailed deletion code and invalidate cached account state.
-	cli := r.swAcc.GetSessionClient()
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	result, err := cli.ConfirmDeleteNowCode(ctx, req.GetCode())
 	if err != nil {
 		return nil, err
@@ -655,7 +688,11 @@ func (r *SpacewaveSessionResource) UndoDeleteNow(
 	ctx context.Context,
 	_ *s4wave_provider_spacewave.UndoDeleteNowRequest,
 ) (*s4wave_provider_spacewave.UndoDeleteNowResponse, error) {
-	cli := r.swAcc.GetSessionClient()
+	// Resolve the current signer before the cloud request.
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	if err := cli.UndoDeleteNow(ctx); err != nil {
 		return nil, err
 	}
@@ -768,7 +805,10 @@ func (r *SpacewaveSessionResource) CreateOrganization(
 	req *s4wave_provider_spacewave.CreateOrganizationRequest,
 ) (*s4wave_provider_spacewave.CreateOrganizationResponse, error) {
 	// Create the Cloud organization and decode its authoritative response.
-	cli := r.swAcc.GetSessionClient()
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	data, err := cli.CreateOrganization(ctx, req.GetDisplayName())
 	if err != nil {
 		return nil, err
@@ -785,6 +825,7 @@ func (r *SpacewaveSessionResource) CreateOrganization(
 	r.swAcc.PublishCreatedOrganization(&info)
 	r.swAcc.QueueOrganizationSync(orgID)
 
+	// Return the cloud result in the resource response.
 	return &s4wave_provider_spacewave.CreateOrganizationResponse{
 		Organization: &s4wave_provider_spacewave.OrganizationInfo{
 			Id:          orgID,
@@ -970,7 +1011,10 @@ func (r *SpacewaveSessionResource) DeleteOrganization(
 	}
 
 	// Delete the Cloud organization and refresh its cached state.
-	cli := r.swAcc.GetSessionClient()
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	if _, err := cli.DeleteOrganization(ctx, orgID); err != nil {
 		return nil, err
 	}
@@ -984,7 +1028,10 @@ func (r *SpacewaveSessionResource) CreateOrgInvite(
 	req *s4wave_provider_spacewave.CreateOrgInviteRequest,
 ) (*s4wave_provider_spacewave.CreateOrgInviteResponse, error) {
 	// Create the Cloud invitation and decode its returned record.
-	cli := r.swAcc.GetSessionClient()
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	data, err := cli.CreateOrgInvite(ctx, req.GetOrgId(), req.GetType(), req.GetMaxUses(), req.GetExpiresAt(), req.GetEmail())
 	if err != nil {
 		return nil, err
@@ -1055,7 +1102,10 @@ func (r *SpacewaveSessionResource) ResolveUsername(
 	}
 
 	// Resolve the exact username within its invite context.
-	cli := r.swAcc.GetSessionClient()
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	resp, err := cli.ResolveUsername(ctx, &api.ResolveUsernameRequest{
 		Username: req.GetUsername(),
 		Purpose:  purpose,
@@ -1082,7 +1132,11 @@ func (r *SpacewaveSessionResource) CreateTargetedInvitation(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.CreateTargetedInvitationRequest,
 ) (*s4wave_provider_spacewave.CreateTargetedInvitationResponse, error) {
-	cli := r.swAcc.GetSessionClient()
+	// Resolve the current signer before the cloud request.
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	resp, err := cli.CreateTargetedInvitation(ctx, &api.CreateTargetedInvitationRequest{
 		TargetAccountId: req.GetTargetAccountId(),
 		Purpose:         targetedInvitePurposeToAPI(req.GetPurpose()),
@@ -1125,7 +1179,10 @@ func (r *SpacewaveSessionResource) CreateSpaceTargetedInvitationByUsername(
 	}
 
 	// Resolve the username to an account the cloud lets this Space invite.
-	cli := r.swAcc.GetSessionClient()
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	resolve, err := cli.ResolveUsername(ctx, &api.ResolveUsernameRequest{
 		Username: username,
 		Purpose:  api.TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_SPACE,
@@ -1255,7 +1312,14 @@ func (r *SpacewaveSessionResource) AcceptSpaceTargetedInvitation(
 	}
 
 	// Mark the invitation accepted.
-	processResp, err := r.swAcc.GetSessionClient().ProcessTargetedInvitation(ctx, &api.ProcessTargetedInvitationRequest{
+	// Resolve the current signer before the cloud request.
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
+
+	// Accept the targeted Space invitation through the current signer.
+	processResp, err := cli.ProcessTargetedInvitation(ctx, &api.ProcessTargetedInvitationRequest{
 		Id:     req.GetId(),
 		Action: "accept",
 	})
@@ -1294,7 +1358,10 @@ func (r *SpacewaveSessionResource) CreateOrganizationTargetedInvitationByUsernam
 	}
 
 	// Resolve the username and account allowed to receive the organization invite.
-	cli := r.swAcc.GetSessionClient()
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	resolve, err := cli.ResolveUsername(ctx, &api.ResolveUsernameRequest{
 		Username: username,
 		Purpose:  api.TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_ORGANIZATION,
@@ -1370,7 +1437,14 @@ func (r *SpacewaveSessionResource) AcceptOrganizationTargetedInvitation(
 	}
 
 	// Join the organization.
-	acceptResp, err := r.swAcc.GetSessionClient().AcceptTargetedOrganizationInvitation(
+	// Resolve the current signer before the cloud request.
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
+
+	// Accept the targeted organization invitation through the current signer.
+	acceptResp, err := cli.AcceptTargetedOrganizationInvitation(
 		ctx, envelope.GetContextId(), &api.AcceptTargetedOrganizationInvitationRequest{Id: req.GetId()},
 	)
 	if err != nil {
@@ -1400,6 +1474,7 @@ func (r *SpacewaveSessionResource) AcceptOrganizationTargetedInvitation(
 		},
 	})
 
+	// Return the cloud result in the resource response.
 	return &s4wave_provider_spacewave.AcceptOrganizationTargetedInvitationResponse{
 		Invitation: targetedInvitationInfoFromAPI(acceptResp.GetInvitation()),
 		Organization: &s4wave_provider_spacewave.OrganizationInfo{
@@ -1471,7 +1546,11 @@ func (r *SpacewaveSessionResource) GetTargetedInvitation(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.GetTargetedInvitationRequest,
 ) (*s4wave_provider_spacewave.GetTargetedInvitationResponse, error) {
-	cli := r.swAcc.GetSessionClient()
+	// Resolve the current signer before the cloud request.
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	resp, err := cli.GetTargetedInvitation(ctx, req.GetId())
 	if err != nil {
 		return nil, err
@@ -1486,7 +1565,11 @@ func (r *SpacewaveSessionResource) RevokeTargetedInvitation(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.RevokeTargetedInvitationRequest,
 ) (*s4wave_provider_spacewave.RevokeTargetedInvitationResponse, error) {
-	cli := r.swAcc.GetSessionClient()
+	// Resolve the current signer before the cloud request.
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	resp, err := cli.RevokeTargetedInvitation(ctx, req.GetId())
 	if err != nil {
 		return nil, err
@@ -1502,7 +1585,10 @@ func (r *SpacewaveSessionResource) ProcessTargetedInvitation(
 	req *s4wave_provider_spacewave.ProcessTargetedInvitationRequest,
 ) (*s4wave_provider_spacewave.ProcessTargetedInvitationResponse, error) {
 	// Apply the action, then refetch the changed inbox.
-	cli := r.swAcc.GetSessionClient()
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	resp, err := cli.ProcessTargetedInvitation(ctx, &api.ProcessTargetedInvitationRequest{
 		Id:     req.GetId(),
 		Action: req.GetAction(),
@@ -1528,7 +1614,15 @@ func (r *SpacewaveSessionResource) getAcceptableTargetedInvitation(
 	if id == "" {
 		return nil, errors.New("id is required")
 	}
-	resp, err := r.swAcc.GetSessionClient().GetTargetedInvitation(ctx, id)
+
+	// Resolve the current signer before the cloud request.
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
+
+	// Fetch the targeted invitation before validating its envelope.
+	resp, err := cli.GetTargetedInvitation(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -1584,8 +1678,14 @@ func (r *SpacewaveSessionResource) getAcceptableTargetedInvitation(
 		return nil, err
 	}
 
+	// Resolve the current signer before reading the account.
+	cli, err = r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
+
 	// Check that the envelope addresses this account.
-	account, err := r.swAcc.GetSessionClient().GetAccountInfo(ctx)
+	account, err := cli.GetAccountInfo(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "get account info")
 	}
@@ -1731,7 +1831,10 @@ func (r *SpacewaveSessionResource) JoinOrganization(
 	req *s4wave_provider_spacewave.JoinOrganizationRequest,
 ) (*s4wave_provider_spacewave.JoinOrganizationResponse, error) {
 	// Join the Cloud organization and decode its returned state.
-	cli := r.swAcc.GetSessionClient()
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	data, err := cli.JoinOrganization(ctx, req.GetToken())
 	if err != nil {
 		return nil, err
@@ -1759,6 +1862,7 @@ func (r *SpacewaveSessionResource) JoinOrganization(
 		},
 	})
 
+	// Return the cloud result in the resource response.
 	return &s4wave_provider_spacewave.JoinOrganizationResponse{
 		Organization: &s4wave_provider_spacewave.OrganizationInfo{
 			Id:          info.GetId(),
@@ -1784,7 +1888,10 @@ func (r *SpacewaveSessionResource) RevokeOrgInvite(
 	}
 
 	// Revoke the Cloud invite and refresh the cached organization state.
-	cli := r.swAcc.GetSessionClient()
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	if _, err := cli.RevokeOrgInvite(ctx, orgID, inviteID); err != nil {
 		return nil, err
 	}
@@ -1800,6 +1907,7 @@ func (r *SpacewaveSessionResource) RevokeOrgInvite(
 		},
 	})
 
+	// Return the cloud result in the resource response.
 	return &s4wave_provider_spacewave.RevokeOrgInviteResponse{}, nil
 }
 
@@ -1815,7 +1923,10 @@ func (r *SpacewaveSessionResource) LeaveOrganization(
 	}
 
 	// Leave the Cloud organization and refresh its cached membership state.
-	cli := r.swAcc.GetSessionClient()
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	if _, err := cli.LeaveOrganization(ctx, orgID); err != nil {
 		return nil, err
 	}
@@ -1831,6 +1942,7 @@ func (r *SpacewaveSessionResource) LeaveOrganization(
 		},
 	})
 
+	// Return the cloud result in the resource response.
 	return &s4wave_provider_spacewave.LeaveOrganizationResponse{}, nil
 }
 
@@ -1850,7 +1962,10 @@ func (r *SpacewaveSessionResource) RemoveOrgMember(
 	}
 
 	// Remove the Cloud organization member and refresh cached membership state.
-	cli := r.swAcc.GetSessionClient()
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	if _, err := cli.RemoveOrgMember(ctx, orgID, memberID); err != nil {
 		return nil, err
 	}
@@ -1866,6 +1981,7 @@ func (r *SpacewaveSessionResource) RemoveOrgMember(
 		},
 	})
 
+	// Return the cloud result in the resource response.
 	return &s4wave_provider_spacewave.RemoveOrgMemberResponse{}, nil
 }
 
@@ -1885,7 +2001,10 @@ func (r *SpacewaveSessionResource) UpdateOrganization(
 	}
 
 	// Update the Cloud organization name and refresh its cached state.
-	cli := r.swAcc.GetSessionClient()
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	if _, err := cli.UpdateOrganization(ctx, orgID, displayName); err != nil {
 		return nil, err
 	}
@@ -1901,6 +2020,7 @@ func (r *SpacewaveSessionResource) UpdateOrganization(
 		},
 	})
 
+	// Return the cloud result in the resource response.
 	return &s4wave_provider_spacewave.UpdateOrganizationResponse{}, nil
 }
 
@@ -1909,8 +2029,12 @@ func (r *SpacewaveSessionResource) TransferResource(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.TransferResourceRequest,
 ) (*s4wave_provider_spacewave.TransferResourceResponse, error) {
-	cli := r.swAcc.GetSessionClient()
-	_, err := cli.TransferResource(
+	// Resolve the current signer before the cloud request.
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
+	_, err = cli.TransferResource(
 		ctx,
 		req.GetResourceId(),
 		req.GetNewOwnerType(),
@@ -1985,7 +2109,10 @@ func (r *SpacewaveSessionResource) CreateBillingAccount(
 	req *s4wave_provider_spacewave.CreateBillingAccountRequest,
 ) (*s4wave_provider_spacewave.CreateBillingAccountResponse, error) {
 	// Create the caller-managed billing account and invalidate its list cache.
-	cli := r.swAcc.GetSessionClient()
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	baID, err := cli.CreateBillingAccount(ctx, req.GetDisplayName())
 	if err != nil {
 		return nil, err
@@ -2001,7 +2128,14 @@ func (r *SpacewaveSessionResource) RedeemInvite(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.RedeemInviteRequest,
 ) (*s4wave_provider_spacewave.RedeemInviteResponse, error) {
-	return r.swAcc.GetSessionClient().RedeemInvite(ctx, req.GetCode())
+	// Resolve the current signer before the cloud request.
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
+
+	// Redeem the invite through the current signer.
+	return cli.RedeemInvite(ctx, req.GetCode())
 }
 
 // RenameBillingAccount updates the display name on a BA the caller manages.
@@ -2010,7 +2144,10 @@ func (r *SpacewaveSessionResource) RenameBillingAccount(
 	req *s4wave_provider_spacewave.RenameBillingAccountRequest,
 ) (*s4wave_provider_spacewave.RenameBillingAccountResponse, error) {
 	// Rename the managed billing account and invalidate its cached records.
-	cli := r.swAcc.GetSessionClient()
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	if err := cli.RenameBillingAccount(ctx, req.GetBillingAccountId(), req.GetDisplayName()); err != nil {
 		return nil, err
 	}
@@ -2025,7 +2162,10 @@ func (r *SpacewaveSessionResource) DeleteBillingAccount(
 	req *s4wave_provider_spacewave.DeleteBillingAccountRequest,
 ) (*s4wave_provider_spacewave.DeleteBillingAccountResponse, error) {
 	// Delete the managed billing account and invalidate its cached records.
-	cli := r.swAcc.GetSessionClient()
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	if err := cli.DeleteBillingAccount(ctx, req.GetBillingAccountId()); err != nil {
 		return nil, err
 	}
@@ -2054,8 +2194,11 @@ func (r *SpacewaveSessionResource) AssignBillingAccount(
 	req *s4wave_provider_spacewave.AssignBillingAccountRequest,
 ) (*s4wave_provider_spacewave.AssignBillingAccountResponse, error) {
 	// Assign the billing account to its requested owner.
-	cli := r.swAcc.GetSessionClient()
-	_, err := cli.AssignBillingAccount(
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
+	_, err = cli.AssignBillingAccount(
 		ctx,
 		req.GetBillingAccountId(),
 		req.GetTargetOwnerType(),
@@ -2080,8 +2223,11 @@ func (r *SpacewaveSessionResource) DetachBillingAccount(
 	req *s4wave_provider_spacewave.DetachBillingAccountRequest,
 ) (*s4wave_provider_spacewave.DetachBillingAccountResponse, error) {
 	// Detach the billing account from its current owner.
-	cli := r.swAcc.GetSessionClient()
-	_, err := cli.DetachBillingAccount(
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
+	_, err = cli.DetachBillingAccount(
 		ctx,
 		req.GetTargetOwnerType(),
 		req.GetTargetOwnerId(),
@@ -2107,7 +2253,10 @@ func (r *SpacewaveSessionResource) resolveMemberPeersAndMountSO(
 	spaceID, accountID string,
 ) (*provider_spacewave.SharedObject, func(), *api.EnrollMemberResponse, error) {
 	// Ask the Cloud for the member's session peers and username.
-	cli := r.swAcc.GetSessionClient()
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, nil, nil, err
+	}
 	enrollResp, err := cli.EnrollMember(ctx, spaceID, accountID, true)
 	if err != nil {
 		return nil, nil, nil, errors.Wrap(err, "resolve member peers")
@@ -2132,7 +2281,10 @@ func (r *SpacewaveSessionResource) resolveMemberParticipantPeersAndMountSO(
 	spaceID, accountID string,
 ) (*provider_spacewave.SharedObject, func(), []string, error) {
 	// Resolve the member's participant peers from the Cloud account.
-	cli := r.swAcc.GetSessionClient()
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, nil, nil, err
+	}
 	resolveResp, err := cli.ResolveMemberParticipants(ctx, spaceID, accountID)
 	if err != nil {
 		return nil, nil, nil, errors.Wrap(err, "resolve member participant peers")
@@ -2150,6 +2302,7 @@ func (r *SpacewaveSessionResource) resolveMemberParticipantPeersAndMountSO(
 		return nil, nil, nil, err
 	}
 
+	// Return the mounted Space and the resolved member peers.
 	return swSO, rel, peerIDs, nil
 }
 
@@ -2289,7 +2442,14 @@ func (r *SpacewaveSessionResource) GetAdminJson(
 	ctx context.Context,
 	req *s4wave_session.GetAdminJsonRequest,
 ) (*s4wave_session.GetAdminJsonResponse, error) {
-	body, err := r.swAcc.GetSessionClient().GetAdminJSON(ctx, req.GetPath())
+	// Resolve the current signer before the cloud request.
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
+
+	// Read the requested admin resource through the current signer.
+	body, err := cli.GetAdminJSON(ctx, req.GetPath())
 	if err != nil {
 		return nil, err
 	}
@@ -2490,7 +2650,11 @@ func (r *SpacewaveSessionResource) SendVerificationEmail(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.SendVerificationEmailRequest,
 ) (*s4wave_provider_spacewave.SendVerificationEmailResponse, error) {
-	cli := r.swAcc.GetSessionClient()
+	// Resolve the current signer before the cloud request.
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	result, err := cli.RequestEmailVerification(ctx, req.GetEmail())
 	if err != nil {
 		return nil, err
@@ -2506,7 +2670,11 @@ func (r *SpacewaveSessionResource) VerifyEmailCode(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.VerifyEmailCodeRequest,
 ) (*s4wave_provider_spacewave.VerifyEmailCodeResponse, error) {
-	cli := r.swAcc.GetSessionClient()
+	// Resolve the current signer before the cloud request.
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	if err := cli.VerifyEmailCode(ctx, req.GetEmail(), req.GetCode()); err != nil {
 		return nil, err
 	}
@@ -2522,7 +2690,10 @@ func (r *SpacewaveSessionResource) AddEmail(
 	req *s4wave_provider_spacewave.AddEmailRequest,
 ) (*s4wave_provider_spacewave.AddEmailResponse, error) {
 	// Add the email address and invalidate cached account state.
-	cli := r.swAcc.GetSessionClient()
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	result, err := cli.AddEmail(ctx, req.GetEmail())
 	if err != nil {
 		return nil, err
@@ -2539,7 +2710,11 @@ func (r *SpacewaveSessionResource) RemoveEmail(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.RemoveEmailRequest,
 ) (*s4wave_provider_spacewave.RemoveEmailResponse, error) {
-	cli := r.swAcc.GetSessionClient()
+	// Resolve the current signer before the cloud request.
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	if err := cli.RemoveEmail(ctx, req.GetEmail()); err != nil {
 		return nil, err
 	}
@@ -2553,7 +2728,10 @@ func (r *SpacewaveSessionResource) SetPrimaryEmail(
 	req *s4wave_provider_spacewave.SetPrimaryEmailRequest,
 ) (*s4wave_provider_spacewave.SetPrimaryEmailResponse, error) {
 	// Promote the verified address and refresh the account's email state.
-	cli := r.swAcc.GetSessionClient()
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	result, err := cli.SetPrimaryEmail(ctx, req.GetEmail())
 	if err != nil {
 		return nil, err
@@ -2607,7 +2785,10 @@ func (r *SpacewaveSessionResource) LookupInviteCode(
 	}
 
 	// Resolve the code to its stored invite message.
-	cli := r.swAcc.GetSessionClient()
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	lookupResp, err := cli.LookupInviteCode(ctx, code)
 	if err != nil {
 		return nil, err
@@ -2623,6 +2804,7 @@ func (r *SpacewaveSessionResource) LookupInviteCode(
 		return nil, errors.Wrap(err, "unmarshal invite message")
 	}
 
+	// Return the cloud result in the resource response.
 	return &s4wave_provider_spacewave.LookupInviteCodeResponse{
 		InviteId:      lookupResp.GetInviteId(),
 		InviteMessage: inviteMsg,

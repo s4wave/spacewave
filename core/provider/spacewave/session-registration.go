@@ -21,19 +21,15 @@ func (t *sessionTracker) registerSession(
 	sessionPriv crypto.PrivKey,
 	sessionPeerID peer.ID,
 ) (*api.ObservedSessionMetadata, error) {
+	// Register the session's peer with the cloud.
 	resp, err := t.a.entityCli.RegisterSessionDirectWithResponse(ctx, sessionPeerID.String(), buildSessionDeviceInfo(), "", "")
 	if err != nil {
 		return nil, errors.Wrap(err, "register session with cloud")
 	}
 	t.a.le.WithField("session-id", t.id).Debug("registered session with cloud")
-	t.a.maybeSetSessionClient(t.id, NewSessionClient(
-		t.a.p.httpCli,
-		t.a.p.endpoint,
-		t.a.p.signingEnvPfx,
-		sessionPriv,
-		sessionPeerID.String(),
-	))
+	t.a.maybeSetSessionClient(t.id, sessionPriv, sessionPeerID)
 
+	// Persist the registered session peer for future mounts.
 	regKey := []byte(t.id + "/registered")
 	err = kvtx.RunTransaction(ctx, true,
 		func(ctx context.Context) (kvtx.Tx, error) {

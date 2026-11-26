@@ -170,12 +170,21 @@ func (a *ProviderAccount) syncPendingMailboxEntries(
 	ctx context.Context,
 	soID string,
 ) error {
+	// Select the pending mailbox cache.
 	store := a.getPendingMailboxCache()
+
+	// Keep the cache's nil-fetcher behavior while the account has no signer.
+	var fetcher mailboxcache.Fetcher
+	if cli, err := a.GetSessionClient(); err == nil {
+		fetcher = cli
+	}
+
+	// Let the cache serve or refresh its snapshot.
 	changed, err := store.Sync(
 		ctx,
 		soID,
 		a.canAccessOwnerMailbox(),
-		a.GetSessionClient(),
+		fetcher,
 		isMailboxAccessDeniedCloudError,
 	)
 	if changed {

@@ -26,8 +26,7 @@ func newTestSignedClient(t *testing.T, baseURL string) (*SignedHTTPClient, peer.
 		httpCli: http.DefaultClient,
 		baseURL: baseURL,
 		envPfx:  "spacewave",
-		priv:    priv,
-		peerID:  pid,
+		signer:  newSessionSigner("", pid, 0, priv, nil),
 	}
 	return cli, pid
 }
@@ -95,15 +94,16 @@ func TestSignRequest_Headers(t *testing.T) {
 		httpCli: http.DefaultClient,
 		baseURL: "http://localhost",
 		envPfx:  "spacewave",
-		priv:    priv,
-		peerID:  pid,
+		signer:  newSessionSigner("", pid, 0, priv, nil),
 	}
 
+	// Build the request whose signed headers the test checks.
 	req, err := http.NewRequest(http.MethodPost, "http://localhost/test", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Sign the request with a known body.
 	body := []byte("hello")
 	if err := cli.signRequest(req, body); err != nil {
 		t.Fatalf("signRequest: %v", err)
@@ -117,6 +117,7 @@ func TestSignRequest_Headers(t *testing.T) {
 		t.Fatalf("X-Peer-ID mismatch: got %q, want %q", req.Header.Get("X-Peer-ID"), pid.String())
 	}
 
+	// Require the signature timestamp header to contain a valid time.
 	ts := req.Header.Get("X-Timestamp")
 	if ts == "" {
 		t.Fatal("missing X-Timestamp header")
@@ -125,6 +126,7 @@ func TestSignRequest_Headers(t *testing.T) {
 		t.Fatalf("X-Timestamp not a valid int: %v", err)
 	}
 
+	// Check the body digest included in the authentication headers.
 	bodyHash := req.Header.Get("X-Sw-Hash")
 	if bodyHash == "" {
 		t.Fatal("missing X-Sw-Hash header")
@@ -134,6 +136,7 @@ func TestSignRequest_Headers(t *testing.T) {
 		t.Fatalf("X-Sw-Hash mismatch: got %q, want %q", bodyHash, hex.EncodeToString(expectedHash[:]))
 	}
 
+	// Require the encoded request signature header.
 	sig := req.Header.Get("X-Signature")
 	if sig == "" {
 		t.Fatal("missing X-Signature header")
@@ -151,10 +154,10 @@ func TestSignRequest_SignedHeaders(t *testing.T) {
 		httpCli: http.DefaultClient,
 		baseURL: "http://localhost",
 		envPfx:  "spacewave",
-		priv:    priv,
-		peerID:  pid,
+		signer:  newSessionSigner("", pid, 0, priv, nil),
 	}
 
+	// Build the request whose signed headers the test checks.
 	req, err := http.NewRequest(http.MethodPost, "http://localhost/test", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -162,10 +165,12 @@ func TestSignRequest_SignedHeaders(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Pack-ID", "pack123")
 
+	// Sign the prepared request through the client signer.
 	if err := cli.signRequest(req, []byte("{}")); err != nil {
 		t.Fatalf("signRequest: %v", err)
 	}
 
+	// Check the canonical list of headers covered by the signature.
 	sh := req.Header.Get("X-Signed-Headers")
 	if sh == "" {
 		t.Fatal("expected X-Signed-Headers to be set")
@@ -192,19 +197,21 @@ func TestSignRequest_NoSignedHeadersWhenAbsent(t *testing.T) {
 		httpCli: http.DefaultClient,
 		baseURL: "http://localhost",
 		envPfx:  "spacewave",
-		priv:    priv,
-		peerID:  pid,
+		signer:  newSessionSigner("", pid, 0, priv, nil),
 	}
 
+	// Build the request whose signed headers the test checks.
 	req, err := http.NewRequest(http.MethodGet, "http://localhost/test", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Sign the prepared request through the client signer.
 	if err := cli.signRequest(req, nil); err != nil {
 		t.Fatalf("signRequest: %v", err)
 	}
 
+	// Require the signing header list to be absent when no headers were signed.
 	if req.Header.Get("X-Signed-Headers") != "" {
 		t.Fatal("X-Signed-Headers should not be set for request without signable headers")
 	}
@@ -238,10 +245,10 @@ func TestSignRequest_SignatureVerifies(t *testing.T) {
 		httpCli: http.DefaultClient,
 		baseURL: "http://localhost",
 		envPfx:  "spacewave",
-		priv:    priv,
-		peerID:  pid,
+		signer:  newSessionSigner("", pid, 0, priv, nil),
 	}
 
+	// Sign the request with a known body.
 	body := []byte("test-body")
 	req, err := http.NewRequest(http.MethodPost, "http://localhost/api/test", nil)
 	if err != nil {
@@ -249,6 +256,7 @@ func TestSignRequest_SignatureVerifies(t *testing.T) {
 	}
 	req.Header.Set("Content-Type", "application/octet-stream")
 
+	// Sign the prepared request through the client signer.
 	if err := cli.signRequest(req, body); err != nil {
 		t.Fatalf("signRequest: %v", err)
 	}
@@ -274,6 +282,7 @@ func TestSignRequest_SignatureVerifies(t *testing.T) {
 		}
 	}
 
+	// Reconstruct the binary signing payload for signature verification.
 	payload := &api.SigningPayload{
 		EnvPrefix:     "spacewave",
 		Method:        "POST",
@@ -288,12 +297,14 @@ func TestSignRequest_SignatureVerifies(t *testing.T) {
 		t.Fatalf("marshal signing payload: %v", err)
 	}
 
+	// Decode the signature the client placed in the request.
 	sigB64 := req.Header.Get("X-Signature")
 	sigBytes, err := base64.StdEncoding.DecodeString(sigB64)
 	if err != nil {
 		t.Fatalf("decoding signature: %v", err)
 	}
 
+	// Verify the signature against the session public key.
 	pub := priv.GetPublic()
 	ok, err := pub.Verify(payloadBytes, sigBytes)
 	if err != nil {
@@ -737,10 +748,11 @@ func TestRegisterAccount_NoPrivateKey(t *testing.T) {
 			httpCli: http.DefaultClient,
 			baseURL: "http://localhost",
 			envPfx:  "spacewave",
-			peerID:  pid,
+			signer:  newSessionSigner("", pid, 0, nil, nil),
 		},
 	}
 
+	// Require account registration to reject a missing private key.
 	_, err := cli.RegisterAccount(context.Background(), "test", "ed25519", nil, "")
 	if err == nil {
 		t.Fatal("expected error for missing private key")

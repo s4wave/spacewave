@@ -316,7 +316,7 @@ func newRejoinScenario(t *testing.T, opts rejoinOptions) *rejoinScenario {
 	// Prepare an authenticated account with an initially empty recovery cache.
 	sc.acc = NewTestProviderAccount(t, sc.srv.URL)
 	sc.acc.objStore = hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]())
-	sc.acc.ReplaceSessionClient(NewSessionClient(http.DefaultClient, sc.srv.URL, DefaultSigningEnvPrefix, newPriv, newPID.String()))
+	sc.acc.ReplaceSessionClient("", newPriv, newPID)
 	if !opts.locked {
 		sc.acc.GetEntityKeyStore().Unlock(entityPID, entityPriv)
 	}

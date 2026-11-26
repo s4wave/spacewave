@@ -36,15 +36,25 @@ func (a *ProviderAccount) GetOrganizationSnapshot(
 	ctx context.Context,
 	orgID string,
 ) (*api.GetOrgResponse, *api.ListOrgInvitesResponse, string, error) {
+	// Require an organization id.
 	if orgID == "" {
 		return nil, nil, "", errors.New("organization id is required")
 	}
 
+	// Capture the organization cache under its broadcast lock.
 	var cache *orgstatecache.Store
 	a.orgBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		cache = a.getOrganizationStateCacheLocked()
 	})
-	return cache.Get(ctx, orgID, a.GetSessionClient(), a.getOrganizationRole)
+
+	// Keep the cache's nil-fetcher behavior while the account has no signer.
+	var fetcher orgstatecache.Fetcher
+	if cli, err := a.GetSessionClient(); err == nil {
+		fetcher = cli
+	}
+
+	// Let the cache serve or refresh its snapshot.
+	return cache.Get(ctx, orgID, fetcher, a.getOrganizationRole)
 }
 
 // getOrganizationRole returns the cached or fetched role for an organization.

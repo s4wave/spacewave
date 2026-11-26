@@ -58,12 +58,17 @@ func (s *SpacewaveTransferSource) GetVolume() volume.Volume {
 
 // GetSharedObjectList returns the list of shared objects from the cloud.
 func (s *SpacewaveTransferSource) GetSharedObjectList(ctx context.Context) (*sobject.SharedObjectList, error) {
-	cli := s.account.GetSessionClient()
+	// Resolve the current signer before the cloud request.
+	cli, err := s.account.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	data, err := cli.ListSharedObjects(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "list shared objects from cloud")
 	}
 
+	// Decode the cloud list with this provider identity.
 	return provider_spacewave.DecodeSharedObjectList(data, s.providerID)
 }
 

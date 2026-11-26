@@ -198,7 +198,14 @@ func TestCloudSpaceGuestDevice(t *testing.T) {
 	}
 
 	// Guest admission must not attach its key to the approving cloud account.
-	cloudSessions, err := account.GetSessionClient().ListSessions(ctx)
+	// Resolve the current cloud signing client.
+	cli, err := account.GetSessionClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Read the registered cloud sessions with the current signer.
+	cloudSessions, err := cli.ListSessions(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}

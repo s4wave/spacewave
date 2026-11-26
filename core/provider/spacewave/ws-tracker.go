@@ -86,8 +86,7 @@ type soEvents interface {
 type wsTracker struct {
 	// le is the logger.
 	le *logrus.Entry
-	// getClient returns the current session client for API calls.
-	// The client may initially have a nil key; the tracker retries until ready.
+	// getClient returns the current session client for API calls, or nil in the signing gap.
 	getClient func() *SessionClient
 	// accountBcast is the account broadcast, used to wake from subscription-idle.
 	accountBcast *broadcast.Broadcast
@@ -195,9 +194,16 @@ const sessionWebSocketPingTimeout = 10 * time.Second
 // Execute runs the wsTracker lifecycle until cancellation or a terminal error.
 func (t *wsTracker) Execute(ctx context.Context) error {
 	for {
+		// Reconnect once the current signer is ready.
 		err := t.runWebSocket(ctx)
 		if ctx.Err() != nil {
 			return context.Canceled
+		}
+		if errors.Is(err, ErrSigningUnavailable) {
+			if err := t.waitForSigner(ctx); err != nil {
+				return err
+			}
+			continue
 		}
 		if err != nil {
 			if isIdleableCloudError(err) {
@@ -226,6 +232,27 @@ func (t *wsTracker) Execute(ctx context.Context) error {
 	}
 }
 
+// waitForSigner waits for a live signer without missing an install between the check and wait.
+func (t *wsTracker) waitForSigner(ctx context.Context) error {
+	for {
+		// Capture the notification before resolving the slot outside its lock.
+		var changed <-chan struct{}
+		t.accountBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			changed = getWaitCh()
+		})
+		if t.getClient().GetSessionSigner().CanSign() {
+			return nil
+		}
+
+		// Wait until the slot changes or the tracker stops.
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-changed:
+		}
+	}
+}
+
 // waitForAccountChanged blocks until the account broadcast fires or the context
 // is canceled.
 func (t *wsTracker) waitForAccountChanged(ctx context.Context) error {
@@ -242,12 +269,28 @@ func (t *wsTracker) waitForAccountChanged(ctx context.Context) error {
 }
 
 // runWebSocket dials the session WS and runs the read loop.
-func (t *wsTracker) runWebSocket(ctx context.Context) error {
+func (t *wsTracker) runWebSocket(ctx context.Context) (retErr error) {
 	// Require a ready session client with its signing key.
 	client := t.getClient()
-	if client == nil || client.priv == nil {
-		return errors.New("session client not ready")
+	if !client.GetSessionSigner().CanSign() {
+		return ErrSigningUnavailable
 	}
+
+	// End this connection when the signer it authenticated with is revoked.
+	ctx, cancel := context.WithCancelCause(ctx)
+	defer cancel(nil)
+	defer func() {
+		if errors.Is(context.Cause(ctx), ErrSigningUnavailable) {
+			retErr = ErrSigningUnavailable
+		}
+	}()
+	go func() {
+		select {
+		case <-client.GetSessionSigner().Done():
+			cancel(ErrSigningUnavailable)
+		case <-ctx.Done():
+		}
+	}()
 
 	// Get a short-lived ticket for WebSocket auth.
 	ticket, err := client.GetSessionTicket(ctx)
@@ -284,7 +327,7 @@ func (t *wsTracker) runWebSocket(ctx context.Context) error {
 	payload := make([]byte, len(ticketBytes)+32)
 	copy(payload, ticketBytes)
 	copy(payload[len(ticketBytes):], challenge)
-	sig, err := client.priv.Sign(payload)
+	sig, err := client.GetSessionSigner().Sign(ctx, payload)
 	if err != nil {
 		return errors.Wrap(err, "sign challenge")
 	}
@@ -322,12 +365,14 @@ func (t *wsTracker) runWebSocket(ctx context.Context) error {
 			return errors.Wrap(err, "read session websocket message")
 		}
 
+		// Decode the next typed session event.
 		msg := &api.SessionMessage{}
 		if err := msg.UnmarshalVT(data); err != nil {
 			t.le.WithError(err).Warn("failed to unmarshal session message")
 			continue
 		}
 
+		// Dispatch the event to its account or SharedObject owner.
 		switch {
 		case msg.GetSoListUpdate() != nil:
 			t.le.Debug("received so list update via session ws")

@@ -17,7 +17,10 @@ func (r *AccountResource) StartDesktopPasskeyRegister(
 	if err != nil {
 		return nil, err
 	}
-	cli := acc.GetSessionClient()
+	cli, err := acc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	startResp, err := cli.StartDesktopPasskeyRegister(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "start desktop passkey register")
@@ -39,7 +42,10 @@ func (r *AccountResource) PasskeyRegisterOptions(
 	if err != nil {
 		return nil, err
 	}
-	cli := acc.GetSessionClient()
+	cli, err := acc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	optionsJSON, err := cli.PasskeyRegisterOptions(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "passkey register options")
@@ -60,7 +66,10 @@ func (r *AccountResource) PasskeyRegisterVerify(
 	if err != nil {
 		return nil, err
 	}
-	cli := acc.GetSessionClient()
+	cli, err := acc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
 	credID, err := cli.PasskeyRegisterVerify(
 		ctx,
 		req.GetCredentialJson(),

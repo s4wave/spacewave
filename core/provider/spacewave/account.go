@@ -69,6 +69,8 @@ type ProviderAccount struct {
 	// sessionClientSessionID is the mounted session that owns sessionClient.
 	// Guarded by accountBcast after ProviderAccount construction.
 	sessionClientSessionID string
+	// sessionSignerGen is the generation of the last signer bound by the slot, guarded by accountBcast.
+	sessionSignerGen uint64
 	// sessionTransports contains direct transports keyed by mounted Session ID.
 	sessionTransports map[string]*sessionTransportState
 	// transportComposition selects the direct transport for each Session.
@@ -365,15 +367,6 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		)
 	}
 
-	// Build session client (key set later by session tracker).
-	sessionCli := NewSessionClient(
-		t.p.httpCli,
-		t.p.endpoint,
-		t.p.signingEnvPfx,
-		nil,
-		"",
-	)
-
 	// Construct the account around its clients and storage.
 	acc := &ProviderAccount{
 		le:             le,
@@ -389,7 +382,6 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 	}
 
 	// Wire the session client, Self-Enrollment state and SharedObject list.
-	acc.sessionClient = acc.configureSessionClient(sessionCli)
 	acc.selfEnrollmentRun = newSelfEnrollmentRunState(acc)
 	acc.soListCtr.SetValue(nil)
 	acc.soListRc = refcount.NewRefCount(nil, true, nil, nil, acc.resolveSharedObjectList)
@@ -638,26 +630,6 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 	return context.Canceled
 }
 
-// GetSessionClient returns the session client for authenticated API calls.
-func (a *ProviderAccount) GetSessionClient() *SessionClient {
-	cli := a.currentSessionClient()
-	if cli == nil || cli.priv == nil || cli.peerID == "" {
-		return nil
-	}
-	return cli
-}
-
-// ReplaceSessionClient replaces the session client with a new one.
-// Used during reauthentication to install a freshly-generated session key.
-func (a *ProviderAccount) ReplaceSessionClient(cli *SessionClient) {
-	a.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		a.sessionClient = a.configureSessionClient(cli)
-		a.sessionClientSessionID = ""
-		broadcast()
-	})
-	a.selfEnrollmentRefresh.Trigger()
-}
-
 // ReplaceEntityClient replaces the entity client used for registration flows.
 func (a *ProviderAccount) ReplaceEntityClient(cli *EntityClient) {
 	if cli == nil {
@@ -835,8 +807,8 @@ func (a *ProviderAccount) SessionsSnapshot() ([]*api.AccountSessionInfo, bool) {
 // GetCurrentSessionPeerID returns the mounted session peer ID used for the
 // account signer when available.
 func (a *ProviderAccount) GetCurrentSessionPeerID() peer.ID {
-	cli := a.GetSessionClient()
-	if cli == nil {
+	cli, err := a.GetSessionClient()
+	if err != nil {
 		return ""
 	}
 	return cli.GetPeerID()
@@ -881,8 +853,7 @@ func (a *ProviderAccount) GetAccountState(ctx context.Context) (*api.AccountStat
 			info = a.state.info
 			cli = a.sessionClient
 			if info == nil && !a.state.infoFetching &&
-				cli != nil && cli.SignedHTTPClient != nil &&
-				cli.peerID != "" && (cli.priv != nil || cli.sign != nil) {
+				cli.GetSessionSigner().CanSign() && cli.GetPeerID() != "" {
 				a.state.infoFetching = true
 				shouldFetch = true
 			}
@@ -892,8 +863,10 @@ func (a *ProviderAccount) GetAccountState(ctx context.Context) (*api.AccountStat
 			return info, nil
 		}
 		if shouldFetch {
+			// Retain the generation used by this fetch across replacement.
+			generation := cli.GetSessionSigner().GetGeneration()
 			fetched, err := cli.GetAccountState(ctx)
-			if err == nil && a.observeAccountTransition(fetched.GetTransition(), fetched.GetAccountId(), cli.peerID.String()) {
+			if err == nil && a.observeAccountTransition(fetched.GetTransition(), fetched.GetAccountId(), cli.GetPeerID().String()) {
 				err = errAccountTransitionPending
 			}
 			if err != nil {
@@ -911,9 +884,8 @@ func (a *ProviderAccount) GetAccountState(ctx context.Context) (*api.AccountStat
 
 					// Check whether a newer client can sign.
 					current := a.sessionClient
-					retryOnEvent = current != cli &&
-						current != nil && current.SignedHTTPClient != nil &&
-						current.peerID != "" && (current.priv != nil || current.sign != nil)
+					signer := current.GetSessionSigner()
+					retryOnEvent = signer.GetGeneration() > generation && signer.CanSign() && signer.GetPeerID() != ""
 				})
 				if errors.Is(err, ErrSigningUnavailable) {
 					if retryOnEvent {

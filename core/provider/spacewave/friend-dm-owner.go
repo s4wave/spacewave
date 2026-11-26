@@ -40,9 +40,9 @@ func (a *ProviderAccount) OpenFriendDM(
 	targetAccountID string,
 ) (*FriendDmOpenResult, error) {
 	// Resolve the authenticated cloud client.
-	cli := a.GetSessionClient()
-	if cli == nil {
-		return nil, errors.New("session client not available")
+	cli, err := a.GetSessionClient()
+	if err != nil {
+		return nil, err
 	}
 
 	// Load and validate the friend-DM bootstrap record.
@@ -53,6 +53,7 @@ func (a *ProviderAccount) OpenFriendDM(
 	}
 
 	// Resolve local account and session identity.
+	priv := cli.GetSessionSigner().PrivKey()
 	localAccountID := a.GetAccountID()
 	localPeerID := a.GetCurrentSessionPeerID().String()
 	if err := validateFriendDmBootstrap(
@@ -76,7 +77,7 @@ func (a *ProviderAccount) OpenFriendDM(
 			localAccountID,
 			"",
 			bootstrap.SharedObjectId,
-			cli.priv,
+			priv,
 			buildStandaloneSpaceInitStepFactorySet(),
 			true,
 			bootstrap.Accounts,

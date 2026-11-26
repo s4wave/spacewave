@@ -79,7 +79,14 @@ func (a *ProviderAccount) fetchTargetedInvitations(ctx context.Context) error {
 	})
 
 	// Fetch and store the inbox.
-	resp, err := a.GetSessionClient().ListTargetedInvitations(ctx)
+	// Resolve the current signer before the cloud request.
+	cli, err := a.GetSessionClient()
+	if err != nil {
+		return err
+	}
+
+	// Fetch the invitation inbox before publishing its snapshot.
+	resp, err := cli.ListTargetedInvitations(ctx)
 	if err != nil {
 		return err
 	}

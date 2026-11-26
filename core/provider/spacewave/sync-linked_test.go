@@ -34,9 +34,11 @@ func newLinkedTestController(t *testing.T, push *testPushServer, kv kvtx.Store) 
 	}
 	priv, pid := generateTestKeypair(t)
 	s := &syncController{
-		le:         logrus.NewEntry(logrus.New()),
-		store:      newSyncTestKvStore(),
-		client:     NewSessionClient(http.DefaultClient, push.base, DefaultSigningEnvPrefix, priv, pid.String()),
+		le:    logrus.NewEntry(logrus.New()),
+		store: newSyncTestKvStore(),
+		client: func() (*SessionClient, error) {
+			return NewSessionClient(http.DefaultClient, push.base, DefaultSigningEnvPrefix, priv, pid.String()), nil
+		},
 		resourceID: "test-res",
 		mfst:       mfst,
 		lower:      push.lower(t),

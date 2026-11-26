@@ -82,7 +82,7 @@ func testSyncBrowserDrainScaling(t *testing.T, count int) {
 	logger := logrus.New()
 	logger.SetOutput(io.Discard)
 	syncer := &syncController{
-		le: logrus.NewEntry(logger), store: metadata, client: client, resourceID: "browser-scaling",
+		le: logrus.NewEntry(logger), store: metadata, client: func() (*SessionClient, error) { return client, nil }, resourceID: "browser-scaling",
 		mfst: catalog, lower: push.lower(t), upper: newSyncTestBlockStore(),
 	}
 

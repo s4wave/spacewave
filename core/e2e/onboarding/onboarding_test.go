@@ -969,7 +969,10 @@ func TestCloudSpaceLifecycle(t *testing.T) {
 	}
 	t.Cleanup(relAcc)
 	swAcc := accIface.(*provider_spacewave.ProviderAccount)
-	cli := swAcc.GetSessionClient()
+	cli, err := swAcc.GetSessionClient()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Create SharedObject on cloud.
 	soID := ulid.NewULID()
@@ -1032,7 +1035,14 @@ func TestAccountInfoRetrieval(t *testing.T) {
 	swAcc := accIface.(*provider_spacewave.ProviderAccount)
 
 	// GetAccountInfo via SessionClient.
-	info, err := swAcc.GetSessionClient().GetAccountInfo(ctx)
+	// Resolve the current cloud signing client.
+	cli, err := swAcc.GetSessionClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Fetch the account information through its current signer.
+	info, err := cli.GetAccountInfo(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1233,7 +1243,10 @@ func TestOrganizationLifecycle(t *testing.T) {
 	}
 	t.Cleanup(relAcc)
 	swAcc := accIface.(*provider_spacewave.ProviderAccount)
-	cli := swAcc.GetSessionClient()
+	cli, err := swAcc.GetSessionClient()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Create organization.
 	orgName := "Test Org " + ulid.NewULID()
@@ -1286,7 +1299,10 @@ func TestBlockStoreSyncPushPull(t *testing.T) {
 	}
 	t.Cleanup(relAcc)
 	swAcc := accIface.(*provider_spacewave.ProviderAccount)
-	cli := swAcc.GetSessionClient()
+	cli, err := swAcc.GetSessionClient()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Create a SharedObject on the cloud (which creates the block store).
 	soID := ulid.NewULID()
@@ -1326,6 +1342,7 @@ func TestBlockStoreSyncPushPull(t *testing.T) {
 		return blk.hash, &block.StoredBlock{Data: blk.data, RefsSource: block.RefsAsserted}, nil
 	}
 
+	// Build a packfile containing the blocks the test will synchronize.
 	var packBuf bytes.Buffer
 	result, err := packfile_writer.PackBlocks(&packBuf, iter)
 	if err != nil {
@@ -1402,7 +1419,10 @@ func TestPasskeyRegistrationAndAuth(t *testing.T) {
 	}
 	t.Cleanup(relAcc)
 	swAcc := accIface.(*provider_spacewave.ProviderAccount)
-	cli := swAcc.GetSessionClient()
+	cli, err := swAcc.GetSessionClient()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Create virtual authenticator.
 	va, err := newVirtualAuthenticator()
@@ -1554,7 +1574,10 @@ func TestAccountRecovery(t *testing.T) {
 	}
 	t.Cleanup(relAcc)
 	swAcc := accIface.(*provider_spacewave.ProviderAccount)
-	cli := swAcc.GetSessionClient()
+	cli, err := swAcc.GetSessionClient()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Step 1: Verify an email on the account.
 	testEmail := "recovery-test-" + ulid.NewULID() + "@example.com"
@@ -1666,7 +1689,10 @@ func TestEmailVerification(t *testing.T) {
 	}
 	t.Cleanup(relAcc)
 	swAcc := accIface.(*provider_spacewave.ProviderAccount)
-	cli := swAcc.GetSessionClient()
+	cli, err := swAcc.GetSessionClient()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Verify an email with the emailed code.
 	testEmail := "verify-" + ulid.NewULID() + "@example.com"

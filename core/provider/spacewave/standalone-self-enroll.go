@@ -24,6 +24,9 @@ func (c *SessionClient) SelfEnrollSpacePeer(
 	if c == nil {
 		return false, errors.New("session client is required")
 	}
+
+	// Read the key for this operation while the signer is live.
+	priv := c.signer.PrivKey()
 	if entityPriv == nil {
 		return false, errors.New("entity private key is required")
 	}
@@ -33,10 +36,10 @@ func (c *SessionClient) SelfEnrollSpacePeer(
 	if spaceID == "" {
 		return false, errors.New("space id is required")
 	}
-	if c.priv == nil {
+	if priv == nil {
 		return false, errors.New("session private key not available")
 	}
-	if c.peerID == "" {
+	if c.signer.GetPeerID() == "" {
 		return false, errors.New("session peer id not available")
 	}
 
@@ -47,7 +50,8 @@ func (c *SessionClient) SelfEnrollSpacePeer(
 			return false, err
 		}
 
-		localPeerID := c.peerID.String()
+		// Check whether the session already holds a readable participant grant.
+		localPeerID := c.signer.GetPeerID().String()
 		localParticipant := participantConfigForPeer(currentCfg, localPeerID)
 		epoch := currentEpochWithFallback(state, epochs)
 		if epoch == nil {
@@ -57,11 +61,13 @@ func (c *SessionClient) SelfEnrollSpacePeer(
 			return false, nil
 		}
 
+		// Require readable entity membership before recovering a session grant.
 		role := readableParticipantRoleForEntity(currentCfg, entityID)
 		if !sobject.CanReadState(role) {
 			return false, sobject.ErrNotParticipant
 		}
 
+		// Fetch the recovery envelope and verify its entity identity.
 		env, err := c.GetSORecoveryEnvelope(ctx, spaceID)
 		if err != nil {
 			return false, err
@@ -70,6 +76,7 @@ func (c *SessionClient) SelfEnrollSpacePeer(
 			return false, sobject.ErrSharedObjectRecoveryEntityMismatch
 		}
 
+		// Unlock recovery material and verify its entity and grant.
 		material, err := sobject.UnlockSOEntityRecoveryEnvelope([]crypto.PrivKey{entityPriv}, env)
 		if err != nil {
 			return false, err
@@ -81,14 +88,16 @@ func (c *SessionClient) SelfEnrollSpacePeer(
 			return false, errors.New("shared object recovery material is missing grant inner")
 		}
 
+		// Keep the recovered role within the current entity membership.
 		rejoinRole := material.GetRole()
 		if !sobject.CanReadState(rejoinRole) || role < rejoinRole {
 			rejoinRole = role
 		}
 
+		// Build and attach the session grant to the current epoch.
 		grant, err := sobject.BuildSelfEnrollPeerGrant(
-			c.priv,
-			c.peerID,
+			priv,
+			c.signer.GetPeerID(),
 			spaceID,
 			material,
 		)
@@ -97,6 +106,7 @@ func (c *SessionClient) SelfEnrollSpacePeer(
 		}
 		epoch.Grants = append(epoch.GetGrants(), grant)
 
+		// Build a participant change when this session has no participant yet.
 		var (
 			entry       *sobject.SOConfigChange
 			entryData   []byte
@@ -106,7 +116,7 @@ func (c *SessionClient) SelfEnrollSpacePeer(
 			entry, err = sobject.BuildSelfEnrollPeerConfigChange(
 				spaceID,
 				currentCfg,
-				c.priv,
+				priv,
 				localPeerID,
 				entityID,
 				rejoinRole,
@@ -124,6 +134,7 @@ func (c *SessionClient) SelfEnrollSpacePeer(
 			}
 		}
 
+		// Build recovery envelopes for the updated membership.
 		recoveryEnvelopes, err := buildSORecoveryEnvelopes(
 			ctx,
 			c,
@@ -136,6 +147,7 @@ func (c *SessionClient) SelfEnrollSpacePeer(
 			return false, errors.Wrap(err, "build recovery envelopes")
 		}
 
+		// Update only the key epoch when the participant already exists.
 		if localParticipant != nil {
 			if err := c.PostKeyEpoch(
 				ctx,
@@ -159,6 +171,7 @@ func (c *SessionClient) SelfEnrollSpacePeer(
 			return true, nil
 		}
 
+		// Publish the participant change and retry concurrent config updates.
 		if err := c.PostConfigState(
 			ctx,
 			spaceID,
@@ -183,5 +196,6 @@ func (c *SessionClient) SelfEnrollSpacePeer(
 		return true, nil
 	}
 
+	// Report that concurrent config updates exhausted recovery attempts.
 	return false, errors.New("self-enroll recovery failed after max retries due to config conflicts")
 }

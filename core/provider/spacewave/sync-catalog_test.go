@@ -115,7 +115,9 @@ func TestSyncPullRestartDropsUnlistedPacks(t *testing.T) {
 	}
 	priv, pid := generateTestKeypair(t)
 	syncer := &syncController{
-		client:     NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String()),
+		client: func() (*SessionClient, error) {
+			return NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String()), nil
+		},
 		resourceID: "res-1",
 		le:         logrus.NewEntry(logrus.New()),
 		mfst:       catalog,

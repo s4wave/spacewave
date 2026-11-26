@@ -172,7 +172,7 @@ func newCompactTestController(t *testing.T, cloud *compactTestCloud, packs [][]s
 	return &syncController{
 		le:         logrus.NewEntry(logrus.New()),
 		store:      newSyncTestKvStore(),
-		client:     cli,
+		client:     func() (*SessionClient, error) { return cli, nil },
 		resourceID: "test-res",
 		mfst:       mfst,
 		lower:      lower,

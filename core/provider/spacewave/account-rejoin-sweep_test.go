@@ -203,12 +203,12 @@ func TestRunSelfRejoinSweepCoalescesUnknownSONotifyDuringListFetch(t *testing.T)
 	}
 }
 
+// TestBuildSelfRejoinSweepStateLockedRequiresBootstrapAndTrigger checks the sweep requires fetched state and a trigger.
 func TestBuildSelfRejoinSweepStateLockedRequiresBootstrapAndTrigger(t *testing.T) {
 	acc := &ProviderAccount{
 		sessionClient: &SessionClient{
 			SignedHTTPClient: &SignedHTTPClient{
-				priv:   testSigner(t),
-				peerID: "peer-1",
+				signer: newSessionSigner("", "peer-1", 0, testSigner(t), nil),
 			},
 		},
 	}

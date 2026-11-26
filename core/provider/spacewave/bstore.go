@@ -394,13 +394,12 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		source:    SyncTelemetryBlockSourceCloud,
 	}
 
-	// Snapshot under the account lock: another mounted Session can replace
-	// the shared signing client while this tracker starts.
+	// Resolve the account signer separately for each sync request.
 	syncConf := t.a.conf.GetSync()
 	sc := &syncController{
 		le:         le.WithField("component", "sync"),
 		store:      objStore,
-		client:     t.a.currentSessionClient(),
+		client:     t.a.GetSessionClient,
 		resourceID: t.id,
 		mfst:       mfst,
 		lower:      lower,

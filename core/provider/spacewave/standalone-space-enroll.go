@@ -27,6 +27,9 @@ func (c *SessionClient) EnrollSpaceMember(
 	if c == nil {
 		return nil, errors.New("session client is required")
 	}
+
+	// Read the key for this operation while the signer is live.
+	priv := c.signer.PrivKey()
 	if ownerAccountID == "" {
 		return nil, errors.New("owner account id is required")
 	}
@@ -36,10 +39,10 @@ func (c *SessionClient) EnrollSpaceMember(
 	if accountID == "" {
 		return nil, errors.New("account id is required")
 	}
-	if c.priv == nil {
+	if priv == nil {
 		return nil, errors.New("session private key not available")
 	}
-	if c.peerID == "" {
+	if c.signer.GetPeerID() == "" {
 		return nil, errors.New("session peer id not available")
 	}
 
@@ -98,16 +101,19 @@ func (c *SessionClient) EnrollSpacePeer(
 	if c == nil {
 		return false, errors.New("session client is required")
 	}
+
+	// Read the key for this operation while the signer is live.
+	priv := c.signer.PrivKey()
 	if spaceID == "" {
 		return false, errors.New("space id is required")
 	}
 	if peerID == "" {
 		return false, errors.New("peer id is required")
 	}
-	if c.priv == nil {
+	if priv == nil {
 		return false, errors.New("session private key not available")
 	}
-	if c.peerID == "" {
+	if c.signer.GetPeerID() == "" {
 		return false, errors.New("session peer id not available")
 	}
 
@@ -132,6 +138,9 @@ func (c *SessionClient) addStandaloneParticipant(
 	targetPub crypto.PubKey,
 	role sobject.SOParticipantRole,
 ) (sobject.SOParticipantAddOutcome, sobject.SOParticipantRole, error) {
+	// Read the key for this operation while the signer is live.
+	priv := c.signer.PrivKey()
+
 	// Write the change against the latest config, retrying on a conflict.
 	for attempt := range maxWriteRetries {
 		// Load the latest config and key epochs.
@@ -172,6 +181,7 @@ func (c *SessionClient) addStandaloneParticipant(
 			return sobject.SOParticipantAddOutcome_SOParticipantAddOutcome_UNKNOWN, 0, err
 		}
 
+		// Prepare a participant change when the existing participant needs updating.
 		var entry *sobject.SOConfigChange
 		var entryData []byte
 		if !participantExists || participantNeedsUpdate {
@@ -199,7 +209,7 @@ func (c *SessionClient) addStandaloneParticipant(
 				currentCfg,
 				nextCfg,
 				sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT,
-				c.priv,
+				priv,
 				nil,
 			)
 			if err != nil {
@@ -215,7 +225,7 @@ func (c *SessionClient) addStandaloneParticipant(
 		var grant *sobject.SOGrant
 		var postedEpoch *sobject.SOKeyEpoch
 		if !grantExists {
-			grant, err = sobject.EncryptSOGrant(c.priv, targetPub, spaceID, grantInner)
+			grant, err = sobject.EncryptSOGrant(priv, targetPub, spaceID, grantInner)
 			if err != nil {
 				return sobject.SOParticipantAddOutcome_SOParticipantAddOutcome_UNKNOWN, 0, errors.Wrap(err, "encrypt grant for target peer")
 			}
@@ -223,6 +233,7 @@ func (c *SessionClient) addStandaloneParticipant(
 			postedEpoch.Grants = append(postedEpoch.GetGrants(), grant)
 		}
 
+		// Build recovery envelopes for the resulting participant configuration.
 		recoveryCfg, err := recoveryConfigSnapshot(currentCfg, entry)
 		if err != nil {
 			return sobject.SOParticipantAddOutcome_SOParticipantAddOutcome_UNKNOWN, 0, errors.Wrap(err, "build recovery config snapshot")
@@ -267,6 +278,7 @@ func (c *SessionClient) addStandaloneParticipant(
 		return outcome, next, nil
 	}
 
+	// Report that concurrent updates exhausted participant enrollment attempts.
 	return sobject.SOParticipantAddOutcome_SOParticipantAddOutcome_UNKNOWN, 0, errors.New("add participant failed after max retries due to config conflicts")
 }
 
@@ -280,6 +292,10 @@ func (c *SessionClient) addStandalonePeerParticipant(
 	targetPub crypto.PubKey,
 	role sobject.SOParticipantRole,
 ) (bool, error) {
+	// Read the key for this operation while the signer is live.
+	priv := c.signer.PrivKey()
+
+	// Validate the participant role before writing a config change.
 	if err := sobject.ValidateSOParticipantRole(role, false); err != nil {
 		return false, err
 	}
@@ -329,7 +345,7 @@ func (c *SessionClient) addStandalonePeerParticipant(
 				currentCfg,
 				nextCfg,
 				sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT,
-				c.priv,
+				priv,
 				nil,
 			)
 			if err != nil {
@@ -344,7 +360,7 @@ func (c *SessionClient) addStandalonePeerParticipant(
 		// Add the target's grant to the current key epoch when it lacks one.
 		var postedEpoch *sobject.SOKeyEpoch
 		if !grantExists {
-			grant, err := sobject.EncryptSOGrant(c.priv, targetPub, spaceID, grantInner)
+			grant, err := sobject.EncryptSOGrant(priv, targetPub, spaceID, grantInner)
 			if err != nil {
 				return false, errors.Wrap(err, "encrypt grant for target peer")
 			}
@@ -371,17 +387,21 @@ func (c *SessionClient) addStandalonePeerParticipant(
 		return err == nil, err
 	}
 
+	// Report that concurrent updates exhausted peer enrollment attempts.
 	return false, errors.New("add peer participant failed after max retries due to config conflicts")
 }
 
 // decryptLocalEpochGrant decrypts the local session's grant in epoch.
 func (c *SessionClient) decryptLocalEpochGrant(spaceID string, epoch *sobject.SOKeyEpoch) (*sobject.SOGrantInner, error) {
+	// Read the key for this operation while the signer is live.
+	priv := c.signer.PrivKey()
+
 	// Find and decrypt the local grant.
-	localGrant := epoch.FindGrant(c.peerID.String())
+	localGrant := epoch.FindGrant(c.signer.GetPeerID().String())
 	if localGrant == nil {
 		return nil, errors.New("local grant not found")
 	}
-	grantInner, err := localGrant.DecryptInnerData(c.priv, spaceID)
+	grantInner, err := localGrant.DecryptInnerData(priv, spaceID)
 	if err != nil {
 		return nil, errors.Wrap(err, "decrypt local grant")
 	}

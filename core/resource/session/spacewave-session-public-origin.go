@@ -23,7 +23,14 @@ func (r *SpacewaveSessionResource) LinkSpacePublicOrigin(
 	}
 
 	// Link the origin through the session's cloud client.
-	status, err := r.swAcc.GetSessionClient().LinkPublicOrigin(ctx, req.GetSpaceId(), req.GetLink())
+	// Resolve the current signer before the cloud request.
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
+
+	// Link the requested public origin and return its status.
+	status, err := cli.LinkPublicOrigin(ctx, req.GetSpaceId(), req.GetLink())
 	if err != nil {
 		return nil, err
 	}
@@ -35,10 +42,19 @@ func (r *SpacewaveSessionResource) GetSpacePublicOrigin(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.GetSpacePublicOriginRequest,
 ) (*s4wave_provider_spacewave.GetSpacePublicOriginResponse, error) {
+	// Require a Space id.
 	if req.GetSpaceId() == "" {
 		return nil, errors.New("space id is required")
 	}
-	status, err := r.swAcc.GetSessionClient().GetPublicOrigin(ctx, req.GetSpaceId())
+
+	// Resolve the current signer before the cloud request.
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
+
+	// Read the public origin status through the current signer.
+	status, err := cli.GetPublicOrigin(ctx, req.GetSpaceId())
 	if err != nil {
 		return nil, err
 	}
@@ -51,10 +67,19 @@ func (r *SpacewaveSessionResource) ReleaseSpaceHostedCopies(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.ReleaseSpaceHostedCopiesRequest,
 ) (*s4wave_provider_spacewave.ReleaseSpaceHostedCopiesResponse, error) {
+	// Require a Space id.
 	if req.GetSpaceId() == "" {
 		return nil, errors.New("space id is required")
 	}
-	status, err := r.swAcc.GetSessionClient().ReleaseHostedCopies(ctx, req.GetSpaceId())
+
+	// Resolve the current signer before the cloud request.
+	cli, err := r.swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
+
+	// Release the hosted copies and return their resulting status.
+	status, err := cli.ReleaseHostedCopies(ctx, req.GetSpaceId())
 	if err != nil {
 		return nil, err
 	}

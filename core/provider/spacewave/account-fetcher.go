@@ -95,7 +95,7 @@ func (a *ProviderAccount) accountFetcher(ctx context.Context) error {
 
 		// Wait for a usable authenticated client when an epoch needs fetching.
 		if !bootstrapped || epoch > lastFetched {
-			if cli == nil || cli.SignedHTTPClient == nil || cli.peerID == "" || (cli.priv == nil && cli.sign == nil) {
+			if !cli.GetSessionSigner().CanSign() || cli.GetPeerID() == "" {
 				select {
 				case <-ctx.Done():
 					return ctx.Err()
@@ -125,7 +125,7 @@ func (a *ProviderAccount) accountFetcher(ctx context.Context) error {
 			}
 
 			// Stop when the account moved to another attachment.
-			if a.observeAccountTransition(state.GetTransition(), state.GetAccountId(), cli.peerID.String()) {
+			if a.observeAccountTransition(state.GetTransition(), state.GetAccountId(), cli.GetPeerID().String()) {
 				<-ctx.Done()
 				return ctx.Err()
 			}
@@ -133,11 +133,13 @@ func (a *ProviderAccount) accountFetcher(ctx context.Context) error {
 			// Apply the fetched state and reset transient retries.
 			retry.Reset()
 
+			// Log the accepted cloud epoch and keypair count.
 			le.WithFields(logrus.Fields{
 				"epoch":         state.GetEpoch(),
 				"keypair-count": state.GetKeypairCount(),
 			}).Debug("fetched account state")
 
+			// Compare keypairs before publishing the fetched account state.
 			keypairsChanged := !protobuf_go_lite.IsEqualVTSlice(prevKeypairs, state.GetKeypairs())
 			prevKeypairs = state.GetKeypairs()
 

@@ -1448,7 +1448,15 @@ func (r *SessionResource) CreateSpaceInvite(
 		return nil, err
 	}
 	code := generateShortCode()
-	err = swAcc.GetSessionClient().RegisterInviteCode(ctx, spaceID, &api.RegisterInviteCodeRequest{
+
+	// Resolve the current signer before the cloud request.
+	cli, err := swAcc.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
+
+	// Publish the invite code through the current cloud signer.
+	err = cli.RegisterInviteCode(ctx, spaceID, &api.RegisterInviteCodeRequest{
 		Code:          code,
 		InviteId:      msg.GetInviteId(),
 		InviteMessage: base64.StdEncoding.EncodeToString(msgData),
@@ -1686,9 +1694,9 @@ func (r *SessionResource) WithdrawSpaceJoinRequest(
 		}
 	case *provider_spacewave.ProviderAccount:
 		// The Space's mailbox holds a cloud request.
-		cli := acc.GetSessionClient()
-		if cli == nil {
-			return nil, errors.New("session client not ready")
+		cli, err := acc.GetSessionClient()
+		if err != nil {
+			return nil, err
 		}
 		soID := inviteMsg.GetSharedObjectId()
 		if _, err := cli.WithdrawMailboxEntries(ctx, soID); err != nil {
@@ -1794,6 +1802,7 @@ func (r *SessionResource) JoinSpaceViaInvite(
 	case *provider_spacewave.ProviderAccount:
 		const inviteAcceptFastPathTimeout = time.Second
 
+		// Build the cloud join response and decode any targeted invitation.
 		joinResp, err := sobject_invite.BuildJoinResponse(inviteMsg.GetInviteId(), sessionKey)
 		if err != nil {
 			return nil, errors.Wrap(err, "build cloud join response")
@@ -1805,9 +1814,9 @@ func (r *SessionResource) JoinSpaceViaInvite(
 				return nil, errors.Wrap(err, "unmarshal targeted invitation envelope")
 			}
 		}
-		cli := acc.GetSessionClient()
-		if cli == nil {
-			return nil, errors.New("session client not ready")
+		cli, err := acc.GetSessionClient()
+		if err != nil {
+			return nil, err
 		}
 		acc.TrackMailboxRequest(
 			inviteMsg.GetSharedObjectId(),

@@ -232,7 +232,14 @@ func (a *ProviderAccount) migrationRecoveryEnvelopes(ctx context.Context, client
 // ReadSharedObjectFullConfigHistory returns the provider's verified immutable chain.
 func (s *SharedObject) ReadSharedObjectFullConfigHistory(ctx context.Context, target *sobject.SharedObjectConfig) ([]*sobject.SOConfigChange, error) {
 	// Fetch the provider's chain.
-	data, err := s.tkr.a.GetSessionClient().GetConfigChain(ctx, s.GetSharedObjectID())
+	// Resolve the current signer before the cloud request.
+	cli, err := s.tkr.a.GetSessionClient()
+	if err != nil {
+		return nil, err
+	}
+
+	// Fetch and decode the complete cloud config chain.
+	data, err := cli.GetConfigChain(ctx, s.GetSharedObjectID())
 	if err != nil {
 		return nil, err
 	}

@@ -634,7 +634,11 @@ func TestDesktopPasskeyLoginLinkedEndToEnd(t *testing.T) {
 	defer relAcc()
 	username := getAccountUsername(ctx, t, acc)
 	va := newConfiguredVirtualAuthenticator(t)
-	registerPasskeyForAccount(ctx, t, acc.GetSessionClient(), va)
+	cli, err := acc.GetSessionClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	registerPasskeyForAccount(ctx, t, cli, va)
 
 	// Answer the handoff with a simulated browser login.
 	restore := provider_spacewave_handoff.SetBrowserOpenerForTesting(
@@ -870,7 +874,11 @@ func TestDesktopPasskeyReauthEndToEnd(t *testing.T) {
 	defer relAcc()
 	username := getAccountUsername(ctx, t, acc)
 	va := newConfiguredVirtualAuthenticator(t)
-	entityPeerID := registerPasskeyForAccount(ctx, t, acc.GetSessionClient(), va)
+	cli, err := acc.GetSessionClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	entityPeerID := registerPasskeyForAccount(ctx, t, cli, va)
 
 	// Build the Session and account resources under test.
 	cloudResource, cloudSess, relCloudResource := mountSessionResource(ctx, t, cloudEntry)

@@ -106,17 +106,19 @@ func (a *ProviderAccount) syncSharedObjectMetadata(
 	ctx context.Context,
 	soID string,
 ) error {
-	cli := a.GetSessionClient()
-	if cli == nil {
-		return errors.New("session client not ready")
+	cli, err := a.GetSessionClient()
+	if err != nil {
+		return err
 	}
 
+	// Repeat a fetch only when an invalidation supersedes it.
 	for {
 		var gen uint64
 		a.accountBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 			gen = a.getOrCreateSharedObjectMetadataStateLocked(soID).gen
 		})
 
+		// Fetch and decode metadata for this shared object.
 		data, err := cli.GetSOMetadata(ctx, soID)
 		if err != nil {
 			return errors.Wrap(err, "get shared object metadata")
@@ -126,6 +128,7 @@ func (a *ProviderAccount) syncSharedObjectMetadata(
 			return errors.Wrap(err, "unmarshal shared object metadata")
 		}
 
+		// Publish this fetch only if its cache generation still matches.
 		var retry bool
 		a.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			state := a.getOrCreateSharedObjectMetadataStateLocked(soID)
@@ -151,9 +154,9 @@ func (a *ProviderAccount) UpdateSharedObjectMetadata(
 	if soID == "" {
 		return nil, errors.New("shared object id is required")
 	}
-	cli := a.GetSessionClient()
-	if cli == nil {
-		return nil, errors.New("session client not ready")
+	cli, err := a.GetSessionClient()
+	if err != nil {
+		return nil, err
 	}
 	data, err := cli.UpdateSOMetadata(ctx, soID, metadata)
 	if err != nil {

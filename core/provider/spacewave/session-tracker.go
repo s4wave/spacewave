@@ -202,13 +202,7 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 
 	// Keep the account signer pinned to the first mounted session unless this
 	// tracker already owns the signer slot.
-	t.a.maybeSetSessionClient(t.id, NewSessionClient(
-		t.a.p.httpCli,
-		t.a.p.endpoint,
-		t.a.p.signingEnvPfx,
-		sessionPriv,
-		sessionPeerID.String(),
-	))
+	t.a.maybeSetSessionClient(t.id, sessionPriv, sessionPeerID)
 	if !registered {
 		t.a.bumpSelfRejoinSweepGeneration()
 	}

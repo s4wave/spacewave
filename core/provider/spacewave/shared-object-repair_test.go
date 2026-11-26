@@ -177,7 +177,7 @@ func TestReinitializeSharedObjectClearsVerifiedCacheBeforeReseed(t *testing.T) {
 			state := &sobject.SOState{
 				Config: &sobject.SharedObjectConfig{
 					Participants: []*sobject.SOParticipantConfig{{
-						PeerId:   acc.sessionClient.peerID.String(),
+						PeerId:   acc.sessionClient.GetPeerID().String(),
 						Role:     sobject.SOParticipantRole_SOParticipantRole_OWNER,
 						EntityId: acc.accountID,
 					}},
@@ -390,10 +390,11 @@ func writeEmptyOwnerState(
 ) {
 	t.Helper()
 
+	// Build the recovered state with the account session participant.
 	state := &sobject.SOState{
 		Config: &sobject.SharedObjectConfig{
 			Participants: []*sobject.SOParticipantConfig{{
-				PeerId:   acc.sessionClient.peerID.String(),
+				PeerId:   acc.sessionClient.GetPeerID().String(),
 				Role:     sobject.SOParticipantRole_SOParticipantRole_OWNER,
 				EntityId: acc.accountID,
 			}},

@@ -1,0 +1,68 @@
+[
+  {
+    "name": "a lock leaves the Session's signer live",
+    "replace": [
+      [
+        "       THEN /\\ sstate' = RevokeSlot /\\ slotSid' = None /\\ slotGen' = 0\n",
+        "       THEN /\\ sstate' = sstate /\\ slotSid' = None /\\ slotGen' = 0\n"
+      ]
+    ],
+    "expect": "OneLiveSigner",
+    "config": "SessionSigner.cfg"
+  },
+  {
+    "name": "an install keeps the previous signer live",
+    "replace": [
+      [
+        "  /\\ sstate' = [RevokeSlot EXCEPT ![next] = \"live\"]\n",
+        "  /\\ sstate' = [sstate EXCEPT ![next] = \"live\"]\n"
+      ]
+    ],
+    "expect": "OneLiveSigner",
+    "config": "SessionSigner.cfg"
+  },
+  {
+    "name": "a revoked signer still signs",
+    "replace": [
+      [
+        "  /\\ sstate[held[h]] = \"live\"\n  /\\ stale'",
+        "  /\\ stale'"
+      ]
+    ],
+    "expect": "NoStaleSignature",
+    "config": "SessionSigner.cfg"
+  },
+  {
+    "name": "a locked Session's signer is installed",
+    "replace": [
+      [
+        "  /\\ unlocked[s]\n  /\\ slotSid",
+        "  /\\ slotSid"
+      ]
+    ],
+    "expect": "LockedHasNoLiveSigner",
+    "config": "SessionSigner.cfg"
+  },
+  {
+    "name": "an install reuses the current generation",
+    "replace": [
+      [
+        "  /\\ slotSid' = sid /\\ slotGen' = next /\\ next' = next + 1\n",
+        "  /\\ slotSid' = sid /\\ slotGen' = next /\\ next' = next\n"
+      ]
+    ],
+    "expect": "SlotIsNewest",
+    "config": "SessionSigner.cfg"
+  },
+  {
+    "name": "reauthentication binds a signer with no Session",
+    "replace": [
+      [
+        "  /\\ Bind(s, s)\n  /\\ UNCHANGED <<held, stale>>\n",
+        "  /\\ Bind(None, s)\n  /\\ UNCHANGED <<held, stale>>\n"
+      ]
+    ],
+    "expect": "LockedHasNoLiveSigner",
+    "config": "SessionSigner.cfg"
+  }
+]

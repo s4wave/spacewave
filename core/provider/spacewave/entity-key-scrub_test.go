@@ -32,13 +32,15 @@ func TestProviderRetainEntityKeyBootstrapUpdatesLiveEntityClient(t *testing.T) {
 	ref, _, _ := p.accountRc.AddKeyRef("acct-1")
 	defer ref.Release()
 
+	// Retain the replacement entity key through the bootstrap owner.
 	bootstrapRef := p.RetainEntityKeyBootstrap("acct-1", newPriv, newPID)
 	defer bootstrapRef.Release()
 
-	if got := acc.entityCli.peerID; got != newPID {
+	// Require the account to use the new entity identity and private key.
+	if got := acc.entityCli.signer.GetPeerID(); got != newPID {
 		t.Fatalf("expected live entity client peer id %q, got %q", newPID, got)
 	}
-	if acc.entityCli.priv != newPriv {
+	if acc.entityCli.signer.PrivKey() != newPriv {
 		t.Fatal("expected live entity client private key to be replaced")
 	}
 	if !acc.entityKeyStore.IsUnlocked(newPID) {
