@@ -37,6 +37,9 @@ type debugRefRepairArgs struct {
 	// syntheticEmpty is a file of B58 refs, one per line, listed with no
 	// children when no read decodes them.
 	syntheticEmpty string
+	// frontRoots also names the root that reaches each block the walk left
+	// on the front.
+	frontRoots bool
 	// upgrade decides whether the open upgrades the volume's format.
 	upgrade *FormatUpgrade
 }
@@ -64,6 +67,12 @@ func (a *debugRefRepairArgs) BuildFlags() []cli.Flag {
 			Usage:       "file of B58 refs to list with no children when no read decodes them, for a rehearsal on a copy",
 			Destination: &a.syntheticEmpty,
 		},
+		&cli.BoolFlag{
+			Name: "front-roots",
+			Usage: "also walk the stored child lists from every named root and count the blocks the typed walk left on the front by the root that reaches them; " +
+				"it holds one key per reached block in memory, so run it on a copy host",
+			Destination: &a.frontRoots,
+		},
 	}, a.upgrade.BuildFlags()...)
 }
 
@@ -75,11 +84,11 @@ func (a *debugRefRepairArgs) Run(c *cli.Context) error {
 	}
 	path := c.Args().First()
 	le := logrus.NewEntry(logrus.New())
-	stub, err := a.stub()
+	opts, err := a.opts()
 	if err != nil {
 		return err
 	}
-	res, err := repairVolumeRefs(c.Context, le, path, a.spaceID, a.dryRun, space_world_optypes.LookupBlockType, stub, a.upgrade.StoreConfig(nil))
+	res, err := repairVolumeRefs(c.Context, le, path, a.spaceID, a.dryRun, space_world_optypes.LookupBlockType, opts, a.upgrade.StoreConfig(nil))
 	if err != nil {
 		return err
 	}
@@ -89,29 +98,34 @@ func (a *debugRefRepairArgs) Run(c *cli.Context) error {
 	return nil
 }
 
-// stub reads the peer and synthetic stand-ins the flags name.
-func (a *debugRefRepairArgs) stub() (refRepairStub, error) {
-	var stub refRepairStub
+// opts reads the peer and synthetic stand-ins the flags name, with what more
+// the run measures.
+func (a *debugRefRepairArgs) opts() (refRepairOpts, error) {
+	opts := refRepairOpts{frontRoots: a.frontRoots}
 	if a.peerBlocks != "" {
-		stub.peer = packcopy.NewSourceStore([]packcopy.Source{dirBlocks(a.peerBlocks)})
+		opts.peer = packcopy.NewSourceStore([]packcopy.Source{dirBlocks(a.peerBlocks)})
 	}
 	if a.syntheticEmpty != "" {
 		data, err := os.ReadFile(a.syntheticEmpty)
 		if err != nil {
-			return stub, err
+			return opts, err
 		}
-		stub.synthetic = make(map[string]bool)
+		opts.synthetic = make(map[string]bool)
 		for line := range strings.Lines(string(data)) {
 			if key := strings.TrimSpace(line); key != "" {
-				stub.synthetic[key] = false
+				opts.synthetic[key] = false
 			}
 		}
 	}
-	return stub, nil
+	return opts, nil
 }
 
-// refRepairStub stands in for what a stopped volume cannot reach offline.
-type refRepairStub struct {
+// refRepairOpts stands in for what a stopped volume cannot reach offline, and
+// selects what more the run measures.
+type refRepairOpts struct {
+	// frontRoots also walks the stored lists from every named root, as
+	// refRepair.measureFront describes.
+	frontRoots bool
 	// peer reads the blocks the volume lacks, as the serve reads them from
 	// the Space's peers. Nil reads the volume alone.
 	peer block.StoreOps
@@ -165,6 +179,14 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 		{"Plugin prefix groups", strconv.Itoa(len(res.pluginStores))},
 		{"Stored blocks without a child list", strconv.FormatUint(res.untracked, 10)},
 		{"Their bytes", strconv.FormatUint(res.untrackedBytes, 10)},
+	}
+
+	// A run that walked from the named roots says how much they reach.
+	if res.rooted {
+		fields = append(fields,
+			[2]string{"Named roots", strconv.Itoa(res.roots)},
+			[2]string{"Listed blocks the named roots reach", strconv.FormatUint(res.rootListed, 10)},
+		)
 	}
 
 	// List private-state prefix groups and a bounded sample of untracked blocks.
@@ -241,7 +263,7 @@ func repairVolumeRefs(
 	path, spaceID string,
 	dryRun bool,
 	lookup refwalk.LookupBlockType,
-	stub refRepairStub,
+	opts refRepairOpts,
 	storeConf *store_kvtx.Config,
 ) (refRepairResult, error) {
 	// Open the stopped volume.
@@ -262,8 +284,8 @@ func repairVolumeRefs(
 
 	// Start the list rebuild, or its dry run, then walk each Space and
 	// release the walker.
-	rr := newRefRepair(le, vol, stub.peer, lookup)
-	rr.synthetic = stub.synthetic
+	rr := newRefRepair(le, vol, opts.peer, lookup)
+	rr.synthetic = opts.synthetic
 	defer rr.close()
 	if dryRun {
 		rr.rebuild = vol.OpenListCheck()
@@ -299,7 +321,7 @@ func repairVolumeRefs(
 		if rr.res.rebuild, err = rr.rebuild.Finish(ctx); err != nil {
 			return refRepairResult{}, errors.Wrap(err, "finish the child list rebuild")
 		}
-		if err := rr.measureFront(ctx, dryRun); err != nil {
+		if err := rr.measureFront(ctx, dryRun, opts.frontRoots); err != nil {
 			return refRepairResult{}, errors.Wrap(err, "measure the front")
 		}
 	}

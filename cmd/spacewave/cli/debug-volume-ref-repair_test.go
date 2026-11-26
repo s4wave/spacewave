@@ -263,7 +263,7 @@ func TestDebugRefRepair(t *testing.T) {
 	before := sum()
 
 	// A dry run counts the missing edges and writes none.
-	dry, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, refRepairStub{}, nil)
+	dry, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, refRepairOpts{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -329,7 +329,7 @@ func TestDebugRefRepair(t *testing.T) {
 	}
 
 	// The dry run left the child lists as they were.
-	again, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, refRepairStub{}, nil)
+	again, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, refRepairOpts{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -364,7 +364,7 @@ func TestDebugRefRepair(t *testing.T) {
 	// Applying writes every missing child list, those of the leaves the dry
 	// run only checks for presence too, and verifies every walked block's
 	// list, which leaves no reached block on the settle's front.
-	applied, err := repairVolumeRefs(ctx, le, path, "", false, space_world_optypes.LookupBlockType, refRepairStub{}, nil)
+	applied, err := repairVolumeRefs(ctx, le, path, "", false, space_world_optypes.LookupBlockType, refRepairOpts{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -397,7 +397,7 @@ func TestDebugRefRepair(t *testing.T) {
 	asBytes := func(_ context.Context, typeID string) (blocktype.BlockType, error) {
 		return blocktype.New[byteslice.ByteSlice](typeID), nil
 	}
-	wrong, err := repairVolumeRefs(ctx, le, path, "", false, asBytes, refRepairStub{}, nil)
+	wrong, err := repairVolumeRefs(ctx, le, path, "", false, asBytes, refRepairOpts{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -407,7 +407,7 @@ func TestDebugRefRepair(t *testing.T) {
 	if len(wrong.front) != 1 || wrong.front[frontRest].count != wrong.rebuild.Front {
 		t.Fatalf("front of a rebuild with a wrong root type: %+v", wrong.front)
 	}
-	right, err := repairVolumeRefs(ctx, le, path, "", false, space_world_optypes.LookupBlockType, refRepairStub{}, nil)
+	right, err := repairVolumeRefs(ctx, le, path, "", false, space_world_optypes.LookupBlockType, refRepairOpts{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -416,7 +416,7 @@ func TestDebugRefRepair(t *testing.T) {
 	}
 
 	// Nothing is missing afterward.
-	after, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, refRepairStub{}, nil)
+	after, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, refRepairOpts{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -449,7 +449,7 @@ func TestDebugRefRepair(t *testing.T) {
 	})
 
 	// A dry run counts it and writes nothing.
-	dryRe, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, refRepairStub{}, nil)
+	dryRe, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, refRepairOpts{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -469,7 +469,7 @@ func TestDebugRefRepair(t *testing.T) {
 	}
 
 	// The repair rewrites the list with the child.
-	fixed, err := repairVolumeRefs(ctx, le, path, "", false, space_world_optypes.LookupBlockType, refRepairStub{}, nil)
+	fixed, err := repairVolumeRefs(ctx, le, path, "", false, space_world_optypes.LookupBlockType, refRepairOpts{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -490,7 +490,7 @@ func TestDebugRefRepair(t *testing.T) {
 	})
 
 	// A dry run counts the disagreement and a rewrite, not a refusal.
-	dryMixed, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, refRepairStub{}, nil)
+	dryMixed, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, refRepairOpts{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -500,7 +500,7 @@ func TestDebugRefRepair(t *testing.T) {
 
 	// The repair writes the union: a refusal would leave the list short and
 	// marked, off the front, and the sweep would free the child it lacks.
-	mixed, err := repairVolumeRefs(ctx, le, path, "", false, space_world_optypes.LookupBlockType, refRepairStub{}, nil)
+	mixed, err := repairVolumeRefs(ctx, le, path, "", false, space_world_optypes.LookupBlockType, refRepairOpts{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

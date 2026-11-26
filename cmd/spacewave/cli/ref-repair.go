@@ -45,6 +45,12 @@ const (
 	frontRest = "not reached by the walk, or its decoded list refused"
 	// frontRestDry is frontRest on a dry run, which marked nothing.
 	frontRestDry = "decoded by this walk, or not reached by it"
+	// frontNoRoot follows frontRest for a block no named root reaches
+	// through the stored lists.
+	frontNoRoot = "; no named root reaches it"
+	// frontRootOf follows frontRest for a block a named root reaches,
+	// followed by the root's bucket and name.
+	frontRootOf = "; under root "
 )
 
 // refRepairFront counts the blocks one cause left on the front.
@@ -98,6 +104,12 @@ type refRepairResult struct {
 	// front counts the blocks the rebuild's front holds by why the walk
 	// verified nothing for them, as measureFront describes.
 	front map[string]refRepairFront
+	// roots is the number of named roots and rootListed the number of
+	// listed blocks they reach, both set only when the run asked for the
+	// front's roots, which rooted reports.
+	roots      int
+	rootListed uint64
+	rooted     bool
 	// verified reports that the volume's old generation had left Open before
 	// the run, so it rebuilt nothing.
 	verified bool
@@ -175,21 +187,31 @@ func newRefRepair(le *logrus.Entry, vol *volume_s4db.Volume, peer block.StoreOps
 // type says, or the walk stopped at it for a type it cannot name. A repair
 // marked every other block it reached, so the rest were not reached or had
 // their decoded list refused; a dry run marked nothing, so its rest also
-// holds the blocks a repair would verify. Call it after the walk and the
-// rebuild's Finish.
-func (r *refRepair) measureFront(ctx context.Context, dryRun bool) error {
+// holds the blocks a repair would verify. With roots set it also walks the
+// stored lists from every named root, as block_gc.ListRebuild.FrontRoots
+// describes, and splits the rest by the first root that reaches each block:
+// a block under a root is live by the lists and the typed walk stopped above
+// it, and a block under none is held only by blocks nothing reaches. Call it
+// after the walk and the rebuild's Finish.
+func (r *refRepair) measureFront(ctx context.Context, dryRun, roots bool) error {
+	// Name the rest by what this run's walk did with the blocks it reached.
 	rest := frontRest
 	if dryRun {
 		rest = frontRestDry
 	}
 	r.res.front = make(map[string]refRepairFront)
-	return r.rebuild.EachFront(ctx, func(ref *block.BlockRef) error {
-		// Name the cause the walk recorded for the block.
+	count := func(ref *block.BlockRef, root *block_gc.FrontRoot) error {
+		// Name the cause the walk recorded for the block, and for the rest
+		// the root that reaches it.
 		cause := rest
 		if why, ok := r.unread[ref.MarshalString()]; ok {
 			cause = why
 		} else if reason := r.walker.UntypedReason(ref); reason != "" {
 			cause = frontUntyped + reason
+		} else if roots && root == nil {
+			cause += frontNoRoot
+		} else if roots {
+			cause += frontRootOf + root.BucketID + " " + root.Name
 		}
 
 		// Count it, keeping the first block of each cause.
@@ -200,6 +222,15 @@ func (r *refRepair) measureFront(ctx context.Context, dryRun bool) error {
 		f.count++
 		r.res.front[cause] = f
 		return nil
+	}
+	if roots {
+		var err error
+		r.res.roots, r.res.rootListed, err = r.rebuild.FrontRoots(ctx, count)
+		r.res.rooted = err == nil
+		return err
+	}
+	return r.rebuild.EachFront(ctx, func(ref *block.BlockRef) error {
+		return count(ref, nil)
 	})
 }
 
