@@ -141,7 +141,7 @@ func (t *Transport) DialPeer(ctx context.Context, peerID peer.ID, as string) (li
 	}
 
 	// Reject duplicate links for the same address and peer.
-	ok, err := CheckAlreadyConnected(t, as, peerID)
+	ok, err := t.checkAlreadyConnected(as, peerID)
 	if ok || err != nil {
 		// returns an error if already connected w/ different peer id
 		return nil, false, err
@@ -175,6 +175,19 @@ func (t *Transport) DialPeer(ctx context.Context, peerID peer.ID, as string) (li
 	}
 
 	return lnk, false, err
+}
+
+// checkAlreadyConnected checks whether the address already serves the requested peer.
+func (t *Transport) checkAlreadyConnected(addr string, peerID peer.ID) (bool, error) {
+	// Look up the link registered at the requested address.
+	lnk, ok := t.LookupLinkWithAddr(addr)
+	if !ok {
+		return false, nil
+	}
+
+	// Ask the link to reject a different peer at the same address.
+	err := lnk.checkRemotePeer(addr, peerID)
+	return err == nil, err
 }
 
 // CancelDialer cancels the dialer to a given address.
@@ -259,18 +272,28 @@ func (t *Transport) HandleSession(ctx context.Context, sess *quic.Conn, dial boo
 	t.sessionCounter++
 	t.mtx.Unlock()
 
+	// Keep the registry address, then resolve the authenticated endpoint.
+	as := sess.RemoteAddr().String()
+	le := t.le.WithField("session-id", sessID)
+	remotePeerID, remotePubKey, err := DetermineSessionIdentity(sess)
+	if err != nil {
+		return nil, err
+	}
+	raddr := sess.RemoteAddr()
+
 	// Construct the link with a callback that retires its address entry.
 	var lnk *Link
-	var err error
-	as := sess.RemoteAddr().String()
-	lnk, err = NewLink(
+	lnk, err = newLink(
 		t.ctx,
-		t.le.WithField("session-id", sessID),
-		t.opts,
+		le,
 		t.uuid,
 		t.peerID,
 		t.laddr,
 		sess,
+		raddr,
+		remotePeerID,
+		remotePubKey,
+		dial,
 		func() {
 			if lnk != nil {
 				go t.handleLinkLost(as, lnk)
@@ -280,13 +303,11 @@ func (t *Transport) HandleSession(ctx context.Context, sess *quic.Conn, dial boo
 	if err != nil {
 		return nil, err
 	}
-	lnk.dialed = dial
 
 	// Register the link and replace any prior session at this address.
 	t.mtx.Lock()
 
 	// Clear any ongoing dial attempt for this address.
-	raddr := lnk.RemoteAddr()
 	if raddr != nil {
 		rs := raddr.String()
 		delete(t.dialers, rs)
@@ -297,7 +318,7 @@ func (t *Transport) HandleSession(ctx context.Context, sess *quic.Conn, dial boo
 	// remote also holds both sessions: closing either here closes the one the
 	// remote kept, and both sides redial forever. Both stay open.
 	elnk := t.links[as]
-	if elnk != nil && elnk.dialed != dial {
+	if elnk != nil && !lnk.supersedes(elnk) {
 		elnk = nil
 	}
 	t.links[as] = lnk
@@ -306,11 +327,7 @@ func (t *Transport) HandleSession(ctx context.Context, sess *quic.Conn, dial boo
 
 	// Close the replaced session before returning its successor.
 	if elnk != nil {
-		t.le.
-			WithField("remote-addr", as).
-			WithField("remote-peer", elnk.GetRemotePeer().String()).
-			Warn("usurping existing session with peer")
-		_ = elnk.Close()
+		elnk.closeReplaced(t.le, as)
 	}
 	return lnk, nil
 }

@@ -60,13 +60,9 @@ func NewInproc(
 		return nil, err
 	}
 
-	// Build the local address and transport state.
+	// Allocate the endpoint that the packet writer will call.
 	localAddr := NewAddr(peerID)
-	ip := &Inproc{
-		le:        le,
-		localAddr: localAddr,
-		remotes:   make(map[string]*Inproc),
-	}
+	ip := new(Inproc)
 
 	// Create the packet connection that routes to known remotes.
 	npc := newPacketConn(
@@ -76,7 +72,7 @@ func NewInproc(
 	)
 
 	// Construct the packet-backed transport.
-	ip.Transport, err = pconn.NewTransport(
+	tpt, err := pconn.NewTransport(
 		ctx,
 		le,
 		pKey,
@@ -91,8 +87,14 @@ func NewInproc(
 		return nil, err
 	}
 
-	// Retain the packet connection for future remote wiring.
-	ip.packetConn = npc
+	// Complete the endpoint before returning it to the transport controller.
+	*ip = Inproc{
+		Transport:  tpt,
+		le:         le,
+		packetConn: npc,
+		localAddr:  localAddr,
+		remotes:    make(map[string]*Inproc),
+	}
 	return ip, nil
 }
 

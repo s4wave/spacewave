@@ -9,6 +9,7 @@ import (
 	"net"
 	"sync"
 
+	"github.com/pkg/errors"
 	quic "github.com/quic-go/quic-go"
 	"github.com/s4wave/spacewave/net/link"
 	"github.com/s4wave/spacewave/net/peer"
@@ -47,7 +48,6 @@ type Link struct {
 	// closedOnce guards closed
 	closedOnce sync.Once
 	// dialed indicates the local side dialed the session.
-	// Set by Transport.HandleSession before the link is published.
 	dialed bool
 
 	// messagesMtx guards messages.
@@ -62,7 +62,7 @@ type Link struct {
 func NewLink(
 	ctx context.Context,
 	le *logrus.Entry,
-	opts *Opts,
+	_ *Opts,
 	localTransportUUID uint64,
 	localPeerID peer.ID,
 	localAddr net.Addr,
@@ -75,9 +75,27 @@ func NewLink(
 		return nil, err
 	}
 
+	// Build a standalone link from the negotiated endpoint.
+	return newLink(ctx, le, localTransportUUID, localPeerID, localAddr, sess,
+		sess.RemoteAddr(), remotePeerID, remotePubKey, false, closed)
+}
+
+// newLink builds a link from an authenticated session and its address snapshot.
+func newLink(
+	ctx context.Context,
+	le *logrus.Entry,
+	localTransportUUID uint64,
+	localPeerID peer.ID,
+	localAddr net.Addr,
+	sess *quic.Conn,
+	remoteAddr net.Addr,
+	remotePeerID peer.ID,
+	remotePubKey crypto.PublicKey,
+	dialed bool,
+	closed func(),
+) (*Link, error) {
 	// Each physical connection has its own identity. Manual and signaled
 	// WebRTC connections can share both addresses and authenticated peers.
-	remoteAddr := sess.RemoteAddr()
 	var linkID [8]byte
 	if _, err := rand.Read(linkID[:]); err != nil {
 		return nil, err
@@ -104,6 +122,7 @@ func NewLink(
 		localPeerID:         localPeerID,
 		transportUUID:       localTransportUUID,
 		remoteTransportUUID: remoteTransportUUID,
+		dialed:              dialed,
 		messages:            make(map[string]*messageStream),
 	}, nil
 }
@@ -221,6 +240,34 @@ func (l *Link) CloseWithReason(reason string) error {
 		}
 	})
 	return nil
+}
+
+// checkRemotePeer rejects reuse of an address by a different peer.
+func (l *Link) checkRemotePeer(addr string, desiredPeerID peer.ID) error {
+	// Compare the printable identities used in the dial error.
+	actual := l.remotePeerID.String()
+	desired := desiredPeerID.String()
+	if actual != desired {
+		return errors.Errorf("already connected to %s with different peer id: %s != requested %s", addr, actual, desired)
+	}
+	return nil
+}
+
+// supersedes reports whether this session replaces a previous session at the
+// same address. Opposite directions can coexist during a simultaneous open.
+func (l *Link) supersedes(previous *Link) bool {
+	return l.dialed == previous.dialed
+}
+
+// closeReplaced reports and closes a session superseded at the registered address.
+func (l *Link) closeReplaced(le *logrus.Entry, addr string) {
+	// Report the peer displaced at this transport address.
+	le.WithField("remote-addr", addr).
+		WithField("remote-peer", l.remotePeerID.String()).
+		Warn("usurping existing session with peer")
+
+	// Retire the session after reporting the replacement.
+	_ = l.Close()
 }
 
 // _ is a type assertion
