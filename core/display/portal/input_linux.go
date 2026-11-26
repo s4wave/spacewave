@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"time"
 
 	"github.com/godbus/dbus/v5"
 	"github.com/s4wave/spacewave/core/frametrack"
@@ -48,11 +49,11 @@ func (i *Input) Send(ctx context.Context, event *frametrack.Input) error {
 	if pointer := event.GetPointer(); pointer != nil {
 		x := math.Min(float64(s.width-1), float64(pointer.GetX())*float64(s.width))
 		y := math.Min(float64(s.height-1), float64(pointer.GetY())*float64(s.height))
-		if err := s.notify(s.ctx, "NotifyPointerMotionAbsolute", s.nodeID, x, y); err != nil {
+		if err := s.notify("NotifyPointerMotionAbsolute", s.nodeID, x, y); err != nil {
 			return err
 		}
 		for bit, code := range pointerButtons {
-			if err := i.setPressed(s.ctx, inputCode{code: code, button: true}, pointer.GetButtons()&(1<<bit) != 0); err != nil {
+			if err := i.setPressed(inputCode{code: code, button: true}, pointer.GetButtons()&(1<<bit) != 0); err != nil {
 				return err
 			}
 		}
@@ -62,7 +63,7 @@ func (i *Input) Send(ctx context.Context, event *frametrack.Input) error {
 	// Forward physical keys and let the compositor own auto-repeat.
 	if key := event.GetKey(); key != nil && !key.GetRepeat() {
 		if code := evdevKeycodes[key.GetCode()]; code != 0 {
-			return i.setPressed(s.ctx, inputCode{code: code}, key.GetPressed())
+			return i.setPressed(inputCode{code: code}, key.GetPressed())
 		}
 	}
 	return nil
@@ -80,7 +81,7 @@ func (i *Input) Close() error {
 
 	// Release every held code, even if the portal reports a failure on one.
 	for code := range i.held {
-		err = errors.Join(err, i.setPressed(ctx, code, false))
+		err = errors.Join(err, i.setPressed(code, false))
 	}
 	if err != nil && ctx.Err() == nil {
 		i.session.cancel(err)
@@ -89,7 +90,7 @@ func (i *Input) Close() error {
 }
 
 // setPressed changes one viewer's vote under the session's input lock.
-func (i *Input) setPressed(ctx context.Context, code inputCode, pressed bool) error {
+func (i *Input) setPressed(code inputCode, pressed bool) error {
 	// Duplicates and other viewers' held presses need no bus call.
 	_, held := i.held[code]
 	if held == pressed {
@@ -97,12 +98,12 @@ func (i *Input) setPressed(ctx context.Context, code inputCode, pressed bool) er
 	}
 	count := i.session.pressed[code]
 	if pressed && count == 0 {
-		if err := i.notifyPress(ctx, code, 1); err != nil {
+		if err := i.notifyPress(code, 1); err != nil {
 			return err
 		}
 	}
 	if !pressed && count == 1 {
-		if err := i.notifyPress(ctx, code, 0); err != nil {
+		if err := i.notifyPress(code, 0); err != nil {
 			return err
 		}
 	}
@@ -123,22 +124,43 @@ func (i *Input) setPressed(ctx context.Context, code inputCode, pressed bool) er
 }
 
 // notifyPress sends an evdev button or key transition.
-func (i *Input) notifyPress(ctx context.Context, code inputCode, pressed uint32) error {
+func (i *Input) notifyPress(code inputCode, pressed uint32) error {
 	method := "NotifyKeyboardKeycode"
 	if code.button {
 		method = "NotifyPointerButton"
 	}
-	return i.session.notify(ctx, method, code.code, pressed)
+	return i.session.notify(method, code.code, pressed)
 }
 
-// notify sends input only while the portal owns this session.
-func (s *Session) notify(ctx context.Context, method string, params ...any) error {
-	// End input as soon as either the admitted viewer or portal ends.
+// inputWriteLimit bounds backpressure from the session bus socket.
+const inputWriteLimit = time.Second
+
+// notify queues input on the session connection while inputMtx is held.
+func (s *Session) notify(method string, params ...any) error {
+	// A revoked session cannot send another event.
 	if cause := context.Cause(s.ctx); cause != nil {
 		return cause
 	}
 
-	// The portal checks the caller and the session again on every input event.
-	return s.conn.Object(s.owner, desktopPath).CallWithContext(ctx, remoteDesktop+"."+method, 0,
-		append([]any{s.path, map[string]dbus.Variant{}}, params...)...).Err
+	// Notify methods have no reply payload. Bound only the local socket write.
+	deadline := time.Now().Add(inputWriteLimit)
+	err := s.socket.SetWriteDeadline(deadline)
+	if err == nil {
+		err = s.conn.Object(s.owner, desktopPath).Call(remoteDesktop+"."+method, dbus.FlagNoReplyExpected,
+			append([]any{s.path, map[string]dbus.Variant{}}, params...)...).Err
+	}
+
+	// Godbus does not report socket write errors for no-reply calls. A write
+	// that reaches the deadline may be partial, so retire the connection.
+	if !time.Now().Before(deadline) {
+		err = errors.Join(err, context.DeadlineExceeded)
+	}
+	if err == nil {
+		err = s.socket.SetWriteDeadline(time.Time{})
+	}
+	if err != nil {
+		s.cancel(err)
+		_ = s.socket.Close()
+	}
+	return err
 }

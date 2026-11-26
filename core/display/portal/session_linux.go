@@ -4,6 +4,7 @@ package portal
 import (
 	"context"
 	"errors"
+	"net"
 	"os"
 	"slices"
 	"strings"
@@ -54,6 +55,8 @@ type Session struct {
 	cancel context.CancelCauseFunc
 	// conn is private to this capture so portal identity and cleanup share a peer.
 	conn *dbus.Conn
+	// socket bounds transport writes without waiting for a portal input reply.
+	socket *net.UnixConn
 	// owner identifies the portal sender on the private connection.
 	owner string
 	// path is the session object predicted from the connection name and token.
@@ -80,7 +83,7 @@ type Session struct {
 // The caller closes the returned session to release its capture and input.
 func Open(ctx context.Context) (_ *Session, err error) {
 	// Register on a new connection before any capture portal method uses it.
-	conn, owner, err := connectPortal(ctx)
+	conn, socket, owner, err := connectPortal(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +92,7 @@ func Open(ctx context.Context) (_ *Session, err error) {
 	ctx, cancel := context.WithCancelCause(ctx)
 	sender := strings.ReplaceAll(strings.TrimPrefix(conn.Names()[0], ":"), ".", "_")
 	s := &Session{
-		ctx: ctx, cancel: cancel, conn: conn, owner: owner,
+		ctx: ctx, cancel: cancel, conn: conn, socket: socket, owner: owner,
 		path:        dbus.ObjectPath("/org/freedesktop/portal/desktop/session/" + sender + "/display"),
 		requestRoot: "/org/freedesktop/portal/desktop/request/" + sender,
 		watched:     make(chan struct{}),
@@ -408,11 +411,16 @@ func (s *Session) closeObject(path dbus.ObjectPath, iface string) {
 }
 
 // connectPortal registers the app ID and pins the owner of the public portal name.
-func connectPortal(ctx context.Context) (_ *dbus.Conn, owner string, err error) {
+func connectPortal(ctx context.Context) (_ *dbus.Conn, _ *net.UnixConn, owner string, err error) {
 	// Give every session its own registry identity and D-Bus object namespace.
-	conn, err := dbus.ConnectSessionBus(dbus.WithSignalHandler(dbus.NewSequentialSignalHandler()))
+	socket, err := dialSessionBus(ctx)
 	if err != nil {
-		return nil, "", err
+		return nil, nil, "", err
+	}
+	conn, err := dbus.ConnectUnix(socket, dbus.WithSignalHandler(dbus.NewSequentialSignalHandler()))
+	if err != nil {
+		_ = socket.Close()
+		return nil, nil, "", err
 	}
 	defer func() {
 		if err != nil {
@@ -423,18 +431,18 @@ func connectPortal(ctx context.Context) (_ *dbus.Conn, owner string, err error) 
 	// Resolve a single portal owner even if the desktop service needs activation.
 	bus := conn.BusObject()
 	if err := bus.CallWithContext(ctx, "org.freedesktop.DBus.StartServiceByName", 0, desktop, uint32(0)).Err; err != nil {
-		return nil, "", err
+		return nil, nil, "", err
 	}
 	if err := bus.CallWithContext(ctx, "org.freedesktop.DBus.GetNameOwner", 0, desktop).Store(&owner); err != nil {
-		return nil, "", err
+		return nil, nil, "", err
 	}
 
 	// Register before that owner can cache the peer as an anonymous host app.
 	object := conn.Object(owner, desktopPath)
 	if err := object.CallWithContext(ctx, "org.freedesktop.host.portal.Registry.Register", 0, AppID, map[string]dbus.Variant{}).Err; err != nil {
-		return nil, "", errors.Join(ErrNotAuthorized, err)
+		return nil, nil, "", errors.Join(ErrNotAuthorized, err)
 	}
-	return conn, owner, nil
+	return conn, socket, owner, nil
 }
 
 // grantWasRevoked reports a change to KDE's grant row that removes this app's yes.

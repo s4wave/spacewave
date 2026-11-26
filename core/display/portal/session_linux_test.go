@@ -3,8 +3,10 @@ package portal
 import (
 	"context"
 	"errors"
+	"net"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -14,6 +16,50 @@ import (
 	"github.com/s4wave/spacewave/core/display/gstencoder"
 	"github.com/s4wave/spacewave/core/frametrack"
 )
+
+// TestInputWriteStall fills the socket of a session bus that never reads.
+func TestInputWriteStall(t *testing.T) {
+	// Open a private socket and keep its peer connected without draining it.
+	addr := &net.UnixAddr{Name: filepath.Join(t.TempDir(), "bus"), Net: "unix"}
+	listener, err := net.ListenUnix("unix", addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = listener.Close() }()
+	socket, err := net.DialUnix("unix", nil, addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = socket.Close() }()
+	peer, err := listener.AcceptUnix()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = peer.Close() }()
+	if err := socket.SetWriteBuffer(4096); err != nil {
+		t.Fatal(err)
+	}
+
+	// Use godbus's real writer without starting authentication on the stalled bus.
+	conn, err := dbus.DialUnix(socket)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = conn.Close() }()
+	ctx, cancel := context.WithCancelCause(t.Context())
+	defer cancel(context.Canceled)
+	s := &Session{ctx: ctx, cancel: cancel, conn: conn, socket: socket, owner: desktop, path: desktopPath}
+
+	// Force a partial write in one send and require the session to end.
+	started := time.Now()
+	if err := s.notify("NotifyPointerMotionAbsolute", strings.Repeat("x", 64<<10)); !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("stalled write returned %v", err)
+	}
+	if cause := context.Cause(ctx); !errors.Is(cause, context.DeadlineExceeded) {
+		t.Fatalf("stalled write left the session open: %v", cause)
+	}
+	t.Logf("blocked bus write ended the session in %s", time.Since(started))
+}
 
 // TestPortalCapture reads hardware AVC and ends both capabilities on portal events.
 func TestPortalCapture(t *testing.T) {
