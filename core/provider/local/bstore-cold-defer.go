@@ -25,11 +25,21 @@ import (
 // read fallback the fetch races the fallback's existence check while the
 // backend is paused, as raceAlternates describes. A block the fallback holds
 // ends the fetch with errBackendPaused, a failed fetch that says nothing of
-// the backend: the caller's next attempt defers the block again, and the
-// fallback tier, seeing the pause, serves it from the fallback. A fallback
-// miss never ends the fetch, which keeps waiting for the backend, and the
-// fetch records only what the backend answered, so the fill cache takes only
-// blocks the backend served.
+// the backend. A fallback miss never ends the fetch, which keeps waiting for
+// the backend.
+//
+// A read under PeerReads that finds the backend paused and the fallback
+// holding the block defers nothing: it fails with errBackendPaused, and the
+// fallback tier above serves the block. So the caller's attempt after a fetch
+// the fallback won completes with nothing pending, and an attempt during a
+// pause never fetches a block the fallback holds.
+//
+// Invariant: everything backendDefer returns as found, in place or from
+// LookupUpper, the backend served. The fill cache and the backend's fill
+// above it store what backendDefer returns as the backend's copy, without an
+// upload marker, so a block the fallback served must never pass through here
+// as found; it reaches the caller only through the fallback tier, whose fill
+// marks it for upload.
 type backendDefer struct {
 	// StoreOps is the backend store.
 	block.StoreOps
@@ -111,6 +121,14 @@ func (b *backendDefer) GetStoredBlock(ctx context.Context, ref *block.BlockRef) 
 	if stored := reads.LookupUpper(ref); stored != nil {
 		return stored, nil
 	}
+
+	// Leave a block the fallback holds to the fallback while the backend is
+	// paused, deferring nothing, so the caller's attempt completes.
+	if b.fallbackHolds(ctx, ref) {
+		return nil, fmt.Errorf("%w: block %s", errBackendPaused, ref.MarshalString())
+	}
+
+	// Defer the block to a fetch outside the caller's lock.
 	reads.DeferUpper(ref, b.fetch(ref))
 	return nil, fmt.Errorf("%w: block %s", errBackendDeferred, ref.MarshalString())
 }
@@ -126,6 +144,19 @@ func (b *backendDefer) StatBlock(ctx context.Context, ref *block.BlockRef) (*blo
 		return nil, err
 	}
 	return &block.BlockStat{Ref: ref, Size: int64(len(stored.Data))}, nil
+}
+
+// fallbackHolds reports whether the backend is paused and the read fallback
+// holds ref. A failed check reports false, which defers the block as usual.
+func (b *backendDefer) fallbackHolds(ctx context.Context, ref *block.BlockRef) bool {
+	if b.pause == nil {
+		return false
+	}
+	if paused, _ := b.pause(); !paused {
+		return false
+	}
+	found, err := b.fallback.GetBlockExists(block.WithPeerReads(ctx, nil), ref)
+	return err == nil && found
 }
 
 // recordBackendRead counts a read the backend served in place since started.

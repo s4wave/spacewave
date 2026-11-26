@@ -63,6 +63,7 @@ func (p *placementState) readChains(
 	pause := watchBackendPause(remote)
 	remote = deferBackendReads(remote, pause, fallback)
 	recordedSrc := func() block.StoreOps { return recorded }
+	localSrc := func() block.StoreOps { return local }
 
 	// Read the backend and then peers when the placement has no fallback.
 	if fallback == nil {
@@ -75,7 +76,7 @@ func (p *placementState) readChains(
 		} else {
 			reads = block_store.NewStoreReadThrough(recordedSrc, func() block.StoreOps { return lower }, fill)
 		}
-		reads = newPausedReads(reads, pause, readSource(peerReadsWithFill(recordedSrc, peers, fill)))
+		reads = newPausedReads(reads, pause, readSource(peerReadsWithFill(localSrc, peers, fill)))
 		copies = block_store.NewStoreReadThrough(
 			func() block.StoreOps { return local },
 			func() block.StoreOps { return lower },
@@ -94,7 +95,7 @@ func (p *placementState) readChains(
 		block_store.NewStoreReadThrough(func() block.StoreOps { return withFallback }, peers, fill),
 		pause,
 		withFallback.fallbackHit,
-		readSource(peerReadsWithFill(recordedSrc, peers, fill)),
+		readSource(peerReadsWithFill(localSrc, peers, fill)),
 	)
 
 	// Copies read the same sources and write nothing.
@@ -115,7 +116,9 @@ func (p *placementState) readChains(
 
 // peerReadsWithFill is the peer source of a read that races a paused backend:
 // it reads the local store, which missed, then peers, and fills a peer's
-// block with fill as the chain's own peer read does.
+// block with fill as the chain's own peer read does. local is the store
+// without its read recorder, since the chain it races already recorded any
+// hit.
 func peerReadsWithFill(local, peers block_store.StoreSource, fill block_store.Fill) block_store.StoreSource {
 	if peers == nil {
 		return nil
@@ -414,10 +417,9 @@ func (f *fallbackFills) drain() {
 // A paused backend fails nothing: its reads wait out the pause. So a read of
 // the sources races the fallback while the backend is paused, as pausedReads
 // and raceAlternates describe, and the fallback serves a block it holds
-// without waiting for the backend. A read under block.WithPeerReads defers its
-// backend read at once instead; while the backend is paused, that deferral
-// reads the fallback, so a block the fallback holds is served on the attempt
-// after its fetch; see backendDefer.
+// without waiting for the backend. A read under block.WithPeerReads never
+// waits on the backend: during a pause, the backend leaves a block the
+// fallback holds to the fallback, and defers any other; see backendDefer.
 type fallbackReads struct {
 	// StoreOps is the placed store's own sources, which reject writes.
 	block.StoreOps
@@ -460,15 +462,6 @@ func (r *fallbackReads) racePause(ctx context.Context) backendPause {
 	return r.pause
 }
 
-// paused reports whether the backend's requests are paused now.
-func (r *fallbackReads) paused() bool {
-	if r.pause == nil {
-		return false
-	}
-	paused, _ := r.pause()
-	return paused
-}
-
 // GetBlock reads the sources, then the fallback.
 func (r *fallbackReads) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	data, found, err := r.StoreOps.GetBlock(ctx, ref)
@@ -492,17 +485,20 @@ func (r *fallbackReads) GetStoredBlock(ctx context.Context, ref *block.BlockRef)
 // readFallback reads the block from the fallback after the sources missed it,
 // or failed with primaryErr. Without a hit, it returns primaryErr, else the
 // fallback's error, else a miss. A backend read deferred to the caller's
-// PeerReads asks the fallback only while the backend is paused, since the
-// deferred fetch would wait out the pause; otherwise the fetch answers first.
+// PeerReads never asks the fallback, since the deferred fetch answers first;
+// one the paused backend left to the fallback, with errBackendPaused, reads
+// it.
 func (r *fallbackReads) readFallback(ctx context.Context, ref *block.BlockRef, primaryErr error) (*block.StoredBlock, error) {
 	// A failure of the caller's own context is not the sources' failure.
 	if ctx.Err() != nil {
 		return nil, context.Cause(ctx)
 	}
 	if errors.Is(primaryErr, errBackendDeferred) {
-		if !r.paused() {
-			return nil, primaryErr
-		}
+		return nil, primaryErr
+	}
+
+	// Serve the block a paused backend left to the fallback.
+	if errors.Is(primaryErr, errBackendPaused) {
 		stored, err := r.fallbackHit(ctx, ref)
 		if err != nil || stored == nil {
 			return nil, primaryErr

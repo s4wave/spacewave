@@ -465,6 +465,9 @@ func TestThrottledBucketServesFallback(t *testing.T) {
 	if data, found, err := f.reads.GetBlock(deferCtx, deferRef); err != nil || !found || !bytes.Equal(data, deferData) {
 		t.Fatalf("deferred read = %q, %v, %v; want the fallback's block", data, found, err)
 	}
+	if peerReads.Pending() {
+		t.Fatal("the read the fallback served left a pending deferral")
+	}
 
 	// A block the fallback lacks defers, in a write's next PeerReads.
 	missRef, _, err := newLeafStore().PutBlock(f.ctx, []byte("block nobody holds"), &block.PutOpts{RefsKnown: true})
@@ -519,9 +522,17 @@ func TestDeferredFetchRacesFallback(t *testing.T) {
 		t.Fatal("the fallback's hit was recorded as the backend's miss")
 	}
 
-	// The next attempt sees the pause and reads the fallback.
+	// The next attempt sees the pause and reads the fallback, deferring
+	// nothing, so a write queue would commit this second attempt rather
+	// than park it again.
 	if got, found, err := f.reads.GetBlock(ctx, ref); err != nil || !found || !bytes.Equal(got, data) {
 		t.Fatalf("read after the fetch = %q, %v, %v; want the fallback's block", got, found, err)
+	}
+	if peerReads.Pending() {
+		t.Fatal("the read the fallback served left a pending deferral, so its write parks again")
+	}
+	if rounds := peerReads.Rounds(); rounds != 1 {
+		t.Fatalf("fetch rounds = %d, want the write committed on its second attempt", rounds)
 	}
 }
 
