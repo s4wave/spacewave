@@ -48,6 +48,10 @@ type DexMessage struct {
 	// handling it and sends no response. A cancel for a request that already
 	// completed is ignored.
 	Cancel bool `protobuf:"varint,10,opt,name=cancel,proto3" json:"cancel,omitempty"`
+	// Denied marks an error answer that rejected the requester's read
+	// authority rather than failed a lookup of the block (response only). It
+	// says nothing of whether the responder holds the block.
+	Denied bool `protobuf:"varint,11,opt,name=denied,proto3" json:"denied,omitempty"`
 }
 
 func (x *DexMessage) Reset() {
@@ -126,6 +130,13 @@ func (x *DexMessage) GetCancel() bool {
 	return false
 }
 
+func (x *DexMessage) GetDenied() bool {
+	if x != nil {
+		return x.Denied
+	}
+	return false
+}
+
 func (m *DexMessage) CloneVT() *DexMessage {
 	if m == nil {
 		return (*DexMessage)(nil)
@@ -138,6 +149,7 @@ func (m *DexMessage) CloneVT() *DexMessage {
 	r.RemainingHops = m.RemainingHops
 	r.RefsKnown = m.RefsKnown
 	r.Cancel = m.Cancel
+	r.Denied = m.Denied
 	r.Ref = protobuf_go_lite.CloneVTValue(m.Ref)
 	r.Data = protobuf_go_lite.CloneBytes(m.Data)
 	r.Refs = protobuf_go_lite.CloneVTSlice(m.Refs)
@@ -185,6 +197,9 @@ func (this *DexMessage) EqualVT(that *DexMessage) bool {
 		return false
 	}
 	if this.Cancel != that.Cancel {
+		return false
+	}
+	if this.Denied != that.Denied {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -262,6 +277,11 @@ func (x *DexMessage) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("cancel")
 		s.WriteBool(x.Cancel)
 	}
+	if x.Denied || s.HasField("denied") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("denied")
+		s.WriteBool(x.Denied)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -328,6 +348,9 @@ func (x *DexMessage) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "cancel":
 			s.AddField("cancel")
 			x.Cancel = s.ReadBool()
+		case "denied":
+			s.AddField("denied")
+			x.Denied = s.ReadBool()
 		}
 	})
 }
@@ -365,6 +388,11 @@ func (m *DexMessage) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Denied {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Denied)
+		i--
+		dAtA[i] = 0x58
 	}
 	if m.Cancel {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Cancel)
@@ -453,6 +481,7 @@ func (m *DexMessage) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.RefsKnown)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Cancel)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Denied)
 	n += len(m.unknownFields)
 	return n
 }
@@ -507,6 +536,10 @@ func (x *DexMessage) MarshalProtoText() string {
 	if x.Cancel != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "cancel")
 		protobuf_go_lite.TextWriteBool(&sb, x.Cancel)
+	}
+	if x.Denied != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "denied")
+		protobuf_go_lite.TextWriteBool(&sb, x.Denied)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -639,6 +672,16 @@ func (m *DexMessage) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Cancel = bool(v)
+		case 11:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Denied", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Denied = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

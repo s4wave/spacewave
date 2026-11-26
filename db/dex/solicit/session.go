@@ -229,12 +229,12 @@ func (s *peerSession) handleRequest(
 		var err error
 		access, err = s.c.authorizeRequest(ctx, s.c.cc, s.ms.GetPeerID())
 		if err != nil {
-			s.sendRequestError(ctx, req.GetRequestId(), err)
+			s.sendRequestDenied(ctx, req.GetRequestId(), err)
 			return
 		}
 		defer access.Release()
 		if err := access.Check(); err != nil {
-			s.sendRequestError(ctx, req.GetRequestId(), err)
+			s.sendRequestDenied(ctx, req.GetRequestId(), err)
 			return
 		}
 	}
@@ -263,11 +263,18 @@ func (s *peerSession) handleRequest(
 	}
 }
 
-// sendRequestError reports a rejection without disclosing block data or refs.
-func (s *peerSession) sendRequestError(ctx context.Context, id uint32, err error) {
-	if sendErr := s.sendMessage(ctx, ctx, &DexMessage{RequestId: id, IsResponse: true, Error: err.Error()}, nil, true); sendErr != nil && ctx.Err() == nil {
+// sendRequestDenied reports a request the requester lacks read authority for,
+// without disclosing block data or refs.
+func (s *peerSession) sendRequestDenied(ctx context.Context, id uint32, err error) {
+	if sendErr := s.sendMessage(ctx, ctx, deniedResponse(id, err), nil, true); sendErr != nil && ctx.Err() == nil {
 		s.le.WithError(sendErr).Debug("dex session send error")
 	}
+}
+
+// deniedResponse is the answer to request id that err rejected the
+// requester's read authority for.
+func deniedResponse(id uint32, err error) *DexMessage {
+	return &DexMessage{RequestId: id, IsResponse: true, Error: err.Error(), Denied: true}
 }
 
 // buildResponse reads locally, then forwards within the configured hop budget.
@@ -468,10 +475,10 @@ func prepareSend(q *queuedSend) (preparedSend, error) {
 	p := preparedSend{q: q, msg: q.msg, closeOnCancel: q.closeOnCancel}
 	if q.access != nil {
 		if err := q.access.Check(); err != nil {
-			p.msg = &DexMessage{RequestId: q.msg.GetRequestId(), IsResponse: true, Error: err.Error()}
+			p.msg = deniedResponse(q.msg.GetRequestId(), err)
 			p.closeOnCancel = true
 		} else if err = context.Cause(q.requestCtx); err != nil {
-			p.msg = &DexMessage{RequestId: q.msg.GetRequestId(), IsResponse: true, Error: err.Error()}
+			p.msg = deniedResponse(q.msg.GetRequestId(), err)
 		}
 	}
 	return p, nil
@@ -607,7 +614,10 @@ func (s *peerSession) requestBlock(ctx context.Context, ref *block.BlockRef, hop
 		if resp == nil {
 			return nil, errSessionClosed
 		}
-		if resp.GetError() != "" {
+		switch {
+		case resp.GetDenied():
+			return nil, fmt.Errorf("%w: %s", ErrPeerDenied, resp.GetError())
+		case resp.GetError() != "":
 			return nil, fmt.Errorf("%w: %s", ErrPeerError, resp.GetError())
 		}
 		if !resp.GetFound() {

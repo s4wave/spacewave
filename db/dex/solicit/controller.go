@@ -72,6 +72,11 @@ var ErrNoPeerSession = errors.New("no peer session")
 // failed.
 var ErrPeerError = errors.New("peer lookup failed")
 
+// ErrPeerDenied reports a peer's answer that it rejected the requester's read
+// authority. It says nothing of whether the peer holds the block, and a grant
+// on the same session can make the next request succeed.
+var ErrPeerDenied = errors.New("peer denied the request")
+
 // errSessionClosed reports a request that failed because its peer session closed.
 var errSessionClosed = fmt.Errorf("%w: session closed", ErrNoPeerSession)
 
