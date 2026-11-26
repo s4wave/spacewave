@@ -294,8 +294,8 @@ func (p *placementState) peerFill(recorded block.StoreOps) block_store.Fill {
 // when a backend read failed and the fallback answered, or a pack read missed
 // a block its row names. It fills as a backend hit does, without a marker, so
 // a block the backend holds never queues to upload again. Such a fill queues
-// for eviction, so the backend's own pack must confirm the block, not the
-// index row alone; eviction asks the backend again before it drops it.
+// for eviction, so backendPlaces must prove the block durable, not take a
+// bare index row's word; eviction checks the same proof before it drops it.
 func (p *placementState) fillFromFallback(ctx context.Context, ref *block.BlockRef, stored *block.StoredBlock) error {
 	// Serve mode writes nothing.
 	if p.serveOnly {
@@ -321,14 +321,17 @@ func (p *placementState) fillFromFallback(ctx context.Context, ref *block.BlockR
 }
 
 // backendPlaces reports whether the open backend holds the block in a pack it
-// never reclaims: its local pack index places the block, and the backend's
-// existence check, which probes the packs' own indexes, confirms it. A row
-// can name a pack that lacks the block or one gone from the bucket, and a
-// fill on the row's word alone would queue for eviction a copy that may be
-// the only one. A backend without an index, one that reclaims blocks, a
-// backend the placement left, an unconfirmed block, or a failed lookup
-// reports false, so the block keeps its marker: a block uploaded twice is
-// only stored twice. Only a block the index places costs the probe.
+// never reclaims. A backend that proves durability from its local index, as
+// block_store_writeback.DurableConfirmer describes, answers from the index
+// alone, with the proof eviction trusts to drop a last copy, so a fill while
+// the bucket fails still needs no upload. Any other backend must have its
+// local pack index place the block and its existence check, which probes the
+// packs' own indexes, confirm it: a bare row can name a pack that lacks the
+// block or one gone from the bucket, and a fill on the row's word alone would
+// queue for eviction a copy that may be the only one. A backend without an
+// index, one that reclaims blocks, a backend the placement left, an
+// unconfirmed block, or a failed lookup reports false, so the block keeps its
+// marker: a block uploaded twice is only stored twice.
 func (p *placementState) backendPlaces(ctx context.Context, ref *block.BlockRef) bool {
 	// Ask only the open backend of the current placement.
 	if p.remote == nil {
@@ -343,8 +346,15 @@ func (p *placementState) backendPlaces(ctx context.Context, ref *block.BlockRef)
 		return false
 	}
 
-	// Look the block up in the index.
-	placed, err := locator.LocateBlocks(ctx, []*block.BlockRef{ref})
+	// Prove the block from the local index where the backend can.
+	refs := []*block.BlockRef{ref}
+	if c, ok := remote.store.(block_store_writeback.DurableConfirmer); ok && c.ConfirmsDurable() {
+		held, err := c.ConfirmDurable(ctx, refs)
+		return err == nil && len(held) == 1 && held[0]
+	}
+
+	// Otherwise look the block up in the index.
+	placed, err := locator.LocateBlocks(ctx, refs)
 	if err != nil || len(placed) != 1 || !placed[0] {
 		return false
 	}
