@@ -17,8 +17,9 @@
 \* A reconnecting stream that fails after a value reopens after a backoff,
 \* loading over its value. Once the backoff reaches its cap it reports failed
 \* over the value as last, with Retry, and keeps reopening quietly; a value
-\* returns it to ready. Retry in either hook reads again at once, staying
-\* failed over a kept last. A value that holds a handle the hook released
+\* returns it to ready. A streaming run that gives no first value by its
+\* deadline closes and reopens after a backoff, its state unchanged. Retry in
+\* either hook reads again at once, staying failed over a kept last. A value that holds a handle the hook released
 \* never becomes last.
 
 EXTENDS Naturals
@@ -192,6 +193,16 @@ StreamFail ==
   /\ UNCHANGED <<parent, emitted>>
   /\ Fixed
 
+\* The run gives no first value by its deadline: it closes and, after a
+\* backoff, reopens with no value yet. The hook's state and value do not
+\* change, so the step is a stutter; it is named so OwnFailureKeepsContent
+\* covers it.
+Stall ==
+  /\ parent = "ready" /\ stream = "open" /\ ~emitted
+  /\ UNCHANGED <<parent, status, val, valRel, keepable, last, lastRel,
+                 stream, emitted, fails>>
+  /\ Fixed
+
 \* The backoff ends and the run reopens, quietly once capped.
 Reopen ==
   /\ parent = "ready" /\ stream = "backoff"
@@ -235,7 +246,7 @@ DepsChange ==
 
 Next ==
   \/ ParentReady \/ Start \/ ParentLoad \/ ParentFail \/ ParentRetry
-  \/ Emit \/ EndEmpty \/ StreamFail \/ Reopen \/ Retry
+  \/ Emit \/ EndEmpty \/ StreamFail \/ Stall \/ Reopen \/ Retry
   \/ Release \/ DepsChange
 
 \* A failed resource reports no value: a kept value is readable only as last.
@@ -269,12 +280,12 @@ CappedReportsFailed == stream = "backoff" /\ fails >= Cap => RStatus = "failed"
 \* or a wait read as empty.
 NoFalseEmpty == RStatus = "ready" /\ RValue = 0 => Empty
 
-\* Content of the current deps stays through the stream's own failures, the
-\* cap, Retry, and a parent's failure, reload and recovery, unless its
+\* Content of the current deps stays through the stream's own failures and
+\* stalls, the cap, Retry, and a parent's failure, reload and recovery, unless its
 \* handle was released.
 OwnFailureKeepsContent ==
   [][(Content = key /\ ~ContentRel /\
-      (StreamFail \/ Reopen \/ Retry \/ ParentFail \/ ParentLoad \/
+      (StreamFail \/ Stall \/ Reopen \/ Retry \/ ParentFail \/ ParentLoad \/
        ParentRetry \/ ParentReady \/ Start))
        => Content' # 0]_vars
 

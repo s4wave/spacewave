@@ -48,6 +48,7 @@ export const step = (action: string, from: Hook, to: Hook) => {
   if (action === 'Emit') return 'value arrives'
   if (action === 'EndEmpty') return 'source holds nothing'
   if (action === 'StreamFail') return 'run fails'
+  if (action === 'Stall') return 'no first value by the deadline'
   if (action === 'Reopen') return 'backoff ends'
   if (action === 'Retry') return 'presses Retry'
   if (action === 'Release') return 'handle released'

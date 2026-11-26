@@ -158,5 +158,15 @@
     "name": "reaches: a run starts failed over a kept last after a parent failure",
     "replace": [["Unreached == TRUE", "Unreached == ~RecoversOverKept"]],
     "expect": "Unreached"
+  },
+  {
+    "name": "a stall drops the value",
+    "replace": [
+      [
+        "  /\\ UNCHANGED <<parent, status, val, valRel, keepable, last, lastRel,\n                 stream, emitted, fails>>",
+        "  /\\ val' = 0 /\\ valRel' = FALSE\n  /\\ UNCHANGED <<parent, status, keepable, last, lastRel, stream, emitted,\n                 fails>>"
+      ]
+    ],
+    "expect": "OwnFailureKeepsContent"
   }
 ]
