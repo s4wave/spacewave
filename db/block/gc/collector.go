@@ -164,6 +164,42 @@ type Collector struct {
 	// at the head, and only a scan that reached the front's end reports
 	// FrontDone.
 	front frontPos
+	// frontIdle reports that a front scan reached the front's end since the
+	// collector started, and that no event since its start could let a pop
+	// succeed that the scan refused, so the settle skips the scan. A scan
+	// starts at the head only when it is not idle; one that has started
+	// runs to the end over as many passes as it needs.
+	//
+	// Invariant: a front entry's free proof, as frontProven reads it,
+	// changes from false to true only by one of these, each of which ends
+	// the idle:
+	//  - the netting writes the block's queue entry at a ripe sequence, as
+	//    it does once the block reaches zero or gains an up there, and the
+	//    block is on the front, which wakeFront records as frontWake;
+	//  - the up cursor reaches the ripe sequence of a block at zero, which
+	//    the scan records as its position's wake and the netting as
+	//    frontWake;
+	//  - an adoption recounts and queues blocks at zero, and stamps a new
+	//    AdoptAtUnixMilli, which frontAdoptAt records at the scan's start;
+	//  - the Volume turns freeable or its recount clears, while the scan
+	//    returns early and so never reaches the end.
+	// A hold, a push or a park turns no proof true: a Land's hold dequeues
+	// the block until its up nets, a push adds a held block or one whose
+	// count the recount owes, and a park keeps the proof that a queue entry
+	// gave. The one proof that turns true with no event is a damaged
+	// entry's, an unlisted block at zero whose bytes then go, so a scan
+	// that keeps a damaged entry does not go idle.
+	// The idle decides only when the scan runs, never what it pops: each
+	// pop still reads its own proof, and the flip reads the whole front.
+	frontIdle bool
+	// frontWake is the least ripe sequence of a front block at zero that a
+	// pop refused for a cursor short of it, or that the netting queued
+	// since the scan started, or 0. Once the up cursor reaches it, a pop
+	// may succeed, and the idle ends.
+	frontWake uint64
+	// frontAdoptAt is the adoption mark under which the current or last
+	// front scan started; a new adoption ends the idle.
+	frontAdoptAt int64
 	// frontKeys and frontEnds are the front slice's scratch: the keys it
 	// read, packed end to end, and the end of each, reused across slices.
 	frontKeys []byte
@@ -311,20 +347,17 @@ func (c *Collector) netStep(ctx context.Context, res *CollectResult, past func()
 	})
 }
 
-// freeStep runs the settle's steps, moves the parked blocks back onto the
-// queue once the generation flipped, then frees the queued blocks. It
-// reports whether a free took a child to zero or started a paged release, so
-// the pass nets and frees again, and whether it stopped at past with work
-// left.
+// freeStep moves the parked blocks back onto the queue once the generation
+// flipped, frees the queued blocks, then runs the settle's steps. It reports
+// whether a free took a child to zero or started a paged release, so the
+// pass nets and frees again, and whether it stopped at past with work left.
+// The settle runs only once the free left no work for this pass, so ripe
+// blocks never wait behind a front scan or a sweep. A flip's parked blocks
+// requeue in the next pass, which the flip's result asks for at once.
 func (c *Collector) freeStep(ctx context.Context, res *CollectResult, past func() bool) (bool, bool, error) {
-	// Run the settle's steps, which while Open delete nothing, then requeue
-	// the parked blocks, so a flip in this pass frees them in it too.
+	// Requeue the parked blocks once the generation flipped.
 	defer c.phase(PhaseSweep)()
-	more, err := c.settle(ctx, past, res)
-	if err != nil || more {
-		return false, more, err
-	}
-	more, err = eachSlice(ctx, c.update, []byte(nil), past, func(rec *Records, _ block.StoreOps, from []byte) ([]byte, bool, error) {
+	more, err := eachSlice(ctx, c.update, []byte(nil), past, func(rec *Records, _ block.StoreOps, from []byte) ([]byte, bool, error) {
 		return c.requeueSlice(ctx, rec, res, from)
 	})
 	if err != nil || more {
@@ -338,7 +371,13 @@ func (c *Collector) freeStep(ctx context.Context, res *CollectResult, past func(
 		again = again || gave
 		return next, full, err
 	})
-	return again, more, err
+	if err != nil || more || again {
+		return again, more, err
+	}
+
+	// Run the settle's steps, which while Open delete nothing.
+	more, err = c.settle(ctx, past, res)
+	return false, more, err
 }
 
 // eachSlice runs slice in one transaction of update at a time, the first at

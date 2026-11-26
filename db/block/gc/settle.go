@@ -401,12 +401,13 @@ func (r *Records) outsideRun(ctx context.Context, packed []byte) ([][]byte, erro
 // Sweeping, it sweeps. It reports whether it stopped at past with work left.
 func (c *Collector) settle(ctx context.Context, past func() bool, res *CollectResult) (bool, error) {
 	// Read the generation.
-	var gen Generation
+	var state *LivenessState
 	err := c.store.View(ctx, func(rec *Records) error {
 		var err error
-		gen, err = rec.generation(ctx)
+		state, err = rec.GetState(ctx)
 		return err
 	})
+	gen := state.GetGeneration()
 	if err != nil || gen == Generation_GENERATION_SETTLED {
 		return false, err
 	}
@@ -445,21 +446,69 @@ func (c *Collector) settle(ctx context.Context, past func() bool, res *CollectRe
 	}
 
 	// Take the free-proven entries off the front, resuming where the last
-	// pass stopped, then, at the front's end, try the flip, which reads the
+	// pass stopped, while an event since the last whole scan could let a pop
+	// succeed, as frontIdle describes. Then try the flip, which reads the
 	// whole front itself.
-	more, err = resumeSlices(ctx, c.update, &c.front, past, func(rec *Records, blocks block.StoreOps, from frontPos) (frontPos, bool, error) {
-		return c.frontSlice(ctx, rec, blocks, res, from)
-	})
-	if err != nil || more {
+	if more, err := c.scanFront(ctx, state, past, res); err != nil || more {
 		return more, err
-	}
-	if c.front.done {
-		res.Front, res.FrontDone = c.front.kept, true
-		c.front = frontPos{}
 	}
 	return false, c.update(ctx, func(rec *Records, _ block.StoreOps) error {
 		return c.flip(ctx, rec, res)
 	})
+}
+
+// scanFront scans the front in slices from where the last pass stopped,
+// unless the last whole scan left it idle and nothing since could let a pop
+// succeed, as frontIdle describes; state is the state the pass read. It
+// reports whether it stopped at past with work left.
+//
+// Cost: per pass with the front idle, nothing; per event, one scan of the
+// whole front, each slice holding the writer for at most sliceRecords
+// entries and up to five point reads per entry. While a damaged entry
+// stands, every pass that reaches the settle scans, as before the idle.
+func (c *Collector) scanFront(ctx context.Context, state *LivenessState, past func() bool, res *CollectResult) (bool, error) {
+	// Skip an idle front no event woke.
+	cursor, adoptAt := state.GetUpCursor(), state.GetAdoptAtUnixMilli()
+	woke := c.frontWake != 0 && cursor >= c.frontWake
+	if c.frontIdle && !woke && adoptAt == c.frontAdoptAt {
+		return false, nil
+	}
+
+	// Start a scan at the head, from which each event counts again.
+	if c.frontIdle || c.front.key == nil {
+		c.frontIdle, c.frontWake, c.frontAdoptAt = false, 0, adoptAt
+		c.front = frontPos{}
+	}
+	more, err := resumeSlices(ctx, c.update, &c.front, past, func(rec *Records, blocks block.StoreOps, from frontPos) (frontPos, bool, error) {
+		return c.frontSlice(ctx, rec, blocks, res, from)
+	})
+	if err != nil || more || !c.front.done {
+		return more, err
+	}
+
+	// At the front's end, go idle until the least ripe sequence a pop
+	// refused for the cursor, or an event, unless a damaged entry may pop
+	// with no event.
+	res.Front, res.FrontDone = c.front.kept, true
+	c.frontIdle, c.frontWake = !c.front.damaged, minWake(c.frontWake, c.front.wake)
+	c.front = frontPos{}
+	return false, nil
+}
+
+// wakeFront notes that the netting queued a front block at ripe, which a
+// front scan pops once the up cursor reaches ripe. The netting calls it in
+// its transaction, which may not commit; a wake that did not commit costs
+// one scan.
+func (c *Collector) wakeFront(ripe uint64) {
+	c.frontWake = minWake(c.frontWake, ripe)
+}
+
+// minWake returns the lesser of two wake sequences, where 0 is none.
+func minWake(a, b uint64) uint64 {
+	if a == 0 || (b != 0 && b < a) {
+		return b
+	}
+	return a
 }
 
 // seed pushes onto the front, once per collector while Open, each block the
@@ -666,13 +715,17 @@ func (c *Collector) runSlice(ctx context.Context, rec *Records, res *CollectResu
 }
 
 // frontPos is the front scan's position: the key after which it resumes,
-// nil at the head, the entries it kept since it left the head, and whether
-// it reached the front's end. It moves only with a committed slice, so the
+// nil at the head, the entries it kept since it left the head, the least
+// ripe sequence of a block at zero it kept because the up cursor had not
+// reached it, 0 for none, whether it kept a damaged entry, and whether it
+// reached the front's end. It moves only with a committed slice, so the
 // count matches the entries the cursor passed.
 type frontPos struct {
-	key  []byte
-	kept uint64
-	done bool
+	key     []byte
+	kept    uint64
+	wake    uint64
+	damaged bool
+	done    bool
 }
 
 // frontSlice takes off the front each of up to a slice of entries after the
@@ -746,16 +799,22 @@ func (c *Collector) frontSlice(ctx context.Context, rec *Records, blocks block.S
 	// Pop each the proof holds for.
 	cursor := state.GetUpCursor()
 	var poppedRipe uint64
-	popped, start, last, kept := false, 0, 0, pos.kept
+	popped, start, last, kept, wake, damaged := false, 0, 0, pos.kept, pos.wake, pos.damaged
 	for _, end := range ends {
 		key := packed[start:end:end]
 		last, start = start, end
-		pop, ripe, err := c.frontProven(ctx, rec, blocks, cursor, key)
+		proof, ripe, err := c.frontProven(ctx, rec, blocks, cursor, key)
 		if err != nil {
 			return pos, false, err
 		}
-		if !pop {
+		if proof != frontPop {
 			kept++
+			switch proof {
+			case frontRipening:
+				wake = minWake(wake, ripe)
+			case frontDamaged:
+				damaged = true
+			}
 			continue
 		}
 		if err := rec.tx.Delete(ctx, rec.key(kindFront, key)); err != nil {
@@ -768,7 +827,7 @@ func (c *Collector) frontSlice(ctx context.Context, rec *Records, blocks block.S
 	// Resume after the last key, copied out of the scratch, or at the head
 	// once the scan reached the front's end. Then raise the pop mark past
 	// what this slice popped.
-	next := frontPos{kept: kept, done: !full}
+	next := frontPos{kept: kept, wake: wake, damaged: damaged, done: !full}
 	if full {
 		next.key = bytes.Clone(packed[last:])
 	}
@@ -778,25 +837,50 @@ func (c *Collector) frontSlice(ctx context.Context, rec *Records, blocks block.S
 	return next, full, rec.raisePopMark(ctx, poppedRipe)
 }
 
-// frontProven reports whether the free proof holds for the front entry of
-// the block at key, as frontSlice describes, and its ripe sequence. It reads
-// the count first, since most entries a scan meets are held.
-func (c *Collector) frontProven(ctx context.Context, rec *Records, blocks block.StoreOps, cursor uint64, key []byte) (bool, uint64, error) {
+// frontProof is a front entry's free proof as frontProven reads it. Only
+// an event the front's idle watches turns a held entry poppable, as
+// Collector.frontIdle describes; a ripening one turns poppable once the up
+// cursor reaches its ripe sequence, and a damaged one may turn poppable with
+// no event at all.
+type frontProof uint8
+
+const (
+	// frontHeld is an entry the proof refuses until an event.
+	frontHeld frontProof = iota
+	// frontPop is an entry the proof holds for.
+	frontPop
+	// frontRipening is a block at zero whose ripe sequence the up cursor
+	// has not reached.
+	frontRipening
+	// frontDamaged is a block at zero, ripe, that the store does not list
+	// while its bytes remain: it pops once the bytes go too, which no
+	// record write announces.
+	frontDamaged
+)
+
+// frontProven reads the free proof for the front entry of the block at key,
+// as frontSlice describes, and returns it with the ripe sequence of a block
+// at zero. It reads the count first, since most entries a scan meets are
+// held.
+func (c *Collector) frontProven(ctx context.Context, rec *Records, blocks block.StoreOps, cursor uint64, key []byte) (frontProof, uint64, error) {
 	// Require exactly a block key, then zero holders, ripe at a sequence the
 	// cursor reached.
 	if bkey, ok := nextBlockKey(key); !ok || len(bkey) != len(key) {
-		return false, 0, errBadBlockKey
+		return frontHeld, 0, errBadBlockKey
 	}
 	holders, ripe, err := rec.holders(ctx, key)
-	if err != nil || holders != 0 || ripe > cursor {
-		return false, 0, err
+	if err != nil || holders != 0 {
+		return frontHeld, 0, err
+	}
+	if ripe > cursor {
+		return frontRipening, ripe, nil
 	}
 
 	// A listed block needs its queue or parked entry, and one the store
 	// does not list needs its bytes gone.
 	listed, err := rec.listed(ctx, key)
 	if err != nil {
-		return false, 0, err
+		return frontHeld, 0, err
 	}
 	if listed {
 		proven, err := rec.tx.Exists(ctx, rec.queueKey(ripe, key))
@@ -806,14 +890,20 @@ func (c *Collector) frontProven(ctx context.Context, rec *Records, blocks block.
 		if err == nil && !proven {
 			proven, err = rec.tx.Exists(ctx, rec.parkedKey(ripe, key))
 		}
-		return proven, ripe, err
+		if err != nil || !proven {
+			return frontHeld, ripe, err
+		}
+		return frontPop, ripe, nil
 	}
 	ref, _, err := ParseBlockKey(key)
 	if err != nil {
-		return false, 0, err
+		return frontHeld, 0, err
 	}
 	stored, err := blocks.GetBlockExists(ctx, ref)
-	return !stored, ripe, err
+	if err != nil || stored {
+		return frontDamaged, ripe, err
+	}
+	return frontPop, ripe, nil
 }
 
 // flip moves an Open Volume to Sweeping when the flip's checks pass, as the
@@ -998,7 +1088,7 @@ func (c *Collector) dropRunSlice(ctx context.Context, rec *Records, res *Collect
 func (c *Collector) restartSettle() {
 	c.runFrom, c.sweptRun = nil, false
 	c.seedRoot, c.seedDown, c.seededRoots, c.seeded = nil, 0, false, false
-	c.front = frontPos{}
+	c.front, c.frontIdle, c.frontWake, c.frontAdoptAt = frontPos{}, false, 0, 0
 }
 
 // runEntries returns the block keys of up to a slice of base run entries

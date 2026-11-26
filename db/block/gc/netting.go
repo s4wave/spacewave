@@ -40,7 +40,7 @@ import (
 //     once, inline when the list fits the slice's moves, and otherwise
 //     through release pages, as continueRelease describes.
 type netting struct {
-	// c is the collector, for its writer queue.
+	// c is the collector, for its writer queue and the front scan's wake.
 	c *Collector
 	// rec are the slice's liveness records.
 	rec *Records
@@ -325,9 +325,27 @@ func (n *netting) writeNode(ctx context.Context, nd *node, holders0, ripe0 uint6
 		}
 	}
 	if holders == 0 && (holders0 != 0 || raised) {
+		if err := n.wakeFront(ctx, nd.key, ripe); err != nil {
+			return err
+		}
 		return n.rec.tx.Set(ctx, n.rec.queueKey(ripe, nd.key), nil)
 	}
 	return nil
+}
+
+// wakeFront ends the front scan's idle at ripe when the block at key, which
+// the netting queues at ripe, is on the front while Open, as
+// Collector.frontIdle describes. Cost: one point read per queued block
+// while Open.
+func (n *netting) wakeFront(ctx context.Context, key []byte, ripe uint64) error {
+	if n.state.GetGeneration() != Generation_GENERATION_OPEN {
+		return nil
+	}
+	fronted, err := n.rec.tx.Exists(ctx, n.rec.key(kindFront, key))
+	if err == nil && fronted {
+		n.c.wakeFront(ripe)
+	}
+	return err
 }
 
 // listed reports whether the block at key has a child list the netting may

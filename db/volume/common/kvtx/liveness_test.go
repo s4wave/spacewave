@@ -6168,9 +6168,21 @@ func TestLivenessSettle(t *testing.T) {
 		// A root moves onto U and away again. Once its release nets and
 		// ages, the free proof holds for U: the collector takes U off the
 		// front unwalked, flips, and sweeps U and K, which nothing holds.
+		// While U is held, a whole front scan leaves the front idle, so a
+		// pass with nothing changed reads no entry; the netting that queues
+		// U at zero wakes the scan, or U would hold the flip forever.
 		v, clk, store, tr := oldU(t, false)
 		if err := rootOnto(t, v, tr, "U"); err != nil {
 			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		if res := collectAll(t, v); res.Popped != 0 || res.Flipped {
+			t.Fatalf("collect with U held = %+v, want no pop or flip", res)
+		}
+		for range 2 {
+			if res, err := v.Collect(t.Context()); err != nil || res.FrontScanned != 0 {
+				t.Fatalf("pass over an idle front = %+v, %v, want no entry read", res, err)
+			}
 		}
 		if err := v.SetBucketRoots(t.Context(), "b", nil, []block.NamedRoot{{Name: "main", Previous: tr["U"].Ref}}); err != nil {
 			t.Fatal(err)
@@ -6191,26 +6203,34 @@ func TestLivenessSettle(t *testing.T) {
 
 	t.Run("front scan resumes across passes", func(t *testing.T) {
 		// A front larger than one pass reads takes several passes to scan,
-		// each resuming where the last stopped. Fillers are block keys that
-		// sort after the old U, each listed with no queue entry, so they stay
-		// held and the scan is past U once it reads one. Mid-scan
-		// a root moves onto U, pushing it behind the cursor, an entry lands
-		// ahead of it and one ahead is removed: the scan that ends reads
-		// every entry ahead and none behind, and the front it leaves holds
-		// U, so it must not flip, or the sweep would take U and K under
-		// main. A collector that restarts mid-scan begins again at the head
-		// and counts no partial scan as done.
+		// each resuming where the last stopped. A root u holds the old U,
+		// which the hold pushes onto the front, so the free that runs before
+		// the scan does not park U and K. Fillers are block keys that sort
+		// after U and K, each listed with no queue entry, so they stay held
+		// and the scan is past K once it reads one. Mid-scan a root moves
+		// onto K, pushing it behind the cursor, an entry lands ahead of it
+		// and one ahead is removed: the scan that ends reads every entry
+		// ahead and none behind, and the front it leaves holds K, so it
+		// must not flip, or the sweep would take K under main. A collector
+		// that restarts mid-scan begins again at the head and counts no
+		// partial scan as done.
 		v, clk, store, tr := oldU(t, false)
 		ctx := t.Context()
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "u", Ref: tr["U"].Ref}}); err != nil {
+			t.Fatal(err)
+		}
+		if !has(t, store, front, tr["U"].Ref) {
+			t.Fatal("the hold left U off the front")
+		}
 		clk.Add(block_gc.DefaultGrace + time.Second)
-		ukey := block_gc.BlockKey(tr["U"].Ref)
-		// after returns a block key past U's whose low two bytes are n, so
-		// the keys sort by n.
-		if ukey[len(ukey)-3] == 0xff {
-			t.Fatal("U's key leaves no room after it")
+		last := slices.MaxFunc([][]byte{block_gc.BlockKey(tr["U"].Ref), block_gc.BlockKey(tr["K"].Ref)}, bytes.Compare)
+		// after returns a block key past U's and K's whose low two bytes are
+		// n, so the keys sort by n.
+		if last[len(last)-3] == 0xff {
+			t.Fatal("the last key leaves no room after it")
 		}
 		after := func(n uint16) []byte {
-			key := slices.Clone(ukey)
+			key := slices.Clone(last)
 			key[len(key)-3]++
 			binary.BigEndian.PutUint16(key[len(key)-2:], n)
 			return key
@@ -6280,28 +6300,33 @@ func TestLivenessSettle(t *testing.T) {
 		}
 		done := func(res block_gc.CollectResult) bool { return res.FrontDone }
 
-		// Read part of the front, then change it around the cursor.
+		// Read U and part of the fillers, then change the front around the
+		// cursor.
 		c := newCollector()
-		read, res := scan(c, func(res block_gc.CollectResult) bool { return res.FrontScanned != 0 })
+		var first uint64
+		read, res := scan(c, func(res block_gc.CollectResult) bool {
+			first += res.FrontScanned
+			return first >= 2
+		})
 		if res.FrontDone || read >= fillers {
-			t.Fatalf("first front pass read %d of %d (%+v), want part", read, fillers, res)
+			t.Fatalf("first front passes read %d of %d (%+v), want part", read, fillers+1, res)
 		}
-		if err := rootOnto(t, v, tr, "U"); err != nil {
+		if err := rootOnto(t, v, tr, "K"); err != nil {
 			t.Fatal(err)
 		}
-		if !has(t, store, front, tr["U"].Ref) {
-			t.Fatal("the hold left U off the front")
+		if !has(t, store, front, tr["K"].Ref) {
+			t.Fatal("the hold left K off the front")
 		}
 		write(ahead, false)
 		write(filler(fillers-1), true)
 
-		// The scan ends having read each entry ahead once and U not at all.
+		// The scan ends having read each entry ahead once and K not at all.
 		rest, res := scan(c, done)
-		if read+rest != fillers || res.Front != fillers {
-			t.Fatalf("scan read %d and kept %d, want each of %d entries once", read+rest, res.Front, fillers)
+		if read+rest != fillers+1 || res.Front != fillers+1 {
+			t.Fatalf("scan read %d and kept %d, want each of %d entries once", read+rest, res.Front, fillers+1)
 		}
 
-		// A restart mid-scan reads from the head, U included, and only a
+		// A restart mid-scan reads from the head, K included, and only a
 		// whole scan reports done.
 		_, res = scan(newCollector(), func(res block_gc.CollectResult) bool { return res.FrontScanned != 0 })
 		if res.FrontDone {
@@ -6309,16 +6334,17 @@ func TestLivenessSettle(t *testing.T) {
 		}
 		c = newCollector()
 		read, res = scan(c, done)
-		if read != fillers+1 || res.Front != fillers+1 {
-			t.Fatalf("scan after a restart read %d and kept %d, want all %d entries from the head", read, res.Front, fillers+1)
+		if read != fillers+2 || res.Front != fillers+2 {
+			t.Fatalf("scan after a restart read %d and kept %d, want all %d entries from the head", read, res.Front, fillers+2)
 		}
 
-		// Once the fillers go, the settle walks U and keeps K under main.
+		// Once the fillers go, the settle walks U and K and keeps K under
+		// main.
 		for i := range fillers - 1 {
 			write(filler(i), true)
 		}
 		write(ahead, true)
-		requireKept(t, v, clk, store, tr, "K", "U")
+		requireKept(t, v, clk, store, tr, "K", "main")
 		requireStored(t, v, tr, true, "A", "U", "K")
 	})
 
@@ -6971,8 +6997,8 @@ func TestLivenessSettle(t *testing.T) {
 		if has(t, store, run, tr["D"].Ref) || !has(t, store, run, tr["U"].Ref) {
 			t.Fatal("the flip left D in the run or U out of it")
 		}
-		if n := holdersOf(t, v, tr["D"].Ref); n != 2 {
-			t.Fatalf("D has %d holders at the flip, want main's and the parked U's", n)
+		if n := holdersOf(t, v, tr["D"].Ref); n != 1 {
+			t.Fatalf("D has %d holders at the flip, want main's, U's park having released its own", n)
 		}
 		return v, clk, store, tr
 	}
