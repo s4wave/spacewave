@@ -245,10 +245,13 @@ func (b *residentBudget) reclaim() {
 // drops the last index in the ring, so a reader that just loaded its index can
 // use it even when that one index exceeds the limit. Each drop costs a short
 // sweep of the ring rather than a visit to every reader.
+// Like reclaim, it calls the shared budget's Reclaim when the store has one,
+// so loading an index applies the shared limit even without fetching a span.
 //
 // The caller must not hold any reader lock.
 func (b *residentBudget) reclaimIndexes() {
-	if b.shared.Load() != nil {
+	if shared := b.shared.Load(); shared != nil {
+		shared.Reclaim()
 		return
 	}
 	for {
@@ -276,6 +279,7 @@ func (b *residentBudget) ReadCacheUsed() int64 {
 // reload from the index cache. A fetch hands its span to its waiters directly,
 // so evicting any span is safe. It returns the bytes freed.
 func (b *residentBudget) ReadCacheEvict(want int64) int64 {
+	// Evict cold spans first, until want bytes are freed.
 	start := b.ReadCacheUsed()
 	for start-b.ReadCacheUsed() < want {
 		b.mtx.Lock()
