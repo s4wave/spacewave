@@ -1,0 +1,46 @@
+[
+  {
+    "name": "one peer's recoverable failure restarts every other peer's stream",
+    "replace": [
+      [
+        "phase' = [phase EXCEPT ![p] = \"backoff\"] /\\ lostTo' = lostTo",
+        "phase' = [q \\in Peers |-> IF q = p \\/ phase[q] = \"streaming\" THEN \"backoff\" ELSE phase[q]] /\\ lostTo' = [q \\in Peers |-> lostTo[q] \\/ (q # p /\\ phase[q] = \"streaming\")]"
+      ]
+    ],
+    "expect": "NoCrossPeerRestart",
+    "config": "PeerRetry.cfg"
+  },
+  {
+    "name": "a recoverable failure is ignored, so the ended stream never reopens",
+    "replace": [
+      [
+        "phase' = [phase EXCEPT ![p] = \"backoff\"] /\\ lostTo' = lostTo",
+        "phase' = [phase EXCEPT ![p] = \"held\"] /\\ lostTo' = lostTo"
+      ]
+    ],
+    "expect": "RecoverableReopens",
+    "config": "PeerRetry.cfg"
+  },
+  {
+    "name": "a readmitted peer waits for the remote side instead of renewing",
+    "replace": [
+      [
+        "/\\ owner = \"running\" /\\ phase[p] = \"readmit\" /\\ admitted[p]\n  /\\ phase' = [phase EXCEPT ![p] = \"offered\"]",
+        "/\\ owner = \"running\" /\\ phase[p] = \"readmit\" /\\ admitted[p]\n  /\\ phase' = [phase EXCEPT ![p] = \"held\"]"
+      ]
+    ],
+    "expect": "ReadmittedReopens",
+    "config": "PeerRetry.cfg"
+  },
+  {
+    "name": "the owner returns without joining its peer goroutines",
+    "replace": [
+      [
+        "/\\ owner = \"stopping\" /\\ \\A p \\in Peers: phase[p] \\notin Active",
+        "/\\ owner = \"stopping\""
+      ]
+    ],
+    "expect": "Joined",
+    "config": "PeerRetry.cfg"
+  }
+]

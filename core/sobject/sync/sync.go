@@ -8,7 +8,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 	cbackoff "github.com/aperturerobotics/util/backoff/cbackoff"
-	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/routine"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -32,13 +31,19 @@ const (
 	// authMessageSize bounds each authentication frame, including the config
 	// changes offered to a participant that refused admission.
 	authMessageSize = 64 * 1024
-	// syncRetryInitialInterval is the first delay after a recoverable stream
-	// failure.
+	// syncRetryInitialInterval is a peer's first delay before renewing its
+	// offer after its stream fails recoverably.
 	syncRetryInitialInterval = 250 * time.Millisecond
-	// syncRetryMaxInterval caps repeated recoverable stream-failure delays.
+	// syncRetryMaxInterval caps a peer's repeated renewal delays.
 	syncRetryMaxInterval = 2 * time.Second
 	// syncRetryMultiplier doubles the delay until syncRetryMaxInterval.
 	syncRetryMultiplier = 2
+	// syncRenewGrace delays the renewal on the side with the higher transport
+	// peer ID, so the lower side's renewal normally reopens the stream alone.
+	syncRenewGrace = 2 * time.Second
+	// syncRenewMaxInterval caps the delay between repeated renewals of a
+	// peer's offer, which repeat because a failed stream open is not retried.
+	syncRenewMaxInterval = 30 * time.Second
 )
 
 // SnapshotAccessValidator verifies that the local object identity can decode
@@ -140,19 +145,6 @@ func (o peerStateObserver) PeerState(remoteID peer.ID, stateHash []byte) {
 	o.state(remoteID, stateHash)
 }
 
-// solicitationGeneration owns the workers admitted by one solicitation
-// directive lifetime and publishes the first recoverable worker failure.
-type solicitationGeneration struct {
-	// bcast guards stopping, workers, and retryErr.
-	bcast broadcast.Broadcast
-	// stopping prevents new workers while the generation drains.
-	stopping bool
-	// workers counts admitted workers that have not returned.
-	workers int
-	// retryErr is the first recoverable worker failure.
-	retryErr error
-}
-
 // NewSOSync constructs a new SOSync.
 //
 // localObjectPeerID is the local storage identity checked against inbound
@@ -190,92 +182,78 @@ func NewSOSync(
 	}
 }
 
-// Execute runs the SO sync, emitting a SolicitProtocol directive and
-// handling matched streams until ctx is canceled.
+// Execute runs the SO sync until ctx is canceled. It offers the protocol for
+// the object to every peer for its whole lifetime and runs each matched
+// stream; a peer whose stream ends renews only its own offer, so the other
+// peers' streams keep running.
 func (s *SOSync) Execute(ctx context.Context) error {
-	// Retry only generations ended by recoverable stream failures.
-	retryBackoff := newSyncRetryBackoff()
-	for {
-		retry, err := s.runSolicitationGeneration(ctx)
-		if !retry {
-			return err
-		}
+	// Give every stream and renewal the owner's cancellation boundary.
+	streamsCtx, cancel := context.WithCancel(ctx)
+	streams := newPeerStreams(streamsCtx, s)
 
-		// Bound repeated failures without abandoning the standing sync demand.
-		delay := retryBackoff.NextBackOff()
-		if delay == cbackoff.Stop {
-			return err
-		}
-		s.le.WithError(err).WithField("retry-after", delay).
-			Debug("rearming shared object synchronization")
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		//gostyle:timer backoff
-		case <-time.After(delay):
-		}
+	// Keep the standing offer to every peer for the whole lifetime.
+	ref, err := s.addSolicitation(streamsCtx, streams, "")
+	if err != nil {
+		streams.stop(cancel)
+		return err
 	}
+
+	// Withdraw the offer before joining, so unclaimed streams close instead of
+	// waiting on the join.
+	<-ctx.Done()
+	ref.Release()
+	streams.stop(cancel)
+	return ctx.Err()
 }
 
-// newSyncRetryBackoff constructs the capped delay between solicitation
-// generations.
-func newSyncRetryBackoff() cbackoff.BackOff {
-	return cbackoff.NewExponentialBackOff(
-		cbackoff.WithInitialInterval(syncRetryInitialInterval),
-		cbackoff.WithMultiplier(syncRetryMultiplier),
-		cbackoff.WithMaxInterval(syncRetryMaxInterval),
-		cbackoff.WithRandomizationFactor(0),
-		cbackoff.WithMaxElapsedTime(0),
-	)
-}
-
-// runSolicitationGeneration admits peer streams until cancellation or the
-// first recoverable stream failure. retry is true only when Execute should
-// create a fresh directive incarnation after backoff.
-func (s *SOSync) runSolicitationGeneration(ctx context.Context) (bool, error) {
-	// Give every accepted stream the generation's cancellation boundary.
-	generationCtx, cancel := context.WithCancel(ctx)
-	generation := &solicitationGeneration{}
-
-	// Publish one solicitation lifetime and classify each accepted stream result.
+// addSolicitation offers the protocol for the object and hands each matched
+// stream to streams. An empty remote makes the standing offer to every peer.
+// Otherwise the offer is a new incarnation scoped to remote, which pairs anew
+// with the remote's standing offer and so opens a new stream on a link where
+// the standing offers already paired.
+func (s *SOSync) addSolicitation(ctx context.Context, streams *peerStreams, remote peer.ID) (directive.Reference, error) {
+	// Select the standing or the renewed offer.
 	dir := link_solicit.NewSolicitProtocol(SyncProtocolID, []byte(s.soID), "", 0)
-	_, solicitRef, err := s.b.AddDirective(
+	if remote != "" {
+		dir = link_solicit.NewUniqueSolicitProtocol(SyncProtocolID, []byte(s.soID), remote, 0)
+	}
+
+	// Run every stream the offer matches under the stream owner.
+	_, ref, err := s.b.AddDirective(
 		ctx,
 		dir,
 		directive.NewTypedCallbackHandler[link_solicit.SolicitMountedStream](
 			func(v directive.TypedAttachedValue[link_solicit.SolicitMountedStream]) {
-				generation.startWorker(func() error {
-					// Run the accepted stream inside this generation's lifetime.
-					err := s.handleSolicitedStream(generationCtx, v.GetValue())
-
-					// Keep typed peer states on the standing directive; return only
-					// recoverable failures to the generation owner.
-					if err == nil || generationCtx.Err() != nil || isTerminalSyncError(err) {
-						return nil
-					}
-					return err
-				})
+				streams.startStream(v.GetValue())
 			},
 			nil, nil, nil,
 		),
 	)
-	if err != nil {
-		generation.stopAndWait(cancel)
-		return false, err
-	}
+	return ref, err
+}
 
-	// Withdraw the solicitation before joining workers: new streams stop
-	// matching and unclaimed ones close instead of waiting on the join.
-	defer generation.stopAndWait(cancel)
-	defer solicitRef.Release()
+// newSyncRetryBackoff constructs the capped delay before a peer renews its
+// offer after its stream fails recoverably.
+func newSyncRetryBackoff() cbackoff.BackOff {
+	return newCappedBackoff(syncRetryInitialInterval, syncRetryMaxInterval)
+}
 
-	// Keep the directive admitted through terminal peer states; only a
-	// recoverable stream error retires this generation.
-	err = generation.wait(generationCtx)
-	if ctx.Err() != nil {
-		return false, ctx.Err()
-	}
-	return true, err
+// newSyncRenewBackoff constructs the capped delay between repeated renewals of
+// one peer's offer while no stream with the peer opens.
+func newSyncRenewBackoff() cbackoff.BackOff {
+	return newCappedBackoff(syncRenewGrace, syncRenewMaxInterval)
+}
+
+// newCappedBackoff constructs a doubling delay from initial up to ceiling that
+// never gives up.
+func newCappedBackoff(initial, ceiling time.Duration) cbackoff.BackOff {
+	return cbackoff.NewExponentialBackOff(
+		cbackoff.WithInitialInterval(initial),
+		cbackoff.WithMultiplier(syncRetryMultiplier),
+		cbackoff.WithMaxInterval(ceiling),
+		cbackoff.WithRandomizationFactor(0),
+		cbackoff.WithMaxElapsedTime(0),
+	)
 }
 
 // isTerminalSyncError reports peer states that require authority or recovery
@@ -316,127 +294,6 @@ func (f *syncFailures) record(remoteID peer.ID, err error) bool {
 	return !failing || prev != err.Error()
 }
 
-// startWorker admits one worker before starting it so shutdown cannot miss it.
-func (g *solicitationGeneration) startWorker(run func() error) bool {
-	// Register the worker only while the generation accepts new streams.
-	var started bool
-	g.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
-		if g.stopping {
-			return
-		}
-		g.workers++
-		started = true
-		bcast()
-	})
-	if !started {
-		return false
-	}
-
-	// Publish its result and release its generation membership on return.
-	go func() {
-		g.workerDone(run())
-	}()
-	return true
-}
-
-// workerDone releases one worker and publishes its recoverable failure.
-func (g *solicitationGeneration) workerDone(err error) {
-	g.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
-		g.workers--
-		if err != nil && g.retryErr == nil && !g.stopping {
-			g.retryErr = err
-		}
-		bcast()
-	})
-}
-
-// wait blocks until the generation needs retry or its context ends.
-func (g *solicitationGeneration) wait(ctx context.Context) error {
-	for {
-		// Read the result and its matching wait channel atomically.
-		var retryErr error
-		var waitCh <-chan struct{}
-		g.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			retryErr = g.retryErr
-			waitCh = getWaitCh()
-		})
-		if err := ctx.Err(); err != nil {
-			return err
-		}
-		if retryErr != nil {
-			return retryErr
-		}
-
-		// Wake for either cancellation or a completed worker.
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-waitCh:
-		}
-	}
-}
-
-// stopAndWait fences new workers, cancels accepted streams, and joins them.
-func (g *solicitationGeneration) stopAndWait(cancel context.CancelFunc) {
-	// Fence callbacks before canceling the shared worker context.
-	g.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
-		g.stopping = true
-		bcast()
-	})
-	cancel()
-
-	// Wait on the same state owner until every accepted worker has returned.
-	for {
-		var waitCh <-chan struct{}
-		var stopped bool
-		g.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			stopped = g.workers == 0
-			waitCh = getWaitCh()
-		})
-		if stopped {
-			return
-		}
-		<-waitCh
-	}
-}
-
-// handleSolicitedStream processes a matched solicit stream for SO sync.
-func (s *SOSync) handleSolicitedStream(
-	ctx context.Context,
-	sms link_solicit.SolicitMountedStream,
-) error {
-	// Claim the matched stream once for this synchronization worker.
-	ms, taken, err := sms.AcceptMountedStream()
-	if err != nil {
-		return err
-	}
-	if taken {
-		return nil
-	}
-
-	// Run the authenticated stream with remote-scoped diagnostics.
-	le := s.le.WithField("remote-peer", ms.GetPeerID().String())
-	err = s.runStream(
-		ctx,
-		le,
-		ms.GetStream(),
-		ms.GetLink().GetLocalPeer(),
-		ms.GetPeerID(),
-	)
-	if ctx.Err() != nil {
-		return err
-	}
-	s.logStreamResult(le, ms.GetPeerID(), err)
-
-	// A peer this side refused can be admitted by a later config change,
-	// including one adopted while refusing it; no new stream starts on its own.
-	var refused *localRefusal
-	if errors.As(err, &refused) {
-		return s.waitReadmission(ctx, refused.remoteID)
-	}
-	return err
-}
-
 // localRefusal is ErrAccessDenied from this side's held authority, naming the
 // participant it refused. A denial sent by the remote side is plain
 // ErrAccessDenied, because only the remote config can lift it.
@@ -455,13 +312,9 @@ func (r *localRefusal) Unwrap() error {
 	return ErrAccessDenied
 }
 
-// errReadmitted retires a solicitation generation once held authority admits
-// a participant this side refused, so a fresh stream can synchronize it.
-var errReadmitted = errors.New("held authority admitted a refused participant")
-
 // waitReadmission watches the held state until it grants remoteID readable
-// access, then returns errReadmitted. It returns the context error on
-// cancellation. Each state change costs one scan of the participant list.
+// access, then returns nil. It returns the context error on cancellation.
+// Each state change costs one scan of the participant list.
 func (s *SOSync) waitReadmission(ctx context.Context, remoteID peer.ID) error {
 	// Watch the same held state that admission reads.
 	states, release, err := s.soHost.GetSOStateCtr(ctx, nil)
@@ -478,7 +331,7 @@ func (s *SOSync) waitReadmission(ctx context.Context, remoteID peer.ID) error {
 			return err
 		}
 		if !errors.Is(s.authorizeParticipants(current, remoteID), ErrAccessDenied) {
-			return errReadmitted
+			return nil
 		}
 		previous = current
 	}

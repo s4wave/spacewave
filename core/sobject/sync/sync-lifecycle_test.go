@@ -4,6 +4,7 @@ package sobject_sync
 
 import (
 	"context"
+	"net"
 	"sync/atomic"
 	"testing"
 	"testing/synctest"
@@ -16,167 +17,147 @@ import (
 	directive_controller "github.com/aperturerobotics/controllerbus/directive/controller"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/net/link"
 	link_solicit "github.com/s4wave/spacewave/net/link/solicit"
+	"github.com/s4wave/spacewave/net/peer"
+	"github.com/s4wave/spacewave/net/protocol"
+	"github.com/s4wave/spacewave/net/stream"
 	"github.com/sirupsen/logrus"
 	logtest "github.com/sirupsen/logrus/hooks/test"
 )
 
-// TestSOSyncExecuteRearmsRecoverableFailuresOnly verifies that a transient
-// stream failure replaces the directive generation while typed peer states do
-// not create a retry loop.
-func TestSOSyncExecuteRearmsRecoverableFailuresOnly(t *testing.T) {
-	tests := []struct {
-		name       string
-		streamErr  error
-		admissions int32
-	}{
-		{
-			name:       "recoverable",
-			streamErr:  errors.New("peer snapshot conflicts with accepted root"),
-			admissions: 2,
-		},
-		{name: "access denied", streamErr: ErrAccessDenied, admissions: 1},
-		{
-			name:       "participant revoked",
-			streamErr:  sobject.ErrParticipantRevoked,
-			admissions: 1,
-		},
-		{
-			name:       "history recovery",
-			streamErr:  sobject.ErrConfigHistoryUnavailable,
-			admissions: 1,
-		},
-		{
-			name:       "state too large",
-			streamErr:  sobject.ErrStateTooLarge,
-			admissions: 1,
-		},
-	}
+// TestSOSyncExecuteRenewsOnlyFailedPeer verifies that a recoverable failure of
+// one peer's stream renews an offer scoped to that peer alone, leaves another
+// peer's running stream open, and that shutdown joins that stream.
+func TestSOSyncExecuteRenewsOnlyFailedPeer(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		// Pair the standing offer with two peers. Peer A's remote end is already
+		// closed, so its stream fails at once; peer B's remote end never reads,
+		// so its stream stays in authentication.
+		ctx, cancel := context.WithCancel(t.Context())
+		defer cancel()
+		le := gateLogger()
+		b := bus_inmem.NewBus(directive_controller.NewController(ctx, le))
+		failed, failedRemote := newTrackedMountedStream("peer-a")
+		_ = failedRemote.Close()
+		running, runningRemote := newTrackedMountedStream("peer-b")
+		defer runningRemote.Close()
 
+		// Resolve the standing offer with both streams and report each renewal.
+		renewed := make(chan peer.ID, 4)
+		info := controller.NewInfo(
+			"test/so-sync-peer-retry",
+			controller.MustParseVersion("0.0.1"),
+			"SO sync peer retry test",
+		)
+		resolver := callback.NewCallbackController(
+			info,
+			nil,
+			func(_ context.Context, di directive.Instance) ([]directive.Resolver, error) {
+				dir, ok := di.GetDirective().(link_solicit.SolicitProtocol)
+				if !ok {
+					return nil, nil
+				}
+				if remote := dir.SolicitProtocolPeerID(); remote != "" {
+					renewed <- remote
+					return nil, nil
+				}
+				return []directive.Resolver{directive.NewValueResolver(
+					[]link_solicit.SolicitMountedStream{
+						link_solicit.NewSolicitMountedStream(failed),
+						link_solicit.NewSolicitMountedStream(running),
+					},
+				)}, nil
+			},
+			nil,
+		)
+		releaseResolver, err := b.AddController(ctx, resolver, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer releaseResolver()
+
+		// Run the production Execute loop with a participant key, so each
+		// stream reaches its transport.
+		key := mustKeyPair(t)
+		localID, err := peer.IDFromPrivateKey(key)
+		if err != nil {
+			t.Fatal(err)
+		}
+		syncer := NewSOSync(le, b, "test-object", localID, key, nil, nopPeerObserver{})
+		errCh := make(chan error, 1)
+		go func() {
+			errCh <- syncer.Execute(ctx)
+		}()
+
+		// The failed peer renews its own offer after its backoff.
+		if got := <-renewed; got != "peer-a" {
+			t.Fatalf("expected a renewal for peer-a, got %q", got)
+		}
+		synctest.Wait()
+		if len(renewed) != 0 {
+			t.Fatalf("expected one renewal, got another for %q", <-renewed)
+		}
+		if running.closed.Load() {
+			t.Fatal("peer-a's failure closed peer-b's running stream")
+		}
+
+		// Shutdown returns only after peer-b's stream has been closed and joined.
+		cancel()
+		if err := <-errCh; !errors.Is(err, context.Canceled) {
+			t.Fatalf("expected context cancellation, got %v", err)
+		}
+		if !running.closed.Load() {
+			t.Fatal("Execute returned before joining peer-b's stream")
+		}
+	})
+}
+
+// TestPeerStreamsEndRenewsRecoverableFailuresOnly verifies that the last
+// stream with a peer renews its offer after a recoverable failure or a local
+// refusal, and not after a terminal peer state.
+func TestPeerStreamsEndRenewsRecoverableFailuresOnly(t *testing.T) {
+	tests := []struct {
+		name  string
+		err   error
+		renew bool
+	}{
+		{name: "recoverable", err: errors.New("peer snapshot conflicts with accepted root"), renew: true},
+		{name: "local refusal", err: &localRefusal{remoteID: "participant"}, renew: true},
+		{name: "access denied", err: ErrAccessDenied},
+		{name: "participant revoked", err: sobject.ErrParticipantRevoked},
+		{name: "history recovery", err: sobject.ErrConfigHistoryUnavailable},
+		{name: "state too large", err: sobject.ErrStateTooLarge},
+	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			synctest.Test(t, func(t *testing.T) {
-				// Resolve the first solicitation with the selected stream failure and
-				// leave any replacement generation admitted without another value.
+				// End the only stream with a peer. The renewal's first delay and
+				// the readmission watch both stay blocked until stop.
 				ctx, cancel := context.WithCancel(t.Context())
-				defer cancel()
-				le := gateLogger()
-				b := bus_inmem.NewBus(directive_controller.NewController(ctx, le))
+				host, _ := newMemHost("test-object", &sobject.SOState{})
+				syncer := NewSOSync(gateLogger(), nil, "test-object", "", nil, host, nopPeerObserver{})
+				streams := newPeerStreams(ctx, syncer)
+				streams.arrive("peer-a")
+				streams.end("peer-a", true, test.err)
 
-				// Perform the action.
-				var admissions atomic.Int32
-				admitted := make(chan directive.Instance, 2)
-				info := controller.NewInfo(
-					"test/so-sync-rearm",
-					controller.MustParseVersion("0.0.1"),
-					"SO sync rearm test",
-				)
-				resolver := callback.NewCallbackController(
-					info,
-					nil,
-					func(_ context.Context, di directive.Instance) ([]directive.Resolver, error) {
-						// Resolve only the protocol under test.
-						if _, ok := di.GetDirective().(link_solicit.SolicitProtocol); !ok {
-							return nil, nil
-						}
-
-						// Record each distinct directive admission.
-						attempt := admissions.Add(1)
-						admitted <- di
-						if attempt != 1 {
-							return nil, nil
-						}
-
-						// Fail the first stream with the selected error.
-						return []directive.Resolver{directive.NewValueResolver(
-							[]link_solicit.SolicitMountedStream{
-								link_solicit.NewSolicitMountedStreamWithErr(test.streamErr),
-							},
-						)}, nil
-					},
-					nil,
-				)
-				releaseResolver, err := b.AddController(ctx, resolver, nil)
-				if err != nil {
-					t.Fatal(err)
-				}
-				defer releaseResolver()
-
-				// Run the production Execute loop and wait until all retry timers and
-				// directive callbacks have settled.
-				syncer := NewSOSync(le, b, "test-object", "", nil, nil, nopPeerObserver{})
-				errCh := make(chan error, 1)
-				go func() {
-					errCh <- syncer.Execute(ctx)
-				}()
-				first := <-admitted
-				var second directive.Instance
-				if test.admissions == 2 {
-					second = <-admitted
-				}
-				synctest.Wait()
-
-				// A replacement is a distinct directive admission, not another value
-				// from the failed directive instance.
-				if got := admissions.Load(); got != test.admissions {
-					t.Fatalf("expected %d solicitation admissions, got %d", test.admissions, got)
-				}
-				if second != nil && first == second {
-					t.Fatal("recoverable failure reused the failed directive instance")
+				// Only a failure with a next step registers a renewal.
+				var renewing bool
+				streams.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+					renewing = streams.peers["peer-a"].renewal != nil
+				})
+				if renewing != test.renew {
+					t.Fatalf("expected renewal %v, got %v", test.renew, renewing)
 				}
 
-				// Cancellation returns only after the active generation has drained.
-				cancel()
-				if err := <-errCh; !errors.Is(err, context.Canceled) {
-					t.Fatalf("expected context cancellation, got %v", err)
+				// Stop joins the renewal and leaves new streams fenced.
+				streams.stop(cancel)
+				if streams.addWorker() {
+					t.Fatal("stopped owner admitted another stream")
 				}
 			})
 		})
 	}
-}
-
-// TestSolicitationGenerationStopWaitsForWorkers verifies that a generation
-// cannot finish shutdown while an admitted worker is still returning.
-func TestSolicitationGenerationStopWaitsForWorkers(t *testing.T) {
-	synctest.Test(t, func(t *testing.T) {
-		// Admit one worker whose return is controlled independently of cancellation.
-		ctx, cancel := context.WithCancel(t.Context())
-		generation := &solicitationGeneration{}
-		started := make(chan struct{})
-		release := make(chan struct{})
-		if !generation.startWorker(func() error {
-			close(started)
-			<-release
-			return nil
-		}) {
-			t.Fatal("generation rejected its first worker")
-		}
-		<-started
-
-		// Start shutdown and prove it remains blocked on the admitted worker.
-		stopped := make(chan struct{})
-		go func() {
-			generation.stopAndWait(cancel)
-			close(stopped)
-		}()
-		synctest.Wait()
-		select {
-		case <-stopped:
-			close(release)
-			t.Fatal("generation stopped before its worker returned")
-		default:
-		}
-
-		// Releasing the worker completes shutdown and leaves admission fenced.
-		close(release)
-		<-stopped
-		if generation.startWorker(func() error { return nil }) {
-			t.Fatal("stopped generation admitted another worker")
-		}
-		if err := ctx.Err(); !errors.Is(err, context.Canceled) {
-			t.Fatalf("expected worker context cancellation, got %v", err)
-		}
-	})
 }
 
 // TestSyncRetryBackoffIsCapped verifies the exact retry-delay ceiling.
@@ -242,3 +223,91 @@ func TestLogStreamResultReportsEachFailureChange(t *testing.T) {
 		t.Fatalf("recoverable failure logged %v; want one info", got)
 	}
 }
+
+// trackedMountedStream is a mounted stream over one end of a pipe that
+// records whether its stream was closed.
+type trackedMountedStream struct {
+	// conn is the local end of the pipe.
+	conn net.Conn
+	// remote is the transport peer at the other end.
+	remote peer.ID
+	// closed is set once the stream is closed.
+	closed atomic.Bool
+}
+
+// newTrackedMountedStream constructs a mounted stream with remote over a pipe
+// and returns the pipe's remote end.
+func newTrackedMountedStream(remote peer.ID) (*trackedMountedStream, net.Conn) {
+	local, remoteConn := net.Pipe()
+	return &trackedMountedStream{conn: local, remote: remote}, remoteConn
+}
+
+// GetStream returns the local end, recording its close.
+func (s *trackedMountedStream) GetStream() stream.Stream {
+	return trackedStream{Conn: s.conn, closed: &s.closed}
+}
+
+// GetProtocolID returns the sync protocol.
+func (s *trackedMountedStream) GetProtocolID() protocol.ID {
+	return SyncProtocolID
+}
+
+// GetOpenOpts returns the default open options.
+func (s *trackedMountedStream) GetOpenOpts() stream.OpenOpts {
+	return stream.OpenOpts{}
+}
+
+// GetPeerID returns the remote transport peer.
+func (s *trackedMountedStream) GetPeerID() peer.ID {
+	return s.remote
+}
+
+// GetLink returns a link from the local transport peer to remote.
+func (s *trackedMountedStream) GetLink() link.MountedLink {
+	return trackedMountedLink{remote: s.remote}
+}
+
+// trackedStream records the close of a pipe end.
+type trackedStream struct {
+	net.Conn
+	// closed is set on Close.
+	closed *atomic.Bool
+}
+
+// Close records the close and closes the pipe end.
+func (s trackedStream) Close() error {
+	s.closed.Store(true)
+	return s.Conn.Close()
+}
+
+// trackedMountedLink is a link from transport peer "local" to remote.
+type trackedMountedLink struct {
+	// remote is the remote transport peer.
+	remote peer.ID
+}
+
+// GetLinkUUID returns a fixed link ID.
+func (trackedMountedLink) GetLinkUUID() uint64 { return 1 }
+
+// GetTransportUUID returns a fixed transport ID.
+func (trackedMountedLink) GetTransportUUID() uint64 { return 1 }
+
+// GetRemoteTransportUUID returns a fixed transport ID.
+func (trackedMountedLink) GetRemoteTransportUUID() uint64 { return 1 }
+
+// GetLocalPeer returns the local transport peer, which sorts below the remote.
+func (trackedMountedLink) GetLocalPeer() peer.ID { return "local" }
+
+// GetRemotePeer returns the remote transport peer.
+func (l trackedMountedLink) GetRemotePeer() peer.ID { return l.remote }
+
+// OpenMountedStream is not used by the tests.
+func (trackedMountedLink) OpenMountedStream(context.Context, protocol.ID, stream.OpenOpts) (link.MountedStream, error) {
+	return nil, errors.New("not supported")
+}
+
+// _ is a type assertion.
+var (
+	_ link.MountedStream = (*trackedMountedStream)(nil)
+	_ link.MountedLink   = trackedMountedLink{}
+)
