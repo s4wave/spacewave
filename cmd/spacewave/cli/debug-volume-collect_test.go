@@ -67,7 +67,7 @@ func TestDebugVolumeCollect(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		state, _, err := readVolumeState(ctx, le, path)
+		st, _, err := readVolumeState(ctx, le, path)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -78,16 +78,16 @@ func TestDebugVolumeCollect(t *testing.T) {
 		if !bytes.Equal(before, after) {
 			t.Fatal("reading the state changed the volume file")
 		}
-		return state.GetFrees()
+		return st.State.GetFrees()
 	}
 
 	// Without frees the passes net the logs and delete nothing.
-	res, _, err := collectVolume(ctx, le, path, &store_kvtx.Config{CollectorGraceDur: "1ns"})
+	rep, err := collectVolume(ctx, le, path, &store_kvtx.Config{CollectorGraceDur: "1ns"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res.Freed != 0 {
-		t.Fatalf("freed %d without frees", res.Freed)
+	if rep.res.Freed != 0 {
+		t.Fatalf("freed %d without frees", rep.res.Freed)
 	}
 	if oldOK, liveOK := stored(); !oldOK || !liveOK {
 		t.Fatalf("without frees: old head stored %v, live head stored %v", oldOK, liveOK)
@@ -97,12 +97,12 @@ func TestDebugVolumeCollect(t *testing.T) {
 	}
 
 	// With frees the replaced head goes and the live head stays.
-	res, passes, err := collectVolume(ctx, le, path, &store_kvtx.Config{CollectorFrees: true, CollectorGraceDur: "1ns"})
+	rep, err = collectVolume(ctx, le, path, &store_kvtx.Config{CollectorFrees: true, CollectorGraceDur: "1ns"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res.Freed == 0 {
-		t.Fatalf("freed nothing with frees in %d passes: %+v", passes, res)
+	if rep.res.Freed == 0 {
+		t.Fatalf("freed nothing with frees in %d passes: %+v", rep.passes, rep.res)
 	}
 	if oldOK, liveOK := stored(); oldOK || !liveOK {
 		t.Fatalf("with frees: old head stored %v, live head stored %v", oldOK, liveOK)

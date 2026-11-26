@@ -145,6 +145,16 @@ func (v *Volume) Audit(ctx context.Context) (block_gc.AuditResult, error) {
 	return block_gc.Audit(block.WithBackground(ctx), collectorStore{v: v}, v.now(), !v.readOnly)
 }
 
+// SettleStatus reads what the settle's flip checks find, counting the front
+// and the recorded holes up to limit each, as block_gc.SettleStatus
+// describes. It writes nothing.
+func (v *Volume) SettleStatus(ctx context.Context, limit int) (block_gc.SettleStatus, error) {
+	if !v.HoldsRoots() {
+		return block_gc.SettleStatus{}, block.ErrAtomicCommitUnsupported
+	}
+	return v.collector.SettleStatus(block.WithBackground(ctx), limit)
+}
+
 // AuditWalk runs the streaming audit of the Volume, as block_gc.Walk
 // describes, keeping its records in scratch, a store of the walk's own and
 // never the Volume's. It reads the Volume only in short views, so it runs

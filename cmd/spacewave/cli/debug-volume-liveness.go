@@ -153,27 +153,38 @@ func (a *debugVolumeStateArgs) Run(c *cli.Context) error {
 		return errors.New("expected one volume file argument")
 	}
 	path := c.Args().First()
-	state, parked, err := readVolumeState(c.Context, logrus.NewEntry(logrus.New()), path)
+	st, parked, err := readVolumeState(c.Context, logrus.NewEntry(logrus.New()), path)
 	if err != nil {
 		return err
 	}
 
-	// Print the record.
-	writeFields(os.Stdout, stateFields(path, state, parked))
+	// Print the record, and what an Open generation's flip waits on.
+	fields := stateFields(path, st.State, parked)
+	writeFields(os.Stdout, append(fields, settleStatusFields(st, st.State.GetFrees(), false)...))
 	return nil
 }
 
-// readVolumeState opens the stopped volume at path read-only and reads its
-// liveness state, and whether an Open generation parked any block. A file
+// readVolumeState opens the stopped volume at path read-only and reads what
+// the settle's flip checks find, its liveness state among them, and whether
+// an Open generation parked any block. It reads with the collector's
+// default grace period, not the one a collection passes. A file
 // that needs a conversion or a format upgrade fails with
 // volume.ErrReadOnlyUpgrade naming its format, and is left as it was.
-func readVolumeState(ctx context.Context, le *logrus.Entry, path string) (*block_gc.LivenessState, bool, error) {
+func readVolumeState(ctx context.Context, le *logrus.Entry, path string) (*block_gc.SettleStatus, bool, error) {
+	// Open the volume read-only.
 	vol, err := openStoppedVolume(ctx, le, path, volumeReadOnly)
 	if err != nil {
 		return nil, false, err
 	}
 	defer vol.Close()
-	return vol.ReadLiveness(ctx)
+
+	// Read whether it parked a block, then the flip's checks.
+	_, parked, err := vol.ReadLiveness(ctx)
+	if err != nil {
+		return nil, false, err
+	}
+	st, err := vol.SettleStatus(ctx, settleStatusLimit)
+	return &st, parked, err
 }
 
 // stateFields formats a liveness state in the command's field table.
