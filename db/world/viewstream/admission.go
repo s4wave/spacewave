@@ -41,7 +41,14 @@ type Admission struct {
 func NewAdmission(slots, priorities, defaultPriority int, hold time.Duration, observer AdmissionObserver) *Admission {
 	priorities = max(1, priorities)
 	slots = max(1, slots)
-	return &Admission{observer: observer, hold: hold, slots: slots, free: slots, waiting: make([][]*waiter, priorities), defaultPriority: max(0, min(defaultPriority, priorities-1))}
+	return &Admission{
+		observer:        observer,
+		hold:            hold,
+		slots:           slots,
+		free:            slots,
+		waiting:         make([][]*waiter, priorities),
+		defaultPriority: max(0, min(defaultPriority, priorities-1)),
+	}
 }
 
 // waiter is one stream waiting in line for a slot.
@@ -197,11 +204,15 @@ func (a *Admission) held() func() {
 // held slot past the new count as it returns, so the streams already admitted
 // finish undisturbed and no new one starts until the held slots fit.
 func (a *Admission) SetSlots(slots int) {
+	// Move free by the change in count; it goes negative while held slots
+	// past a lowered count are still out, and release retires those.
 	slots = max(1, slots)
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
 	a.free += slots - a.slots
 	a.slots = slots
+
+	// Admit waiting streams into any slots the raise freed.
 	for a.free > 0 && a.grantLocked() {
 		a.free--
 	}
