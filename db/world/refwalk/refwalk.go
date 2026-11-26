@@ -293,10 +293,15 @@ func (w *Walker) read(ctx context.Context, n Node) (Visit, error) {
 	return rd, err
 }
 
-// certain reports whether blk, decoded from data under a guessed type, is
-// certainly of that type: a Blob that validates, that is not an empty blob
-// read from non-empty bytes, and that holds only the fields its types define.
-// Any other type, or no block, is never certain.
+// certain reports whether blk, decoded from data under a guessed type, is as
+// sure a Blob as its bytes allow: a Blob that validates, that is not an empty
+// blob read from non-empty bytes, and that holds only the fields its types
+// define. Any other type, or no block, is never certain. Bytes whose wire
+// form is a valid Blob's still pass, such as a block of another type whose
+// fields 1, 2 and 3 read as a raw blob's type, size and data. A stored child
+// list bounds that case, since the merge never shrinks it: a block whose own
+// writer listed its refs is reported as refused or dropped and is not
+// rewritten. A block with no stored list gets one from the guessed refs.
 func certain(blk any, data []byte) bool {
 	b, ok := blk.(*blob.Blob)
 	if !ok || b.Validate() != nil || b.IsEmpty() && len(data) != 0 {
