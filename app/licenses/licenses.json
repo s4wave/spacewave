@@ -870,7 +870,7 @@
     },
     {
       "name": "github.com/aperturerobotics/go-kvfile",
-      "version": "v0.10.1-0.20261024231416-0a1dc13010cd",
+      "version": "v0.10.1-0.20261126112843-3bfff9fe4b81",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/go-kvfile",
