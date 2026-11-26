@@ -62,12 +62,15 @@ func (db *DB) reader(m runMeta) (*runReader, error) {
 	return r, nil
 }
 
-// forgetRun drops the reader and cached blocks of a run a merge removed.
-func (db *DB) forgetRun(id uint64) {
-	db.runs.mtx.Lock()
-	delete(db.runs.readers, id)
-	db.runs.mtx.Unlock()
-	db.cache.drop(id)
+// forgetRuns drops the readers and cached blocks of the runs a merge
+// removed.
+func (db *DB) forgetRuns(ids []uint64) {
+	for _, id := range ids {
+		db.runs.mtx.Lock()
+		delete(db.runs.readers, id)
+		db.runs.mtx.Unlock()
+		db.cache.drop(id)
+	}
 }
 
 // readChecked reads the bytes at r into buf and checks them. With no buf the

@@ -227,7 +227,7 @@ func (db *DB) load() error {
 	}
 
 	// Publish the loaded state and pin it.
-	st.refs = new(refCount)
+	st.track()
 	db.cur.Store(st)
 	return db.writePin(db.localPin())
 }
@@ -365,7 +365,7 @@ func (db *DB) tail(st *state, verify bool) (*state, bool, error) {
 	kept := recs
 	torn := false
 	for i, r := range recs {
-		if verify && r.kind == kindCommit && r.seq > max(durable, st.logged) && !db.verify(r) {
+		if verify && r.kind == kindCommit && r.seq > max(durable, st.logged) && !db.verify(r.ops) {
 			kept, torn = recs[:i], true
 			break
 		}
@@ -382,9 +382,7 @@ func (db *DB) tail(st *state, verify bool) (*state, bool, error) {
 	for _, r := range kept {
 		next.apply(r, db.budget)
 		if r.kind == kindMerge {
-			for _, id := range r.removed {
-				db.forgetRun(id)
-			}
+			db.forgetRuns(r.removed)
 		}
 	}
 	return next, torn, nil
@@ -400,9 +398,10 @@ func (db *DB) cutTorn(st *state) (*state, error) {
 	return st, db.s.flushDurable()
 }
 
-// verify reports whether every value r references matches its checksum.
-func (db *DB) verify(r *record) bool {
-	for _, o := range r.ops {
+// verify reports whether every value a commit's ops reference matches its
+// checksum.
+func (db *DB) verify(ops []op) bool {
+	for _, o := range ops {
 		if o.val.isRef() {
 			if _, err := db.readValue(o.val); err != nil {
 				return false
@@ -450,9 +449,9 @@ func (db *DB) publish(ctx context.Context, st *state) error {
 	// Replace the state, keeping the replaced states that snapshots still
 	// read. A snapshot that starts after the store takes st, so a replaced
 	// state no snapshot reads now never gains one.
-	st.refs = new(refCount)
+	st.track()
 	db.cur.Store(st)
-	db.retired = slices.DeleteFunc(append(db.retired, cur), func(s *state) bool { return !s.refs.held() })
+	db.retired = slices.DeleteFunc(append(db.retired, cur), func(s *state) bool { return !s.held() })
 	l.Broadcast()
 	l.Unlock()
 	if !db.opts.ReadOnly {
@@ -470,18 +469,18 @@ func (db *DB) acquire() (*state, int) {
 	stripe := rand.IntN(refStripes) // #nosec G404 -- spreads contention; no secret.
 	for {
 		st := db.cur.Load()
-		st.refs[stripe].n.Add(1)
+		st.addReader(stripe, 1)
 		if db.cur.Load() == st {
 			return st, stripe
 		}
-		st.refs[stripe].n.Add(-1)
+		st.addReader(stripe, -1)
 	}
 }
 
 // release ends a snapshot and raises a read-only handle's pin when its last
 // reader of a replaced state finishes. The writer reads its local pin directly.
 func (db *DB) release(st *state, stripe int) {
-	if st.refs[stripe].n.Add(-1) != 0 || db.cur.Load() == st || !db.opts.ReadOnly {
+	if st.addReader(stripe, -1) != 0 || db.cur.Load() == st || !db.opts.ReadOnly {
 		return
 	}
 	_ = db.updatePin(context.Background())
@@ -503,7 +502,7 @@ func (db *DB) localPin() pin {
 	// Lower the pin by each replaced state still read.
 	live := db.retired[:0]
 	for _, s := range db.retired {
-		if s.refs.held() {
+		if s.held() {
 			p = p.lower(s.pin())
 			live = append(live, s)
 		}
@@ -543,7 +542,7 @@ func (db *DB) writePin(p pin) error {
 // lookup returns the value of key in st: the memtable decides when it holds
 // the key, else the newest run that holds it.
 func (db *DB) lookup(st *state, key []byte) (value, bool, error) {
-	if e, ok := st.mem.get(key); ok {
+	if e, ok := st.unflushed(key); ok {
 		return e.val, e.val.kind != valueDeleted, nil
 	}
 	return db.lookupRuns(st, key, nil)
@@ -750,7 +749,7 @@ func (db *DB) closingMark() {
 		return
 	}
 	if err := db.flush.syncThrough(ctx, db.cur.Load().seq); err == nil {
-		_, _ = db.w.appendRecord(ctx, &record{kind: kindCommit})
+		_ = db.w.mark(ctx)
 	}
 	db.w.unlock()
 }

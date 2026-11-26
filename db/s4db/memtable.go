@@ -118,3 +118,32 @@ func (m *memtable) dropThrough(seq uint64, budget int64) *memtable {
 func (m *memtable) len() int {
 	return m.tree.Len()
 }
+
+// scan calls fn with each entry in key order until fn returns false.
+func (m *memtable) scan(fn func(e *mentry) bool) {
+	m.tree.Scan(fn)
+}
+
+// layer returns an iterator layer over the entries, which shadow the runs.
+func (m *memtable) layer() *treeIter[*mentry] {
+	return &treeIter[*mentry]{
+		it:    m.tree.Iter(),
+		keyOf: func(e *mentry) []byte { return e.key },
+		probe: func(k []byte) *mentry { return &mentry{key: k} },
+		conv:  func(e *mentry) ientry { return ientry{del: e.val.kind == valueDeleted, val: e.val} },
+	}
+}
+
+// changedUnder reports whether an entry under prefix changed after commit
+// after.
+func (m *memtable) changedUnder(prefix []byte, after uint64) bool {
+	changed := false
+	m.tree.Ascend(&mentry{key: prefix}, func(e *mentry) bool {
+		if !bytes.HasPrefix(e.key, prefix) {
+			return false
+		}
+		changed = e.seq > after
+		return !changed
+	})
+	return changed
+}

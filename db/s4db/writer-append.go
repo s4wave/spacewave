@@ -4,60 +4,32 @@ import "context"
 
 // appendRecord appends r after the published state and publishes the state
 // derived from it, returning that state. The caller holds the writer lock;
-// r's kind and body are set, and its identities, mark and sequence are
-// filled here. A link precedes it when the record does not fit the chunk.
+// r's kind and body are set, and placement fills its header. A link precedes
+// it when the record does not fit the chunk.
 func (w *writer) appendRecord(ctx context.Context, r *record) (*state, error) {
-	// Fill the record's identities and mark on a copy of the state. A commit
-	// here is a mark, which keeps the open chunks.
+	// Reserve the producer's chunks on a copy of the state before allocating
+	// log or standby space. The reservation record has not yet been applied
+	// to the public state.
 	db := w.db
 	base := db.cur.Load()
 	next := base.derive()
-
-	// Reserve the producer's chunks before allocating log or standby space.
-	// The reservation record has not yet been applied to the public state.
 	if r.kind == kindReserve {
-		for _, c := range r.chunks {
-			next.m.table.set(c, chunkEntry{kind: chunkReserved, owner: db.id})
-		}
-	}
-	r.writer, r.prevWriter = db.id, base.writer
-	r.durable, _ = db.flush.marks()
-	if r.kind == kindCommit {
-		r.hot, r.cold = base.m.hot, base.m.cold
+		next.reserve(r.chunks, db.id)
 	}
 
-	// Place the record while keeping backed space for full-disk reclamation.
-	pos, link, err := w.placeLog(base, next, r)
-	if err != nil {
-		return nil, err
-	}
-	linkPos, prev := base.pos, base.crc
-	if link != nil {
-		prev = next.crc
-	}
-
-	// A truncate target was chosen before placing this record. A rollover may
-	// have claimed a chunk at or above that target; keep the log and standby.
-	if r.kind == kindTruncate {
-		r.next = max(r.next, chunksFor(next.end), r.spare+1)
-	}
-
-	// Write the link and the record, then publish.
-	rec := r.encode(prev)
-	if link != nil {
-		if _, err := db.s.WriteAt(link, fileOff(linkPos)); err != nil {
-			return nil, err
-		}
-	}
-	if _, err := db.s.WriteAt(rec, fileOff(pos)); err != nil {
-		return nil, err
-	}
-	db.written.Add(int64(len(link) + len(rec)))
-	next.apply(r, db.budget)
-	if err := db.publish(ctx, next); err != nil {
+	// Place, write and publish the record.
+	if err := w.append(ctx, base, next, r, nil); err != nil {
 		return nil, err
 	}
 	return next, nil
+}
+
+// mark appends a mark record: a commit with no changes, which carries the
+// writer's durable mark and keeps the open value chunks. The caller holds the
+// writer lock.
+func (w *writer) mark(ctx context.Context) error {
+	_, err := w.appendRecord(ctx, newCommit(w.db.cur.Load().m))
+	return err
 }
 
 // locked runs one scheduler slice through the same coordinator as transactions.
@@ -78,7 +50,7 @@ func (w *writer) locked(ctx context.Context, fn func() error) error {
 func (w *writer) reserve(ctx context.Context, n uint64) ([]uint64, error) {
 	chunks := make([]uint64, n)
 	err := w.locked(ctx, func() error {
-		first := w.db.cur.Load().m.table.clone().alloc(n, chunkReserved, w.db.id)
+		first := w.db.cur.Load().freeRun(n)
 		for i := range chunks {
 			chunks[i] = first + uint64(i) // #nosec G115 -- a chunk count.
 		}
@@ -98,13 +70,7 @@ func (w *writer) free(ctx context.Context, chunks []uint64) error {
 		batch := chunks[:min(len(chunks), freeBatch)]
 		if err := w.locked(ctx, func() error {
 			// Completed run/manifest output is never disposable reservation cleanup.
-			table := w.db.cur.Load().m.table
-			var unused []uint64
-			for _, c := range batch {
-				if e := table.get(c); e.kind == chunkReserved && e.owner == w.db.id {
-					unused = append(unused, c)
-				}
-			}
+			unused := w.db.cur.Load().reservedBy(batch, w.db.id)
 			if len(unused) == 0 {
 				return nil
 			}

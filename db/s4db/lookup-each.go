@@ -37,7 +37,7 @@ func (db *DB) lookupEach(st *state, keys [][]byte, order []int, cache bool, fn f
 		if order != nil {
 			i = order[n]
 		}
-		e, ok := st.mem.get(keys[i])
+		e, ok := st.unflushed(keys[i])
 		if !ok {
 			queued = append(queued, i)
 			continue

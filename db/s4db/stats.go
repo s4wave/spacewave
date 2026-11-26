@@ -83,12 +83,7 @@ func (db *DB) Stats(ctx context.Context) (Stats, error) {
 	// Size the chunks, then count the runs per level.
 	s.FreeBytes, s.PendingBytes = s.Chunks.Free*chunkSize, s.Chunks.Pending*chunkSize
 	s.LiveBytes, s.DeadBytes = t.live, t.used-t.live
-	for _, r := range st.m.runs {
-		for len(s.Runs) <= int(r.level) {
-			s.Runs = append(s.Runs, 0)
-		}
-		s.Runs[r.level]++
-	}
+	s.Runs = st.runLevels()
 
 	// Read the slots and the flows.
 	s.Slots, err = db.slotPins()

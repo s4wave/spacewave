@@ -319,7 +319,7 @@ func TestScaling(t *testing.T) {
 		if _, ok := (&mergeJob{}).pick(m); ok {
 			sink++
 		}
-		if sched.hasPending(&state{m: m}) {
+		if (&state{m: m}).hasPending() {
 			sink++
 		}
 		return nil

@@ -102,6 +102,141 @@ func (st *state) superblock() superblock {
 	}
 }
 
+// track starts counting st's snapshots. A state is counted from its
+// publication on.
+func (st *state) track() {
+	st.refs = new(refCount)
+}
+
+// addReader adds d to the count of st's snapshots in stripe and returns the
+// stripe's new count.
+func (st *state) addReader(stripe int, d int64) int64 {
+	return st.refs[stripe].n.Add(d)
+}
+
+// held reports whether any snapshot reads st.
+func (st *state) held() bool {
+	return st.refs.held()
+}
+
+// unflushed returns st's memtable entry of key: its newest change since the
+// last flush.
+func (st *state) unflushed(key []byte) (mentry, bool) {
+	return st.mem.get(key)
+}
+
+// hasUnflushed reports whether st's memtable holds any change.
+func (st *state) hasUnflushed() bool {
+	return st.mem.len() != 0
+}
+
+// flushDue reports whether st's memtable holds changes and it, or the log
+// since the last flush, passed budget.
+func (st *state) flushDue(budget int64) bool {
+	return st.hasUnflushed() && (st.mem.bytes > budget || st.logBytes > 4*budget)
+}
+
+// eachUnflushed calls fn with each entry of st's memtable in key order until
+// fn returns false.
+func (st *state) eachUnflushed(fn func(e *mentry) bool) {
+	st.mem.scan(fn)
+}
+
+// unflushedLayer returns an iterator layer over st's memtable.
+func (st *state) unflushedLayer() *treeIter[*mentry] {
+	return st.mem.layer()
+}
+
+// changedUnder reports whether st's memtable holds a change after commit
+// after to a key under prefix.
+func (st *state) changedUnder(prefix []byte, after uint64) bool {
+	return st.mem.changedUnder(prefix, after)
+}
+
+// chunk returns the entry of chunk c in st's table.
+func (st *state) chunk(c uint64) chunkEntry {
+	return st.m.table.get(c)
+}
+
+// tableEnd returns the chunk after the last one st's table holds, which is
+// the file's length in chunks.
+func (st *state) tableEnd() uint64 {
+	return st.m.table.end()
+}
+
+// hasPending reports whether st's table holds pending or reserved chunks,
+// from its tally.
+func (st *state) hasPending() bool {
+	t := st.m.table
+	return t.count(chunkPending)+t.count(chunkReserved) != 0
+}
+
+// shrinkEnd returns the end st's table may shrink to by dropping at most n
+// trailing free chunks, and whether that end is below the table's.
+func (st *state) shrinkEnd(n uint64) (uint64, bool) {
+	end := st.m.table.trimEnd(n)
+	return end, end != st.m.table.end()
+}
+
+// stalled reports whether st's level 0 holds more runs than its stall point.
+func (st *state) stalled() bool {
+	return st.m.level0() > level0Stall
+}
+
+// runLevels counts st's runs per level, through the highest level that
+// holds one.
+func (st *state) runLevels() []int {
+	var levels []int
+	for _, r := range st.m.runs {
+		for len(levels) <= int(r.level) {
+			levels = append(levels, 0)
+		}
+		levels[r.level]++
+	}
+	return levels
+}
+
+// manifestNeed returns the chunks a job reserves for the manifest it
+// publishes over st, with room for the table to grow by a quarter.
+func (st *state) manifestNeed() uint64 {
+	return chunksFor(st.m.table.end()*chunkEntrySize*5/4) + 1
+}
+
+// encodeManifest returns st's manifest as one checksummed record.
+func (st *state) encodeManifest() []byte {
+	return st.m.encode()
+}
+
+// freeRun returns the first of the n consecutive chunks an allocation from
+// st's table would take, leaving st unchanged.
+func (st *state) freeRun(n uint64) uint64 {
+	return st.m.table.clone().alloc(n, chunkReserved, 0)
+}
+
+// reservedBy returns the chunks of cs that owner still holds reserved in
+// st's table, or nil when none.
+func (st *state) reservedBy(cs []uint64, owner uint64) []uint64 {
+	var held []uint64
+	for _, c := range cs {
+		if e := st.m.table.get(c); e.kind == chunkReserved && e.owner == owner {
+			held = append(held, c)
+		}
+	}
+	return held
+}
+
+// reserve marks chunks reserved for owner's job in st's table, which the
+// caller owns.
+func (st *state) reserve(chunks []uint64, owner uint64) {
+	st.m.table.mark(chunks, chunkEntry{kind: chunkReserved, owner: owner})
+}
+
+// allocLog takes n consecutive chunks for the log from st's table, which the
+// caller owns, and returns the first.
+func (st *state) allocLog(n uint64) uint64 {
+	return st.m.table.alloc(n, chunkLog, 0)
+}
+
 // derive returns a copy of st the caller may change, with a fresh snapshot
 // count. Its manifest, memtable and log chunks share st's storage until
 // written, so deriving copies nothing that grows with the file: the log
@@ -159,42 +294,24 @@ func (st *state) apply(r *record, budget int64) {
 	case kindReserve:
 		// The job's chunks are reserved until its record, its free, or a
 		// reclaim once its handle is gone.
-		for _, c := range r.chunks {
-			m.table.set(c, chunkEntry{kind: chunkReserved, owner: r.writer})
-		}
+		st.reserve(r.chunks, r.writer)
 	case kindFlush:
 		// The run holds the memtable through r.through; the old manifest and
 		// the log chunks before the replay point are pending.
-		st.addRuns(r)
+		m.addRuns(r.runs, r.mchunks, r.seq)
 		st.flush(r, budget, true)
 	case kindMerge:
 		// The outputs replace the inputs, whose chunks are pending.
-		for _, in := range m.removeRuns(r.removed) {
-			for _, c := range in.chunks {
-				if e := m.table.get(c); e.kind == chunkRun && e.owner == in.id {
-					m.table.set(c, chunkEntry{kind: chunkPending, owner: chunkRun, seq: r.seq})
-				}
-			}
-		}
-		st.addRuns(r)
+		m.retireRuns(r.removed, r.seq)
+		m.addRuns(r.runs, r.mchunks, r.seq)
 	case kindSealed:
 		// The value chunks are pending from this record, and an open one
 		// closes.
-		for _, c := range r.chunks {
-			m.table.set(c, chunkEntry{kind: chunkPending, owner: chunkValue, seq: r.seq})
-			if c == m.hot {
-				m.hot = 0
-			}
-			if c == m.cold {
-				m.cold = 0
-			}
-		}
+		m.seal(r.chunks, r.seq)
 	case kindFree:
 		// The chunks are free: the writer established that no slot pins a
 		// state that reads them and recovery no longer can.
-		for _, c := range r.chunks {
-			m.table.set(c, chunkEntry{})
-		}
+		m.table.mark(r.chunks, chunkEntry{})
 	case kindTruncate:
 		// The table ends at r.next; the writer truncated the file in the
 		// record's lock span.
@@ -240,31 +357,57 @@ func (st *state) flush(r *record, budget int64, table bool) {
 	st.logChunks = st.logChunks[i:]
 }
 
-// addRuns adds a flush or merge record's runs and manifest chunks, keeping
-// the runs in lookup order, and makes the previous manifest's chunks pending.
-func (st *state) addRuns(r *record) {
+// addRuns adds a flush or merge record's runs and the chunks of the
+// manifest written with them, keeping the runs in lookup order, and makes
+// the previous manifest's chunks pending from record seq.
+func (m *manifest) addRuns(runs []runMeta, mchunks []uint64, seq uint64) {
 	// Add the runs into a new list, which clones of the manifest do not
 	// share.
-	m := st.m
 	m.version++
-	for i := range r.runs {
-		for _, c := range r.runs[i].chunks {
-			m.table.set(c, chunkEntry{kind: chunkRun, owner: r.runs[i].id})
+	for i := range runs {
+		for _, c := range runs[i].chunks {
+			m.table.set(c, chunkEntry{kind: chunkRun, owner: runs[i].id})
 		}
 	}
-	m.runs = slices.Concat(m.runs, r.runs)
+	m.runs = slices.Concat(m.runs, runs)
 	slices.SortFunc(m.runs, lookupOrder)
 
 	// Replace the manifest's chunks.
 	for _, c := range m.mchunks {
 		if m.table.get(c).kind == chunkManifest {
-			m.table.set(c, chunkEntry{kind: chunkPending, owner: chunkManifest, seq: r.seq})
+			m.table.set(c, chunkEntry{kind: chunkPending, owner: chunkManifest, seq: seq})
 		}
 	}
-	for _, c := range r.mchunks {
+	for _, c := range mchunks {
 		m.table.set(c, chunkEntry{kind: chunkManifest, owner: m.version})
 	}
-	m.mchunks = r.mchunks
+	m.mchunks = mchunks
+}
+
+// retireRuns drops the runs a merge record seq removes and makes the chunks
+// each still owns pending from that record.
+func (m *manifest) retireRuns(ids []uint64, seq uint64) {
+	for _, in := range m.removeRuns(ids) {
+		for _, c := range in.chunks {
+			if e := m.table.get(c); e.kind == chunkRun && e.owner == in.id {
+				m.table.set(c, chunkEntry{kind: chunkPending, owner: chunkRun, seq: seq})
+			}
+		}
+	}
+}
+
+// seal makes the value chunks a sealed record seq names pending from that
+// record, and closes the open chunk among them.
+func (m *manifest) seal(chunks []uint64, seq uint64) {
+	for _, c := range chunks {
+		m.table.set(c, chunkEntry{kind: chunkPending, owner: chunkValue, seq: seq})
+		if c == m.hot {
+			m.hot = 0
+		}
+		if c == m.cold {
+			m.cold = 0
+		}
+	}
 }
 
 // applyCommit applies a commit record's changes to the memtable and, when
@@ -277,8 +420,18 @@ func (st *state) applyCommit(r *record, table bool) {
 		m.hot, m.cold = r.hot, r.cold
 	}
 
-	// Record each change in the memtable and its value bytes in the table.
-	for _, o := range r.ops {
+	// Record each change in the memtable and its value bytes in the table,
+	// then the frees, which name whole entries, headers included.
+	st.applyOps(r.ops, r.seq, table)
+	if table {
+		m.table.freeValues(r.frees)
+	}
+}
+
+// applyOps records commit seq's key changes in the memtable and, when table
+// is set, their value bytes in the table.
+func (st *state) applyOps(ops []op, seq uint64, table bool) {
+	for _, o := range ops {
 		v := o.val
 		if v.kind == valueMoved {
 			// The cleaner checked under the writer lock that the key still
@@ -288,16 +441,9 @@ func (st *state) applyCommit(r *record, table bool) {
 		}
 		if v.isRef() && table {
 			hdr := uint64(valueEntryHeaderLen(len(o.key), int(v.ref.n))) // #nosec G115 -- a header is a few bytes.
-			m.table.useValue(v.ref.off-hdr, v.ref.n+uint32(hdr), r.seq)  // #nosec G115 -- fits a chunk.
+			st.m.table.useValue(v.ref.off-hdr, v.ref.n+uint32(hdr), seq) // #nosec G115 -- fits a chunk.
 		}
-		st.mem.set(mentry{key: o.key, val: v, seq: r.seq})
-	}
-
-	// Frees name whole entries, headers included.
-	if table {
-		for _, f := range r.frees {
-			m.table.freeValue(f.off, f.n)
-		}
+		st.mem.set(mentry{key: o.key, val: v, seq: seq})
 	}
 }
 

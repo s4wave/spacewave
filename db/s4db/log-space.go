@@ -25,10 +25,10 @@ func (w *writer) backLog(first, span uint64) error {
 	return backLog(w.db.s, first, span)
 }
 
-// reclaimRecord reports records allowed to spend the standby without replacing
-// it first. Free batches are bounded; a quiet mark or deletion can establish the
+// reclaims reports whether r may spend the standby without replacing it
+// first. Free batches are bounded; a quiet mark or deletion can establish the
 // durability and unreachability needed to reclaim more chunks on a full disk.
-func reclaimRecord(r *record) bool {
+func (r *record) reclaims() bool {
 	if r.kind == kindFree || r.kind == kindSealed || r.kind == kindTruncate {
 		return true
 	}
@@ -43,15 +43,16 @@ func reclaimRecord(r *record) bool {
 	return true
 }
 
-// placeLog places r and an optional link in next, derived from base. Ordinary
+// placeLog places r and an optional link in next, derived from base, and
+// fills r's header with this writer's identity and durable mark. Ordinary
 // records retain a fully backed standby. A bounded reclaim record may consume
-// that standby without allocating; the first subsequent ordinary record replaces
-// it from the newly reusable space before publishing any work.
-func (w *writer) placeLog(base, next *state, r *record) (uint64, []byte, error) {
+// that standby without allocating; the first subsequent ordinary record
+// replaces it from the newly reusable space before publishing any work.
+func (w *writer) placeLog(base, next *state, r *record, durable uint64) (uint64, []byte, error) {
 	// Select the next extent, consuming the standby only for a single chunk.
-	pos, seq, prev := base.pos, base.seq+1, base.crc
-	spare := base.spare
+	pos, prev, spare := base.pos, base.crc, base.spare
 	bound := uint64(recordHeader + r.bound()) // #nosec G115 -- sizes are nonnegative.
+	var l *record
 	var link []byte
 	if pos+bound+linkSize > base.end {
 		span := max(chunksFor(bound+linkSize), 1)
@@ -59,36 +60,39 @@ func (w *writer) placeLog(base, next *state, r *record) (uint64, []byte, error) 
 		if span == 1 && spare != 0 {
 			first, spare = spare, 0
 		} else {
-			first = next.m.table.alloc(span, chunkLog, 0)
+			first = next.allocLog(span)
 			if err := w.backLog(first, span); err != nil {
 				return 0, nil, err
 			}
 		}
 
 		// Ordinary work must replace a consumed standby before installing its link.
-		if spare == 0 && !reclaimRecord(r) {
-			spare = next.m.table.alloc(1, chunkLog, 0)
-			if err := w.backLog(spare, 1); err != nil {
-				return 0, nil, err
-			}
+		var err error
+		if spare, err = w.keepSpare(next, r, spare); err != nil {
+			return 0, nil, err
 		}
-		l := &record{
-			seq: seq, kind: kindLink, writer: w.db.id, prevWriter: base.writer,
-			durable: r.durable, next: first, span: span, spare: spare,
-		}
+		l = &record{kind: kindLink, next: first, span: span}
+		l.follow(base, nil, w.db.id, durable, spare)
 		link = l.encode(prev)
 		next.apply(l, w.db.budget)
-		seq, pos = seq+1, chunkStart(first)
-		r.prevWriter = w.db.id
+		pos = chunkStart(first)
 	}
 
 	// A reclaim record may have consumed the standby on an earlier call.
-	if spare == 0 && !reclaimRecord(r) {
-		spare = next.m.table.alloc(1, chunkLog, 0)
-		if err := w.backLog(spare, 1); err != nil {
-			return 0, nil, err
-		}
+	spare, err := w.keepSpare(next, r, spare)
+	if err != nil {
+		return 0, nil, err
 	}
-	r.seq, r.spare = seq, spare
+	r.follow(base, l, w.db.id, durable, spare)
 	return pos, link, nil
+}
+
+// keepSpare returns spare, or a new backed standby chunk taken from next
+// when spare is zero and r must keep one.
+func (w *writer) keepSpare(next *state, r *record, spare uint64) (uint64, error) {
+	if spare != 0 || r.reclaims() {
+		return spare, nil
+	}
+	spare = next.allocLog(1)
+	return spare, w.backLog(spare, 1)
 }

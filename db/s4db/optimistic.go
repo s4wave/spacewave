@@ -56,20 +56,12 @@ func changedSince(snap, base *state, reads *readSet) bool {
 	// Test each key read, then each scanned prefix.
 	after := snap.seq
 	for key := range reads.keys {
-		if e, ok := base.mem.get([]byte(key)); ok && e.seq > after {
+		if e, ok := base.unflushed([]byte(key)); ok && e.seq > after {
 			return true
 		}
 	}
 	for _, prefix := range reads.prefixes {
-		changed := false
-		base.mem.tree.Ascend(&mentry{key: prefix}, func(e *mentry) bool {
-			if !bytes.HasPrefix(e.key, prefix) {
-				return false
-			}
-			changed = e.seq > after
-			return !changed
-		})
-		if changed {
+		if base.changedUnder(prefix, after) {
 			return true
 		}
 	}

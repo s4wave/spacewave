@@ -158,19 +158,14 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, move
 	// the copy's table, which the record's replay reproduces.
 	db := w.db
 	next := base.derive()
-	r := &record{kind: kindCommit, writer: db.id, prevWriter: base.writer, hot: next.m.hot, cold: next.m.cold}
+	r := newCommit(next.m)
 	var writes []valueWrite
 
 	// A move out of an open chunk closes it, so no later value lands in the
 	// chunk the cleaner is emptying.
 	if moves {
 		for _, c := range changes {
-			switch chunkOf(c.expect) {
-			case r.hot:
-				r.hot = 0
-			case r.cold:
-				r.cold = 0
-			}
+			r.close(chunkOf(c.expect))
 		}
 	}
 	var flows []Flow
@@ -209,25 +204,20 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, move
 		}
 		userBytes += int64(len(c.key) + len(c.data))
 		if found && old.isRef() {
-			hdr := uint64(valueEntryHeaderLen(len(c.key), int(old.ref.n)))                     // #nosec G115 -- a header is a few bytes.
-			r.frees = append(r.frees, ref{off: old.ref.off - hdr, n: old.ref.n + uint32(hdr)}) // #nosec G115 -- fits a chunk.
+			r.free(c.key, old.ref)
 			if flows != nil {
 				flows[db.family(c.key)].Freed += int64(old.ref.n)
 			}
 		}
-		switch {
-		case c.del:
-			r.delta--
-			r.ops = append(r.ops, op{key: c.key, val: value{kind: valueDeleted}})
+		if c.del {
+			r.remove(c.key)
 			continue
-		case !found:
-			r.delta++
 		}
 		// A move always places its value, so a moved value is a reference and
 		// never carries an inline payload; values in a chunk exceed inlineMax.
 		v := value{kind: valueInline, inline: c.data}
 		if len(c.data) > inlineMax || moves {
-			v, writes = w.place(next.m, r, c.key, c.data, writes, moves)
+			v, writes = r.place(next.m, c.key, c.data, writes, moves)
 			if flows != nil {
 				flows[db.family(c.key)].Written += int64(len(c.data))
 			}
@@ -235,7 +225,7 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, move
 		if moves {
 			v.kind = valueMoved
 		}
-		r.ops = append(r.ops, op{key: c.key, val: v})
+		r.set(c.key, v, !found)
 	}
 	if len(r.ops) == 0 {
 		return nil
@@ -250,9 +240,24 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, move
 		r.own()
 	}
 
+	// Write the values and the record, and publish the new state.
+	if err := w.append(ctx, base, next, r, writes); err != nil {
+		return err
+	}
+	db.userBytes.Add(userBytes)
+	db.addFlows(flows)
+	return nil
+}
+
+// append places r after base in next, writes values, the link when r does
+// not fit its chunk, and r, and publishes next with r applied. The caller
+// holds the writer lock, base is the published state and next derives from
+// it, and r's kind and body are set; placement fills its header.
+func (w *writer) append(ctx context.Context, base, next *state, r *record, writes []valueWrite) error {
 	// Reserve the log and its standby before writing values or publishing.
-	r.durable, _ = db.flush.marks()
-	pos, link, err := w.placeLog(base, next, r)
+	db := w.db
+	durable, _ := db.flush.marks()
+	pos, link, err := w.placeLog(base, next, r, durable)
 	if err != nil {
 		return err
 	}
@@ -260,6 +265,7 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, move
 	if link != nil {
 		prev = next.crc
 	}
+	r.keepLog(next.end)
 
 	// Write the values, then the record. A tail of this handle that began
 	// before the writer lock and reads the record first publishes the same
@@ -277,22 +283,17 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, move
 		return err
 	}
 	db.written.Add(int64(len(link) + len(rec)))
-	db.userBytes.Add(userBytes)
 
 	// Publish the new state.
 	next.apply(r, db.budget)
-	if err := db.publish(ctx, next); err != nil {
-		return err
-	}
-	db.addFlows(flows)
-	return nil
+	return db.publish(ctx, next)
 }
 
-// place assigns data, stored under key, a position in the open hot value
-// chunk of m, or the cold chunk for a cleaner's move, taking a new chunk when
-// it does not fit and a run of chunks when it exceeds one. It records the
-// write and returns the reference.
-func (w *writer) place(m *manifest, r *record, key, data []byte, writes []valueWrite, cold bool) (value, []valueWrite) {
+// place assigns data, stored under key, a position in the commit's open hot
+// value chunk, or the cold chunk for a cleaner's move, taking a new chunk
+// from m when it does not fit and a run of chunks when it exceeds one. It
+// records the write and returns the reference.
+func (r *record) place(m *manifest, key, data []byte, writes []valueWrite, cold bool) (value, []valueWrite) {
 	// Build the entry.
 	hdr := valueEntryHeaderLen(len(key), len(data))
 	entry := make([]byte, 0, hdr+len(data))
@@ -325,6 +326,11 @@ func (w *writer) place(m *manifest, r *record, key, data []byte, writes []valueW
 
 // writeValues writes placed values, joining adjacent ones into one write.
 func (w *writer) writeValues(writes []valueWrite) error {
+	// A record without values writes none.
+	if len(writes) == 0 {
+		return nil
+	}
+
 	// Collect adjacent entries in buf, starting at at.
 	var buf []byte
 	var at uint64

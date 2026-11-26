@@ -92,7 +92,7 @@ func (s *scheduler) run() {
 
 		// Flush when the memtable or the log since the last flush passed the
 		// budget. The writer-owner lock excludes another process's scheduler.
-		if st.mem.len() != 0 && (st.mem.bytes > s.db.budget || st.logBytes > 4*s.db.budget) && s.flush() {
+		if st.flushDue(s.db.budget) && s.flush() {
 			quietAt = time.Now()
 			continue
 		}
@@ -100,7 +100,7 @@ func (s *scheduler) run() {
 		// Merge when a level is over its target, in a quiet spell, or at once
 		// when level 0 passed its stall; the gate goes first, since the pick
 		// compares runs.
-		if s.fg.wait() <= 0 || st.m.level0() > level0Stall {
+		if s.fg.wait() <= 0 || st.stalled() {
 			if _, ok := (&mergeJob{db: s.db}).pick(st.m); ok && s.merge() {
 				quietAt = time.Now()
 				continue
@@ -118,7 +118,7 @@ func (s *scheduler) run() {
 
 		// Shrink a file whose tail is free, a release step at a time in a
 		// quiet spell; each job's release step also takes one.
-		if s.fg.wait() <= 0 && st.m.table.trimEnd(1) != st.m.table.end() {
+		if _, shrinks := st.shrinkEnd(1); shrinks && s.fg.wait() <= 0 {
 			if s.releaseStep(s.ctx) == nil {
 				quietAt = time.Now()
 				continue
@@ -129,7 +129,7 @@ func (s *scheduler) run() {
 		// chunks recorded since the last one, so with no record since, the
 		// release step alone frees those whose pins have ended, without a
 		// mark record and its two flushes every quiet second.
-		if time.Since(quietAt) >= quietMark && s.hasPending(st) {
+		if time.Since(quietAt) >= quietMark && st.hasPending() {
 			if st.seq > s.marked {
 				_ = s.markStep(s.ctx)
 				s.marked = s.db.cur.Load().seq
@@ -175,12 +175,6 @@ func (s *scheduler) clean() bool {
 	return ran && err == nil
 }
 
-// hasPending reports whether the table holds pending or reserved chunks.
-func (s *scheduler) hasPending(st *state) bool {
-	t := st.m.table
-	return t.count(chunkPending)+t.count(chunkReserved) != 0
-}
-
 // markStep flushes, appends a mark record carrying the mark that flush
 // raised, and flushes again so the mark record is itself durable, then runs
 // the release step.
@@ -193,8 +187,7 @@ func (s *scheduler) markStep(ctx context.Context) error {
 
 	// Append the mark record and make it durable.
 	err := db.w.locked(ctx, func() error {
-		_, err := db.w.appendRecord(ctx, &record{kind: kindCommit})
-		return err
+		return db.w.mark(ctx)
 	})
 	if err != nil {
 		return err
@@ -220,7 +213,7 @@ func (db *DB) waitMemtable(ctx context.Context, background bool) error {
 			return false, ErrClosed
 		}
 		st := db.cur.Load()
-		if background && st.m.level0() > level0Stall {
+		if background && st.stalled() {
 			return false, nil
 		}
 		return st.mem.bytes <= limit, nil

@@ -37,7 +37,20 @@ const recordHeader = 4 + 4 + 8 + 1 + 8 + 8 + 8 + 8
 // for at its end.
 const linkSize = recordHeader + 2*10
 
-// record is one decoded log record.
+// record is one log record, decoded or being written.
+//
+// The writer and replay keep these invariants:
+//   - The writer sets a record's kind and body before it places the record
+//     (newCommit and the commit methods, or a literal). Placement fills only
+//     the header (follow) and may raise a truncate target (keepLog); nothing
+//     changes the record after it is encoded.
+//   - The record the writer applies is the one it encoded, and replay applies
+//     the record decoded from those bytes, so every handle derives the same
+//     state from the same log.
+//   - A commit's ops and frees are fixed once it is appended; replay reads
+//     them, and only own changes where their bytes live.
+//   - A decoded record's keys and inline values point into the log reader's
+//     window until own copies them.
 type record struct {
 	// seq is the record sequence.
 	seq uint64
@@ -85,6 +98,65 @@ type record struct {
 	size int
 	// crc is the record's checksum.
 	crc uint32
+}
+
+// newCommit returns an empty commit record that keeps m's open value
+// chunks. A commit with no changes is a mark.
+func newCommit(m *manifest) *record {
+	return &record{kind: kindCommit, hot: m.hot, cold: m.cold}
+}
+
+// follow fills the header that places r after the last record of base, or
+// after link when a link record continues the log from there: its sequence,
+// its writer and that writer's durable mark, the writer of the record before
+// it, and the standby chunk.
+func (r *record) follow(base *state, link *record, writer, durable, spare uint64) {
+	r.seq, r.prevWriter = base.seq+1, base.writer
+	if link != nil {
+		r.seq, r.prevWriter = link.seq+1, link.writer
+	}
+	r.writer, r.durable, r.spare = writer, durable, spare
+}
+
+// keepLog raises a truncate record's target so the table keeps the log
+// through end and the standby. The target was chosen before the record was
+// placed, and placing it may have claimed a chunk at or above the target.
+func (r *record) keepLog(end uint64) {
+	if r.kind == kindTruncate {
+		r.next = max(r.next, chunksFor(end), r.spare+1)
+	}
+}
+
+// close ends the commit's open value chunk c, so no later value of the
+// commit lands in it.
+func (r *record) close(c uint64) {
+	switch c {
+	case r.hot:
+		r.hot = 0
+	case r.cold:
+		r.cold = 0
+	}
+}
+
+// free records that the commit frees the entry of key whose value old
+// references, header included.
+func (r *record) free(key []byte, old ref) {
+	hdr := uint64(valueEntryHeaderLen(len(key), int(old.n)))                   // #nosec G115 -- a header is a few bytes.
+	r.frees = append(r.frees, ref{off: old.off - hdr, n: old.n + uint32(hdr)}) // #nosec G115 -- fits a chunk.
+}
+
+// remove records that the commit deletes key, which held a value.
+func (r *record) remove(key []byte) {
+	r.delta--
+	r.ops = append(r.ops, op{key: key, val: value{kind: valueDeleted}})
+}
+
+// set records that the commit sets key to v; added says key held no value.
+func (r *record) set(key []byte, v value, added bool) {
+	if added {
+		r.delta++
+	}
+	r.ops = append(r.ops, op{key: key, val: v})
 }
 
 // op is one key change in a commit record.

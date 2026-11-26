@@ -46,11 +46,11 @@ func (s *scheduler) releaseStep(ctx context.Context) error {
 		// Collect the chunks both conditions allow. A table whose tally
 		// counts no pending or reserved chunk has none, so its pass ends
 		// without a scan.
-		n := int(st.m.table.end()) // #nosec G115 -- a chunk count.
+		n := int(st.tableEnd()) // #nosec G115 -- a chunk count.
 		if s.releaseRemaining == 0 || s.releaseRemaining > n {
 			s.releaseRemaining = n
 		}
-		if st.m.table.count(chunkPending)+st.m.table.count(chunkReserved) == 0 {
+		if !st.hasPending() {
 			s.releaseRemaining = 0
 		}
 		var free []uint64
@@ -58,7 +58,7 @@ func (s *scheduler) releaseStep(ctx context.Context) error {
 			s.releaseRemaining--
 			c := s.releaseCursor % n
 			s.releaseCursor = (c + 1) % n
-			e := st.m.table.get(uint64(c)) // #nosec G115 -- a table index.
+			e := st.chunk(uint64(c)) // #nosec G115 -- a table index.
 			switch e.kind {
 			case chunkPending:
 				durable := logged
@@ -85,8 +85,8 @@ func (s *scheduler) releaseStep(ctx context.Context) error {
 		// Truncate the file toward its last chunk in use, in this lock span,
 		// since the lock keeps a writer from allocating past the new end
 		// while the call runs.
-		end := st.m.table.trimEnd(truncateMax)
-		if end == st.m.table.end() {
+		end, shrinks := st.shrinkEnd(truncateMax)
+		if !shrinks {
 			return nil
 		}
 		st, err = db.w.appendRecord(ctx, &record{kind: kindTruncate, next: end})
@@ -100,7 +100,7 @@ func (s *scheduler) releaseStep(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		endBytes := fileOff(chunkStart(st.m.table.end()))
+		endBytes := fileOff(chunkStart(st.tableEnd()))
 		if endBytes >= size {
 			return nil
 		}

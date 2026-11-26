@@ -12,10 +12,8 @@ import (
 func build(ctx context.Context, s storage, opts Options, runBytes int64, source func(yield func(key, value []byte) error) error) error {
 	// Lay out the header area and the empty log chunk, then stream.
 	opts = opts.withDefaults()
-	b := &builder{ctx: ctx, s: s, m: newManifest(), runBytes: runBytes}
-	b.vals = valueChunkWriter{s: s, table: b.m.table}
-	b.logChunk = b.m.table.alloc(2, chunkLog, 0)
-	if err := backLog(s, b.logChunk, 2); err != nil {
+	b, err := newBuilder(ctx, s, runBytes)
+	if err != nil {
 		return err
 	}
 	if err := source(b.add); err != nil {
@@ -49,6 +47,24 @@ type builder struct {
 	last []byte
 	// count is the number of pairs added.
 	count int64
+}
+
+// newBuilder returns a builder over the empty file s with runs of runBytes
+// each, after backing the empty log chunk its superblock points at.
+func newBuilder(ctx context.Context, s storage, runBytes int64) (*builder, error) {
+	m := newManifest()
+	logChunk := m.table.alloc(2, chunkLog, 0)
+	if err := backLog(s, logChunk, 2); err != nil {
+		return nil, err
+	}
+	return &builder{
+		ctx:      ctx,
+		s:        s,
+		m:        m,
+		runBytes: runBytes,
+		logChunk: logChunk,
+		vals:     valueChunkWriter{s: s, table: m.table},
+	}, nil
 }
 
 // add appends one pair.

@@ -210,6 +210,13 @@ func (t *chunkTable) set(c uint64, e chunkEntry) {
 	}
 }
 
+// mark sets the entry of each chunk of cs to e.
+func (t *chunkTable) mark(cs []uint64, e chunkEntry) {
+	for _, c := range cs {
+		t.set(c, e)
+	}
+}
+
 // truncate drops the entries from chunk n on.
 func (t *chunkTable) truncate(n uint64) {
 	// Drop the entries from the tally, then clear those in the last kept
@@ -321,6 +328,13 @@ func (t *chunkTable) freeValue(off uint64, n uint32) {
 		part := min(off+uint64(n), chunkStart(c+1)) - max(off, chunkStart(c))
 		e.live -= uint32(min(uint64(e.live), part)) // #nosec G115 -- part fits a chunk.
 		t.tally(*e, 1)
+	}
+}
+
+// freeValues records each freed value entry of frees, headers included.
+func (t *chunkTable) freeValues(frees []ref) {
+	for _, f := range frees {
+		t.freeValue(f.off, f.n)
 	}
 }
 

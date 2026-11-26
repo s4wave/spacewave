@@ -155,7 +155,7 @@ func (c *cleaner) step(ctx context.Context) (bool, error) {
 		db.release(st, stripe)
 		return false, nil
 	}
-	e := st.m.table.get(victim)
+	e := st.chunk(victim)
 
 	// A chunk with no live entry is sealed without a scan.
 	if e.live == 0 {
@@ -219,7 +219,7 @@ func (c *cleaner) step(ctx context.Context) (bool, error) {
 	}
 
 	// Seal the victim when its live count reached zero.
-	if db.cur.Load().m.table.get(victim).live == 0 {
+	if db.cur.Load().chunk(victim).live == 0 {
 		return true, c.seal(ctx, victim)
 	}
 	return true, nil
@@ -268,7 +268,7 @@ func (c *cleaner) batch(live []tentry) (batch, rest []tentry) {
 func (c *cleaner) seal(ctx context.Context, victim uint64) error {
 	db := c.db
 	err := db.w.locked(ctx, func() error {
-		if e := db.cur.Load().m.table.get(victim); e.kind != chunkValue || e.live != 0 {
+		if e := db.cur.Load().chunk(victim); e.kind != chunkValue || e.live != 0 {
 			return nil
 		}
 		_, err := db.w.appendRecord(ctx, &record{kind: kindSealed, chunks: []uint64{victim}})

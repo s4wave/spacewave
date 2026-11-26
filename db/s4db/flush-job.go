@@ -22,13 +22,13 @@ func (j *flushJob) run(ctx context.Context) error {
 	db := j.db
 	st, stripe := db.acquire()
 	defer db.release(st, stripe)
-	if st.mem.len() == 0 {
+	if !st.hasUnflushed() {
 		return nil
 	}
 
 	// Reserve the run's chunks and the manifest's.
 	need := chunksFor(uint64(st.mem.bytes)) + 1 // #nosec G115 -- bytes are not negative.
-	mneed := chunksFor(st.m.table.end()*chunkEntrySize*5/4) + 1
+	mneed := st.manifestNeed()
 	reserved, err := db.w.reserve(ctx, need+mneed)
 	if err != nil {
 		return err
@@ -49,7 +49,7 @@ func (j *flushJob) run(ctx context.Context) error {
 	var meta runMeta
 	var buildErr error
 	if err := db.sched.idle.do(ctx, func() {
-		st.mem.tree.Scan(func(e *mentry) bool {
+		st.eachUnflushed(func(e *mentry) bool {
 			buildErr = rb.add(e.key, e.val)
 			return buildErr == nil
 		})
@@ -108,7 +108,7 @@ func (j *flushJob) abandon(ctx context.Context, reserved []uint64, cause error) 
 // the flush covered durable.
 func (db *DB) publishManifest(next *state, mchunks []uint64) error {
 	// The manifest must fit its reserved chunks, which are consecutive.
-	mb := next.m.encode()
+	mb := next.encodeManifest()
 	if uint64(len(mb)) > uint64(len(mchunks))*chunkSize {
 		return errors.New("manifest exceeds its reserved chunks")
 	}

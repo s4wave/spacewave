@@ -37,8 +37,7 @@ func TestWaitDurableAfterBackgroundRecord(t *testing.T) {
 	// Publish a background record past the durable mark.
 	durable, _ := db.flush.marks()
 	err = db.w.locked(ctx, func() error {
-		_, err := db.w.appendRecord(ctx, &record{kind: kindCommit})
-		return err
+		return db.w.mark(ctx)
 	})
 	if err != nil {
 		t.Fatal(err)

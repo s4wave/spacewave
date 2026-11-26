@@ -233,7 +233,7 @@ func TestLogReserve(t *testing.T) {
 		if st.spare == 0 && st.pos+uint64(recordHeader+mark.bound()+linkSize) > st.end {
 			break
 		}
-		if err := db.w.locked(ctx, func() error { _, err := db.w.appendRecord(ctx, mark); return err }); err != nil {
+		if err := db.w.locked(ctx, func() error { return db.w.mark(ctx) }); err != nil {
 			t.Fatal(err)
 		}
 	}

@@ -173,7 +173,7 @@ func (j *mergeJob) run(ctx context.Context) error {
 		inBytes += uint64(len(r.chunks)) * chunkSize
 	}
 	need := chunksFor(inBytes) + 1
-	mneed := chunksFor(st.m.table.end()*chunkEntrySize*5/4) + 1
+	mneed := st.manifestNeed()
 	reserved, err := db.w.reserve(ctx, need+mneed)
 	if err != nil {
 		return err
@@ -235,9 +235,7 @@ func (j *mergeJob) run(ctx context.Context) error {
 	if err := db.publishManifest(next, mchunks); err != nil {
 		return err
 	}
-	for _, id := range removed {
-		db.forgetRun(id)
-	}
+	db.forgetRuns(removed)
 	if err := db.w.free(ctx, unused); err != nil {
 		return err
 	}
