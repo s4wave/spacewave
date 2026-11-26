@@ -10,8 +10,82 @@ import (
 	"github.com/s4wave/spacewave/db/block/blob"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	"github.com/s4wave/spacewave/db/bucket"
+	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 )
+
+// TestScanRefs checks that a scan of a block's bytes with no type finds every
+// ref the block's type extracts, which is what lets a reader hold the
+// children of a block it cannot type: a ref the scan missed would be a child
+// nothing holds. It also checks that a child named twice is not reported as
+// missed, that a ref in a field the type does not define is found as an
+// extra, and that bytes cut short are refused whole.
+func TestScanRefs(t *testing.T) {
+	// Build a chunked blob whose first chunk repeats.
+	newRef := func(seed string) *block.BlockRef {
+		t.Helper()
+		h, err := hash.Sum(hash.HashType_HashType_BLAKE3, []byte(seed))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return block.NewBlockRef(h)
+	}
+	first := newRef("first")
+	b := &blob.Blob{BlobType: blob.BlobType_BlobType_CHUNKED, TotalSize: 3, ChunkIndex: &blob.ChunkIndex{Chunks: []*blob.Chunk{
+		{DataRef: first, Size: 1},
+		{DataRef: newRef("second"), Size: 1, Start: 1},
+		{DataRef: first, Size: 1, Start: 2},
+	}}}
+	data, err := b.MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	typed, err := block.ExtractBlockRefs(b)
+	if err != nil || len(typed) != 3 {
+		t.Fatalf("typed refs: %d, err %v", len(typed), err)
+	}
+
+	// The scan finds both children, each once, and the compare misses none.
+	hits, ok := ScanHits(data)
+	if !ok || len(hits) != 2 {
+		t.Fatalf("scan: ok %v, %d refs, want 2", ok, len(hits))
+	}
+	if missed, extra := scanCompare(typed, data); len(missed) != 0 || len(extra) != 0 {
+		t.Fatalf("compare: %d missed, %d extra, want none", len(missed), len(extra))
+	}
+
+	// A ref in field 15, which no blob message defines, is an extra, with
+	// the path of the hash below it.
+	stray, err := newRef("stray").MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	with := append(bytes.Clone(data), 15<<3|2, byte(len(stray)))
+	with = append(with, stray...)
+	missed, extra := scanCompare(typed, with)
+	if len(missed) != 0 || len(extra) != 1 || extra[0].Path != "15.1" {
+		t.Fatalf("stray ref: %d missed, extra %v", len(missed), extra)
+	}
+
+	// Bytes cut short are not a message, and the scan returns nothing.
+	if hits, ok := ScanHits(data[:len(data)-1]); ok || len(hits) != 0 {
+		t.Fatalf("cut bytes: ok %v, %d refs", ok, len(hits))
+	}
+
+	// A histogram counts a scanned block in the row of no type, as a leaf
+	// when the scan found no ref, and moves it to its type's row when a typed
+	// read confirms one.
+	hist := NewHistogram()
+	hist.Add(Visit{Node: Node{Ref: first, Untyped: "no type"}, Found: true, Data: data})
+	if rows := hist.Rows(); len(rows) != 1 || rows[0].Type != UntypedRow || rows[0].Blocks != 1 || rows[0].Leaves != 1 {
+		t.Fatalf("scanned block: rows %+v", rows)
+	}
+	hist.Add(Visit{Node: Node{Ref: first, Ctor: blob.NewBlobBlock}, Found: true, Data: data, Refs: typed})
+	rows, total := hist.Rows(), hist.Total()
+	if len(rows) != 1 || rows[0].Type != "*blob.Blob" || rows[0].Leaves != 0 || total.Blocks != 1 || total.Leaves != 0 {
+		t.Fatalf("confirmed block: rows %+v, total %+v", rows, total)
+	}
+}
 
 // TestPayloadNodeBlob checks that a payload root guessed as a blob is
 // confirmed when it is one: the walk keeps the decode and returns the refs of

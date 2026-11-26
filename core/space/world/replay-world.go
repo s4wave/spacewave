@@ -11,6 +11,7 @@ import (
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/world"
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
+	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 )
 
@@ -269,6 +270,39 @@ func PublishedGraph(ctx context.Context, snap sobject.SharedObjectStateSnapshot,
 		return nil, nil, err
 	}
 	return entry, entry.Ref, nil
+}
+
+// PublishedRoots returns the roots data names when it is exactly the block
+// PublishedGraph builds for a graph of several roots: a HeldRoots of two or
+// more roots and nothing else, in the encoding refsEntry writes. It reports
+// false for any other bytes.
+//
+// A reader that holds only a published graph's root tells with it whether the
+// root is that block or the one World or payload root the graph has. Those
+// are encoded with the Space's transform, and read as this block only if
+// their bytes are exactly two or more block refs.
+func PublishedRoots(data []byte) ([]*block.BlockRef, bool) {
+	// Decode the block and take two or more valid roots.
+	held := &HeldRoots{}
+	if err := held.UnmarshalVT(data); err != nil || len(held.GetRoots()) < 2 {
+		return nil, false
+	}
+	roots := make([]*block.BlockRef, len(held.GetRoots()))
+	for i, root := range held.GetRoots() {
+		if root.Validate(false) != nil {
+			return nil, false
+		}
+		h := root.GetHash()
+		roots[i] = &block.BlockRef{Hash: &hash.Hash{HashType: h.GetHashType(), Hash: h.GetHash()}}
+	}
+
+	// Require data to be the encoding of those roots alone, which rules out
+	// an earlier block and any field this type does not define.
+	exact, err := (&HeldRoots{Roots: roots}).MarshalVT()
+	if err != nil || !bytes.Equal(exact, data) {
+		return nil, false
+	}
+	return roots, true
 }
 
 // snapRoots returns the World of the checkpoint of snap, if any, then the

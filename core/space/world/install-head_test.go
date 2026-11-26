@@ -554,6 +554,23 @@ func TestResetPayloadsSeesAdmissions(t *testing.T) {
 	if len(mixed.GetRoots()) != 1 || !mixed.GetRoots()[0].EqualsRef(sixth) || !mixed.GetPrev().EqualsRef(held) {
 		t.Fatalf("a mixed add wrote %v after %v, want only the new payload", mixed, held)
 	}
+
+	// That block, an append after an earlier one, does not read as the block
+	// a published graph of several roots gets. Two roots alone do, and not
+	// with one more field.
+	if _, ok := PublishedRoots(data); ok {
+		t.Fatal("a HeldRoots block after an earlier one read as a published graph")
+	}
+	graph, err := refsEntry(&HeldRoots{Roots: []*block.BlockRef{fifth, sixth}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if roots, ok := PublishedRoots(graph.Data); !ok || len(roots) != 2 || !roots[0].EqualsRef(fifth) || !roots[1].EqualsRef(sixth) {
+		t.Fatalf("published roots of two roots: %v, %v", roots, ok)
+	}
+	if _, ok := PublishedRoots(append(slices.Clone(graph.Data), 0x18, 0x01)); ok {
+		t.Fatal("two roots and another field read as a published graph")
+	}
 	expect(b, "re-adding held payloads", want, append(slices.Clone(want), shared)...)
 
 	reopened := rootSet{name: RootReplayPayloads}

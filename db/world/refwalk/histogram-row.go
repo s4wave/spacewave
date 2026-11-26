@@ -38,8 +38,9 @@ func SizeClassName(class int) string {
 
 // HistogramRow counts the blocks of one type, or of all types.
 type HistogramRow struct {
-	// Type is the block type's Go type, such as "*okra.Page", or empty for the
-	// total of every type.
+	// Type is the block type's Go type, such as "*okra.Page", UntypedRow for
+	// the blocks a scanning walk read with no type, or empty for the total of
+	// every type.
 	Type string
 	// Unsure is set on the row of the blocks read as a guessed Type that the
 	// walk could not confirm, as Visit.Unsure describes: their type is unknown.

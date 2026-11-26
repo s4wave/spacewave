@@ -61,6 +61,8 @@ type Walker struct {
 	// visited holds the blocks already walked, each by its ref and the type
 	// it was read as, so a block read as one type is still read as another.
 	visited map[visitKey]struct{}
+	// readAs holds every type the walk read a block as.
+	readAs map[reflect.Type]struct{}
 	// roots holds the refs the walk typed as object roots, by their keys,
 	// whether or not their type resolved.
 	roots map[string]struct{}
@@ -80,6 +82,9 @@ type Walker struct {
 	typesTx world.Tx
 	// keepBytes reads every block's bytes, leaves included, into its Visit.
 	keepBytes bool
+	// scan walks below a ref whose type the walk cannot name by scanning each
+	// block's bytes, and scans each decoded block beside its typed refs.
+	scan bool
 }
 
 // NewWalker constructs a Walker reading store, typing objects' roots with
@@ -90,6 +95,7 @@ func NewWalker(le *logrus.Entry, store block.StoreOps, lookup LookupBlockType) *
 		store:   store,
 		lookup:  lookup,
 		visited: make(map[visitKey]struct{}),
+		readAs:  make(map[reflect.Type]struct{}),
 		roots:   make(map[string]struct{}),
 		untyped: make(map[string]*Untyped),
 		stops:   make(map[string]string),
@@ -105,8 +111,50 @@ func (w *Walker) KeepBytes() {
 	w.keepBytes = true
 }
 
+// ScanUntyped makes the walk go on below a ref whose type it cannot name:
+// it reads that block and the blocks below it with ScanHits, each as a Node
+// whose Untyped gives the reason, decoded with its holder's transform. It
+// also scans every block it decodes by type and reports in Visit.ScanMissed
+// the typed refs the scan did not find, which measures the scan against the
+// types. Call it before the first Walk.
+func (w *Walker) ScanUntyped() {
+	w.scan = true
+}
+
+// ScannedOnly returns how many blocks the walk read by scanning alone and
+// under no type. It looks each scanned block up under every type the walk
+// read, so it costs the scanned blocks times those types.
+func (w *Walker) ScannedOnly() uint64 {
+	var n uint64
+	for key := range w.visited {
+		if key.typ == nil && !w.typed(key.ref) {
+			n++
+		}
+	}
+	return n
+}
+
+// Reached reports whether the walk visited ref under a type and whether it
+// visited it by scanning. A visit is not a read: the block may be absent or
+// fail to decode. It still answers after Close.
+func (w *Walker) Reached(ref *block.BlockRef) (typed, scanned bool) {
+	key := ref.MarshalString()
+	_, scanned = w.visited[visitKey{ref: key}]
+	return w.typed(key), scanned
+}
+
+// typed reports whether the walk visited the ref of key under a type.
+func (w *Walker) typed(key string) bool {
+	for typ := range w.readAs {
+		if _, ok := w.visited[visitKey{ref: key, typ: typ}]; ok {
+			return true
+		}
+	}
+	return false
+}
+
 // Untyped returns the refs whose type the walk could not name, by reason. The
-// blocks below them were not walked.
+// blocks below them were not walked, unless the walk scans.
 func (w *Walker) Untyped() map[string]Untyped {
 	out := make(map[string]Untyped, len(w.untyped))
 	for reason, u := range w.untyped {
@@ -199,7 +247,11 @@ func (w *Walker) Walk(ctx context.Context, root Node, visit func(ctx context.Con
 			if n.Ref.GetEmpty() {
 				continue
 			}
-			key := visitKey{ref: n.Ref.MarshalString(), typ: reflect.TypeOf(n.Ctor())}
+			key := visitKey{ref: n.Ref.MarshalString()}
+			if n.Untyped == "" {
+				key.typ = reflect.TypeOf(n.Ctor())
+				w.readAs[key.typ] = struct{}{}
+			}
 			if _, ok := w.visited[key]; ok {
 				continue
 			}
@@ -227,8 +279,20 @@ func (w *Walker) Walk(ctx context.Context, root Node, visit func(ctx context.Con
 			return err
 		}
 
-		// Queue the children of each decoded block.
+		// Queue the children of each decoded block, and of each scanned one
+		// the refs its bytes hold, untyped like it. A scanning walk scans a
+		// payload root it could not confirm as a blob.
 		for i := range reads {
+			n := reads[i].Node
+			if n.Untyped != "" {
+				for _, ref := range reads[i].Refs {
+					stack = append(stack, Node{Ref: ref, Untyped: n.Untyped, Xfrm: n.Xfrm, World: n.World})
+				}
+				continue
+			}
+			if reads[i].Unsure && w.scan {
+				stack = append(stack, Node{Ref: n.Ref, Untyped: "payload root that is not certainly a blob", Xfrm: n.Xfrm, World: n.World})
+			}
 			if reads[i].blk == nil {
 				continue
 			}
@@ -256,6 +320,11 @@ func (w *Walker) Close() {
 // only presence, or the bytes when the walker keeps them. It touches no walk
 // state, so reads run concurrently.
 func (w *Walker) read(ctx context.Context, n Node) (Visit, error) {
+	// Scan a block the walk has no type for.
+	if n.Untyped != "" {
+		return w.readUntyped(ctx, n)
+	}
+
 	// Check only the presence of a block whose type holds no refs, unless
 	// the walker keeps bytes.
 	rd := Visit{Node: n, Leaf: !holdsRefs(n.Ctor())}
@@ -298,9 +367,51 @@ func (w *Walker) read(ctx context.Context, n Node) (Visit, error) {
 		return rd, nil
 	}
 
-	// Extract the refs a write records.
+	// Extract the refs a write records, and on a scanning walk the ones a
+	// scan of the same bytes does not find.
 	rd.Refs, err = block.ExtractBlockRefs(rd.blk)
-	return rd, err
+	if err != nil || !w.scan {
+		return rd, err
+	}
+	rd.ScanMissed, rd.ScanExtra = scanCompare(rd.Refs, data)
+	if len(rd.ScanMissed) != 0 {
+		rd.ScanShape = ScanShape(data)
+	}
+	return rd, nil
+}
+
+// readUntyped reads one block the walk has no type for and scans its bytes
+// for refs. Bytes that are not a message hold none. It keeps the stored bytes
+// when the walker keeps them.
+func (w *Walker) readUntyped(ctx context.Context, n Node) (Visit, error) {
+	// Read the stored bytes and decode them as the holder's were.
+	rd := Visit{Node: n}
+	data, found, err := w.store.GetBlock(ctx, n.Ref)
+	if err != nil || !found {
+		return rd, err
+	}
+	rd.Found = true
+	if w.keepBytes {
+		rd.Data = data
+		if n.Xfrm != nil {
+			data = slices.Clone(data)
+		}
+	}
+	if n.Xfrm != nil {
+		if data, rd.DecodeErr = n.Xfrm.DecodeBlock(data); rd.DecodeErr != nil {
+			return rd, nil
+		}
+	}
+
+	// Scan them.
+	var ok bool
+	rd.ScanHits, ok = ScanHits(data)
+	rd.Refs = make([]*block.BlockRef, len(rd.ScanHits))
+	for i, hit := range rd.ScanHits {
+		rd.Refs[i] = hit.Ref
+	}
+	rd.Opaque = !ok
+	return rd, nil
 }
 
 // certain reports whether blk, decoded from data under a guessed type, is as
@@ -362,7 +473,11 @@ func (w *Walker) children(ctx context.Context, blk any, n Node, values block.Cto
 				ctor = treeValueCtor(blk, id, ref, values)
 			}
 			if ctor == nil {
-				w.count(reflect.TypeOf(blk).String()+" ref "+strconv.FormatUint(uint64(id), 10), ref)
+				reason := reflect.TypeOf(blk).String() + " ref " + strconv.FormatUint(uint64(id), 10)
+				w.count(reason, ref)
+				if w.scan {
+					out = append(out, Node{Ref: ref, Untyped: reason, Xfrm: n.Xfrm, World: n.World})
+				}
 				continue
 			}
 			out = append(out, Node{Ref: ref, Ctor: ctor, Xfrm: n.Xfrm, World: n.World, values: values})
@@ -432,14 +547,17 @@ func (w *Walker) objectRoot(ctx context.Context, o *world_block.Object, n Node) 
 		return nil, nil
 	}
 
-	// Resolve the root's type from the object's type.
+	// Resolve the root's type from the object's type. Only a scanning walk
+	// goes on below a root it cannot type.
 	ctor, reason, err := w.objectRootCtor(ctx, o.GetKey(), n.World)
 	if err != nil {
 		return nil, err
 	}
 	if ctor == nil {
 		w.count(reason, ref)
-		return nil, nil
+		if !w.scan {
+			return nil, nil
+		}
 	}
 
 	// Decode the root with its own transform when it names one.
@@ -449,6 +567,11 @@ func (w *Walker) objectRoot(ctx context.Context, o *world_block.Object, n Node) 
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	// Read a root with no type by its bytes.
+	if ctor == nil {
+		return []Node{{Ref: ref, Untyped: reason, Xfrm: xfrm, World: n.World}}, nil
 	}
 	return []Node{{Ref: ref, Ctor: ctor, Xfrm: xfrm, World: n.World}}, nil
 }

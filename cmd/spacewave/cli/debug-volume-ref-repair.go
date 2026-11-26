@@ -43,6 +43,8 @@ type debugRefRepairArgs struct {
 	// frontRoots also names the root that reaches each block the walk left
 	// on the front.
 	frontRoots bool
+	// scanUntyped also reads the blocks below each untyped ref by scanning.
+	scanUntyped bool
 	// upgrade decides whether the open upgrades the volume's format.
 	upgrade *FormatUpgrade
 }
@@ -81,6 +83,12 @@ func (a *debugRefRepairArgs) BuildFlags() []cli.Flag {
 				"it holds one key per reached block in memory, so run it on a copy host",
 			Destination: &a.frontRoots,
 		},
+		&cli.BoolFlag{
+			Name: "scan-untyped",
+			Usage: "also read the blocks below each ref the walk cannot type by scanning their bytes for hashes, and compare what the bytes name " +
+				"with each stored list; it scans every typed block too and counts the typed refs the scan misses. It verifies nothing",
+			Destination: &a.scanUntyped,
+		},
 	}, a.upgrade.BuildFlags()...)
 }
 
@@ -114,7 +122,7 @@ func (a *debugRefRepairArgs) Run(c *cli.Context) error {
 // the run measures.
 func (a *debugRefRepairArgs) opts() (refRepairOpts, error) {
 	// Read the peer store and the synthetic list the flags name.
-	opts := refRepairOpts{frontRoots: a.frontRoots}
+	opts := refRepairOpts{frontRoots: a.frontRoots, scanUntyped: a.scanUntyped}
 	if a.peerBlocks != "" {
 		opts.peer = packcopy.NewSourceStore([]packcopy.Source{dirBlocks(a.peerBlocks)})
 	}
@@ -144,6 +152,8 @@ type refRepairOpts struct {
 	// frontRoots also walks the stored lists from every named root, as
 	// refRepair.measureFront describes.
 	frontRoots bool
+	// scanUntyped makes the walk scan, as refRepair.scanUntyped describes.
+	scanUntyped bool
 	// peer reads the blocks the volume lacks, as the serve reads them from
 	// the Space's peers. Nil reads the volume alone.
 	peer block.StoreOps
@@ -201,6 +211,11 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 		{"Plugin prefix groups", strconv.Itoa(len(res.pluginStores))},
 		{"Stored blocks without a child list", strconv.FormatUint(res.untracked, 10)},
 		{"Their bytes", strconv.FormatUint(res.untrackedBytes, 10)},
+	}
+
+	// A run that scanned says how the scan compares with the types and lists.
+	if res.scan.on {
+		fields = append(fields, scanFields(res.scan, res.rooted)...)
 	}
 
 	// A run that walked from the named roots says how much they reach.
@@ -304,11 +319,20 @@ func repairVolumeRefs(
 		return refRepairResult{}, errors.New("no replay cursor found for the selected Spaces")
 	}
 
-	// Start the list rebuild, or its dry run, then walk each Space and
-	// release the walker.
+	// Make the repair with what the run measures.
 	rr := newRefRepair(le, vol, opts.peer, lookup)
 	rr.synthetic = opts.synthetic
+	if opts.scanUntyped {
+		rr.scanUntyped()
+	}
+	if opts.histogram != nil {
+		rr.histogram = opts.histogram
+		rr.walker.KeepBytes()
+	}
 	defer rr.close()
+
+	// Start the list rebuild, or its dry run, then walk each Space and
+	// release the walker.
 	if dryRun {
 		rr.rebuild = vol.OpenListCheck()
 	} else {
@@ -317,10 +341,6 @@ func repairVolumeRefs(
 		if err != nil && !rr.res.verified {
 			return refRepairResult{}, err
 		}
-	}
-	if opts.histogram != nil {
-		rr.histogram = opts.histogram
-		rr.walker.KeepBytes()
 	}
 	for _, sc := range cursors {
 		if err := rr.walkSpace(ctx, sc); err != nil {
@@ -333,6 +353,9 @@ func repairVolumeRefs(
 		}
 	}
 	rr.close()
+	if opts.scanUntyped {
+		rr.res.scan.only = rr.walker.ScannedOnly()
+	}
 
 	// Measure the whole volume before applying any of the planned repairs.
 	if err := rr.measurePluginStores(ctx, vol); err != nil {

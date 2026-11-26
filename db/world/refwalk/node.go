@@ -11,8 +11,12 @@ import (
 type Node struct {
 	// Ref addresses the block.
 	Ref *block.BlockRef
-	// Ctor constructs the block's type.
+	// Ctor constructs the block's type, nil for an untyped block.
 	Ctor block.Ctor
+	// Untyped is why the walk has no type for the block, as Walker.Untyped
+	// names it, on a walk that scans such a block's bytes for its refs; a
+	// block below it carries the same reason. It is empty for a typed block.
+	Untyped string
 	// Xfrm decodes the stored bytes, nil for bytes stored as they are.
 	Xfrm block.Transformer
 	// Guess reports that the walker guessed the block's type, as PayloadNode
@@ -32,6 +36,7 @@ type Node struct {
 type visitKey struct {
 	// ref is the block's ref, marshaled.
 	ref string
-	// typ is the type the block was read as.
+	// typ is the type the block was read as, nil for a block read by
+	// scanning.
 	typ reflect.Type
 }

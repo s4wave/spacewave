@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
@@ -126,6 +127,8 @@ type refRepairResult struct {
 	untrackedBytes uint64
 	// untrackedSample holds up to refRepairSample of them in key order.
 	untrackedSample []refRepairStoredBlock
+	// scan counts what a walk that scans found.
+	scan refRepairScan
 }
 
 // refRepair walks the World graphs the Spaces of a stopped volume retain with
@@ -191,7 +194,7 @@ func newRefRepair(le *logrus.Entry, vol *volume_s4db.Volume, peer block.StoreOps
 // marked every other block it reached, so the rest were not reached or had
 // their decoded list refused; a dry run marked nothing, so its rest also
 // holds the blocks a repair would verify. With roots set it also walks the
-// stored lists from every named root, as block_gc.ListRebuild.FrontRoots
+// stored lists from every named root, as block_gc.ListRebuild.WalkRoots
 // describes, and splits the rest by the first root that reaches each block:
 // a block under a root is live by the lists and the typed walk stopped above
 // it, and a block under none is held only by blocks nothing reaches. Call it
@@ -224,13 +227,20 @@ func (r *refRepair) measureFront(ctx context.Context, dryRun, roots bool) error 
 		}
 		f.count++
 		r.res.front[cause] = f
+		if r.res.scan.on {
+			r.res.scan.front[r.scanFate(ref, root, roots)]++
+		}
 		return nil
 	}
 	if roots {
-		var err error
-		r.res.roots, r.res.rootListed, err = r.rebuild.FrontRoots(ctx, count)
-		r.res.rooted = err == nil
-		return err
+		// Walk the stored lists once for the front and the weak blocks.
+		reach, err := r.rebuild.WalkRoots(ctx)
+		if err != nil {
+			return err
+		}
+		r.res.roots, r.res.rootListed, r.res.rooted = reach.Roots(), reach.Listed(), true
+		r.res.scan.measureWeak(reach)
+		return reach.EachFront(count)
 	}
 	return r.rebuild.EachFront(ctx, func(ref *block.BlockRef) error {
 		return count(ref, nil)
@@ -312,9 +322,10 @@ func (r *refRepair) measureUntracked(ctx context.Context, vol *volume_s4db.Volum
 
 // walkSpace walks the roots of one Space's replay: the roots its bucket holds
 // by name, the base and head Worlds of the cursor with their retained roots,
-// and the World and payloads of each outcome. It walks every World before any
-// payload, so a payload the Worlds name as an object root is walked under its
-// object's type, as refwalk.Walker.PayloadNode describes.
+// the World and payloads of each outcome, and the published graph the account
+// World root holds. It walks every World before any payload, so a payload the
+// Worlds name as an object root is walked under its object's type, as
+// refwalk.Walker.PayloadNode describes.
 func (r *refRepair) walkSpace(ctx context.Context, sc spaceReplayCursor) error {
 	// Find the bucket that owns the Space's blocks.
 	bucketID, err := findSpaceBucket(ctx, r.buckets, sc.spaceID)
@@ -365,6 +376,13 @@ func (r *refRepair) walkSpace(ctx context.Context, sc spaceReplayCursor) error {
 			return err
 		}
 	}
+
+	// Add the roots of the published graph that the Worlds did not reach.
+	published, err := r.publishedRoots(ctx, bucketID)
+	if err != nil {
+		return err
+	}
+	payloads = append(payloads, published...)
 	for _, ref := range payloads {
 		root, ok, err := r.walker.PayloadNode(spaceWorld, ref)
 		if err != nil {
@@ -442,6 +460,51 @@ func (r *refRepair) bucketRoots(ctx context.Context, bucketID string, spaceWorld
 		}
 	}
 	return worlds, payloads, nil
+}
+
+// publishedRoots reads the root a Space's bucket holds for the account World
+// copy, which is the root space_world.PublishedGraph gives: the World of the
+// published checkpoint, one operation's payload root, or a block naming that
+// World and every payload root. It verifies that block's list and returns
+// the roots the walk has not reached under a type, to walk as payloads.
+//
+// Call it after walking the Space's Worlds, since nothing here says which
+// root is the World: a World that no other root holds is then read as a
+// payload, which is not certainly a blob, so the walk verifies nothing for
+// it and it stays on the front for the flip to name.
+func (r *refRepair) publishedRoots(ctx context.Context, bucketID string) ([]*block.BlockRef, error) {
+	// A root the walk reached under a type is a World it has walked.
+	ref, err := r.vol.GetBucketRoot(ctx, bucketID, provider_local.AccountWorldRoot)
+	if err != nil || ref.GetEmpty() {
+		return nil, err
+	}
+	if typed, _ := r.walker.Reached(ref); typed {
+		return nil, nil
+	}
+
+	// Any other root that is not exactly the block naming several is the
+	// graph's one root.
+	data, found, err := r.readRootBlock(ctx, ref)
+	if err != nil || !found {
+		return nil, err
+	}
+	roots, ok := space_world.PublishedRoots(data)
+	if !ok {
+		return []*block.BlockRef{ref}, nil
+	}
+	if err := r.visitDecoded(ctx, ref, roots, typeName(&space_world.HeldRoots{})); err != nil {
+		return nil, err
+	}
+
+	// Keep the roots the Worlds did not reach, in a slice of their own: the
+	// rebuild holds roots until it writes the list.
+	var rest []*block.BlockRef
+	for _, root := range roots {
+		if typed, _ := r.walker.Reached(root); !typed {
+			rest = append(rest, root)
+		}
+	}
+	return rest, nil
 }
 
 // spaceRootNames are the names a Space's bucket holds roots under. The
@@ -576,6 +639,15 @@ func (r *refRepair) walkVisit(ctx context.Context, batch []refwalk.Visit) error 
 // visit counts a batch of reads and verifies each decoded block's list.
 func (r *refRepair) visit(ctx context.Context, batch []refwalk.Visit) error {
 	for _, rd := range batch {
+		// Compare a block read by scanning with its stored list; the walk
+		// verifies nothing for it.
+		if rd.Node.Untyped != "" {
+			if err := r.visitScanned(ctx, rd); err != nil {
+				return err
+			}
+			continue
+		}
+
 		// List a synthetic block no read decodes with no children.
 		if (!rd.Found || rd.DecodeErr != nil) && r.listSynthetic(rd.Node.Ref) {
 			if err := r.verify(ctx, rd.Node.Ref, nil, ""); err != nil {
@@ -629,6 +701,9 @@ func (r *refRepair) visit(ctx context.Context, batch []refwalk.Visit) error {
 		}
 
 		// Count and verify the decoded block's list.
+		if err := r.visitTyped(ctx, rd); err != nil {
+			return err
+		}
 		if err := r.visitDecoded(ctx, rd.Node.Ref, rd.Refs, nodeType(rd.Node)); err != nil {
 			return err
 		}

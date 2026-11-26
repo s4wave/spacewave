@@ -413,15 +413,20 @@ func TestDebugRefRepair(t *testing.T) {
 	asBytes := func(_ context.Context, typeID string) (blocktype.BlockType, error) {
 		return blocktype.New[byteslice.ByteSlice](typeID), nil
 	}
-	wrong, err := repairVolumeRefs(ctx, le, path, "", false, asBytes, refRepairOpts{}, nil)
+	wrong, err := repairVolumeRefs(ctx, le, path, "", false, asBytes, refRepairOpts{frontRoots: true}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if wrong.rebuild.Dropped == 0 || wrong.rebuild.Rewritten != 0 || wrong.rebuild.Front == 0 {
 		t.Fatalf("rebuild with a wrong root type: %+v", wrong.rebuild)
 	}
-	if len(wrong.front) != 1 || wrong.front[frontRest].count != wrong.rebuild.Front {
-		t.Fatalf("front of a rebuild with a wrong root type: %+v", wrong.front)
+
+	// The walk from the named roots finds the one root and names it as the
+	// cause of every front entry, since the root holds the refused World.
+	under := wrong.front[frontRest+frontRootOf+restoreTestBucket+" "+space_world.RootReplayBase]
+	if !wrong.rooted || wrong.roots != 1 || wrong.rootListed < under.count || len(wrong.front) != 1 ||
+		under.count != wrong.rebuild.Front {
+		t.Fatalf("front of a rebuild with a wrong root type: %d roots reach %d listed blocks, front %+v", wrong.roots, wrong.rootListed, wrong.front)
 	}
 	right, err := repairVolumeRefs(ctx, le, path, "", false, space_world_optypes.LookupBlockType, refRepairOpts{}, nil)
 	if err != nil {
@@ -465,9 +470,22 @@ func TestDebugRefRepair(t *testing.T) {
 	})
 
 	// A dry run counts it and writes nothing.
-	dryRe, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, refRepairOpts{}, nil)
+	dryRe, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, refRepairOpts{frontRoots: true, scanUntyped: true}, nil)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	// Its scan finds every ref the types name, and only a run that walked
+	// from the named roots reports the blocks no root reaches.
+	looseRow := func(res refRepairResult) bool {
+		return slices.ContainsFunc(refRepairFields(path, true, res), func(f [2]string) bool {
+			return f[0] == "Scan: of them no named root reaches"
+		})
+	}
+	unrooted := dryRe
+	unrooted.rooted = false
+	if !dryRe.scan.on || dryRe.scan.typed == 0 || dryRe.scan.missedRefs != 0 || dryRe.roots != 1 || !looseRow(dryRe) || looseRow(unrooted) {
+		t.Fatalf("dry run that scans: %+v, %d roots", dryRe.scan, dryRe.roots)
 	}
 	re := dryRe.rebuild
 	if re.MarkedLacking != 1 || re.MarkedRefused != 0 || re.MarkedRead != re.MarkedMatched+1 || re.Rewritten != 1 ||

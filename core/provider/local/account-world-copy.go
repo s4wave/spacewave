@@ -8,8 +8,9 @@ import (
 	dex_solicit "github.com/s4wave/spacewave/db/dex/solicit"
 )
 
-// accountWorldRoot is the named root that holds the account World copy.
-const accountWorldRoot = "account-world"
+// AccountWorldRoot is the named root that holds the account World copy: the
+// root space_world.PublishedGraph gives for the newest state copied whole.
+const AccountWorldRoot = "account-world"
 
 // copyWorldGraph copies the World graph under root from src into store under a
 // stage, then moves the account World root onto it. It skips each subtree the stage
@@ -87,13 +88,13 @@ func copyWorldGraph(
 // no hold there.
 func holdAccountWorld(ctx context.Context, store block.StoreOps, root *block.BlockRef) error {
 	// Read what the root holds.
-	held, err := store.GetRoot(ctx, accountWorldRoot)
+	held, err := store.GetRoot(ctx, AccountWorldRoot)
 	if err != nil {
 		return err
 	}
 
 	// Move it onto the copy.
-	err = store.SetRoots(ctx, nil, []block.NamedRoot{{Name: accountWorldRoot, Ref: root, Previous: held}})
+	err = store.SetRoots(ctx, nil, []block.NamedRoot{{Name: AccountWorldRoot, Ref: root, Previous: held}})
 	if errors.Is(err, block.ErrRootsUnheld) {
 		return nil
 	}

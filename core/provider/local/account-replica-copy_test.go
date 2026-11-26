@@ -221,7 +221,7 @@ func TestAccountReplicaCopyRetainsCompletedSubtrees(t *testing.T) {
 
 	// The account World root holds the head, and the local store holds the
 	// leaf.
-	held, err := local.GetRoot(ctx, accountWorldRoot)
+	held, err := local.GetRoot(ctx, AccountWorldRoot)
 	if err != nil || !held.EqualsRef(head.GetRootRef()) {
 		t.Fatalf("account World root after copy: %v, %v", held, err)
 	}
@@ -597,7 +597,7 @@ func TestAccountReplicaCopyBlockedWaitsOutHeads(t *testing.T) {
 		t.Fatalf("copy completed at %v, want the newest head %v", completed.GetHead(), newest)
 	}
 	dst := dstSO.GetBlockStore()
-	held, err := dst.GetRoot(ctx, accountWorldRoot)
+	held, err := dst.GetRoot(ctx, AccountWorldRoot)
 	if err != nil || !held.EqualsRef(newest.GetRootRef()) {
 		t.Fatalf("destination World root = %v/%v, want the newest head", held, err)
 	}
