@@ -50,7 +50,7 @@ func (a *ProviderAccount) runAccountReplicaSync(ctx context.Context, state *p2pS
 	// Deliver account transitions as the settings change.
 	delivery := routine.NewStateRoutineContainerWithLoggerVT[*account_settings.AccountSettings](a.le.WithField("routine", "account-transition-delivery"), routine.WithRetry(providerBackoff))
 	delivery.SetStateRoutine(func(ctx context.Context, settings *account_settings.AccountSettings) error {
-		return a.deliverAccountTransitions(ctx, state, settings)
+		return a.deliverAccountTransitions(ctx, state.sessionTransport, settings)
 	})
 	delivery.SetContext(ctx, false)
 	defer func() {
@@ -100,7 +100,7 @@ func (a *ProviderAccount) runAccountReplicaSync(ctx context.Context, state *p2pS
 // through their native owner service. Inventory metadata never supplies trust.
 func (a *ProviderAccount) reconcileAccountReplica(ctx context.Context, state *p2pSyncState, settingsID string, settings *account_settings.AccountSettings, list *sobject.SharedObjectList) error {
 	// Only an active Session of the account follows its membership.
-	localPeer := state.sessionTransport.GetPeerID().String()
+	localPeer := state.peerKey
 	self := settings.FindAccountSession(localPeer)
 	if self == nil || self.GetRevoked() {
 		return nil
@@ -118,7 +118,7 @@ func (a *ProviderAccount) reconcileAccountReplica(ctx context.Context, state *p2
 			if err != nil {
 				return err
 			}
-			if err := a.retainP2PPeerOnState(ctx, state, remote); err != nil {
+			if err := state.retainPeer(ctx, remote); err != nil {
 				return err
 			}
 		}
@@ -141,7 +141,7 @@ func (a *ProviderAccount) reconcileAccountReplica(ctx context.Context, state *p2
 			}
 			continue
 		}
-		if err := a.retainP2PPeerOnState(ctx, state, remote); err != nil {
+		if err := state.retainPeer(ctx, remote); err != nil {
 			return err
 		}
 		members = append(members, member)
@@ -276,11 +276,7 @@ func (a *ProviderAccount) fetchAccountReplicaObject(ctx context.Context, state *
 		}
 		peers = append(peers, remote)
 	}
-	linked, _ := state.sessionTransport.GetLinkedPeerIDsSnapshotWithWait(peers)
-	online := make(map[string]bool, len(linked))
-	for id := range linked {
-		online[id.String()] = true
-	}
+	online := state.onlinePeers(peers)
 	slices.SortStableFunc(members, func(a, b *account_settings.AccountSession) int {
 		if online[a.GetPeerId()] == online[b.GetPeerId()] {
 			return 0
@@ -299,7 +295,7 @@ func (a *ProviderAccount) fetchAccountReplicaObject(ctx context.Context, state *
 			return err
 		}
 		requestCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
-		open := stream_srpc.NewOpenStreamFunc(state.childBus, accountReplicaProtocol, state.sessionTransport.GetPeerID(), remote, 0)
+		open := stream_srpc.NewOpenStreamFunc(state.childBus, accountReplicaProtocol, state.peerID, remote, 0)
 		object, err := NewSRPCAccountReplicaServiceClient(srpc.NewClient(open)).FetchObject(requestCtx, &AccountReplicaObjectRequest{
 			SettingsId: settingsID, ObjectId: entry.GetRef().GetProviderResourceRef().GetId(),
 		})

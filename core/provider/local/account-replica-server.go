@@ -86,7 +86,6 @@ func (a *ProviderAccount) FetchObject(ctx context.Context, request *AccountRepli
 func (a *ProviderAccount) startAccountReplicaSync(state *p2pSyncState) error {
 	// Attach the replica, migration and participant object services to the
 	// transport's bus.
-	transport := state.sessionTransport
 	server, err := stream_srpc_server.NewServer(
 		state.childBus, a.le,
 		controller.NewInfo("alpha/account-replica", controller.MustParseVersion("0.0.1"), "account replica service"),
@@ -95,24 +94,21 @@ func (a *ProviderAccount) startAccountReplicaSync(state *p2pSyncState) error {
 			func(mux srpc.Mux) error { return provider_migration.SRPCRegisterAccountMigrationService(mux, a) },
 			func(mux srpc.Mux) error { return SRPCRegisterParticipantObjectService(mux, a) },
 		},
-		[]protocol.ID{accountReplicaProtocol, provider_migration.RecoveryProtocol, participantObjectProtocol}, []string{transport.GetPeerID().String()}, false,
+		[]protocol.ID{accountReplicaProtocol, provider_migration.RecoveryProtocol, participantObjectProtocol}, []string{state.peerKey}, false,
 	)
 	if err != nil {
 		return err
 	}
 
 	// Retain the service until generation cleanup after all workers have stopped.
-	release, err := state.childBus.AddController(state.ctx, server, nil)
-	if err != nil {
+	if err := state.addController(server); err != nil {
 		return err
 	}
-	state.addRelease(release)
 
 	// Run replica reconciliation against the settings state.
 	reconcile := routine.NewRoutineContainerWithLogger(a.le.WithField("routine", "account-replica"), routine.WithRetry(providerBackoff))
 	reconcile.SetRoutine(func(ctx context.Context) error { return a.runAccountReplicaSync(ctx, state) })
-	state.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { state.replicaSync = reconcile })
-	reconcile.SetContext(state.ctx, false)
+	state.startReplicaSync(reconcile)
 	return nil
 }
 

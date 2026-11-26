@@ -13,6 +13,7 @@ import (
 	"github.com/s4wave/spacewave/core/pairing"
 	provider_migration "github.com/s4wave/spacewave/core/provider/migration"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/core/transport"
 	"github.com/s4wave/spacewave/net/link"
 	stream_srpc "github.com/s4wave/spacewave/net/stream/srpc"
 )
@@ -118,18 +119,17 @@ func (a *ProviderAccount) DeliverAccountTransition(ctx context.Context, checkpoi
 
 // deliverAccountTransitions sends retained signed redirects when an old Session
 // reconnects. It waits on transport events; offline clients create no traffic.
-func (a *ProviderAccount) deliverAccountTransitions(ctx context.Context, state *p2pSyncState, settings *account_settings.AccountSettings) error {
+func (a *ProviderAccount) deliverAccountTransitions(ctx context.Context, sts *transport.SessionTransport, settings *account_settings.AccountSettings) error {
 	// Leave accounts without retained redirects idle.
 	if len(settings.GetAcceptedMigrations()) == 0 {
 		return nil
 	}
 
 	// Resend retained redirects when the Session's transport links change.
-	transport := state.sessionTransport
 	for {
-		links, wait := transport.GetLinkSnapshotsWithWait()
+		links, wait := sts.GetLinkSnapshotsWithWait()
 		for _, transition := range settings.GetAcceptedMigrations() {
-			if !slices.Contains(transition.GetDestinationPeerIds(), transport.GetPeerID().String()) && !slices.Contains(transition.GetSessionPeerIds(), transport.GetPeerID().String()) {
+			if !slices.Contains(transition.GetDestinationPeerIds(), sts.GetPeerID().String()) && !slices.Contains(transition.GetSessionPeerIds(), sts.GetPeerID().String()) {
 				continue
 			}
 
@@ -170,7 +170,7 @@ func (a *ProviderAccount) deliverAccountTransitions(ctx context.Context, state *
 						continue
 					}
 					requestCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-					open := stream_srpc.NewOpenStreamFunc(transport.GetChildBus(), provider_migration.RecoveryProtocol, transport.GetPeerID(), remote, 0)
+					open := stream_srpc.NewOpenStreamFunc(sts.GetChildBus(), provider_migration.RecoveryProtocol, sts.GetPeerID(), remote, 0)
 					_, err := provider_migration.NewSRPCAccountMigrationServiceClient(srpc.NewClient(open)).DeliverAccountTransition(requestCtx, message)
 					cancel()
 					if err != nil {

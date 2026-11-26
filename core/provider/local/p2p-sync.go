@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -56,6 +57,11 @@ type p2pSyncState struct {
 	ctx context.Context
 	// sessionTransport owns the child bus used by this sync generation.
 	sessionTransport *transport.SessionTransport
+	// peerID is sessionTransport's local peer, fixed for the generation.
+	peerID peer.ID
+	// peerKey is peerID's encoded form, the name Session records and service
+	// peer lists use for it.
+	peerKey string
 	// childBus is immutable after readiness and retained through worker cleanup.
 	childBus bus.Bus
 	// cancel ends ctx; only stopLocked calls it.
@@ -103,10 +109,15 @@ func newP2PSyncState(
 	childBus bus.Bus,
 	lower *p2pSyncState,
 ) *p2pSyncState {
+	// Detach the generation's context and fix its local peer, then publish
+	// the store view that falls back to lower.
 	syncCtx, cancel := context.WithCancel(context.WithoutCancel(ctx))
+	peerID := sessionTransport.GetPeerID()
 	s := &p2pSyncState{
 		ctx:              syncCtx,
 		sessionTransport: sessionTransport,
+		peerID:           peerID,
+		peerKey:          peerID.String(),
 		childBus:         childBus,
 		cancel:           cancel,
 		owners:           1,
@@ -484,19 +495,58 @@ func (s *p2pSyncState) getExchangesWithWait() ([]*dex_solicit.Controller, <-chan
 	return exchanges, waitCh
 }
 
-// watchP2PSyncOwner releases one state owner when ctx ends. A context without a
-// cancellation channel leaves its owner retained until explicit retirement.
-func (a *ProviderAccount) watchP2PSyncOwner(ctx context.Context, state *p2pSyncState) {
+// watchOwner calls release when the owner's ctx ends before the generation
+// stops. A context without a cancellation channel leaves its owner retained
+// until explicit retirement.
+func (s *p2pSyncState) watchOwner(ctx context.Context, release func()) {
 	if ctx.Done() == nil {
 		return
 	}
 	go func() {
 		select {
 		case <-ctx.Done():
-			a.releaseP2PSyncState(state)
-		case <-state.ctx.Done():
+			release()
+		case <-s.ctx.Done():
 		}
 	}()
+}
+
+// nextChange returns a channel that closes at the generation's next phase,
+// store or progress change.
+func (s *p2pSyncState) nextChange() <-chan struct{} {
+	var wait <-chan struct{}
+	s.bcast.HoldLock(func(_ func(), getWait func() <-chan struct{}) {
+		wait = getWait()
+	})
+	return wait
+}
+
+// addController runs ctrl on the generation's bus until its cleanup.
+func (s *p2pSyncState) addController(ctrl controller.Controller) error {
+	release, err := s.childBus.AddController(s.ctx, ctrl, nil)
+	if err != nil {
+		return err
+	}
+	s.addRelease(release)
+	return nil
+}
+
+// startReplicaSync records reconcile as the generation's replica sync, so the
+// generation joins it before releasing its resources, then starts it on the
+// generation's context.
+func (s *p2pSyncState) startReplicaSync(reconcile *routine.RoutineContainer) {
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { s.replicaSync = reconcile })
+	reconcile.SetContext(s.ctx, false)
+}
+
+// onlinePeers reports which of peers the generation's transport links to now.
+func (s *p2pSyncState) onlinePeers(peers []peer.ID) map[string]bool {
+	linked, _ := s.sessionTransport.GetLinkedPeerIDsSnapshotWithWait(peers)
+	online := make(map[string]bool, len(linked))
+	for id := range linked {
+		online[id.String()] = true
+	}
+	return online
 }
 
 // releaseP2PSyncState drops one owner and retires the state after the last one.
@@ -576,13 +626,13 @@ func (a *ProviderAccount) startP2PSync(ctx, ownerCtx context.Context, sessionTra
 
 	// Release each owner when its caller lifetime ends.
 	if owned {
-		a.watchP2PSyncOwner(ownerCtx, state)
+		state.watchOwner(ownerCtx, func() { a.releaseP2PSyncState(state) })
 	}
 
 	// Startup belongs to every owner of the generation, not to the caller that
 	// created it, so it runs on the generation's own goroutine.
 	if created {
-		go a.runP2PSync(state, previous, previousRetained)
+		go a.runP2PSync(state.ctx, state, previous, previousRetained)
 	}
 	return a.awaitP2PSyncStart(ctx, state)
 }
@@ -630,7 +680,7 @@ func (a *ProviderAccount) RetainP2PPeer(ctx context.Context, remotePeerID peer.I
 	if state == nil {
 		return errors.New("P2P sync is not running")
 	}
-	return a.retainP2PPeerOnState(ctx, state, remotePeerID)
+	return state.retainPeer(ctx, remotePeerID)
 }
 
 // setHeldP2PPeers makes peers the set of peers holder keeps links to. It
@@ -681,7 +731,7 @@ func (a *ProviderAccount) setHeldP2PPeers(ctx context.Context, holder string, pe
 
 	// Retain the peers on the running generation.
 	for _, id := range peers {
-		if err := a.retainP2PPeerOnState(ctx, state, id); err != nil {
+		if err := state.retainPeer(ctx, id); err != nil {
 			return err
 		}
 	}
@@ -715,18 +765,14 @@ func (a *ProviderAccount) p2pRetainedPeersLocked() []peer.ID {
 	return slices.Collect(maps.Values(all))
 }
 
-// retainP2PPeerOnState retains one peer-link directive for the state lifetime.
-func (a *ProviderAccount) retainP2PPeerOnState(
-	ctx context.Context,
-	state *p2pSyncState,
-	remotePeerID peer.ID,
-) error {
+// retainPeer retains one peer-link directive for the generation's lifetime.
+func (s *p2pSyncState) retainPeer(ctx context.Context, remotePeerID peer.ID) error {
 	// Reuse the local peer or a directive already held by this generation.
-	if remotePeerID == state.sessionTransport.GetPeerID() {
+	if remotePeerID == s.peerID {
 		return nil
 	}
 	remoteKey := remotePeerID.String()
-	if state.hasPeerRef(remoteKey) {
+	if s.hasPeerRef(remoteKey) {
 		return nil
 	}
 
@@ -741,9 +787,9 @@ func (a *ProviderAccount) retainP2PPeerOnState(
 	)
 
 	// Attach peer demand to the bus captured at this generation's readiness.
-	_, ref, err := state.childBus.AddDirective(
+	_, ref, err := s.childBus.AddDirective(
 		ctx,
-		link.NewEstablishLinkWithPeer(state.sessionTransport.GetPeerID(), remotePeerID),
+		link.NewEstablishLinkWithPeer(s.peerID, remotePeerID),
 		handler,
 	)
 	if err != nil {
@@ -751,21 +797,21 @@ func (a *ProviderAccount) retainP2PPeerOnState(
 	}
 
 	// Retain the directive only while this generation still accepts work.
-	if !state.addPeerRef(remoteKey, ref) {
+	if !s.addPeerRef(remoteKey, ref) {
 		ref.Release()
 	}
 	return nil
 }
 
 // retainConfiguredP2PPeers retains every peer RetainP2PPeer or a holder
-// names on state.
-func (a *ProviderAccount) retainConfiguredP2PPeers(state *p2pSyncState) error {
+// names on state, for the generation's context ctx.
+func (a *ProviderAccount) retainConfiguredP2PPeers(ctx context.Context, state *p2pSyncState) error {
 	var peers []peer.ID
 	a.p2pSyncBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		peers = a.p2pRetainedPeersLocked()
 	})
 	for _, remotePeerID := range peers {
-		if err := a.retainP2PPeerOnState(state.ctx, state, remotePeerID); err != nil {
+		if err := state.retainPeer(ctx, remotePeerID); err != nil {
 			return err
 		}
 	}
@@ -792,8 +838,8 @@ func (a *ProviderAccount) awaitP2PSyncStart(ctx context.Context, state *p2pSyncS
 	if current {
 		return nil
 	}
-	if err := state.ctx.Err(); err != nil {
-		return err
+	if state.getPhase() >= p2pSyncStopping {
+		return context.Canceled
 	}
 	return errors.New("P2P sync stopped during startup")
 }
@@ -801,18 +847,19 @@ func (a *ProviderAccount) awaitP2PSyncStart(ctx context.Context, state *p2pSyncS
 // runP2PSync owns one generation from startup to the release of its last
 // resource. It runs the startup pass until it has covered the current SO list,
 // then either retires the predecessor and follows the SO list while Running,
-// or restores the predecessor after a failed start.
-func (a *ProviderAccount) runP2PSync(state, previous *p2pSyncState, previousRetained bool) {
+// or restores the predecessor after a failed start. ctx is the generation's
+// context, which ends when it starts stopping.
+func (a *ProviderAccount) runP2PSync(ctx context.Context, state, previous *p2pSyncState, previousRetained bool) {
 	// Release the generation's resources however it ends.
 	defer a.finishP2PSyncState(state)
 
 	// Rerun the startup pass while the SO list changes under it.
 	var inviteStarted bool
 	soList := a.soListCtr.GetValue()
-	err := a.startP2PSyncControllers(state, &inviteStarted, soList)
+	err := a.startP2PSyncControllers(ctx, state, &inviteStarted, soList)
 	for err == nil && a.soListCtr.GetValue() != soList {
 		soList = a.soListCtr.GetValue()
-		err = a.startP2PSyncControllers(state, &inviteStarted, soList)
+		err = a.startP2PSyncControllers(ctx, state, &inviteStarted, soList)
 	}
 	lower, running := state.finishStart(err)
 	a.p2pSyncBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
@@ -833,11 +880,11 @@ func (a *ProviderAccount) runP2PSync(state, previous *p2pSyncState, previousReta
 
 	// Follow the SO list until the generation stops.
 	for {
-		soList, err = a.soListCtr.WaitValueChange(state.ctx, soList, nil)
+		soList, err = a.soListCtr.WaitValueChange(ctx, soList, nil)
 		if err != nil {
 			return
 		}
-		if err := a.startP2PSyncControllers(state, &inviteStarted, soList); err != nil && state.ctx.Err() == nil {
+		if err := a.startP2PSyncControllers(ctx, state, &inviteStarted, soList); err != nil && ctx.Err() == nil {
 			a.le.WithError(err).Warn("failed to synchronize added shared objects")
 		}
 	}
@@ -895,17 +942,18 @@ func (a *ProviderAccount) restoreP2PSyncAfterFailedStart(
 }
 
 // startP2PSyncControllers reconciles peer, DEX, shared-object, and invite
-// controllers with soList for one sync generation.
+// controllers with soList for one sync generation, whose context is ctx.
 func (a *ProviderAccount) startP2PSyncControllers(
+	ctx context.Context,
 	state *p2pSyncState,
 	inviteStarted *bool,
 	soList *sobject.SharedObjectList,
 ) error {
 	// Reconcile the shared objects against this generation's retained bus.
-	syncCtx, childBus := state.ctx, state.childBus
+	childBus := state.childBus
 	state.removeMissingObjects(soList)
-	a.dropMissingSOLinkHolders(syncCtx, soList)
-	if err := a.retainConfiguredP2PPeers(state); err != nil {
+	a.dropMissingSOLinkHolders(ctx, soList)
+	if err := a.retainConfiguredP2PPeers(ctx, state); err != nil {
 		return errors.Wrap(err, "retain configured P2P peers")
 	}
 	a.reconcileStaticUDP(state, soList)
@@ -919,9 +967,9 @@ func (a *ProviderAccount) startP2PSyncControllers(
 		providerAccountID := provRef.GetProviderAccountId()
 		bucketID := BlockStoreBucketID(providerID, providerAccountID, blockStoreID)
 		if !state.hasStore(bucketID) {
-			if err := a.startDEXSolicit(syncCtx, childBus, bucketID, soID, state); err != nil {
-				if syncCtx.Err() != nil {
-					return syncCtx.Err()
+			if err := a.startDEXSolicit(ctx, childBus, bucketID, soID, state); err != nil {
+				if ctx.Err() != nil {
+					return ctx.Err()
 				}
 				a.le.WithError(err).WithField("bucket-id", bucketID).Warn("failed to start dex solicit")
 			}
@@ -930,9 +978,9 @@ func (a *ProviderAccount) startP2PSyncControllers(
 		if state.hasSO(soID) {
 			continue
 		}
-		if err := a.startSOSync(syncCtx, childBus, ref, ReplicatesSpace(entry), soID, state); err != nil {
-			if syncCtx.Err() != nil {
-				return syncCtx.Err()
+		if err := a.startSOSync(ctx, childBus, ref, ReplicatesSpace(entry), soID, state); err != nil {
+			if ctx.Err() != nil {
+				return ctx.Err()
 			}
 			a.le.WithError(err).WithField("so-id", soID).Warn("failed to start so sync")
 			continue
@@ -941,19 +989,19 @@ func (a *ProviderAccount) startP2PSyncControllers(
 
 	// Attach account services to the same bus captured at transport readiness.
 	if !*inviteStarted {
-		if err := a.startInviteServer(syncCtx, childBus, state.sessionTransport, state); err != nil {
-			if syncCtx.Err() != nil {
-				return syncCtx.Err()
+		if err := a.startInviteServer(ctx, childBus, state.sessionTransport, state); err != nil {
+			if ctx.Err() != nil {
+				return ctx.Err()
 			}
 			a.le.WithError(err).Warn("failed to start invite server")
-			return syncCtx.Err()
+			return ctx.Err()
 		}
 		if err := a.startAccountReplicaSync(state); err != nil {
 			return err
 		}
 		*inviteStarted = true
 	}
-	return syncCtx.Err()
+	return ctx.Err()
 }
 
 // GetP2PSyncSnapshotWithWait returns whether P2P sync is running and a channel
@@ -1053,9 +1101,7 @@ func (a *ProviderAccount) waitP2PStore(ctx context.Context, bucketID string) blo
 			accountWait, state = getWait(), a.p2pSync
 		})
 		if state != nil {
-			state.bcast.HoldLock(func(_ func(), getWait func() <-chan struct{}) {
-				stateWait = getWait()
-			})
+			stateWait = state.nextChange()
 		}
 
 		// Return the store once one serves the bucket, or wait for a change.

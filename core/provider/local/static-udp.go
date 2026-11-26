@@ -51,12 +51,7 @@ func (a *ProviderAccount) listedUDPPeers(list *sobject.SharedObjectList) map[pee
 // reconcileStaticUDP dials the addresses the listed objects carry. A transport
 // that fails to start is retried on the next list change.
 func (a *ProviderAccount) reconcileStaticUDP(state *p2pSyncState, list *sobject.SharedObjectList) {
-	// Replace the listed addresses and restart on a change.
-	udp := &state.udp
-	udp.mtx.Lock()
-	defer udp.mtx.Unlock()
-	udp.listed = a.listedUDPPeers(list)
-	if err := a.restartStaticUDPLocked(state); err != nil && state.ctx.Err() == nil {
+	if err := state.dialListedUDP(a.listedUDPPeers(list)); err != nil {
 		a.le.WithError(err).Warn("failed to start static udp transport")
 	}
 }
@@ -65,7 +60,6 @@ func (a *ProviderAccount) reconcileStaticUDP(state *p2pSyncState, list *sobject.
 // generation, so the join and the sync that follows share one link. The
 // address stays dialed for the generation even if the join fails.
 func (a *ProviderAccount) dialJoiningOwner(owner peer.ID, addr string) error {
-	// Resolve the running generation.
 	var state *p2pSyncState
 	a.p2pSyncBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		state = a.p2pSync
@@ -73,22 +67,41 @@ func (a *ProviderAccount) dialJoiningOwner(owner peer.ID, addr string) error {
 	if state == nil {
 		return errors.New("P2P sync is not running")
 	}
-
-	// Add the owner and restart on a change.
-	udp := &state.udp
-	udp.mtx.Lock()
-	defer udp.mtx.Unlock()
-	if udp.joining == nil {
-		udp.joining = make(map[peer.ID]string, 1)
-	}
-	udp.joining[owner] = addr
-	return a.restartStaticUDPLocked(state)
+	return state.dialJoiningUDP(owner, addr)
 }
 
-// restartStaticUDPLocked restarts the transport when the dialed set changed.
-func (a *ProviderAccount) restartStaticUDPLocked(state *p2pSyncState) error {
+// dialListedUDP makes peers the generation's listed static addresses and
+// restarts its UDP transport on a change. A failure after the generation
+// started stopping is not reported.
+func (s *p2pSyncState) dialListedUDP(peers map[peer.ID]string) error {
+	// Replace the listed addresses and restart on a change.
+	s.udp.mtx.Lock()
+	defer s.udp.mtx.Unlock()
+	s.udp.listed = peers
+	if err := s.restartUDPLocked(); err != nil && s.ctx.Err() == nil {
+		return err
+	}
+	return nil
+}
+
+// dialJoiningUDP adds a joined invitation owner's address to the generation's
+// static addresses and restarts its UDP transport on a change.
+func (s *p2pSyncState) dialJoiningUDP(owner peer.ID, addr string) error {
+	// Add the owner and restart on a change.
+	s.udp.mtx.Lock()
+	defer s.udp.mtx.Unlock()
+	if s.udp.joining == nil {
+		s.udp.joining = make(map[peer.ID]string, 1)
+	}
+	s.udp.joining[owner] = addr
+	return s.restartUDPLocked()
+}
+
+// restartUDPLocked restarts the UDP transport when the dialed set changed. The
+// caller holds udp.mtx.
+func (s *p2pSyncState) restartUDPLocked() error {
 	// Keep the running transport while the set is unchanged.
-	udp := &state.udp
+	udp := &s.udp
 	var peers map[peer.ID]string
 	if len(udp.joining) != 0 || len(udp.listed) != 0 {
 		peers = maps.Clone(udp.joining)
@@ -109,8 +122,8 @@ func (a *ProviderAccount) restartStaticUDPLocked(state *p2pSyncState) error {
 	if len(peers) == 0 {
 		return nil
 	}
-	ctx, cancel := context.WithCancel(state.ctx)
-	if _, err := state.sessionTransport.StartUDP(ctx, transport.UDPConfig{Peers: peers, NamedOnly: true}); err != nil {
+	ctx, cancel := context.WithCancel(s.ctx)
+	if _, err := s.sessionTransport.StartUDP(ctx, transport.UDPConfig{Peers: peers, NamedOnly: true}); err != nil {
 		cancel()
 		return err
 	}

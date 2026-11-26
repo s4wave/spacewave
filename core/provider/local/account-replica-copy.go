@@ -563,6 +563,20 @@ func (s *p2pSyncState) publishCopyError(objectID string, err error) {
 	})
 }
 
+// copyProgressWithWait returns isolated snapshots of the generation's copy
+// progress and a channel that closes at its next change.
+func (s *p2pSyncState) copyProgressWithWait() ([]*AccountReplicaCopyState, <-chan struct{}) {
+	var out []*AccountReplicaCopyState
+	var wait <-chan struct{}
+	s.bcast.HoldLock(func(_ func(), getWait func() <-chan struct{}) {
+		wait = getWait()
+		for _, progress := range s.copyProgress {
+			out = append(out, progress.CloneVT())
+		}
+	})
+	return out, wait
+}
+
 // GetAccountCopyProgress returns isolated progress snapshots and the next change.
 func (a *ProviderAccount) GetAccountCopyProgress() ([]*AccountReplicaCopyState, <-chan struct{}) {
 	var out []*AccountReplicaCopyState
@@ -570,12 +584,7 @@ func (a *ProviderAccount) GetAccountCopyProgress() ([]*AccountReplicaCopyState, 
 	a.p2pSyncBcast.HoldLock(func(_ func(), getWait func() <-chan struct{}) {
 		wait = getWait()
 		if state := a.p2pSync; state != nil {
-			state.bcast.HoldLock(func(_ func(), getWait func() <-chan struct{}) {
-				wait = getWait()
-				for _, progress := range state.copyProgress {
-					out = append(out, progress.CloneVT())
-				}
-			})
+			out, wait = state.copyProgressWithWait()
 		}
 	})
 	return out, wait
