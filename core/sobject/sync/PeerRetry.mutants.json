@@ -25,8 +25,19 @@
     "name": "a lifted end waits for the remote side instead of renewing",
     "replace": [
       [
-        "/\\ owner = \"running\" /\\ phase[p] = \"watch\" /\\ lifted[p]\n  /\\ phase' = [phase EXCEPT ![p] = \"offered\"]",
-        "/\\ owner = \"running\" /\\ phase[p] = \"watch\" /\\ lifted[p]\n  /\\ phase' = [phase EXCEPT ![p] = \"parked\"]"
+        "/\\ owner = \"running\" /\\ phase[p] = \"watch\" /\\ seen[p]\n  /\\ phase' = [phase EXCEPT ![p] = \"offered\"]",
+        "/\\ owner = \"running\" /\\ phase[p] = \"watch\" /\\ seen[p]\n  /\\ phase' = [phase EXCEPT ![p] = \"parked\"]"
+      ]
+    ],
+    "expect": "LiftedReopens",
+    "config": "PeerRetry.cfg"
+  },
+  {
+    "name": "the held-state watch takes its base when it starts, missing a change that landed before",
+    "replace": [
+      [
+        "/\\ lastEnd' = [lastEnd EXCEPT ![p] = \"watch\"] /\\ seen' = seen",
+        "/\\ lastEnd' = [lastEnd EXCEPT ![p] = \"watch\"] /\\ seen' = [seen EXCEPT ![p] = FALSE]"
       ]
     ],
     "expect": "LiftedReopens",

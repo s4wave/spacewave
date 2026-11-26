@@ -86,7 +86,8 @@ func TestSOSyncExecuteRenewsOnlyFailedPeer(t *testing.T) {
 			t.Fatal(err)
 		}
 		links := newTestLinks("peer-a", "peer-b")
-		syncer := NewSOSync(le, b, links, "test-object", localID, key, nil, nopPeerObserver{})
+		host, _ := newMemHost("test-object", &sobject.SOState{})
+		syncer := NewSOSync(le, b, links, "test-object", localID, key, host, nopPeerObserver{})
 		errCh := make(chan error, 1)
 		go func() {
 			errCh <- syncer.Execute(ctx)
@@ -148,7 +149,7 @@ func TestPeerStreamsEndRenewsWhileLinked(t *testing.T) {
 				syncer := NewSOSync(gateLogger(), nil, links, "test-object", "", nil, host, nopPeerObserver{})
 				streams := newPeerStreams(ctx, syncer)
 				streams.arrive("peer-a")
-				streams.end("peer-a", true, test.err)
+				streams.end("peer-a", true, test.err, heldMark{})
 				synctest.Wait()
 
 				// Only a linked peer with a next step keeps a renewal.
@@ -177,6 +178,35 @@ func TestPeerStreamsEndRenewsWhileLinked(t *testing.T) {
 				}
 			})
 		})
+	}
+}
+
+// TestHeldWatchSeesChangeBeforeWatchStarts verifies that a config or checkpoint
+// change landing between a stream's failure and the start of its held-state
+// watch still lifts the end, because the watch compares against the state the
+// stream ran against.
+func TestHeldWatchSeesChangeBeforeWatchStarts(t *testing.T) {
+	// Mark the held state a stream would run against.
+	ctx := t.Context()
+	host, ctr := newMemHost("test-object", &sobject.SOState{Config: &sobject.SharedObjectConfig{ConfigChainHash: []byte("head-1")}})
+	syncer := NewSOSync(gateLogger(), nil, nil, "test-object", "", nil, host, nopPeerObserver{})
+	mark, err := syncer.readHeldMark(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Operations above the checkpoint do not lift a history gap.
+	step, ready := syncer.nextStep(sobject.ErrConfigHistoryUnavailable, mark)
+	if step != stepWatch || ready(&sobject.SOState{Config: &sobject.SharedObjectConfig{ConfigChainHash: []byte("head-1")}}) {
+		t.Fatal("unchanged authority lifted a history gap")
+	}
+
+	// The config advances before the watch starts; the watch sees it at once.
+	ctr.SetValue(&sobject.SOState{Config: &sobject.SharedObjectConfig{ConfigChainHash: []byte("head-2")}})
+	waitCtx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+	if err := syncer.waitHeld(waitCtx, ready); err != nil {
+		t.Fatalf("watch missed a change that landed before it started: %v", err)
 	}
 }
 

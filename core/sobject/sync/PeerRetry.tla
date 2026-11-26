@@ -6,7 +6,9 @@ EXTENDS Naturals
    A stream that ends recoverably backs off and offers the protocol again to
    its own peer only. An end that a held-state event can lift (this side's
    refusal, a revocation, a history catch-up cannot bridge, a state too large
-   to send) waits for the event, then renews at once. A denial by the remote
+   to send) waits for the event, then renews at once. The watch compares
+   against the held state marked when the stream started, so a change that
+   lands before the watch begins still lifts the end. A denial by the remote
    side parks the peer: the remote's own watch renews from that side. A
    renewal lasts only while a link to its peer exists; a new link pairs both
    sides' standing offers, so it opens a stream with no renewal. A stream
@@ -15,14 +17,16 @@ EXTENDS Naturals
    has exited.
    The remote side and the transport are the environment: ArriveRemote is a
    remote renewal and has no fairness, nor do a link's loss and return, nor
-   the held-state event. ArriveOwn is the stream our renewal pairs with and
+   the held-state change. ArriveOwn is the stream our renewal pairs with and
    ArrivePair the stream a new link pairs, both opened by the solicit
    controller. The lower/higher peer-ID grace that keeps both sides from
    renewing together is a timing choice and is not modelled. Authentication
    and exchange stay in StreamLifecycle. *)
 CONSTANTS Peers, MaxEnds, MaxDrops
-VARIABLES owner, phase, lastEnd, lifted, ends, lostTo, linked, fresh, drops
-vars == <<owner, phase, lastEnd, lifted, ends, lostTo, linked, fresh, drops>>
+\* changes[p]: the held authority changed since the peer's stream marked it.
+\* seen[p]: the change as the watch's check sees it.
+VARIABLES owner, phase, lastEnd, seen, ends, lostTo, linked, fresh, drops, changes
+vars == <<owner, phase, lastEnd, seen, ends, lostTo, linked, fresh, drops, changes>>
 
 \* Phases in which a peer has a goroutine the owner must join.
 Active == {"streaming", "backoff", "watch", "offered"}
@@ -34,44 +38,49 @@ TypeOK ==
   /\ owner \in {"running", "stopping", "stopped"}
   /\ phase \in [Peers -> {"none", "parked", "stopped"} \cup Active]
   /\ lastEnd \in [Peers -> {"none", "recoverable", "parked", "watch"}]
-  /\ lifted \in [Peers -> BOOLEAN]
+  /\ seen \in [Peers -> BOOLEAN]
   /\ ends \in [Peers -> 0..MaxEnds]
   /\ lostTo \in [Peers -> BOOLEAN]
   /\ linked \in [Peers -> BOOLEAN]
   /\ fresh \in [Peers -> BOOLEAN]
   /\ drops \in [Peers -> 0..MaxDrops]
+  /\ changes \in [Peers -> BOOLEAN]
 
 \* Every peer starts with a new link, which the standing offers pair.
 Init ==
   /\ owner = "running"
   /\ phase = [p \in Peers |-> "none"]
   /\ lastEnd = [p \in Peers |-> "none"]
-  /\ lifted = [p \in Peers |-> FALSE]
+  /\ seen = [p \in Peers |-> FALSE]
   /\ ends = [p \in Peers |-> 0]
   /\ lostTo = [p \in Peers |-> FALSE]
   /\ linked = [p \in Peers |-> TRUE]
   /\ fresh = [p \in Peers |-> TRUE]
   /\ drops = [p \in Peers |-> 0]
+  /\ changes = [p \in Peers |-> FALSE]
 
 \* A new link pairs both sides' standing offers and opens a stream.
 ArrivePair(p) ==
   /\ owner = "running" /\ linked[p] /\ fresh[p] /\ phase[p] # "stopped"
   /\ phase' = [phase EXCEPT ![p] = "streaming"]
   /\ fresh' = [fresh EXCEPT ![p] = FALSE]
-  /\ UNCHANGED <<owner, lastEnd, lifted, ends, lostTo, linked, drops>>
+  /\ seen' = [seen EXCEPT ![p] = FALSE] /\ changes' = [changes EXCEPT ![p] = FALSE]
+  /\ UNCHANGED <<owner, lastEnd, ends, lostTo, linked, drops>>
 
 \* A stream from our own renewal pairs with the remote's standing offer.
 ArriveOwn(p) ==
   /\ owner = "running" /\ phase[p] = "offered" /\ linked[p]
   /\ phase' = [phase EXCEPT ![p] = "streaming"]
-  /\ UNCHANGED <<owner, lastEnd, lifted, ends, lostTo, linked, fresh, drops>>
+  /\ seen' = [seen EXCEPT ![p] = FALSE] /\ changes' = [changes EXCEPT ![p] = FALSE]
+  /\ UNCHANGED <<owner, lastEnd, ends, lostTo, linked, fresh, drops>>
 
 \* The remote side renews, so a stream arrives on our standing offer.
 ArriveRemote(p) ==
   /\ owner = "running" /\ linked[p]
   /\ phase[p] \in {"none", "parked", "backoff", "watch"}
   /\ phase' = [phase EXCEPT ![p] = "streaming"]
-  /\ UNCHANGED <<owner, lastEnd, lifted, ends, lostTo, linked, fresh, drops>>
+  /\ seen' = [seen EXCEPT ![p] = FALSE] /\ changes' = [changes EXCEPT ![p] = FALSE]
+  /\ UNCHANGED <<owner, lastEnd, ends, lostTo, linked, fresh, drops>>
 
 \* The stream ends with an error a fresh stream may clear.
 EndRecoverable(p) ==
@@ -79,7 +88,7 @@ EndRecoverable(p) ==
   /\ phase' = [phase EXCEPT ![p] = "backoff"] /\ lostTo' = lostTo
   /\ lastEnd' = [lastEnd EXCEPT ![p] = "recoverable"]
   /\ ends' = [ends EXCEPT ![p] = ends[p] + 1]
-  /\ UNCHANGED <<owner, lifted, linked, fresh, drops>>
+  /\ UNCHANGED <<owner, seen, linked, fresh, drops, changes>>
 
 \* The remote side denies this side: only the remote's config can lift it.
 EndParked(p) ==
@@ -87,35 +96,35 @@ EndParked(p) ==
   /\ phase' = [phase EXCEPT ![p] = "parked"]
   /\ lastEnd' = [lastEnd EXCEPT ![p] = "parked"]
   /\ ends' = [ends EXCEPT ![p] = ends[p] + 1]
-  /\ UNCHANGED <<owner, lifted, lostTo, linked, fresh, drops>>
+  /\ UNCHANGED <<owner, seen, lostTo, linked, fresh, drops, changes>>
 
 \* The stream ends in a state a held-state event can lift.
 EndWatch(p) ==
   /\ owner = "running" /\ phase[p] = "streaming" /\ ends[p] < MaxEnds
   /\ phase' = [phase EXCEPT ![p] = "watch"]
-  /\ lastEnd' = [lastEnd EXCEPT ![p] = "watch"]
-  /\ lifted' = [lifted EXCEPT ![p] = FALSE]
+  /\ lastEnd' = [lastEnd EXCEPT ![p] = "watch"] /\ seen' = seen
   /\ ends' = [ends EXCEPT ![p] = ends[p] + 1]
-  /\ UNCHANGED <<owner, lostTo, linked, fresh, drops>>
+  /\ UNCHANGED <<owner, lostTo, linked, fresh, drops, changes>>
 
 \* The held state changes so that it lifts the end: a readmission, a
-\* recovered or advanced config, or a checkpoint.
+\* recovered or advanced config, or a checkpoint. It may land while the
+\* stream still runs or after it ended, before or after the watch starts.
 Lift(p) ==
-  /\ phase[p] = "watch" /\ ~lifted[p]
-  /\ lifted' = [lifted EXCEPT ![p] = TRUE]
+  /\ phase[p] \in {"streaming", "watch"} /\ ~changes[p]
+  /\ seen' = [seen EXCEPT ![p] = TRUE] /\ changes' = [changes EXCEPT ![p] = TRUE]
   /\ UNCHANGED <<owner, phase, lastEnd, ends, lostTo, linked, fresh, drops>>
 
 \* The held-state watch sees the event and renews the peer's offer at once.
 Lifted(p) ==
-  /\ owner = "running" /\ phase[p] = "watch" /\ lifted[p]
+  /\ owner = "running" /\ phase[p] = "watch" /\ seen[p]
   /\ phase' = [phase EXCEPT ![p] = "offered"]
-  /\ UNCHANGED <<owner, lastEnd, lifted, ends, lostTo, linked, fresh, drops>>
+  /\ UNCHANGED <<owner, lastEnd, seen, ends, lostTo, linked, fresh, drops, changes>>
 
 \* The peer's backoff elapses and it offers the protocol to that peer again.
 Renew(p) ==
   /\ owner = "running" /\ phase[p] = "backoff"
   /\ phase' = [phase EXCEPT ![p] = "offered"]
-  /\ UNCHANGED <<owner, lastEnd, lifted, ends, lostTo, linked, fresh, drops>>
+  /\ UNCHANGED <<owner, lastEnd, seen, ends, lostTo, linked, fresh, drops, changes>>
 
 \* The peer's last link goes; a stream on it ends recoverably.
 LinkDown(p) ==
@@ -127,37 +136,37 @@ LinkDown(p) ==
        THEN /\ phase' = [phase EXCEPT ![p] = "backoff"]
             /\ lastEnd' = [lastEnd EXCEPT ![p] = "recoverable"]
        ELSE UNCHANGED <<phase, lastEnd>>
-  /\ UNCHANGED <<owner, lifted, ends, lostTo>>
+  /\ UNCHANGED <<owner, seen, ends, lostTo, changes>>
 
 \* A link to the peer returns, carrying no pair yet.
 LinkUp(p) ==
   /\ ~linked[p]
   /\ linked' = [linked EXCEPT ![p] = TRUE]
   /\ fresh' = [fresh EXCEPT ![p] = TRUE]
-  /\ UNCHANGED <<owner, phase, lastEnd, lifted, ends, lostTo, drops>>
+  /\ UNCHANGED <<owner, phase, lastEnd, seen, ends, lostTo, drops, changes>>
 
 \* The link watch sees no link left and retires the renewal and its offer.
 Unlinked(p) ==
   /\ owner = "running" /\ phase[p] \in Renewing /\ ~linked[p]
   /\ phase' = [phase EXCEPT ![p] = "parked"]
-  /\ UNCHANGED <<owner, lastEnd, lifted, ends, lostTo, linked, fresh, drops>>
+  /\ UNCHANGED <<owner, lastEnd, seen, ends, lostTo, linked, fresh, drops, changes>>
 
 \* The owner's context ends: arrivals and renewals are fenced, all cancelled.
 Stop ==
   /\ owner = "running" /\ owner' = "stopping"
-  /\ UNCHANGED <<phase, lastEnd, lifted, ends, lostTo, linked, fresh, drops>>
+  /\ UNCHANGED <<phase, lastEnd, seen, ends, lostTo, linked, fresh, drops, changes>>
 
 \* A cancelled stream or renewal returns and releases its offer.
 Exit(p) ==
   /\ owner = "stopping" /\ phase[p] \in Active
   /\ phase' = [phase EXCEPT ![p] = "stopped"]
-  /\ UNCHANGED <<owner, lastEnd, lifted, ends, lostTo, linked, fresh, drops>>
+  /\ UNCHANGED <<owner, lastEnd, seen, ends, lostTo, linked, fresh, drops, changes>>
 
 \* The owner returns once every peer goroutine has exited.
 Join ==
   /\ owner = "stopping" /\ \A p \in Peers: phase[p] \notin Active
   /\ owner' = "stopped"
-  /\ UNCHANGED <<phase, lastEnd, lifted, ends, lostTo, linked, fresh, drops>>
+  /\ UNCHANGED <<phase, lastEnd, seen, ends, lostTo, linked, fresh, drops, changes>>
 
 Next ==
   \/ \E p \in Peers:
@@ -186,11 +195,11 @@ RecoverableReopens ==
     (lastEnd[p] = "recoverable" /\ phase[p] \notin {"streaming", "parked"})
       ~> (phase[p] = "streaming" \/ owner # "running" \/ ~linked[p])
 
-\* A peer whose end the held state lifted streams again unless the owner stops
-\* or the peer's last link goes.
+\* A peer whose held authority changed after its stream's mark streams again,
+\* unless the owner stops or the peer's last link goes.
 LiftedReopens ==
   \A p \in Peers:
-    (phase[p] = "watch" /\ lifted[p])
+    (phase[p] = "watch" /\ changes[p])
       ~> (phase[p] = "streaming" \/ owner # "running" \/ ~linked[p])
 
 \* A renewal does not outlive its peer's last link: it ends unless the link

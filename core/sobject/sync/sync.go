@@ -367,8 +367,9 @@ const (
 
 // nextStep classifies a stream that returned err by the event that can make
 // the peer syncable again. For stepWatch, ready reports the held state that
-// lifts the end; each call of nextStep returns a fresh check.
-func (s *SOSync) nextStep(err error) (step endStep, ready func(*sobject.SOState) bool) {
+// lifts the end. mark is the held authority the stream ran against, so a
+// change that landed before the watch starts still lifts the end.
+func (s *SOSync) nextStep(err error, mark heldMark) (step endStep, ready func(*sobject.SOState) bool) {
 	var refused *localRefusal
 	switch {
 	case errors.As(err, &refused):
@@ -384,7 +385,7 @@ func (s *SOSync) nextStep(err error) (step endStep, ready func(*sobject.SOState)
 	case errors.Is(err, sobject.ErrConfigHistoryUnavailable), errors.Is(err, sobject.ErrStateTooLarge):
 		// Catch-up cannot bridge the two states: a recovered or advanced
 		// config, or a checkpoint that folds the operations above it, may.
-		return stepWatch, heldAuthorityChanged()
+		return stepWatch, mark.changed
 	case errors.Is(err, ErrAccessDenied):
 		// The remote's held authority refused this side. Only the remote's
 		// config lifts it, and the remote's own refusal watch renews.
@@ -405,20 +406,42 @@ func (s *SOSync) localReadable(state *sobject.SOState) bool {
 	return false
 }
 
-// heldAuthorityChanged returns a check that remembers the first state it sees
-// and reports true once a later one holds a different config head or
-// checkpoint. Operations above the checkpoint do not count, so a busy object
-// does not reopen a stream that cannot catch up.
-func heldAuthorityChanged() func(*sobject.SOState) bool {
-	var base *sobject.SOState
-	return func(state *sobject.SOState) bool {
-		if base == nil {
-			base = state
-			return false
-		}
-		return !bytes.Equal(state.GetConfig().GetConfigChainHash(), base.GetConfig().GetConfigChainHash()) ||
-			!bytes.Equal(state.GetCheckpoint().GetInner(), base.GetCheckpoint().GetInner())
+// heldMark is the held authority one stream ran against: the config head and
+// the checkpoint, which bound what catch-up can bridge.
+type heldMark struct {
+	// configChainHash is the held config head.
+	configChainHash []byte
+	// checkpoint is the held checkpoint's inner bytes.
+	checkpoint []byte
+}
+
+// readHeldMark marks the current held state. A stream reads it before any
+// other held state, so every state the stream compares is at or after it.
+func (s *SOSync) readHeldMark(ctx context.Context) (heldMark, error) {
+	// Read the current held state through the host watch.
+	states, release, err := s.soHost.GetSOStateCtr(ctx, nil)
+	if err != nil {
+		return heldMark{}, err
 	}
+	defer release()
+	state, err := states.WaitValue(ctx, nil)
+	if err != nil {
+		return heldMark{}, err
+	}
+
+	// Keep only the two fields that decide catch-up; held states are immutable.
+	return heldMark{
+		configChainHash: state.GetConfig().GetConfigChainHash(),
+		checkpoint:      state.GetCheckpoint().GetInner(),
+	}, nil
+}
+
+// changed reports whether state holds a different config head or checkpoint
+// than the mark. Operations above the checkpoint do not count, so a busy object
+// does not reopen a stream that cannot catch up.
+func (m heldMark) changed(state *sobject.SOState) bool {
+	return !bytes.Equal(state.GetConfig().GetConfigChainHash(), m.configChainHash) ||
+		!bytes.Equal(state.GetCheckpoint().GetInner(), m.checkpoint)
 }
 
 // logStreamResult logs the end of a stream with remoteID. A change in the
@@ -639,13 +662,22 @@ func (o *peerStreams) runStream(sms link_solicit.SolicitMountedStream) {
 	local := ms.GetLink().GetLocalPeer()
 	o.arrive(remote)
 
-	// Run the authenticated stream with remote-scoped diagnostics.
+	// Mark the held authority before the stream reads any held state, so a
+	// held-state watch after it ends misses no change.
 	le := o.s.le.WithField("remote-peer", remote.String())
+	mark, err := o.s.readHeldMark(o.ctx)
+	if err != nil {
+		ms.GetStream().Close()
+		o.end(remote, local < remote, err, mark)
+		return
+	}
+
+	// Run the authenticated stream with remote-scoped diagnostics.
 	err = o.s.runStream(o.ctx, le, ms.GetStream(), local, remote)
 	if o.ctx.Err() == nil {
 		o.s.logStreamResult(le, remote, err)
 	}
-	o.end(remote, local < remote, err)
+	o.end(remote, local < remote, err, mark)
 }
 
 // arrive counts a new stream with remote and removes the peer's renewal, which
@@ -669,10 +701,11 @@ func (o *peerStreams) arrive(remote peer.ID) {
 
 // end uncounts a stream with remote that returned err, and starts the peer's
 // renewal when this was its last stream and err leaves a next step. lower
-// reports whether the local transport peer ID sorts below remote's.
-func (o *peerStreams) end(remote peer.ID, lower bool, err error) {
+// reports whether the local transport peer ID sorts below remote's. mark is
+// the held authority the stream ran against.
+func (o *peerStreams) end(remote peer.ID, lower bool, err error, mark heldMark) {
 	// Classify the end by the event that lets the peer stream again.
-	step, ready := o.s.nextStep(err)
+	step, ready := o.s.nextStep(err, mark)
 
 	// Uncount the stream, and register the renewal only for the last one.
 	var renewal *peerRenewal
