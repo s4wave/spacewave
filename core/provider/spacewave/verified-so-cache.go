@@ -11,6 +11,7 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	sobject_statestore "github.com/s4wave/spacewave/core/sobject/statestore"
 	"github.com/s4wave/spacewave/db/kvtx"
+	"github.com/s4wave/spacewave/db/object"
 )
 
 // verifiedSOStateCacheKeyPrefix is the ObjectStore key prefix for verified SO cache state.
@@ -69,7 +70,11 @@ func (a *ProviderAccount) writeVerifiedSOStateCache(
 	cache *api.VerifiedSOStateCache,
 	changes []*sobject.SOConfigChange,
 ) error {
-	_, err := a.writeVerifiedSOStateCacheFrom(ctx, soID, cache, changes, nil)
+	// Commit the cache before invalidating state derived from it.
+	_, err := writeVerifiedSOStateCacheFrom(ctx, a.objStore, soID, cache, changes, nil)
+	if err == nil {
+		a.invalidateSelfEnrollmentEntry(soID)
+	}
 	return err
 }
 
@@ -89,16 +94,18 @@ type verifiedSOLogged struct {
 // committed write stored in the logs, and returns what this write stored.
 // A nil prev means the logs are unknown: a log write replaces them and a
 // whole write clears them. A failed write returns nil, since a commit error
-// can follow a stored write.
-func (a *ProviderAccount) writeVerifiedSOStateCacheFrom(
+// can follow a stored write. It takes the store and leaves invalidation to
+// the caller.
+func writeVerifiedSOStateCacheFrom(
 	ctx context.Context,
+	store object.ObjectStore,
 	soID string,
 	cache *api.VerifiedSOStateCache,
 	changes []*sobject.SOConfigChange,
 	prev *verifiedSOWritten,
 ) (*verifiedSOWritten, error) {
 	// Validate the store and arguments.
-	if a.objStore == nil {
+	if store == nil {
 		return nil, errors.New("account object store not ready")
 	}
 	if soID == "" {
@@ -124,7 +131,7 @@ func (a *ProviderAccount) writeVerifiedSOStateCacheFrom(
 	var written *verifiedSOWritten
 	err = kvtx.RunTransaction(ctx, true,
 		func(ctx context.Context) (kvtx.Tx, error) {
-			return a.objStore.NewTransaction(ctx, true)
+			return store.NewTransaction(ctx, true)
 		},
 		func(ctx context.Context, tx kvtx.Tx) error {
 			// Write the verified state record.
@@ -151,7 +158,6 @@ func (a *ProviderAccount) writeVerifiedSOStateCacheFrom(
 	if err != nil {
 		return nil, errors.Wrap(err, "write verified SO cache")
 	}
-	a.invalidateSelfEnrollmentEntry(soID)
 	return written, nil
 }
 
@@ -237,8 +243,13 @@ func writeVerifiedSOStateLog(
 // only its delta; after a failed write it forgets, and the next write
 // replaces the logs.
 type verifiedSOCacheWriter struct {
-	a    *ProviderAccount
+	// store is the account's ObjectStore.
+	store object.ObjectStore
+	// soID identifies the SharedObject whose verified cache is written.
 	soID string
+	// onWritten runs after each committed write with the SharedObject ID,
+	// to drop state derived from the cache.
+	onWritten func(soID string)
 	// mtx serializes the writes, so written is the store's state.
 	mtx sync.Mutex
 	// written is what the last committed write stored, nil when unknown.
@@ -247,10 +258,17 @@ type verifiedSOCacheWriter struct {
 
 // write persists cache and retains changes.
 func (w *verifiedSOCacheWriter) write(ctx context.Context, cache *api.VerifiedSOStateCache, changes []*sobject.SOConfigChange) error {
-	// Write over the last committed write, and remember this one's.
+	// Serialize writes over the last committed cache state.
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
-	written, err := w.a.writeVerifiedSOStateCacheFrom(ctx, w.soID, cache, changes, w.written)
+
+	// Commit the cache and invalidate derived state only on success.
+	written, err := writeVerifiedSOStateCacheFrom(ctx, w.store, w.soID, cache, changes, w.written)
+	if err == nil && w.onWritten != nil {
+		w.onWritten(w.soID)
+	}
+
+	// Remember the committed state, or forget it after a failed write.
 	w.written = written
 	return err
 }

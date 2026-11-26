@@ -95,6 +95,7 @@ func (c *sessionSharedObjectMountController) HandleDirective(
 // Close releases nothing: the controller holds no resources.
 func (c *sessionSharedObjectMountController) Close() error { return nil }
 
+// newSessionSharedObject composes the account object with its Session read view.
 func (a *ProviderAccount) newSessionSharedObject(
 	sessionID string,
 	ref *sobject.SharedObjectRef,
@@ -113,7 +114,7 @@ func (a *ProviderAccount) newSessionSharedObject(
 		}
 		return &sourceTrackingStore{
 			StoreOps:       store,
-			account:        a,
+			telemetry:      &a.syncTelemetry,
 			bstoreID:       ref.GetBlockStoreId(),
 			source:         SyncTelemetryBlockSourceDirect,
 			demandStarted:  func() { a.directDemandStarted(sessionID) },

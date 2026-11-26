@@ -166,32 +166,36 @@ func (s *sessionLookupTestLower) StatBlock(ctx context.Context, ref *block.Block
 
 var _ block.StoreOps = (*sessionLookupTestLower)(nil)
 
+// newProductionSessionStore composes the production read layers over the test stores.
 func newProductionSessionStore(
 	account *ProviderAccount,
 	id string,
 	direct, cache, cloud *sessionLookupTestLower,
 ) (*sessionBlockStore, error) {
+	// Track the source of reads through each test store.
 	cacheOwner := &sourceTrackingStore{
 		StoreOps:   cache,
-		account:    account,
+		telemetry:  &account.syncTelemetry,
 		bstoreID:   id,
 		source:     SyncTelemetryBlockSourceDirect,
 		upperCache: true,
 	}
 	directOwner := &sourceTrackingStore{
 		StoreOps:       direct,
-		account:        account,
+		telemetry:      &account.syncTelemetry,
 		bstoreID:       id,
 		source:         SyncTelemetryBlockSourceDirect,
 		demandStarted:  func() { account.directDemandStarted(id) },
 		demandFinished: func() { account.directDemandFinished(id) },
 	}
 	cloudOwner := &sourceTrackingStore{
-		StoreOps: cloud,
-		account:  account,
-		bstoreID: id,
-		source:   SyncTelemetryBlockSourceCloud,
+		StoreOps:  cloud,
+		telemetry: &account.syncTelemetry,
+		bstoreID:  id,
+		source:    SyncTelemetryBlockSourceCloud,
 	}
+
+	// Compose the account cache and Cloud fallback with the direct Session route.
 	accountStore := &BlockStore{
 		store:      block_store.NewStore(id, cache),
 		cacheStore: cacheOwner,
@@ -466,7 +470,9 @@ func TestSessionDirectLookupTracksActiveDemand(t *testing.T) {
 	}
 }
 
+// TestSessionFacadeMountDisabledThenEnablesDirectRoute checks that an existing facade sees a newly enabled route.
 func TestSessionFacadeMountDisabledThenEnablesDirectRoute(t *testing.T) {
+	// Mount the SharedObject facade before a direct route exists.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	refDirect, err := block.BuildBlockRef([]byte("disabled-direct"), nil)
@@ -493,16 +499,16 @@ func TestSessionFacadeMountDisabledThenEnablesDirectRoute(t *testing.T) {
 	}
 	cacheOwner := &sourceTrackingStore{
 		StoreOps:   cache,
-		account:    account,
+		telemetry:  &account.syncTelemetry,
 		bstoreID:   "store",
 		source:     SyncTelemetryBlockSourceDirect,
 		upperCache: true,
 	}
 	cloudOwner := &sourceTrackingStore{
-		StoreOps: cloud,
-		account:  account,
-		bstoreID: "store",
-		source:   SyncTelemetryBlockSourceCloud,
+		StoreOps:  cloud,
+		telemetry: &account.syncTelemetry,
+		bstoreID:  "store",
+		source:    SyncTelemetryBlockSourceCloud,
 	}
 	baseStore := &BlockStore{
 		store:      block_store.NewStore("store", cache),
@@ -515,6 +521,7 @@ func TestSessionFacadeMountDisabledThenEnablesDirectRoute(t *testing.T) {
 		t.Fatalf("mount while direct disabled: %v", err)
 	}
 
+	// Enable the direct route without rebuilding the facade.
 	account.p2pSyncMtx.Lock()
 	account.p2pSyncs["A"] = &p2pSyncState{
 		stores: map[string]block.StoreOps{
@@ -523,6 +530,7 @@ func TestSessionFacadeMountDisabledThenEnablesDirectRoute(t *testing.T) {
 	}
 	account.p2pSyncMtx.Unlock()
 
+	// Read through the mounted facade and verify the direct store handled it.
 	data, found, err := facade.GetBlockStore().GetBlock(ctx, refDirect)
 	if err != nil || !found || string(data) != "enabled-direct" {
 		t.Fatalf("enabled direct read on stable facade = %q/%v/%v", data, found, err)

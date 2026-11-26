@@ -257,7 +257,7 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 	if err != nil {
 		le.WithError(err).Warn("failed to load verified SO state cache")
 	}
-	cacheWriter := &verifiedSOCacheWriter{a: t.a, soID: sharedObjectID, written: written}
+	cacheWriter := &verifiedSOCacheWriter{store: t.a.objStore, soID: sharedObjectID, onWritten: t.a.invalidateSelfEnrollmentEntry, written: written}
 
 	// Create the host over the verified cache and its retained history.
 	host := newCloudSOHost(
@@ -291,7 +291,7 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 		if err != nil || checkpoint == nil {
 			return
 		}
-		t.a.setSyncTelemetryAcceptedCheckpoint(
+		t.a.syncTelemetry.SetAcceptedCheckpoint(
 			sobjectRef.GetBlockStoreId(),
 			sharedObjectID,
 			checkpoint.GetHeight(),

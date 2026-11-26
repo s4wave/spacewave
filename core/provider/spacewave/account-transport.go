@@ -16,6 +16,7 @@ import (
 	dex_solicit "github.com/s4wave/spacewave/db/dex/solicit"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
+	"github.com/sirupsen/logrus"
 )
 
 // sessionTransportState holds a running SessionTransport for one Session.
@@ -57,10 +58,13 @@ func sessionTransportCleanupContext(ctx context.Context) (context.Context, conte
 	return context.WithTimeout(cleanupCtx, timeout)
 }
 
+// newSessionTransportState constructs the transport routines; onExit reports
+// each transport routine exit with its state and error.
 func newSessionTransportState(
-	a *ProviderAccount,
+	le *logrus.Entry,
 	sessionID string,
 	st *transport.SessionTransport,
+	onExit func(sts *sessionTransportState, err error),
 ) *sessionTransportState {
 	// Build the transport state with its run and readiness routines.
 	sts := &sessionTransportState{
@@ -68,15 +72,15 @@ func newSessionTransportState(
 		transport: st,
 	}
 	sts.rc = routine.NewRoutineContainerWithLogger(
-		a.le.WithField("routine", "session-transport"),
+		le.WithField("routine", "session-transport"),
 		routine.WithRetry(providerBackoff),
 		routine.WithExitCb(func(err error) {
-			a.handleSessionTransportExit(sessionID, sts, err)
+			onExit(sts, err)
 		}),
 	)
 	sts.rc.SetRoutine(st.Execute)
 	sts.readyRc = routine.NewRoutineContainerWithLogger(
-		a.le.WithField("routine", "session-transport-ready"),
+		le.WithField("routine", "session-transport-ready"),
 	)
 	sts.readyRc.SetRoutine(sts.watchReady)
 	return sts
@@ -222,6 +226,7 @@ func (a *ProviderAccount) CreateSessionTransport(
 	return a.createSessionTransportForSession(ctx, "", sessionKey, signalingURL)
 }
 
+// createSessionTransportForSession replaces the session transport and waits for readiness.
 func (a *ProviderAccount) createSessionTransportForSession(
 	ctx context.Context,
 	sessionID string,
@@ -265,7 +270,9 @@ func (a *ProviderAccount) createSessionTransportForSession(
 	}
 
 	// Publish the replacement transport state.
-	sts := newSessionTransportState(a, sessionID, st)
+	sts := newSessionTransportState(a.le, sessionID, st, func(sts *sessionTransportState, err error) {
+		a.handleSessionTransportExit(sessionID, sts, err)
+	})
 	a.transportBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		if a.sessionTransports == nil {
 			a.sessionTransports = make(map[string]*sessionTransportState)

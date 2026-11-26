@@ -1292,7 +1292,7 @@ func TestSyncControllerFlushDedupesLowerBlocks(t *testing.T) {
 		upper: upper,
 	}
 	telemetry := &ProviderAccount{}
-	s.telemetry = telemetry
+	s.telemetry = &telemetry.syncTelemetry
 	if _, err := s.flush(ctx, true); err != nil {
 		t.Fatalf("flush: %v", err)
 	}
@@ -1372,7 +1372,7 @@ func TestSyncControllerFlushAllDuplicateDirtyBlocksSkipsPush(t *testing.T) {
 		upper: upper,
 	}
 	telemetry := &ProviderAccount{}
-	s.telemetry = telemetry
+	s.telemetry = &telemetry.syncTelemetry
 	if _, err := s.flush(ctx, true); err != nil {
 		t.Fatalf("flush: %v", err)
 	}
@@ -1854,7 +1854,7 @@ func heldTestController(t *testing.T) (*syncController, *atomic.Int32, *atomic.I
 	// Queue the chunk-sized blocks behind the dirty block and read through
 	// the corrupt set.
 	s := newDirtySyncExecuteTestController(t, cli, nil)
-	s.telemetry = NewTestProviderAccount(t, server.URL)
+	s.telemetry = &NewTestProviderAccount(t, server.URL).syncTelemetry
 	addSyncChunkBlocks(t, t.Context(), s.store, s.upper, 5)
 	s.updateDirtyState(t.Context())
 	upper := &corruptSetStore{StoreOps: s.upper, bad: map[string]struct{}{}}
@@ -1878,7 +1878,7 @@ func (s *corruptSetStore) GetStoredBlock(ctx context.Context, ref *block.BlockRe
 // heldStatus returns the held state the sync status shows for the test store.
 func heldStatus(t *testing.T, s *syncController) (int, bool, time.Time) {
 	t.Helper()
-	for _, b := range s.telemetry.GetSyncTelemetrySnapshot().BlockStores {
+	for _, b := range s.telemetry.Snapshot().BlockStores {
 		if b.BlockStoreID == s.resourceID {
 			return b.CorruptDirtyCount, b.HeldPartial, b.HeldSince
 		}

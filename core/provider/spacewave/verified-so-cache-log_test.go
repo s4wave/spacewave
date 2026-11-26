@@ -22,6 +22,7 @@ import (
 // invalidated stores the whole state, and that switching layouts both
 // ways loads every state back and leaves the other layout empty.
 func TestVerifiedSOCacheLogWritesDeltas(t *testing.T) {
+	// Select the log layout for the test and restore the startup selection afterward.
 	ctx := t.Context()
 	selected := verifiedStateLog
 	t.Cleanup(func() { verifiedStateLog = selected })
@@ -30,12 +31,15 @@ func TestVerifiedSOCacheLogWritesDeltas(t *testing.T) {
 	// appendCost writes a cache of n ops, then the cache with one more op,
 	// and returns the bytes that second write stored.
 	appendCost := func(n int) int {
+		// Persist the initial state before measuring its next delta.
 		store := newVerifiedCacheTestStore()
-		w := &verifiedSOCacheWriter{a: &ProviderAccount{objStore: store}, soID: "so-cost"}
+		w := &verifiedSOCacheWriter{store: store, soID: "so-cost"}
 		cache := testVerifiedCache(0, n)
 		if err := w.write(ctx, cache, nil); err != nil {
 			t.Fatal(err)
 		}
+
+		// Count only the bytes written by appending one operation.
 		store.setBytes = 0
 		if err := w.write(ctx, withVerifiedOps(cache, n, n+1), nil); err != nil {
 			t.Fatal(err)
@@ -51,7 +55,7 @@ func TestVerifiedSOCacheLogWritesDeltas(t *testing.T) {
 	// Mount a writer over a cache of 8 ops.
 	store := newVerifiedCacheTestStore()
 	acc := &ProviderAccount{objStore: store}
-	w := &verifiedSOCacheWriter{a: acc, soID: "so-1"}
+	w := &verifiedSOCacheWriter{store: acc.objStore, soID: "so-1"}
 	cache := testVerifiedCache(0, 8)
 	if err := w.write(ctx, cache, nil); err != nil {
 		t.Fatal(err)
@@ -89,7 +93,7 @@ func TestVerifiedSOCacheLogWritesDeltas(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w = &verifiedSOCacheWriter{a: acc, soID: "so-1", written: written}
+	w = &verifiedSOCacheWriter{store: acc.objStore, soID: "so-1", written: written}
 	cache = withVerifiedOps(cache, 11, 12)
 	if err := w.write(ctx, cache, nil); err != nil {
 		t.Fatal(err)
@@ -105,7 +109,7 @@ func TestVerifiedSOCacheLogWritesDeltas(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w = &verifiedSOCacheWriter{a: acc, soID: "so-1", written: written}
+	w = &verifiedSOCacheWriter{store: acc.objStore, soID: "so-1", written: written}
 	cache = withVerifiedOps(cache, 12, 13)
 	if err := w.write(ctx, cache, nil); err != nil {
 		t.Fatal(err)

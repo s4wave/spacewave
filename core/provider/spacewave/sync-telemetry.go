@@ -1,8 +1,6 @@
 package provider_spacewave
 
 import (
-	"time"
-
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/s4wave/spacewave/core/provider/spacewave/synctelemetry"
 	packfile_store "github.com/s4wave/spacewave/db/packfile/store"
@@ -73,69 +71,6 @@ func (a *ProviderAccount) GetSyncTelemetrySnapshot() SyncTelemetrySnapshot {
 // GetSyncTelemetrySnapshotWithWait returns aggregate sync telemetry and its wait channel.
 func (a *ProviderAccount) GetSyncTelemetrySnapshotWithWait() (SyncTelemetrySnapshot, <-chan struct{}) {
 	return a.syncTelemetry.SnapshotWithWait()
-}
-
-func (a *ProviderAccount) registerSyncTelemetryStore(
-	bstoreID string,
-	fetchStats syncTelemetryFetchStatsProvider,
-) func() {
-	return a.syncTelemetry.RegisterStore(bstoreID, fetchStats)
-}
-
-func (a *ProviderAccount) setSyncTelemetryPending(bstoreID string, bytes int64, count int) {
-	a.syncTelemetry.SetPending(bstoreID, bytes, count)
-}
-
-func (a *ProviderAccount) setSyncTelemetryLinkedPending(bstoreID string, count int) {
-	a.syncTelemetry.SetLinkedPending(bstoreID, count)
-}
-
-func (a *ProviderAccount) setSyncTelemetryCorruptDirty(bstoreID string, count int, since time.Time, partial bool) {
-	a.syncTelemetry.SetCorruptDirty(bstoreID, count, since, partial)
-}
-
-func (a *ProviderAccount) startSyncTelemetryPush(bstoreID string, bytes int64) {
-	a.syncTelemetry.StartPush(bstoreID, bytes)
-}
-
-func (a *ProviderAccount) setSyncTelemetryPushProgress(bstoreID string, bytes int64) {
-	a.syncTelemetry.SetPushProgress(bstoreID, bytes)
-}
-
-func (a *ProviderAccount) finishSyncTelemetryPush(bstoreID string, bytes int64, err error) {
-	a.syncTelemetry.FinishPush(bstoreID, bytes, err)
-}
-
-func (a *ProviderAccount) addSyncTelemetryDeduped(bstoreID string, bytes int64, count int) {
-	a.syncTelemetry.AddDeduped(bstoreID, bytes, count)
-}
-
-func (a *ProviderAccount) addSyncTelemetryMerge(bstoreID string, mergedPacks int) {
-	a.syncTelemetry.AddMerge(bstoreID, mergedPacks)
-}
-
-func (a *ProviderAccount) startSyncTelemetryPull(bstoreID string) {
-	a.syncTelemetry.StartPull(bstoreID)
-}
-
-func (a *ProviderAccount) finishSyncTelemetryPull(bstoreID string, err error) {
-	a.syncTelemetry.FinishPull(bstoreID, err)
-}
-
-func (a *ProviderAccount) recordSyncTelemetryError(bstoreID string, err error) {
-	a.syncTelemetry.RecordError(bstoreID, err)
-}
-
-func (a *ProviderAccount) recordSyncTelemetryBlockSource(bstoreID string, source SyncTelemetryBlockSource) {
-	a.syncTelemetry.RecordBlockSource(bstoreID, source)
-}
-
-func (a *ProviderAccount) setSyncTelemetryAcceptedCheckpoint(bstoreID, sharedObjectID string, height uint64) {
-	a.syncTelemetry.SetAcceptedCheckpoint(bstoreID, sharedObjectID, height)
-}
-
-func (a *ProviderAccount) setSyncTelemetryCloudRemoteSequence(bstoreID string, sequence uint64) {
-	a.syncTelemetry.SetCloudRemoteSequence(bstoreID, sequence)
 }
 
 // _ is a type assertion

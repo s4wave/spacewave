@@ -16,6 +16,7 @@ import (
 	"github.com/s4wave/spacewave/core/provider"
 	"github.com/s4wave/spacewave/core/provider/spacewave/clouderror"
 	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/manifest"
+	"github.com/s4wave/spacewave/core/provider/spacewave/synctelemetry"
 	"github.com/s4wave/spacewave/core/space"
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
@@ -334,7 +335,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	// Build lower store (read-only, packfile-backed).
 	lower, publicRemote := t.buildLowerStore(ctx, idxCache, decodedBlocks)
 	lower.UpdateManifest(mfst.GetEntries())
-	releaseSyncTelemetry := t.a.registerSyncTelemetryStore(t.id, lower)
+	releaseSyncTelemetry := t.a.syncTelemetry.RegisterStore(t.id, lower)
 	defer releaseSyncTelemetry()
 	if publicRemote != nil {
 		if err := publicRemote.Refresh(ctx); err != nil {
@@ -381,16 +382,16 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	// by demand-driven DEX; the lower wrapper observes the single Cloud fallback.
 	sourceUpper := &sourceTrackingStore{
 		StoreOps:   upper,
-		account:    t.a,
+		telemetry:  &t.a.syncTelemetry,
 		bstoreID:   t.id,
 		source:     SyncTelemetryBlockSourceDirect,
 		upperCache: true,
 	}
 	sourceLower := &sourceTrackingStore{
-		StoreOps: lower,
-		account:  t.a,
-		bstoreID: t.id,
-		source:   SyncTelemetryBlockSourceCloud,
+		StoreOps:  lower,
+		telemetry: &t.a.syncTelemetry,
+		bstoreID:  t.id,
+		source:    SyncTelemetryBlockSourceCloud,
 	}
 
 	// Snapshot under the account lock: another mounted Session can replace
@@ -407,7 +408,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		upper:      upper,
 		childLists: t.getChildLists(),
 		conf:       syncConf,
-		telemetry:  t.a,
+		telemetry:  &t.a.syncTelemetry,
 		gateBcast:  &t.a.accountBcast,
 		skipPull:   publicRemote != nil,
 	}
@@ -497,7 +498,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "reading initial cloud remote sequence")
 	}
-	t.a.setSyncTelemetryCloudRemoteSequence(t.id, remoteSequence)
+	t.a.syncTelemetry.SetCloudRemoteSequence(t.id, remoteSequence)
 	syncOwner := newBstoreSyncOwner(le, sc)
 	syncOwner.Start(ctx)
 	defer syncOwner.Stop()
@@ -567,8 +568,9 @@ func (t *bstoreTracker) buildBucketConf() (*bucket.Config, error) {
 // sourceTrackingStore records the source that satisfied completed block reads.
 type sourceTrackingStore struct {
 	block.StoreOps
-	// account receives source observations for bstoreID.
-	account  *ProviderAccount
+	// telemetry receives source observations for bstoreID.
+	telemetry *synctelemetry.Store
+	// bstoreID identifies the block store whose read source is recorded.
 	bstoreID string
 	// source identifies reads not already present in an upper cache.
 	source     SyncTelemetryBlockSource
@@ -691,7 +693,7 @@ func (s *sourceTrackingStore) track(ctx context.Context, ref *block.BlockRef, re
 	if cached {
 		source = SyncTelemetryBlockSourceCache
 	}
-	s.account.recordSyncTelemetryBlockSource(s.bstoreID, source)
+	s.telemetry.RecordBlockSource(s.bstoreID, source)
 	return true, nil
 }
 

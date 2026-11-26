@@ -17,6 +17,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/provider/spacewave/clouderror"
 	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/manifest"
+	"github.com/s4wave/spacewave/core/provider/spacewave/synctelemetry"
 	"github.com/s4wave/spacewave/db/block"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -68,7 +69,7 @@ type syncController struct {
 	// conf is the sync configuration.
 	conf *SyncConfig
 	// telemetry receives sync telemetry when set.
-	telemetry *ProviderAccount
+	telemetry *synctelemetry.Store
 	// gateBcast fires when account state that gates uploads changes.
 	gateBcast *broadcast.Broadcast
 	// skipPull disables remote pulls.
@@ -766,6 +767,7 @@ func (s *syncController) updateDirtyState(ctx context.Context, flushed ...dirtyC
 // publishDirtyState updates the scheduler and telemetry from committed accounting.
 // The caller holds dirtyMtx until the projection has been published.
 func (s *syncController) publishDirtyState(state *PendingUploadState) {
+	// Publish the committed queue size and its first pending time.
 	var first time.Time
 	if state.GetPendingSinceNanos() != 0 {
 		first = time.Unix(0, state.GetPendingSinceNanos())
@@ -774,8 +776,8 @@ func (s *syncController) publishDirtyState(state *PendingUploadState) {
 		s.dirtySize, s.dirtyPendingAt = state.GetSizeBytes(), first
 		broadcast()
 	})
-	s.telemetrySafeCall(func(t *ProviderAccount, id string) {
-		t.setSyncTelemetryPending(id, state.GetSizeBytes(), int(state.GetCount())) //nolint:gosec // the count is bounded by stored queue records, far below MaxInt.
+	s.telemetrySafeCall(func(t *synctelemetry.Store, id string) {
+		t.SetPending(id, state.GetSizeBytes(), int(state.GetCount())) //nolint:gosec // the count is bounded by stored queue records, far below MaxInt.
 	})
 }
 
@@ -882,8 +884,8 @@ func (s *syncController) filterDuplicateDirtyBlocks(
 			WithField("deduped-blocks", len(deduped)).
 			WithField("deduped-bytes", bytes).
 			Debug("filtered duplicate dirty blocks")
-		s.telemetrySafeCall(func(t *ProviderAccount, id string) {
-			t.addSyncTelemetryDeduped(id, bytes, len(deduped))
+		s.telemetrySafeCall(func(t *synctelemetry.Store, id string) {
+			t.AddDeduped(id, bytes, len(deduped))
 		})
 	}
 	return pack, deduped, nil
@@ -1226,8 +1228,8 @@ func (s *syncController) setHold(blocks map[string]struct{}, partial bool) {
 	if len(prev.blocks) == len(next.blocks) && prev.partial == next.partial && prev.since.Equal(next.since) {
 		return
 	}
-	s.telemetrySafeCall(func(t *ProviderAccount, id string) {
-		t.setSyncTelemetryCorruptDirty(id, len(next.blocks), next.since, next.partial)
+	s.telemetrySafeCall(func(t *synctelemetry.Store, id string) {
+		t.SetCorruptDirty(id, len(next.blocks), next.since, next.partial)
 	})
 }
 
@@ -1341,8 +1343,8 @@ func (s *syncController) pushPreparedChunk(ctx context.Context, chunk *preparedS
 	// Push the pack, reporting its progress to telemetry.
 	entry := chunk.entry
 	pushBytes := int64(len(chunk.packData))
-	s.telemetrySafeCall(func(t *ProviderAccount, id string) {
-		t.startSyncTelemetryPush(id, pushBytes)
+	s.telemetrySafeCall(func(t *synctelemetry.Store, id string) {
+		t.StartPush(id, pushBytes)
 	})
 	started := time.Now()
 	err := s.pushPackfile(
@@ -1363,8 +1365,8 @@ func (s *syncController) pushPreparedChunk(ctx context.Context, chunk *preparedS
 				},
 				chunk.packData,
 				func(sent int64) {
-					s.telemetrySafeCall(func(t *ProviderAccount, id string) {
-						t.setSyncTelemetryPushProgress(id, sent)
+					s.telemetrySafeCall(func(t *synctelemetry.Store, id string) {
+						t.SetPushProgress(id, sent)
 					})
 				},
 			)
@@ -1377,8 +1379,8 @@ func (s *syncController) pushPreparedChunk(ctx context.Context, chunk *preparedS
 		WithField("bytes", len(chunk.packData)).
 		WithField("duration", time.Since(started)).
 		Debug("pushed packfile")
-	s.telemetrySafeCall(func(t *ProviderAccount, id string) {
-		t.finishSyncTelemetryPush(id, pushBytes, err)
+	s.telemetrySafeCall(func(t *synctelemetry.Store, id string) {
+		t.FinishPush(id, pushBytes, err)
 	})
 	return errors.Wrap(err, "pushing packfile")
 }
@@ -1418,6 +1420,7 @@ func (s *syncController) flush(ctx context.Context, orderBlocks bool) (int, erro
 // and stores its cursor only with the final page. The caller holds pullMtx or
 // runs before Execute.
 func (s *syncController) pull(ctx context.Context) error {
+	// Resume the manifest from its last committed pull sequence.
 	since, err := s.mfst.GetLastPullSequence(ctx)
 	if err != nil {
 		return errors.Wrap(err, "getting last pull sequence")
@@ -1426,12 +1429,12 @@ func (s *syncController) pull(ctx context.Context) error {
 	// listed holds the packs a restarted pull has listed so far.
 	var listed map[string]bool
 	for {
-		s.telemetrySafeCall(func(t *ProviderAccount, id string) {
-			t.startSyncTelemetryPull(id)
+		s.telemetrySafeCall(func(t *synctelemetry.Store, id string) {
+			t.StartPull(id)
 		})
 		page, err := s.client.SyncPull(ctx, s.resourceID, since)
-		s.telemetrySafeCall(func(t *ProviderAccount, id string) {
-			t.finishSyncTelemetryPull(id, err)
+		s.telemetrySafeCall(func(t *synctelemetry.Store, id string) {
+			t.FinishPull(id, err)
 		})
 		if err != nil {
 			return errors.Wrap(err, "pulling from server")
@@ -1502,25 +1505,28 @@ func (s *syncController) unlistedPacks(listed map[string]bool) []string {
 	return unlisted
 }
 
+// recordSyncTelemetryRemoteSequence records the latest remote sequence for this store.
 func (s *syncController) recordSyncTelemetryRemoteSequence(sequence uint64) {
-	s.telemetrySafeCall(func(t *ProviderAccount, id string) {
-		t.setSyncTelemetryCloudRemoteSequence(id, sequence)
+	s.telemetrySafeCall(func(t *synctelemetry.Store, id string) {
+		t.SetCloudRemoteSequence(id, sequence)
 	})
 }
 
-// telemetrySafeCall invokes fn against the attached telemetry account when
-// telemetry is enabled. The shared resource id and account handle are bound
+// telemetrySafeCall invokes fn against the attached telemetry store when
+// telemetry is enabled. The shared resource id and store handle are bound
 // so call sites read as a single line per telemetry event.
-func (s *syncController) telemetrySafeCall(fn func(t *ProviderAccount, resourceID string)) {
+func (s *syncController) telemetrySafeCall(fn func(t *synctelemetry.Store, resourceID string)) {
+	// Report the event only when a telemetry store is attached.
 	if s.telemetry == nil {
 		return
 	}
 	fn(s.telemetry, s.resourceID)
 }
 
+// recordSyncOwnerError records a failed sync attempt for this store.
 func (s *syncController) recordSyncOwnerError(err error) {
-	s.telemetrySafeCall(func(t *ProviderAccount, id string) {
-		t.recordSyncTelemetryError(id, err)
+	s.telemetrySafeCall(func(t *synctelemetry.Store, id string) {
+		t.RecordError(id, err)
 	})
 }
 

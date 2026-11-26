@@ -28,7 +28,7 @@ func TestBstoreSyncOwnerRetriesAndRecordsTelemetry(t *testing.T) {
 	sc := &syncController{
 		le:         logrus.NewEntry(logrus.New()),
 		resourceID: "space-1",
-		telemetry:  telemetry,
+		telemetry:  &telemetry.syncTelemetry,
 	}
 
 	// Fail the first sync, then run the restarted one until canceled.

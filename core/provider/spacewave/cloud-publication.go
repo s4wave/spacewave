@@ -239,7 +239,7 @@ func (s *syncController) setPublication(h *cloudSOHost, pending *api.PendingSOPu
 			}
 		}
 		if s.telemetry != nil {
-			s.telemetry.syncTelemetry.SetPendingPublications(s.resourceID, len(s.publications))
+			s.telemetry.SetPendingPublications(s.resourceID, len(s.publications))
 		}
 		broadcast()
 	})
@@ -252,7 +252,7 @@ func (s *syncController) setPublication(h *cloudSOHost, pending *api.PendingSOPu
 func (s *syncController) flushCheckpoint(ctx context.Context, orderBlocks bool) (retErr error) {
 	// Record sync errors in telemetry for the resource.
 	if s.telemetry != nil {
-		defer func() { s.telemetry.syncTelemetry.RecordError(s.resourceID, retErr) }()
+		defer func() { s.telemetry.RecordError(s.resourceID, retErr) }()
 	}
 
 	// Hold the linked lane's pushes until the flush ends.

@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/provider/spacewave/clouderror"
+	"github.com/s4wave/spacewave/core/provider/spacewave/synctelemetry"
 	"github.com/s4wave/spacewave/db/block"
 	block_store_filesegment "github.com/s4wave/spacewave/db/block/store/filesegment"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -168,8 +169,8 @@ func (l *linkedLane) addPending(n int) {
 // reportPending shows the queue count in the store's sync status, so a held
 // queue of linked chunks reads as pending uploads. Call under bcast.
 func (l *linkedLane) reportPending() {
-	l.s.telemetrySafeCall(func(t *ProviderAccount, id string) {
-		t.setSyncTelemetryLinkedPending(id, l.pending)
+	l.s.telemetrySafeCall(func(t *synctelemetry.Store, id string) {
+		t.SetLinkedPending(id, l.pending)
 	})
 }
 

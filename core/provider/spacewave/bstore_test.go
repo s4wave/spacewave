@@ -837,9 +837,12 @@ func TestCloudBlockStoreBucketKeepsAccountCacheLocalOnly(t *testing.T) {
 	}
 }
 
+// TestCloudOverlayFallsThroughOnceAndRecordsCloudSource checks the single Cloud fallback and its telemetry.
 func TestCloudOverlayFallsThroughOnceAndRecordsCloudSource(t *testing.T) {
+	// Allow independent store tests to run together.
 	t.Parallel()
 
+	// Seed the Cloud store and wrap both read sources with telemetry.
 	ctx := t.Context()
 	acc := &ProviderAccount{}
 	data := []byte("cloud")
@@ -851,18 +854,19 @@ func TestCloudOverlayFallsThroughOnceAndRecordsCloudSource(t *testing.T) {
 	upper := newWrapperForwardTestStore("upper", hash.HashType_HashType_SHA256)
 	sourceUpper := &sourceTrackingStore{
 		StoreOps:   upper,
-		account:    acc,
+		telemetry:  &acc.syncTelemetry,
 		bstoreID:   "block-store",
 		source:     SyncTelemetryBlockSourceDirect,
 		upperCache: true,
 	}
 	sourceLower := &sourceTrackingStore{
-		StoreOps: lower,
-		account:  acc,
-		bstoreID: "block-store",
-		source:   SyncTelemetryBlockSourceCloud,
+		StoreOps:  lower,
+		telemetry: &acc.syncTelemetry,
+		bstoreID:  "block-store",
+		source:    SyncTelemetryBlockSourceCloud,
 	}
 
+	// Read through the Cloud overlay and verify that each store is tried once.
 	got, found, err := newCloudOverlay(ctx, nil, sourceLower, sourceUpper).GetBlock(ctx, ref)
 	if err != nil {
 		t.Fatal(err)
@@ -873,6 +877,8 @@ func TestCloudOverlayFallsThroughOnceAndRecordsCloudSource(t *testing.T) {
 	if upper.getBlockHits != 1 || lower.getBlockHits != 1 {
 		t.Fatalf("source reads = upper:%d lower:%d, want 1/1", upper.getBlockHits, lower.getBlockHits)
 	}
+
+	// Verify that only the source which supplied the block was recorded.
 	telemetry := acc.GetSyncTelemetrySnapshot()
 	if len(telemetry.BlockStores) != 1 ||
 		telemetry.BlockStores[0].CloudHitCount != 1 ||
@@ -882,9 +888,12 @@ func TestCloudOverlayFallsThroughOnceAndRecordsCloudSource(t *testing.T) {
 	}
 }
 
+// TestCloudOverlayRecordsDirectDemandSource checks that a demand read records the direct source.
 func TestCloudOverlayRecordsDirectDemandSource(t *testing.T) {
+	// Allow independent store tests to run together.
 	t.Parallel()
 
+	// Seed the direct source and attach its telemetry store.
 	ctx := t.Context()
 	acc := &ProviderAccount{}
 	network := newProviderSpacewaveTestBlockStore(hash.HashType_HashType_SHA256)
@@ -895,12 +904,13 @@ func TestCloudOverlayRecordsDirectDemandSource(t *testing.T) {
 	}
 	sourceUpper := &sourceTrackingStore{
 		StoreOps:   &networkLookupTestStore{StoreOps: network},
-		account:    acc,
+		telemetry:  &acc.syncTelemetry,
 		bstoreID:   "block-store",
 		source:     SyncTelemetryBlockSourceDirect,
 		upperCache: true,
 	}
 
+	// Read the block through the direct demand wrapper.
 	got, found, err := sourceUpper.GetBlock(ctx, ref)
 	if err != nil {
 		t.Fatal(err)
@@ -908,6 +918,8 @@ func TestCloudOverlayRecordsDirectDemandSource(t *testing.T) {
 	if !found || !bytes.Equal(got, data) {
 		t.Fatalf("direct read = %q/%v, want %q/true", got, found, data)
 	}
+
+	// Verify that only the source which supplied the block was recorded.
 	telemetry := acc.GetSyncTelemetrySnapshot()
 	if len(telemetry.BlockStores) != 1 ||
 		telemetry.BlockStores[0].DirectHitCount != 1 ||

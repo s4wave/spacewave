@@ -11,6 +11,7 @@ import (
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/provider/spacewave/clouderror"
+	"github.com/s4wave/spacewave/core/provider/spacewave/synctelemetry"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/db/packfile/identity"
@@ -121,8 +122,8 @@ func (s *syncController) mergePacks(ctx context.Context, inputs []*packfile.Pack
 	if err := s.applyManifestDelta(ctx, []*packfile.PackfileEntry{chunk.entry}, []*packfile.PackReplacementEvent{event}, 0); err != nil {
 		return errors.Wrap(err, "applying merge delta")
 	}
-	s.telemetrySafeCall(func(t *ProviderAccount, id string) {
-		t.addSyncTelemetryMerge(id, len(chunk.replaces))
+	s.telemetrySafeCall(func(t *synctelemetry.Store, id string) {
+		t.AddMerge(id, len(chunk.replaces))
 	})
 
 	// Log the completed merge.
