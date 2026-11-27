@@ -387,7 +387,7 @@ func repairVolumeRefs(
 	}
 
 	// Open the stopped volume.
-	vol, err := openStoppedVolumeStore(ctx, le, path, dryRun, storeConf)
+	vol, err := openStoppedVolumeStore(ctx, le, path, dryRun, storeConf, 0)
 	if err != nil {
 		return refRepairResult{}, err
 	}

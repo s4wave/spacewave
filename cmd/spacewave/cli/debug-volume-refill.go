@@ -90,7 +90,7 @@ func (a *debugVolumeRefillArgs) refill(ctx context.Context, path string) (res vo
 	logger.SetLevel(logrus.ErrorLevel)
 
 	// Take the stopped target's usual writer claim, or a read-only open for a preview.
-	vol, err := openStoppedVolumeStore(ctx, logrus.NewEntry(logger), path, a.dryRun, a.upgrade.StoreConfig(nil))
+	vol, err := openStoppedVolumeStore(ctx, logrus.NewEntry(logger), path, a.dryRun, a.upgrade.StoreConfig(nil), 0)
 	if err != nil {
 		return res, err
 	}

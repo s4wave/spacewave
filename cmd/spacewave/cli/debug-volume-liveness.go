@@ -113,7 +113,7 @@ func (a *debugVolumeAdoptArgs) Run(c *cli.Context) error {
 // the counts the adoption reached with its error.
 func adoptVolume(ctx context.Context, le *logrus.Entry, path string, storeConf *store_kvtx.Config) (block_gc.AdoptResult, error) {
 	// Open the stopped volume and adopt it.
-	vol, err := openStoppedVolumeStore(ctx, le, path, volumeWritable, storeConf)
+	vol, err := openStoppedVolumeStore(ctx, le, path, volumeWritable, storeConf, 0)
 	if err != nil {
 		return block_gc.AdoptResult{}, err
 	}

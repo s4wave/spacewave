@@ -85,7 +85,7 @@ func TestDebugVolumeCollect(t *testing.T) {
 	}
 
 	// Without frees the passes net the logs and delete nothing.
-	rep, err := collectVolume(ctx, le, path, &store_kvtx.Config{CollectorGraceDur: "1ns"}, volumeLoadOpts{})
+	rep, err := collectVolume(ctx, le, path, &store_kvtx.Config{CollectorGraceDur: "1ns"}, 0, volumeLoadOpts{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,7 +100,7 @@ func TestDebugVolumeCollect(t *testing.T) {
 	}
 
 	// With frees the replaced head goes and the live head stays.
-	rep, err = collectVolume(ctx, le, path, &store_kvtx.Config{CollectorFrees: true, CollectorGraceDur: "1ns"}, volumeLoadOpts{})
+	rep, err = collectVolume(ctx, le, path, &store_kvtx.Config{CollectorFrees: true, CollectorGraceDur: "1ns"}, 0, volumeLoadOpts{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,7 +116,7 @@ func TestDebugVolumeCollect(t *testing.T) {
 
 	// A writer beside the passes commits, then releases its scratch root.
 	load := volumeLoadOpts{rate: 50, window: 300 * time.Millisecond}
-	rep, err = collectVolume(ctx, le, path, &store_kvtx.Config{CollectorFrees: true, CollectorGraceDur: "1ns"}, load)
+	rep, err = collectVolume(ctx, le, path, &store_kvtx.Config{CollectorFrees: true, CollectorGraceDur: "1ns"}, 0, load)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -390,7 +390,7 @@ func openRestoreVolume(
 	storeConf *store_kvtx.Config,
 ) (*restoreVolume, error) {
 	// Open the stopped volume.
-	vol, err := openStoppedVolumeStore(ctx, le, path, readOnly, storeConf)
+	vol, err := openStoppedVolumeStore(ctx, le, path, readOnly, storeConf, 0)
 	if err != nil {
 		return nil, err
 	}

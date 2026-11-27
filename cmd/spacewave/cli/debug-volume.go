@@ -476,12 +476,15 @@ const (
 // clears it. A file that needs a conversion or a format upgrade fails to open
 // with volume.ErrReadOnlyUpgrade.
 func openStoppedVolume(ctx context.Context, le *logrus.Entry, path string, readOnly bool) (*volume_s4db.Volume, error) {
-	return openStoppedVolumeStore(ctx, le, path, readOnly, nil)
+	return openStoppedVolumeStore(ctx, le, path, readOnly, nil, 0)
 }
 
 // openStoppedVolumeStore is openStoppedVolume with the store configuration
-// storeConf, nil for the default store configuration.
-func openStoppedVolumeStore(ctx context.Context, le *logrus.Entry, path string, readOnly bool, storeConf *store_kvtx.Config) (*volume_s4db.Volume, error) {
+// storeConf, nil for the default store configuration, and a block cache of
+// cacheBytes, zero for the store's default size.
+func openStoppedVolumeStore(
+	ctx context.Context, le *logrus.Entry, path string, readOnly bool, storeConf *store_kvtx.Config, cacheBytes int64,
+) (*volume_s4db.Volume, error) {
 	// Refuse a missing file, which the open would create.
 	if _, err := os.Stat(path); err != nil {
 		return nil, err
@@ -491,6 +494,7 @@ func openStoppedVolumeStore(ctx context.Context, le *logrus.Entry, path string, 
 		NoGenerateKey: true,
 		NoWriteKey:    true,
 		StoreConfig:   storeConf,
+		CacheBytes:    cacheBytes,
 		ReadOnly:      readOnly,
 	})
 	if err != nil {

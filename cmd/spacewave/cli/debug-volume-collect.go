@@ -29,6 +29,8 @@ type debugVolumeCollectArgs struct {
 	// cpuProfile is the file that receives a CPU profile of the run, empty
 	// for none.
 	cpuProfile string
+	// cacheBytes bounds the store's block cache, zero for its default.
+	cacheBytes int64
 	// upgrade decides whether the open upgrades the volume's format.
 	upgrade *FormatUpgrade
 }
@@ -62,6 +64,11 @@ func (a *debugVolumeCollectArgs) BuildFlags() []cli.Flag {
 			Usage:       "write a Go CPU profile of the whole run, the recount included, to this file",
 			Destination: &a.cpuProfile,
 		},
+		&cli.Int64Flag{
+			Name:        "cache-bytes",
+			Usage:       "bound the store's block cache to this many bytes, which a recount's random count lookups need; zero uses the store's default",
+			Destination: &a.cacheBytes,
+		},
 	}, a.upgrade.BuildFlags()...)
 }
 
@@ -91,7 +98,7 @@ func (a *debugVolumeCollectArgs) Run(c *cli.Context) error {
 	ctx, stop := signal.NotifyContext(c.Context, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	conf := a.upgrade.StoreConfig(&store_kvtx.Config{CollectorFrees: a.frees, CollectorGraceDur: a.grace})
-	rep, err := collectVolume(ctx, logrus.NewEntry(logrus.New()), path, conf, a.load)
+	rep, err := collectVolume(ctx, logrus.NewEntry(logrus.New()), path, conf, a.cacheBytes, a.load)
 	err = stderrors.Join(err, stopProfile())
 
 	// Print the totals, including those a failed or stopped pass left.
@@ -102,11 +109,12 @@ func (a *debugVolumeCollectArgs) Run(c *cli.Context) error {
 // collectVolume runs collection passes on the stopped volume at path until
 // one leaves no work or, when load has a window, beside a writer until the
 // window ends, and reports what they did and what the settle's flip checks
-// found after them.
-func collectVolume(ctx context.Context, le *logrus.Entry, path string, conf *store_kvtx.Config, load volumeLoadOpts) (*collectReport, error) {
+// found after them. cacheBytes bounds the store's block cache, zero for its
+// default.
+func collectVolume(ctx context.Context, le *logrus.Entry, path string, conf *store_kvtx.Config, cacheBytes int64, load volumeLoadOpts) (*collectReport, error) {
 	// Open the stopped volume with the collector's configuration.
 	rep := newCollectReport(path, conf)
-	vol, err := openStoppedVolumeStore(ctx, le, path, volumeWritable, conf)
+	vol, err := openStoppedVolumeStore(ctx, le, path, volumeWritable, conf, cacheBytes)
 	if err != nil {
 		return rep, err
 	}
