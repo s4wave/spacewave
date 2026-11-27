@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"io"
 	"math"
+	"os"
 	"strconv"
 
 	"github.com/pkg/errors"
@@ -28,6 +29,8 @@ type Walker struct {
 	DB *sql.DB
 	// store owns the scratch connection lifecycle.
 	store sqlite.Store
+	// wal is the scratch database's write-ahead log, which checkpoint bounds.
+	wal string
 	// Locate returns the frozen index's pack number, offset and encoded length.
 	Locate func(context.Context, *block.BlockRef) (uint32, int64, int, bool, error)
 	// ReadRange reads a bounded range from the named pack, or stops the walk.
@@ -68,7 +71,30 @@ func Open(path string) (*Walker, error) {
 		store.Close()
 		return nil, err
 	}
-	return &Walker{DB: db, store: store}, nil
+	return &Walker{DB: db, store: store, wal: path + "-wal"}, nil
+}
+
+// walBound is the WAL size past which the walker checkpoints and truncates it.
+var walBound int64 = 64 << 20
+
+// checkpoint bounds the scratch WAL. The store's pool disables SQLite's
+// automatic checkpoint, and its background checkpointer wakes only on the
+// store's own key-value commits, never on the commits the walker makes
+// through DB. Without this the WAL keeps every frame of the walk, and its
+// index grows until SQLite runs out of memory. The walker holds the pool's
+// one connection, so the truncating checkpoint waits only for an outside
+// reader; a busy result leaves the log for the next call.
+func (w *Walker) checkpoint(ctx context.Context) error {
+	// One stat per frontier run keeps the check off the per-block path.
+	info, err := os.Stat(w.wal)
+	if os.IsNotExist(err) || (err == nil && info.Size() < walBound) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	var busy, frames, copied int
+	return w.DB.QueryRowContext(ctx, "PRAGMA wal_checkpoint(TRUNCATE)").Scan(&busy, &frames, &copied)
 }
 
 // Close closes the scratch database after its last committed position.
@@ -299,6 +325,11 @@ func (w *Walker) Run(ctx context.Context) error {
 	}
 
 	for {
+		// Bound the log the previous run's commits added.
+		if err := w.checkpoint(ctx); err != nil {
+			return err
+		}
+
 		// Read the next breadth-first run, outside any scratch transaction.
 		run, err := w.next(ctx)
 		if err != nil || len(run) == 0 {

@@ -3,7 +3,9 @@ package measure
 import (
 	"bytes"
 	"context"
+	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -373,5 +375,70 @@ func TestMeasureLocalSurvivesInvalidIndex(t *testing.T) {
 	}
 	if !strings.Contains(out.String(), "total\t1\t5") || !strings.Contains(out.String(), "holes:pack-location\t1") || strings.Contains(out.String(), "pack\tpack\t") {
 		t.Fatal(out.String())
+	}
+}
+
+// TestMeasureBoundsWAL walks a long chain, one committed run per block, and
+// requires the scratch WAL to stay near its bound instead of keeping every
+// frame of the walk.
+func TestMeasureBoundsWAL(t *testing.T) {
+	// Serve a 1000-block chain locally, so each frontier run holds one block.
+	ctx := t.Context()
+	prev := walBound
+	walBound = 64 << 10
+	defer func() { walBound = prev }()
+	const n = 1000
+	data := func(i int) []byte { return []byte("chain-" + strconv.Itoa(i)) }
+	refs := make([]*block.BlockRef, n+1)
+	for i := n - 1; i >= 0; i-- {
+		ref, err := block.BuildBlockRef(data(i), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		refs[i] = ref
+	}
+	next := map[string]int{}
+	for i := range n {
+		next[refs[i].MarshalString()] = i
+	}
+	path := filepath.Join(t.TempDir(), "work")
+	w, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer w.Close()
+	w.Local = func(_ context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+		i, ok := next[ref.MarshalString()]
+		if !ok {
+			return nil, nil
+		}
+		var kids []*block.BlockRef
+		if refs[i+1] != nil {
+			kids = []*block.BlockRef{refs[i+1]}
+		}
+		return &block.StoredBlock{Data: data(i), Refs: kids, RefsKnown: true}, nil
+	}
+	w.Locate = func(context.Context, *block.BlockRef) (uint32, int64, int, bool, error) { return 0, 0, 0, false, nil }
+	w.Describe = func(context.Context, *block.BlockRef, []byte, []byte) (string, []Child, error) {
+		return "fixture", nil, nil
+	}
+	if err = w.Seed(ctx, "head", refs[0], nil); err != nil {
+		t.Fatal(err)
+	}
+	if err = w.Run(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	// Every block counts, and the log holds at most a few runs past its bound.
+	var count int
+	if err = w.DB.QueryRowContext(ctx, "SELECT count(*) FROM nodes WHERE state=1").Scan(&count); err != nil || count != n {
+		t.Fatalf("visited %d of %d: %v", count, n, err)
+	}
+	info, err := os.Stat(path + "-wal")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Size() > 4*walBound {
+		t.Fatalf("WAL is %d bytes after the walk, bound %d", info.Size(), walBound)
 	}
 }
