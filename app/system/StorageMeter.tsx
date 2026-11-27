@@ -38,10 +38,10 @@ export function StorageMeter({
       >
         <div
           className={cn(
-            'progress-width progress-width-transition-slow h-full rounded-full motion-reduce:transition-none',
+            'progress-scale h-full origin-left rounded-full transition-transform duration-500 motion-reduce:transition-none',
             ratio >= 0.9 ? 'bg-warning' : 'bg-foreground-alt/60',
           )}
-          style={{ '--progress-width': `${Math.max(ratio * 100, 1)}%` }}
+          style={{ '--progress-scale': Math.max(ratio, 0.01) }}
         />
       </div>
       {!compact && (

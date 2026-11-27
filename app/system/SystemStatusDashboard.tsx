@@ -127,6 +127,7 @@ interface SystemStatusDashboardProps {
 // subsystem shows as a live tile under a one-line verdict. A tile opens its
 // full inspector in place, and Escape returns to the tiles.
 export function SystemStatusDashboard({ onClose }: SystemStatusDashboardProps) {
+  // Subscribe to the system readings and the persisted inspector selection.
   const ns = useStateNamespace(['system-status-dashboard'])
   const [inspector, setInspector] = useStateAtom<InspectorId | ''>(
     ns,
@@ -141,6 +142,7 @@ export function SystemStatusDashboard({ onClose }: SystemStatusDashboardProps) {
   const model = useSystemModel()
   const navigateSession = useSessionNavigate()
 
+  // Keep the focus targets for returning from an inspector.
   const tileRefs = useRef<Partial<Record<InspectorId, HTMLButtonElement>>>({})
   const inspectorRef = useRef<HTMLDivElement>(null)
   const lastInspectorRef = useRef<InspectorId | ''>('')
@@ -158,6 +160,7 @@ export function SystemStatusDashboard({ onClose }: SystemStatusDashboardProps) {
     }
   }, [inspector])
 
+  // Forward dismissal to the overlay frame.
   const close = () => onClose?.()
 
   // Escape leaves an open inspector before it reaches the overlay frame.
@@ -170,6 +173,7 @@ export function SystemStatusDashboard({ onClose }: SystemStatusDashboardProps) {
     setInspector('')
   }
 
+  // Register each mounted tile as its inspector return target.
   const tileRef: TileRef = (id) => (node) => {
     if (node) {
       tileRefs.current[id] = node
@@ -297,7 +301,7 @@ function VerdictBar({
       >
         {verdict.headline}
       </h1>
-      <p className="text-foreground-alt/50 hidden min-w-0 truncate text-xs @lg:block">
+      <p className="text-foreground-alt/60 hidden min-w-0 truncate text-xs @lg:block">
         <span className="font-mono">{build.version || 'dev'}</span>
         {build.runtimeLabel && <> · {build.runtimeLabel}</>}
         {platform && (
@@ -515,6 +519,7 @@ function NetworkTile({
 
 // runtimeHeadline summarizes the plugins running across every plugin host.
 function runtimeHeadline(plugins: SystemModel['plugins'], running: number) {
+  // Summarize plugin hosts and the busiest directive types.
   if (!plugins) return 'Reading…'
   if (plugins.length === 0) return 'No plugins running'
   const headline = `${formatCount(running)} of ${plural(plugins.length, 'plugin')} running`
@@ -571,6 +576,7 @@ function RuntimeTile({ base, model }: { base: TileBase; model: SystemModel }) {
 
 // ReleaseTile shows this version, the update phase, and the runtime load.
 function ReleaseTile({ base, model }: { base: TileBase; model: SystemModel }) {
+  // Select the current release update reading.
   const launcher = model.recovery?.launcher
   const asset = model.recovery?.runtimeAsset
   let update = 'No launcher in this runtime'
@@ -625,7 +631,7 @@ function SpacesTile({
       className="@2xl:col-span-6"
       headline={`${plural(spaces.length, 'Space')} · ${plural(sessions.length, 'account')}`}
     >
-      <ul className="flex flex-wrap gap-1.5">
+      <ul className="flex flex-wrap gap-2">
         {sessions.map((session) => (
           <SessionChip
             key={session.sessionIndex}
@@ -658,7 +664,7 @@ function SessionChip({ sessionIndex }: { sessionIndex: number }) {
   return (
     <li
       className={cn(
-        'flex max-w-56 items-center gap-1.5 rounded-md border px-2 py-1',
+        'flex max-w-56 items-center gap-2 rounded-md border px-2 py-1',
         current
           ? 'border-brand/30 bg-brand/10 text-foreground'
           : 'border-foreground/8',
@@ -667,7 +673,7 @@ function SessionChip({ sessionIndex }: { sessionIndex: number }) {
       <span className="truncate">
         {metadata?.displayName || `Session ${sessionIndex}`}
       </span>
-      <span className="text-foreground-alt/50 font-mono">
+      <span className="text-foreground-alt/60 font-mono">
         /u/{sessionIndex}
       </span>
     </li>
@@ -694,7 +700,7 @@ function UnderTheHood({
         onClick={() => onOpen('resources')}
       >
         Resources
-        <span className="text-foreground-alt/50 font-mono tabular-nums">
+        <span className="text-foreground-alt/60 font-mono tabular-nums">
           {formatCount(resourceCount)}
         </span>
       </DashboardButton>
@@ -704,7 +710,7 @@ function UnderTheHood({
         onClick={() => onOpen('atoms')}
       >
         State atoms
-        <span className="text-foreground-alt/50 font-mono tabular-nums">
+        <span className="text-foreground-alt/60 font-mono tabular-nums">
           {formatCount(atomCount)}
         </span>
       </DashboardButton>
@@ -732,7 +738,7 @@ function InspectorNav({
       <button
         type="button"
         onClick={onBack}
-        className="text-foreground-alt/70 hover:text-foreground hover:bg-foreground/5 focus-visible:ring-brand/50 flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors focus-visible:ring-2 focus-visible:outline-none"
+        className="text-foreground-alt/70 hover:text-foreground hover:bg-foreground/5 focus-visible:ring-brand/50 flex shrink-0 items-center gap-2 rounded-md px-2 py-1 text-xs transition-colors focus-visible:ring-2 focus-visible:outline-none"
       >
         <LuArrowLeft className="size-3.5" aria-hidden="true" />
         All systems
@@ -750,7 +756,7 @@ function InspectorNav({
             aria-current={id === current ? 'page' : undefined}
             onClick={() => onSelect(id)}
             className={cn(
-              'focus-visible:ring-brand/50 flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors focus-visible:ring-2 focus-visible:outline-none',
+              'focus-visible:ring-brand/50 flex shrink-0 items-center gap-2 rounded-md px-2 py-1 text-xs transition-colors focus-visible:ring-2 focus-visible:outline-none',
               id === current
                 ? 'bg-foreground/8 text-foreground'
                 : 'text-foreground-alt/60 hover:text-foreground',
@@ -768,7 +774,7 @@ function InspectorNav({
           </button>
         )
       })}
-      <span className="text-foreground-alt/45 ml-auto hidden shrink-0 px-2 text-xs @xl:block">
+      <span className="text-foreground-alt/60 ml-auto hidden shrink-0 px-2 text-xs @xl:block">
         <kbd className="font-sans">Esc</kbd> to go back
       </span>
     </nav>

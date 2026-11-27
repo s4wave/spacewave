@@ -145,12 +145,12 @@ function SessionSyncStatusPopover() {
           {status.localCopies.map((copy) => (
             <div key={copy.id}>
               <SyncRow label={copy.name} value={copy.status} />
-              <div className="text-foreground-alt/50 mt-0.5 text-xs">
+              <div className="text-foreground-alt/60 mt-0.5 text-xs">
                 {copy.detail}
               </div>
               {copy.error && (
                 <details className="text-foreground-alt/60 mt-1 text-xs">
-                  <summary className="cursor-pointer [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-3.5">
+                  <summary className="min-h-6 cursor-pointer [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-3.5">
                     Copy details
                   </summary>
                   <p className="mt-1 break-words">{copy.error}</p>
@@ -162,8 +162,8 @@ function SessionSyncStatusPopover() {
       )}
 
       {!status.local && (
-        <details className="border-foreground/8 space-y-1.5 border-t pt-2">
-          <summary className="text-foreground-alt/50 cursor-pointer text-xs [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-3.5">
+        <details className="border-foreground/8 space-y-2 border-t pt-2">
+          <summary className="text-foreground-alt/60 min-h-6 cursor-pointer text-xs [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-3.5">
             Storage diagnostics
           </summary>
           <SyncRow label="Ranges" value={status.packRangeLabel} />
@@ -175,13 +175,13 @@ function SessionSyncStatusPopover() {
 
       {status.peers.length > 0 && (
         <details className="border-foreground/8 space-y-2 border-t pt-2">
-          <summary className="text-foreground-alt/50 cursor-pointer text-xs [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-3.5">
+          <summary className="text-foreground-alt/60 min-h-6 cursor-pointer text-xs [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-3.5">
             Linked Sessions
           </summary>
           {status.peers.map((peer) => (
             <div key={peer.id}>
               <SyncRow label={peer.name} value={peer.state} />
-              <div className="text-foreground-alt/50 mt-0.5 text-right text-xs">
+              <div className="text-foreground-alt/60 mt-0.5 text-right text-xs">
                 {peer.traffic}
               </div>
             </div>
@@ -189,7 +189,7 @@ function SessionSyncStatusPopover() {
         </details>
       )}
 
-      <div className="border-foreground/8 space-y-1.5 border-t pt-2">
+      <div className="border-foreground/8 space-y-2 border-t pt-2">
         <SyncRow
           label={status.local ? 'Network' : 'Account access'}
           value={status.transportLabel}
@@ -213,8 +213,8 @@ function SessionSyncStatusPopover() {
 
 function SyncMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border-foreground/6 bg-foreground/5 rounded-md border px-2 py-1.5">
-      <div className="text-foreground-alt/50 micro-text font-medium tracking-widest uppercase">
+    <div className="border-foreground/6 bg-foreground/5 rounded-md border px-2 py-2">
+      <div className="text-foreground-alt/60 text-metadata font-medium tracking-widest uppercase">
         {label}
       </div>
       <div className="text-xs font-semibold">{value}</div>
@@ -233,7 +233,7 @@ function SyncRow({
 }) {
   return (
     <div className="flex items-start justify-between gap-3 text-xs">
-      <span className="text-foreground-alt/50 shrink-0">{label}</span>
+      <span className="text-foreground-alt/60 shrink-0">{label}</span>
       <span
         className={cn(
           'text-right break-words',

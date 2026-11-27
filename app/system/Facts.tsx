@@ -22,11 +22,11 @@ export function Facts({
     (fact) => fact.value !== '' && fact.value != null,
   )
   if (!present.length) {
-    return <p className="text-foreground-alt/50 text-xs">{empty}</p>
+    return <p className="text-foreground-alt/60 text-xs">{empty}</p>
   }
 
   return (
-    <dl className="space-y-1.5 text-xs">
+    <dl className="space-y-2 text-xs">
       {present.map((fact) => (
         <div key={fact.label} className="flex gap-4">
           <dt className="text-foreground-alt/60 w-32 shrink-0">{fact.label}</dt>

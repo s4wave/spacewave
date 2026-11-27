@@ -12,6 +12,8 @@ import {
 import { BottomBarRoot } from '@s4wave/web/frame/bottom-bar-root.js'
 import { ViewerFrame } from '@s4wave/web/frame/ViewerFrame.js'
 
+import { SyncInspector } from '../system/SyncInspector.js'
+
 import { SessionSyncStatusButton } from './SessionSyncStatusButton.js'
 import {
   buildSessionSyncStatusView,
@@ -115,6 +117,30 @@ describe('SessionSyncStatusButton', () => {
       detail:
         'This browser is out of storage, so 1 Space cannot be stored on this device. Free up space to continue.',
     },
+    ...[
+      [
+        SyncAccountAccessState.SyncAccountAccessState_PENDING,
+        'Account opening',
+      ],
+      [
+        SyncAccountAccessState.SyncAccountAccessState_FAILED,
+        'Account unavailable',
+      ],
+      [
+        SyncAccountAccessState.SyncAccountAccessState_UNAUTHENTICATED,
+        'Sign in required',
+      ],
+    ].map(([access, accessLabel]) => ({
+      name: String(accessLabel),
+      view: view({
+        access: access as SyncAccountAccessState,
+        cloud: { transfer: { state: SyncStatusState.SyncStatusState_SYNCED } },
+        peer: {},
+      }),
+      label: 'Synced',
+      detail: 'All sync work complete.',
+      accessLabel: String(accessLabel),
+    })),
     {
       name: 'idle cloud',
       view: view({
@@ -256,10 +282,13 @@ describe('SessionSyncStatusButton', () => {
       p2pLabel: 'P2P error',
     },
   ])('renders $name status in the collapsed button and popover', (test) => {
+    // Project the fixture through the production status context.
     mockUseSessionSyncStatus.mockReturnValue(test.view)
 
+    // Open the status popover inside its bottom bar frame.
     render(<Harness />)
 
+    // Check the cloud or local summary and its independent observations.
     expect(screen.getByTestId('session-sync-status-button')).toBeTruthy()
     expect(
       screen
@@ -268,18 +297,44 @@ describe('SessionSyncStatusButton', () => {
     ).toBe(`Session sync status: ${test.label}`)
     expect(screen.getAllByText(test.label).length).toBeGreaterThan(0)
     expect(screen.getAllByText(test.detail).length).toBeGreaterThan(0)
-    if (test.peerError) {
+
+    // Check account access separately from the transfer summary.
+    if ('accessLabel' in test) {
+      expect(screen.getByText(test.accessLabel as string)).toBeTruthy()
+    }
+
+    // Keep direct-path failures separate from the cloud result.
+    if ('peerError' in test && test.peerError) {
       expect(screen.getByText(test.peerError)).toBeTruthy()
     }
-    if (test.p2pLabel) {
+    if ('p2pLabel' in test && test.p2pLabel) {
       expect(screen.getByText(test.p2pLabel)).toBeTruthy()
     }
-    if (test.spinning === false) {
+
+    // Leave completed transfers still.
+    if ('spinning' in test && test.spinning === false) {
       expect(
         screen
           .getByTestId('session-sync-status-button')
           .querySelector('.animate-spin'),
       ).toBeNull()
+    }
+
+    // Check that the system inspector presents the same observations.
+    cleanup()
+    render(
+      <div className="bg-background @container p-4">
+        <SyncInspector sync={test.view} />
+      </div>,
+    )
+    expect(screen.getAllByText(test.label).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(test.detail).length).toBeGreaterThan(0)
+    if ('accessLabel' in test) {
+      expect(screen.getByText(test.accessLabel as string)).toBeTruthy()
+    }
+    if ('peerError' in test && test.peerError) {
+      expect(screen.getByText(test.peerError)).toBeTruthy()
+      expect(screen.queryByText('Cloud error')).toBeNull()
     }
   })
 
@@ -302,6 +357,7 @@ describe('SessionSyncStatusButton', () => {
   })
 
   it('renders compact pack-read diagnostics from the sync snapshot', () => {
+    // Provide pack counters through the production projection.
     mockUseSessionSyncStatus.mockReturnValue(
       view({
         access: SyncAccountAccessState.SyncAccountAccessState_READY,
@@ -320,8 +376,10 @@ describe('SessionSyncStatusButton', () => {
       }),
     )
 
+    // Open the status popover inside its bottom bar frame.
     render(<Harness />)
 
+    // Expand diagnostics and check each reported counter.
     fireEvent.click(screen.getByText('Storage diagnostics'))
     expect(screen.getByText('3 / 4.0 KiB')).toBeTruthy()
     expect(screen.getByText('1 / 2.0 KiB')).toBeTruthy()
@@ -330,6 +388,7 @@ describe('SessionSyncStatusButton', () => {
   })
 
   it('renders in-flight upload progress separately from queued upload bytes', () => {
+    // Provide separate queued and in-flight upload totals.
     mockUseSessionSyncStatus.mockReturnValue(
       view({
         access: SyncAccountAccessState.SyncAccountAccessState_READY,
@@ -347,8 +406,10 @@ describe('SessionSyncStatusButton', () => {
       }),
     )
 
+    // Open the status popover inside its bottom bar frame.
     render(<Harness />)
 
+    // Check that queued bytes do not replace in-flight progress.
     expect(screen.getByText('Uploading now')).toBeTruthy()
     expect(screen.getByText('8.0 KiB / 32 KiB')).toBeTruthy()
     expect(screen.getByText('64 KiB')).toBeTruthy()

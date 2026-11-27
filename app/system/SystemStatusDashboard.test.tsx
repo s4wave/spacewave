@@ -30,7 +30,10 @@ vi.mock('@s4wave/app/hooks/useSessionMetadata.js', () => ({
   }),
 }))
 
-vi.mock('@s4wave/web/contexts/contexts.js', () => ({
+vi.mock('@s4wave/web/contexts/contexts.js', async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import('@s4wave/web/contexts/contexts.js')
+  >()),
   useSessionIndex: () => 1,
   useSessionNavigate: () => mocks.navigateSession,
 }))
@@ -43,18 +46,31 @@ vi.mock('@s4wave/web/router/router.js', () => ({
   useNavigate: () => mocks.navigate,
 }))
 
-vi.mock('@s4wave/web/devtools/index.js', () => ({
+vi.mock('@s4wave/web/devtools/index.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@s4wave/web/devtools/index.js')>()),
   useSelectedResourceId: () => null,
   useTrackedResources: () => new Map([[1, {}]]),
 }))
 
-vi.mock('@s4wave/web/devtools/useStateInspectorEntries.js', () => ({
-  useStateInspectorEntryMap: () => new Map(),
-}))
+vi.mock(
+  '@s4wave/web/devtools/useStateInspectorEntries.js',
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import('@s4wave/web/devtools/useStateInspectorEntries.js')
+    >()),
+    useStateInspectorEntryMap: () => new Map(),
+  }),
+)
 
-vi.mock('@s4wave/web/devtools/StateDevToolsContext.js', () => ({
-  useSelectedStateAtomId: () => null,
-}))
+vi.mock(
+  '@s4wave/web/devtools/StateDevToolsContext.js',
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import('@s4wave/web/devtools/StateDevToolsContext.js')
+    >()),
+    useSelectedStateAtomId: () => null,
+  }),
+)
 
 vi.mock('@s4wave/web/devtools/ResourceTreeTab.js', () => ({
   ResourceTreeTab: () => <div>Resource Tree</div>,
@@ -204,6 +220,7 @@ describe('buildSystemModel', () => {
   })
 
   it('names the host of each plugin and joins recovery to the root host', () => {
+    // Model the same plugin on the system and a Space.
     const inputs = healthyInputs()
     inputs.recovery = {
       plugins: [
@@ -228,6 +245,7 @@ describe('buildSystemModel', () => {
     }
     const model = buildSystemModel(inputs)
 
+    // Check that recovery attaches only to the system host.
     expect(
       model.plugins?.map((plugin) => [plugin.host, plugin.id, plugin.manifest]),
     ).toEqual([
@@ -245,6 +263,7 @@ describe('buildSystemModel', () => {
   })
 
   it('lists faults before warnings and marks their subsystems', () => {
+    // Combine a release fault with a stopped transport.
     const inputs = healthyInputs()
     inputs.network = { ...inputs.network, transportRunning: false }
     inputs.recovery = {
@@ -252,6 +271,7 @@ describe('buildSystemModel', () => {
     }
     const model = buildSystemModel(inputs)
 
+    // Check fault ordering and the unaffected sync reading.
     expect(model.verdict.tone).toBe('error')
     expect(model.verdict.headline).toBe('2 things need attention')
     expect(model.verdict.items.map((item) => item.key)).toEqual([
@@ -266,6 +286,7 @@ describe('buildSystemModel', () => {
 
 describe('SystemStatusDashboard', () => {
   beforeEach(() => {
+    // Reset the rendered dashboard and its external controls.
     cleanup()
     mocks.inputs = healthyInputs()
     mocks.navigate.mockReset()
@@ -274,8 +295,10 @@ describe('SystemStatusDashboard', () => {
   })
 
   it('shows the verdict and a live tile for every subsystem', () => {
+    // Render the healthy dashboard with every watch loaded.
     renderDashboard()
 
+    // Check the verdict and the inspector entry points.
     expect(screen.getByRole('status').textContent).toBe('All systems nominal')
     for (const title of [
       'Sync',
@@ -292,14 +315,22 @@ describe('SystemStatusDashboard', () => {
       ).toBeTruthy()
     }
     expect(screen.getByText('2 of 2 plugins running in 1 Space')).toBeTruthy()
+
+    // Open the sync readings from their dashboard tile.
+    fireEvent.click(
+      screen.getByRole('button', { name: /^Sync\b.*Open inspector/ }),
+    )
+    expect(screen.getByRole('heading', { level: 2, name: 'Sync' })).toBeTruthy()
   })
 
   it('opens an inspector in place and returns to its tile on Escape', () => {
+    // Render the dashboard and retain the runtime return target.
     const onClose = renderDashboard()
     const tile = screen.getByRole('button', {
       name: /^Runtime\b.*Open inspector/,
     })
 
+    // Open the runtime inspector and check its host groups.
     fireEvent.click(tile)
     expect(
       screen.getByRole('heading', { level: 2, name: 'Runtime' }),
@@ -307,6 +338,7 @@ describe('SystemStatusDashboard', () => {
     expect(screen.getByText('spacewave-app')).toBeTruthy()
     expect(screen.getByRole('heading', { name: /Primary Space/ })).toBeTruthy()
 
+    // Return to the tile without dismissing the overlay.
     fireEvent.keyDown(document.activeElement!, { key: 'Escape' })
     expect(screen.queryByRole('heading', { level: 2, name: 'Runtime' })).toBe(
       null,
@@ -318,12 +350,14 @@ describe('SystemStatusDashboard', () => {
   })
 
   it('links each attention item to the inspector that explains it', () => {
+    // Render a transport fault with its attention item.
     mocks.inputs!.network = {
       ...mocks.inputs!.network,
       transportRunning: false,
     }
     renderDashboard()
 
+    // Follow the attention item to its explanatory inspector.
     expect(screen.getByRole('status').textContent).toBe(
       '1 thing needs attention',
     )

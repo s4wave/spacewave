@@ -75,7 +75,7 @@ export function SyncInspector({ sync }: { sync: SessionSyncStatusView }) {
         description="Stores on this device that hold a copy of your data."
       >
         {sync.localCopies.length === 0 ? (
-          <p className="text-foreground-alt/50 text-xs">
+          <p className="text-foreground-alt/60 text-xs">
             No local copies reported.
           </p>
         ) : (
@@ -94,7 +94,7 @@ export function SyncInspector({ sync }: { sync: SessionSyncStatusView }) {
                   {copy.detail}
                 </p>
                 {copy.error && (
-                  <p className="text-destructive mt-0.5 text-xs">
+                  <p className="text-destructive mt-0.5 max-w-prose text-xs break-words">
                     {copy.error}
                   </p>
                 )}
@@ -109,7 +109,7 @@ export function SyncInspector({ sync }: { sync: SessionSyncStatusView }) {
         description="Devices exchanging blocks with this session."
       >
         {sync.peers.length === 0 ? (
-          <p className="text-foreground-alt/50 text-xs">
+          <p className="text-foreground-alt/60 text-xs">
             No peers are exchanging data right now.
           </p>
         ) : (

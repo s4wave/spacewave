@@ -57,6 +57,7 @@ export function BottomBarItem({
   onPointerLeave,
   ...rest
 }: IBottomBarItemProps) {
+  // Retain one pending gesture and suppress its following click.
   const longPressRef = useRef<{
     timer: ReturnType<typeof setTimeout>
     pointerId: number
@@ -66,7 +67,9 @@ export function BottomBarItem({
   } | null>(null)
   const suppressNextClickRef = useRef(false)
 
+  // Provide one cancellation path for pointer movement, scrolling and teardown.
   const cancelLongPress = useCallback(function cancelLongPress() {
+    // Release the pending gesture and its scroll listener.
     const pending = longPressRef.current
     if (!pending) return
     clearTimeout(pending.timer)
@@ -76,8 +79,10 @@ export function BottomBarItem({
     }
   }, [])
 
+  // Release the gesture when this item unmounts.
   useEffect(
     () => () => {
+      // Discard the pending gesture before its callback can fire.
       const pending = longPressRef.current
       if (!pending) return
       clearTimeout(pending.timer)
@@ -89,6 +94,7 @@ export function BottomBarItem({
     [cancelLongPress],
   )
 
+  // Report the secondary activation with its trigger and coordinates.
   const openSecondaryMenu = (
     openKind: BottomBarContextMenuOpenKind,
     x: number,
@@ -98,7 +104,9 @@ export function BottomBarItem({
     onSecondaryActivate?.({ openKind, x, y, trigger })
   }
 
+  // Translate keyboard activation into the corresponding menu or click.
   const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    // Let the caller consume the keyboard event first.
     onKeyDown?.(event)
     if (event.defaultPrevented) return
 
@@ -123,6 +131,7 @@ export function BottomBarItem({
     }
   }
 
+  // Consume the click that follows a completed long press.
   const handlePrimaryActivate = (event: MouseEvent<HTMLButtonElement>) => {
     if (suppressNextClickRef.current) {
       suppressNextClickRef.current = false
@@ -133,10 +142,13 @@ export function BottomBarItem({
     onClick?.(event)
   }
 
+  // Translate the native context menu into the item menu.
   const handleContextMenu = (event: MouseEvent<HTMLButtonElement>) => {
+    // Let the caller consume the context menu first.
     onContextMenu?.(event)
     if (!onSecondaryActivate || event.defaultPrevented) return
 
+    // Replace the native menu and cancel any pending touch gesture.
     event.preventDefault()
     event.stopPropagation()
     cancelLongPress()
@@ -148,7 +160,9 @@ export function BottomBarItem({
     )
   }
 
+  // Start a long press only for an unhandled touch or pen event.
   const handlePointerDown = (event: PointerEvent<HTMLButtonElement>) => {
+    // Let the caller consume the pointer event first.
     onPointerDown?.(event)
     if (
       !onSecondaryActivate ||
@@ -158,12 +172,14 @@ export function BottomBarItem({
       return
     }
 
+    // Schedule secondary activation for the initiating pointer.
     cancelLongPress()
     const trigger = event.currentTarget
     const x = event.clientX
     const y = event.clientY
     const pointerId = event.pointerId
     const timer = setTimeout(() => {
+      // Activate only the gesture that still owns the timer.
       const pending = longPressRef.current
       if (!pending || pending.pointerId !== pointerId) return
       longPressRef.current = null
@@ -171,13 +187,16 @@ export function BottomBarItem({
       openSecondaryMenu('touch', x, y, trigger)
     }, longPressDelayMs)
 
+    // Cancel this gesture if scrolling starts.
     longPressRef.current = { timer, pointerId, x, y, trigger }
     if (typeof window !== 'undefined') {
       window.addEventListener('scroll', cancelLongPress, true)
     }
   }
 
+  // Cancel a long press when its pointer moves outside the tolerance.
   const handlePointerMove = (event: PointerEvent<HTMLButtonElement>) => {
+    // Track movement only for the pointer that started the gesture.
     onPointerMove?.(event)
     const pending = longPressRef.current
     if (!pending || pending.pointerId !== event.pointerId) return
@@ -188,23 +207,27 @@ export function BottomBarItem({
     }
   }
 
+  // Release the gesture when the pointer is lifted.
   const handlePointerUp = (event: PointerEvent<HTMLButtonElement>) => {
     onPointerUp?.(event)
     cancelLongPress()
   }
 
+  // Release the gesture when the platform cancels the pointer.
   const handlePointerCancel = (event: PointerEvent<HTMLButtonElement>) => {
     onPointerCancel?.(event)
     cancelLongPress()
   }
 
+  // Release the gesture when the pointer leaves the item.
   const handlePointerLeave = (event: PointerEvent<HTMLButtonElement>) => {
     onPointerLeave?.(event)
     cancelLongPress()
   }
 
+  // Apply the shared target size and selected appearance.
   const itemClassName = cn(
-    'glow-on-hover text-bar-item-text hover:text-bar-item-text-hover relative flex h-full shrink-0 flex-row items-center justify-start overflow-hidden whitespace-pre select-none [&>svg]:h-3 [&>svg]:w-3 [&>svg:not(:only-child)]:mr-1',
+    'glow-on-hover text-bar-item-text hover:text-bar-item-text-hover relative flex h-full min-w-6 shrink-0 flex-row items-center justify-start overflow-hidden whitespace-pre select-none [&>svg]:h-3 [&>svg]:w-3 [&>svg:not(:only-child)]:mr-1',
     trailing ? 'pr-1' : 'px-1',
     disabled ? 'cursor-not-allowed' : 'cursor-pointer',
     selected &&
@@ -212,6 +235,7 @@ export function BottomBarItem({
     className,
   )
 
+  // Render one button, with a sibling control when requested.
   const button = (
     <button
       ref={ref}

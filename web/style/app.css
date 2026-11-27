@@ -574,6 +574,10 @@
     }
   }
 
+  .progress-scale {
+    transform: scaleX(var(--progress-scale));
+  }
+
   .progress-width {
     width: var(--progress-width);
   }
