@@ -79,3 +79,9 @@ func (r *GroupReader) relayTo(relay *Relay) {
 		}
 	}
 }
+
+// resolveSubscription finds the group's claimed subscription within its peer's set.
+// The caller holds the registry lock.
+func (r *GroupReader) resolveSubscription(set *peerSubscriptions) (viewerSubscription, bool) {
+	return set.resolveSubscription(r.header.GetSubscriptionId())
+}

@@ -155,7 +155,7 @@ func (r *SubscriptionRegistry) readGroup(ctx context.Context, set *peerSubscript
 		return
 	}
 	r.mtx.Lock()
-	sub, ok := set.byID[group.Header().GetSubscriptionId()]
+	sub, ok := group.resolveSubscription(set)
 	r.mtx.Unlock()
 	if !ok || sub.ctx.Err() != nil {
 		return
@@ -166,6 +166,13 @@ func (r *SubscriptionRegistry) readGroup(ctx context.Context, set *peerSubscript
 	if ctx.Err() == nil && sub.ctx.Err() == nil {
 		sub.readGroup(ctx, group)
 	}
+}
+
+// resolveSubscription looks up a claim within this peer's live subscriptions.
+// The caller holds the registry lock.
+func (s *peerSubscriptions) resolveSubscription(id string) (viewerSubscription, bool) {
+	sub, ok := s.byID[id]
+	return sub, ok
 }
 
 // _ is a type assertion.
