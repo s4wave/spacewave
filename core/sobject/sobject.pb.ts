@@ -1799,10 +1799,16 @@ export interface SOCheckpointCarried {
   from?: SOOperationPosition
   /**
    * Refused are the author's refused operations above from and at or below
-   * its entry in prev_authors, in order. Every other operation of the author
-   * in that span applied.
+   * its entry in prev_authors, ordered by nonce, then op_hash. Operations at
+   * one nonce, which the author equivocated, are each listed. Every other
+   * operation of the author in that span applied.
    */
   refused?: SOOperationPosition[]
+  /**
+   * Height is the height of the first checkpoint whose outcomes the entry
+   * carries. A signer short of room drops the lowest first.
+   */
+  height?: bigint
 }
 
 export const SOCheckpointCarried: MessageType<SOCheckpointCarried> =
@@ -1812,6 +1818,7 @@ export const SOCheckpointCarried: MessageType<SOCheckpointCarried> =
       [1, 'peer_id', 9],
       [2, 'from', 11, 0, SOOperationPosition.codec],
       [3, 'refused', 11, 1, SOOperationPosition.codec],
+      [4, 'height', 4],
     ],
   )
 

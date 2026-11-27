@@ -2339,9 +2339,13 @@ type SOCheckpointCarried struct {
 	// owed. Unset when they start at its first operation.
 	From *SOOperationPosition `protobuf:"bytes,2,opt,name=from,proto3" json:"from,omitempty"`
 	// Refused are the author's refused operations above from and at or below
-	// its entry in prev_authors, in order. Every other operation of the author
-	// in that span applied.
+	// its entry in prev_authors, ordered by nonce, then op_hash. Operations at
+	// one nonce, which the author equivocated, are each listed. Every other
+	// operation of the author in that span applied.
 	Refused []*SOOperationPosition `protobuf:"bytes,3,rep,name=refused,proto3" json:"refused,omitempty"`
+	// Height is the height of the first checkpoint whose outcomes the entry
+	// carries. A signer short of room drops the lowest first.
+	Height uint64 `protobuf:"varint,4,opt,name=height,proto3" json:"height,omitempty"`
 }
 
 func (x *SOCheckpointCarried) Reset() {
@@ -2369,6 +2373,13 @@ func (x *SOCheckpointCarried) GetRefused() []*SOOperationPosition {
 		return x.Refused
 	}
 	return nil
+}
+
+func (x *SOCheckpointCarried) GetHeight() uint64 {
+	if x != nil {
+		return x.Height
+	}
+	return 0
 }
 
 // SOCheckpointAuthors are the author heads of one checkpoint.
@@ -4162,6 +4173,7 @@ func (m *SOCheckpointCarried) CloneVT() *SOCheckpointCarried {
 	}
 	r := new(SOCheckpointCarried)
 	r.PeerId = m.PeerId
+	r.Height = m.Height
 	r.From = protobuf_go_lite.CloneVTValue(m.From)
 	r.Refused = protobuf_go_lite.CloneVTSlice(m.Refused)
 	if len(m.unknownFields) > 0 {
@@ -5723,6 +5735,9 @@ func (this *SOCheckpointCarried) EqualVT(that *SOCheckpointCarried) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.Refused, that.Refused, func() *SOOperationPosition { return &SOOperationPosition{} }) {
+		return false
+	}
+	if this.Height != that.Height {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -9617,6 +9632,11 @@ func (x *SOCheckpointCarried) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if x.Height != 0 || s.HasField("height") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("height")
+		s.WriteUint64(x.Height)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -9662,6 +9682,9 @@ func (x *SOCheckpointCarried) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.Refused = append(x.Refused, v)
 			})
+		case "height":
+			s.AddField("height")
+			x.Height = s.ReadUint64()
 		}
 	})
 }
@@ -13519,6 +13542,11 @@ func (m *SOCheckpointCarried) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Height != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Height))
+		i--
+		dAtA[i] = 0x20
+	}
 	if len(m.Refused) > 0 {
 		for iNdEx := len(m.Refused) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.Refused[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -15511,6 +15539,7 @@ func (m *SOCheckpointCarried) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Height)
 	n += len(m.unknownFields)
 	return n
 }
@@ -17040,6 +17069,10 @@ func (x *SOCheckpointCarried) MarshalProtoText() string {
 			}
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.Height != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "height")
+		protobuf_go_lite.TextWriteUint(&sb, x.Height)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -20758,6 +20791,15 @@ func (m *SOCheckpointCarried) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Height", wireType)
+			}
+			m.Height = 0
+			m.Height, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
