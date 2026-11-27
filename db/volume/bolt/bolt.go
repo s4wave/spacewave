@@ -9,11 +9,8 @@ import (
 
 	bdb "github.com/aperturerobotics/bbolt"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/coord"
-	coord_bolt "github.com/s4wave/spacewave/db/coord/bolt"
 	coord_filelock "github.com/s4wave/spacewave/db/coord/filelock"
-	coord_inmem "github.com/s4wave/spacewave/db/coord/inmem"
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	skvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	sbolt "github.com/s4wave/spacewave/db/store/kvtx/bolt"
@@ -80,11 +77,10 @@ func NewBolt(
 
 	// Build the volume, reporting the file size and block count as its
 	// storage stats.
-	boltDB := store.GetDB()
 	path := conf.GetPath()
 	vol, err := kvtx.NewVolumeWithBackend(
 		func(id string, _ coord.Coordinator) coord.Coordinator {
-			return coord_filelock.NewCoordinator(filepath.Dir(path), path, coord_bolt.NewCoordinator(boltDB, coord_inmem.ForVolume(id)))
+			return coord_filelock.NewCoordinator(filepath.Dir(path), path, store.NewCoordinator(id))
 		}, nil, nil,
 		ctx,
 		ControllerID,
@@ -95,12 +91,9 @@ func NewBolt(
 		conf.GetNoWriteKey(),
 		func(ctx context.Context) (*volume.StorageStats, error) {
 			// Measure the Bolt file size for the volume statistics.
-			var totalBytes uint64
-			if fi, err := os.Stat(boltDB.Path()); err == nil {
-				if fi.Size() < 0 {
-					return nil, errors.New("bolt file size is negative")
-				}
-				totalBytes = uint64(fi.Size()) //nolint:gosec
+			totalBytes, err := store.FileSize()
+			if err != nil {
+				return nil, err
 			}
 
 			// Count stored blocks through a read transaction.

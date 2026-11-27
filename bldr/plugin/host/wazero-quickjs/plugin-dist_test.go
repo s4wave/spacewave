@@ -70,8 +70,8 @@ func TestPluginDist(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer tb.Release()
-	b, sr := tb.GetBus(), tb.GetStaticResolver()
-	sr.AddFactory(plugin_host_wazero_quickjs.NewFactory(b))
+	b := tb.GetBus()
+	tb.AddFactory(plugin_host_wazero_quickjs.NewFactory(b))
 	quickjsHost, _, quickjsHostRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_wazero_quickjs.Controller](
 		ctx,
 		b,

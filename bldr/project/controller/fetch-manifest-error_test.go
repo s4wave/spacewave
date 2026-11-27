@@ -123,8 +123,8 @@ func TestFetchManifestPropagatesBuilderErrorInWatchMode(t *testing.T) {
 	defer tb.Release()
 
 	// Register the manifest builder and the failing fetch builder factories.
-	tb.GetStaticResolver().AddFactory(manifest_builder_controller.NewFactory(tb.GetBus()))
-	tb.GetStaticResolver().AddFactory(newFailingFetchManifestBuilderFactory(tb.GetBus()))
+	tb.AddFactory(manifest_builder_controller.NewFactory(tb.GetBus()))
+	tb.AddFactory(newFailingFetchManifestBuilderFactory(tb.GetBus()))
 
 	// Configure the failing builder as a controller config.
 	builderControllerConfig, err := configset_proto.NewControllerConfig(
@@ -269,8 +269,8 @@ func TestAddFetchManifestBuilderRefBuildsWebPkgConsumerAlone(t *testing.T) {
 
 	// Register the manifest builder and the recording fetch builder factories.
 	state := &recordingFetchManifestBuilderState{built: make(map[string][]string)}
-	tb.GetStaticResolver().AddFactory(manifest_builder_controller.NewFactory(tb.GetBus()))
-	tb.GetStaticResolver().AddFactory(newRecordingFetchManifestBuilderFactory(tb.GetBus(), state))
+	tb.AddFactory(manifest_builder_controller.NewFactory(tb.GetBus()))
+	tb.AddFactory(newRecordingFetchManifestBuilderFactory(tb.GetBus(), state))
 
 	// Declare a provider and a consumer web package that excludes the provider.
 	projectConfig := &bldr_project.ProjectConfig{

@@ -21,8 +21,6 @@ func TestTestbed(t *testing.T) {
 	}
 	defer tb.Release()
 
-	// b, sr := tb.GetBus(), tb.GetStaticResolver()
-
 	// verify the world started ok
 	eng := tb.GetWorldEngine()
 	tx, err := eng.NewTransaction(ctx, true)

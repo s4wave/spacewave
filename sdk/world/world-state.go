@@ -36,6 +36,19 @@ func (ws *WorldState) GetResourceRef() resource_client.ResourceRef {
 	return ws.ref
 }
 
+// AccessTypedObject acquires a typed child through this World state's mount.
+// The caller adopts the returned resource ID independently of this state.
+func (ws *WorldState) AccessTypedObject(ctx context.Context, req *AccessTypedObjectRequest) (*AccessTypedObjectResponse, error) {
+	// Open the RPC client belonging to this granting mount.
+	client, err := ws.ref.GetClient()
+	if err != nil {
+		return nil, err
+	}
+
+	// Acquire the child and restore typed acquisition errors.
+	return AccessTypedObject(ctx, NewSRPCTypedObjectResourceServiceClient(client), req)
+}
+
 // Release releases the resource reference.
 func (ws *WorldState) Release() {
 	ws.ref.Release()

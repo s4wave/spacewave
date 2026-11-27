@@ -86,20 +86,19 @@ func setupPluginClients(
 
 	// Register native plugin hosts on the testbed bus.
 	b := tb.GetBus()
-	sr := tb.GetStaticResolver()
-	sr.AddFactory(plugin_host_process.NewFactory(b))
-	sr.AddFactory(plugin_host_wazero_quickjs.NewFactory(b))
+	tb.AddFactory(plugin_host_process.NewFactory(b))
+	tb.AddFactory(plugin_host_wazero_quickjs.NewFactory(b))
 
 	// Register the project and manifest compilers for plugin discovery.
-	sr.AddFactory(bldr_project_controller.NewFactory(b))
-	sr.AddFactory(bldr_manifest_builder_controller.NewFactory(b))
-	sr.AddFactory(bldr_plugin_compiler_go.NewFactory(b))
-	sr.AddFactory(bldr_plugin_compiler_js.NewFactory(b))
-	sr.AddFactory(bldr_web_bundler_vite_compiler.NewFactory(b))
+	tb.AddFactory(bldr_project_controller.NewFactory(b))
+	tb.AddFactory(bldr_manifest_builder_controller.NewFactory(b))
+	tb.AddFactory(bldr_plugin_compiler_go.NewFactory(b))
+	tb.AddFactory(bldr_plugin_compiler_js.NewFactory(b))
+	tb.AddFactory(bldr_web_bundler_vite_compiler.NewFactory(b))
 
 	// Register storage controllers for the native plugin testbed.
-	sr.AddFactory(volume_rpc_server.NewFactory(b))
-	sr.AddFactory(world_block_engine.NewFactory(b))
+	tb.AddFactory(volume_rpc_server.NewFactory(b))
+	tb.AddFactory(world_block_engine.NewFactory(b))
 
 	// Mount the test volume identity and application object types.
 	volPeer, err := tb.GetVolume().GetPeer(ctx, true)

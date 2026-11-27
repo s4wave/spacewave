@@ -13,6 +13,9 @@ import (
 	bdberrors "github.com/aperturerobotics/bbolt/errors"
 	"github.com/aperturerobotics/util/csync"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/coord"
+	coord_bolt "github.com/s4wave/spacewave/db/coord/bolt"
+	coord_inmem "github.com/s4wave/spacewave/db/coord/inmem"
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
@@ -80,6 +83,32 @@ func Open(path string, mode os.FileMode, options *bdb.Options, bucket []byte) (*
 // GetDB returns the bolt DB.
 func (s *Store) GetDB() *bdb.DB {
 	return s.db
+}
+
+// NewCoordinator builds a coordinator over this store's commit generation and locks.
+func (s *Store) NewCoordinator(volumeID string) coord.Coordinator {
+	return coord_bolt.NewCoordinator(s.db, coord_inmem.ForVolume(volumeID))
+}
+
+// FileSize reports the database file size, or zero when its stat fails.
+func (s *Store) FileSize() (uint64, error) {
+	// Preserve unavailable file statistics as a zero size.
+	fi, err := os.Stat(s.db.Path())
+	if err != nil {
+		return 0, nil
+	}
+
+	// Reject a negative file size before converting to an unsigned count.
+	if fi.Size() < 0 {
+		return 0, errors.New("bolt file size is negative")
+	}
+	return uint64(fi.Size()), nil //nolint:gosec // The negative size was rejected above.
+}
+
+// beginBatchTransaction opens the batch's shared write transaction without a
+// per-transaction writer turn. BatchStore serializes its use with its mutex.
+func (s *Store) beginBatchTransaction() (*bdb.Tx, error) {
+	return s.db.Begin(true)
 }
 
 // RefreshForCoordinationLock refreshes the underlying bbolt handle after an

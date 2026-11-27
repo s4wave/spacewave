@@ -95,7 +95,7 @@ func TestBrowserBootstrapMountsWorldAndColdStartsRemoteCore(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(tb.Release)
-	tb.GetStaticResolver().AddFactory(manifest_fetch_world.NewFactory(tb.GetBus()))
+	tb.AddFactory(manifest_fetch_world.NewFactory(tb.GetBus()))
 
 	// Expose the launcher's resolved pins through the embedded-plugin RPC seam.
 	releaseKey, _, err := crypto.GenerateEd25519Key(nil)

@@ -112,20 +112,20 @@ func TestBrowserE2EWithBldr(t *testing.T) {
 	defer tb.Release()
 
 	// Register the controllers required by the browser build.
-	b, sr := tb.GetBus(), tb.GetStaticResolver()
-	sr.AddFactory(plugin_host_process.NewFactory(b))
-	sr.AddFactory(plugin_host_wazero_quickjs.NewFactory(b))
-	sr.AddFactory(bldr_project_controller.NewFactory(b))
-	sr.AddFactory(bldr_manifest_builder_controller.NewFactory(b))
+	b := tb.GetBus()
+	tb.AddFactory(plugin_host_process.NewFactory(b))
+	tb.AddFactory(plugin_host_wazero_quickjs.NewFactory(b))
+	tb.AddFactory(bldr_project_controller.NewFactory(b))
+	tb.AddFactory(bldr_manifest_builder_controller.NewFactory(b))
 
 	// Register the Go, JavaScript, and Vite compiler factories.
-	sr.AddFactory(bldr_plugin_compiler_go.NewFactory(b))
-	sr.AddFactory(bldr_plugin_compiler_js.NewFactory(b))
-	sr.AddFactory(bldr_web_bundler_vite_compiler.NewFactory(b))
+	tb.AddFactory(bldr_plugin_compiler_go.NewFactory(b))
+	tb.AddFactory(bldr_plugin_compiler_js.NewFactory(b))
+	tb.AddFactory(bldr_web_bundler_vite_compiler.NewFactory(b))
 
 	// Register the volume and World storage factories.
-	sr.AddFactory(volume_rpc_server.NewFactory(b))
-	sr.AddFactory(world_block_engine.NewFactory(b))
+	tb.AddFactory(volume_rpc_server.NewFactory(b))
+	tb.AddFactory(world_block_engine.NewFactory(b))
 
 	// Start a peer controller to serve GetPeer directives.
 	volPeer, err := tb.GetVolume().GetPeer(ctx, true)

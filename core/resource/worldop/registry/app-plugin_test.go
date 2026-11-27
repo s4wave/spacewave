@@ -55,7 +55,7 @@ func TestNativeApplicationPlugin(t *testing.T) {
 	b := tb.GetBus()
 
 	// Start the native plugin host on the testbed bus.
-	tb.GetStaticResolver().AddFactory(plugin_host.NewFactory(b))
+	tb.AddFactory(plugin_host.NewFactory(b))
 	host, _, hostRef, err := loader.WaitExecControllerRunningTyped[*plugin_host.Controller](
 		ctx, b, resolver.NewLoadControllerWithConfig(plugin_host.NewConfig()), nil,
 	)

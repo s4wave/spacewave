@@ -182,19 +182,6 @@ func (t *Testbed) Release() {
 	t.Testbed.Release()
 }
 
-// Setup holds the test setup state for layout tests.
-type Setup struct {
-	// Testbed is the layout testbed.
-	Testbed *Testbed
-	// Engine is the world engine.
-	Engine *s4wave_world.Engine
-	// LayoutResourceID is the resource ID of the created layout.
-	LayoutResourceID uint32
-	// layoutResourceRef keeps LayoutResourceID adopted for the setup
-	// lifetime.
-	layoutResourceRef resource_client.ResourceRef
-}
-
 // SetupLayoutEngine creates an engine with ObjectLayout registered and a demo
 // layout resource retained for the returned Setup.
 func (t *Testbed) SetupLayoutEngine(ctx context.Context, objectKey string) (*Setup, error) {
@@ -265,16 +252,8 @@ func (t *Testbed) SetupLayoutEngine(ctx context.Context, objectKey string) (*Set
 	}
 	defer readTx.Release()
 
-	// Open the read transaction RPC client for typed object access.
-	txSrpcClient, err := readTx.GetResourceRef().GetClient()
-	if err != nil {
-		engine.Release()
-		return nil, errors.Wrap(err, "get tx client")
-	}
-
-	// Access the layout object through the typed object service.
-	typedSvcClient := s4wave_world.NewSRPCTypedObjectResourceServiceClient(txSrpcClient)
-	resp, err := s4wave_world.AccessTypedObject(ctx, typedSvcClient, &s4wave_world.AccessTypedObjectRequest{
+	// Access the layout object through the read transaction's granting mount.
+	resp, err := readTx.AccessTypedObject(ctx, &s4wave_world.AccessTypedObjectRequest{
 		ObjectKey: objectKey,
 	})
 	if err != nil {
@@ -291,14 +270,4 @@ func (t *Testbed) SetupLayoutEngine(ctx context.Context, objectKey string) (*Set
 		LayoutResourceID:  resp.ResourceId,
 		layoutResourceRef: layoutRef,
 	}, nil
-}
-
-// Release releases the setup resources.
-func (s *Setup) Release() {
-	if s.layoutResourceRef != nil {
-		s.layoutResourceRef.Release()
-	}
-	if s.Engine != nil {
-		s.Engine.Release()
-	}
 }

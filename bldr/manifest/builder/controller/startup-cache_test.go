@@ -931,7 +931,7 @@ func TestControllerFileChangeRebuildReplacesResultPromiseAndPublishesReason(t *t
 	// Reset the builder state and register the test builder factory.
 	testStartupCacheBuilderState.cacheSafe.Store(true)
 	testStartupCacheBuilderState.buildCalls.Store(0)
-	tb.GetStaticResolver().AddFactory(newTestStartupCacheBuilderFactory(tb.GetBus()))
+	tb.AddFactory(newTestStartupCacheBuilderFactory(tb.GetBus()))
 
 	// Construct the watching controller and attach the lifecycle sink.
 	builderControllerConfig := newTestBuilderControllerProto(t)
@@ -1088,8 +1088,8 @@ func TestFollowBuilderWatchSurvivesFailedBuild(t *testing.T) {
 	testStartupCacheBuilderState.buildCalls.Store(0)
 	testStartupCacheBuilderState.failBuild.Store(false)
 	defer testStartupCacheBuilderState.failBuild.Store(false)
-	tb.GetStaticResolver().AddFactory(newTestStartupCacheBuilderFactory(tb.GetBus()))
-	tb.GetStaticResolver().AddFactory(NewFactory(tb.GetBus()))
+	tb.AddFactory(newTestStartupCacheBuilderFactory(tb.GetBus()))
+	tb.AddFactory(NewFactory(tb.GetBus()))
 
 	// Follow a watching builder, passing each delivered build to the test.
 	type delivered struct {
@@ -1548,8 +1548,8 @@ func runStartupExecuteWithTestbed(
 	// Reset the builder state and register the factories.
 	testStartupCacheBuilderState.cacheSafe.Store(cacheSafe)
 	testStartupCacheBuilderState.buildCalls.Store(0)
-	tb.GetStaticResolver().AddFactory(newTestStartupCacheBuilderFactory(tb.GetBus()))
-	tb.GetStaticResolver().AddFactory(NewFactory(tb.GetBus()))
+	tb.AddFactory(newTestStartupCacheBuilderFactory(tb.GetBus()))
+	tb.AddFactory(NewFactory(tb.GetBus()))
 	ctx := tb.GetContext()
 
 	// Wrap the test builder config in a controller config proto.
@@ -1624,7 +1624,7 @@ func runStartupExecuteWithLifecycle(
 	// Reset the builder state and register the test builder factory.
 	testStartupCacheBuilderState.cacheSafe.Store(cacheSafe)
 	testStartupCacheBuilderState.buildCalls.Store(0)
-	tb.GetStaticResolver().AddFactory(newTestStartupCacheBuilderFactory(tb.GetBus()))
+	tb.AddFactory(newTestStartupCacheBuilderFactory(tb.GetBus()))
 
 	// Build the controller configuration from the builder config.
 	builderControllerConfig := newTestBuilderControllerProto(t)

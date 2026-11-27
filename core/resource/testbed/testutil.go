@@ -209,15 +209,14 @@ func SetupTestbedWithQuickJS(ctx context.Context, le *logrus.Entry) (*TestbedWit
 		return nil, err
 	}
 
-	// Access the testbed bus and its factory resolver.
+	// Access the testbed bus for controller construction.
 	b := tb.GetBus()
-	sr := tb.GetStaticResolver()
 
 	// Add the QuickJS plugin host factory
-	sr.AddFactory(plugin_host_wazero_quickjs.NewFactory(b))
+	tb.AddFactory(plugin_host_wazero_quickjs.NewFactory(b))
 
 	// Add the world engine factory
-	sr.AddFactory(world_block_engine.NewFactory(b))
+	tb.AddFactory(world_block_engine.NewFactory(b))
 
 	// Create the testbed resource server
 	volumeID := tb.GetVolumeID()

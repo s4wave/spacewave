@@ -53,11 +53,11 @@ func TestPluginCompilerJs(t *testing.T) {
 	defer tb.Release()
 
 	// Register the JS compiler and its supporting factories.
-	b, sr := tb.GetBus(), tb.GetStaticResolver()
-	sr.AddFactory(bldr_plugin_compiler_js.NewFactory(b))
-	sr.AddFactory(bldr_manifest_builder_controller.NewFactory(b))
-	sr.AddFactory(plugin_host_wazero_quickjs.NewFactory(b))
-	sr.AddFactory(bldr_web_bundler_vite_compiler.NewFactory(b))
+	b := tb.GetBus()
+	tb.AddFactory(bldr_plugin_compiler_js.NewFactory(b))
+	tb.AddFactory(bldr_manifest_builder_controller.NewFactory(b))
+	tb.AddFactory(plugin_host_wazero_quickjs.NewFactory(b))
+	tb.AddFactory(bldr_web_bundler_vite_compiler.NewFactory(b))
 
 	// load the plugin host which will execute the plugin once it is ready.
 	quickjsHost, _, quickjsHostRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_wazero_quickjs.Controller](

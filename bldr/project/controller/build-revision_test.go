@@ -61,8 +61,8 @@ func TestBuildTargetsManifestRevisionFloor(t *testing.T) {
 			}
 
 			// Record compiler output without replacing the production build lifecycle.
-			tb.GetStaticResolver().AddFactory(manifest_builder_controller.NewFactory(tb.GetBus()))
-			tb.GetStaticResolver().AddFactory(newRecordingFetchManifestBuilderFactory(tb.GetBus(), &recordingFetchManifestBuilderState{built: make(map[string][]string)}))
+			tb.AddFactory(manifest_builder_controller.NewFactory(tb.GetBus()))
+			tb.AddFactory(newRecordingFetchManifestBuilderFactory(tb.GetBus(), &recordingFetchManifestBuilderState{built: make(map[string][]string)}))
 
 			// Configure a finite build with the existing manifest revision field.
 			manifest := makeJSManifestConfig(t, nil)

@@ -342,9 +342,9 @@ func (d *Testbed) GetLogger() *logrus.Entry {
 	return d.le
 }
 
-// GetStaticResolver returns the static controller resolver.
-func (d *Testbed) GetStaticResolver() *static.Resolver {
-	return d.sr
+// AddFactory registers a controller factory with the plugin host.
+func (d *Testbed) AddFactory(factory controller.Factory) {
+	d.sr.AddFactory(factory)
 }
 
 // GetVolume returns the storage volume in use.

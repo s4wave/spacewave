@@ -46,8 +46,8 @@ func NewNativeTestbed(ctx context.Context, le *logrus.Entry, startPlugins []stri
 	}
 
 	// Resolve frontend builds and the core plugin's host manifest fetch config.
-	b, sr := tb.GetBus(), tb.GetStaticResolver()
-	sr.AddFactory(web_plugin_compiler.NewFactory(b))
-	sr.AddFactory(manifest_fetch_plugin.NewFactory(b))
+	b := tb.GetBus()
+	tb.AddFactory(web_plugin_compiler.NewFactory(b))
+	tb.AddFactory(manifest_fetch_plugin.NewFactory(b))
 	return tb, nil
 }

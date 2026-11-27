@@ -79,7 +79,7 @@ func (b *BatchStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, e
 	defer b.mu.Unlock()
 	if b.writeTx == nil {
 		var err error
-		b.writeTx, err = b.store.db.Begin(true)
+		b.writeTx, err = b.store.beginBatchTransaction()
 		if err != nil {
 			return nil, err
 		}
@@ -373,7 +373,7 @@ func (t *batchTx) Commit(ctx context.Context) error {
 	defer b.mu.Unlock()
 	if b.writeTx == nil {
 		var err error
-		b.writeTx, err = b.store.db.Begin(true)
+		b.writeTx, err = b.store.beginBatchTransaction()
 		if err != nil {
 			return err
 		}
