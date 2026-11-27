@@ -1,0 +1,166 @@
+package volume_world
+
+import (
+	"context"
+
+	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/s4wave/spacewave/db/block"
+	block_transform "github.com/s4wave/spacewave/db/block/transform"
+	"github.com/s4wave/spacewave/db/bucket"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/kvtx"
+	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
+	"github.com/s4wave/spacewave/db/tx"
+	"github.com/s4wave/spacewave/db/world"
+	"github.com/sirupsen/logrus"
+)
+
+// worldTransaction owns the KV cursor and the enclosing World transaction.
+// Like kvtx.Tx, its methods must be called serially.
+type worldTransaction struct {
+	// Tx serves KV operations through the retained storage cursor.
+	kvtx.Tx
+	// worldTx retains the World scope until the KV transaction finishes.
+	worldTx world.Tx
+	// engine supplies the durability fence even when World commits are deferred.
+	engine world.Engine
+	// object is the retained World object, if it exists.
+	object world.ObjectState
+	// key identifies the World object that holds the KV root.
+	key string
+	// cursor binds the KV root to its backing bucket and store.
+	cursor *bucket_lookup.Cursor
+	// blocks stages the KV block graph until publication.
+	blocks *block.Transaction
+	// discarded marks a transaction whose handles have been released.
+	discarded bool
+}
+
+// newWorldTransaction opens the World-backed KV transaction and releases any
+// handles it acquires if the open fails.
+func newWorldTransaction(
+	ctx context.Context,
+	le *logrus.Entry,
+	b bus.Bus,
+	engine world.Engine,
+	sfs *block_transform.StepFactorySet,
+	conf *Config,
+	write bool,
+) (*worldTransaction, error) {
+	// Acquire the World transaction and retain it until the KV operation ends.
+	wtx, err := engine.NewTransaction(ctx, write)
+	if err != nil {
+		return nil, err
+	}
+	t := &worldTransaction{worldTx: wtx, engine: engine, key: conf.GetObjectKey()}
+	var success bool
+	defer func() {
+		if !success {
+			t.Discard()
+		}
+	}()
+
+	// Read the current World object root or use its initial backing reference.
+	obj, found, err := wtx.GetObject(ctx, t.key)
+	t.object = obj
+	if err != nil {
+		return nil, err
+	}
+	ref := conf.GetInitHeadRef().Clone()
+	if found {
+		ref, _, err = obj.GetRootRef(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if ref == nil {
+		ref = &bucket.ObjectRef{}
+	}
+
+	// Select the configured bucket and open its storage cursor.
+	if bucketID := conf.GetBucketId(); bucketID != "" {
+		ref.BucketId = bucketID
+	}
+	if conf.GetVolumeId() == "" || ref.GetBucketId() == "" {
+		var base *bucket_lookup.Cursor
+		base, err = wtx.BuildStorageCursor(ctx)
+		if err == nil {
+			t.cursor, err = base.FollowRef(ctx, ref)
+			base.Release()
+		}
+	} else {
+		t.cursor, err = bucket_lookup.BuildCursor(ctx, b, le, sfs, conf.GetVolumeId(), ref, nil)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// Build the KV transaction over the retained World storage cursor.
+	var bcs *block.Cursor
+	t.blocks, bcs = t.cursor.BuildTransaction(nil)
+	t.Tx, err = kvtx_block.BuildKvTransaction(ctx, bcs, write && !wtx.GetReadOnly())
+	if err != nil {
+		return nil, err
+	}
+	success = true
+	return t, nil
+}
+
+// Commit publishes the KV root before committing the enclosing World head.
+func (t *worldTransaction) Commit(ctx context.Context) error {
+	// Reject a discarded World transaction and release resources after commit.
+	if t.discarded {
+		return tx.ErrDiscarded
+	}
+	defer t.Discard()
+
+	// Commit the KV changes and write their block graph root.
+	if err := t.Tx.Commit(ctx); err != nil {
+		return err
+	}
+	root, _, err := t.blocks.Write(ctx, true)
+	if err != nil {
+		return err
+	}
+
+	// Publish the new KV root on the World object.
+	ref := t.cursor.GetRefWithOpArgs()
+	ref.RootRef = root
+	if t.object == nil {
+		t.object, err = t.worldTx.CreateObject(ctx, t.key, ref)
+	} else {
+		_, err = t.object.SetRootRef(ctx, ref)
+	}
+	if err != nil {
+		return err
+	}
+	if err := t.worldTx.Commit(ctx); err != nil {
+		return err
+	}
+
+	// Fence the enclosing World before reporting the KV commit durable. All KV
+	// bytes and metadata share its object root. Discard never publishes that
+	// root.
+	_, err = t.engine.Sync(ctx)
+	return err
+}
+
+// Discard releases all resources, including the World's writer coordination.
+func (t *worldTransaction) Discard() {
+	// Release the KV transaction, object, and cursor once with the World transaction.
+	if t.discarded {
+		return
+	}
+	t.discarded = true
+	if t.Tx != nil {
+		t.Tx.Discard()
+	}
+	world.ReleaseObjectState(t.object)
+	if t.cursor != nil {
+		t.cursor.Release()
+	}
+	t.worldTx.Discard()
+}
+
+// _ is a type assertion.
+var _ kvtx.Tx = (*worldTransaction)(nil)
