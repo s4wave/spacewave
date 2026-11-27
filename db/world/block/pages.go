@@ -1,6 +1,7 @@
 package world_block
 
 import (
+	"cmp"
 	"context"
 	"maps"
 	"slices"
@@ -80,16 +81,27 @@ func WalkPages(
 	roots []*block.BlockRef,
 	visit func(Page) (bool, error),
 ) error {
+	var w pageWalk
+	return w.walk(ctx, store, xfrm, roots, visit)
+}
+
+// walk runs WalkPages with w's buffers.
+func (w *pageWalk) walk(
+	ctx context.Context,
+	store block.StoreOps,
+	xfrm block.Transformer,
+	roots []*block.BlockRef,
+	visit func(Page) (bool, error),
+) error {
 	// Start from the World blocks, the first on top.
 	seen := make(map[string]struct{})
-	var stack []pageNode
 	for _, root := range slices.Backward(roots) {
-		stack = append(stack, pageNode{ctor: NewWorldBlock, page: Page{Ref: root, Tree: PageTreeRoot}})
+		w.stack = append(w.stack, pageNode{ctor: NewWorldBlock, page: Page{Ref: root, Tree: PageTreeRoot}})
 	}
-	for len(stack) != 0 {
+	for len(w.stack) != 0 {
 		// Take the next page not seen yet, and ask whether to enter it.
-		n := stack[len(stack)-1]
-		stack = stack[:len(stack)-1]
+		n := w.stack[len(w.stack)-1]
+		w.stack = w.stack[:len(w.stack)-1]
 		enter, err := n.enter(seen, visit)
 		if err != nil {
 			return err
@@ -98,17 +110,30 @@ func WalkPages(
 			continue
 		}
 
-		// Read its children, pushing them last first so the first walks
-		// first.
-		children, err := n.children(ctx, store, xfrm)
-		if err != nil {
+		// Push its children, then reverse them so the first walks first.
+		top := len(w.stack)
+		if err := w.pushChildren(ctx, store, xfrm, n); err != nil {
 			return err
 		}
-		for _, child := range slices.Backward(children) {
-			stack = append(stack, child)
-		}
+		slices.Reverse(w.stack[top:])
 	}
 	return nil
+}
+
+// pageWalk holds the buffers a walk reuses from page to page, so typing a page
+// builds no slice of its children and no map of its sub-blocks.
+type pageWalk struct {
+	// stack holds the pages yet to visit, the next on top.
+	stack []pageNode
+	// subs holds the sub-blocks of the blocks being typed: each block's in
+	// one region above its holder's, sorted by id.
+	subs []idSubBlock
+}
+
+// idSubBlock is a sub-block with the id its holder gives it.
+type idSubBlock struct {
+	id  uint32
+	sub block.SubBlock
 }
 
 // pageNode is a page the walk has yet to visit, with what types its children.
@@ -139,12 +164,12 @@ func (n pageNode) enter(seen map[string]struct{}, visit func(Page) (bool, error)
 	return visit(n.page)
 }
 
-// children reads the page and returns its children.
-func (n pageNode) children(ctx context.Context, store block.StoreOps, xfrm block.Transformer) ([]pageNode, error) {
+// pushChildren reads n's page and pushes its children, first to last.
+func (w *pageWalk) pushChildren(ctx context.Context, store block.StoreOps, xfrm block.Transformer, n pageNode) error {
 	// Read the page with its stored child list.
 	sb, err := store.GetStoredBlock(ctx, n.page.Ref)
 	if err != nil || sb == nil {
-		return nil, err
+		return err
 	}
 
 	// Decode a typed page, from a copy the decode cannot overwrite in the
@@ -157,26 +182,26 @@ func (n pageNode) children(ctx context.Context, store block.StoreOps, xfrm block
 		if err == nil {
 			blk := n.ctor()
 			if blk.UnmarshalVT(data) == nil {
-				return n.typedChildren(blk), nil
+				w.pushTyped(n, blk)
+				return nil
 			}
 		}
 	}
 
 	// Walk any other page by its stored child list.
 	if !sb.RefsSource.Recorded() {
-		return nil, nil
+		return nil
 	}
-	out := make([]pageNode, 0, len(sb.Refs))
 	for _, ref := range sb.Refs {
-		out = append(out, n.child(ref, nil, nil))
+		w.stack = append(w.stack, n.child(ref, nil, nil))
 	}
-	return out, nil
+	return nil
 }
 
-// typedChildren returns the children blk references, typed as its refs declare
+// pushTyped pushes the children blk references, typed as its refs declare
 // them. Sub-blocks are part of the page, so their refs are the page's
 // children.
-func (n pageNode) typedChildren(blk any) []pageNode {
+func (w *pageWalk) pushTyped(n pageNode, blk any) {
 	// List the children of the World and Object blocks, which set the tree
 	// below them, and keep the tree's values only on its own pages.
 	switch b := blk.(type) {
@@ -188,33 +213,32 @@ func (n pageNode) typedChildren(blk any) []pageNode {
 		graph := pageNode{page: Page{Tree: PageTreeGraph}}
 		changes := pageNode{page: Page{Tree: PageTreeChangeLog}}
 		last := b.GetLastChange()
-		return slices.Concat(
-			object.subBlockChildren(b.GetObjectKeyValue()),
-			graph.subBlockChildren(b.GetGraphKeyValue()),
-			changes.subBlockChildren(last.GetChangeBatch()),
-			[]pageNode{
-				changes.child(last.GetPrevRef(), NewChangeLogLLBlock, nil),
-				changes.child(b.GetPrevChanges(), NewChangeLogLLBlock, nil),
-			},
+		w.pushSubBlock(object, b.GetObjectKeyValue())
+		w.pushSubBlock(graph, b.GetGraphKeyValue())
+		w.pushSubBlock(changes, last.GetChangeBatch())
+		w.stack = append(w.stack,
+			changes.child(last.GetPrevRef(), NewChangeLogLLBlock, nil),
+			changes.child(b.GetPrevChanges(), NewChangeLogLLBlock, nil),
 		)
+		return
 	case *ChangeLogLL:
 		// The change log is a list, so the entry before this one sits at its
 		// level, and only the entry's batch hangs below it.
 		prev := n
 		prev.page.Level--
-		return append(
-			[]pageNode{prev.child(b.GetPrevRef(), NewChangeLogLLBlock, nil)},
-			n.subBlockChildren(b.GetChangeBatch())...,
-		)
+		w.stack = append(w.stack, prev.child(b.GetPrevRef(), NewChangeLogLLBlock, nil))
+		w.pushSubBlock(n, b.GetChangeBatch())
+		return
 	case *Object:
 		// An Object's root is its record, untyped here: the walk reads no
 		// object type. A root in another bucket is not a ref of this page.
 		root := b.GetRootRef()
 		if root.GetBucketId() != "" {
-			return nil
+			return
 		}
 		record := pageNode{page: Page{Tree: PageTreeRecord, Level: n.page.Level}}
-		return []pageNode{record.child(root.GetRootRef(), nil, nil)}
+		w.stack = append(w.stack, record.child(root.GetRootRef(), nil, nil))
+		return
 	case *kvtx_block.KeyValueStore, *kvtx_block_iavl.Node, *kvtx_block_okra.Root, *kvtx_block_okra.Page:
 	default:
 		// Only tree pages pass the tree's values down.
@@ -222,7 +246,6 @@ func (n pageNode) typedChildren(blk any) []pageNode {
 	}
 
 	// Type each ref as its holder declares it, or as the tree's value.
-	var out []pageNode
 	if holder, ok := blk.(block.BlockWithRefs); ok {
 		refs, _ := holder.GetBlockRefs()
 		for _, id := range slices.Sorted(maps.Keys(refs)) {
@@ -230,27 +253,44 @@ func (n pageNode) typedChildren(blk any) []pageNode {
 			if ctor == nil {
 				ctor = kvtx_block.TreeValueCtor(blk, id, n.values)
 			}
-			out = append(out, n.child(refs[id], ctor, n.values))
+			w.stack = append(w.stack, n.child(refs[id], ctor, n.values))
 		}
 	}
 
-	// Add the refs of each inline sub-block.
-	if holder, ok := blk.(block.BlockWithSubBlocks); ok {
-		subs := holder.GetSubBlocks()
-		for _, id := range slices.Sorted(maps.Keys(subs)) {
-			out = append(out, n.subBlockChildren(subs[id])...)
+	// List the inline sub-blocks in a region of w.subs, sorted by id.
+	holder, ok := blk.(block.BlockWithSubBlocks)
+	if !ok {
+		return
+	}
+	base := len(w.subs)
+	if ranger, ok := blk.(block.BlockWithSubBlockRange); ok {
+		ranger.RangeSubBlocks(func(id uint32, sub block.SubBlock) {
+			w.subs = append(w.subs, idSubBlock{id: id, sub: sub})
+		})
+	} else {
+		for id, sub := range holder.GetSubBlocks() {
+			w.subs = append(w.subs, idSubBlock{id: id, sub: sub})
 		}
 	}
-	return out
+	top := len(w.subs)
+	slices.SortFunc(w.subs[base:top], func(x, y idSubBlock) int { return cmp.Compare(x.id, y.id) })
+
+	// Add the refs of each. A sub-block's own sub-blocks take the region
+	// above top and may move w.subs, so read each entry by index.
+	for i := base; i < top; i++ {
+		w.pushSubBlock(n, w.subs[i].sub)
+	}
+	clear(w.subs[base:top])
+	w.subs = w.subs[:base]
 }
 
-// subBlockChildren returns the children of an inline sub-block of n's page,
-// none for an absent one.
-func (n pageNode) subBlockChildren(sub block.SubBlock) []pageNode {
+// pushSubBlock pushes the children of an inline sub-block of n's page, none
+// for an absent one.
+func (w *pageWalk) pushSubBlock(n pageNode, sub block.SubBlock) {
 	if sub == nil || sub.IsNil() {
-		return nil
+		return
 	}
-	return n.typedChildren(sub)
+	w.pushTyped(n, sub)
 }
 
 // child returns the node of ref one level below n, in n's tree.
