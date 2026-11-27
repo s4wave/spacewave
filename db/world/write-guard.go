@@ -198,6 +198,16 @@ func (a *opApply) record(err error) error {
 	return err
 }
 
+// take marks the apply guarded by its engine and returns the guards the
+// engine wraps its state in. A nil apply, outside any guarded op, has none.
+func (a *opApply) take() []WriteGuard {
+	if a == nil {
+		return nil
+	}
+	a.taken.Store(true)
+	return a.guards
+}
+
 // guardErr returns the first guard error recorded in the op tree of a, or nil
 // when a is nil or none was recorded.
 func (a *opApply) guardErr() error {
@@ -238,15 +248,9 @@ func (a *opApply) finish(seqno uint64, sysErr bool, err error, discard func()) (
 // ws when ctx carries none. An engine calls it where it hands its own state to
 // an op. A guarded apply whose engine does not call GuardOpWorldState fails.
 func GuardOpWorldState(ctx context.Context, ws WorldState) WorldState {
-	// Outside a guarded apply, hand the op ws unchanged.
+	// Wrap ws in each guard the apply's engine takes.
 	apply := getOpApply(ctx)
-	if apply == nil {
-		return ws
-	}
-
-	// Mark the apply guarded, then wrap ws in each guard.
-	apply.taken.Store(true)
-	for _, guard := range apply.guards {
+	for _, guard := range apply.take() {
 		ws = &guardedWorldState{ws: ws, guard: guard, apply: apply}
 	}
 	return ws
@@ -271,15 +275,9 @@ func GuardOpResult(ctx context.Context, sysErr bool, err error) (bool, error) {
 // applies to obj, held by ws, under ctx, as GuardOpWorldState does. Each
 // layer wraps the one before it, so releasing the result releases obj.
 func GuardOpObjectState(ctx context.Context, obj ObjectState, ws WorldState) ObjectState {
-	// Outside a guarded apply, hand the op obj unchanged.
+	// Wrap obj in each guard the apply's engine takes.
 	apply := getOpApply(ctx)
-	if apply == nil {
-		return obj
-	}
-
-	// Mark the apply guarded, then wrap obj in each guard.
-	apply.taken.Store(true)
-	for _, guard := range apply.guards {
+	for _, guard := range apply.take() {
 		obj = &guardedObjectState{obj: obj, ws: ws, guard: guard, apply: apply}
 	}
 	return obj
@@ -888,7 +886,14 @@ func (o *guardedObjectState) ApplyObjectOp(ctx context.Context, op Operation, op
 
 // applyObjectOp applies op through this layer under the guarded layers stacked
 // above it, folding and discarding as guardedWorldState.applyWorldOp does.
-func (o *guardedObjectState) applyObjectOp(ctx context.Context, op Operation, opSender peer.ID, parent *opApply, above []WriteGuard, discard func()) (uint64, bool, error) {
+func (o *guardedObjectState) applyObjectOp(
+	ctx context.Context,
+	op Operation,
+	opSender peer.ID,
+	parent *opApply,
+	above []WriteGuard,
+	discard func(),
+) (uint64, bool, error) {
 	// Check the op's type and the object.
 	if err := o.check(ctx, op.TypeID()); err != nil {
 		return 0, IsGuardSysErr(err), err

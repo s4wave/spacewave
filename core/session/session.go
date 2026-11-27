@@ -1,3 +1,14 @@
+// Package session defines the Session, an unlocked identity mounted on a
+// provider account, and the contracts around it: the SessionController that
+// lists and registers sessions, the SessionProvider feature that mounts them,
+// the MountSession and LookupSessionController directives, and the session
+// protobufs.
+//
+// The package shows almost everything it holds, and the depth check reports
+// it as shallow. It is kept that way because it is the vocabulary shared by
+// the providers, resources and clients of a Session: each export is an
+// interface another package implements, a directive another package resolves,
+// or a message another package stores, and none is a body this package hides.
 package session
 
 import (

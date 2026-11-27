@@ -1,3 +1,14 @@
+// Package objecttype defines the ObjectType, which serves a World object of
+// one type as a typed Resource, the LookupObjectType directive that resolves
+// one, and the values a factory reads from its context: the Caller, the
+// Session peer, the World engine ID and the plugin bus.
+//
+// The package shows almost everything it holds, and the depth check reports
+// it as shallow. It is kept that way because each context value is a setter
+// and a getter around one private key, the Go idiom for a value carried down
+// a call chain, so each pair hides only its key. The layers that build a
+// factory's context attach different subsets of the values, so one record of
+// all four would make each layer read and rewrite values it does not own.
 package objecttype
 
 import (
