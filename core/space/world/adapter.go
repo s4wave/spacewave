@@ -130,6 +130,8 @@ type Adapter struct {
 	// local writer that holds a root never waits on a store of the driver's
 	// pages.
 	rootMtx csync.Mutex
+	// backupMtx serializes local backup hold manifests without blocking World root swaps.
+	backupMtx csync.Mutex
 	// held are the named roots this adapter holds, by name. Guarded by
 	// rootMtx.
 	held map[string]*block.BlockRef

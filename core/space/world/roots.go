@@ -42,6 +42,9 @@ const (
 	// RootBackfill holds what this device's backfill copied while its
 	// backfill choice is on.
 	RootBackfill = "backfill"
+	// RootBackup holds only this device's running and newest published backup roots.
+	// It changes no shared retained-root state and never enables collection.
+	RootBackup = "backup"
 )
 
 // heldRootNames are the roots an Adapter reads at open.
@@ -54,6 +57,7 @@ var heldRootNames = []string{
 	RootRetained,
 	RootPending,
 	RootBackfill,
+	RootBackup,
 }
 
 // HoldImport holds roots, which a writer outside an Adapter stored for the

@@ -72,19 +72,31 @@ func (a *ProviderAccount) addStorageBackend(
 		return "", check, nil
 	}
 
-	// Keep the credentials in a Secret the account's Sessions can decrypt.
+	// Encode this backend's credential before the shared Secret writer.
 	credData, err := creds.MarshalVT()
 	if err != nil {
 		return "", nil, err
 	}
+	id, err := a.saveStorageBackend(ctx, backend, credData, setDefault)
+	return id, check, err
+}
+
+// saveStorageBackend stores an already checked backend and its encoded Secret.
+func (a *ProviderAccount) saveStorageBackend(ctx context.Context, backend *account_settings.StorageBackend, credData []byte, setDefault bool) (string, error) {
+	// Keep the credentials in a Secret the account's Sessions can decrypt.
+	displayName := backend.GetDisplayName()
+	contentType := s4wave_secret.StorageCredentialContentType
+	if backend.GetGdrive() != nil {
+		contentType = gdriveCredentialContentType
+	}
 	credential, err := s4wave_secret.CreateSecretObject(ctx, a.t.p.b, a, s4wave_secret.CreateSecretOptions{
 		DisplayName: displayName,
 		Kind:        s4wave_secret.SecretKindStorageCredential,
-		ContentType: s4wave_secret.StorageCredentialContentType,
+		ContentType: contentType,
 		Value:       credData,
 	})
 	if err != nil {
-		return "", nil, errors.Wrap(err, "create storage credential")
+		return "", errors.Wrap(err, "create storage credential")
 	}
 
 	// Record the backend, and remove the Secret if the settings reject it.
@@ -104,9 +116,9 @@ func (a *ProviderAccount) addStorageBackend(
 		if delErr := a.DeleteSharedObject(ctx, credential.GetNestedSharedObjectId()); delErr != nil {
 			a.le.WithError(delErr).Warn("unable to delete unused storage credential")
 		}
-		return "", nil, err
+		return "", err
 	}
-	return backend.GetId(), check, nil
+	return backend.GetId(), nil
 }
 
 // CheckStorageBackend runs the connectivity check against a saved backend.
@@ -120,6 +132,17 @@ func (a *ProviderAccount) CheckStorageBackend(ctx context.Context, backendID str
 	if backend == nil {
 		return nil, account_settings.ErrStorageBackendNotFound
 	}
+
+	// Drive checks reuse its credential's pacer and never delete a probe.
+	if backend.GetGdrive() != nil {
+		client, err := a.openGdriveClient(ctx, backend)
+		if err != nil {
+			return nil, err
+		}
+		return checkGdriveLocation(ctx, client), nil
+	}
+
+	// Other backends retain their existing typed credential and location check.
 	var creds *block_store_s3.Credentials
 	if backend.GetFtps() == nil {
 		creds, err = a.ReadStorageCredentials(ctx, backend)
@@ -159,6 +182,9 @@ func (a *ProviderAccount) ReadStorageCredentials(
 	payload, err := s4wave_secret.ReadSecretPayload(ctx, a.t.p.b, credential)
 	if err != nil {
 		return nil, errors.Wrap(err, "read storage credential")
+	}
+	if payload.GetContentType() != s4wave_secret.StorageCredentialContentType {
+		return nil, s4wave_secret.ErrSecretKindMismatch
 	}
 	creds := &block_store_s3.Credentials{}
 	if err := creds.UnmarshalVT(payload.GetValue()); err != nil {
@@ -269,8 +295,12 @@ func (a *ProviderAccount) ResolveNewSpaceStorageBackend(ctx context.Context, req
 	if requestedID == "" {
 		return settings.GetDefaultStorageBackendId(), nil
 	}
-	if settings.FindStorageBackend(requestedID) == nil {
+	backend := settings.FindStorageBackend(requestedID)
+	if backend == nil {
 		return "", errors.Wrap(account_settings.ErrStorageBackendNotFound, requestedID)
+	}
+	if backend.GetGdrive() != nil {
+		return "", errors.New("Drive backends are backup destinations, not primary storage")
 	}
 	return requestedID, nil
 }

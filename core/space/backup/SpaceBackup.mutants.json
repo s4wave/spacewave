@@ -1,0 +1,5 @@
+[
+  {"name":"Prove before upload", "replace":[["b \\in durable", "b \\in Blocks"]], "expect":"ProofsDurable", "config":"SpaceBackup.cfg"},
+  {"name":"Prove a parent with an unproven child", "replace":[["Children(b) \\subseteq proven \\* proof guard", "TRUE"]], "expect":"ProofsComplete", "config":"SpaceBackup.cfg"},
+  {"name":"Publish before the root is proven", "replace":[["2 \\in proven", "TRUE"]], "expect":"VisibleComplete", "config":"SpaceBackup.cfg"}
+]

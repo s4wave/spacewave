@@ -10,6 +10,9 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { Secret } from '../../../sdk/secret/secret.pb.js'
 import { Pricing } from '../../../db/block/store/s3/s3.pb.js'
 import { SharedObjectListEntry } from '../../sobject/sobject.pb.js'
+import { WorldRootSnapshot } from '../../../sdk/world/world.pb.js'
+import { BlockRef } from '../../../db/block/block.pb.js'
+import { Envelope } from '../../../net/envelope/envelope.pb.js'
 
 /**
  * AccountSettings is the root state data for account settings SharedObjects.
@@ -133,22 +136,26 @@ export interface StorageBackend {
   s3?: S3Location
   /**
    * Credential is the redacted Secret whose payload holds the access keys.
-   * The payload value is a block_store_s3.Credentials message. For an SQL
-   * backend its access_key_id is the database user and its
-   * secret_access_key is the password.
+   * A Drive backend stores block.store.gdrive.Credentials. S3 and SQL store
+   * block.store.s3.Credentials. For SQL, access_key_id is the database user
+   * and secret_access_key is the password.
    */
   credential?: Secret
   /**
    * Sql locates the SQL database that holds the blocks instead of a bucket.
-   * A backend sets exactly one of S3 and Sql.
+   * A backend sets exactly one location.
    */
   sql?: SqlLocation
   /**
    * Ftps locates the FTPS server that holds the packfiles instead of a
    * bucket. It logs in from a netrc file on the host, so the backend has no
-   * credential Secret. A backend sets exactly one of S3, Sql and Ftps.
+   * credential Secret. A backend sets exactly one location.
    */
   ftps?: FtpsLocation
+  /**
+   * Gdrive locates an append-only ciphertext backup folder.
+   */
+  gdrive?: GdriveLocation
 }
 
 export const StorageBackend: MessageType<StorageBackend> =
@@ -161,6 +168,33 @@ export const StorageBackend: MessageType<StorageBackend> =
       [4, 'credential', 11, 0, Secret.codec],
       [5, 'sql', 11, 0, SqlLocation.codec],
       [6, 'ftps', 11, 0, FtpsLocation.codec],
+      [7, 'gdrive', 11, 0, GdriveLocation.codec],
+    ],
+  )
+
+/**
+ * GdriveLocation names the app-created folder that holds encrypted packs.
+ * It is a backup destination, never a Space's primary placement.
+ *
+ * @generated from message account.settings.GdriveLocation
+ */
+export interface GdriveLocation {
+  /**
+   * RootFolderId is the immutable Drive folder identity.
+   */
+  rootFolderId?: string
+  /**
+   * AccountLabel is the owner-supplied label, without an additional profile scope.
+   */
+  accountLabel?: string
+}
+
+export const GdriveLocation: MessageType<GdriveLocation> =
+  /* @__PURE__ */ createMessageType<GdriveLocation>(
+    'account.settings.GdriveLocation',
+    () => [
+      [1, 'root_folder_id', 9],
+      [2, 'account_label', 9],
     ],
   )
 
@@ -919,4 +953,315 @@ export const RemoveSessionPresentationOp: MessageType<RemoveSessionPresentationO
   /* @__PURE__ */ createMessageType<RemoveSessionPresentationOp>(
     'account.settings.RemoveSessionPresentationOp',
     () => [[1, 'peer_id', 9]],
+  )
+
+/**
+ * SpaceBackup configures one device-local backup. It is not a Space object,
+ * placement, or retained-root operation, and automatic work is off by default.
+ *
+ * @generated from message account.settings.SpaceBackup
+ */
+export interface SpaceBackup {
+  /**
+   * Id is the opaque backup identity.
+   */
+  id?: string
+  /**
+   * SpaceId is the source Space, mounted read-only by this device.
+   */
+  spaceId?: string
+  /**
+   * StorageBackendId selects the account's Drive credential and folder.
+   */
+  storageBackendId?: string
+  /**
+   * Automatic starts checkpoint-triggered passes only after explicit approval.
+   */
+  automatic?: boolean
+  /**
+   * IntervalSeconds is the minimum time between automatic passes.
+   */
+  intervalSeconds?: bigint
+}
+
+export const SpaceBackup: MessageType<SpaceBackup> =
+  /* @__PURE__ */ createMessageType<SpaceBackup>(
+    'account.settings.SpaceBackup',
+    () => [
+      [1, 'id', 9],
+      [2, 'space_id', 9],
+      [3, 'storage_backend_id', 9],
+      [4, 'automatic', 8],
+      [5, 'interval_seconds', 4],
+    ],
+  )
+
+/**
+ * SpaceBackupSnapshot is the plaintext that is sealed before leaving the device.
+ *
+ * @generated from message account.settings.SpaceBackupSnapshot
+ */
+export interface SpaceBackupSnapshot {
+  /**
+   * World is the committed root with its inline decryption transform.
+   */
+  world?: WorldRootSnapshot
+  /**
+   * RetainedRoots are the additional roots proven in the same copy.
+   */
+  retainedRoots?: BlockRef[]
+}
+
+export const SpaceBackupSnapshot: MessageType<SpaceBackupSnapshot> =
+  /* @__PURE__ */ createMessageType<SpaceBackupSnapshot>(
+    'account.settings.SpaceBackupSnapshot',
+    () => [
+      [1, 'world', 11, 0, WorldRootSnapshot.codec],
+      [2, 'retained_roots', 11, 1, BlockRef.codec],
+    ],
+  )
+
+/**
+ * SpaceBackupIndex is an immutable, sealed snapshot in snapshots/.
+ *
+ * @generated from message account.settings.SpaceBackupIndex
+ */
+export interface SpaceBackupIndex {
+  /**
+   * ProviderAccountId supplies the username for password key derivation.
+   */
+  providerAccountId?: string
+  /**
+   * EntityId identifies the recovery principal, never a device.
+   */
+  entityId?: string
+  /**
+   * Envelope seals SpaceBackupSnapshot to that entity's public keypairs.
+   */
+  envelope?: Envelope
+}
+
+export const SpaceBackupIndex: MessageType<SpaceBackupIndex> =
+  /* @__PURE__ */ createMessageType<SpaceBackupIndex>(
+    'account.settings.SpaceBackupIndex',
+    () => [
+      [1, 'provider_account_id', 9],
+      [2, 'entity_id', 9],
+      [3, 'envelope', 11, 0, Envelope.codec],
+    ],
+  )
+
+/**
+ * SpaceBackupPublished is a local proof of the newest index this device wrote.
+ *
+ * @generated from message account.settings.SpaceBackupPublished
+ */
+export interface SpaceBackupPublished {
+  /**
+   * Key is the immutable snapshots/ object key.
+   */
+  key?: string
+  /**
+   * Snapshot is the root set the index sealed and the pass proved.
+   */
+  snapshot?: SpaceBackupSnapshot
+  /**
+   * PublishedUnixSeconds is the successful publication time, for scheduling.
+   */
+  publishedUnixSeconds?: bigint
+  /**
+   * RecipientFingerprint binds no-change reuse to the current account identity
+   * and public recovery keys. Rotating a key publishes a new sealed index.
+   */
+  recipientFingerprint?: Uint8Array
+}
+
+export const SpaceBackupPublished: MessageType<SpaceBackupPublished> =
+  /* @__PURE__ */ createMessageType<SpaceBackupPublished>(
+    'account.settings.SpaceBackupPublished',
+    () => [
+      [1, 'key', 9],
+      [2, 'snapshot', 11, 0, SpaceBackupSnapshot.codec],
+      [3, 'published_unix_seconds', 3],
+      [4, 'recipient_fingerprint', 12],
+    ],
+  )
+
+/**
+ * SpaceBackupPublication is the public readback of a sealed published index.
+ * It deliberately omits the snapshot and every decryption transform.
+ *
+ * @generated from message account.settings.SpaceBackupPublication
+ */
+export interface SpaceBackupPublication {
+  /**
+   * Key names the immutable object that an entity credential can unseal.
+   */
+  key?: string
+  /**
+   * Seqno is the committed World sequence covered by that index.
+   */
+  seqno?: bigint
+  /**
+   * PublishedUnixSeconds is the successful publication time.
+   */
+  publishedUnixSeconds?: bigint
+}
+
+export const SpaceBackupPublication: MessageType<SpaceBackupPublication> =
+  /* @__PURE__ */ createMessageType<SpaceBackupPublication>(
+    'account.settings.SpaceBackupPublication',
+    () => [
+      [1, 'key', 9],
+      [2, 'seqno', 4],
+      [3, 'published_unix_seconds', 3],
+    ],
+  )
+
+/**
+ * SpaceBackupProgress is the bounded progress readback of one running pass.
+ *
+ * @generated from message account.settings.SpaceBackupProgress
+ */
+export interface SpaceBackupProgress {
+  /**
+   * ReadBytes counts source bytes read during this pass.
+   */
+  readBytes?: bigint
+  /**
+   * WrittenBytes counts ciphertext bytes committed to durable packs.
+   */
+  writtenBytes?: bigint
+  /**
+   * Packs counts packs durably uploaded.
+   */
+  packs?: bigint
+  /**
+   * Holes counts missing, corrupt or untyped reachable blocks.
+   */
+  holes?: bigint
+}
+
+export const SpaceBackupProgress: MessageType<SpaceBackupProgress> =
+  /* @__PURE__ */ createMessageType<SpaceBackupProgress>(
+    'account.settings.SpaceBackupProgress',
+    () => [
+      [1, 'read_bytes', 4],
+      [2, 'written_bytes', 4],
+      [3, 'packs', 4],
+      [4, 'holes', 4],
+    ],
+  )
+
+/**
+ * SpaceBackupWaiting is a recoverable waiting state, never a retry spin.
+ *
+ * @generated from message account.settings.SpaceBackupWaiting
+ */
+export interface SpaceBackupWaiting {
+  /**
+   * ResumeUnixSeconds is the next known retry deadline, or zero for owner action.
+   */
+  resumeUnixSeconds?: bigint
+}
+
+export const SpaceBackupWaiting: MessageType<SpaceBackupWaiting> =
+  /* @__PURE__ */ createMessageType<SpaceBackupWaiting>(
+    'account.settings.SpaceBackupWaiting',
+    () => [[1, 'resume_unix_seconds', 3]],
+  )
+
+/**
+ * SpaceBackupFailure contains a safe explanation and the next action.
+ *
+ * @generated from message account.settings.SpaceBackupFailure
+ */
+export interface SpaceBackupFailure {
+  /**
+   * Message excludes credentials and raw OAuth response bodies.
+   */
+  message?: string
+}
+
+export const SpaceBackupFailure: MessageType<SpaceBackupFailure> =
+  /* @__PURE__ */ createMessageType<SpaceBackupFailure>(
+    'account.settings.SpaceBackupFailure',
+    () => [[1, 'message', 9]],
+  )
+
+/**
+ * SpaceBackupIdle names a backup with no requested pass.
+ *
+ * @generated from message account.settings.SpaceBackupIdle
+ */
+export interface SpaceBackupIdle {}
+
+export const SpaceBackupIdle: MessageType<SpaceBackupIdle> =
+  /* @__PURE__ */ createMessageType<SpaceBackupIdle>(
+    'account.settings.SpaceBackupIdle',
+    () => [],
+  )
+
+/**
+ * SpaceBackupState is the watched result of the device's backup routine.
+ *
+ * @generated from message account.settings.SpaceBackupState
+ */
+export interface SpaceBackupState {
+  /**
+   * RunSequence identifies the requested or automatic pass observed by a watcher.
+   */
+  runSequence?: bigint
+  /**
+   * Backup identifies the local configuration this state describes.
+   */
+  backup?: SpaceBackup
+  /**
+   * @generated from oneof account.settings.SpaceBackupState.state
+   */
+  state?:
+    | { value?: undefined; case: undefined }
+    | { value: SpaceBackupIdle; case: 'idle' }
+    | { value: SpaceBackupProgress; case: 'copying' }
+    | { value: SpaceBackupPublication; case: 'upToDate' }
+    | { value: SpaceBackupProgress; case: 'incomplete' }
+    | { value: SpaceBackupWaiting; case: 'waitingUploadLimit' }
+    | { value: SpaceBackupWaiting; case: 'waitingQuota' }
+    | { value: SpaceBackupWaiting; case: 'waitingSignIn' }
+    | { value: SpaceBackupFailure; case: 'failed' }
+}
+
+export const SpaceBackupState: MessageType<SpaceBackupState> =
+  /* @__PURE__ */ createMessageType<SpaceBackupState>(
+    'account.settings.SpaceBackupState',
+    () => [
+      [1, 'backup', 11, 0, SpaceBackup.codec],
+      [2, 'idle', 11, 0, SpaceBackupIdle.codec, 'state'],
+      [3, 'copying', 11, 0, SpaceBackupProgress.codec, 'state'],
+      [4, 'up_to_date', 11, 0, SpaceBackupPublication.codec, 'state'],
+      [5, 'incomplete', 11, 0, SpaceBackupProgress.codec, 'state'],
+      [6, 'waiting_upload_limit', 11, 0, SpaceBackupWaiting.codec, 'state'],
+      [7, 'waiting_quota', 11, 0, SpaceBackupWaiting.codec, 'state'],
+      [8, 'waiting_sign_in', 11, 0, SpaceBackupWaiting.codec, 'state'],
+      [9, 'failed', 11, 0, SpaceBackupFailure.codec, 'state'],
+      [10, 'run_sequence', 4],
+    ],
+  )
+
+/**
+ * SpaceBackupList is the device-local registry and its watch snapshot.
+ *
+ * @generated from message account.settings.SpaceBackupList
+ */
+export interface SpaceBackupList {
+  /**
+   * Backups contains each configured backup's latest state.
+   */
+  backups?: SpaceBackupState[]
+}
+
+export const SpaceBackupList: MessageType<SpaceBackupList> =
+  /* @__PURE__ */ createMessageType<SpaceBackupList>(
+    'account.settings.SpaceBackupList',
+    () => [[1, 'backups', 11, 1, SpaceBackupState.codec]],
   )

@@ -37,8 +37,10 @@ import {
   TransferState,
 } from '../../core/provider/transfer/transfer.pb.js'
 import {
+  GdriveLocation,
   PairedDevice,
   S3Location,
+  SpaceBackup,
   StorageBackend,
 } from '../../core/account/settings/settings.pb.js'
 import type { PluginApprovalState } from '../plugin/approval/approval.pb.js'
@@ -51,6 +53,7 @@ import {
   Credentials,
   Pricing,
 } from '../../db/block/store/s3/s3.pb.js'
+import { Credentials as Credentials$1 } from '../../db/block/store/gdrive/gdrive.pb.js'
 
 /**
  * SyncStatusState describes the aggregate session sync state.
@@ -3327,6 +3330,14 @@ export interface AddStorageBackendRequest {
    * SetDefault makes the new backend the default for new Spaces.
    */
   setDefault?: boolean
+  /**
+   * Gdrive is a backup-only location, mutually exclusive with S3.
+   */
+  gdrive?: GdriveLocation
+  /**
+   * GdriveCredentials are kept only in the backend's encrypted Secret.
+   */
+  gdriveCredentials?: Credentials$1
 }
 
 export const AddStorageBackendRequest: MessageType<AddStorageBackendRequest> =
@@ -3337,6 +3348,8 @@ export const AddStorageBackendRequest: MessageType<AddStorageBackendRequest> =
       [2, 's3', 11, 0, S3Location.codec],
       [3, 'credentials', 11, 0, Credentials.codec],
       [4, 'set_default', 8],
+      [5, 'gdrive', 11, 0, GdriveLocation.codec],
+      [6, 'gdrive_credentials', 11, 0, Credentials$1.codec],
     ],
   )
 
@@ -3598,4 +3611,71 @@ export const MoveSpaceStorageResponse: MessageType<MoveSpaceStorageResponse> =
       [5, 'pending_bytes', 3],
       [6, 'upload_error', 9],
     ],
+  )
+
+/**
+ * SetSpaceBackupRequest configures a local backup, never a Space write.
+ *
+ * @generated from message s4wave.session.SetSpaceBackupRequest
+ */
+export interface SetSpaceBackupRequest {
+  /**
+   * Backup is the complete configuration; an empty ID creates a backup.
+   */
+  backup?: SpaceBackup
+}
+
+export const SetSpaceBackupRequest: MessageType<SetSpaceBackupRequest> =
+  /* @__PURE__ */ createMessageType<SetSpaceBackupRequest>(
+    's4wave.session.SetSpaceBackupRequest',
+    () => [[1, 'backup', 11, 0, SpaceBackup.codec]],
+  )
+
+/**
+ * SetSpaceBackupResponse returns the saved local configuration.
+ *
+ * @generated from message s4wave.session.SetSpaceBackupResponse
+ */
+export interface SetSpaceBackupResponse {
+  /**
+   * Backup is the configuration with its assigned identity.
+   */
+  backup?: SpaceBackup
+}
+
+export const SetSpaceBackupResponse: MessageType<SetSpaceBackupResponse> =
+  /* @__PURE__ */ createMessageType<SetSpaceBackupResponse>(
+    's4wave.session.SetSpaceBackupResponse',
+    () => [[1, 'backup', 11, 0, SpaceBackup.codec]],
+  )
+
+/**
+ * RunSpaceBackupRequest selects a backup for an immediate background pass.
+ *
+ * @generated from message s4wave.session.RunSpaceBackupRequest
+ */
+export interface RunSpaceBackupRequest {
+  /**
+   * BackupId is the local backup identity.
+   */
+  backupId?: string
+}
+
+export const RunSpaceBackupRequest: MessageType<RunSpaceBackupRequest> =
+  /* @__PURE__ */ createMessageType<RunSpaceBackupRequest>(
+    's4wave.session.RunSpaceBackupRequest',
+    () => [[1, 'backup_id', 9]],
+  )
+
+/**
+ * WatchSpaceBackupsRequest watches device-local backups without reading a Secret.
+ *
+ * @generated from message s4wave.session.WatchSpaceBackupsRequest
+ */
+export interface WatchSpaceBackupsRequest {}
+
+export const WatchSpaceBackupsRequest: MessageType<WatchSpaceBackupsRequest> =
+  /* @__PURE__ */ createMessageType<WatchSpaceBackupsRequest>(
+    's4wave.session.WatchSpaceBackupsRequest',
+    () => [],
   )

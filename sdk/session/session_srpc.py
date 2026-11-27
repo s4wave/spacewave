@@ -3,6 +3,9 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from typing import Protocol
 
+from core.account.settings import (
+    settings_pb2 as _github_com_s4wave_spacewave_core_account_settings_settings_pb2,
+)
 from sdk.session import (
     session_pb2 as _github_com_s4wave_spacewave_sdk_session_session_pb2,
 )
@@ -354,6 +357,27 @@ SESSIONRESOURCESERVICE_SERVICE = ServiceDescriptor(
             "WatchPluginApprovals",
             _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchPluginApprovalsRequest,
             _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchPluginApprovalsResponse,
+            False,
+            True,
+        ),
+        MethodDescriptor(
+            "SetSpaceBackup",
+            _github_com_s4wave_spacewave_sdk_session_session_pb2.SetSpaceBackupRequest,
+            _github_com_s4wave_spacewave_sdk_session_session_pb2.SetSpaceBackupResponse,
+            False,
+            False,
+        ),
+        MethodDescriptor(
+            "RunSpaceBackup",
+            _github_com_s4wave_spacewave_sdk_session_session_pb2.RunSpaceBackupRequest,
+            _github_com_s4wave_spacewave_core_account_settings_settings_pb2.SpaceBackupState,
+            False,
+            True,
+        ),
+        MethodDescriptor(
+            "WatchSpaceBackups",
+            _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchSpaceBackupsRequest,
+            _github_com_s4wave_spacewave_core_account_settings_settings_pb2.SpaceBackupList,
             False,
             True,
         ),
@@ -1455,6 +1479,71 @@ class SessionResourceServiceClient:
         finally:
             await call.aclose()
 
+    async def set_space_backup(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.SetSpaceBackupRequest,
+    ) -> _github_com_s4wave_spacewave_sdk_session_session_pb2.SetSpaceBackupResponse:
+        call = await self._client.open_call(
+            self._service,
+            "SetSpaceBackup",
+            request.SerializeToString(deterministic=True),
+        )
+        try:
+            data = await call.receive()
+            if data is None:
+                raise CallProtocolError("missing unary response")
+            response = _github_com_s4wave_spacewave_sdk_session_session_pb2.SetSpaceBackupResponse()
+            response.ParseFromString(data)
+            if await call.receive() is not None:
+                raise CallProtocolError("extra unary response")
+            return response
+        finally:
+            await call.aclose()
+
+    async def run_space_backup(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.RunSpaceBackupRequest,
+    ) -> AsyncIterator[
+        _github_com_s4wave_spacewave_core_account_settings_settings_pb2.SpaceBackupState
+    ]:
+        call = await self._client.open_call(
+            self._service,
+            "RunSpaceBackup",
+            request.SerializeToString(deterministic=True),
+        )
+        try:
+            while True:
+                data = await call.receive()
+                if data is None:
+                    return
+                response = _github_com_s4wave_spacewave_core_account_settings_settings_pb2.SpaceBackupState()
+                response.ParseFromString(data)
+                yield response
+        finally:
+            await call.aclose()
+
+    async def watch_space_backups(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchSpaceBackupsRequest,
+    ) -> AsyncIterator[
+        _github_com_s4wave_spacewave_core_account_settings_settings_pb2.SpaceBackupList
+    ]:
+        call = await self._client.open_call(
+            self._service,
+            "WatchSpaceBackups",
+            request.SerializeToString(deterministic=True),
+        )
+        try:
+            while True:
+                data = await call.receive()
+                if data is None:
+                    return
+                response = _github_com_s4wave_spacewave_core_account_settings_settings_pb2.SpaceBackupList()
+                response.ParseFromString(data)
+                yield response
+        finally:
+            await call.aclose()
+
     async def watch_storage_backends(
         self,
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchStorageBackendsRequest,
@@ -1879,6 +1968,24 @@ class SessionResourceServiceServer(Protocol):
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchPluginApprovalsRequest,
     ) -> AsyncIterator[
         _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchPluginApprovalsResponse
+    ]: ...
+    async def set_space_backup(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.SetSpaceBackupRequest,
+    ) -> (
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.SetSpaceBackupResponse
+    ): ...
+    def run_space_backup(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.RunSpaceBackupRequest,
+    ) -> AsyncIterator[
+        _github_com_s4wave_spacewave_core_account_settings_settings_pb2.SpaceBackupState
+    ]: ...
+    def watch_space_backups(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchSpaceBackupsRequest,
+    ) -> AsyncIterator[
+        _github_com_s4wave_spacewave_core_account_settings_settings_pb2.SpaceBackupList
     ]: ...
     def watch_storage_backends(
         self,
@@ -2511,6 +2618,43 @@ def register_session_resource_service(
             await call.send(response.SerializeToString(deterministic=True))
 
     registry.register(service, "WatchPluginApprovals", watch_plugin_approvals_handler)
+
+    async def set_space_backup_handler(call: Call) -> None:
+        first = await call.receive()
+        if first is None:
+            raise CallProtocolError("missing initial request")
+        request = (
+            _github_com_s4wave_spacewave_sdk_session_session_pb2.SetSpaceBackupRequest()
+        )
+        request.ParseFromString(first)
+        response = await implementation.set_space_backup(request)
+        await call.send(response.SerializeToString(deterministic=True))
+
+    registry.register(service, "SetSpaceBackup", set_space_backup_handler)
+
+    async def run_space_backup_handler(call: Call) -> None:
+        first = await call.receive()
+        if first is None:
+            raise CallProtocolError("missing initial request")
+        request = (
+            _github_com_s4wave_spacewave_sdk_session_session_pb2.RunSpaceBackupRequest()
+        )
+        request.ParseFromString(first)
+        async for response in implementation.run_space_backup(request):
+            await call.send(response.SerializeToString(deterministic=True))
+
+    registry.register(service, "RunSpaceBackup", run_space_backup_handler)
+
+    async def watch_space_backups_handler(call: Call) -> None:
+        first = await call.receive()
+        if first is None:
+            raise CallProtocolError("missing initial request")
+        request = _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchSpaceBackupsRequest()
+        request.ParseFromString(first)
+        async for response in implementation.watch_space_backups(request):
+            await call.send(response.SerializeToString(deterministic=True))
+
+    registry.register(service, "WatchSpaceBackups", watch_space_backups_handler)
 
     async def watch_storage_backends_handler(call: Call) -> None:
         first = await call.receive()

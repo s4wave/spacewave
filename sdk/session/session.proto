@@ -8,6 +8,7 @@ import "github.com/s4wave/spacewave/core/session/session.proto";
 import "github.com/s4wave/spacewave/core/sobject/sobject.proto";
 import "github.com/s4wave/spacewave/core/space/space.proto";
 import "github.com/s4wave/spacewave/db/block/store/s3/s3.proto";
+import "github.com/s4wave/spacewave/db/block/store/gdrive/gdrive.proto";
 import "github.com/s4wave/spacewave/net/hash/hash.proto";
 import "github.com/s4wave/spacewave/sdk/plugin/approval/approval.proto";
 import "google/protobuf/timestamp.proto";
@@ -77,6 +78,12 @@ service SessionResourceService {
   // WatchPluginApprovals streams the session's plugin decisions on this
   // device: all of them first, then each decision written after.
   rpc WatchPluginApprovals(WatchPluginApprovalsRequest) returns (stream WatchPluginApprovalsResponse);
+  // SetSpaceBackup configures a backup only on this device, with automatic off by default.
+  rpc SetSpaceBackup(SetSpaceBackupRequest) returns (SetSpaceBackupResponse);
+  // RunSpaceBackup requests a pass and streams its watchable state until it settles.
+  rpc RunSpaceBackup(RunSpaceBackupRequest) returns (stream .account.settings.SpaceBackupState);
+  // WatchSpaceBackups streams the complete local backup registry, then each change.
+  rpc WatchSpaceBackups(WatchSpaceBackupsRequest) returns (stream .account.settings.SpaceBackupList);
   // WatchStorageBackends streams the account's storage backends and the
   // Spaces placed on each.
   rpc WatchStorageBackends(WatchStorageBackendsRequest) returns (stream WatchStorageBackendsResponse);
@@ -1220,6 +1227,10 @@ message AddStorageBackendRequest {
   .block.store.s3.Credentials credentials = 3;
   // SetDefault makes the new backend the default for new Spaces.
   bool set_default = 4;
+  // Gdrive is a backup-only location, mutually exclusive with S3.
+  .account.settings.GdriveLocation gdrive = 5;
+  // GdriveCredentials are kept only in the backend's encrypted Secret.
+  .block.store.gdrive.Credentials gdrive_credentials = 6;
 }
 
 // AddStorageBackendResponse is the response for AddStorageBackend.
@@ -1321,4 +1332,26 @@ message MoveSpaceStorageResponse {
   int64 pending_bytes = 5;
   // UploadError describes the last upload failure, empty while uploads succeed.
   string upload_error = 6;
+}
+
+// SetSpaceBackupRequest configures a local backup, never a Space write.
+message SetSpaceBackupRequest {
+  // Backup is the complete configuration; an empty ID creates a backup.
+  .account.settings.SpaceBackup backup = 1;
+}
+
+// SetSpaceBackupResponse returns the saved local configuration.
+message SetSpaceBackupResponse {
+  // Backup is the configuration with its assigned identity.
+  .account.settings.SpaceBackup backup = 1;
+}
+
+// RunSpaceBackupRequest selects a backup for an immediate background pass.
+message RunSpaceBackupRequest {
+  // BackupId is the local backup identity.
+  string backup_id = 1;
+}
+
+// WatchSpaceBackupsRequest watches device-local backups without reading a Secret.
+message WatchSpaceBackupsRequest {
 }

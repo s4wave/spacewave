@@ -1,0 +1,5 @@
+[
+  {"name":"Wait for disk under the World root lock", "replace":[["phase' = \"fence\" /\\ rootLocked' = FALSE", "phase' = \"fence\" /\\ rootLocked' = TRUE"]], "expect":"FenceOutsideRootLock", "config":"BackupHold.cfg"},
+  {"name":"Compact away another backup's roots", "replace":[["held' = Rows(pins, published)", "held' = published[active]"]], "expect":"RunningAndPublishedHeld", "config":"BackupHold.cfg"},
+  {"name":"Acknowledge the pin before the hold is durable", "replace":[["diskPublished' = published /\\ diskHeld' = held", "diskPublished' = published /\\ UNCHANGED diskHeld"]], "expect":"CrashKeepsEveryRow", "config":"BackupHold.cfg"}
+]

@@ -69,6 +69,7 @@ import {
   ResolveSpaceJoinRequestResponse,
   RevokeSpaceInviteRequest,
   RevokeSpaceInviteResponse,
+  RunSpaceBackupRequest,
   SelectPairingAccountRequest,
   SelectPairingAccountResponse,
   SetAccountPluginRequest,
@@ -83,6 +84,8 @@ import {
   SetLockModeResponse,
   SetPluginApprovalRequest,
   SetPluginApprovalResponse,
+  SetSpaceBackupRequest,
+  SetSpaceBackupResponse,
   SetStorageBackendPricingRequest,
   SetStorageBackendPricingResponse,
   StartTransferRequest,
@@ -105,6 +108,7 @@ import {
   WatchSessionStateAtomsResponse,
   WatchSharedObjectHealthRequest,
   WatchSharedObjectHealthResponse,
+  WatchSpaceBackupsRequest,
   WatchSpaceStorageRequest,
   WatchSpaceStorageResponse,
   WatchStorageBackendsRequest,
@@ -119,6 +123,10 @@ import {
   WithdrawSpaceJoinRequestResponse,
 } from './session.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
+import {
+  SpaceBackupList,
+  SpaceBackupState,
+} from '../../core/account/settings/settings.pb.js'
 import {
   buildDecodeMessageTransform,
   MessageStream,
@@ -594,6 +602,39 @@ export const SessionResourceServiceDefinition = {
       name: 'WatchPluginApprovals',
       I: WatchPluginApprovalsRequest,
       O: WatchPluginApprovalsResponse,
+      kind: MethodKind.ServerStreaming,
+    },
+    /**
+     * SetSpaceBackup configures a backup only on this device, with automatic off by default.
+     *
+     * @generated from rpc s4wave.session.SessionResourceService.SetSpaceBackup
+     */
+    SetSpaceBackup: {
+      name: 'SetSpaceBackup',
+      I: SetSpaceBackupRequest,
+      O: SetSpaceBackupResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * RunSpaceBackup requests a pass and streams its watchable state until it settles.
+     *
+     * @generated from rpc s4wave.session.SessionResourceService.RunSpaceBackup
+     */
+    RunSpaceBackup: {
+      name: 'RunSpaceBackup',
+      I: RunSpaceBackupRequest,
+      O: SpaceBackupState,
+      kind: MethodKind.ServerStreaming,
+    },
+    /**
+     * WatchSpaceBackups streams the complete local backup registry, then each change.
+     *
+     * @generated from rpc s4wave.session.SessionResourceService.WatchSpaceBackups
+     */
+    WatchSpaceBackups: {
+      name: 'WatchSpaceBackups',
+      I: WatchSpaceBackupsRequest,
+      O: SpaceBackupList,
       kind: MethodKind.ServerStreaming,
     },
     /**
@@ -1112,6 +1153,36 @@ export interface SessionResourceService {
     request: WatchPluginApprovalsRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<WatchPluginApprovalsResponse>
+
+  /**
+   * SetSpaceBackup configures a backup only on this device, with automatic off by default.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.SetSpaceBackup
+   */
+  SetSpaceBackup(
+    request: SetSpaceBackupRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SetSpaceBackupResponse>
+
+  /**
+   * RunSpaceBackup requests a pass and streams its watchable state until it settles.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.RunSpaceBackup
+   */
+  RunSpaceBackup(
+    request: RunSpaceBackupRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<SpaceBackupState>
+
+  /**
+   * WatchSpaceBackups streams the complete local backup registry, then each change.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.WatchSpaceBackups
+   */
+  WatchSpaceBackups(
+    request: WatchSpaceBackupsRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<SpaceBackupList>
 
   /**
    * WatchStorageBackends streams the account's storage backends and the
@@ -1670,6 +1741,39 @@ export interface SessionResourceServiceHandler {
   ): MessageStream<WatchPluginApprovalsResponse>
 
   /**
+   * SetSpaceBackup configures a backup only on this device, with automatic off by default.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.SetSpaceBackup
+   */
+  SetSpaceBackup(
+    request: SetSpaceBackupRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SetSpaceBackupResponse>
+
+  /**
+   * RunSpaceBackup requests a pass and streams its watchable state until it settles.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.RunSpaceBackup
+   */
+  RunSpaceBackup(
+    request: RunSpaceBackupRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<SpaceBackupState>
+
+  /**
+   * WatchSpaceBackups streams the complete local backup registry, then each change.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.WatchSpaceBackups
+   */
+  WatchSpaceBackups(
+    request: WatchSpaceBackupsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<SpaceBackupList>
+
+  /**
    * WatchStorageBackends streams the account's storage backends and the
    * Spaces placed on each.
    *
@@ -1823,6 +1927,9 @@ export class SessionResourceServiceClient implements SessionResourceService {
     this.SetAccountPlugin = this.SetAccountPlugin.bind(this)
     this.SetPluginApproval = this.SetPluginApproval.bind(this)
     this.WatchPluginApprovals = this.WatchPluginApprovals.bind(this)
+    this.SetSpaceBackup = this.SetSpaceBackup.bind(this)
+    this.RunSpaceBackup = this.RunSpaceBackup.bind(this)
+    this.WatchSpaceBackups = this.WatchSpaceBackups.bind(this)
     this.WatchStorageBackends = this.WatchStorageBackends.bind(this)
     this.CheckStorageBackend = this.CheckStorageBackend.bind(this)
     this.AddStorageBackend = this.AddStorageBackend.bind(this)
@@ -2686,6 +2793,63 @@ export class SessionResourceServiceClient implements SessionResourceService {
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(WatchPluginApprovalsResponse)(result)
+  }
+
+  /**
+   * SetSpaceBackup configures a backup only on this device, with automatic off by default.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.SetSpaceBackup
+   */
+  async SetSpaceBackup(
+    request: SetSpaceBackupRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SetSpaceBackupResponse> {
+    const requestMsg = SetSpaceBackupRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SessionResourceServiceDefinition.methods.SetSpaceBackup.name,
+      SetSpaceBackupRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return SetSpaceBackupResponse.fromBinary(result)
+  }
+
+  /**
+   * RunSpaceBackup requests a pass and streams its watchable state until it settles.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.RunSpaceBackup
+   */
+  RunSpaceBackup(
+    request: RunSpaceBackupRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<SpaceBackupState> {
+    const requestMsg = RunSpaceBackupRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      SessionResourceServiceDefinition.methods.RunSpaceBackup.name,
+      RunSpaceBackupRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(SpaceBackupState)(result)
+  }
+
+  /**
+   * WatchSpaceBackups streams the complete local backup registry, then each change.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.WatchSpaceBackups
+   */
+  WatchSpaceBackups(
+    request: WatchSpaceBackupsRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<SpaceBackupList> {
+    const requestMsg = WatchSpaceBackupsRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      SessionResourceServiceDefinition.methods.WatchSpaceBackups.name,
+      WatchSpaceBackupsRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(SpaceBackupList)(result)
   }
 
   /**

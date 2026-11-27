@@ -102,6 +102,9 @@ func (a *ProviderAccount) MoveSpaceStorage(
 	if backendID != "" && settings.FindStorageBackend(backendID) == nil {
 		return errors.Wrap(account_settings.ErrStorageBackendNotFound, backendID)
 	}
+	if settings.FindStorageBackend(backendID).GetGdrive() != nil {
+		return errors.New("Drive backends are backup destinations, not primary storage")
+	}
 
 	// Retain the block-store tracker until the move returns.
 	tkrRef, tkr, _ := a.bstores.AddKeyRef(blockStoreID)

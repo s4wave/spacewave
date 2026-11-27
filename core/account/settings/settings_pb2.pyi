@@ -4,6 +4,9 @@ from core.sobject import sobject_pb2 as _sobject_pb2
 from db.block.store.s3 import s3_pb2 as _s3_pb2
 from sdk.command import command_pb2 as _command_pb2
 from sdk.secret import secret_pb2 as _secret_pb2
+from sdk.world import world_pb2 as _world_pb2
+from db.block import block_pb2 as _block_pb2
+from net.envelope import envelope_pb2 as _envelope_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
@@ -47,20 +50,30 @@ class AccountSettings(_message.Message):
     def __init__(self, display_name: _Optional[str] = ..., paired_devices: _Optional[_Iterable[_Union[PairedDevice, _Mapping]]] = ..., entity_keypairs: _Optional[_Iterable[_Union[_session_pb2.EntityKeypair, _Mapping]]] = ..., session_presentations: _Optional[_Iterable[_Union[SessionPresentation, _Mapping]]] = ..., keybinding_overrides: _Optional[_Union[_command_pb2.KeybindingOverrideSet, _Mapping]] = ..., sessions: _Optional[_Iterable[_Union[AccountSession, _Mapping]]] = ..., catalog: _Optional[_Iterable[_Union[AccountCatalogEntry, _Mapping]]] = ..., transition: _Optional[_Union[_provider_pb2.AccountTransition, _Mapping]] = ..., accepted_migrations: _Optional[_Iterable[_Union[_provider_pb2.AccountTransition, _Mapping]]] = ..., storage_backends: _Optional[_Iterable[_Union[StorageBackend, _Mapping]]] = ..., default_storage_backend_id: _Optional[str] = ..., block_store_placements: _Optional[_Iterable[_Union[BlockStorePlacement, _Mapping]]] = ..., storage_releases: _Optional[_Iterable[_Union[BlockStorePlacement, _Mapping]]] = ..., developer_space_id: _Optional[str] = ..., plugin_ids: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class StorageBackend(_message.Message):
-    __slots__ = ("id", "display_name", "s3", "credential", "sql", "ftps")
+    __slots__ = ("id", "display_name", "s3", "credential", "sql", "ftps", "gdrive")
     ID_FIELD_NUMBER: _ClassVar[int]
     DISPLAY_NAME_FIELD_NUMBER: _ClassVar[int]
     S3_FIELD_NUMBER: _ClassVar[int]
     CREDENTIAL_FIELD_NUMBER: _ClassVar[int]
     SQL_FIELD_NUMBER: _ClassVar[int]
     FTPS_FIELD_NUMBER: _ClassVar[int]
+    GDRIVE_FIELD_NUMBER: _ClassVar[int]
     id: str
     display_name: str
     s3: S3Location
     credential: _secret_pb2.Secret
     sql: SqlLocation
     ftps: FtpsLocation
-    def __init__(self, id: _Optional[str] = ..., display_name: _Optional[str] = ..., s3: _Optional[_Union[S3Location, _Mapping]] = ..., credential: _Optional[_Union[_secret_pb2.Secret, _Mapping]] = ..., sql: _Optional[_Union[SqlLocation, _Mapping]] = ..., ftps: _Optional[_Union[FtpsLocation, _Mapping]] = ...) -> None: ...
+    gdrive: GdriveLocation
+    def __init__(self, id: _Optional[str] = ..., display_name: _Optional[str] = ..., s3: _Optional[_Union[S3Location, _Mapping]] = ..., credential: _Optional[_Union[_secret_pb2.Secret, _Mapping]] = ..., sql: _Optional[_Union[SqlLocation, _Mapping]] = ..., ftps: _Optional[_Union[FtpsLocation, _Mapping]] = ..., gdrive: _Optional[_Union[GdriveLocation, _Mapping]] = ...) -> None: ...
+
+class GdriveLocation(_message.Message):
+    __slots__ = ("root_folder_id", "account_label")
+    ROOT_FOLDER_ID_FIELD_NUMBER: _ClassVar[int]
+    ACCOUNT_LABEL_FIELD_NUMBER: _ClassVar[int]
+    root_folder_id: str
+    account_label: str
+    def __init__(self, root_folder_id: _Optional[str] = ..., account_label: _Optional[str] = ...) -> None: ...
 
 class FtpsLocation(_message.Message):
     __slots__ = ("host", "port", "netrc_path", "root", "prefix", "max_conns", "conns_per_login", "sftp", "host_key", "ftps_port", "merge_tail_bytes", "sole_writer")
@@ -311,3 +324,115 @@ class RemoveSessionPresentationOp(_message.Message):
     PEER_ID_FIELD_NUMBER: _ClassVar[int]
     peer_id: str
     def __init__(self, peer_id: _Optional[str] = ...) -> None: ...
+
+class SpaceBackup(_message.Message):
+    __slots__ = ("id", "space_id", "storage_backend_id", "automatic", "interval_seconds")
+    ID_FIELD_NUMBER: _ClassVar[int]
+    SPACE_ID_FIELD_NUMBER: _ClassVar[int]
+    STORAGE_BACKEND_ID_FIELD_NUMBER: _ClassVar[int]
+    AUTOMATIC_FIELD_NUMBER: _ClassVar[int]
+    INTERVAL_SECONDS_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    space_id: str
+    storage_backend_id: str
+    automatic: bool
+    interval_seconds: int
+    def __init__(self, id: _Optional[str] = ..., space_id: _Optional[str] = ..., storage_backend_id: _Optional[str] = ..., automatic: _Optional[bool] = ..., interval_seconds: _Optional[int] = ...) -> None: ...
+
+class SpaceBackupSnapshot(_message.Message):
+    __slots__ = ("world", "retained_roots")
+    WORLD_FIELD_NUMBER: _ClassVar[int]
+    RETAINED_ROOTS_FIELD_NUMBER: _ClassVar[int]
+    world: _world_pb2.WorldRootSnapshot
+    retained_roots: _containers.RepeatedCompositeFieldContainer[_block_pb2.BlockRef]
+    def __init__(self, world: _Optional[_Union[_world_pb2.WorldRootSnapshot, _Mapping]] = ..., retained_roots: _Optional[_Iterable[_Union[_block_pb2.BlockRef, _Mapping]]] = ...) -> None: ...
+
+class SpaceBackupIndex(_message.Message):
+    __slots__ = ("provider_account_id", "entity_id", "envelope")
+    PROVIDER_ACCOUNT_ID_FIELD_NUMBER: _ClassVar[int]
+    ENTITY_ID_FIELD_NUMBER: _ClassVar[int]
+    ENVELOPE_FIELD_NUMBER: _ClassVar[int]
+    provider_account_id: str
+    entity_id: str
+    envelope: _envelope_pb2.Envelope
+    def __init__(self, provider_account_id: _Optional[str] = ..., entity_id: _Optional[str] = ..., envelope: _Optional[_Union[_envelope_pb2.Envelope, _Mapping]] = ...) -> None: ...
+
+class SpaceBackupPublished(_message.Message):
+    __slots__ = ("key", "snapshot", "published_unix_seconds", "recipient_fingerprint")
+    KEY_FIELD_NUMBER: _ClassVar[int]
+    SNAPSHOT_FIELD_NUMBER: _ClassVar[int]
+    PUBLISHED_UNIX_SECONDS_FIELD_NUMBER: _ClassVar[int]
+    RECIPIENT_FINGERPRINT_FIELD_NUMBER: _ClassVar[int]
+    key: str
+    snapshot: SpaceBackupSnapshot
+    published_unix_seconds: int
+    recipient_fingerprint: bytes
+    def __init__(self, key: _Optional[str] = ..., snapshot: _Optional[_Union[SpaceBackupSnapshot, _Mapping]] = ..., published_unix_seconds: _Optional[int] = ..., recipient_fingerprint: _Optional[bytes] = ...) -> None: ...
+
+class SpaceBackupPublication(_message.Message):
+    __slots__ = ("key", "seqno", "published_unix_seconds")
+    KEY_FIELD_NUMBER: _ClassVar[int]
+    SEQNO_FIELD_NUMBER: _ClassVar[int]
+    PUBLISHED_UNIX_SECONDS_FIELD_NUMBER: _ClassVar[int]
+    key: str
+    seqno: int
+    published_unix_seconds: int
+    def __init__(self, key: _Optional[str] = ..., seqno: _Optional[int] = ..., published_unix_seconds: _Optional[int] = ...) -> None: ...
+
+class SpaceBackupProgress(_message.Message):
+    __slots__ = ("read_bytes", "written_bytes", "packs", "holes")
+    READ_BYTES_FIELD_NUMBER: _ClassVar[int]
+    WRITTEN_BYTES_FIELD_NUMBER: _ClassVar[int]
+    PACKS_FIELD_NUMBER: _ClassVar[int]
+    HOLES_FIELD_NUMBER: _ClassVar[int]
+    read_bytes: int
+    written_bytes: int
+    packs: int
+    holes: int
+    def __init__(self, read_bytes: _Optional[int] = ..., written_bytes: _Optional[int] = ..., packs: _Optional[int] = ..., holes: _Optional[int] = ...) -> None: ...
+
+class SpaceBackupWaiting(_message.Message):
+    __slots__ = ("resume_unix_seconds",)
+    RESUME_UNIX_SECONDS_FIELD_NUMBER: _ClassVar[int]
+    resume_unix_seconds: int
+    def __init__(self, resume_unix_seconds: _Optional[int] = ...) -> None: ...
+
+class SpaceBackupFailure(_message.Message):
+    __slots__ = ("message",)
+    MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    message: str
+    def __init__(self, message: _Optional[str] = ...) -> None: ...
+
+class SpaceBackupIdle(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class SpaceBackupState(_message.Message):
+    __slots__ = ("run_sequence", "backup", "idle", "copying", "up_to_date", "incomplete", "waiting_upload_limit", "waiting_quota", "waiting_sign_in", "failed")
+    RUN_SEQUENCE_FIELD_NUMBER: _ClassVar[int]
+    BACKUP_FIELD_NUMBER: _ClassVar[int]
+    IDLE_FIELD_NUMBER: _ClassVar[int]
+    COPYING_FIELD_NUMBER: _ClassVar[int]
+    UP_TO_DATE_FIELD_NUMBER: _ClassVar[int]
+    INCOMPLETE_FIELD_NUMBER: _ClassVar[int]
+    WAITING_UPLOAD_LIMIT_FIELD_NUMBER: _ClassVar[int]
+    WAITING_QUOTA_FIELD_NUMBER: _ClassVar[int]
+    WAITING_SIGN_IN_FIELD_NUMBER: _ClassVar[int]
+    FAILED_FIELD_NUMBER: _ClassVar[int]
+    run_sequence: int
+    backup: SpaceBackup
+    idle: SpaceBackupIdle
+    copying: SpaceBackupProgress
+    up_to_date: SpaceBackupPublication
+    incomplete: SpaceBackupProgress
+    waiting_upload_limit: SpaceBackupWaiting
+    waiting_quota: SpaceBackupWaiting
+    waiting_sign_in: SpaceBackupWaiting
+    failed: SpaceBackupFailure
+    def __init__(self, run_sequence: _Optional[int] = ..., backup: _Optional[_Union[SpaceBackup, _Mapping]] = ..., idle: _Optional[_Union[SpaceBackupIdle, _Mapping]] = ..., copying: _Optional[_Union[SpaceBackupProgress, _Mapping]] = ..., up_to_date: _Optional[_Union[SpaceBackupPublication, _Mapping]] = ..., incomplete: _Optional[_Union[SpaceBackupProgress, _Mapping]] = ..., waiting_upload_limit: _Optional[_Union[SpaceBackupWaiting, _Mapping]] = ..., waiting_quota: _Optional[_Union[SpaceBackupWaiting, _Mapping]] = ..., waiting_sign_in: _Optional[_Union[SpaceBackupWaiting, _Mapping]] = ..., failed: _Optional[_Union[SpaceBackupFailure, _Mapping]] = ...) -> None: ...
+
+class SpaceBackupList(_message.Message):
+    __slots__ = ("backups",)
+    BACKUPS_FIELD_NUMBER: _ClassVar[int]
+    backups: _containers.RepeatedCompositeFieldContainer[SpaceBackupState]
+    def __init__(self, backups: _Optional[_Iterable[_Union[SpaceBackupState, _Mapping]]] = ...) -> None: ...

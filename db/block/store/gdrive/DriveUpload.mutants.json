@@ -1,0 +1,8 @@
+[
+  {
+    "name": "Expose a file after its first chunk",
+    "replace": [["visible \\/ committed' = Chunks", "visible \\/ committed' > 0"]],
+    "expect": "CompleteBeforeVisible",
+    "config": "DriveUpload.cfg"
+  }
+]

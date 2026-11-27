@@ -59,7 +59,7 @@ require (
 	github.com/fclairamb/ftpserverlib v0.32.7
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v6 v6.0.0-beta.1.0.20261118131511-ef69bf247300 // main
-	github.com/go-git/go-git/v6 v6.0.0-beta.1.0.20261125152119-85d69308d46e // main
+	github.com/go-git/go-git/v6 v6.0.0-beta.1.0.20261127031947-1405f5a65909 // main
 	github.com/go-sql-driver/mysql v1.10.1
 	github.com/goccy/go-json v0.12.0
 	github.com/godbus/dbus/v5 v5.2.4
@@ -107,6 +107,7 @@ require (
 	golang.org/x/crypto v0.59.0
 	golang.org/x/exp v0.0.0-20261014143641-f0251eb4aa3e
 	golang.org/x/mod v0.43.0 // latest
+	golang.org/x/oauth2 v0.37.0
 	golang.org/x/sync v0.25.0
 	golang.org/x/sys v0.50.0
 	golang.org/x/term v0.48.0

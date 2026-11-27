@@ -11,6 +11,7 @@ import "embed"
 //go:embed app/quickstart/perf-test.ts app/quickstart/startup-boundary.ts app/space/create-op-builders.ts
 //go:embed app/space/space-settings.ts app/space/space.ts app/urls.ts app/vm/v86-wizard-config.ts
 //go:embed bldr/manifest/manifest.pb.ts db/block/store/s3/s3.pb.ts forge/worker/worker.pb.ts
+//go:embed db/block/store/gdrive/gdrive.pb.ts net/envelope/envelope.pb.ts
 //go:embed app/wizard/intro.ts core/account/settings/settings.pb.ts core/changelog/changelog.pb.ts
 //go:embed core/pairing/pairing.pb.ts
 //go:embed core/forge/dashboard/dashboard.pb.ts core/forge/job/job.pb.ts core/forge/task/task.pb.ts

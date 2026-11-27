@@ -146,15 +146,18 @@ func syncToBillyOnce(
 
 	// Carry source modification times to a destination that can set them.
 	bfsChtimes, bfsChtimesOk := bfs.(modTimeSetter)
+	bfsChmod, bfsChmodOk := bfs.(billy.Chmod)
 
 	// stackElem is a element in the fs location stack.
 	type stackElem struct {
-		// fsHandle is the filesystem handle.
+		// fsHandle owns a source visit; a permission-finalization entry has none.
 		fsHandle *unixfs.FSHandle
 		// srcPath is the path in the source fs.
 		srcPath string
 		// outPath is the path in the output fs.
 		outPath string
+		// finishPermissions restores a new directory's mode after its children, nil on entry.
+		finishPermissions *fs.FileMode
 	}
 
 	// Track the directories left to visit, releasing each handle the walk
@@ -168,13 +171,16 @@ func syncToBillyOnce(
 		})
 	}
 	releaseElem := func(elem stackElem) {
-		if elem.srcPath != "" {
+		if elem.fsHandle != nil && elem.srcPath != "" {
 			elem.fsHandle.Release()
 		}
 	}
 	defer func() {
 		for _, v := range slices.Backward(stack) {
-			v.fsHandle.Release()
+			if v.finishPermissions != nil && bfsChmodOk {
+				_ = bfsChmod.Chmod(v.outPath, *v.finishPermissions) // Restore owner write access changes on a failed partial sync.
+			}
+			releaseElem(v)
 		}
 	}()
 
@@ -186,6 +192,16 @@ func syncToBillyOnce(
 	for len(stack) != 0 {
 		nelem := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]
+
+		// Restore a directory's final permissions only after every child was written.
+		if nelem.finishPermissions != nil {
+			err := bfsChmod.Chmod(nelem.outPath, *nelem.finishPermissions)
+			releaseElem(nelem)
+			if err != nil {
+				return &fs.PathError{Op: "chmod", Path: nelem.outPath, Err: err}
+			}
+			continue
+		}
 
 		handle := nelem.fsHandle
 		srcPath := nelem.srcPath
@@ -210,14 +226,19 @@ func syncToBillyOnce(
 
 		// if the source is a directory
 		if srcFileInfo.IsDir() {
-			// call MkdirAll to create the destination in case it doesn't exist.
-			// if !doWrite, the check above established that
-			// outPath exists.
+			// Populate only new directories before applying their final permissions.
+			var finalPermissions *fs.FileMode
 			if doWrite {
-				if err := bfs.MkdirAll(outPath, srcFileInfo.Mode().Perm()); err != nil {
+				finalPermissions, err = prepareSyncDirectory(bfs, outPath, srcFileInfo.Mode().Perm())
+				if err != nil {
 					releaseElem(nelem)
-					return &fs.PathError{Op: "mkdir", Path: outPath, Err: err}
+					return err
 				}
+			}
+
+			// Finalize even when enumeration or a later child copy fails.
+			if finalPermissions != nil {
+				stack = append(stack, stackElem{outPath: outPath, finishPermissions: finalPermissions})
 			}
 
 			// iterate over source directory contents & enqueue
@@ -290,7 +311,7 @@ func syncToBillyOnce(
 				}
 			}
 
-			// visit any child entries that should exist
+			// Visit child entries after their directory's finalization is queued.
 			for _, childName := range childNames {
 				childHandle, err := handle.Lookup(ctx, childName)
 				if err != nil {

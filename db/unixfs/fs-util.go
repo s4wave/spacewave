@@ -241,7 +241,8 @@ func RemoveAllWithPath(ctx context.Context, h *FSHandle, filepath string, ts tim
 	return dirHandle.Remove(ctx, []string{filename}, ts)
 }
 
-// ChmodWithPath calls Chmod on the given path.
+// ChmodWithPath sets permission bits and preserves the node type. A mode that
+// includes type bits must match the existing type.
 func ChmodWithPath(ctx context.Context, h *FSHandle, filepath string, mode fs.FileMode, ts time.Time) error {
 	// Open the file handle whose permissions will change.
 	ch, _, err := h.LookupPath(ctx, filepath)
@@ -259,11 +260,11 @@ func ChmodWithPath(ctx context.Context, h *FSHandle, filepath string, mode fs.Fi
 		return err
 	}
 
-	// Reject a node type change through chmod.
+	// Check a type only when the caller supplied one.
 	oldType := info.Mode() & fs.ModeType
 	setType := mode & fs.ModeType
-	if oldType != setType {
-		return errors.New("TODO chmod: change node type")
+	if setType != 0 && oldType != setType {
+		return errors.New("chmod cannot change the node type")
 	}
 
 	// Apply the requested permission bits when they differ.
