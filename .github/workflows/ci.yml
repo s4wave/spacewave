@@ -5,9 +5,8 @@ name: CI
 # every package whose tests depend on one, the lint of the changed packages,
 # and the JavaScript checks when their inputs changed. A push to a stack branch,
 # named <machine>-stack, narrows to the delta from its merge base with master,
-# so one run covers every change the stack holds that master lacks. A manual dispatch, which
-# the CI hourly workflow sends for an unmeasured master head, and a pull
-# request into release run the full suite. The end-to-end suites run in the E2E
+# so one run covers every change the stack holds that master lacks. Daily and
+# manual runs, and pull requests into release, run the full suite. The end-to-end suites run in the E2E
 # workflow on the same full-run triggers.
 on:
   push:
@@ -22,7 +21,15 @@ on:
       - 'doc/**'
       - '*.md'
       - 'CHANGELOG.org'
+  schedule:
+    - cron: '17 9 * * *'
   workflow_dispatch:
+    inputs:
+      suite:
+        description: Test suite to run
+        type: choice
+        options: [full]
+        default: full
 
 # Pull request runs group by pull request number, and a new push cancels the
 # previous run. Stack pushes group by branch without cancelling: a started run
@@ -45,6 +52,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
+      mode: ${{ steps.select.outputs.mode }}
+      lean: ${{ steps.select.outputs.lean }}
+      python: ${{ steps.select.outputs.python }}
+      base: ${{ steps.select.outputs.base }}
       members: ${{ steps.select.outputs.members }}
       alpha: ${{ steps.select.outputs.alpha }}
       db: ${{ steps.select.outputs.db }}
@@ -81,6 +92,7 @@ jobs:
             if [ "$BASE_REF" = release ]; then
               bun scripts/ci-affected.ts full
             else
+              echo "base=$(git rev-parse HEAD^1)" >> "$GITHUB_OUTPUT"
               bun scripts/ci-affected.ts delta HEAD^1
             fi
             ;;
@@ -88,11 +100,13 @@ jobs:
             if [ "${REF_NAME%-stack}" != "$REF_NAME" ]; then
               if base=$(gh api "repos/$GITHUB_REPOSITORY/compare/master...$GITHUB_SHA" --jq .merge_base_commit.sha) &&
                 git fetch --depth=1 origin "$base"; then
+                echo "base=$base" >> "$GITHUB_OUTPUT"
                 bun scripts/ci-affected.ts delta "$base"
               else
                 bun scripts/ci-affected.ts full
               fi
             elif git fetch --depth=1 origin "$BEFORE"; then
+              echo "base=$BEFORE" >> "$GITHUB_OUTPUT"
               bun scripts/ci-affected.ts delta "$BEFORE"
             else
               bun scripts/ci-affected.ts full
@@ -107,7 +121,7 @@ jobs:
   # entry sets workers: every model on a full run, and on a delta run those
   # whose config, spec or spec modules changed, less the specs too slow for a
   # delta run; see scripts/ci-affected.ts. A delta run that lists none skips
-  # the job, and the CI hourly workflow's full dispatch checks every model.
+  # the job, and the daily full run checks every model.
   # It judges no mutant; the TLA+ mutants workflow judges them nightly.
   specs:
     name: TLA+ specs (${{ matrix.name }})
@@ -133,12 +147,13 @@ jobs:
           # tla-ts keeps the whole state space in the Node heap.
           NODE_OPTIONS: --max-old-space-size=12288
         run: |
-          read -ra configs <<<"$CONFIGS"
+          read -ra configs <<<"${CONFIGS:?}"
           bun run check:tla:configs -workers "$WORKERS" "${configs[@]}"
 
   member-ci:
+    if: ${{ needs.affected.outputs.members != '{"include":[]}' }}
     name: CI (${{ matrix.name }})
-    needs: affected
+    needs: [affected, build]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -213,8 +228,9 @@ jobs:
   # jobs on the shared matrix machinery instead of serial steps. The JavaScript
   # lint takes seconds, so it runs as the test-js stage's check.
   member-ci-alpha:
+    if: ${{ needs.affected.outputs.alpha != '{"include":[]}' }}
     name: CI (alpha / ${{ matrix.name }})
-    needs: affected
+    needs: [affected, build]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -251,11 +267,18 @@ jobs:
         if: ${{ matrix.check_script != '' }}
         run: bun run ${{ matrix.check_script }}
 
+      - name: Fetch JavaScript comparison base
+        if: ${{ matrix.name == 'test-js' && needs.affected.outputs.base != '' }}
+        env:
+          BASE: ${{ needs.affected.outputs.base }}
+        run: git fetch --depth=1 origin "$BASE"
+
       - name: Run alpha stage
         if: ${{ matrix.script != '' }}
         env:
           GO_PACKAGES: ${{ matrix.go_packages }}
           GO_LINT_PACKAGES: ${{ matrix.go_packages }}
+          CI_BASE: ${{ needs.affected.outputs.mode == 'delta' && matrix.name == 'test-js' && needs.affected.outputs.base || '' }}
         run: bun run ${{ matrix.script }}
 
   # The db member's compile check (startup-trace builds ./bldr/... ./db/... with
@@ -263,8 +286,9 @@ jobs:
   # saturate a runner; serially they made CI (db) the second-to-last job to finish
   # while other runners sat idle. The stages run as parallel jobs instead.
   member-ci-db:
+    if: ${{ needs.affected.outputs.db != '{"include":[]}' }}
     name: CI (db / ${{ matrix.name }})
-    needs: affected
+    needs: [affected, build]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -330,7 +354,9 @@ jobs:
         if: ${{ matrix.test_go_js }}
         env:
           GO_JS_PACKAGES: ${{ matrix.go_js_packages }}
-        run: env -u GO_JS_PACKAGES bun run test:go:js $GO_JS_PACKAGES
+        run: |
+          read -ra packages <<<"$GO_JS_PACKAGES"
+          env -u GO_JS_PACKAGES bun run test:go:js "${packages[@]}"
 
       - name: Test and lint db JavaScript
         if: ${{ matrix.js }}
@@ -339,6 +365,8 @@ jobs:
           bun run lint:js:db
 
   lean:
+    needs: affected
+    if: ${{ needs.affected.outputs.lean == 'true' }}
     name: Lean
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -366,6 +394,7 @@ jobs:
         run: bun run test:lean
 
   python-resource:
+    needs: affected
     name: Python Resource
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -420,9 +449,11 @@ jobs:
           fi
 
       - name: Test Python Resource package
+        if: ${{ needs.affected.outputs.python == 'true' }}
         run: uv run python -m unittest discover -s python/tests -v
 
       - name: Check Python Resource package
+        if: ${{ needs.affected.outputs.python == 'true' }}
         run: |
           paths=(
             spacewave_resource
@@ -436,11 +467,13 @@ jobs:
           uv run ruff format --check "${paths[@]}"
 
       - name: Test reciprocal Resource lifecycle
+        if: ${{ needs.affected.outputs.python == 'true' }}
         run: >-
           go test -timeout=30s ./bldr/resource ./bldr/resource/server
           -run 'Test(PythonClientResourceLifecycleAgainstGoServer|PythonClientResourceLifecycleAgainstTypeScriptServer|TypeScriptClientResourceLifecycleAgainstPythonServer|GoClientResourceLifecycleAgainstPythonServer)$'
 
       - name: Test Python Session journey
+        if: ${{ needs.affected.outputs.python == 'true' }}
         env:
           RUN_PYTHON_SESSION_JOURNEY: '1'
         run: >-
@@ -448,6 +481,7 @@ jobs:
           -run '^TestPythonSessionJourneyAgainstGoSessionOwner$'
 
       - name: Verify Python Resource wheel
+        if: ${{ needs.affected.outputs.python == 'true' }}
         run: |
           uv build --wheel --out-dir .tmp/python-resource-wheel
           uv run python - <<'PY'
@@ -527,6 +561,8 @@ jobs:
           PY
 
   licenses:
+    needs: affected
+    if: ${{ needs.affected.outputs.mode == 'full' }}
     name: Licenses
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -677,6 +713,7 @@ jobs:
     name: Stop a failed stack run
     needs:
       - affected
+      - build
       - member-ci
       - member-ci-alpha
       - member-ci-db
@@ -702,3 +739,56 @@ jobs:
           if [ "$left" -gt 0 ]; then
             gh run cancel "$GITHUB_RUN_ID" -R "$GITHUB_REPOSITORY"
           fi
+
+  build:
+    name: Build module
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Build every Go package
+        run: go build -p=2 -tags=purego ./...
+
+  race:
+    name: Full race suite
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.base_ref == 'release' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+      - name: Install uv
+        run: pipx install uv==0.12.3
+      - name: Prepare test dependencies
+        run: |
+          bun install --frozen-lockfile --ignore-scripts
+          bun run prepare
+          uv sync --frozen --all-groups
+      - name: Test every package with the race detector
+        run: go test -race -p=2 -tags=purego,skip_e2e -timeout=20m ./...
+
+  dispatch-full-extras:
+    name: Dispatch full E2E and mutant suites
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Dispatch the other full-suite workflows
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          REF: ${{ github.ref_name }}
+        run: |
+          for workflow in e2e.yml e2e-nightly.yml tla-mutants.yml; do
+            gh workflow run "$workflow" --ref "$REF"
+          done

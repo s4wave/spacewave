@@ -5,6 +5,8 @@ name: E2E
 # unmeasured master head, dispatched by the CI hourly workflow, and on every
 # pull request into release. Master pushes run only the CI workflow.
 on:
+  schedule:
+    - cron: '17 9 * * *'
   pull_request:
     branches: ['release']
     paths-ignore:

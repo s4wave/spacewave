@@ -20,7 +20,10 @@ function run(command, args) {
 
 async function main() {
   const args = process.argv.slice(2)
-  const vitestArgs = ['vitest', 'run', ...args]
+  const changed = process.env.CI_BASE
+    ? ['--changed', process.env.CI_BASE, '--passWithNoTests']
+    : []
+  const vitestArgs = ['vitest', 'run', ...changed, ...args]
   const vitestCode = await run('bunx', vitestArgs)
   if (vitestCode !== 0) {
     process.exit(vitestCode)

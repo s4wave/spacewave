@@ -1,0 +1,65 @@
+name: Track full-suite failures
+
+on:
+  workflow_run:
+    workflows: ['CI', 'E2E', 'Nightly E2E', 'TLA+ mutants']
+    types: [completed]
+
+permissions:
+  actions: read
+  issues: write
+
+concurrency:
+  group: daily-failure-issue
+  cancel-in-progress: false
+
+jobs:
+  report:
+    if: >-
+      github.event.workflow_run.head_branch == 'master' &&
+      (github.event.workflow_run.event == 'schedule' || github.event.workflow_run.event == 'workflow_dispatch') &&
+      (github.event.workflow_run.conclusion == 'failure' || github.event.workflow_run.conclusion == 'timed_out' || github.event.workflow_run.conclusion == 'cancelled')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # No checkout: workflow_run carries write authority and must never run
+      # source or interpolate shell code from the workflow it reports.
+      - uses: actions/github-script@v8
+        with:
+          script: |
+            const { owner, repo } = context.repo
+            const run = context.payload.workflow_run
+            const title = 'Daily full-suite CI failures'
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner, repo, state: 'open', creator: 'github-actions[bot]', per_page: 100,
+            })
+            const issue = issues.find((item) => !item.pull_request && item.title === title)
+
+            // GitHub retains only the newest pending report in a concurrency group.
+            // Reconcile recent runs so a coalesced completion cannot disappear.
+            const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+            const failed = new Map([[run.html_url, run]])
+            for (const event of ['schedule', 'workflow_dispatch']) {
+              const runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, {
+                owner, repo, branch: 'master', event, created: `>=${since}`, per_page: 100,
+              })
+              for (const candidate of runs) {
+                if (["CI", "E2E", "Nightly E2E", "TLA+ mutants"].includes(candidate.name) &&
+                    ['failure', 'timed_out', 'cancelled'].includes(candidate.conclusion)) {
+                  failed.set(candidate.html_url, candidate)
+                }
+              }
+            }
+
+            // Retain earlier failures, appending only runs the issue does not yet name.
+            const body = issue?.body || 'Full-suite failures need investigation. Close this issue after the recorded failures are resolved.'
+            const entries = [...failed.values()]
+              .filter((candidate) => !body.includes(candidate.html_url))
+              .map((candidate) => `- ${candidate.name}: ${candidate.conclusion} at ${candidate.head_sha} — ${candidate.html_url}`)
+            if (entries.length === 0) return
+            const updated = `${body}\n\n${entries.join('\n')}`
+            if (issue) {
+              await github.rest.issues.update({ owner, repo, issue_number: issue.number, body: updated })
+            } else {
+              await github.rest.issues.create({ owner, repo, title, body: updated })
+            }

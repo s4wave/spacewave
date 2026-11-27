@@ -1,13 +1,13 @@
 #!/usr/bin/env bun
 
 // ci-affected selects the work of each member job and writes it as GitHub
-// Actions job outputs. Every job runs in every mode; the selection only narrows
-// its steps. A full run selects every step. A delta run compares the checkout
+// Actions job outputs. Empty matrix jobs are skipped before setup. A full run
+// selects every step. A delta run compares the checkout
 // with a base commit: it tests the changed Go packages and every package whose
 // tests depend on one, lints the changed Go packages, and runs the JavaScript
 // checks when a JavaScript or TypeScript input changed. A job with no selected
-// step passes after setup. The TLA+ spec jobs are the exception: a delta run
-// lists only the spec jobs whose models changed, even when a job definition
+// step is omitted from the matrix. A delta run selects only the TLA+ jobs
+// whose models changed, even when a job definition
 // selected the full suite, and the workflow skips the spec matrix when it
 // lists none. Every spec job checks its
 // configs through check:tla:configs and judges no mutant: the mutants take
@@ -15,7 +15,7 @@
 // lists the nightly jobs that judge them.
 //
 // Usage: bun scripts/ci-affected.ts full
-//        bun scripts/ci-affected.ts delta <base-commit>
+//        bun scripts/ci-affected.ts delta <base-commit> [head-commit]
 //        bun scripts/ci-affected.ts mutants
 //
 // Outside GitHub Actions the outputs print to stdout.
@@ -293,6 +293,7 @@ function run(command: string, args: string[]): string {
 // loadGraph reads every package and its test dependencies with the build tags
 // the member tests use.
 function loadGraph(): Graph {
+  // Read the host build's transitive test dependency graph.
   const module = run('go', ['list', '-m']).trim()
   const template = '{{.ImportPath}}\t{{.ForTest}}\t{{.Dir}}\t{{join .Deps ","}}'
   const out = run('go', [
@@ -306,6 +307,7 @@ function loadGraph(): Graph {
     './...',
   ])
 
+  // Index directories and reverse dependencies, including test variants.
   const root = process.cwd()
   const dirs = new Map<string, string>()
   const dependents = new Map<string, Set<string>>()
@@ -366,13 +368,15 @@ function packageOf(graph: Graph, file: string): string | undefined {
 // changedModules returns the module paths whose required version differs
 // between the base and head go.mod. It returns undefined when a directive
 // other than require changed, since that can affect every package.
-function changedModules(base: string): Set<string> | undefined {
+function changedModules(base: string, head: string): Set<string> | undefined {
+  // Compare required versions separately from toolchain and module directives.
   const before = parseGoMod(run('git', ['show', `${base}:go.mod`]))
-  const after = parseGoMod(readFileSync('go.mod', 'utf8'))
+  const after = parseGoMod(run('git', ['show', `${head}:go.mod`]))
   if (before.other !== after.other) {
     return undefined
   }
 
+  // Include added, updated and removed module requirements.
   const changed = new Set<string>()
   for (const [path, version] of after.require) {
     if (before.require.get(path) !== version) {
@@ -393,6 +397,7 @@ function parseGoMod(text: string): {
   require: Map<string, string>
   other: string
 } {
+  // Normalize require entries and retain every other directive for comparison.
   const require = new Map<string, string>()
   const other: string[] = []
   let inRequire = false
@@ -471,6 +476,7 @@ function specConfigs(): string[] {
 // own job, holding those of its configs it allows, and a models job of the
 // other configs it allows.
 function specEntries(selected: (config: string) => boolean): SpecEntry[] {
+  // Partition configs between dedicated jobs and the shared model job.
   const all = specConfigs()
   const runnable = new Set(all)
   const jobs = ownSpecJobs.map((job) => ({
@@ -481,6 +487,8 @@ function specEntries(selected: (config: string) => boolean): SpecEntry[] {
   }))
   const own = new Set(jobs.flatMap((j) => j.configs))
   const models = all.filter((cfg) => !own.has(cfg) && selected(cfg))
+
+  // Emit only dedicated jobs with a selected config.
   const entries: SpecEntry[] = []
   for (const { job, configs } of jobs) {
     const chosen = configs.filter(selected)
@@ -488,6 +496,8 @@ function specEntries(selected: (config: string) => boolean): SpecEntry[] {
       entries.push({ ...job, configs: chosen.join(' ') })
     }
   }
+
+  // Keep the remaining configs together in the shared model job.
   if (models.length > 0) {
     entries.unshift({
       name: 'models',
@@ -509,6 +519,7 @@ function deltaSpecs(files: string[]): SpecEntry[] {
 // directory with the longest stem that is the config's name or a dash
 // separated prefix of it, or undefined when none is, which the checker skips.
 function specOf(config: string, tlaFiles: Set<string>): string | undefined {
+  // Find the longest matching spec stem in the config's directory.
   const dir = dirname(config)
   const name = basename(config, '.cfg')
   let best: string | undefined
@@ -531,6 +542,7 @@ function specOf(config: string, tlaFiles: Set<string>): string | undefined {
 // INSTANCEs, directly or through another. The checker reads the remaining
 // modules from its own package, which bun.lock pins.
 function specModules(spec: string): Set<string> {
+  // Walk local module references, retaining a visited set for cyclic imports.
   const dir = dirname(spec)
   const seen = new Set<string>()
   const queue = [spec]
@@ -616,8 +628,9 @@ function fullSelection(): Selection {
 }
 
 // deltaSelection selects the work the changes since base need.
-function deltaSelection(base: string): Selection {
-  const files = run('git', ['diff', '--name-only', base, 'HEAD'])
+function deltaSelection(base: string, head = 'HEAD'): Selection {
+  // Read the exact comparison range before mapping it to packages.
+  const files = run('git', ['diff', '--name-only', base, head])
     .split('\n')
     .filter((file) => file !== '')
   console.error(`ci-affected: ${files.length} files changed since ${base}`)
@@ -648,7 +661,7 @@ function deltaSelection(base: string): Selection {
   const tested = new Set(changed)
   let modulesChanged = false
   if (files.includes('go.mod')) {
-    const modules = changedModules(base)
+    const modules = changedModules(base, head)
     if (!modules) {
       console.error('ci-affected: a go.mod directive selects the full suite')
       return fullSelection()
@@ -732,7 +745,7 @@ function deltaSelection(base: string): Selection {
   // Build both db stages, clearing the steps with no work. The js-only Go tests cover every
   // product tree, so they take every selected package. The graph is the host
   // build's, so a delta run misses a js-only test whose dependency changed
-  // only in js-tagged files; the hourly full run covers it.
+  // only in js-tagged files; the daily full run covers it.
   const dbTested = packageDirs(graph, tested, dbRoots)
   const dbChanged = packageDirs(graph, changed, dbRoots)
   const startupTrace = packageDirs(graph, tested, startupTraceRoots).length > 0
@@ -754,6 +767,7 @@ function deltaSelection(base: string): Selection {
     },
   ]
 
+  // Models follow changes to their specs, configs and local modules.
   const specs = deltaSpecs(files)
   console.error(`ci-affected: ${specs.length} spec jobs selected`)
 
@@ -773,9 +787,41 @@ const matrix = (include: object[]) => JSON.stringify({ include })
 function writeSelection(selection: Selection) {
   writeOutputs({
     mode: selection.mode,
-    members: matrix(selection.members),
-    alpha: matrix(selection.alpha),
-    db: matrix(selection.db),
+    lean: String(
+      selection.mode === 'full' ||
+        changedFiles.some((file) => /^(lean\/|core\/sobject\/)/.test(file)),
+    ),
+    python: String(
+      selection.mode === 'full' ||
+        changedFiles.some((file) =>
+          /^(python\/|spacewave_resource\/|bldr\/resource\/|core\/resource\/session\/|sdk\/(root|session)\/)/.test(
+            file,
+          ),
+        ),
+    ),
+    members: matrix(
+      selection.members.filter(
+        (entry) =>
+          entry.build_script ||
+          entry.lint_go_script ||
+          entry.lint_js_script ||
+          entry.test_go_script ||
+          entry.test_js_script,
+      ),
+    ),
+    alpha: matrix(
+      selection.alpha.filter((entry) => entry.script || entry.check_script),
+    ),
+    db: matrix(
+      selection.db.filter(
+        (entry) =>
+          entry.startup_trace ||
+          entry.lint_go ||
+          entry.test_go ||
+          entry.test_go_js ||
+          entry.js,
+      ),
+    ),
     specs: matrix(selection.specs),
   })
 }
@@ -793,11 +839,17 @@ function writeOutputs(outputs: Record<string, string>) {
   process.stdout.write(text)
 }
 
-const [mode, base] = process.argv.slice(2)
+const [mode, base, head] = process.argv.slice(2)
+const changedFiles =
+  mode === 'delta' && base
+    ? run('git', ['diff', '--name-only', base, head || 'HEAD'])
+        .trim()
+        .split('\n')
+    : []
 if (mode === 'full') {
   writeSelection(fullSelection())
 } else if (mode === 'delta' && base) {
-  writeSelection(deltaSelection(base))
+  writeSelection(deltaSelection(base, head))
 } else if (mode === 'mutants') {
   writeOutputs({
     mutants: matrix(mutantEntries()),

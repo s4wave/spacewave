@@ -249,7 +249,8 @@
     "bldr:test:js": "vitest run --config bldr/vitest.config.ts && bun run bldr:typecheck",
     "bldr:test:release:web": "bun run bldr:build:release:web && cross-env PLAYWRIGHT_WEB_PORT=30771 PLAYWRIGHT_RELEASE_DIST_PATH=.bldr-dist/build/web/js/wasm/bldr-demo-release/dist playwright test --config bldr/web/entrypoint/browser/playwright.config.ts",
     "bldr:typecheck": "tsrs --noEmit -p tsconfig.json --runExternalCode",
-    "bldr:vendor": "go mod vendor"
+    "bldr:vendor": "go mod vendor",
+    "format:ci": "oxfmt scripts/ci-affected.ts .github/workflows/ci.yml .github/workflows/daily-failure.yml scripts/test-js.js .github/workflows/e2e.yml"
   },
   "devDependencies": {
     "@aptre/common": "0.38.4",
