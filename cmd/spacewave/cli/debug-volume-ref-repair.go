@@ -194,21 +194,6 @@ type refRepairOpts struct {
 	histogram *refwalk.Histogram
 }
 
-// dirBlocks is a directory of blocks named by their B58 refs.
-type dirBlocks string
-
-// GetStoredBlock reads the block's file, or returns nil when there is none.
-func (d dirBlocks) GetStoredBlock(_ context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
-	data, err := os.ReadFile(filepath.Join(string(d), ref.MarshalString()))
-	if errors.Is(err, fs.ErrNotExist) {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	return &block.StoredBlock{Data: data}, nil
-}
-
 // refRepairFields formats the repair findings in the command's field table.
 func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string {
 	// A dry run wrote nothing, so its front is the one the volume has now.

@@ -3,18 +3,15 @@
 package spacewave_cli
 
 import (
-	"bufio"
 	"context"
 	stderrors "errors"
 	"io"
 	"strconv"
-	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
-	"github.com/s4wave/spacewave/db/kvtx"
-	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
+	"github.com/s4wave/spacewave/db/block/packcopy"
 	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 )
@@ -54,10 +51,8 @@ type volumeRefillResult struct {
 type volumeRefill struct {
 	// target is the stopped volume receiving fills.
 	target *volume_s4db.Volume
-	// source reads the source file's block keys in one read-only snapshot.
-	source kvtx.Tx
-	// keys is the source's default volume key layout.
-	keys *store_kvkey.KVKey
+	// source reads unverified block bytes from a stopped copy or a directory.
+	source packcopy.Source
 	// dryRun previews the results using the target's current records.
 	dryRun bool
 	// lacks receives the unfilled refs in input order.
@@ -68,44 +63,9 @@ type volumeRefill struct {
 
 // run reads at most one group of refs ahead of the target's existence check.
 func (r *volumeRefill) run(ctx context.Context, input io.Reader) error {
-	// Bound the number of refs awaiting a target lookup.
-	reader := bufio.NewReader(input)
-	refs := make([]*block.BlockRef, 0, volume_kvtx.MaxFillBatch)
-	for lineNo := 1; ; lineNo++ {
-		// Consume a line, including a final line without a newline.
-		if err := ctx.Err(); err != nil {
-			return err
-		}
-		line, readErr := reader.ReadString('\n')
-		if readErr != nil && readErr != io.EOF {
-			return errors.Wrapf(readErr, "read refs line %d", lineNo)
-		}
-
-		// Ignore blank lines and parse only the ref column of the others.
-		if strings.TrimSpace(line) != "" {
-			line = strings.TrimSuffix(strings.TrimSuffix(line, "\n"), "\r")
-			value, _, _ := strings.Cut(line, "\t")
-			ref, err := block.UnmarshalBlockRefB58(value)
-			if err != nil || ref == nil {
-				return errors.Errorf("refs line %d has an invalid B58 block ref", lineNo)
-			}
-			refs = append(refs, ref)
-		}
-
-		// Process each full group and the final short group in order.
-		if len(refs) < cap(refs) && readErr == nil {
-			continue
-		}
-		if len(refs) != 0 {
-			if err := r.refillBatch(ctx, refs); err != nil {
-				return err
-			}
-			refs = refs[:0]
-		}
-		if readErr == io.EOF {
-			return nil
-		}
-	}
+	return streamVolumeBlockRefs(ctx, input, volume_kvtx.MaxFillBatch, func(refs []*block.BlockRef) error {
+		return r.refillBatch(ctx, refs)
+	})
 }
 
 // refillBatch probes the target once, then verifies and fills the missing bytes.
@@ -128,18 +88,15 @@ func (r *volumeRefill) refillBatch(ctx context.Context, refs []*block.BlockRef) 
 		}
 
 		// Read and verify the physical block without opening the source as a Volume.
-		key, err := ref.MarshalKey()
-		if err != nil {
-			return err
-		}
-		data, found, err := r.source.Get(ctx, r.keys.GetBlockKey(key))
+		stored, err := r.source.GetStoredBlock(ctx, ref)
 		if err != nil {
 			return errors.Wrapf(err, "read source block %s", ref.MarshalString())
 		}
-		if !found {
+		if stored == nil {
 			outcomes[i] = refillMissing
 			continue
 		}
+		data := stored.Data
 		if err := ref.VerifyData(data, false); err != nil {
 			outcomes[i] = refillMismatch
 			continue
@@ -212,10 +169,11 @@ func (r *volumeRefill) fill(ctx context.Context, entries []*block.PutBatchEntry,
 
 // writeFills applies a batch and reconciles its drop and existence results with the classification.
 func (r *volumeRefill) writeFills(ctx context.Context, entries []*block.PutBatchEntry, indexes []int, outcomes []refillOutcome) error {
-	// Every entry's bytes hashed to its ref here. The source has one read-only
-	// open and only the engine's own reader-slot bookkeeping can write there.
+	// Every entry's bytes hashed to its ref here. A directory source is only
+	// read. An s4db source has one read-only open, and only the engine's
+	// reader-slot bookkeeping writes there.
 	// The command supplies no child refs, adds no lists or holders itself, and
-	// neither deletes nor rewrites records. RefillBlocks writes only the bytes
+	// neither deletes nor rewrites records. The fill path writes only the bytes
 	// of listed blocks. The fill path can also Land a parked block with its
 	// kept list and a leased root.
 	existed, err := r.target.PrepareOwnedBlockBatch(ctx, volumeRefillOwner, entries)
@@ -246,9 +204,9 @@ func (r *volumeRefill) writeFills(ctx context.Context, entries []*block.PutBatch
 func (o refillOutcome) reason() string {
 	switch o {
 	case refillMissing:
-		return "source lacks block"
+		return volumeBlockMissingReason
 	case refillMismatch:
-		return "hash mismatch"
+		return volumeBlockMismatchReason
 	case refillDropped:
 		return "records do not accept a copied fill"
 	default:
