@@ -16,6 +16,7 @@ import (
 	"github.com/s4wave/spacewave/db/block/byteslice"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	"github.com/s4wave/spacewave/db/bucket"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/tx"
@@ -38,17 +39,8 @@ func TestWorldEngine(t *testing.T) {
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	// Start the storage testbed for the block World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Open an empty storage cursor for the World root.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	// Open an empty cursor on the block storage testbed.
+	_, ocs := newWorldTestCursor(t, ctx, le)
 	defer ocs.Release()
 
 	// Create the engine over the storage cursor.
@@ -80,17 +72,8 @@ func TestWorldEngineCloseReleasesReadState(t *testing.T) {
 	log := logrus.New()
 	le := logrus.NewEntry(log)
 
-	// Start the storage testbed for the block World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Open an empty storage cursor for the World root.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	// Open an empty cursor on the block storage testbed.
+	_, ocs := newWorldTestCursor(t, ctx, le)
 
 	// Create the engine over the storage cursor.
 	eng, err := world_block.NewEngine(
@@ -174,17 +157,8 @@ func TestWorldState_GetObjectMetadataBatch(t *testing.T) {
 	log := logrus.New()
 	le := logrus.NewEntry(log)
 
-	// Start the storage testbed for the block World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Open an empty storage cursor for the World root.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	// Open an empty cursor on the block storage testbed.
+	_, ocs := newWorldTestCursor(t, ctx, le)
 	defer ocs.Release()
 
 	// Open a writable block World over the storage cursor.
@@ -269,17 +243,8 @@ func TestWorldStateDefaultGraphKVTXUsesOkra(t *testing.T) {
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	// Start the storage testbed for the block World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Open an empty storage cursor for the World root.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	// Open an empty cursor on the block storage testbed.
+	_, ocs := newWorldTestCursor(t, ctx, le)
 	defer ocs.Release()
 
 	// Open a writable block World over the storage cursor.
@@ -350,17 +315,8 @@ func testWorldStateExplicitKVImplCompatibility(t *testing.T, impl kvtx_block.KVI
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	// Start the storage testbed for the block World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Open an empty storage cursor for the World root.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	// Open an empty cursor on the block storage testbed.
+	_, ocs := newWorldTestCursor(t, ctx, le)
 	defer ocs.Release()
 
 	// Write a World root with the requested storage implementation.
@@ -511,17 +467,8 @@ func TestWorldState_GetObjectRootRefsBatch(t *testing.T) {
 	log := logrus.New()
 	le := logrus.NewEntry(log)
 
-	// Start the storage testbed for the block World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Open an empty storage cursor for the World root.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	// Open an empty cursor on the block storage testbed.
+	_, ocs := newWorldTestCursor(t, ctx, le)
 	defer ocs.Release()
 
 	// Open a writable block World over the storage cursor.
@@ -591,17 +538,8 @@ func TestWorldState_LookupGraphQuadsReturnsFullTypeQuad(t *testing.T) {
 	log := logrus.New()
 	le := logrus.NewEntry(log)
 
-	// Start the storage testbed for the block World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Open an empty storage cursor for the World root.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	// Open an empty cursor on the block storage testbed.
+	_, ocs := newWorldTestCursor(t, ctx, le)
 	defer ocs.Release()
 
 	// Open a writable block World over the storage cursor.
@@ -781,17 +719,8 @@ func TestWorldState_DeleteObject(t *testing.T) {
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	// Start the storage testbed for the block World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Open an empty storage cursor for the World root.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	// Open an empty cursor on the block storage testbed.
+	_, ocs := newWorldTestCursor(t, ctx, le)
 	defer ocs.Release()
 
 	// Open a writable block World over the storage cursor.
@@ -904,17 +833,8 @@ func TestWorldState_DisabledChangelogObjectOperations(t *testing.T) {
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	// Start the storage testbed for the block World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Open an empty storage cursor for the World root.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	// Open an empty cursor on the block storage testbed.
+	_, ocs := newWorldTestCursor(t, ctx, le)
 	defer ocs.Release()
 
 	// Write a World root with changelog recording disabled.
@@ -987,17 +907,8 @@ func TestWorldState_DeleteObjectRemovesLiteralPredicateQuads(t *testing.T) {
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	// Start the storage testbed for the block World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Open an empty storage cursor for the World root.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	// Open an empty cursor on the block storage testbed.
+	_, ocs := newWorldTestCursor(t, ctx, le)
 	defer ocs.Release()
 
 	// Open a writable block World over the storage cursor.
@@ -1118,17 +1029,8 @@ func TestWorldState_DeleteObjectWithMalformedGraphQuad(t *testing.T) {
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	// Start the storage testbed for the block World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Open an empty storage cursor for the World root.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	// Open an empty cursor on the block storage testbed.
+	_, ocs := newWorldTestCursor(t, ctx, le)
 	defer ocs.Release()
 
 	// Open a writable block World over the storage cursor.
@@ -1197,17 +1099,8 @@ func TestWorldState_ChangelogObjectSetStoresCurrentAndPreviousObjectRefs(t *test
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	// Start the storage testbed for the block World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Open an empty storage cursor for the World root.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	// Open an empty cursor on the block storage testbed.
+	_, ocs := newWorldTestCursor(t, ctx, le)
 	defer ocs.Release()
 
 	// Open a writable block World over the storage cursor.
@@ -1264,17 +1157,8 @@ func TestWorldState_ChangelogDeleteObjectStoresPreviousObjectRef(t *testing.T) {
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	// Start the storage testbed for the block World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Open an empty storage cursor for the World root.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	// Open an empty cursor on the block storage testbed.
+	_, ocs := newWorldTestCursor(t, ctx, le)
 	defer ocs.Release()
 
 	// Open a writable block World over the storage cursor.
@@ -1337,17 +1221,8 @@ func TestWorldEngine_Fork(t *testing.T) {
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	// Start the storage testbed for the block World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Open an empty storage cursor for the World root.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	// Open an empty cursor on the block storage testbed.
+	tb, ocs := newWorldTestCursor(t, ctx, le)
 	defer ocs.Release()
 
 	// Open a writable block World over the storage cursor.
@@ -1455,17 +1330,8 @@ func TestWorldEngine_UpdateRootRef(t *testing.T) {
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	// Start the storage testbed for the block World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Open an empty storage cursor for the World root.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	// Open an empty cursor on the block storage testbed.
+	_, ocs := newWorldTestCursor(t, ctx, le)
 	defer ocs.Release()
 
 	// Create the engine over the storage cursor.
@@ -1606,17 +1472,8 @@ func TestWorldState_Basic(t *testing.T) {
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	// Start the storage testbed for the block World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Open an empty storage cursor for the World root.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	// Open an empty cursor on the block storage testbed.
+	_, ocs := newWorldTestCursor(t, ctx, le)
 	defer ocs.Release()
 
 	// Open a writable block World over the storage cursor.
@@ -2009,4 +1866,19 @@ func TestNodeGraphWorldRefusesOldReader(t *testing.T) {
 			}
 		}
 	}
+}
+
+// newWorldTestCursor opens an empty cursor on a new block storage testbed.
+func newWorldTestCursor(t *testing.T, ctx context.Context, le *logrus.Entry) (*testbed.Testbed, *bucket_lookup.Cursor) {
+	// Acquire the same storage and cursor used by the World engine tests.
+	t.Helper()
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return tb, ocs
 }
