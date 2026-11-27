@@ -35,16 +35,11 @@ func Subscribe[S, T any](ctx context.Context, hub *Hub[S], source S, feed *Feed[
 // source and a later subscription can start a new one. Sample before reading
 // application events, then wait on the sampled channel to avoid missed changes.
 func (s *Subscription[S, T]) Snapshot() (*Publication[T], <-chan struct{}, error) {
-	// Sample the publication and its wake channel together.
-	pub := s.run.latest()
-	if pub.err != nil {
-		return nil, pub.next, pub.err
-	}
-	if !pub.published {
-		return nil, pub.next, nil
-	}
-	return pub, pub.next, nil
+	return s.run.snapshot()
 }
+
+// poke requests a fresh publication after this subscriber's actor writes.
+func (s *Subscription[S, T]) poke() { s.run.poke() }
 
 // Close releases the subscriber and starts linger after the last one leaves.
 func (s *Subscription[S, T]) Close() { s.once.Do(s.run.leave) }

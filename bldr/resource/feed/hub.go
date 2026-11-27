@@ -5,10 +5,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/s4wave/spacewave/db/world/viewstream"
-
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/world/keyedview"
+	"github.com/s4wave/spacewave/db/world/viewstream"
 )
 
 // Hub holds the running feeds of one World.
@@ -86,7 +85,7 @@ func joinFeed[S, T any](ctx context.Context, hub *Hub[S], s S, feed *Feed[S, T],
 			cancel:  cancel,
 			pokes:   viewstream.NewPokes(),
 			history: keyedview.NewHistory(hub.history),
-			pub:     &Publication[T]{next: make(chan struct{})},
+			pub:     newPublication[T](nil),
 		}
 		hub.runs[id] = run
 		store := hub.options.Public(s)
@@ -172,23 +171,9 @@ func (r *feedRun[S, T]) watch(ctx context.Context, store S, feed *Feed[S, T], ke
 		}
 
 		// Name its records and publish it.
-		pub := &Publication[T]{Value: value, Revision: revision, published: true, encode: feed.Encode, history: r.history}
-		switch {
-		case feed.Records != nil:
-			scope, records := feed.Records(value)
-			pub.View, err = builder.Build(scope, records)
-		case feed.Encode != nil:
-			data, encodeErr := pub.Encoded()
-			if encodeErr != nil {
-				return encodeErr
-			}
-			pub.View, err = keyedview.Build(key, map[string]rawRecord{"": data})
-		}
+		pub, err := buildPublication(feed, key, value, revision, &builder, r.history)
 		if err != nil {
 			return err
-		}
-		if pub.View != nil {
-			r.history.Add(pub.View)
 		}
 		last, published = value, true
 		r.publish(pub)
@@ -208,27 +193,30 @@ func (r *feedRun[S, T]) watch(ctx context.Context, store S, feed *Feed[S, T], ke
 	r.hub.mtx.Lock()
 	r.remove()
 	r.hub.mtx.Unlock()
-	r.publish(&Publication[T]{err: err})
+	r.publish(newPublication[T](err))
 }
 
 // publish replaces the latest publication with pub and wakes the watchers
 // waiting for one.
 func (r *feedRun[S, T]) publish(pub *Publication[T]) {
 	// Replace the head under the lock, then wake readers of the old head.
-	pub.next = make(chan struct{})
 	r.mtx.Lock()
 	old := r.pub
 	r.pub = pub
 	r.mtx.Unlock()
-	close(old.next)
+	old.supersede()
 }
 
-// latest returns the latest publication.
-func (r *feedRun[S, T]) latest() *Publication[T] {
+// snapshot samples the head and the notification of its replacement.
+func (r *feedRun[S, T]) snapshot() (*Publication[T], <-chan struct{}, error) {
 	r.mtx.Lock()
-	defer r.mtx.Unlock()
-	return r.pub
+	pub := r.pub
+	r.mtx.Unlock()
+	return pub.snapshot()
 }
+
+// poke requests an immediate read after a subscriber's own write.
+func (r *feedRun[S, T]) poke() { r.pokes.Poke() }
 
 // WatchFeed calls deliver with the latest publication of feed's key, once the
 // feed has one, and again with each newer one, until ctx ends, deliver fails
@@ -246,7 +234,6 @@ func WatchFeed[S, T any](ctx context.Context, hub *Hub[S], s S, feed *Feed[S, T]
 		return err
 	}
 	defer sub.Close()
-	run := sub.run
 
 	// A bound feed's own watch passes its actor's writes; an unbound one
 	// needs a poke from the watcher whose actor wrote.
@@ -258,11 +245,11 @@ func WatchFeed[S, T any](ctx context.Context, hub *Hub[S], s S, feed *Feed[S, T]
 	var poked uint64
 	for {
 		// Deliver the latest publication once.
-		pub := run.latest()
-		if pub.err != nil {
-			return pub.err
+		pub, next, err := sub.Snapshot()
+		if err != nil {
+			return err
 		}
-		if pub.published && pub != seen {
+		if pub != nil && pub != seen {
 			seen = pub
 			if err := deliver(pub); err != nil {
 				return err
@@ -280,7 +267,7 @@ func WatchFeed[S, T any](ctx context.Context, hub *Hub[S], s S, feed *Feed[S, T]
 					return err
 				}
 				poked = head
-				run.pokes.Poke()
+				sub.poke()
 				continue
 			}
 		}
@@ -288,7 +275,7 @@ func WatchFeed[S, T any](ctx context.Context, hub *Hub[S], s S, feed *Feed[S, T]
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-pub.next:
+		case <-next:
 		case <-own:
 		}
 	}

@@ -24,9 +24,9 @@ type Publication[T any] struct {
 	Value T
 	// Revision is a World revision the view reflects every write up to.
 	Revision uint64
-	// View names the view's records and its version, or is nil for a feed
+	// view names the view's records and its version, or is nil for a feed
 	// without them.
-	View *keyedview.View
+	view *keyedview.View
 
 	// published reports a view, false before the first and when err is set.
 	published bool
@@ -50,13 +50,63 @@ type Publication[T any] struct {
 	next chan struct{}
 }
 
+// newPublication constructs a publication without a value. A non-nil err ends
+// the source; otherwise it awaits the first value.
+func newPublication[T any](err error) *Publication[T] {
+	return &Publication[T]{err: err, next: make(chan struct{})}
+}
+
+// buildPublication names and retains the records of a newly read value before
+// exposing it to subscribers. Its replacement notification is ready on return.
+func buildPublication[S, T any](feed *Feed[S, T], key string, value T, revision uint64, builder *keyedview.Builder, history *keyedview.History) (*Publication[T], error) {
+	// Name projected records, or treat an encoded value as one record.
+	p := &Publication[T]{Value: value, Revision: revision, published: true, encode: feed.Encode, history: history}
+	var err error
+	switch {
+	case feed.Records != nil:
+		scope, records := feed.Records(value)
+		p.view, err = builder.Build(scope, records)
+	case feed.Encode != nil:
+		data, encodeErr := p.Encoded()
+		if encodeErr != nil {
+			return nil, encodeErr
+		}
+		p.view, err = keyedview.Build(key, map[string]rawRecord{"": data})
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// Retain the named view before readers can observe this publication.
+	if p.view != nil {
+		history.Add(p.view)
+	}
+	p.next = make(chan struct{})
+	return p, nil
+}
+
+// snapshot returns the immutable value, its replacement notification and any
+// terminal error. A nil value without an error precedes the first read.
+func (p *Publication[T]) snapshot() (*Publication[T], <-chan struct{}, error) {
+	if p.err != nil {
+		return nil, p.next, p.err
+	}
+	if !p.published {
+		return nil, p.next, nil
+	}
+	return p, p.next, nil
+}
+
+// supersede wakes this publication's readers after the run installs a new head.
+func (p *Publication[T]) supersede() { close(p.next) }
+
 // Version returns the name of the published view's content, or empty for a
 // feed without versions.
 func (p *Publication[T]) Version() string {
-	if p.View == nil {
+	if p.view == nil {
 		return ""
 	}
-	return p.View.Version
+	return p.view.Version
 }
 
 // Since returns what a watcher holding version lacks to reach this
@@ -64,10 +114,10 @@ func (p *Publication[T]) Version() string {
 // records when the feed remembers it, and every record otherwise. A feed
 // without versions always has a reader take everything.
 func (p *Publication[T]) Since(version string) keyedview.Changes {
-	if p.View == nil {
+	if p.view == nil {
 		return keyedview.Changes{Full: true}
 	}
-	return p.history.Since(version, p.View)
+	return p.history.Since(version, p.view)
 }
 
 // Encoded returns the published view's encoding, encoded once for every
@@ -90,10 +140,10 @@ func (p *Publication[T]) Encoded() ([]byte, error) {
 func (p *Publication[T]) Frame(held string) ([]byte, error) {
 	// Answer with the version alone when the watcher holds it.
 	data, err := p.Encoded()
-	if err != nil || p.View == nil {
+	if err != nil || p.view == nil {
 		return data, err
 	}
-	if held == p.View.Version {
+	if held == p.view.Version {
 		return p.unchanged.build(func() ([]byte, error) { return p.appendVersion(nil, true) })
 	}
 
@@ -108,7 +158,7 @@ func (p *Publication[T]) Frame(held string) ([]byte, error) {
 // ViewField. Protobuf merges a message's fields, so the result decodes as the
 // view with its version set.
 func (p *Publication[T]) appendVersion(data []byte, unchanged bool) ([]byte, error) {
-	version, err := (&resource.ViewVersion{Version: p.View.Version, Revision: p.Revision, Unchanged: unchanged}).MarshalVT()
+	version, err := (&resource.ViewVersion{Version: p.view.Version, Revision: p.Revision, Unchanged: unchanged}).MarshalVT()
 	if err != nil {
 		return nil, err
 	}
