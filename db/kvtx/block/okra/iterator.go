@@ -404,31 +404,46 @@ type iteratorWalk interface {
 
 // leafWalk walks the leaf pages of one page kind. It holds the path to its
 // current leaf page and, for each page above the leaf that a step has crossed,
-// one batch read of that page's children the scan has yet to reach.
+// one batch read of the next children of that page in the scan's direction.
+//
+// The read-ahead of a level grows as the scan goes on: the first step into a
+// page reads the one child it enters, and each step past the children read so
+// far reads twice as many as the last batch of that level, up to the end of
+// the page. A sibling page starts at the width its predecessor reached. A
+// walk that steps once, such as a lookup that reads one entry past a leaf to
+// find the end of its range, reads one more page rather than the rest of the
+// parent, so its cost follows what it takes and not the World's size. A long
+// scan reaches a whole page per batch after about log2 of the fan-out steps
+// at each level, and then waits one store read per parent.
 type leafWalk[P walkPage, C any] struct {
 	t    *Tx
 	r    pageReader[P, C]
 	path pagePath[P, C]
 	// ahead holds, by depth in path, the read-ahead of the page at that depth:
 	// at most one page's children per level, a bound the page size sets.
+	// An entry below a page the scan left keeps only its width.
 	ahead []readAhead[P]
 	// reverse is the direction ahead was read in.
 	reverse bool
 }
 
-// readAhead is the batch read of one page's children, from the child a step
-// entered to the end of the page in the scan's direction.
+// readAhead is the batch read of one window of a page's children, from the
+// child a step entered onward in the scan's direction.
 type readAhead[P walkPage] struct {
 	// page is the page whose children were read.
 	page P
 	// answers holds the children no read has taken, or nil when the batch
 	// read fewer than two children.
 	answers *block.BatchAnswers
+	// lo and hi bound the children the window covers, hi exclusive.
+	lo, hi int
+	// width is the number of children the window was sized to.
+	width int
 }
 
 // seek loads the path to the leaf page containing key. It reads nothing
-// ahead, so a seek that reads one entry costs only the lookup. The first step
-// reads the rest of the leaf's parent.
+// ahead, so a seek that reads one entry costs only the lookup, and it starts
+// each level's read-ahead again at one child.
 func (w *leafWalk[P, C]) seek(ctx context.Context, key []byte, last bool) error {
 	// Descend toward the key, or the first or last leaf without one.
 	w.ahead = nil
@@ -444,10 +459,10 @@ func (w *leafWalk[P, C]) seek(ctx context.Context, key []byte, last bool) error 
 	return err
 }
 
-// step loads the adjacent leaf page. The first step into or across a page
-// above the leaf reads that page's remaining children in the scan's direction
-// with one batch, which later steps take from, so a cold scan waits one store
-// read per parent rather than one per leaf.
+// step loads the adjacent leaf page. A step into or across a page above the
+// leaf past its read-ahead reads that page's next window of children in the
+// scan's direction with one batch, which later steps take from, so a long
+// cold scan waits one store read per parent rather than one per leaf.
 func (w *leafWalk[P, C]) step(ctx context.Context, reverse bool) (bool, error) {
 	// Drop a read-ahead of the other direction, then step on the held ones.
 	if reverse != w.reverse {
@@ -472,38 +487,56 @@ func (w *leafWalk[P, C]) step(ctx context.Context, reverse bool) (bool, error) {
 	return ok, err
 }
 
-// enter reads ahead the children of page, at depth in the path, from index to
-// the end of the page in the scan's direction, unless the walk holds that
-// page's read-ahead already, and drops the read-ahead of the deeper pages the
-// step leaves.
+// enter reads ahead the children of page, at depth in the path, from index
+// onward in the scan's direction, unless the walk's read-ahead of that page
+// covers index already, and drops the read-ahead of the deeper pages the step
+// leaves. The window's width follows leafWalk's growth.
 func (w *leafWalk[P, C]) enter(ctx context.Context, depth int, page P, cursor C, index int) (context.Context, error) {
-	// A page the scan is still inside keeps its read-ahead.
-	if depth < len(w.ahead) && any(w.ahead[depth].page) == any(page) {
-		return ctx, nil
+	// A window that covers index serves the step. Past it the page's window
+	// doubles, and a sibling page starts at its predecessor's width.
+	width := 1
+	if depth < len(w.ahead) {
+		a := w.ahead[depth]
+		switch {
+		case any(a.page) != any(page):
+			width = max(a.width, 1)
+		case index >= a.lo && index < a.hi:
+			return ctx, nil
+		default:
+			width = min(2*a.width, page.Len())
+		}
 	}
 
-	// Read the page's next children in the scan's direction.
-	var b block.BatchLoad
-	lo, hi := index, page.Len()
+	// Read the window's children; a window of one child reads alone.
+	lo, hi := index, min(index+width, page.Len())
 	if w.reverse {
-		lo, hi = 0, index+1
+		lo, hi = max(index+1-width, 0), index+1
 	}
-	for i := lo; i < hi; i++ {
-		w.r.aheadPage(ctx, &b, w.r.childAt(page, cursor, i))
+	var answers *block.BatchAnswers
+	if hi-lo > 1 {
+		var b block.BatchLoad
+		for i := lo; i < hi; i++ {
+			w.r.aheadPage(ctx, &b, w.r.childAt(page, cursor, i))
+		}
+
+		// The scan goes on through each child's subtree, so it marks the
+		// read.
+		var err error
+		answers, err = b.Read(block.WithSubtreeRead(ctx))
+		if err != nil {
+			return ctx, err
+		}
 	}
 
-	// The scan goes on through each child's subtree, so it marks the read.
-	answers, err := b.Read(block.WithSubtreeRead(ctx))
-	if err != nil {
-		return ctx, err
-	}
-
-	// Replace the read-ahead at depth and below.
-	w.ahead = w.ahead[:min(depth, len(w.ahead))]
-	for len(w.ahead) < depth {
+	// Replace the read-ahead at depth, and drop the deeper pages' answers,
+	// keeping their widths for the siblings the scan enters next.
+	for len(w.ahead) <= depth {
 		w.ahead = append(w.ahead, readAhead[P]{})
 	}
-	w.ahead = append(w.ahead, readAhead[P]{page: page, answers: answers})
+	w.ahead[depth] = readAhead[P]{page: page, answers: answers, lo: lo, hi: hi, width: width}
+	for i := depth + 1; i < len(w.ahead); i++ {
+		w.ahead[i].answers = nil
+	}
 	return answers.Context(ctx), nil
 }
 

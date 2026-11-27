@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"math/bits"
 	"math/rand/v2"
 	"runtime"
 	"slices"
@@ -237,9 +238,33 @@ func TestReadsScaleWithTheTree(t *testing.T) {
 				t.Fatalf("%d keys: prefix scan of key %d returned %d entries", size, mid, seen)
 			}
 
+			// Step from a seek across one leaf boundary, as a range lookup does
+			// to find its end: the step reads the next leaf, not the rest of
+			// its parent.
+			readTx = openOkraRoot(t, ctx, store, rootRef, false)
+			it := readTx.Iterate(ctx, nil, true, false).(*Iterator)
+			if err := it.Seek(fixture.keys[mid]); err != nil {
+				t.Fatal(err)
+			}
+			seekLeaf := it.walk.leaf()
+			store.takeReads()
+			for it.Next() && it.walk.leaf() == seekLeaf {
+			}
+			if err := it.Err(); err != nil {
+				t.Fatal(err)
+			}
+			crossed := len(store.takeReads())
+			it.Close()
+			readTx.Discard()
+			if crossed > 2 {
+				t.Fatalf("%d keys: %sstep past the seek's leaf read %d blocks", size, tag, crossed)
+			}
+
 			// Scan the flat pages of a read and the cursor tree of a write, each
 			// way: one store call per page of the seek's descent, then one per
-			// page above the leaves, each parent's children in one batch.
+			// page above the leaves once each level's read-ahead has grown to
+			// a whole page, which takes about log2 of the fan-out batches per
+			// level.
 			for _, c := range []struct{ write, reverse bool }{{false, false}, {false, true}, {true, false}, {true, true}} {
 				name := fmt.Sprintf("scan write=%v reverse=%v", c.write, c.reverse)
 				readTx := openOkraRoot(t, ctx, store, rootRef, c.write)
@@ -276,7 +301,8 @@ func TestReadsScaleWithTheTree(t *testing.T) {
 				}
 				if levels == 0 {
 					flatCalls[name], flatReads[name] = cost.calls, reads
-					if parents := reads - leaves; cost.calls > int(height)+1+parents {
+					growth := int(height) * bits.Len(uint(leaves))
+					if parents := reads - leaves; cost.calls > int(height)+1+parents+growth {
 						t.Fatalf("%d keys: %s of %d leaves under %d parents made %d store calls", size, name, leaves, parents, cost.calls)
 					}
 				} else if cost.calls > flatCalls[name] {
