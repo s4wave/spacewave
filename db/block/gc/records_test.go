@@ -319,6 +319,94 @@ func TestRequeueMovesStillParked(t *testing.T) {
 	}
 }
 
+// TestFreeSkipsDequeuedEntry checks that a free slice frees nothing for a
+// queue entry its candidates name but a transaction deleted after enqueue
+// noted it, as a Land that references a queued block deletes its entry
+// before the netting gives it the holder, and still frees the entry after
+// it. queued keeps a deleted entry, so the free's own read of the queue key
+// is all that keeps the referenced block.
+func TestFreeSkipsDequeuedEntry(t *testing.T) {
+	// A Settled adopted Volume holding two listed, stored blocks at zero.
+	ctx := t.Context()
+	data := store_kvtx_inmem.NewStore()
+	keys, err := store_kvkey.NewKVKey(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx, err := data.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+	rec := NewRecords(tx, []byte("l/"))
+	blocks := block_store_kvtx.NewKVTxBlock(keys, kvtx.NewTxStore(tx), 0)
+	if err := rec.SetState(ctx, &LivenessState{
+		Adoption:   Adoption_ADOPTION_ADOPTED,
+		Generation: Generation_GENERATION_SETTLED,
+		UpCursor:   10,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	var refs []*block.BlockRef
+	for _, name := range []string{"referenced", "released"} {
+		ref, _, err := blocks.PutBlock(ctx, []byte(name), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, err := range []error{
+			rec.PutChildren(ctx, ref, nil),
+			rec.SetHolders(ctx, ref, 0, 5),
+			rec.enqueue(ctx, 5, BlockKey(ref)),
+		} {
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+		refs = append(refs, ref)
+	}
+
+	// Take the first entry off the queue, then free from what enqueue noted.
+	if err := rec.dequeue(ctx, 5, BlockKey(refs[0])); err != nil {
+		t.Fatal(err)
+	}
+	if len(rec.queued) != 2 {
+		t.Fatalf("queued notes %d entries, want both", len(rec.queued))
+	}
+	var res CollectResult
+	took, done, _, err := NewCollector(nil, CollectorOptions{Frees: true}).freeSlice(ctx, rec, blocks, &res, rec.queued)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if took != 2 || done != 1 || res.Freed != 1 {
+		t.Fatalf("took %d, done %d, freed %d; want 2, 1 and 1", took, done, res.Freed)
+	}
+
+	// The referenced block keeps its bytes, list and zero record; the
+	// released one has none of them, nor a queue entry.
+	for i, ref := range refs {
+		_, stored, err := blocks.GetBlock(ctx, ref)
+		if err != nil {
+			t.Fatal(err)
+		}
+		listed, err := rec.HasChildren(ctx, ref)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, ripe, err := rec.GetHolders(ctx, ref)
+		if err != nil {
+			t.Fatal(err)
+		}
+		queued, err := rec.hasQueueKey(ctx, 5, BlockKey(ref))
+		if err != nil {
+			t.Fatal(err)
+		}
+		kept := i == 0
+		if stored != kept || listed != kept || (ripe == 5) != kept || queued {
+			t.Errorf("%d: stored %v, listed %v, ripe %d, queued %v; want kept %v and unqueued", i, stored, listed, ripe, queued, kept)
+		}
+	}
+}
+
 // TestSettleWaitsForNetting checks that neither the front pop, the free nor
 // the flip runs while the free could not: a paged release in progress (the model's
 // FlipSettled, mutant rps-noflipsettled), an adoption younger than the grace
