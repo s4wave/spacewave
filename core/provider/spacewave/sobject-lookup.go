@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"path"
 
-	api "github.com/aperturerobotics/spacewave-cloud/api"
 	"github.com/aperturerobotics/util/refcount"
 	"github.com/aperturerobotics/util/ulid"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/provider"
+	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/provider/spacewave/clouderror"
 	"github.com/s4wave/spacewave/core/sobject"
 )
@@ -22,6 +22,33 @@ var sharedObjectLookupOptions = &refcount.Options{
 		return clouderror.RetryAfter(err) > 0 && !clouderror.IsNonRetryable(err)
 	},
 	RetryDelay: providerRetryDelay,
+}
+
+// sharedObjectLookups holds the account's catalog-miss lookups.
+//
+// An admitted descriptor lets the mount path open a Space the catalog has not
+// listed yet. It is kept apart from soListCtr, so a lookup never publishes or
+// stands in for the catalog, and a stale catalog snapshot cannot drop it. Every
+// generation bump clears the admitted descriptors, so none outlives an access
+// change, catalog push, sign-out or reconnect the client has seen.
+type sharedObjectLookups struct {
+	// generation increments on reconnects and access changes.
+	generation uint64
+	// unsupported is the client whose current connection lacks the route.
+	unsupported *SessionClient
+	// demand holds each id's shared request while a caller waits for it.
+	demand map[string]*sharedObjectLookupDemand
+	// admitted holds the descriptors admitted under generation, by id.
+	admitted map[string]*sobject.SharedObjectListEntry
+}
+
+// sharedObjectLookupDemand shares one id's request among its waiting callers.
+// The last caller to leave removes it, so a miss leaves no state behind.
+type sharedObjectLookupDemand struct {
+	// rc runs the request while any caller holds a reference.
+	rc *refcount.RefCount[*sobject.SharedObjectListEntry]
+	// callers counts the callers attached to rc.
+	callers int
 }
 
 // LookupSObject reads one descriptor through the catalog-membership route.
@@ -49,7 +76,7 @@ func (c *SessionClient) LookupSObject(ctx context.Context, id string) (*sobject.
 // LookupSharedObject resolves one catalog miss without waiting for its projection.
 // Concurrent demand shares the request; each caller releases only its own reference.
 func (a *ProviderAccount) LookupSharedObject(ctx context.Context, id string) (*sobject.SharedObjectListEntry, error) {
-	// Reuse the existing descriptor cache before attempting any cloud access.
+	// Serve a catalog hit before attempting any cloud access.
 	for _, entry := range a.soListCtr.GetValue().GetSharedObjects() {
 		if entry.GetRef().GetProviderResourceRef().GetId() == id {
 			return entry, nil
@@ -59,54 +86,99 @@ func (a *ProviderAccount) LookupSharedObject(ctx context.Context, id string) (*s
 		return nil, errors.New("shared object id is required")
 	}
 
-	// Attach demand to this account's existing metadata owner.
-	var lookup *refcount.RefCount[*sobject.SharedObjectListEntry]
+	// Serve an admitted descriptor, or attach to the id's shared request.
+	var entry *sobject.SharedObjectListEntry
+	var demand *sharedObjectLookupDemand
 	var deleted bool
 	a.accountBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		state := a.getOrCreateSharedObjectMetadataStateLocked(id)
-		deleted = state.status == sharedObjectMetadataDeleted
-		if state.lookup == nil {
-			state.lookup = refcount.NewRefCountWithOptions(
+		// A known deletion and an admitted descriptor need no request.
+		if state := a.state.sharedObjectMetadata[id]; state != nil && state.status == sharedObjectMetadataDeleted {
+			deleted = true
+			return
+		}
+		if entry = a.soLookup.admitted[id]; entry != nil {
+			return
+		}
+
+		// Join the id's request, or start it for the first caller.
+		demand = a.soLookup.demand[id]
+		if demand == nil {
+			demand = &sharedObjectLookupDemand{rc: refcount.NewRefCountWithOptions(
 				context.Background(), false, nil, nil,
 				func(ctx context.Context, _ func()) (*sobject.SharedObjectListEntry, func(), error) {
 					entry, err := a.lookupSharedObject(ctx, id)
 					return entry, nil, err
 				},
 				sharedObjectLookupOptions,
-			)
+			)}
+			if a.soLookup.demand == nil {
+				a.soLookup.demand = make(map[string]*sharedObjectLookupDemand)
+			}
+			a.soLookup.demand[id] = demand
 		}
-		lookup = state.lookup
+		demand.callers++
 	})
 	if deleted {
 		return nil, ErrSharedObjectMetadataDeleted
 	}
+	if entry != nil {
+		return entry, nil
+	}
+	defer a.leaveSharedObjectLookup(id, demand)
 
-	// The last demand releases and cancels the shared request.
-	entry, release, err := lookup.Resolve(ctx)
+	// The last caller's release cancels the shared request.
+	entry, release, err := demand.rc.Resolve(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer release()
+	release()
 	return entry, nil
 }
 
-// lookupSharedObject fetches under one signer, connection and cache generation.
+// leaveSharedObjectLookup detaches one caller and drops the demand after the last.
+func (a *ProviderAccount) leaveSharedObjectLookup(id string, demand *sharedObjectLookupDemand) {
+	a.accountBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		// Remove the demand only if a newer one has not replaced it.
+		demand.callers--
+		if demand.callers == 0 && a.soLookup.demand[id] == demand {
+			delete(a.soLookup.demand, id)
+		}
+	})
+}
+
+// lookupSharedObject fetches until a reply is admitted under the generation
+// that is current when it arrives. A reply superseded by an invalidation or
+// reconnect is discarded and the request repeats, so only a refusal, a
+// transport failure or the end of ctx fails the caller.
 func (a *ProviderAccount) lookupSharedObject(ctx context.Context, id string) (*sobject.SharedObjectListEntry, error) {
+	// Each pass captures the generation current when it starts.
+	for {
+		entry, superseded, err := a.lookupSharedObjectOnce(ctx, id)
+		if !superseded {
+			return entry, err
+		}
+	}
+}
+
+// lookupSharedObjectOnce fetches under one signer, connection and cache
+// generation, and reports whether a newer one superseded the reply.
+func (a *ProviderAccount) lookupSharedObjectOnce(ctx context.Context, id string) (*sobject.SharedObjectListEntry, bool, error) {
 	// Capture all authority boundaries together before issuing the request.
 	var cli *SessionClient
 	var gen, cacheGen uint64
 	var unsupported bool
 	a.accountBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		// Read every boundary under one hold so they describe one moment.
 		cli = a.sessionClient
-		gen = a.soLookupGeneration
-		cacheGen = a.getOrCreateSharedObjectMetadataStateLocked(id).gen
-		unsupported = cli != nil && a.soLookupUnsupported == cli
+		gen = a.soLookup.generation
+		cacheGen = a.state.sharedObjectMetadata[id].getGen()
+		unsupported = cli != nil && a.soLookup.unsupported == cli
 	})
 	if unsupported {
-		return nil, sobject.ErrSharedObjectLookupUnsupported
+		return nil, false, sobject.ErrSharedObjectLookupUnsupported
 	}
 	if cli == nil || !cli.GetSessionSigner().CanSign() {
-		return nil, ErrSigningUnavailable
+		return nil, false, ErrSigningUnavailable
 	}
 
 	// Discover route support lazily with the operation the caller needs.
@@ -124,47 +196,67 @@ func (a *ProviderAccount) lookupSharedObject(ctx context.Context, id string) (*s
 		}
 	}
 
-	// Admit both the support result and descriptor only in their original owner.
+	// Admit the support result and descriptor only under their own generation.
+	var superseded bool
 	a.accountBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		// Reject replies whose demand or authority ended before publication.
-		state := a.getOrCreateSharedObjectMetadataStateLocked(id)
-		if ctx.Err() != nil {
+		// The caller's end and a known deletion are final.
+		state := a.state.sharedObjectMetadata[id]
+		switch {
+		case ctx.Err() != nil:
 			err = ctx.Err()
 			return
+		case state != nil && state.status == sharedObjectMetadataDeleted:
+			err = ErrSharedObjectMetadataDeleted
+			return
+		case a.state.status == provider.ProviderAccountStatus_ProviderAccountStatus_DELETED:
+			err = ErrProviderAccountDeleted
+			return
 		}
-		if cli != a.sessionClient || gen != a.soLookupGeneration || state.gen != cacheGen ||
-			state.status == sharedObjectMetadataDeleted || !cli.GetSessionSigner().CanSign() ||
-			a.state.status == provider.ProviderAccountStatus_ProviderAccountStatus_DELETED {
-			err = errors.New("shared object lookup was invalidated")
+
+		// A newer signer, connection or access generation repeats the request.
+		if cli != a.sessionClient || gen != a.soLookup.generation || state.getGen() != cacheGen {
+			superseded = true
 			return
 		}
 
 		// Remember only the old dispatcher in this live connection generation.
 		if absent {
-			a.soLookupUnsupported = cli
+			a.soLookup.unsupported = cli
 			err = sobject.ErrSharedObjectLookupUnsupported
 		}
 		if err == nil {
-			a.cacheSharedObjectListEntry(entry)
+			if a.soLookup.admitted == nil {
+				a.soLookup.admitted = make(map[string]*sobject.SharedObjectListEntry)
+			}
+			a.soLookup.admitted[id] = entry
 		}
 	})
-	if err != nil {
-		return nil, err
+	if superseded {
+		return nil, true, nil
 	}
-	return entry, nil
+	if err != nil {
+		return nil, false, err
+	}
+	return entry, false, nil
 }
 
-// invalidateSharedObjectLookup rejects pending replies after an access change.
+// invalidateSharedObjectLookup supersedes pending replies and drops admitted
+// descriptors after an access change.
 func (a *ProviderAccount) invalidateSharedObjectLookup() {
 	a.accountBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		a.soLookupGeneration++
+		// Supersede pending replies and forget admitted descriptors.
+		a.soLookup.generation++
+		a.soLookup.admitted = nil
 	})
 }
 
-// resetSharedObjectLookup discovers support again after an authenticated reconnect.
+// resetSharedObjectLookup also discovers route support again after an
+// authenticated reconnect.
 func (a *ProviderAccount) resetSharedObjectLookup() {
 	a.accountBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		a.soLookupGeneration++
-		a.soLookupUnsupported = nil
+		// Supersede replies, forget descriptors and probe the route again.
+		a.soLookup.generation++
+		a.soLookup.admitted = nil
+		a.soLookup.unsupported = nil
 	})
 }

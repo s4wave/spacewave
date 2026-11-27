@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	api "github.com/aperturerobotics/spacewave-cloud/api"
 	"github.com/aperturerobotics/util/refcount"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/provider"
+	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/sobject"
 )
 
@@ -88,6 +88,11 @@ func TestLookupSharedObjectRouteDetection(t *testing.T) {
 			if calls.Load() != want {
 				t.Fatalf("got %d probes, want %d", calls.Load(), want)
 			}
+			acc.accountBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+				if len(acc.soLookup.demand) != 0 || len(acc.soLookup.admitted) != 0 || acc.state.sharedObjectMetadata[lookupTestID] != nil {
+					t.Errorf("a failed lookup left state: demand=%d admitted=%d", len(acc.soLookup.demand), len(acc.soLookup.admitted))
+				}
+			})
 
 			// A reconnect discovers an upgraded server with the next needed lookup.
 			upgraded.Store(true)
@@ -100,16 +105,20 @@ func TestLookupSharedObjectRouteDetection(t *testing.T) {
 	}
 }
 
-// TestLookupSharedObjectInvalidation rejects a reply superseded by deletion,
-// access invalidation, a reconnect or replacement of the account's signer.
+// TestLookupSharedObjectInvalidation repeats a request superseded by access
+// invalidation, a reconnect or a replaced signer while the caller still waits,
+// and fails one superseded by the object's or the account's deletion.
 func TestLookupSharedObjectInvalidation(t *testing.T) {
 	for _, change := range []string{"delete", "access", "reconnect", "signer", "account"} {
 		t.Run(change, func(t *testing.T) {
-			// Hold a successful response after the request has started.
+			// Hold the first successful response after its request has started.
 			started, release := make(chan struct{}), make(chan struct{})
+			var calls atomic.Int32
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				close(started)
-				<-release
+				if calls.Add(1) == 1 {
+					close(started)
+					<-release
+				}
 				data, _ := (&api.LookupSObjectResponse{Entry: &sobject.SharedObjectListEntry{Ref: sobject.NewSharedObjectRef("", "test-account", lookupTestID, lookupTestID)}}).MarshalVT()
 				_, _ = w.Write(data)
 			}))
@@ -122,10 +131,12 @@ func TestLookupSharedObjectInvalidation(t *testing.T) {
 			}()
 			<-started
 
-			// Supersede its authority before the response can publish.
+			// Supersede its authority before the response can be admitted.
+			want := error(nil)
 			switch change {
 			case "delete":
 				acc.DeleteSharedObjectMetadata(lookupTestID)
+				want = ErrSharedObjectMetadataDeleted
 			case "access":
 				acc.invalidateSharedObjectLookup()
 			case "reconnect":
@@ -134,23 +145,81 @@ func TestLookupSharedObjectInvalidation(t *testing.T) {
 				acc.accountBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 					acc.state.status = provider.ProviderAccountStatus_ProviderAccountStatus_DELETED
 				})
+				want = ErrProviderAccountDeleted
 			case "signer":
 				priv, pid := generateTestKeypair(t)
 				acc.ReplaceSessionClient("replacement", priv, pid)
 			}
 			close(release)
-			if err := <-done; err == nil {
-				t.Fatal("accepted a superseded descriptor")
+
+			// A superseded reply repeats once under the current generation.
+			err := <-done
+			if want == nil && (err != nil || calls.Load() != 2) {
+				t.Fatalf("superseded lookup: calls=%d error=%v", calls.Load(), err)
 			}
-			if acc.HasCachedSharedObject(lookupTestID) {
-				t.Fatal("late response restored a catalog entry")
+			if want != nil && !errors.Is(err, want) {
+				t.Fatalf("got %v, want %v", err, want)
+			}
+			if acc.soListCtr.GetValue() != nil {
+				t.Fatal("a lookup published a catalog")
 			}
 		})
 	}
 }
 
+// TestLookupSharedObjectCatalogApart keeps an admitted descriptor out of the
+// catalog, and keeps it through a catalog snapshot fetched before admission.
+func TestLookupSharedObjectCatalogApart(t *testing.T) {
+	// Hold an empty catalog snapshot until the lookup has been admitted.
+	listStarted, listRelease := make(chan struct{}), make(chan struct{})
+	var lookups atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/sobject/list" {
+			close(listStarted)
+			<-listRelease
+			data, _ := (&sobject.SharedObjectList{}).MarshalVT()
+			_, _ = w.Write(data)
+			return
+		}
+		lookups.Add(1)
+		data, _ := (&api.LookupSObjectResponse{Entry: &sobject.SharedObjectListEntry{Ref: sobject.NewSharedObjectRef("", "test-account", lookupTestID, lookupTestID)}}).MarshalVT()
+		_, _ = w.Write(data)
+	}))
+	defer srv.Close()
+	acc := NewTestProviderAccount(t, srv.URL)
+	fetched := make(chan error, 1)
+	go func() { fetched <- acc.fetchSharedObjectList(t.Context()) }()
+	<-listStarted
+
+	// The lookup leaves the catalog still loading.
+	if _, err := acc.LookupSharedObject(t.Context(), lookupTestID); err != nil {
+		t.Fatal(err)
+	}
+	if acc.soListCtr.GetValue() != nil {
+		t.Fatal("a lookup published a partial catalog")
+	}
+
+	// The stale snapshot lands without the descriptor, which stays admitted.
+	close(listRelease)
+	if err := <-fetched; err != nil {
+		t.Fatal(err)
+	}
+	if acc.HasCachedSharedObject(lookupTestID) {
+		t.Fatal("the catalog holds a lookup result")
+	}
+	if _, err := acc.LookupSharedObject(t.Context(), lookupTestID); err != nil || lookups.Load() != 1 {
+		t.Fatalf("admitted descriptor after a stale snapshot: lookups=%d error=%v", lookups.Load(), err)
+	}
+
+	// An access change drops the admitted descriptor.
+	acc.invalidateSharedObjectLookup()
+	if _, err := acc.LookupSharedObject(t.Context(), lookupTestID); err != nil || lookups.Load() != 2 {
+		t.Fatalf("lookup after invalidation: lookups=%d error=%v", lookups.Load(), err)
+	}
+}
+
 // TestLookupSharedObjectDemand shares a request and keeps it alive after one
-// caller cancels, while a cached descriptor needs no subsequent request.
+// caller cancels, while an admitted descriptor needs no subsequent request.
 func TestLookupSharedObjectDemand(t *testing.T) {
 	// Hold the request while two independently cancellable callers attach.
 	started, release := make(chan struct{}), make(chan struct{})
@@ -178,7 +247,7 @@ func TestLookupSharedObjectDemand(t *testing.T) {
 	// Add a second ref directly to the production demand primitive before cancelling.
 	var lookup *refcount.RefCount[*sobject.SharedObjectListEntry]
 	acc.accountBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		lookup = acc.state.sharedObjectMetadata[lookupTestID].lookup
+		lookup = acc.soLookup.demand[lookupTestID].rc
 	})
 	secondPromise, secondRef := lookup.WaitWithReleased(t.Context(), nil)
 	go func() { _, err := secondPromise.Await(t.Context()); second <- err; secondRef.Release() }()
@@ -191,7 +260,7 @@ func TestLookupSharedObjectDemand(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Reuse the persisted catalog descriptor even after the HTTP server closes.
+	// Reuse the admitted descriptor even after the HTTP server closes.
 	srv.Close()
 	if _, err := acc.LookupSharedObject(t.Context(), lookupTestID); err != nil || calls.Load() != 1 {
 		t.Fatalf("cached lookup: calls=%d error=%v", calls.Load(), err)

@@ -84,10 +84,8 @@ type ProviderAccount struct {
 
 	// wsTracker is the shared session WebSocket tracker.
 	wsTracker *wsTracker
-	// soLookupUnsupported is the client whose current connection lacks lookup, guarded by accountBcast.
-	soLookupUnsupported *SessionClient
-	// soLookupGeneration rejects replies across reconnects and access changes, guarded by accountBcast.
-	soLookupGeneration uint64
+	// soLookup holds catalog-miss lookups apart from soListCtr, guarded by accountBcast.
+	soLookup sharedObjectLookups
 	// soListCtr is the persistent shared object list container.
 	soListCtr *ccontainer.CContainer[*sobject.SharedObjectList]
 	// soListRc coordinates SO list fetches so all callers share one invalidatable path.

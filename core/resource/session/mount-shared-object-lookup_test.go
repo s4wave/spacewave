@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	cloudapi "github.com/aperturerobotics/spacewave-cloud/api"
 	"github.com/aperturerobotics/util/ccontainer"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
+	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	resource_session "github.com/s4wave/spacewave/core/resource/session"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -78,7 +78,7 @@ func TestMountSharedObjectDuringCatalogLoad(t *testing.T) {
 				t.Errorf("unexpected signed lookup: %s %s", r.Method, r.URL.Path)
 			}
 			requests.Add(1)
-			data, _ := (&cloudapi.LookupSObjectResponse{Entry: entry}).MarshalVT()
+			data, _ := (&api.LookupSObjectResponse{Entry: entry}).MarshalVT()
 			_, _ = w.Write(data)
 		}))
 		priv, _, err := crypto.GenerateEd25519Key(rand.Reader)

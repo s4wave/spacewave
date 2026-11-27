@@ -1,13 +1,13 @@
 [
   {
-    "name": "a stale reply restores a descriptor after invalidation",
-    "replace": [["outcome = \"found\" /\\ started = generation", "outcome = \"found\""]],
+    "name": "a superseded reply is admitted instead of repeating the request",
+    "replace": [["IF started = generation", "IF TRUE"]],
     "expect": "Fresh",
     "config": "SObjectLookup.cfg"
   },
   {
     "name": "a resource refusal is mistaken for an absent route",
-    "replace": [["outcome = \"absent\" /\\ started = generation", "outcome \\in {\"absent\", \"refused\"} /\\ started = generation"]],
+    "replace": [["unsupported' = (outcome = \"absent\")", "unsupported' = (outcome \\in {\"absent\", \"refused\"})"]],
     "expect": "Legacy",
     "config": "SObjectLookup.cfg"
   }

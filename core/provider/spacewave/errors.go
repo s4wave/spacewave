@@ -19,6 +19,9 @@ var ErrUnknownKeypair = errors.New("unknown keypair: account not found")
 // ErrSharedObjectMetadataDeleted is returned when cached shared-object metadata is deleted.
 var ErrSharedObjectMetadataDeleted = errors.New("shared object metadata deleted")
 
+// ErrProviderAccountDeleted is returned when the cloud account was deleted.
+var ErrProviderAccountDeleted = errors.New("provider account deleted")
+
 // ErrSpaceLinkNonceConsumed is returned when a SpaceLink approval tries to
 // reuse a nonce already consumed by this provider account.
 var ErrSpaceLinkNonceConsumed = errors.New("spacelink nonce already consumed")
