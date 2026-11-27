@@ -25,3 +25,25 @@ func (g *RefGraph) ScanRootBlocks(ctx context.Context, yield func(owner string, 
 		return stopped
 	})
 }
+
+// ReadBlockChildren reads the same child-list record the collector walks.
+// A present empty list is distinct from an unknown list.
+func (g *RefGraph) ReadBlockChildren(ctx context.Context, ref *block.BlockRef) (children []*block.BlockRef, found bool, err error) {
+	// Read one block's list from the graph snapshot.
+	err = g.transaction(ctx, false, func(ctx context.Context, tx kvtx.Tx) error {
+		// Decode the collector record while its read transaction is open.
+		nodes, ok, readErr := readChildrenTx(ctx, tx, BlockIRI(ref))
+		if readErr != nil {
+			return readErr
+		}
+		found = ok
+		children = make([]*block.BlockRef, 0, len(nodes))
+		for _, node := range nodes {
+			if child, ok := ParseBlockIRI(node); ok {
+				children = append(children, child)
+			}
+		}
+		return nil
+	})
+	return
+}

@@ -10,6 +10,9 @@ import (
 	"github.com/s4wave/spacewave/db/packfile"
 )
 
+// ErrMeasurementExtent identifies malformed index extents or complete range responses.
+var ErrMeasurementExtent = errors.New("measurement extent is invalid")
+
 // ScanMeasurementPacks streams pack numbers, IDs and lengths from a frozen
 // local index. It never loads the bucket or a pack tail.
 func ScanMeasurementPacks(ctx context.Context, store kvtx.Store, yield func(uint32, string, uint64) error) error {
@@ -62,11 +65,11 @@ func LocateMeasurementBlock(ctx context.Context, store kvtx.Store, ref *block.Bl
 		return 0, 0, 0, false, nil
 	}
 	if row.off > math.MaxInt64 {
-		return 0, 0, 0, false, errors.New("measurement extent overflows")
+		return 0, 0, 0, false, ErrMeasurementExtent
 	}
 	off := int64(row.off)
 	if row.size == 0 || int64(row.size) > math.MaxInt64-off {
-		return 0, 0, 0, false, errors.New("measurement extent overflows")
+		return 0, 0, 0, false, ErrMeasurementExtent
 	}
 	return row.num, off, int(row.size), true, nil
 }

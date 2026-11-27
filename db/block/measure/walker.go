@@ -14,6 +14,12 @@ import (
 	sqlite "github.com/s4wave/spacewave/db/store/kvtx/sqlite"
 )
 
+// ErrInvalidExtent marks index metadata or a complete response inconsistent with its extent.
+var ErrInvalidExtent = errors.New("invalid measurement extent")
+
+// ErrSourceConfiguration stops a run whose source repeatedly reports missing objects.
+var ErrSourceConfiguration = errors.New("measurement source configuration error; start new work after correcting the source")
+
 // Walker owns a resumable scratch database, separate from every input store.
 // A block's count and outgoing edges commit together. Repeating an interrupted
 // range may download its bytes again, but never counts a block twice.
@@ -26,6 +32,10 @@ type Walker struct {
 	Locate func(context.Context, *block.BlockRef) (uint32, int64, int, bool, error)
 	// ReadRange reads a bounded range from the named pack, or stops the walk.
 	ReadRange func(context.Context, string, int64, int) ([]byte, error)
+	// Local reads the frozen Volume before consulting the pack index.
+	Local func(context.Context, *block.BlockRef) (*block.StoredBlock, error)
+	// Children reads repaired child lists from the collector snapshot.
+	Children func(context.Context, *block.BlockRef) ([]*block.BlockRef, bool, error)
 	// Describe returns a type label and typed children, without storing state.
 	Describe func(context.Context, *block.BlockRef, []byte, []byte) (string, []Child, error)
 }
@@ -48,7 +58,12 @@ func Open(path string) (*Walker, error) {
  kind TEXT NOT NULL DEFAULT '', bytes INTEGER NOT NULL DEFAULT 0);
  CREATE INDEX IF NOT EXISTS frontier ON nodes(state,depth,pack,off);
  CREATE TABLE IF NOT EXISTS edges(child TEXT NOT NULL,parent TEXT NOT NULL,PRIMARY KEY(child,parent));
- CREATE TABLE IF NOT EXISTS cache(ref TEXT PRIMARY KEY,data BLOB NOT NULL);`)
+ CREATE TABLE IF NOT EXISTS cache(ref TEXT PRIMARY KEY,data BLOB NOT NULL);
+ CREATE TABLE IF NOT EXISTS location_holes(ref TEXT PRIMARY KEY,kind TEXT NOT NULL);
+ CREATE TABLE IF NOT EXISTS locations(ref TEXT PRIMARY KEY,pack INTEGER NOT NULL,n INTEGER NOT NULL);
+ CREATE TABLE IF NOT EXISTS descriptors(ref TEXT NOT NULL,type BLOB NOT NULL,done INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(ref,type));
+ CREATE TABLE IF NOT EXISTS sources(ref TEXT PRIMARY KEY,kind TEXT NOT NULL);
+ CREATE TABLE IF NOT EXISTS failures(ref TEXT PRIMARY KEY,kind TEXT NOT NULL);`)
 	if err != nil {
 		store.Close()
 		return nil, err
@@ -90,27 +105,100 @@ func (w *Walker) AddPack(ctx context.Context, num uint32, id string, size uint64
 
 // Seed adds a named root; the name is retained as a hole's parent.
 func (w *Walker) Seed(ctx context.Context, name string, ref *block.BlockRef, typ []byte) error {
-	return w.enqueue(ctx, w.DB, Child{Ref: ref, Type: typ}, "root:"+name, 0)
+	// Commit local bytes and their root edge together.
+	tx, err := w.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err = w.enqueue(ctx, tx, Child{Ref: ref, Type: typ}, "root:"+name, 0); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// SeedAll commits a streaming root scan in one scratch transaction.
+func (w *Walker) SeedAll(ctx context.Context, scan func(func(string, *block.BlockRef) error) error) error {
+	// Bound memory to the root scanner's current seed and amortize the commit.
+	tx, err := w.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err = scan(func(name string, ref *block.BlockRef) error {
+		return w.enqueue(ctx, tx, Child{Ref: ref}, "root:"+name, 0)
+	}); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 // executor is the common write surface of a database and a transaction.
 type executor interface {
+	// QueryRowContext reads one bounded scratch record.
+	QueryRowContext(context.Context, string, ...any) *sql.Row
 	// ExecContext changes only the scratch database.
 	ExecContext(context.Context, string, ...any) (sql.Result, error)
 }
 
 // enqueue deduplicates a block by its hash and keeps every parent on disk.
 func (w *Walker) enqueue(ctx context.Context, db executor, c Child, parent string, depth int) error {
-	// Locate before insertion; an absent extent is an unresolved index hole.
+	// Deduplicate before reading the Volume or index again.
 	if c.Ref.GetEmpty() {
 		return nil
 	}
-	num, off, n, found, err := w.Locate(ctx, c.Ref)
-	if err != nil {
+	key := c.Ref.MarshalString()
+	var exists bool
+	if err := db.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM nodes WHERE ref=?)", key).Scan(&exists); err != nil {
 		return err
 	}
-	if !found {
-		n = 0
+	var num uint32
+	var off int64
+	var n int
+	if !exists {
+		// Cache the local Volume block before falling back to the index.
+		stored, err := w.local(ctx, c.Ref, db)
+		if errors.Is(err, block.ErrNotFound) {
+			err = nil
+		}
+		if err != nil {
+			return err
+		}
+		// Keep pack membership separate from which source served the bytes.
+		var found bool
+		num, off, n, found, err = w.Locate(ctx, c.Ref)
+		if err == nil && found {
+			var size int64
+			err = db.QueryRowContext(ctx, "SELECT size FROM packs WHERE num=?", int64(num)).Scan(&size)
+			if errors.Is(err, sql.ErrNoRows) || (err == nil && (off < 0 || n <= 0 || off > size-int64(n))) {
+				err = ErrInvalidExtent
+			}
+		}
+		if errors.Is(err, ErrInvalidExtent) {
+			table := "failures"
+			if stored != nil {
+				table = "location_holes"
+			}
+			if _, err = db.ExecContext(ctx, "INSERT OR IGNORE INTO "+table+" VALUES(?,'hole:extent')", key); err != nil {
+				return err
+			}
+			found = false
+		} else if err != nil {
+			return err
+		}
+		if found {
+			if _, err = db.ExecContext(ctx, "INSERT OR IGNORE INTO locations VALUES(?,?,?)", key, int64(num), n); err != nil {
+				return err
+			}
+		}
+		if !found {
+			n = 0
+		}
+		if stored != nil && n == 0 {
+			if err = db.QueryRowContext(ctx, "SELECT length(data) FROM cache WHERE ref=?", key).Scan(&n); err != nil {
+				return err
+			}
+		}
 	}
 
 	// Persist one identity and type, upgrading an earlier untyped sighting.
@@ -118,10 +206,30 @@ func (w *Walker) enqueue(ctx context.Context, db executor, c Child, parent strin
 	if typ == nil {
 		typ = []byte{}
 	}
-	key := c.Ref.MarshalString()
-	_, err = db.ExecContext(ctx, `INSERT INTO nodes(ref,type,depth,pack,off,n) VALUES(?,?,?,?,?,?)
- ON CONFLICT(ref) DO UPDATE SET type=excluded.type,state=0 WHERE length(nodes.type)=0 AND length(excluded.type)>0`, key, typ, depth, int64(num), off, n)
+	_, err := db.ExecContext(ctx, `INSERT OR IGNORE INTO nodes(ref,type,depth,pack,off,n) VALUES(?,?,?,?,?,?)`, key, typ, depth, int64(num), off, n)
 	if err != nil {
+		return err
+	}
+	if len(typ) != 0 {
+		result, err := db.ExecContext(ctx, "INSERT OR IGNORE INTO descriptors(ref,type) VALUES(?,?)", key, typ)
+		if err != nil {
+			return err
+		}
+		added, err := result.RowsAffected()
+		if err != nil {
+			return err
+		}
+		if added != 0 {
+			if _, err = db.ExecContext(ctx, `UPDATE nodes SET type=?,state=0
+ WHERE ref=? AND (kind NOT LIKE 'hole:%' OR EXISTS(SELECT 1 FROM cache WHERE cache.ref=nodes.ref))`, typ, key); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Apply an earlier off-frontier judgment before this node can be read.
+	if _, err = db.ExecContext(ctx, `UPDATE nodes SET state=1,kind=(SELECT kind FROM failures WHERE failures.ref=nodes.ref)
+ WHERE ref=? AND EXISTS(SELECT 1 FROM failures WHERE failures.ref=nodes.ref)`, key); err != nil {
 		return err
 	}
 
@@ -152,7 +260,7 @@ type item struct {
 // disk index orders an entire frontier by pack and offset without collecting it.
 func (w *Walker) next(ctx context.Context) ([]item, error) {
 	// Take at most 4096 refs in pack order from the first pending level.
-	rows, err := w.DB.QueryContext(ctx, `SELECT ref,type,depth,pack,off,n,
+	rows, err := w.DB.QueryContext(ctx, `SELECT ref,coalesce((SELECT type FROM descriptors d WHERE d.ref=nodes.ref AND d.done=0 LIMIT 1),type),depth,pack,off,n,
  EXISTS(SELECT 1 FROM cache WHERE cache.ref=nodes.ref)
  FROM nodes WHERE state=0 ORDER BY depth,pack,off LIMIT 4096`)
 	if err != nil {
@@ -183,6 +291,11 @@ func (w *Walker) next(ctx context.Context) ([]item, error) {
 // Run measures until the frontier drains or any read fails. Transport errors
 // leave the current run pending; no error is silently converted into a hole.
 func (w *Walker) Run(ctx context.Context) error {
+	// A configuration stop survives process replacement without spending another request.
+	if err := w.checkSource(ctx); err != nil {
+		return err
+	}
+
 	for {
 		// Read the next breadth-first run, outside any scratch transaction.
 		run, err := w.next(ctx)
@@ -206,16 +319,48 @@ func (w *Walker) Run(ctx context.Context) error {
 		var id string
 		var size int64
 		if err = w.DB.QueryRowContext(ctx, "SELECT id,size FROM packs WHERE num=?", int64(run[0].pack)).Scan(&id, &size); err != nil {
-			return errors.Wrap(err, "pack missing from frozen table")
+			if errors.Is(err, sql.ErrNoRows) {
+				for _, it := range run {
+					if err = w.hole(ctx, it.ref, "hole:extent"); err != nil {
+						return err
+					}
+				}
+				continue
+			}
+			return err
 		}
-		end := run[len(run)-1].off + int64(run[len(run)-1].n)
-		if end > size {
-			return errors.New("extent runs past pack length")
+		// Remove only the invalid extents, preserving neighboring valid blocks.
+		var end int64
+		invalid := false
+		for _, it := range run {
+			if it.off < 0 || it.n <= 0 || it.off > size-int64(it.n) {
+				if err = w.hole(ctx, it.ref, "hole:extent"); err != nil {
+					return err
+				}
+				invalid = true
+			}
+			end = max(end, it.off+int64(it.n))
 		}
+		if invalid {
+			continue
+		}
+
 		data, err := w.ReadRange(ctx, id, run[0].off, int(end-run[0].off))
-		if errors.Is(err, block.ErrNotFound) {
+		if errors.Is(err, block.ErrNotFound) || errors.Is(err, ErrInvalidExtent) || errors.Is(err, ErrSourceConfiguration) {
+			readErr := err
+			if errors.Is(readErr, ErrSourceConfiguration) {
+				refs := make([]string, 0, len(run))
+				for _, it := range run {
+					refs = append(refs, it.ref)
+				}
+				return w.stopSource(ctx, refs...)
+			}
+			kind := "hole:source"
+			if errors.Is(err, ErrInvalidExtent) {
+				kind = "hole:extent"
+			}
 			for _, it := range run {
-				if _, err = w.DB.ExecContext(ctx, "UPDATE nodes SET state=1,kind='hole:source' WHERE ref=?", it.ref); err != nil {
+				if err = w.hole(ctx, it.ref, kind); err != nil {
 					return err
 				}
 			}
@@ -229,7 +374,10 @@ func (w *Walker) Run(ctx context.Context) error {
 		for _, it := range run {
 			at := it.off - run[0].off
 			if at < 0 || at+int64(it.n) > int64(len(data)) {
-				return errors.New("short measurement range")
+				if err = w.hole(ctx, it.ref, "hole:extent"); err != nil {
+					return err
+				}
+				continue
 			}
 			ref, err := block.UnmarshalBlockRefB58(it.ref)
 			if err != nil {
@@ -237,9 +385,12 @@ func (w *Walker) Run(ctx context.Context) error {
 			}
 			raw := data[at : at+int64(it.n)]
 			if _, err = decode(ref, raw); err != nil {
-				return err
+				if err = w.hole(ctx, it.ref, "hole:corrupt"); err != nil {
+					return err
+				}
+				continue
 			}
-			if _, err = w.DB.ExecContext(ctx, "INSERT OR IGNORE INTO cache VALUES(?,?)", it.ref, raw); err != nil {
+			if err = w.cache(ctx, it.ref, raw, "pack-index"); err != nil {
 				return err
 			}
 		}
@@ -278,46 +429,112 @@ func (w *Walker) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*bloc
 		return nil, err
 	}
 
+	// Reuse a terminal corrupt or unavailable judgment without another GET.
+	var failed bool
+	if err = w.DB.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM failures WHERE ref=?
+ UNION ALL SELECT 1 FROM nodes WHERE ref=? AND kind LIKE 'hole:%')`, ref.MarshalString(), ref.MarshalString()).Scan(&failed); err != nil {
+		return nil, err
+	}
+	if failed {
+		return nil, block.ErrNotFound
+	}
+	stored, err := w.local(ctx, ref, w.DB)
+	if err != nil || stored != nil {
+		return stored, err
+	}
+
 	// Read only the indexed extent and retain it on disk for the later walk.
 	num, off, n, found, err := w.Locate(ctx, ref)
+	if errors.Is(err, ErrInvalidExtent) {
+		return nil, w.lookupHole(ctx, ref, "hole:extent")
+	}
 	if err != nil || !found {
 		return nil, err
 	}
 	var id string
-	if err = w.DB.QueryRowContext(ctx, "SELECT id FROM packs WHERE num=?", int64(num)).Scan(&id); err != nil {
+	var size int64
+	if err = w.DB.QueryRowContext(ctx, "SELECT id,size FROM packs WHERE num=?", int64(num)).Scan(&id, &size); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, w.lookupHole(ctx, ref, "hole:extent")
+		}
 		return nil, err
 	}
 
+	// Persist invalid extents without issuing a request.
+	if off < 0 || n <= 0 || off > size-int64(n) {
+		return nil, w.lookupHole(ctx, ref, "hole:extent")
+	}
+
 	// Verify a newly downloaded extent before making it reusable.
+	if err = w.checkSource(ctx); err != nil {
+		return nil, err
+	}
 	raw, err = w.ReadRange(ctx, id, off, n)
+
+	// Classify only completed source judgments; transport failures stay pending.
+	if errors.Is(err, ErrSourceConfiguration) {
+		return nil, w.stopSource(ctx, ref.MarshalString())
+	}
+	if errors.Is(err, ErrInvalidExtent) {
+		return nil, w.lookupHole(ctx, ref, "hole:extent")
+	}
+	if errors.Is(err, block.ErrNotFound) {
+		return nil, w.lookupHole(ctx, ref, "hole:source")
+	}
 	if err != nil {
 		return nil, err
 	}
-	stored, err := decode(ref, raw)
+
+	// Verify the payload before it enters the reusable cache.
+	stored, err = decode(ref, raw)
 	if err != nil {
-		return nil, err
+		return nil, w.lookupHole(ctx, ref, "hole:corrupt")
 	}
-	_, err = w.DB.ExecContext(ctx, "INSERT OR IGNORE INTO cache VALUES(?,?)", ref.MarshalString(), raw)
+	err = w.cache(ctx, ref.MarshalString(), raw, "pack-index")
 	return stored, err
 }
 
 // visit describes one cached block and atomically commits its graph edges.
 func (w *Walker) visit(ctx context.Context, it item) error {
+	// A terminal judgment survives typed sightings and every resume.
+	var terminal bool
+	if err := w.DB.QueryRowContext(ctx, "SELECT state<>0 FROM nodes WHERE ref=?", it.ref).Scan(&terminal); err != nil {
+		return err
+	}
+	if terminal {
+		return nil
+	}
+
 	// Decode its type outside the write transaction: type lookup may read cache.
 	ref, err := block.UnmarshalBlockRefB58(it.ref)
 	if err != nil {
 		return err
 	}
 	stored, err := w.GetStoredBlock(ctx, ref)
+	if errors.Is(err, block.ErrNotFound) {
+		return nil
+	}
 	if err != nil {
 		return err
 	}
+
+	// Resolve typed children before consulting repaired collector lists.
 	kind, kids, err := w.Describe(ctx, ref, stored.Data, it.typ)
 	if err != nil {
 		return err
 	}
+	if !stored.RefsKnown && w.Children != nil {
+		refs, found, err := w.Children(ctx, ref)
+		if err != nil {
+			return err
+		}
+		if found {
+			stored.Refs = refs
+			stored.RefsKnown = true
+		}
+	}
 	if !stored.RefsKnown && kind == "untyped" {
-		return errors.New("block has no recorded child list; measurement is incomplete: " + it.ref)
+		kind = "hole:refs-unknown"
 	}
 
 	// Preserve the stored closure even when a type is unknown or its list differs.
@@ -336,7 +553,13 @@ func (w *Walker) visit(ctx context.Context, it item) error {
 			return err
 		}
 	}
-	_, err = tx.ExecContext(ctx, "UPDATE nodes SET state=1,kind=?,bytes=? WHERE ref=?", kind, len(stored.Data), it.ref)
+
+	// Finish only this reaching context; other roots may type the same ref differently.
+	if _, err = tx.ExecContext(ctx, "UPDATE descriptors SET done=1 WHERE ref=? AND type=?", it.ref, it.typ); err != nil {
+		return err
+	}
+	_, err = tx.ExecContext(ctx, `UPDATE nodes SET state=CASE WHEN EXISTS(SELECT 1 FROM descriptors d WHERE d.ref=nodes.ref AND d.done=0) THEN 0 ELSE 1 END,
+ kind=CASE WHEN kind LIKE 'hole:%' THEN kind ELSE ? END,bytes=? WHERE ref=?`, kind, len(stored.Data), it.ref)
 	if err != nil {
 		return err
 	}
@@ -348,19 +571,29 @@ func (w *Walker) visit(ctx context.Context, it item) error {
 func (w *Walker) Report(ctx context.Context, out io.Writer) error {
 	queries := []string{
 		`SELECT name,value FROM inputs WHERE name IN ('reserved-bytes','reserved-requests')`,
+		`SELECT 'seed-kind',CASE WHEN parent='root:HEAD' THEN 'HEAD'
+ WHEN parent LIKE 'root:retained/%' THEN 'retained' ELSE 'collector' END,count(*)
+ FROM edges WHERE parent LIKE 'root:%' GROUP BY 2`,
+		`SELECT 'collector-kind',substr(owner,1,CASE WHEN instr(owner,':')=0 THEN length(owner) ELSE instr(owner,':')-1 END),count(*)
+ FROM (SELECT substr(parent,length('root:collector/')+1) AS owner FROM edges WHERE parent LIKE 'root:collector/%') GROUP BY 2`,
+		`SELECT 'seeds',parent,count(*) FROM edges WHERE parent LIKE 'root:%' GROUP BY parent`,
+		`SELECT 'source',s.kind,count(*) FROM sources s JOIN nodes n ON n.ref=s.ref WHERE n.state=1 GROUP BY s.kind`,
+		`SELECT 'holes:pack-location',count(*) FROM location_holes`,
+		`SELECT h.kind,h.ref,e.parent FROM location_holes h JOIN edges e ON h.ref=e.child`,
+		`SELECT 'holes',kind,count(*) FROM nodes WHERE kind LIKE 'hole:%' GROUP BY kind`,
 		`SELECT 'total',count(*),coalesce(sum(bytes),0) FROM nodes WHERE state=1 AND kind NOT LIKE 'hole:%'`,
 		`SELECT 'pending',count(*),0 FROM nodes WHERE state=0`,
 		`SELECT 'holes:index-unresolved',count(*),0 FROM nodes WHERE kind='hole:index'`,
 		`SELECT 'holes:source-unavailable',count(*),0 FROM nodes WHERE kind='hole:source'`,
-		`SELECT 'histogram',kind,bin,count(*),sum(bytes) FROM
- (SELECT kind,bytes,CASE WHEN bytes<1024 THEN 0 WHEN bytes<4096 THEN 1024
+		`SELECT 'histogram',kind,bin,count(*),sum(bytes),sum(n) FROM
+ (SELECT kind,bytes,n,CASE WHEN bytes<1024 THEN 0 WHEN bytes<4096 THEN 1024
  WHEN bytes<16384 THEN 4096 WHEN bytes<65536 THEN 16384
  WHEN bytes<1048576 THEN 65536 ELSE 1048576 END AS bin
  FROM nodes WHERE state=1 AND kind NOT LIKE 'hole:%') GROUP BY kind,bin`,
-		`SELECT 'pack',p.id,p.size,count(*),sum(n.n),1.0*sum(n.n)/p.size
- FROM nodes n JOIN packs p ON p.num=n.pack
+		`SELECT 'pack',p.id,p.size,count(*),sum(l.n),1.0*sum(l.n)/p.size
+ FROM nodes n JOIN locations l ON l.ref=n.ref JOIN packs p ON p.num=l.pack
  WHERE n.state=1 AND n.kind NOT LIKE 'hole:%' GROUP BY p.num`,
-		`SELECT CASE WHEN n.kind='hole:index' THEN 'hole:index-unresolved' ELSE 'hole:source-unavailable' END,n.ref,e.parent
+		`SELECT CASE WHEN n.kind='hole:index' THEN 'hole:index-unresolved' WHEN n.kind='hole:source' THEN 'hole:source-unavailable' ELSE n.kind END,n.ref,e.parent
  FROM nodes n JOIN edges e ON e.child=n.ref WHERE n.kind LIKE 'hole:%'`,
 	}
 	for _, query := range queries {
@@ -425,4 +658,116 @@ func (w *Walker) Report(ctx context.Context, out io.Writer) error {
 		}
 	}
 	return nil
+}
+
+// local copies a Volume block into scratch, without opening or upgrading a Volume.
+func (w *Walker) local(ctx context.Context, ref *block.BlockRef, db executor) (*block.StoredBlock, error) {
+	// Read at most the one local block requested by the frontier or typer.
+	if w.Local == nil {
+		return nil, nil
+	}
+	stored, err := w.Local(ctx, ref)
+	if err != nil || stored == nil {
+		return stored, err
+	}
+	if err = ref.VerifyData(stored.Data, false); err != nil {
+		if _, err = db.ExecContext(ctx, "INSERT OR IGNORE INTO failures VALUES(?,'hole:corrupt')", ref.MarshalString()); err != nil {
+			return nil, err
+		}
+		return nil, block.ErrNotFound
+	}
+	raw, err := block.EncodeBlockObject(stored.Data, stored.Refs, stored.RefsKnown)
+	if err != nil {
+		return nil, err
+	}
+
+	// Save reusable bytes and provenance in the caller's scratch transaction.
+	if db == w.DB {
+		return stored, w.cache(ctx, ref.MarshalString(), raw, "volume")
+	}
+	if _, err = db.ExecContext(ctx, "INSERT OR IGNORE INTO cache VALUES(?,?)", ref.MarshalString(), raw); err != nil {
+		return nil, err
+	}
+	_, err = db.ExecContext(ctx, "INSERT OR IGNORE INTO sources VALUES(?,'volume')", ref.MarshalString())
+	return stored, err
+}
+
+// hole commits a terminal judgment before a later run can read the extent again.
+func (w *Walker) hole(ctx context.Context, ref, kind string) error {
+	// Commit both lookup and frontier judgments atomically.
+	tx, err := w.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if _, err = tx.ExecContext(ctx, "INSERT OR IGNORE INTO failures VALUES(?,?)", ref, kind); err != nil {
+		return err
+	}
+	if _, err = tx.ExecContext(ctx, "UPDATE nodes SET state=1,kind=? WHERE ref=?", kind, ref); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// lookupHole saves an off-frontier judgment and reports absence to type lookup.
+func (w *Walker) lookupHole(ctx context.Context, ref *block.BlockRef, kind string) error {
+	if err := w.hole(ctx, ref.MarshalString(), kind); err != nil {
+		return err
+	}
+	return block.ErrNotFound
+}
+
+// cache atomically saves verified bytes and the source that served them.
+func (w *Walker) cache(ctx context.Context, ref string, raw []byte, source string) error {
+	// Keep a crash from saving bytes without their provenance.
+	tx, err := w.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if _, err = tx.ExecContext(ctx, "INSERT OR IGNORE INTO cache VALUES(?,?)", ref, raw); err != nil {
+		return err
+	}
+	if _, err = tx.ExecContext(ctx, "INSERT OR IGNORE INTO sources VALUES(?,?)", ref, source); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// checkSource refuses to resume a source that reached the configuration stop.
+func (w *Walker) checkSource(ctx context.Context) error {
+	// Read one durable stop marker before any new remote request.
+	var stopped bool
+	if err := w.DB.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM inputs WHERE name='source-configuration-stop')").Scan(&stopped); err != nil {
+		return err
+	}
+	if stopped {
+		return ErrSourceConfiguration
+	}
+	return nil
+}
+
+// stopSource latches the configuration error across process replacement.
+func (w *Walker) stopSource(ctx context.Context, refs ...string) error {
+	// Commit the judged range and stop marker together, including off-frontier lookups.
+	tx, err := w.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	for _, ref := range refs {
+		if _, err = tx.ExecContext(ctx, "INSERT OR IGNORE INTO failures VALUES(?,'hole:source')", ref); err != nil {
+			return err
+		}
+		if _, err = tx.ExecContext(ctx, "UPDATE nodes SET state=1,kind='hole:source' WHERE ref=?", ref); err != nil {
+			return err
+		}
+	}
+	if _, err = tx.ExecContext(ctx, "INSERT OR IGNORE INTO inputs VALUES('source-configuration-stop','1')"); err != nil {
+		return err
+	}
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+	return ErrSourceConfiguration
 }

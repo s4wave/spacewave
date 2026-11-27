@@ -11,6 +11,9 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 )
 
+// ErrMeasurementSourceConfiguration reports a run of missing source objects.
+var ErrMeasurementSourceConfiguration = errors.New("measurement configuration error: three consecutive HTTP 404 responses; check bucket and prefix")
+
 // MeasurementReader makes serial range GETs at a fixed rate with no retries.
 // Calls are serial; the measuring process owns the reader and its deadline.
 // It exposes no write operation. Any failed request ends the run, including
@@ -22,6 +25,10 @@ type MeasurementReader struct {
 	interval time.Duration
 	// next is the earliest next start.
 	next time.Time
+	// missing counts consecutive HTTP 404 responses.
+	missing int
+	// stopped retains a configuration failure for the process lifetime.
+	stopped error
 	// Requests counts attempts, including failures.
 	Requests uint64
 	// Bytes counts response bytes actually consumed.
@@ -44,6 +51,11 @@ func NewMeasurementReader(conf *ClientConfig, interval time.Duration) (*Measurem
 
 // ReadRange reads exactly one bounded range; a server ignoring Range is refused.
 func (r *MeasurementReader) ReadRange(ctx context.Context, bucket, key string, off int64, size int) ([]byte, error) {
+	// Do not send another request after the missing-object circuit opens.
+	if r.stopped != nil {
+		return nil, r.stopped
+	}
+
 	// Wait for the next request deadline, with no accumulated burst credit.
 	timer := time.NewTimer(time.Until(r.next))
 	defer timer.Stop()
@@ -62,7 +74,16 @@ func (r *MeasurementReader) ReadRange(ctx context.Context, bucket, key string, o
 		return nil, err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusRequestedRangeNotSatisfiable {
+	if resp.StatusCode == http.StatusNotFound {
+		r.missing++
+		if r.missing >= 3 {
+			r.stopped = ErrMeasurementSourceConfiguration
+			return nil, r.stopped
+		}
+		return nil, block.ErrNotFound
+	}
+	r.missing = 0
+	if resp.StatusCode == http.StatusRequestedRangeNotSatisfiable {
 		return nil, block.ErrNotFound
 	}
 	if resp.StatusCode != http.StatusPartialContent {
@@ -76,7 +97,7 @@ func (r *MeasurementReader) ReadRange(ctx context.Context, bucket, key string, o
 		return nil, err
 	}
 	if len(data) != size {
-		return nil, errors.New("measurement range length differs from its index")
+		return nil, ErrMeasurementExtent
 	}
 	return data, nil
 }

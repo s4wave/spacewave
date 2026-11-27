@@ -1621,4 +1621,13 @@ func TestScanRootBlocksIncludesEveryCollectorSeed(t *testing.T) {
 	if len(seen) != 3 || !seen[legacy.MarshalString()] || !seen[checkpoint.MarshalString()] || !seen[owner.MarshalString()] || seen[child.MarshalString()] {
 		t.Fatalf("wrong root union: %v", seen)
 	}
+	// Measurement reads the exact child-list record, including known-empty versus absent.
+	children, found, err := rg.ReadBlockChildren(ctx, checkpoint)
+	if err != nil || !found || len(children) != 1 || children[0].MarshalString() != child.MarshalString() {
+		t.Fatalf("children=%v found=%v err=%v", children, found, err)
+	}
+	if _, found, err = rg.ReadBlockChildren(ctx, legacy); err != nil || found {
+		t.Fatalf("absent list: found=%v err=%v", found, err)
+	}
+
 }

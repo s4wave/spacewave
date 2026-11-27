@@ -6,7 +6,16 @@ EXTENDS Naturals, FiniteSets
  pending models nodes.state=0; done models committed measured nodes.
  Land commits the count and children atomically. A 503 stops all reads; an
  explicit resume keeps the attempt ledger. B2 has no write transition.
- Ranges are abstracted to one block; cached reads are omitted.
+ Ranges are abstracted to one block. LocalRead models the immutable Volume
+ and cached blocks without remote reservations. SourceHole covers unavailable,
+ corrupt and invalid-extent judgments; unknown refs and typed decode failures
+ take the same terminal transition after reading. Repaired graph lists are
+ abstracted by Edges. Repeated seeds cannot put a hole back into pending.
+ Limit and ByteLimit are immutable work-file bindings across Resume.
+ Edges is the union of useful children decoded under all reaching Worlds;
+ descriptor replay from verified cache is hidden by this abstraction. A failed
+ descriptor can remain a reported hole while another supplies useful edges.
+ ConfigurationStop abstracts the third consecutive 404 and is durable.
  Byte sizes are unit costs here, covering atomic reservation across crashes.
  Schema decoding, input identity and filesystem aliases are separate conformance
  checks; this graph model does not establish their correctness.
@@ -35,6 +44,10 @@ Read(b) == /\ phase = "running" /\ current = None
            /\ current' = b /\ attempts' = attempts + 1 /\ spent' = spent + 1
            /\ UNCHANGED <<pending, done, count, holes, phase, remoteWrites>>
 
+LocalRead(b) == /\ phase = "running" /\ current = None /\ b \in pending
+                /\ current' = b
+                /\ UNCHANGED <<pending, done, count, attempts, spent, holes, phase, remoteWrites>>
+
 SlowDown == /\ phase = "running" /\ current = None
             /\ pending # {} /\ attempts < Limit /\ spent < ByteLimit
             /\ phase' = "stopped" /\ attempts' = attempts + 1 /\ spent' = spent + 1
@@ -60,19 +73,25 @@ SourceHole == /\ phase = "running" /\ current \in pending
               /\ pending' = pending \ {current} /\ current' = None
               /\ UNCHANGED <<done, count, attempts, spent, phase, remoteWrites>>
 
+ConfigurationStop == /\ phase = "running" /\ current \in pending
+                     /\ holes' = holes \cup {current}
+                     /\ pending' = pending \ {current} /\ current' = None
+                     /\ phase' = "configuration"
+                     /\ UNCHANGED <<done, count, attempts, spent, remoteWrites>>
+
 BudgetStop == /\ phase = "running" /\ current = None /\ pending # {}
               /\ (attempts = Limit \/ spent = ByteLimit)
               /\ phase' = "budget"
               /\ UNCHANGED <<pending, done, current, count, attempts, spent, holes, remoteWrites>>
 
-Terminal == /\ phase \in {"done", "budget"} /\ UNCHANGED vars
+Terminal == /\ phase \in {"done", "budget", "configuration"} /\ UNCHANGED vars
 
-Next == (\E b \in Blocks : Read(b)) \/ SlowDown \/ Land \/ Crash \/ Resume \/ Finish \/ SourceHole \/ BudgetStop \/ Terminal
+Next == (\E b \in Blocks : Read(b) \/ LocalRead(b)) \/ SlowDown \/ Land \/ Crash \/ Resume \/ Finish \/ SourceHole \/ ConfigurationStop \/ BudgetStop \/ Terminal
 Spec == Init /\ [][Next]_vars
 
 TypeOK == /\ pending \subseteq Blocks /\ done \subseteq Blocks
           /\ current \in Blocks \cup {None}
-          /\ phase \in {"running", "stopped", "done", "budget"}
+          /\ phase \in {"running", "stopped", "done", "budget", "configuration"}
           /\ attempts \in 0..Limit /\ spent \in 0..ByteLimit
           /\ holes \subseteq Blocks
 NoDoubleCount == count = Cardinality(done)
