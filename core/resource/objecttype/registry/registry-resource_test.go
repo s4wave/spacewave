@@ -75,7 +75,7 @@ func TestLookupRegistrationFound(t *testing.T) {
 	r := NewObjectTypeRegistryResource(nil)
 
 	// Publish a registered object type with its display metadata.
-	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(broadcast func(), _ func() <-chan struct{}) {
 		r.registrations[1] = &objectTypeRegistration{registration: &s4wave_objecttype_registry.ObjectTypeRegistration{
 			TypeId:         "test-plugin/test-type",
 			RegistrationId: 1,
@@ -131,7 +131,7 @@ func TestLookupRegistrationReturnsClone(t *testing.T) {
 			Visibility:  s4wave_objecttype_registry.ObjectTypeVisibility_OBJECT_TYPE_VISIBILITY_VISIBLE,
 		},
 	}
-	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(broadcast func(), _ func() <-chan struct{}) {
 		r.registrations[1] = &objectTypeRegistration{registration: orig}
 		broadcast()
 	})
@@ -163,7 +163,7 @@ func TestLookupRegistrationMultiple(t *testing.T) {
 	r := NewObjectTypeRegistryResource(nil)
 
 	// Publish distinct object types from two plugins.
-	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(broadcast func(), _ func() <-chan struct{}) {
 		r.registrations[1] = &objectTypeRegistration{registration: &s4wave_objecttype_registry.ObjectTypeRegistration{
 			TypeId:         "plugin-a/type-one",
 			RegistrationId: 1,
@@ -214,7 +214,7 @@ func TestGetRegistrationsLocked(t *testing.T) {
 
 	// Empty registry should return empty slice.
 	var regs []*s4wave_objecttype_registry.ObjectTypeRegistration
-	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(_ func(), _ func() <-chan struct{}) {
 		regs = r.getRegistrationsLocked("")
 	})
 	if len(regs) != 0 {
@@ -222,7 +222,7 @@ func TestGetRegistrationsLocked(t *testing.T) {
 	}
 
 	// Add two registrations.
-	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(broadcast func(), _ func() <-chan struct{}) {
 		r.registrations[1] = &objectTypeRegistration{registration: &s4wave_objecttype_registry.ObjectTypeRegistration{
 			TypeId:         "p/a",
 			RegistrationId: 1,
@@ -237,7 +237,7 @@ func TestGetRegistrationsLocked(t *testing.T) {
 	})
 
 	// Verify the locked snapshot exposes both published registrations.
-	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(_ func(), _ func() <-chan struct{}) {
 		regs = r.getRegistrationsLocked("")
 	})
 	if len(regs) != 2 {
@@ -251,7 +251,7 @@ func TestRegistrationRemoval(t *testing.T) {
 	r := NewObjectTypeRegistryResource(nil)
 
 	// Publish the registration that will be removed.
-	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(broadcast func(), _ func() <-chan struct{}) {
 		r.registrations[1] = &objectTypeRegistration{registration: &s4wave_objecttype_registry.ObjectTypeRegistration{
 			TypeId:         "test-plugin/removable",
 			RegistrationId: 1,
@@ -267,7 +267,7 @@ func TestRegistrationRemoval(t *testing.T) {
 	}
 
 	// Remove the registration and notify registry observers.
-	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(broadcast func(), _ func() <-chan struct{}) {
 		delete(r.registrations, 1)
 		broadcast()
 	})
@@ -286,8 +286,8 @@ func TestBroadcastOnChange(t *testing.T) {
 
 	// Capture the registry wait channel before publishing a change.
 	var waitCh <-chan struct{}
-	r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-		waitCh = getWaitCh()
+	r.generations.Transact(func(_ func(), nextChange func() <-chan struct{}) {
+		waitCh = nextChange()
 	})
 
 	// Channel should not be closed yet.
@@ -298,7 +298,7 @@ func TestBroadcastOnChange(t *testing.T) {
 	}
 
 	// Add a registration with broadcast.
-	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(broadcast func(), _ func() <-chan struct{}) {
 		r.registrations[1] = &objectTypeRegistration{registration: &s4wave_objecttype_registry.ObjectTypeRegistration{
 			TypeId:         "test-plugin/broadcast",
 			RegistrationId: 1,
@@ -421,8 +421,8 @@ func newRegistryResourceClient(
 
 func registryChangeWait(r *ObjectTypeRegistryResource) <-chan struct{} {
 	var waitCh <-chan struct{}
-	r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-		waitCh = getWaitCh()
+	r.generations.Transact(func(_ func(), nextChange func() <-chan struct{}) {
+		waitCh = nextChange()
 	})
 	return waitCh
 }

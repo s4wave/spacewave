@@ -7,7 +7,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/aperturerobotics/util/broadcast"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	"github.com/s4wave/spacewave/core/resource/registration"
 	s4wave_quickstart_registry "github.com/s4wave/spacewave/sdk/quickstart/registry"
@@ -23,7 +22,6 @@ type QuickstartRegistryResource struct {
 
 	// generations owns visibility of prepared plugin registrations.
 	generations   *registration.Registry
-	bcast         *broadcast.Broadcast
 	nextID        uint32
 	registrations map[uint32]*s4wave_quickstart_registry.QuickstartRegistration
 }
@@ -42,7 +40,6 @@ func NewQuickstartRegistryResource(
 		le:            le,
 		b:             b,
 		generations:   generations,
-		bcast:         generations.Broadcast(),
 		nextID:        1,
 		registrations: make(map[uint32]*s4wave_quickstart_registry.QuickstartRegistration),
 	}
@@ -97,7 +94,7 @@ func (r *QuickstartRegistryResource) RegisterQuickstart(
 
 	// Register the Quickstart under the shared generation lock.
 	var regID uint32
-	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(broadcast func(), _ func() <-chan struct{}) {
 		// Reject conflicting Quickstart identities and remove a replaceable registration.
 		for id, v := range r.registrations {
 			if v.GetQuickstartId() != reg.GetQuickstartId() {
@@ -142,7 +139,7 @@ func (r *QuickstartRegistryResource) RegisterQuickstart(
 	// Retain the registration until its client resource is released.
 	emptyMux := srpc.NewMux()
 	resourceID, err := client.AddResource(emptyMux, func() {
-		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		r.generations.Transact(func(broadcast func(), _ func() <-chan struct{}) {
 			if _, ok := r.registrations[regID]; ok {
 				r.generations.ForgetLocked(r.registrations[regID])
 				delete(r.registrations, regID)
@@ -151,7 +148,7 @@ func (r *QuickstartRegistryResource) RegisterQuickstart(
 		})
 	})
 	if err != nil {
-		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		r.generations.Transact(func(broadcast func(), _ func() <-chan struct{}) {
 			r.generations.ForgetLocked(r.registrations[regID])
 			delete(r.registrations, regID)
 			broadcast()
@@ -168,7 +165,7 @@ func (r *QuickstartRegistryResource) ListQuickstarts(
 	req *s4wave_quickstart_registry.ListQuickstartsRequest,
 ) (*s4wave_quickstart_registry.ListQuickstartsResponse, error) {
 	var regs []*s4wave_quickstart_registry.QuickstartRegistration
-	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(_ func(), _ func() <-chan struct{}) {
 		regs = r.getRegistrationsLocked(req.GetInstanceKey())
 	})
 	return &s4wave_quickstart_registry.ListQuickstartsResponse{Registrations: regs}, nil
@@ -184,10 +181,9 @@ func (r *QuickstartRegistryResource) WatchQuickstarts(
 	for {
 		var regs []*s4wave_quickstart_registry.QuickstartRegistration
 		var waitCh <-chan struct{}
-
-		r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		r.generations.Transact(func(_ func(), nextChange func() <-chan struct{}) {
 			regs = r.getRegistrationsLocked(req.GetInstanceKey())
-			waitCh = getWaitCh()
+			waitCh = nextChange()
 		})
 
 		if err := strm.Send(&s4wave_quickstart_registry.WatchQuickstartsResponse{
@@ -209,7 +205,7 @@ func (r *QuickstartRegistryResource) LookupRegistration(
 	quickstartID, instanceKey string,
 ) *s4wave_quickstart_registry.QuickstartRegistration {
 	var reg *s4wave_quickstart_registry.QuickstartRegistration
-	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(_ func(), _ func() <-chan struct{}) {
 		for _, v := range r.getRegistrationsLocked(instanceKey) {
 			if v.GetQuickstartId() == quickstartID {
 				reg = v.CloneVT()
@@ -239,7 +235,7 @@ func mergePluginIDs(lists ...[]string) []string {
 }
 
 // getRegistrationsLocked returns a snapshot of all registrations.
-// Must be called with bcast lock held.
+// The caller runs in a Registry transaction.
 func (r *QuickstartRegistryResource) getRegistrationsLocked(instanceKey string) []*s4wave_quickstart_registry.QuickstartRegistration {
 	// Clone the Quickstart registrations visible to the requested instance.
 	selected := registration.SelectLocked(r.generations, r.registrations, instanceKey, (*s4wave_quickstart_registry.QuickstartRegistration).GetQuickstartId)

@@ -5,7 +5,6 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	"github.com/s4wave/spacewave/core/resource/registration"
@@ -19,12 +18,9 @@ import (
 type RegistryResource struct {
 	// generations owns visibility of prepared plugin registrations.
 	generations *registration.Registry
-	// bcast is the generations' lock. The lock guards registrations and
-	// wakes node type lookups.
-	bcast *broadcast.Broadcast
-	// nextID is the next registration ID, under bcast.
+	// nextID is the next registration ID, under the admission transaction.
 	nextID uint32
-	// registrations contains each registered compiler by ID, under bcast.
+	// registrations contains each registered compiler by ID, under the admission transaction.
 	registrations map[uint32]*nodeTypeRegistration
 }
 
@@ -49,7 +45,6 @@ func NewRegistryResource(generations *registration.Registry) *RegistryResource {
 	}
 	return &RegistryResource{
 		generations:   generations,
-		bcast:         generations.Broadcast(),
 		nextID:        1,
 		registrations: make(map[uint32]*nodeTypeRegistration),
 	}
@@ -83,7 +78,7 @@ func (r *RegistryResource) RegisterNodeType(ctx context.Context, req *flowgraph_
 	reg := &nodeTypeRegistration{metadata: metadata.CloneVT(), client: compiler, ctx: lifetime}
 
 	// Index the registration unless it is ambiguous in its scope.
-	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(broadcast func(), _ func() <-chan struct{}) {
 		// Refuse a name another registration in the scope holds.
 		if err = r.checkConflictLocked(reg.metadata, generation); err != nil {
 			return
@@ -107,7 +102,7 @@ func (r *RegistryResource) RegisterNodeType(ctx context.Context, req *flowgraph_
 	// controllers on Resource release.
 	release := func() {
 		cancel()
-		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		r.generations.Transact(func(broadcast func(), _ func() <-chan struct{}) {
 			r.generations.ForgetLocked(reg)
 			delete(r.registrations, reg.id)
 			broadcast()
@@ -122,7 +117,7 @@ func (r *RegistryResource) RegisterNodeType(ctx context.Context, req *flowgraph_
 }
 
 // checkConflictLocked refuses a type ID or plugin config ID that another
-// registration in the same scope holds. The caller holds bcast.
+// registration in the same scope holds. The caller runs in a Registry transaction.
 func (r *RegistryResource) checkConflictLocked(metadata *flowgraph_registry.NodeType, generation *registration.Generation) error {
 	pluginConfigIDs := idSet(metadata.GetPluginConfigIds())
 	for _, other := range r.registrations {
@@ -144,9 +139,31 @@ func (r *RegistryResource) checkConflictLocked(metadata *flowgraph_registry.Node
 	return nil
 }
 
+// watchRegistration selects the visible compiler and subscribes to changes.
+func (r *RegistryResource) watchRegistration(engineID, typeID string) (*nodeTypeRegistration, <-chan struct{}) {
+	var reg *nodeTypeRegistration
+	var wait <-chan struct{}
+	r.generations.Transact(func(_ func(), nextChange func() <-chan struct{}) {
+		reg = r.lookupLocked(engineID, typeID)
+		wait = nextChange()
+	})
+	return reg, wait
+}
+
+// watchRegistrationByID retains a compiler selection until its Resource releases.
+func (r *RegistryResource) watchRegistrationByID(id uint32) (*nodeTypeRegistration, <-chan struct{}) {
+	var reg *nodeTypeRegistration
+	var wait <-chan struct{}
+	r.generations.Transact(func(_ func(), nextChange func() <-chan struct{}) {
+		reg = r.registrations[id]
+		wait = nextChange()
+	})
+	return reg, wait
+}
+
 // lookupLocked returns the visible registration of typeID for the World
 // engineID: the Space plugin installed in that World, else a global one. The
-// caller holds bcast.
+// caller runs in a Registry transaction.
 func (r *RegistryResource) lookupLocked(engineID, typeID string) *nodeTypeRegistration {
 	selected := registration.SelectLocked(r.generations, r.registrations, engineID, func(reg *nodeTypeRegistration) string {
 		return reg.metadata.GetTypeId()

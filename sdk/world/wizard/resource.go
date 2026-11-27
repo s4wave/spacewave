@@ -6,7 +6,6 @@ import (
 	"slices"
 
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/aperturerobotics/util/broadcast"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	"github.com/s4wave/spacewave/core/resource/registration"
 )
@@ -19,7 +18,6 @@ type WizardRegistryResource struct {
 
 	// generations owns visibility of prepared plugin registrations.
 	generations   *registration.Registry
-	bcast         *broadcast.Broadcast
 	nextID        uint32
 	registrations map[uint32]*ObjectWizard
 }
@@ -32,7 +30,6 @@ func NewWizardRegistryResource(generations *registration.Registry) *WizardRegist
 	}
 	r := &WizardRegistryResource{
 		generations:   generations,
-		bcast:         generations.Broadcast(),
 		nextID:        1,
 		registrations: make(map[uint32]*ObjectWizard),
 	}
@@ -81,7 +78,7 @@ func (r *WizardRegistryResource) RegisterWizard(
 
 	// Independent installations may each register the same type id.
 	var regID uint32
-	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(broadcast func(), _ func() <-chan struct{}) {
 		// Reject a wizard type that conflicts with the plugin generation.
 		for _, v := range r.registrations {
 			if v.GetTypeId() == wizard.GetTypeId() && !r.generations.CanShareNameLocked(v, generation) {
@@ -120,7 +117,7 @@ func (r *WizardRegistryResource) RegisterWizard(
 
 // releaseRegistration removes one registration and its generation binding.
 func (r *WizardRegistryResource) releaseRegistration(regID uint32) {
-	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(broadcast func(), _ func() <-chan struct{}) {
 		// Remove the retained wizard and generation binding, then notify watchers.
 		stored, ok := r.registrations[regID]
 		if !ok {
@@ -138,7 +135,7 @@ func (r *WizardRegistryResource) ListWizards(
 	req *ListWizardsRequest,
 ) (*ListWizardsResponse, error) {
 	var wizards []*ObjectWizard
-	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(_ func(), _ func() <-chan struct{}) {
 		wizards = r.getWizardsLocked(req.GetInstanceKey())
 	})
 	return &ListWizardsResponse{Wizards: wizards}, nil
@@ -149,24 +146,37 @@ func (r *WizardRegistryResource) WatchWizards(
 	req *WatchWizardsRequest,
 	strm SRPCObjectWizardRegistryResourceService_WatchWizardsStream,
 ) error {
-	return broadcast.WatchBroadcastWithEqual(
-		strm.Context(),
-		r.bcast,
-		func() *WatchWizardsResponse {
-			return &WatchWizardsResponse{Wizards: r.getWizardsLocked(req.GetInstanceKey())}
-		},
-		func(resp *WatchWizardsResponse) error {
-			return strm.Send(resp)
-		},
-		func(a, b *WatchWizardsResponse) bool {
-			return a.EqualVT(b)
-		},
-	)
+	ctx := strm.Context()
+	var previous *WatchWizardsResponse
+	for {
+		// Snapshot visible wizards and subscribe before releasing admission.
+		var response *WatchWizardsResponse
+		var wait <-chan struct{}
+		r.generations.Transact(func(_ func(), nextChange func() <-chan struct{}) {
+			response = &WatchWizardsResponse{Wizards: r.getWizardsLocked(req.GetInstanceKey())}
+			wait = nextChange()
+		})
+
+		// Always send the initial snapshot and suppress unchanged replacements.
+		if previous == nil || !response.EqualVT(previous) {
+			if err := strm.Send(response); err != nil {
+				return err
+			}
+			previous = response
+		}
+
+		// Wait for registry changes or the stream's cancellation.
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-wait:
+		}
+	}
 }
 
 // getWizardsLocked returns the built-in wizards followed by the visible plugin
 // wizards sorted by type id. Built-in type ids take precedence. The caller
-// holds bcast.
+// runs in a Registry transaction.
 func (r *WizardRegistryResource) getWizardsLocked(instanceKey string) []*ObjectWizard {
 	// Select visible plugin wizards in stable type order.
 	selected := registration.SelectLocked(r.generations, r.registrations, instanceKey, (*ObjectWizard).GetTypeId)

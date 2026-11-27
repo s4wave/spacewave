@@ -43,7 +43,7 @@ func TestLookupRegistrationByOpTypeFound(t *testing.T) {
 	r := NewWorldOpRegistryResource(nil)
 
 	// Publish the test operation registration under the registry lock.
-	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(broadcast func(), _ func() <-chan struct{}) {
 		r.registrations[1] = &s4wave_worldop_registry.WorldOpRegistration{
 			OperationTypeId: "test-plugin/test-op",
 			RegistrationId:  1,
@@ -79,7 +79,7 @@ func TestLookupRegistrationByOpTypeReturnsClone(t *testing.T) {
 		RegistrationId:  1,
 		PluginId:        "test-plugin",
 	}
-	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(broadcast func(), _ func() <-chan struct{}) {
 		r.registrations[1] = orig
 		broadcast()
 	})
@@ -107,7 +107,7 @@ func TestLookupRegistrationByOpTypeMultiple(t *testing.T) {
 	r := NewWorldOpRegistryResource(nil)
 
 	// Publish distinct operation registrations for both plugins.
-	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(broadcast func(), _ func() <-chan struct{}) {
 		r.registrations[1] = &s4wave_worldop_registry.WorldOpRegistration{
 			OperationTypeId: "plugin-a/op-one",
 			RegistrationId:  1,
@@ -158,7 +158,7 @@ func TestGetRegistrationsLocked(t *testing.T) {
 
 	// Empty registry should return empty slice.
 	var regs []*s4wave_worldop_registry.WorldOpRegistration
-	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(_ func(), _ func() <-chan struct{}) {
 		regs = r.getRegistrationsLocked("")
 	})
 	if len(regs) != 0 {
@@ -166,7 +166,7 @@ func TestGetRegistrationsLocked(t *testing.T) {
 	}
 
 	// Add two registrations.
-	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(broadcast func(), _ func() <-chan struct{}) {
 		r.registrations[1] = &s4wave_worldop_registry.WorldOpRegistration{
 			OperationTypeId: "p/a",
 			RegistrationId:  1,
@@ -181,7 +181,7 @@ func TestGetRegistrationsLocked(t *testing.T) {
 	})
 
 	// Read the populated registry snapshot and verify both registrations appear.
-	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(_ func(), _ func() <-chan struct{}) {
 		regs = r.getRegistrationsLocked("")
 	})
 	if len(regs) != 2 {
@@ -195,7 +195,7 @@ func TestRegistrationRemoval(t *testing.T) {
 	r := NewWorldOpRegistryResource(nil)
 
 	// Publish the operation registration that will be removed.
-	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(broadcast func(), _ func() <-chan struct{}) {
 		r.registrations[1] = &s4wave_worldop_registry.WorldOpRegistration{
 			OperationTypeId: "test-plugin/removable",
 			RegistrationId:  1,
@@ -211,7 +211,7 @@ func TestRegistrationRemoval(t *testing.T) {
 	}
 
 	// Remove the operation registration and notify registry watchers.
-	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(broadcast func(), _ func() <-chan struct{}) {
 		delete(r.registrations, 1)
 		broadcast()
 	})
@@ -230,8 +230,8 @@ func TestBroadcastOnChange(t *testing.T) {
 
 	// Subscribe to the next operation registry change under the registry lock.
 	var waitCh <-chan struct{}
-	r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-		waitCh = getWaitCh()
+	r.generations.Transact(func(_ func(), nextChange func() <-chan struct{}) {
+		waitCh = nextChange()
 	})
 
 	// Channel should not be closed yet.
@@ -242,7 +242,7 @@ func TestBroadcastOnChange(t *testing.T) {
 	}
 
 	// Add a registration with broadcast.
-	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(broadcast func(), _ func() <-chan struct{}) {
 		r.registrations[1] = &s4wave_worldop_registry.WorldOpRegistration{
 			OperationTypeId: "test-plugin/broadcast",
 			RegistrationId:  1,

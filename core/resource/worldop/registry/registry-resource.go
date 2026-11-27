@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/aperturerobotics/util/broadcast"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	"github.com/s4wave/spacewave/core/resource/registration"
 	s4wave_worldop_registry "github.com/s4wave/spacewave/sdk/worldop/registry"
@@ -18,7 +17,6 @@ type WorldOpRegistryResource struct {
 
 	// generations owns visibility of prepared plugin registrations.
 	generations   *registration.Registry
-	bcast         *broadcast.Broadcast
 	nextID        uint32
 	registrations map[uint32]*s4wave_worldop_registry.WorldOpRegistration
 }
@@ -31,7 +29,6 @@ func NewWorldOpRegistryResource(generations *registration.Registry) *WorldOpRegi
 	}
 	r := &WorldOpRegistryResource{
 		generations:   generations,
-		bcast:         generations.Broadcast(),
 		nextID:        1,
 		registrations: make(map[uint32]*s4wave_worldop_registry.WorldOpRegistration),
 	}
@@ -83,7 +80,7 @@ func (r *WorldOpRegistryResource) RegisterWorldOp(
 	// Reserve an operation registration and bind it to the plugin generation.
 	var regID uint32
 	duplicate := false
-	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(broadcast func(), _ func() <-chan struct{}) {
 		// Reject a conflicting operation name before reserving its registration.
 		for _, v := range r.registrations {
 			if v.GetOperationTypeId() == opTypeID && !r.generations.CanShareNameLocked(v, generation) {
@@ -118,7 +115,7 @@ func (r *WorldOpRegistryResource) RegisterWorldOp(
 	// Tie the operation registration lifetime to its client resource.
 	emptyMux := srpc.NewMux()
 	resourceID, err := client.AddResource(emptyMux, func() {
-		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		r.generations.Transact(func(broadcast func(), _ func() <-chan struct{}) {
 			if _, ok := r.registrations[regID]; ok {
 				r.generations.ForgetLocked(r.registrations[regID])
 				delete(r.registrations, regID)
@@ -127,7 +124,7 @@ func (r *WorldOpRegistryResource) RegisterWorldOp(
 		})
 	})
 	if err != nil {
-		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		r.generations.Transact(func(broadcast func(), _ func() <-chan struct{}) {
 			r.generations.ForgetLocked(r.registrations[regID])
 			delete(r.registrations, regID)
 			broadcast()
@@ -148,10 +145,9 @@ func (r *WorldOpRegistryResource) WatchWorldOps(
 	for {
 		var regs []*s4wave_worldop_registry.WorldOpRegistration
 		var waitCh <-chan struct{}
-
-		r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		r.generations.Transact(func(_ func(), nextChange func() <-chan struct{}) {
 			regs = r.getRegistrationsLocked(req.GetInstanceKey())
-			waitCh = getWaitCh()
+			waitCh = nextChange()
 		})
 
 		if err := strm.Send(&s4wave_worldop_registry.WatchWorldOpsResponse{
@@ -173,7 +169,7 @@ func (r *WorldOpRegistryResource) LookupRegistrationByOpType(
 	opTypeID, instanceKey string,
 ) *s4wave_worldop_registry.WorldOpRegistration {
 	var reg *s4wave_worldop_registry.WorldOpRegistration
-	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(_ func(), _ func() <-chan struct{}) {
 		reg, _ = r.lookupPluginInstanceLocked(opTypeID, instanceKey)
 	})
 	return reg
@@ -190,9 +186,9 @@ func (r *WorldOpRegistryResource) WatchRegistration(
 	var reg *s4wave_worldop_registry.WorldOpRegistration
 	var pluginInstanceKey string
 	var waitCh <-chan struct{}
-	r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+	r.generations.Transact(func(_ func(), nextChange func() <-chan struct{}) {
 		reg, pluginInstanceKey = r.lookupPluginInstanceLocked(opTypeID, instanceKey)
-		waitCh = getWaitCh()
+		waitCh = nextChange()
 	})
 	return reg, pluginInstanceKey, waitCh
 }
@@ -212,7 +208,7 @@ func (r *WorldOpRegistryResource) lookupPluginInstanceLocked(
 }
 
 // getRegistrationsLocked returns a snapshot of all registrations.
-// Must be called with bcast lock held.
+// The caller runs in a Registry transaction.
 func (r *WorldOpRegistryResource) getRegistrationsLocked(instanceKey string) []*s4wave_worldop_registry.WorldOpRegistration {
 	selected := registration.SelectLocked(r.generations, r.registrations, instanceKey, (*s4wave_worldop_registry.WorldOpRegistration).GetOperationTypeId)
 	regs := make([]*s4wave_worldop_registry.WorldOpRegistration, 0, len(selected))

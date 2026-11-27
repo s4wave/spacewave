@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/aperturerobotics/util/broadcast"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	"github.com/s4wave/spacewave/core/resource/registration"
 	s4wave_objecttype_registry "github.com/s4wave/spacewave/sdk/objecttype/registry"
@@ -18,7 +17,6 @@ type ObjectTypeRegistryResource struct {
 
 	// generations owns visibility of prepared plugin registrations.
 	generations   *registration.Registry
-	bcast         *broadcast.Broadcast
 	nextID        uint32
 	registrations map[uint32]*objectTypeRegistration
 	// builtInTypeIDs lists the host's compiled ObjectTypes, sorted.
@@ -47,7 +45,6 @@ func NewObjectTypeRegistryResource(generations *registration.Registry, builtInTy
 	}
 	r := &ObjectTypeRegistryResource{
 		generations:    generations,
-		bcast:          generations.Broadcast(),
 		nextID:         1,
 		registrations:  make(map[uint32]*objectTypeRegistration),
 		builtInTypeIDs: builtInTypeIDs,
@@ -110,7 +107,7 @@ func (r *ObjectTypeRegistryResource) RegisterObjectType(
 	// Register the ObjectType under the broadcast lock, rejecting duplicates.
 	var regID uint32
 	var duplicate bool
-	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(broadcast func(), _ func() <-chan struct{}) {
 		// Reject a duplicate type ID that cannot share the caller's name scope.
 		for _, registration := range r.registrations {
 			if registration.registration.GetTypeId() == typeID && !r.generations.CanShareNameLocked(registration, generation) {
@@ -119,7 +116,6 @@ func (r *ObjectTypeRegistryResource) RegisterObjectType(
 			}
 		}
 
-		// Allocate an ID and clone the request metadata.
 		// Allocate an ID and clone the request metadata.
 		regID = r.nextID
 		r.nextID++
@@ -153,7 +149,7 @@ func (r *ObjectTypeRegistryResource) RegisterObjectType(
 	// Publish the registration as a Resource owned by the caller.
 	emptyMux := srpc.NewMux()
 	resourceID, err := client.AddResource(emptyMux, func() {
-		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		r.generations.Transact(func(broadcast func(), _ func() <-chan struct{}) {
 			if _, ok := r.registrations[regID]; ok {
 				r.generations.ForgetLocked(r.registrations[regID])
 				delete(r.registrations, regID)
@@ -162,7 +158,7 @@ func (r *ObjectTypeRegistryResource) RegisterObjectType(
 		})
 	})
 	if err != nil {
-		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		r.generations.Transact(func(broadcast func(), _ func() <-chan struct{}) {
 			r.generations.ForgetLocked(r.registrations[regID])
 			delete(r.registrations, regID)
 			broadcast()
@@ -183,10 +179,9 @@ func (r *ObjectTypeRegistryResource) WatchObjectTypes(
 	for {
 		var regs []*s4wave_objecttype_registry.ObjectTypeRegistration
 		var waitCh <-chan struct{}
-
-		r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		r.generations.Transact(func(_ func(), nextChange func() <-chan struct{}) {
 			regs = r.getRegistrationsLocked(req.GetInstanceKey())
-			waitCh = getWaitCh()
+			waitCh = nextChange()
 		})
 
 		if err := strm.Send(&s4wave_objecttype_registry.WatchObjectTypesResponse{
@@ -209,7 +204,7 @@ func (r *ObjectTypeRegistryResource) LookupRegistration(
 	typeID, instanceKey string,
 ) *s4wave_objecttype_registry.ObjectTypeRegistration {
 	var reg *s4wave_objecttype_registry.ObjectTypeRegistration
-	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(_ func(), _ func() <-chan struct{}) {
 		if selected := r.lookupRegistrationLocked(typeID, instanceKey); selected != nil {
 			reg = selected.registration.CloneVT()
 		}
@@ -217,8 +212,23 @@ func (r *ObjectTypeRegistryResource) LookupRegistration(
 	return reg
 }
 
+// watchRegistration selects a handler, its serving instance, and its next change.
+// The instance key is empty for a global registration.
+func (r *ObjectTypeRegistryResource) watchRegistration(typeID, engineID string) (*objectTypeRegistration, string, <-chan struct{}) {
+	// Capture the handler, serving instance and notification in one admission transaction.
+	var reg *objectTypeRegistration
+	var instanceKey string
+	var wait <-chan struct{}
+	r.generations.Transact(func(_ func(), nextChange func() <-chan struct{}) {
+		reg = r.lookupRegistrationLocked(typeID, engineID)
+		instanceKey = r.generations.InstanceKeyLocked(reg)
+		wait = nextChange()
+	})
+	return reg, instanceKey, wait
+}
+
 // lookupRegistrationLocked finds the visible private handler capability.
-// The caller holds bcast.
+// The caller runs in a Registry transaction.
 func (r *ObjectTypeRegistryResource) lookupRegistrationLocked(typeID, instanceKey string) *objectTypeRegistration {
 	for _, registration := range r.selectedLocked(instanceKey) {
 		if registration.registration.GetTypeId() == typeID {
@@ -229,7 +239,7 @@ func (r *ObjectTypeRegistryResource) lookupRegistrationLocked(typeID, instanceKe
 }
 
 // getRegistrationsLocked returns a snapshot of all registrations.
-// Must be called with bcast lock held.
+// The caller runs in a Registry transaction.
 func (r *ObjectTypeRegistryResource) getRegistrationsLocked(instanceKey string) []*s4wave_objecttype_registry.ObjectTypeRegistration {
 	selected := r.selectedLocked(instanceKey)
 	regs := make([]*s4wave_objecttype_registry.ObjectTypeRegistration, 0, len(selected))
@@ -239,7 +249,7 @@ func (r *ObjectTypeRegistryResource) getRegistrationsLocked(instanceKey string) 
 	return regs
 }
 
-// selectedLocked selects handlers for the consuming World. The caller holds bcast.
+// selectedLocked selects handlers for the consuming World. The caller runs in a Registry transaction.
 func (r *ObjectTypeRegistryResource) selectedLocked(instanceKey string) []*objectTypeRegistration {
 	return registration.SelectLocked(r.generations, r.registrations, instanceKey, func(reg *objectTypeRegistration) string {
 		return reg.registration.GetTypeId()

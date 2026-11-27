@@ -85,14 +85,7 @@ func (c *BridgeController) HandleDirective(ctx context.Context, di directive.Ins
 		var valueID uint32
 		for {
 			// Read visibility and the wakeup position under the same admission lock.
-			var next *objectTypeRegistration
-			var instanceKey string
-			var wait <-chan struct{}
-			c.registry.bcast.HoldLock(func(_ func(), getWait func() <-chan struct{}) {
-				next = c.registry.lookupRegistrationLocked(typeID, dir.LookupObjectTypeEngineID())
-				instanceKey = c.registry.generations.InstanceKeyLocked(next)
-				wait = getWait()
-			})
+			next, instanceKey, wait := c.registry.watchRegistration(typeID, dir.LookupObjectTypeEngineID())
 
 			// Replace only this resolver's value. Existing Resources
 			// keep their own handler lifetime and new lookups receive
@@ -132,12 +125,7 @@ func (c *BridgeController) resolveMetadata(dir s4wave_objecttype_registry.Lookup
 		var valueID uint32
 		for {
 			// Read visibility and the wakeup position under the same admission lock.
-			var next *objectTypeRegistration
-			var wait <-chan struct{}
-			c.registry.bcast.HoldLock(func(_ func(), getWait func() <-chan struct{}) {
-				next = c.registry.lookupRegistrationLocked(typeID, dir.LookupObjectTypeMetadataEngineID())
-				wait = getWait()
-			})
+			next, _, wait := c.registry.watchRegistration(typeID, dir.LookupObjectTypeMetadataEngineID())
 
 			// Replace the value only when a different registration is visible.
 			if next != current {
@@ -326,7 +314,10 @@ func (r *registrationFactory) invokeAttached(
 	objectKey string,
 	engine world.Engine,
 ) (srpc.Invoker, func(), error) {
-	invoker := newAttachedObjectTypeInvoker(r.reg.attached, r.reg.registration, objectKey, engine, objecttype.EngineIDFromContext(ctx), objecttype.CallerFromContext(ctx), r.b, r.le)
+	invoker := newAttachedObjectTypeInvoker(
+		r.reg.attached, r.reg.registration, objectKey, engine,
+		objecttype.EngineIDFromContext(ctx), objecttype.CallerFromContext(ctx), r.b, r.le,
+	)
 	if err := invoker.connect(ctx); err != nil {
 		return nil, nil, err
 	}
@@ -347,7 +338,10 @@ func (r *registrationFactory) invokePlugin(
 	if resourceCtx != nil {
 		resourceClientCtx = resourceCtx.Context()
 	}
-	invoker := newPluginObjectTypeInvoker(resourceClientCtx, r.reg.registration, r.instanceKey, objectKey, engine, objecttype.EngineIDFromContext(ctx), objecttype.CallerFromContext(ctx), r.b, r.le)
+	invoker := newPluginObjectTypeInvoker(
+		resourceClientCtx, r.reg.registration, r.instanceKey, objectKey, engine,
+		objecttype.EngineIDFromContext(ctx), objecttype.CallerFromContext(ctx), r.b, r.le,
+	)
 	if err := invoker.connect(ctx); err != nil {
 		return nil, nil, err
 	}

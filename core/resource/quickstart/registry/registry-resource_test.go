@@ -506,7 +506,7 @@ func TestExecuteQuickstartValidation(t *testing.T) {
 	}
 
 	// Register a quickstart without an execution service.
-	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(broadcast func(), _ func() <-chan struct{}) {
 		r.registrations[1] = &s4wave_quickstart_registry.QuickstartRegistration{
 			QuickstartId:   "sample-workspace",
 			RegistrationId: 1,
@@ -544,7 +544,7 @@ func TestMergePluginIDsDedupesInOrder(t *testing.T) {
 func TestListQuickstartsSortsById(t *testing.T) {
 	// Populate the registry with quickstart IDs in reverse order.
 	r := NewQuickstartRegistryResource(nil, nil, nil)
-	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(broadcast func(), _ func() <-chan struct{}) {
 		r.registrations[2] = &s4wave_quickstart_registry.QuickstartRegistration{
 			QuickstartId:   "zeta",
 			RegistrationId: 2,
@@ -589,7 +589,7 @@ func TestLookupQuickstartRegistrationReturnsClone(t *testing.T) {
 		Description:    "Operator workspace",
 		Category:       "tools",
 	}
-	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(broadcast func(), _ func() <-chan struct{}) {
 		r.registrations[1] = orig
 		broadcast()
 	})

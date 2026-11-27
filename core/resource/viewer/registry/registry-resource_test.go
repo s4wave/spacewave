@@ -219,7 +219,7 @@ func TestViewerRegistryNotifiesOnlyChangedSurface(t *testing.T) {
 	terminalWaitCh := surfaceWaitCh(t, r, s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_TUI)
 
 	// Publish a terminal viewer and notify its surface under the registry lock.
-	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(_ func(), _ func() <-chan struct{}) {
 		r.registrations[1] = &s4wave_viewer_registry.ViewerRegistration{
 			Surface: s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_TUI,
 		}
@@ -248,7 +248,7 @@ func surfaceWaitCh(
 ) <-chan struct{} {
 	t.Helper()
 	var waitCh <-chan struct{}
-	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(_ func(), _ func() <-chan struct{}) {
 		r.getSurfaceBroadcastLocked(surface).HoldLock(func(
 			_ func(),
 			getWaitCh func() <-chan struct{},

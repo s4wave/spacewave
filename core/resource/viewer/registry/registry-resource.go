@@ -19,7 +19,6 @@ type ViewerRegistryResource struct {
 
 	// generations owns visibility of prepared plugin registrations.
 	generations   *registration.Registry
-	bcast         *broadcast.Broadcast
 	surfaceBcasts map[s4wave_viewer_registry.ViewerSurface]*broadcast.Broadcast
 	nextID        uint32
 	registrations map[uint32]*s4wave_viewer_registry.ViewerRegistration
@@ -35,7 +34,6 @@ func NewViewerRegistryResource(generations *registration.Registry) *ViewerRegist
 	// Create the viewer registry with shared generation visibility and surface notifications.
 	r := &ViewerRegistryResource{
 		generations:   generations,
-		bcast:         generations.Broadcast(),
 		nextID:        1,
 		registrations: make(map[uint32]*s4wave_viewer_registry.ViewerRegistration),
 		surfaceBcasts: make(map[s4wave_viewer_registry.ViewerSurface]*broadcast.Broadcast),
@@ -117,7 +115,7 @@ func (r *ViewerRegistryResource) RegisterViewer(
 
 	// Bind the viewer registration to its generation and notify surface watchers.
 	var regID uint32
-	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(_ func(), _ func() <-chan struct{}) {
 		// Reserve a viewer registration ID and bind its stored record to the generation.
 		regID = r.nextID
 		r.nextID++
@@ -136,7 +134,7 @@ func (r *ViewerRegistryResource) RegisterViewer(
 	// Tie the viewer registration to a client resource and remove it on release.
 	emptyMux := srpc.NewMux()
 	resourceID, err := client.AddResource(emptyMux, func() {
-		r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		r.generations.Transact(func(_ func(), _ func() <-chan struct{}) {
 			if _, ok := r.registrations[regID]; ok {
 				r.generations.ForgetLocked(r.registrations[regID])
 				delete(r.registrations, regID)
@@ -145,7 +143,7 @@ func (r *ViewerRegistryResource) RegisterViewer(
 		})
 	})
 	if err != nil {
-		r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		r.generations.Transact(func(_ func(), _ func() <-chan struct{}) {
 			r.generations.ForgetLocked(r.registrations[regID])
 			delete(r.registrations, regID)
 			r.broadcastSurfaceLocked(surface)
@@ -169,7 +167,7 @@ func (r *ViewerRegistryResource) ListViewers(
 
 	// Snapshot the visible viewer registrations under the registry lock.
 	var regs []*s4wave_viewer_registry.ViewerRegistration
-	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+	r.generations.Transact(func(_ func(), _ func() <-chan struct{}) {
 		regs = r.getRegistrationsLocked(surface, req.GetInstanceKey())
 	})
 	return &s4wave_viewer_registry.ListViewersResponse{Registrations: regs}, nil
@@ -190,7 +188,7 @@ func (r *ViewerRegistryResource) WatchViewers(
 		var regs []*s4wave_viewer_registry.ViewerRegistration
 		var waitCh <-chan struct{}
 
-		r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		r.generations.Transact(func(_ func(), _ func() <-chan struct{}) {
 			regs = r.getRegistrationsLocked(surface, req.GetInstanceKey())
 			r.getSurfaceBroadcastLocked(surface).HoldLock(func(
 				_ func(),
@@ -215,7 +213,7 @@ func (r *ViewerRegistryResource) WatchViewers(
 }
 
 // getSurfaceBroadcastLocked returns the notification state for surface.
-// Must be called with bcast lock held.
+// The caller runs in a Registry transaction.
 func (r *ViewerRegistryResource) getSurfaceBroadcastLocked(
 	surface s4wave_viewer_registry.ViewerSurface,
 ) *broadcast.Broadcast {
@@ -228,7 +226,7 @@ func (r *ViewerRegistryResource) getSurfaceBroadcastLocked(
 }
 
 // broadcastSurfaceLocked wakes watchers for surface.
-// Must be called with bcast lock held.
+// The caller runs in a Registry transaction.
 func (r *ViewerRegistryResource) broadcastSurfaceLocked(
 	surface s4wave_viewer_registry.ViewerSurface,
 ) {
@@ -241,7 +239,7 @@ func (r *ViewerRegistryResource) broadcastSurfaceLocked(
 }
 
 // getRegistrationsLocked returns a snapshot of registrations for surface.
-// Must be called with bcast lock held.
+// The caller runs in a Registry transaction.
 func (r *ViewerRegistryResource) getRegistrationsLocked(
 	surface s4wave_viewer_registry.ViewerSurface,
 	instanceKey string,

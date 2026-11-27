@@ -45,7 +45,9 @@ func (c *BridgeController) HandleDirective(ctx context.Context, di directive.Ins
 	switch dir := di.GetDirective().(type) {
 	case s4wave_flowgraph.LookupFlowgraphNodeType:
 		engineID, typeID := dir.LookupFlowgraphNodeTypeEngineID(), dir.LookupFlowgraphNodeTypeID()
-		return c.watch(func() *nodeTypeRegistration { return c.registry.lookupLocked(engineID, typeID) }, func(reg *nodeTypeRegistration) directive.Value {
+		return c.watch(func() (*nodeTypeRegistration, <-chan struct{}) {
+			return c.registry.watchRegistration(engineID, typeID)
+		}, func(reg *nodeTypeRegistration) directive.Value {
 			return newNodeTypeProxy(c.b, reg)
 		})
 	case bifrost_rpc.LookupRpcService:
@@ -58,8 +60,8 @@ func (c *BridgeController) HandleDirective(ctx context.Context, di directive.Ins
 		if !ok || err != nil || serverID == "" {
 			return nil, nil
 		}
-		return c.watch(func() *nodeTypeRegistration {
-			return c.registry.registrations[uint32(regID)] //nolint:gosec // ParseUint above limits the value to 32 bits.
+		return c.watch(func() (*nodeTypeRegistration, <-chan struct{}) {
+			return c.registry.watchRegistrationByID(uint32(regID)) //nolint:gosec // ParseUint above limits the value to 32 bits.
 		}, func(reg *nodeTypeRegistration) directive.Value {
 			return &pluginPortInvoker{reg: reg, serverID: serverID}
 		})
@@ -68,7 +70,9 @@ func (c *BridgeController) HandleDirective(ctx context.Context, di directive.Ins
 		if !ok || conf.reg == nil {
 			return nil, nil
 		}
-		return c.watch(func() *nodeTypeRegistration { return c.registry.registrations[conf.reg.id] }, func(reg *nodeTypeRegistration) directive.Value {
+		return c.watch(func() (*nodeTypeRegistration, <-chan struct{}) {
+			return c.registry.watchRegistrationByID(conf.reg.id)
+		}, func(reg *nodeTypeRegistration) directive.Value {
 			return &pluginFactory{configID: conf.configID, reg: reg}
 		})
 	}
@@ -78,18 +82,16 @@ func (c *BridgeController) HandleDirective(ctx context.Context, di directive.Ins
 // watch publishes the value for the registration that lookup returns,
 // replacing the value when the registration changes and withdrawing the value
 // when no registration remains.
-func (c *BridgeController) watch(lookup func() *nodeTypeRegistration, value func(*nodeTypeRegistration) directive.Value) ([]directive.Resolver, error) {
+func (c *BridgeController) watch(
+	lookup func() (*nodeTypeRegistration, <-chan struct{}),
+	value func(*nodeTypeRegistration) directive.Value,
+) ([]directive.Resolver, error) {
 	return directive.R(directive.NewFuncResolver(func(ctx context.Context, handler directive.ResolverHandler) error {
 		var current *nodeTypeRegistration
 		var valueID uint32
 		for {
 			// Read the registration and its change notification together.
-			var next *nodeTypeRegistration
-			var wait <-chan struct{}
-			c.registry.bcast.HoldLock(func(_ func(), getWait func() <-chan struct{}) {
-				next = lookup()
-				wait = getWait()
-			})
+			next, wait := lookup()
 
 			// Withdraw the old value before publishing a replacement.
 			if next != current {

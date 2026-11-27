@@ -12,7 +12,7 @@ import (
 )
 
 // Registry owns admission of plugin generations across the Resource registries.
-// Participating registries use Broadcast for their records and visibility reads,
+// Participating registries use transactions for their records and visibility reads,
 // so activation and a registry snapshot share one critical section.
 type Registry struct {
 	// bcast serializes membership, activation, and participating registry records.
@@ -33,12 +33,16 @@ func NewRegistry() *Registry {
 	}
 }
 
-// Broadcast returns the lock shared by generation admission and registry records.
-func (r *Registry) Broadcast() *broadcast.Broadcast {
-	return &r.bcast
+// Transact accesses participating records atomically with generation admission.
+// access runs under the admission lock and may call the Registry's Locked methods.
+// notify wakes watchers at the caller's publication point.
+// nextChange subscribes to the next notification without releasing admission.
+// Both callbacks may be called only during access.
+func (r *Registry) Transact(access func(notify func(), nextChange func() <-chan struct{})) {
+	r.bcast.HoldLock(access)
 }
 
-// OnChange adds a notification called under Broadcast when visibility changes.
+// OnChange adds a notification called under the admission transaction when visibility changes.
 // Install notifications during construction, before serving any requests.
 func (r *Registry) OnChange(changed func()) {
 	r.changed = append(r.changed, changed)
@@ -50,7 +54,7 @@ func (r *Registry) OnChange(changed func()) {
 // the active generation is visible at once and hides with it, so a plugin can
 // register what it can serve only after starting, such as a handler that needs
 // recovery first. A closed or retired generation refuses members. The caller
-// holds Broadcast and must forget the member when its Resource is released.
+// runs in a Registry transaction and must forget the member when its Resource is released.
 func (r *Registry) BindLocked(member any, generation *Generation) error {
 	// Refuse a generation this registry does not hold open.
 	if generation == nil {
@@ -65,21 +69,20 @@ func (r *Registry) BindLocked(member any, generation *Generation) error {
 }
 
 // ForgetLocked removes a released registration's generation association.
-// The caller holds Broadcast.
+// The caller runs in a Registry transaction.
 func (r *Registry) ForgetLocked(member any) {
 	delete(r.members, member)
 }
 
 // GenerationLocked returns a registration's group, or nil for an ungrouped
-// registration. The caller holds Broadcast.
+// registration. The caller runs in a Registry transaction.
 func (r *Registry) GenerationLocked(member any) *Generation {
 	return r.members[member]
 }
 
 // InstanceKeyLocked returns the plugin instance that serves a registration,
 // empty for a global registration. A scoped registration's plugin runs in its
-// installation, so loading its handler uses this key. The caller holds
-// Broadcast.
+// installation, so loading its handler uses this key. The caller runs in a Registry transaction.
 func (r *Registry) InstanceKeyLocked(member any) string {
 	if generation := r.members[member]; generation != nil {
 		return generation.instanceKey
@@ -88,8 +91,7 @@ func (r *Registry) InstanceKeyLocked(member any) string {
 }
 
 // priorityLocked returns zero for hidden registrations, one for a global
-// registration, and two for this installation's registration. The caller holds
-// Broadcast. Scoped definitions take precedence over global defaults.
+// registration, and two for this installation's registration. The caller runs in a Registry transaction. Scoped definitions take precedence over global defaults.
 func (r *Registry) priorityLocked(member any, instanceKey string) int {
 	// Rank the member by its admitted generation and installation scope.
 	generation := r.members[member]
@@ -110,7 +112,7 @@ func (r *Registry) priorityLocked(member any, instanceKey string) int {
 
 // SelectLocked selects visible registrations by semantic name for one logical
 // installation. Scoped definitions override global defaults. The latest ID wins
-// within one priority. Callers hold Broadcast and clone mutable wire results.
+// within one priority. Callers run in a Registry transaction and clone mutable wire results.
 func SelectLocked[T comparable, K comparable](r *Registry, members map[uint32]T, instanceKey string, name func(T) K) []T {
 	// Select the highest-priority visible registration for each semantic name.
 	type candidate struct {
@@ -141,7 +143,7 @@ func SelectLocked[T comparable, K comparable](r *Registry, members map[uint32]T,
 
 // CanShareNameLocked permits independent installation scopes and private
 // replacement candidates of the same family. It rejects duplicates within one
-// generation and competing families within one scope. The caller holds Broadcast.
+// generation and competing families within one scope. The caller runs in a Registry transaction.
 func (r *Registry) CanShareNameLocked(member any, candidate *Generation) bool {
 	// Compare installation scopes before checking a replacement within one family.
 	previous := r.members[member]
