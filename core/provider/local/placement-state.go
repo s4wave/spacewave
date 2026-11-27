@@ -78,6 +78,10 @@ type placementState struct {
 	// drain uploads the finalized packs of the store's packahead log, or is
 	// nil when the store has no log.
 	drain *packahead.Drain
+	// statusBcast broadcasts after the upload queue or the drain changes, so
+	// one channel follows both. forwardStatusChanges drives it while the mount
+	// lasts; it is nil when drain is.
+	statusBcast *broadcast.Broadcast
 	// fileSegments serves the blocks of linked files from the files, after the
 	// local store misses and before every remote tier.
 	fileSegments *block_store_filesegment.Store
@@ -161,6 +165,10 @@ func newPlacementState(ctx context.Context, le *logrus.Entry, s placementShared,
 	}
 	if m.packs != nil {
 		p.drain, p.packed = m.packs.drain, m.packs.packed
+		p.statusBcast = &broadcast.Broadcast{}
+		_, queued := p.wb.GetStatus()
+		_, packs := p.drain.Status()
+		go p.forwardStatusChanges(queued, packs)
 	}
 
 	// A placed store reads the pack front first and, unless it serves only,
@@ -188,6 +196,28 @@ func newPlacementState(ctx context.Context, le *logrus.Entry, s placementShared,
 	p.startPeerClassify(ctx)
 	p.setBackend(m.backend)
 	return p
+}
+
+// forwardStatusChanges broadcasts on statusBcast after each change of the
+// upload queue or the drain, until the mount ends. queued and packs are the
+// sources' change channels, captured before the placement is published. It
+// captures both sources' next channels before each broadcast, so a change
+// after the broadcast closes them and is broadcast in turn: a reader that
+// takes statusBcast's channel before reading the status never misses a change.
+func (p *placementState) forwardStatusChanges(queued, packs <-chan struct{}) {
+	for {
+		select {
+		case <-p.done:
+			return
+		case <-queued:
+		case <-packs:
+		}
+		_, queued = p.wb.GetStatus()
+		_, packs = p.drain.Status()
+		l := p.statusBcast.Lock()
+		l.Broadcast()
+		l.Unlock()
+	}
 }
 
 // recordedReads returns the local store as the placement's reads see it:

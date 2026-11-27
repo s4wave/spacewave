@@ -240,11 +240,19 @@ func TestMountedStoreDivertsToPacks(t *testing.T) {
 	}
 
 	// With the switch on, the value reaches the log and not the Volume.
+	// The upload status channel wakes on the log's change, though the
+	// diverted write leaves the upload queue quiet.
 	bs := mount(true)
+	_, statusChanged := bs.GetUploadStatus()
 	packed := []byte("packed block")
 	packedRef, _, err := bs.PutBlock(ctx, packed, &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
+	}
+	select {
+	case <-statusChanged:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the upload status did not wake on the diverted write")
 	}
 	requireRead(bs, packedRef, packed)
 	if volumeHolds(packedRef) {

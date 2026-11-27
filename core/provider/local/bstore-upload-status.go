@@ -23,8 +23,7 @@ type UploadStatus struct {
 }
 
 // GetUploadStatus returns the storage backend and upload status, and a channel
-// closed when either changes. Packs is a snapshot: GetPackStatus returns the
-// channel that follows it.
+// closed when the backend, the upload queue or the packs change.
 func (b *BlockStore) GetUploadStatus() (UploadStatus, <-chan struct{}) {
 	return b.placement.uploadStatus()
 }
@@ -37,10 +36,23 @@ func (b *BlockStore) GetPackStatus() (*packahead.DrainStatus, <-chan struct{}) {
 }
 
 // uploadStatus returns the placement's backend, the status of its upload
-// queue, fallback and reads, and a snapshot of its packs' status, with a
-// channel closed when the backend or the upload queue changes.
+// queue, fallback and reads, and the status of its packs, with a channel closed
+// when the backend, the upload queue or the packs change. With a packahead log
+// the channel is taken from statusBcast before any status is read.
 func (p *placementState) uploadStatus() (UploadStatus, <-chan struct{}) {
-	status, changed := p.wb.GetStatus()
+	// Take the change channel first, so a change during the reads wakes it.
+	var changed <-chan struct{}
+	if p.statusBcast != nil {
+		l := p.statusBcast.Lock()
+		changed = l.WaitCh()
+		l.Unlock()
+	}
+
+	// Read the statuses, following the queue alone without a log.
+	status, queued := p.wb.GetStatus()
+	if changed == nil {
+		changed = queued
+	}
 	out := UploadStatus{Backend: p.backend.Load(), Status: status, Fallback: p.fallbackFills.status(), Reads: p.readStatus()}
 	out.Packs, _ = p.packStatus()
 	return out, changed
