@@ -47,7 +47,7 @@ func (e *Engine) GetFileSegments() *block_store_filesegment.Store {
 // OperationAuthor returns this device's peer and the person its participant
 // acts as: its entity, or the device for a participant without one.
 func (e *Engine) OperationAuthor(ctx context.Context) (peer.ID, string, error) {
-	participant, err := e.a.participant(ctx)
+	participant, err := localParticipant(ctx, e.a.so)
 	if err != nil {
 		return "", "", err
 	}
@@ -62,7 +62,7 @@ func (e *Engine) NewTransaction(ctx context.Context, write bool) (world.Tx, erro
 	if err != nil || !write {
 		return tx, err
 	}
-	return &spaceWriteTx{Tx: tx, a: e.a}, nil
+	return &spaceWriteTx{Tx: tx, so: e.a.so}, nil
 }
 
 // NewRehearsalTransaction opens a write fork of the newest World that never
@@ -72,7 +72,7 @@ func (e *Engine) NewRehearsalTransaction(ctx context.Context) (world.Tx, error) 
 	if err != nil {
 		return nil, err
 	}
-	return &spaceWriteTx{Tx: tx, a: e.a}, nil
+	return &spaceWriteTx{Tx: tx, so: e.a.so}, nil
 }
 
 // SetRetainedRoot retains the installed World head under name, or releases
@@ -175,18 +175,18 @@ func (e *Engine) retire() error {
 type spaceWriteTx struct {
 	// Tx is the engine's write transaction.
 	world.Tx
-	// a is the Space's adapter.
-	a *Adapter
+	// so is the Space's SharedObject.
+	so sobject.SharedObject
 }
 
 // ApplyWorldOp applies op, as this device for an authenticated operation.
 func (t *spaceWriteTx) ApplyWorldOp(ctx context.Context, op world.Operation, sender peer.ID) (uint64, bool, error) {
 	if _, authenticated := op.(world.AuthenticatedOperation); authenticated {
-		participant, err := t.a.participant(ctx)
+		participant, err := localParticipant(ctx, t.so)
 		if err != nil {
 			return 0, false, err
 		}
-		sender = t.a.so.GetPeerID()
+		sender = t.so.GetPeerID()
 		ctx = withOperationAuthor(ctx, participant)
 	}
 	return t.Tx.ApplyWorldOp(ctx, op, sender)
@@ -197,13 +197,14 @@ func (t *spaceWriteTx) WaitObjectRev(ctx context.Context, key string, rev uint64
 	return world.WaitObjectRev(ctx, t.Tx, key, rev, ignoreNotFound)
 }
 
-// participant returns this device's participant in the accepted config.
-func (a *Adapter) participant(ctx context.Context) (*sobject.SOParticipantConfig, error) {
-	snap, err := a.so.GetSharedObjectState(ctx)
+// localParticipant returns this device's participant in the accepted config
+// of so.
+func localParticipant(ctx context.Context, so sobject.SharedObject) (*sobject.SOParticipantConfig, error) {
+	snap, err := so.GetSharedObjectState(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return snap.GetParticipantConfigForPeer(ctx, a.so.GetPeerID().String())
+	return snap.GetParticipantConfigForPeer(ctx, so.GetPeerID().String())
 }
 
 // writeOp queues op after this device's admitted operations and waits for
