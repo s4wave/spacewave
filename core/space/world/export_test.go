@@ -7,6 +7,10 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 )
 
+// ReplayCursorOperations is how many positions the saved replay may fall
+// behind the last position before the Adapter saves it again.
+const ReplayCursorOperations = replayCursorOperations
+
 // ReadSavedCursor returns the replay cursor the Adapter of so saved, or nil.
 func ReadSavedCursor(ctx context.Context, so sobject.SharedObject) (*ReplayCursor, error) {
 	return readSavedCursor(ctx, so)

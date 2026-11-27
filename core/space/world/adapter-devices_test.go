@@ -356,10 +356,12 @@ func runFollowsDevices(t *testing.T, f *adapterFixture) {
 	requireWriterAtHead(ctx, t, busEngine)
 
 	// A third device that never writes freezes the stable point, so writes
-	// past the cursor bound save the cursor and checkpoint nothing.
+	// past the cursor bound save the cursor and checkpoint nothing. A whole
+	// bound of them saves it even when a checkpoint landing first takes every
+	// earlier position.
 	late := addDevice(t, so)
 	keys = append(keys, "remote-0")
-	for i := range 40 {
+	for i := range space_world.ReplayCursorOperations {
 		key := "local-" + strconv.Itoa(i+1)
 		keys = append(keys, key)
 		create(key)
