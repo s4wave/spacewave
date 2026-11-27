@@ -24,10 +24,10 @@ type mountedForgeSpace struct {
 	contentsSvc     s4wave_space.SRPCSpaceContentsResourceServiceClient
 }
 
-func mountForgeSpace(
+// mountForgeSpace opens the Forge Space resources on this session connection.
+func (s *TestSession) mountForgeSpace(
 	ctx context.Context,
 	t testing.TB,
-	sess *TestSession,
 	sessionIndex uint32,
 	spaceID string,
 ) *mountedForgeSpace {
@@ -35,7 +35,7 @@ func mountForgeSpace(
 	t.Helper()
 
 	// Mount the session.
-	sessionSDK, err := sess.MountSessionByIdx(ctx, sessionIndex)
+	sessionSDK, err := s.MountSessionByIdx(ctx, sessionIndex)
 	if err != nil {
 		t.Fatalf("MountSessionByIdx: %v", err)
 	}
@@ -48,7 +48,7 @@ func mountForgeSpace(
 	}
 
 	// Open the mounted SharedObject client.
-	sharedObjectRef := sess.ResourceClient().CreateResourceReference(mountResp.GetResourceId())
+	sharedObjectRef := s.resClient.CreateResourceReference(mountResp.GetResourceId())
 	sharedObjectSrpcClient, err := sharedObjectRef.GetClient()
 	if err != nil {
 		sharedObjectRef.Release()
@@ -64,7 +64,7 @@ func mountForgeSpace(
 	}
 
 	// Open the Space resource client.
-	spaceRef := sess.ResourceClient().CreateResourceReference(bodyResp.GetResourceId())
+	spaceRef := s.resClient.CreateResourceReference(bodyResp.GetResourceId())
 	spaceSrpcClient, err := spaceRef.GetClient()
 	if err != nil {
 		spaceRef.Release()
@@ -82,8 +82,8 @@ func mountForgeSpace(
 	}
 
 	// Open the World engine.
-	engineRef := sess.ResourceClient().CreateResourceReference(accessWorldResp.GetResourceId())
-	eng, err := sdk_world_engine.NewSDKEngine(sess.ResourceClient(), engineRef)
+	engineRef := s.resClient.CreateResourceReference(accessWorldResp.GetResourceId())
+	eng, err := sdk_world_engine.NewSDKEngine(s.resClient, engineRef)
 	if err != nil {
 		engineRef.Release()
 		spaceRef.Release()
@@ -101,7 +101,7 @@ func mountForgeSpace(
 	}
 
 	// Open the contents client.
-	contentsRef := sess.ResourceClient().CreateResourceReference(contentsResp.GetResourceId())
+	contentsRef := s.resClient.CreateResourceReference(contentsResp.GetResourceId())
 	contentsSrpcClient, err := contentsRef.GetClient()
 	if err != nil {
 		contentsRef.Release()
@@ -121,6 +121,7 @@ func mountForgeSpace(
 	}
 }
 
+// Release releases the mounted Forge Space resources.
 func (m *mountedForgeSpace) Release() {
 	if m.contentsRef != nil {
 		m.contentsRef.Release()

@@ -2326,7 +2326,7 @@ func TestForgeWorkerExecution(t *testing.T) {
 
 	// Mount the forge space and hold its resources.
 	ctx := t.Context()
-	mounted := mountForgeSpace(ctx, t, sess, scenario.GetSessionIndex(), scenario.GetSpaceID())
+	mounted := sess.mountForgeSpace(ctx, t, scenario.GetSessionIndex(), scenario.GetSpaceID())
 	defer mounted.Release()
 
 	// Define the sample job and worker keys.

@@ -42,7 +42,7 @@ func TestSpaceCollectionsPlugin(t *testing.T) {
 	if err := first.ConnectResources(ctx); err != nil {
 		t.Fatal(err)
 	}
-	mounted := mountForgeSpace(ctx, t, first, scenario.sessionIndex, scenario.spaceID)
+	mounted := first.mountForgeSpace(ctx, t, scenario.sessionIndex, scenario.spaceID)
 	defer mounted.Release()
 
 	// Source files and the build grant are normal accepted World state.

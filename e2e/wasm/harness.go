@@ -830,25 +830,29 @@ func (h *Harness) preflightManifestFetch(ctx context.Context, req manifestFetchR
 	return waitState.digest(), nil
 }
 
+// waitForManifest waits for one build with the harness timeout diagnostic.
 func (h *Harness) waitForManifest(ctx context.Context, wait manifestWait) error {
+	// Bound the manifest wait.
 	waitCtx, cancel := context.WithTimeout(ctx, h.manifestWait)
 	defer cancel()
 
+	// Wait for the build while distinguishing cancellation from its result.
 	h.le.WithFields(wait.req.logFields()).Info("waiting for manifest build")
-	select {
-	case err := <-wait.state.done:
-		if err != nil {
-			return err
-		}
-		h.le.WithFields(wait.req.logFields()).Info("manifest build ready")
-		return nil
-	case <-waitCtx.Done():
+	completed, err := wait.state.wait(waitCtx)
+	if !completed {
 		return errors.Errorf(
 			"timed out after %s waiting for manifest callback: %s",
 			h.manifestWait,
 			wait.req.summary(),
 		)
 	}
+	if err != nil {
+		return err
+	}
+
+	// Report the completed build.
+	h.le.WithFields(wait.req.logFields()).Info("manifest build ready")
+	return nil
 }
 
 func (h *Harness) releaseManifestFetches() {
@@ -872,17 +876,16 @@ func (h *Harness) waitForManifests(ctx context.Context) error {
 	fns := make([]ccall.CallConcurrentlyFunc, 0, len(h.manifestWaits))
 	for _, wait := range h.manifestWaits {
 		fns = append(fns, func(ctx context.Context) error {
+			// Wait for this manifest result or context cancellation.
 			le.WithFields(wait.req.logFields()).Info("waiting for manifest build")
-			select {
-			case err := <-wait.state.done:
-				if err != nil {
-					return err
-				}
-				le.WithFields(wait.req.logFields()).Info("manifest build ready")
-				return nil
-			case <-ctx.Done():
-				return ctx.Err()
+			_, err := wait.state.wait(ctx)
+			if err != nil {
+				return err
 			}
+
+			// Report the completed build.
+			le.WithFields(wait.req.logFields()).Info("manifest build ready")
+			return nil
 		})
 	}
 	if err := ccall.CallConcurrently(waitCtx, fns...); err != nil {
@@ -916,6 +919,17 @@ func newManifestWaitState(pluginID string) *manifestWaitState {
 		pluginID: pluginID,
 		done:     make(chan error, 1),
 		values:   make(map[uint32]*bldr_manifest.FetchManifestValue),
+	}
+}
+
+// wait returns the build result, or the context error if the wait is cancelled.
+// completed distinguishes a received build error from context cancellation.
+func (s *manifestWaitState) wait(ctx context.Context) (completed bool, err error) {
+	select {
+	case err := <-s.done:
+		return true, err
+	case <-ctx.Done():
+		return false, ctx.Err()
 	}
 }
 

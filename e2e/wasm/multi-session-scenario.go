@@ -50,7 +50,7 @@ func CreateMultiSessionScenario(t testing.TB, h *Harness, session *TestSession) 
 		firstSpaceID:       first.GetSpaceID(),
 		secondSessionIndex: secondSessionIndex,
 	}
-	scenario.waitForSessionCount(t, 2)
+	scenario.session.waitForSessionCount(t, 2)
 	scenario.WaitForLocalBadge(t)
 	return scenario
 }
@@ -260,14 +260,15 @@ func waitForCount(ctx context.Context, next func(context.Context) (int, error), 
 	}
 }
 
-func (s *MultiSessionScenario) waitForSessionCount(t testing.TB, want int) {
+// waitForSessionCount waits for at least want sessions on this connection.
+func (s *TestSession) waitForSessionCount(t testing.TB, want int) {
 	// Report failures at the caller.
 	t.Helper()
 
 	// Watch sessions for the expected count.
 	ctx, cancel := context.WithTimeout(s.h.Context(), 30*time.Second)
 	defer cancel()
-	watch, err := s.session.Root().WatchSessions(ctx)
+	watch, err := s.root.WatchSessions(ctx)
 	if err != nil {
 		t.Fatalf("watch sessions: %v", err)
 	}
