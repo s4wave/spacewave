@@ -563,6 +563,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 							return
 						}
 						putOpts.Refs, putOpts.RefsKnown = blkRefs, true
+						kind := KindOf(bn.blk)
 
 						// Store content without a redundant existence probe.
 						put := func() {
@@ -570,7 +571,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 							writeCtx, writeTask := trace.NewTask(ctx, "hydra/block/transaction/write-at-root/put-block")
 							putBlocks.Add(1)
 							RecordWrite(ctx, len(dat))
-							_, _, err := buffered.putBlock(writeCtx, dat, putOpts, false)
+							_, _, err := buffered.putBlock(writeCtx, dat, putOpts, kind, false)
 							writeTask.End()
 							if err != nil {
 								handleErr(err)

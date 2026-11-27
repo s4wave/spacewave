@@ -23,4 +23,7 @@ type PutBatchEntry struct {
 	// PutOpts.CacheFill does. A Volume that keeps liveness lands a batch of
 	// fills under the bucket's leased fill roots.
 	CacheFill bool
+	// Kind is the kind the block's type declares, zero for none. A store that
+	// keeps the entry in memory, such as PendingStore, keeps it with the entry.
+	Kind BlockKind
 }

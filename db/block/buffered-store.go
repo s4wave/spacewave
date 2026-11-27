@@ -20,6 +20,7 @@ type pendingBlock struct {
 	refs          []*BlockRef
 	refsKnown     bool
 	tombstone     bool
+	kind          BlockKind
 	queued        bool
 	borrowed      bool
 	metadataBytes int
@@ -145,12 +146,13 @@ func (s *BufferedStore) BeginReadOperation(context.Context) (StoreOps, func(), e
 // PutBlock buffers a block in memory and drains synchronously only when
 // backpressure requires capacity.
 func (s *BufferedStore) PutBlock(ctx context.Context, data []byte, opts *PutOpts) (*BlockRef, bool, error) {
-	return s.putBlock(ctx, data, opts, true)
+	return s.putBlock(ctx, data, opts, 0, true)
 }
 
-// putBlock verifies and buffers a block, optionally resolving prior existence.
-// Batch callers discard the existence result and let storage deduplicate at drain.
-func (s *BufferedStore) putBlock(ctx context.Context, data []byte, opts *PutOpts, checkExists bool) (*BlockRef, bool, error) {
+// putBlock verifies and buffers a block of kind, optionally resolving prior
+// existence. Batch callers discard the existence result and let storage
+// deduplicate at drain.
+func (s *BufferedStore) putBlock(ctx context.Context, data []byte, opts *PutOpts, kind BlockKind, checkExists bool) (*BlockRef, bool, error) {
 	// Require a live write context and nonempty block data.
 	if err := ctx.Err(); err != nil {
 		return nil, false, err
@@ -232,11 +234,20 @@ func (s *BufferedStore) putBlock(ctx context.Context, data []byte, opts *PutOpts
 			return nil, false, err
 		}
 
-		// Persist the oversized block through the inner store.
-		ref, existed, err := s.inner.PutBlock(ctx, data, opts)
+		// Persist the oversized block through the inner store, as the
+		// entry a drain would write, so it keeps its kind.
+		found, err := s.inner.PutBlockBatch(WithPutOpts(ctx, opts), []*PutBatchEntry{{
+			Ref:       ref,
+			Data:      data,
+			Refs:      opts.GetRefs(),
+			RefsKnown: opts.GetRefsKnown(),
+			CacheFill: opts.GetCacheFill(),
+			Kind:      kind,
+		}})
 		if err != nil {
-			return nil, existed, err
+			return nil, false, err
 		}
+		existed := len(found) != 0 && found[0]
 
 		// Record the direct write in the buffered store history.
 		s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -254,6 +265,7 @@ func (s *BufferedStore) putBlock(ctx context.Context, data []byte, opts *PutOpts
 		data:          bytes.Clone(data),
 		refs:          CloneBlockRefs(opts.GetRefs()),
 		refsKnown:     opts.GetRefsKnown(),
+		kind:          kind,
 		metadataBytes: metadataBytes,
 	}
 	for {
@@ -395,7 +407,7 @@ func (s *BufferedStore) PutBlockBatch(ctx context.Context, entries []*PutBatchEn
 			ForceBlockRef: ref,
 			Refs:          CloneBlockRefs(entry.Refs),
 			RefsKnown:     entry.RefsKnown,
-		}, false)
+		}, entry.Kind, false)
 		if err != nil {
 			return nil, err
 		}
@@ -861,6 +873,7 @@ func (s *BufferedStore) takeDrainBatchLocked(maxEntries int) *drainBatch {
 			Refs:      pending.refs,
 			RefsKnown: pending.refsKnown,
 			Tombstone: pending.tombstone,
+			Kind:      pending.kind,
 		})
 	}
 

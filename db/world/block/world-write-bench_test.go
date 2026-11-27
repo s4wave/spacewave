@@ -340,13 +340,7 @@ func benchmarkWorldSeededStoredPages(b *testing.B, c worldSeededWriteCase, windo
 			named = append(named, block.NamedRoot{Name: "bench/read/" + strconv.Itoa(i), Ref: r})
 		}
 		start := time.Now()
-		err := world_block.WalkPages(ctx, pages, cursor.GetTransformer(), roots, func(p world_block.Page) (bool, error) {
-			size, ok := pages.Unflushed(p.Ref)
-			if ok {
-				counts.Add(p, size)
-			}
-			return ok, nil
-		})
+		err := world_block.WalkUnflushedPages(ctx, pages, cursor.GetTransformer(), roots, counts.Add)
 		walked += time.Since(start)
 		if err != nil {
 			b.Fatal(err.Error())

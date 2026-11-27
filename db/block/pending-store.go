@@ -375,22 +375,23 @@ func (s *PendingStore) lookup(ref *BlockRef) *PutBatchEntry {
 	return s.kept[pendingKeyOf(ref)]
 }
 
-// Unflushed returns the data length of ref's kept block, and true when it is
-// kept and no open Flush stored it, so the next Flush or SetRoots that reaches
-// it stores it. A stage that stored it at put time does not keep it.
-func (s *PendingStore) Unflushed(ref *BlockRef) (int, bool) {
+// Unflushed returns ref's kept block, and true when it is kept and no open
+// Flush stored it, so the next Flush or SetRoots that reaches it stores it. A
+// stage that stored it at put time does not keep it. It costs one map lookup
+// under the read lock.
+func (s *PendingStore) Unflushed(ref *BlockRef) (UnflushedBlock, bool) {
 	// Look the ref up among the kept blocks no open Flush stored.
 	if ref.GetEmpty() {
-		return 0, false
+		return UnflushedBlock{}, false
 	}
 	key := pendingKeyOf(ref)
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
 	e := s.kept[key]
 	if e == nil || s.flushed[key] != 0 {
-		return 0, false
+		return UnflushedBlock{}, false
 	}
-	return len(e.Data), true
+	return UnflushedBlock{Kind: e.Kind, Size: len(e.Data), Refs: e.Refs}, true
 }
 
 // GetBlock serves a kept block, or reads the inner store. A kept block's

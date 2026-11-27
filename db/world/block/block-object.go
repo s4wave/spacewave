@@ -35,6 +35,11 @@ func (o *Object) DecodedBlockCacheTypeKey() string {
 	return "db/world/block.Object"
 }
 
+// BlockKind tags each stored Object block for the page walk.
+func (o *Object) BlockKind() block.BlockKind {
+	return kindObject
+}
+
 // UnmarshalObject unmarshals a Object block from a cursor.
 // If empty, returns nil, nil.
 func UnmarshalObject(ctx context.Context, bcs *block.Cursor) (*Object, error) {
@@ -83,4 +88,5 @@ var (
 	_ block.Block                 = (*Object)(nil)
 	_ block.DecodedBlockCacheable = (*Object)(nil)
 	_ block.BlockWithSubBlocks    = (*Object)(nil)
+	_ block.BlockWithKind         = (*Object)(nil)
 )

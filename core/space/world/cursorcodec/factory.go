@@ -126,7 +126,8 @@ func Bind(head *bucket.ObjectRef, bucketID string) *bucket.ObjectRef {
 // CountStoredPages reports buffered pages the next flush or root move stores,
 // by tree and level. Stored pages end the walk unread. Call before storage;
 // overlapping stores may count a page twice, and stage writes are not counted.
-// Cost per store: one decode per new page and one lookup per referenced block.
+// Cost per store: one World decode per new root, and one kept-block lookup per
+// new page and per ref it holds.
 func (f *Factory) CountStoredPages(ctx context.Context, pages *block.PendingStore, roots ...*block.BlockRef) {
 	// Capture the current decoder without holding its lock during the walk.
 	f.mtx.Lock()
@@ -137,13 +138,7 @@ func (f *Factory) CountStoredPages(ctx context.Context, pages *block.PendingStor
 	}
 
 	// Report accounting failures without changing the storage outcome.
-	err := world_block.WalkPages(ctx, pages, xfrm, roots, func(p world_block.Page) (bool, error) {
-		size, ok := pages.Unflushed(p.Ref)
-		if ok {
-			world_block.StoredPages.Add(p, size)
-		}
-		return ok, nil
-	})
+	err := world_block.WalkUnflushedPages(ctx, pages, xfrm, roots, world_block.StoredPages.Add)
 	if err != nil {
 		f.le.WithError(err).Debug("cannot count stored world pages")
 	}

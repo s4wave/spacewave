@@ -101,6 +101,11 @@ func (w *ChangeLogLL) IsNil() bool {
 	return w == nil
 }
 
+// BlockKind tags each stored change log entry for the page walk.
+func (w *ChangeLogLL) BlockKind() block.BlockKind {
+	return kindChangeLogLL
+}
+
 // IsEmpty checks if the world change is empty.
 func (w *ChangeLogLL) IsEmpty() bool {
 	return w.GetSeqno() == 0
@@ -191,4 +196,5 @@ var (
 	_ block.Block              = (*ChangeLogLL)(nil)
 	_ block.BlockWithRefs      = (*ChangeLogLL)(nil)
 	_ block.BlockWithSubBlocks = (*ChangeLogLL)(nil)
+	_ block.BlockWithKind      = (*ChangeLogLL)(nil)
 )

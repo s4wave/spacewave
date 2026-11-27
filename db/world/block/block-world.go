@@ -35,6 +35,11 @@ func (w *World) DecodedBlockCacheTypeKey() string {
 	return "db/world/block.World"
 }
 
+// BlockKind tags each stored World block for the page walk.
+func (w *World) BlockKind() block.BlockKind {
+	return kindWorld
+}
+
 // UnmarshalWorld unmarshals a world block from a cursor.
 // Returns nil, nil if the cursor is empty.
 func UnmarshalWorld(ctx context.Context, bcs *block.Cursor) (*World, error) {
@@ -136,6 +141,7 @@ func (w *World) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 var (
 	_ block.Block                 = (*World)(nil)
 	_ block.DecodedBlockCacheable = (*World)(nil)
+	_ block.BlockWithKind         = (*World)(nil)
 	_ block.BlockWithRefs         = (*World)(nil)
 	_ block.BlockWithSubBlocks    = (*World)(nil)
 )
