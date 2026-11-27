@@ -11,6 +11,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
+	"github.com/s4wave/spacewave/db/block/byteslice"
 	"github.com/s4wave/spacewave/db/block/packcopy"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	"github.com/s4wave/spacewave/db/block/store/s3/s3test"
@@ -195,5 +196,51 @@ func TestTyperRecoversWorldRefs(t *testing.T) {
 		if err != nil {
 			t.Fatalf("read object %s from the copy: %v", objKey, err)
 		}
+	}
+}
+
+// TestLookupTyperRoundTrip preserves distinct schema types even when their
+// factories are closures made at the same call site.
+func TestLookupTyperRoundTrip(t *testing.T) {
+	// Wrap two real constructors at the same closure site, as schema adapters do.
+	ctx := t.Context()
+	ref, err := block.BuildBlockRef([]byte("root"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctors := map[string]block.Ctor{"blob": blob.NewBlobBlock, "bytes": byteslice.NewByteSliceBlock}
+	roots := RootTypes{}
+	for id, ctor := range ctors {
+		roots[id] = func() block.Block { return ctor() }
+	}
+	calls := 0
+	typer, err := NewLookupTyper(logrus.NewEntry(logrus.New()), []*bucket.ObjectRef{{RootRef: ref}}, roots, func(key string) (string, error) { calls++; return key, nil })
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Each Object's saved child type must restore its own concrete constructor.
+	for key, ctor := range ctors {
+		data, err := (&world_block.Object{Key: key, RootRef: &bucket.ObjectRef{RootRef: ref}}).MarshalVT()
+		if err != nil {
+			t.Fatal(err)
+		}
+		kids, ok, err := typer.Decode(ctx, &nodeType{ctor: world_block.NewObjectBlock}, ref, data)
+		if err != nil || !ok || len(kids) != 1 {
+			t.Fatalf("decode %s: kids=%d ok=%v err=%v", key, len(kids), ok, err)
+		}
+		encoded, err := typer.MarshalType(kids[0].Type)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Restore through the registry, rather than retaining the original type pointer.
+		restored, err := typer.UnmarshalType(encoded)
+		if err != nil || typer.TypeName(restored) != ctorName(ctor) {
+			t.Fatalf("restore %s: type=%s err=%v", key, typer.TypeName(restored), err)
+		}
+	}
+	if calls != 2 {
+		t.Fatalf("lookup calls %d, want 2", calls)
 	}
 }

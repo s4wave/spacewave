@@ -1581,3 +1581,44 @@ func TestApplyRefBatchIgnoresAbsentStagingRemoval(t *testing.T) {
 		t.Fatalf("target lost its owner but was not marked orphaned: %v", unreferenced)
 	}
 }
+
+// TestScanRootBlocksIncludesEveryCollectorSeed covers legacy registered roots
+// and named and non-named owners without treating a child list as another root.
+func TestScanRootBlocksIncludesEveryCollectorSeed(t *testing.T) {
+	// Seed the three forms the collector seeds, plus a child below one root.
+	ctx := t.Context()
+	rg := newTestRefGraph(t)
+	legacy := testBlockRef(t, "legacy")
+	checkpoint := testBlockRef(t, "checkpoint")
+	owner := testBlockRef(t, "owner")
+	child := testBlockRef(t, "child")
+	tx, err := rg.store.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = tx.Set(ctx, graphKey(kindRoot, BlockIRI(legacy)), nil); err != nil {
+		t.Fatal(err)
+	}
+	if err = tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	tx.Discard()
+	if err = rg.AddRef(ctx, "head:checkpoint", BlockIRI(checkpoint)); err != nil {
+		t.Fatal(err)
+	}
+	if err = rg.AddRef(ctx, "object:another", BlockIRI(owner)); err != nil {
+		t.Fatal(err)
+	}
+	if err = rg.AddBlockRef(ctx, checkpoint, child); err != nil {
+		t.Fatal(err)
+	}
+
+	// The exact seed union excludes the block held only through a child list.
+	seen := map[string]bool{}
+	if err = rg.ScanRootBlocks(ctx, func(_ string, ref *block.BlockRef) error { seen[ref.MarshalString()] = true; return nil }); err != nil {
+		t.Fatal(err)
+	}
+	if len(seen) != 3 || !seen[legacy.MarshalString()] || !seen[checkpoint.MarshalString()] || !seen[owner.MarshalString()] || seen[child.MarshalString()] {
+		t.Fatalf("wrong root union: %v", seen)
+	}
+}

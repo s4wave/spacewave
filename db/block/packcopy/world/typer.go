@@ -37,6 +37,8 @@ type Typer struct {
 	worlds map[string]*nodeType
 	// objects holds each object's type ID by key.
 	objects map[string]string
+	// objectLookup resolves one object without retaining an object inventory.
+	objectLookup func(string) (string, error)
 	// roots maps object types to their root constructors.
 	roots RootTypes
 
@@ -87,6 +89,7 @@ const (
 // Kind reports what kind of block typ, a type the Typer gave, is, or empty
 // for no type.
 func (t *Typer) Kind(typ any) string {
+	// Preserve unknown and object-root descriptors before classifying structure.
 	nt, ok := typ.(*nodeType)
 	if !ok || nt == nil {
 		return ""
@@ -191,6 +194,7 @@ func (t *Typer) RootType(ref *block.BlockRef) any {
 // Decode decodes a block by its type and returns its refs, typed where the
 // block names its children's types.
 func (t *Typer) Decode(ctx context.Context, typ any, ref *block.BlockRef, data []byte) ([]packcopy.TypedRef, bool, error) {
+	// Ignore a descriptor supplied by another typer.
 	nt, ok := typ.(*nodeType)
 	if !ok {
 		return nil, false, nil
@@ -225,10 +229,14 @@ func (t *Typer) Decode(ctx context.Context, typ any, ref *block.BlockRef, data [
 	if err != nil {
 		return nil, false, err
 	}
+
+	// Pair each decoded ref with the concrete child type its holder names.
 	types := make(map[string]any, len(kids))
 	for _, kid := range kids {
 		types[kid.Ref.MarshalString()] = kid.Type
 	}
+
+	// Keep every declared ref even when no constructor names its type.
 	out := make([]packcopy.TypedRef, 0, len(refs)+len(kids))
 	seen := make(map[string]struct{}, len(refs))
 	for _, r := range refs {
@@ -354,6 +362,14 @@ func (t *Typer) objectRoot(o *world_block.Object, nt *nodeType) ([]packcopy.Type
 
 	// Type the root by the object's type.
 	typeID, ok := t.objects[o.GetKey()]
+	if t.objectLookup != nil {
+		var err error
+		typeID, err = t.objectLookup(o.GetKey())
+		if err != nil {
+			return nil, err
+		}
+		ok = typeID != ""
+	}
 	if !ok {
 		t.count("object without a listed type")
 		return []packcopy.TypedRef{{Ref: ref}}, nil
@@ -378,6 +394,7 @@ func (t *Typer) objectRoot(o *world_block.Object, nt *nodeType) ([]packcopy.Type
 
 // transformer returns the transformer for conf, built once per config.
 func (t *Typer) transformer(conf *block_transform.Config) (block.Transformer, error) {
+	// Reuse a transform by its stable serialized configuration.
 	data, err := conf.MarshalVT()
 	if err != nil {
 		return nil, err
@@ -387,6 +404,8 @@ func (t *Typer) transformer(conf *block_transform.Config) (block.Transformer, er
 	if xfrm, ok := t.xfrms[string(data)]; ok {
 		return xfrm, nil
 	}
+
+	// Construct a missing transform once under the transform-cache lock.
 	xfrm, err := block_transform.NewTransformer(controller.ConstructOpts{Logger: t.le}, transform_all.BuildFactorySet(), conf)
 	if err != nil {
 		return nil, errors.Wrap(err, "build world transform")

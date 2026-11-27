@@ -2,7 +2,6 @@ package packcopy_world
 
 import (
 	"reflect"
-	"sync"
 
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
@@ -29,21 +28,10 @@ var walkCtors = []block.Ctor{
 	block_transform.NewTransformConfigBlock,
 }
 
-// ctorNames caches the Go type each constructor builds, by its code pointer.
-var ctorNames sync.Map
-
-// ctorName returns the Go type ctor builds.
+// ctorName identifies the constructed block, not the factory's code pointer.
+// Closures made at one call site can construct different schema root types.
 func ctorName(ctor block.Ctor) string {
-	// Take the name cached for the constructor's code.
-	ptr := reflect.ValueOf(ctor).Pointer()
-	if name, ok := ctorNames.Load(ptr); ok {
-		return name.(string)
-	}
-
-	// Build a block to learn its type, and cache it.
-	name := reflect.TypeOf(ctor()).String()
-	ctorNames.Store(ptr, name)
-	return name
+	return reflect.TypeOf(ctor()).String()
 }
 
 // walkRegistry maps the Go types a saved position may name to their
