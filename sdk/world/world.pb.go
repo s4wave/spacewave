@@ -397,6 +397,11 @@ type GetEngineInfoResponse struct {
 	// when the granting mount knows it. Consumers resolve current permissions
 	// from the addressed SharedObject instead of treating this snapshot as a grant.
 	CallerParticipant *sobject.SOParticipantConfig `protobuf:"bytes,3,opt,name=caller_participant,json=callerParticipant,proto3" json:"callerParticipant,omitempty"`
+	// OperationPeerId is the device that signs the World operations this
+	// Resource applies, empty for an unsigned engine.
+	OperationPeerId string `protobuf:"bytes,4,opt,name=operation_peer_id,json=operationPeerId,proto3" json:"operationPeerId,omitempty"`
+	// OperationPerson is the person that device's participant acts as.
+	OperationPerson string `protobuf:"bytes,5,opt,name=operation_person,json=operationPerson,proto3" json:"operationPerson,omitempty"`
 }
 
 func (x *GetEngineInfoResponse) Reset() {
@@ -424,6 +429,20 @@ func (x *GetEngineInfoResponse) GetCallerParticipant() *sobject.SOParticipantCon
 		return x.CallerParticipant
 	}
 	return nil
+}
+
+func (x *GetEngineInfoResponse) GetOperationPeerId() string {
+	if x != nil {
+		return x.OperationPeerId
+	}
+	return ""
+}
+
+func (x *GetEngineInfoResponse) GetOperationPerson() string {
+	if x != nil {
+		return x.OperationPerson
+	}
+	return ""
 }
 
 // WorldRootSnapshot identifies one committed Engine root.
@@ -4570,6 +4589,8 @@ func (m *GetEngineInfoResponse) CloneVT() *GetEngineInfoResponse {
 	}
 	r := new(GetEngineInfoResponse)
 	r.SessionPeerId = m.SessionPeerId
+	r.OperationPeerId = m.OperationPeerId
+	r.OperationPerson = m.OperationPerson
 	r.EngineInfo = protobuf_go_lite.CloneVTValue(m.EngineInfo)
 	r.CallerParticipant = protobuf_go_lite.CloneVTValue(m.CallerParticipant)
 	if len(m.unknownFields) > 0 {
@@ -7167,6 +7188,12 @@ func (this *GetEngineInfoResponse) EqualVT(that *GetEngineInfoResponse) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.CallerParticipant, that.CallerParticipant) {
+		return false
+	}
+	if this.OperationPeerId != that.OperationPeerId {
+		return false
+	}
+	if this.OperationPerson != that.OperationPerson {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -10907,6 +10934,16 @@ func (x *GetEngineInfoResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("callerParticipant")
 		x.CallerParticipant.MarshalProtoJSON(s.WithField("callerParticipant"))
 	}
+	if x.OperationPeerId != "" || s.HasField("operationPeerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("operationPeerId")
+		s.WriteString(x.OperationPeerId)
+	}
+	if x.OperationPerson != "" || s.HasField("operationPerson") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("operationPerson")
+		s.WriteString(x.OperationPerson)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -10941,6 +10978,12 @@ func (x *GetEngineInfoResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.CallerParticipant = &sobject.SOParticipantConfig{}
 			x.CallerParticipant.UnmarshalProtoJSON(s.WithField("caller_participant", true))
+		case "operation_peer_id", "operationPeerId":
+			s.AddField("operation_peer_id")
+			x.OperationPeerId = s.ReadString()
+		case "operation_person", "operationPerson":
+			s.AddField("operation_person")
+			x.OperationPerson = s.ReadString()
 		}
 	})
 }
@@ -18383,6 +18426,16 @@ func (m *GetEngineInfoResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.OperationPerson) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.OperationPerson)
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.OperationPeerId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.OperationPeerId)
+		i--
+		dAtA[i] = 0x22
+	}
 	if m.CallerParticipant != nil {
 		size, err := m.CallerParticipant.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -24518,6 +24571,8 @@ func (m *GetEngineInfoResponse) SizeVT() (n int) {
 		l = m.CallerParticipant.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.OperationPeerId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.OperationPerson)
 	n += len(m.unknownFields)
 	return n
 }
@@ -26549,6 +26604,14 @@ func (x *GetEngineInfoResponse) MarshalProtoText() string {
 	if x.CallerParticipant != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "caller_participant")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.CallerParticipant)
+	}
+	if x.OperationPeerId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "operation_peer_id")
+		protobuf_go_lite.TextWriteString(&sb, x.OperationPeerId)
+	}
+	if x.OperationPerson != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "operation_person")
+		protobuf_go_lite.TextWriteString(&sb, x.OperationPerson)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -29722,6 +29785,26 @@ func (m *GetEngineInfoResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OperationPeerId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.OperationPeerId = v
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OperationPerson", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.OperationPerson = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

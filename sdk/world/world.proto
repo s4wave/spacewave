@@ -140,6 +140,11 @@ message GetEngineInfoResponse {
   // when the granting mount knows it. Consumers resolve current permissions
   // from the addressed SharedObject instead of treating this snapshot as a grant.
   .sobject.SOParticipantConfig caller_participant = 3;
+  // OperationPeerId is the device that signs the World operations this
+  // Resource applies, empty for an unsigned engine.
+  string operation_peer_id = 4;
+  // OperationPerson is the person that device's participant acts as.
+  string operation_person = 5;
 }
 
 // WorldRootSnapshot identifies one committed Engine root.

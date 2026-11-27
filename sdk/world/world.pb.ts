@@ -386,6 +386,15 @@ export interface GetEngineInfoResponse {
    * from the addressed SharedObject instead of treating this snapshot as a grant.
    */
   callerParticipant?: SOParticipantConfig
+  /**
+   * OperationPeerId is the device that signs the World operations this
+   * Resource applies, empty for an unsigned engine.
+   */
+  operationPeerId?: string
+  /**
+   * OperationPerson is the person that device's participant acts as.
+   */
+  operationPerson?: string
 }
 
 export const GetEngineInfoResponse: MessageType<GetEngineInfoResponse> =
@@ -395,6 +404,8 @@ export const GetEngineInfoResponse: MessageType<GetEngineInfoResponse> =
       [1, 'engine_info', 11, 0, EngineInfo.codec],
       [2, 'session_peer_id', 9],
       [3, 'caller_participant', 11, 0, SOParticipantConfig.codec],
+      [4, 'operation_peer_id', 9],
+      [5, 'operation_person', 9],
     ],
   )
 
