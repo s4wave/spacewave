@@ -11,6 +11,7 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/coord"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
@@ -444,7 +445,7 @@ func TestEngineWorldStateRetriesStaleGenerationWriteOperation(t *testing.T) {
 		{
 			name: "commit",
 			configure: func(eng *staleRetryEngine) {
-				eng.staleCommit = 1
+				eng.commitRejections = []error{coord.ErrStaleGeneration}
 			},
 		},
 	}
@@ -478,33 +479,66 @@ func TestEngineWorldStateRetriesStaleGenerationWriteOperation(t *testing.T) {
 	}
 }
 
-// TestExecTransactionReplaysStaleCommit checks that a multi-operation
-// transaction replays its callback when another writer moves the World head
-// between the callback and the commit.
+// TestExecTransactionReplaysStaleCommit checks that a transaction replays
+// rejected commits, but not a commit whose write may already be durable.
 func TestExecTransactionReplaysStaleCommit(t *testing.T) {
-	// Reject the first two commits as stale.
-	ctx := context.Background()
-	eng := &staleRetryEngine{objects: make(map[string]*bucket.ObjectRef), staleCommit: 2}
-	key := "retry-object"
-	attempts := 0
-
-	// Create one object, counting callback runs.
-	err := world.ExecTransaction(ctx, eng, true, func(ctx context.Context, ws world.WorldState) error {
-		attempts++
-		createdObject, err := ws.CreateObject(ctx, key, &bucket.ObjectRef{BucketId: "bucket"})
-		world.ReleaseObjectState(createdObject)
-		return err
-	})
-
-	// The third attempt commits the object.
-	if err != nil {
-		t.Fatalf("ExecTransaction returned error after transient stale commits: %v", err)
+	// Distinguish rejections before publication from an error after publication.
+	cases := []struct {
+		// name identifies the commit scenario.
+		name string
+		// rejections fail an attempt before it publishes.
+		rejections []error
+		// outcome is reported after publishing the object.
+		outcome error
+		// attempts counts the expected callback applications.
+		attempts int
+	}{
+		{
+			name:       "stale generations",
+			rejections: []error{coord.ErrStaleGeneration, coord.ErrStaleGeneration},
+			attempts:   3,
+		},
+		{
+			name:       "invalid snapshot",
+			rejections: []error{kvtx.ErrInvalidSnapshot},
+			attempts:   2,
+		},
+		{
+			name:     "unknown despite invalid snapshot",
+			outcome:  errors.Join(kvtx.ErrInvalidSnapshot, world.ErrDurabilityUnknown),
+			attempts: 1,
+		},
 	}
-	if attempts != 3 {
-		t.Fatalf("callback attempts = %d, want 3", attempts)
-	}
-	if _, found := eng.objects[key]; !found {
-		t.Fatal("object written after transient stale commits was not committed")
+
+	// Exercise the full transaction loop for each commit scenario.
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Create one object, counting callback applications across attempts.
+			eng := &staleRetryEngine{
+				commitRejections: tc.rejections,
+				commitOutcome:    tc.outcome,
+				objects:          make(map[string]*bucket.ObjectRef),
+			}
+			const key = "retry-object"
+			attempts := 0
+			err := world.ExecTransaction(t.Context(), eng, true, func(ctx context.Context, ws world.WorldState) error {
+				attempts++
+				createdObject, err := ws.CreateObject(ctx, key, &bucket.ObjectRef{BucketId: "bucket"})
+				world.ReleaseObjectState(createdObject)
+				return err
+			})
+
+			// Check that only rejections replay and that the published object survives.
+			if attempts != tc.attempts {
+				t.Errorf("callback attempts = %d, want %d", attempts, tc.attempts)
+			}
+			if !errors.Is(err, tc.outcome) {
+				t.Errorf("ExecTransaction error = %v, want %v", err, tc.outcome)
+			}
+			if _, found := eng.objects[key]; !found {
+				t.Fatal("published object not found")
+			}
+		})
 	}
 }
 
@@ -622,11 +656,18 @@ func (b *releaseTestBlock) UnmarshalVT(data []byte) error {
 	return nil
 }
 
+// staleRetryEngine scripts commit failures around publication for retry tests.
 type staleRetryEngine struct {
-	staleNewTx  int
+	// staleNewTx counts remaining stale transaction opens.
+	staleNewTx int
+	// staleCreate counts remaining stale object creation attempts.
 	staleCreate int
-	staleCommit int
-	objects     map[string]*bucket.ObjectRef
+	// commitRejections holds errors to return before publishing writes.
+	commitRejections []error
+	// commitOutcome is a one-shot error to return after publishing writes.
+	commitOutcome error
+	// objects holds published objects.
+	objects map[string]*bucket.ObjectRef
 }
 
 func (e *staleRetryEngine) OperationAuthor(context.Context) (peer.ID, string, error) {
@@ -810,13 +851,20 @@ func (txs *staleRetryTx) WaitSeqno(ctx context.Context, value uint64) (uint64, e
 	return value, nil
 }
 
+// Commit rejects a queued attempt or publishes its writes before reporting an outcome.
 func (txs *staleRetryTx) Commit(ctx context.Context) error {
-	if txs.engine.staleCommit > 0 {
-		txs.engine.staleCommit--
-		return coord.ErrStaleGeneration
+	// Return the next rejection without publishing this attempt's writes.
+	if len(txs.engine.commitRejections) != 0 {
+		err := txs.engine.commitRejections[0]
+		txs.engine.commitRejections = txs.engine.commitRejections[1:]
+		return err
 	}
+
+	// Publish the writes even if the outcome reported to the caller is unknown.
 	maps.Copy(txs.engine.objects, txs.pending)
-	return nil
+	err := txs.engine.commitOutcome
+	txs.engine.commitOutcome = nil
+	return err
 }
 
 func (txs *staleRetryTx) Discard() {}
