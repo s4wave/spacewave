@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 
+	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	"github.com/pkg/errors"
 )
 
@@ -21,17 +22,32 @@ func CarriedOutcomesOff() bool {
 	return os.Getenv(CarriedOutcomesEnv) == "off"
 }
 
-// carriedBudget bounds the summed encoded size of a checkpoint's carried
-// entries. CoSign and Verify refuse a checkpoint larger than MaxSyncStateSize,
-// so a carried section that outgrew it would stop every later checkpoint. Its
-// state data, authors and refusals share that limit, so the entries get one
-// tenth of it, about ten thousand refusals. A signer over budget drops whole
-// entries, the oldest by Height first. By invariant 3 that costs only unknown
-// outcomes.
+// carriedBudget bounds the encoded size of a checkpoint's carried entries,
+// about ten thousand refusals, so they never crowd out the state data. A
+// signer over budget drops whole entries, the oldest by Height first. By
+// invariant 3 that costs only unknown outcomes.
 const carriedBudget = MaxSyncStateSize / 10
 
+// carriedReserve is the part of MaxSyncStateSize that carriedRoom leaves for
+// what is added to a checkpoint body after its carried entries: the
+// signatures, about a hundred bytes each for an ed25519 key, so hundreds of
+// co-signers, and the growth of the enclosing length prefixes.
+const carriedReserve = 64 * 1024
+
+// carriedRoom returns the encoded size the carried entries of inner may take.
+// inner holds none yet. CoSign and Verify refuse a checkpoint larger than
+// MaxSyncStateSize, and the state data alone may take nearly all of it, so
+// the entries get only what the rest of the signed checkpoint and
+// carriedReserve leave, and at most carriedBudget. They are the one part a
+// signer can drop safely, so they never stop a checkpoint. The result is
+// negative when nothing is left.
+func carriedRoom(inner *SOCheckpointInner) int {
+	rest := protobuf_go_lite.SizeMessage(1, inner.SizeVT())
+	return min(carriedBudget, MaxSyncStateSize-rest-carriedReserve)
+}
+
 // carryOutcomes returns the carried outcomes of the checkpoint after prev that
-// covers prefix: for each author of prev that no operation in prefix
+// covers prefix, at most room bytes encoded: for each author of prev that no operation in prefix
 // acknowledges, the span of its operations the checkpoints from its entry
 // through prev covered, with every refusal they recorded in it, ordered by
 // nonce, then hash. An author that equivocated has each of its refused
@@ -52,7 +68,7 @@ const carriedBudget = MaxSyncStateSize / 10
 //     signed before those fields starts no entry.
 //  3. Dropping is safe: a device that finds no entry for its author decides
 //     nothing below prev's head, as before carried outcomes existed. An entry
-//     dropped early, by an acknowledgment or by carriedBudget, therefore costs
+//     dropped early, by an acknowledgment or for room, therefore costs
 //     an unknown outcome, never a wrong one.
 //  4. Signed: every entry is copied from prev, a verified checkpoint, or from
 //     its Refused and PrevAuthors, and the signer signs the result.
@@ -64,7 +80,7 @@ const carriedBudget = MaxSyncStateSize / 10
 // devices share one identity, one's acknowledgment ends the entry the other
 // still needed, which costs that device unknown outcomes only. An author that
 // never acknowledges, such as one that left, keeps its entry, which grows only
-// with its own refusals, until carriedBudget drops it.
+// with its own refusals, until it no longer fits in room.
 //
 // A group checkpoint records no outcomes, so the checkpoint after it starts and
 // carries no entry: no record says which operations in the group's span were
@@ -74,7 +90,7 @@ const carriedBudget = MaxSyncStateSize / 10
 //
 // Cost: one pass over prefix and the links of each operation, with a word of
 // bits per 64 authors of prev, once per signed checkpoint.
-func carryOutcomes(prev *SOCheckpointInner, get func(h []byte) *SOOperationInner, prefix [][]byte) []*SOCheckpointCarried {
+func carryOutcomes(prev *SOCheckpointInner, get func(h []byte) *SOOperationInner, prefix [][]byte, room int) []*SOCheckpointCarried {
 	// Carry only from a checkpoint that records its span.
 	prevOutcomes := prev.GetOutcomes()
 	if prevOutcomes.GetPrevAuthors() == nil {
@@ -114,21 +130,22 @@ func carryOutcomes(prev *SOCheckpointInner, get func(h []byte) *SOOperationInner
 			continue
 		}
 		slices.SortFunc(refused, comparePosition)
-		refused = slices.CompactFunc(refused, (*SOOperationPosition).EqualVT)
+		refused = slices.CompactFunc(refused, func(a, b *SOOperationPosition) bool { return comparePosition(a, b) == 0 })
 		out = append(out, &SOCheckpointCarried{PeerId: peerID, From: from.CloneVT(), Refused: refused, Height: height})
 	}
-	return trimCarried(out)
+	return trimCarried(out, room)
 }
 
 // trimCarried drops the oldest of carried, by Height and then peer ID, until
-// their summed encoded size is within carriedBudget. It keeps peer ID order.
-func trimCarried(carried []*SOCheckpointCarried) []*SOCheckpointCarried {
+// they encode, as the repeated field they fill, in at most room bytes. It
+// keeps peer ID order.
+func trimCarried(carried []*SOCheckpointCarried, room int) []*SOCheckpointCarried {
 	// Keep every entry that fits.
 	size := 0
 	for _, entry := range carried {
-		size += entry.SizeVT()
+		size += carriedSize(entry)
 	}
-	if size <= carriedBudget {
+	if size <= room {
 		return carried
 	}
 
@@ -137,16 +154,22 @@ func trimCarried(carried []*SOCheckpointCarried) []*SOCheckpointCarried {
 	slices.SortStableFunc(byAge, func(a, b *SOCheckpointCarried) int { return cmp.Compare(a.GetHeight(), b.GetHeight()) })
 	drop := make(map[*SOCheckpointCarried]struct{})
 	for _, entry := range byAge {
-		if size <= carriedBudget {
+		if size <= room {
 			break
 		}
-		size -= entry.SizeVT()
+		size -= carriedSize(entry)
 		drop[entry] = struct{}{}
 	}
 	return slices.DeleteFunc(carried, func(entry *SOCheckpointCarried) bool {
 		_, ok := drop[entry]
 		return ok
 	})
+}
+
+// carriedSize returns the encoded size of entry as an element of the carried
+// field, its tag and length prefix included.
+func carriedSize(entry *SOCheckpointCarried) int {
+	return protobuf_go_lite.SizeMessage(1, entry.SizeVT())
 }
 
 // comparePosition orders positions of one author by nonce, then hash.
@@ -207,10 +230,11 @@ func acknowledged(heads []*SOOperationPosition, get func(h []byte) *SOOperationI
 	return acked
 }
 
-// validateCarried checks that each carried entry names one author, in peer ID
-// order, and lists that author's refusals above From once each, ordered by
-// nonce, then hash.
-func validateCarried(carried []*SOCheckpointCarried) error {
+// validateCarried checks that each carried entry of the checkpoint at height
+// names one author, in peer ID order, starts at an earlier checkpoint, and
+// lists that author's refusals above From once each, ordered by nonce, then
+// hash.
+func validateCarried(height uint64, carried []*SOCheckpointCarried) error {
 	for j, entry := range carried {
 		// Check the author and its order.
 		if _, err := parsePeerIDField(entry.GetPeerId()); err != nil {
@@ -218,6 +242,9 @@ func validateCarried(carried []*SOCheckpointCarried) error {
 		}
 		if j > 0 && strings.Compare(carried[j-1].GetPeerId(), entry.GetPeerId()) >= 0 {
 			return errors.New("outcomes carried must be strictly sorted by peer_id")
+		}
+		if entry.GetHeight() >= height {
+			return errors.Errorf("outcomes carried[%d] height must be below the checkpoint's", j)
 		}
 
 		// Check the span's start and refusals.

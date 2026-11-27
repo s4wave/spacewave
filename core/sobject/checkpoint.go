@@ -163,7 +163,7 @@ func (i *SOCheckpointInner) Validate() error {
 	// is valid or not whatever the reader's switch says. A reader with the
 	// switch off accepts a signer's entries and decides nothing from them,
 	// and a signer with it off writes none.
-	if err := validateCarried(i.GetOutcomes().GetCarried()); err != nil {
+	if err := validateCarried(i.GetHeight(), i.GetOutcomes().GetCarried()); err != nil {
 		return err
 	}
 	return validateAuthorHeads("authors", i.GetAuthors())
