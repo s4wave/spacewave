@@ -10,6 +10,11 @@ func (f *osFile) flushDurable() error {
 	return err
 }
 
+// evict does nothing: darwin has no call that drops a file's cached pages.
+func (f *osFile) evict() error {
+	return nil
+}
+
 // writeback flushes the whole file durably: darwin has no call that writes a
 // range, and fsync would leave the pages in the drive's cache, where a
 // commit's F_FULLFSYNC would still find them.

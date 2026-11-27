@@ -157,7 +157,7 @@ func openOwned(s storage, opts Options) (*DB, error) {
 		cache:  newBlockCache(int64(opts.CacheBytes)),
 		runs:   runs{readers: make(map[uint64]*runReader)},
 	}
-	if !opts.ReadOnly && !failStopOff {
+	if !opts.ReadOnly && !kvtx.FailStopOff {
 		db.failStop = newFailStop(s, &db.bcast)
 		db.s = db.failStop
 	}
@@ -187,7 +187,14 @@ func openOwned(s storage, opts Options) (*DB, error) {
 // load creates the file if empty, takes a reader slot, and recovers state.
 func (db *DB) load() error {
 	// The lifetime writer claim already excludes creation or repair by a peer.
+	// Drop the file's cached pages first, so recovery reads what the drive
+	// holds and not pages a failed flush of an earlier handle left behind.
 	if !db.opts.ReadOnly {
+		if !kvtx.FailStopOff {
+			if err := db.s.evict(); err != nil {
+				return err
+			}
+		}
 		if err := db.w.create(); err != nil {
 			return err
 		}

@@ -452,9 +452,14 @@ func (t *Tx) commit() (uint64, error) {
 		return 0, nil
 	}
 
-	// Commit on the transaction's connection, rolling back a refused commit
-	// so the connection returns to the pool outside a transaction.
-	_, err := t.conn.ExecContext(context.Background(), "COMMIT")
+	// Commit on the transaction's connection unless a WAL flush failed,
+	// rolling back a refused commit so the connection returns to the pool
+	// outside a transaction. COMMIT shows the write in the WAL before the
+	// flusher syncs it, so after a failed flush no commit lands.
+	err := t.flusher.Failed()
+	if err == nil {
+		_, err = t.conn.ExecContext(context.Background(), "COMMIT")
+	}
 	clean := err == nil
 	if !clean {
 		_, rerr := t.conn.ExecContext(context.Background(), "ROLLBACK")

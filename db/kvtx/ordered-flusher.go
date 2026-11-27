@@ -2,6 +2,7 @@ package kvtx
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -16,6 +17,14 @@ import (
 // commit becomes durable at the first of: Sync, a full commit the store
 // reports with MarkDurable, the deadline after the first pending ordered
 // commit, or Close.
+//
+// The flusher fails stop. Once a flush fails, no later flush or full commit
+// proves the commits before it durable: after a failed fdatasync Linux may
+// mark the unwritten pages clean, so the next one succeeds without them.
+// Invariant: after the first failed flush, Sync, WaitDurable and Close
+// return it joined with ErrFlushFailed without calling flush, MarkDurable
+// marks nothing, and Failed returns it, which the store checks to refuse
+// every new transaction and commit. FailStopOff turns this off.
 type OrderedFlusher struct {
 	// flush makes every commit completed before the call durable.
 	flush func() error
@@ -30,6 +39,10 @@ type OrderedFlusher struct {
 	durable atomic.Uint64
 	// flushMtx serializes flushes.
 	flushMtx sync.Mutex
+	// failStop records the first failed flush and refuses everything after it.
+	failStop bool
+	// failed is the first failed flush, joined with ErrFlushFailed, or nil.
+	failed atomic.Pointer[error]
 
 	// bcast guards the fields below and broadcasts when durable advances or
 	// the deadline flush fails.
@@ -45,7 +58,16 @@ type OrderedFlusher struct {
 // NewOrderedFlusher returns a flusher that calls flush to make commits durable
 // and flushes a pending ordered commit within deadline.
 func NewOrderedFlusher(flush func() error, deadline time.Duration) *OrderedFlusher {
-	return &OrderedFlusher{flush: flush, deadline: deadline}
+	return &OrderedFlusher{flush: flush, deadline: deadline, failStop: !FailStopOff}
+}
+
+// Failed returns the first failed flush, joined with ErrFlushFailed, or nil.
+// A store refuses new transactions and commits while it is set.
+func (f *OrderedFlusher) Failed() error {
+	if p := f.failed.Load(); p != nil {
+		return *p
+	}
+	return nil
 }
 
 // Ordered counts a completed ordered commit and arms the deadline flush
@@ -74,6 +96,9 @@ func (f *OrderedFlusher) Pending() bool {
 
 // Sync makes every ordered commit counted before the call durable. It flushes
 // only when one is not yet covered by an earlier flush or full commit.
+// It waits for the flush regardless of ctx: a store calls it after its commit
+// is visible, and a commit that returned on cancellation would be reported
+// failed while readers take it for stored.
 func (f *OrderedFlusher) Sync(ctx context.Context) error {
 	// Skip the flush when the counted commits are already durable.
 	target := f.ordered.Load()
@@ -87,12 +112,30 @@ func (f *OrderedFlusher) Sync(ctx context.Context) error {
 	if f.durable.Load() >= target {
 		return nil
 	}
+	if err := f.Failed(); err != nil {
+		return err
+	}
 	covered := f.ordered.Load()
 	if err := f.flush(); err != nil {
-		return err
+		return f.fail(err)
 	}
 	f.MarkDurable(covered)
 	return nil
+}
+
+// fail records err as the failed flush, unless fail-stop is off or a failure
+// is recorded, wakes the waiters, and returns the recorded failure.
+func (f *OrderedFlusher) fail(err error) error {
+	if !f.failStop {
+		return err
+	}
+	joined := errors.Join(ErrFlushFailed, err)
+	if f.failed.CompareAndSwap(nil, &joined) {
+		f.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			broadcast()
+		})
+	}
+	return f.Failed()
 }
 
 // WaitDurable waits until every ordered commit counted before the call is
@@ -109,7 +152,10 @@ func (f *OrderedFlusher) WaitDurable(ctx context.Context) error {
 				done = true
 				return
 			}
-			err = f.flushErr
+			err = f.Failed()
+			if err == nil {
+				err = f.flushErr
+			}
 			waitCh = getWaitCh()
 		})
 		if done || err != nil {
@@ -123,9 +169,14 @@ func (f *OrderedFlusher) WaitDurable(ctx context.Context) error {
 	}
 }
 
-// MarkDurable records that the first n ordered commits are durable.
+// MarkDurable records that the first n ordered commits are durable. After a
+// failed flush it marks nothing, since a later flush need not hold them.
 func (f *OrderedFlusher) MarkDurable(n uint64) {
-	// Advance the durable count unless a later flush already passed n.
+	// Advance the durable count unless a later flush already passed n or a
+	// flush failed.
+	if f.Failed() != nil {
+		return
+	}
 	for {
 		durable := f.durable.Load()
 		if durable >= n {

@@ -17,6 +17,12 @@ type storage interface {
 	truncate(n int64) error
 	// flushDurable makes earlier writes durable on the drive.
 	flushDurable() error
+	// evict drops the file's clean cached pages, so the next reads come from
+	// the drive. A writable open calls it before recovery reads the file: a
+	// failed flush of an earlier handle may have left pages marked clean that
+	// never reached the drive, and the next flush would not write them. A
+	// platform or device with no such cache does nothing.
+	evict() error
 	// writeback writes chunks' dirty pages to the drive and waits for them.
 	// A background job calls it every bgDirtyMax from its idle thread with
 	// the chunks it wrote, so its bytes leave at the idle priority and a

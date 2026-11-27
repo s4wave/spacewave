@@ -23,6 +23,11 @@ func (f *osFile) flushDurable() error {
 	return windows.FlushFileBuffers(windows.Handle(f.Fd()))
 }
 
+// evict does nothing: windows has no call that drops a file's cached pages.
+func (f *osFile) evict() error {
+	return nil
+}
+
 // writeback flushes the whole file durably: FlushFileBuffers is the one call
 // that writes a file's pages.
 func (f *osFile) writeback([]uint64) error {

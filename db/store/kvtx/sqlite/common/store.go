@@ -644,6 +644,13 @@ const (
 // urgentReadConns at once, an urgent read takes a pool connection, still
 // without a turn.
 func (s *Store[T]) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	// Refuse every transaction once a WAL flush failed: the WAL shows commits
+	// the drive may not hold, and kvtx.AtomicCommitStore forbids reading
+	// them as stored.
+	if err := s.flusher.Failed(); err != nil {
+		return nil, err
+	}
+
 	// Read transactions open their connection at their first read.
 	if !write {
 		if s.snapshotReads && s.urgentReads != nil && block.ReadClassOf(ctx) == block.ReadUrgent {

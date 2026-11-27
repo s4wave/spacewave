@@ -395,7 +395,7 @@ func (t *Tx) commit(ctx context.Context, ordered bool) error {
 			if ordered {
 				return nil
 			}
-			return db.flush.syncThrough(ctx, seq)
+			return db.flush.syncThrough(durableWait(ctx), seq)
 		}
 		if err := t.lockValidated(ctx); err != nil {
 			t.done = true
@@ -447,7 +447,20 @@ func (t *Tx) commit(ctx context.Context, ordered bool) error {
 
 	// Flush outside the writer lock, sharing the flush with concurrent
 	// commits.
-	return db.flush.syncThrough(ctx, seq)
+	return db.flush.syncThrough(durableWait(ctx), seq)
+}
+
+// durableWait returns the context a commit waits for its durable flush
+// under. The commit is published by then, so readers already see it: a commit
+// that returned on cancellation would report a write as failed that a reader
+// takes for stored and a power loss may drop. So the wait ignores
+// cancellation and ends only when the flush covers the commit or fails,
+// which fails the handle. kvtx.FailStopOff restores the cancellable wait.
+func durableWait(ctx context.Context) context.Context {
+	if kvtx.FailStopOff {
+		return ctx
+	}
+	return context.WithoutCancel(ctx)
 }
 
 // Discard ends the transaction without writing.

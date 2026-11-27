@@ -8,7 +8,9 @@ import (
 	"math/rand/v2"
 	"sync/atomic"
 	"testing"
+	"time"
 
+	"github.com/s4wave/spacewave/db/kvtx"
 	kvtest "github.com/s4wave/spacewave/db/kvtx/kvtest"
 	"github.com/s4wave/spacewave/db/volume/device"
 )
@@ -179,7 +181,11 @@ func (d *failFlushDevice) Write(ctx context.Context, writes []device.Write, flus
 
 // putKey commits key with a value derived from it, durably.
 func putKey(db *DB, key string) error {
-	ctx := context.Background()
+	return putKeyCtx(context.Background(), db, key)
+}
+
+// putKeyCtx commits key with a value derived from it, durably, under ctx.
+func putKeyCtx(ctx context.Context, db *DB, key string) error {
 	tx, err := db.NewTransaction(ctx, true)
 	if err != nil {
 		return err
@@ -221,26 +227,26 @@ func TestDeviceFailedFlushStops(t *testing.T) {
 		t.Fatal(err)
 	}
 	dev.armed.Store(true)
-	if err := putKey(db, "failed"); !errors.Is(err, errFlushFault) || !errors.Is(err, ErrFlushFailed) {
+	if err := putKey(db, "failed"); !errors.Is(err, errFlushFault) || !errors.Is(err, kvtx.ErrFlushFailed) {
 		t.Fatalf("commit with a failed flush returned %v", err)
 	}
 
 	// The handle refuses every new read, write and flush, without calling
 	// the device, so no later flush claims the failed commit durable.
 	calls := mem.Calls()
-	if _, err := hasKey(db, "failed"); !errors.Is(err, ErrFlushFailed) {
+	if _, err := hasKey(db, "failed"); !errors.Is(err, kvtx.ErrFlushFailed) {
 		t.Fatalf("read after a failed flush returned %v", err)
 	}
-	if err := putKey(db, "after"); !errors.Is(err, ErrFlushFailed) {
+	if err := putKey(db, "after"); !errors.Is(err, kvtx.ErrFlushFailed) {
 		t.Fatalf("commit after a failed flush returned %v", err)
 	}
-	if err := db.Sync(ctx); !errors.Is(err, ErrFlushFailed) {
+	if err := db.Sync(ctx); !errors.Is(err, kvtx.ErrFlushFailed) {
 		t.Fatalf("Sync after a failed flush returned %v", err)
 	}
 	if got := mem.Calls(); got != calls {
 		t.Fatalf("failed handle made %d device calls", got-calls)
 	}
-	if err := db.Close(); !errors.Is(err, ErrFlushFailed) {
+	if err := db.Close(); !errors.Is(err, kvtx.ErrFlushFailed) {
 		t.Fatalf("Close after a failed flush returned %v", err)
 	}
 
@@ -263,13 +269,13 @@ func TestDeviceFailedFlushStops(t *testing.T) {
 
 	// With fail-stop off, the failed commit reads as stored, and a power
 	// loss drops it.
-	failStopOff = true
-	t.Cleanup(func() { failStopOff = false })
+	kvtx.FailStopOff = true
+	t.Cleanup(func() { kvtx.FailStopOff = false })
 	mem = device.NewMemory()
 	dev = &failFlushDevice{Memory: mem}
 	db = openDevice(t, dev, Options{})
 	dev.armed.Store(true)
-	if err := putKey(db, "failed"); !errors.Is(err, errFlushFault) || errors.Is(err, ErrFlushFailed) {
+	if err := putKey(db, "failed"); !errors.Is(err, errFlushFault) || errors.Is(err, kvtx.ErrFlushFailed) {
 		t.Fatalf("commit with fail-stop off returned %v", err)
 	}
 	if got, err := hasKey(db, "failed"); err != nil || !got {
@@ -282,5 +288,218 @@ func TestDeviceFailedFlushStops(t *testing.T) {
 	defer db.Close()
 	if got, err := hasKey(db, "failed"); err != nil || got {
 		t.Fatalf("with fail-stop off the power loss kept the failed commit: found=%v err=%v", got, err)
+	}
+}
+
+// gateFlushStorage is a database file whose next durable flush, once
+// armed, waits for the test to release it with an error or nil. It sits
+// below the fail-stop wrapper and holds no device lock while it waits, so
+// other commits keep appending, as they do during a slow fdatasync.
+type gateFlushStorage struct {
+	storage
+	// armed holds the next durable flush.
+	armed atomic.Bool
+	// entered receives once the held flush arrives.
+	entered chan struct{}
+	// release ends the held flush with its error, or nil to run it.
+	release chan error
+}
+
+// flushDurable holds the flush once armed, and otherwise runs it.
+func (s *gateFlushStorage) flushDurable() error {
+	if s.armed.Swap(false) {
+		s.entered <- struct{}{}
+		if err := <-s.release; err != nil {
+			return err
+		}
+	}
+	return s.storage.flushDurable()
+}
+
+// TestDeviceCancelledCommitWaits cancels a durable commit while it waits on
+// another commit's flush, then fails that flush and cuts the power. The
+// cancelled commit is published by then, so it must not return before its
+// flush ends: a commit that returned an error while its write was visible
+// would be read back as stored, as the local provider's settle does, and the
+// power cut drops it. Every commit that returned without an error must
+// survive, and one that failed must not read back as stored.
+func TestDeviceCancelledCommitWaits(t *testing.T) {
+	r := rand.New(rand.NewPCG(5, 5))
+	mem := device.NewMemory()
+	gate := &gateFlushStorage{entered: make(chan struct{}), release: make(chan error)}
+	db := openStorage(t, mem, func(s storage) storage {
+		gate.storage = s
+		return gate
+	})
+	if err := putKey(db, "kept"); err != nil {
+		t.Fatal(err)
+	}
+
+	// result is a commit's error and, when it failed, what a read of its
+	// key found at once, as a caller that settles a failed write reads.
+	type result struct {
+		commit, read error
+		found        bool
+	}
+	commitAndRead := func(ctx context.Context, key string, out chan<- result) {
+		res := result{commit: putKeyCtx(ctx, db, key)}
+		if res.commit != nil {
+			res.found, res.read = hasKey(db, key)
+		}
+		out <- res
+	}
+
+	// Hold commit a's flush at the device, once a is published.
+	gate.armed.Store(true)
+	aDone := make(chan result, 1)
+	go commitAndRead(context.Background(), "a", aDone)
+	<-gate.entered
+	seqA := db.cur.Load().seq
+
+	// Commit b joins a's flush once published, and is cancelled there.
+	ctx, cancel := context.WithCancel(context.Background())
+	bDone := make(chan result, 1)
+	go commitAndRead(ctx, "b", bDone)
+	err := db.bcast.Wait(context.Background(), func(_ func(), _ func() <-chan struct{}) (bool, error) {
+		return db.cur.Load().seq > seqA, nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	cancel()
+
+	// A commit that returns on cancellation does so at once. Give it the
+	// chance before the flush ends, when its write still reads as stored.
+	results := map[string]result{}
+	select {
+	case results["b"] = <-bDone:
+	case <-time.After(100 * time.Millisecond):
+	}
+
+	// Cut the power under the held flush and fail it.
+	mem.CrashAfter(0)
+	gate.release <- errFlushFault
+	results["a"] = <-aDone
+	if _, ok := results["b"]; !ok {
+		results["b"] = <-bDone
+	}
+	for key, res := range results {
+		if res.commit != nil && res.read == nil && res.found {
+			t.Fatalf("commit %s returned %v but reads back as stored", key, res.commit)
+		}
+	}
+	_ = db.Close()
+
+	// Recovery keeps every commit that returned without an error.
+	mem.PowerLoss(r)
+	db = openDevice(t, mem, Options{})
+	defer db.Close()
+	for _, key := range []string{"kept", "a", "b"} {
+		if res, ok := results[key]; ok && res.commit != nil {
+			continue
+		}
+		if found, err := hasKey(db, key); err != nil || !found {
+			t.Fatalf("commit %s returned without an error but after the power cut found=%v err=%v", key, found, err)
+		}
+	}
+}
+
+// recordStorage counts the calls that change or read a database's file,
+// below its fail-stop wrapper.
+type recordStorage struct {
+	storage
+	// reads, writes and truncates count ReadAt, WriteAt and truncate calls.
+	reads, writes, truncates atomic.Int64
+	// evicts counts evict calls, and readsAtEvict the reads made before the
+	// first.
+	evicts, readsAtEvict atomic.Int64
+}
+
+// ReadAt counts the read and passes it on.
+func (s *recordStorage) ReadAt(p []byte, off int64) (int, error) {
+	s.reads.Add(1)
+	return s.storage.ReadAt(p, off)
+}
+
+// WriteAt counts the write and passes it on.
+func (s *recordStorage) WriteAt(p []byte, off int64) (int, error) {
+	s.writes.Add(1)
+	return s.storage.WriteAt(p, off)
+}
+
+// truncate counts the truncation and passes it on.
+func (s *recordStorage) truncate(n int64) error {
+	s.truncates.Add(1)
+	return s.storage.truncate(n)
+}
+
+// evict counts the eviction and the reads made before the first.
+func (s *recordStorage) evict() error {
+	if s.evicts.Add(1) == 1 {
+		s.readsAtEvict.Store(s.reads.Load())
+	}
+	return s.storage.evict()
+}
+
+// openStorage opens the database file of dev through the storage wrap
+// returns for it.
+func openStorage(t *testing.T, dev device.Device, wrap func(storage) storage) *DB {
+	t.Helper()
+	h, err := device.OpenHandle(context.Background(), dev, deviceName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	db, err := open(wrap(deviceFile{h}), Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return db
+}
+
+// openRecorded opens the database file of dev through a recordStorage.
+func openRecorded(t *testing.T, dev device.Device) (*DB, *recordStorage) {
+	t.Helper()
+	rec := &recordStorage{}
+	db := openStorage(t, dev, func(s storage) storage {
+		rec.storage = s
+		return rec
+	})
+	return db, rec
+}
+
+// TestFailedHandleWritesNothing fails a flush and checks that no later write
+// or truncation of the handle reaches the file, from a release step or a
+// direct call, so nothing is built on a state the file may not hold. It also
+// checks that a writable open drops the file's cached pages before recovery
+// reads them.
+func TestFailedHandleWritesNothing(t *testing.T) {
+	ctx := context.Background()
+	mem := device.NewMemory()
+	dev := &failFlushDevice{Memory: mem}
+	db, rec := openRecorded(t, dev)
+	if n, before := rec.evicts.Load(), rec.readsAtEvict.Load(); n != 1 || before != 0 {
+		t.Fatalf("writable open evicted %d times after %d reads, want once before any read", n, before)
+	}
+
+	// Fail a durable flush.
+	dev.armed.Store(true)
+	if err := putKey(db, "failed"); !errors.Is(err, kvtx.ErrFlushFailed) {
+		t.Fatalf("commit with a failed flush returned %v", err)
+	}
+
+	// Nothing writes or truncates the file after it.
+	writes, truncates := rec.writes.Load(), rec.truncates.Load()
+	if db.sched != nil {
+		_ = db.sched.releaseStep(ctx)
+	}
+	if _, err := db.s.WriteAt([]byte{1}, 0); !errors.Is(err, kvtx.ErrFlushFailed) {
+		t.Fatalf("write after a failed flush returned %v", err)
+	}
+	if err := db.s.truncate(0); !errors.Is(err, kvtx.ErrFlushFailed) {
+		t.Fatalf("truncate after a failed flush returned %v", err)
+	}
+	_ = db.Close()
+	if w, tr := rec.writes.Load()-writes, rec.truncates.Load()-truncates; w != 0 || tr != 0 {
+		t.Fatalf("failed handle made %d writes and %d truncations", w, tr)
 	}
 }

@@ -3,6 +3,8 @@ package common
 import (
 	"os"
 	"time"
+
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // SetCheckpointHook sets the hook told each step of fillWALGap, and the
@@ -69,4 +71,18 @@ func (t *Tx) ObserveWriteHold(observe func(time.Duration)) {
 		observe(time.Since(start))
 		release()
 	}
+}
+
+// WrapWALFlush routes the WAL flushes of s, a SQLite store, through wrap,
+// which receives the store's own flush. Call it before s's first write.
+func WrapWALFlush(s any, wrap func(flush func() error) error) {
+	s.(interface {
+		wrapWALFlush(func(func() error) error)
+	}).wrapWALFlush(wrap)
+}
+
+// wrapWALFlush replaces s's idle flusher with one that flushes through wrap.
+func (s *Store[T]) wrapWALFlush(wrap func(func() error) error) {
+	_ = s.flusher.Close()
+	s.flusher = kvtx.NewOrderedFlusher(func() error { return wrap(s.flushWAL) }, SyncDeadline)
 }

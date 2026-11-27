@@ -9,6 +9,15 @@ func (f *osFile) flushDurable() error {
 	return unix.Fdatasync(int(f.Fd()))
 }
 
+// evict drops the file's clean cached pages. The kernel keeps a page that is
+// dirty, under writeback or mapped: a dirty page still reaches the drive, and
+// s4db maps no file. A page another process is copying at that instant also
+// stays, which leaves a stale page only if that process reads the failed
+// commit's bytes as the writer opens.
+func (f *osFile) evict() error {
+	return unix.Fadvise(int(f.Fd()), 0, 0, unix.FADV_DONTNEED)
+}
+
 // bgDirtyMax is the most a background job writes between pushes of its bytes
 // to the drive: one chunk, since a push selects its chunks and costs no drive
 // cache flush. A commit's durable flush waits behind the push in flight, and

@@ -125,6 +125,12 @@ func (s *Store) RefreshForCoordinationLock() error {
 // waiting foreground writer when ctx carries block.WithBackground,
 // and holds it until the transaction commits or is discarded.
 func (s *Store) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	// Refuse every transaction once an ordered flush failed, since the file
+	// may lack the ordered commits a transaction would read.
+	if err := s.flusher.Failed(); err != nil {
+		return nil, err
+	}
+
 	// Take the writer turn at the transaction's priority.
 	var release func()
 	if write {

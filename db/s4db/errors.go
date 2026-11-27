@@ -29,10 +29,6 @@ var (
 	ErrKeyTooLong = errors.New("key exceeds the maximum key size")
 	// ErrValueTooLarge is returned when a value exceeds MaxValueSize.
 	ErrValueTooLarge = errors.New("value exceeds the maximum value size")
-	// ErrFlushFailed is returned, joined with the cause, by every flush,
-	// commit and new transaction of a handle after one of its flushes failed.
-	// Close the handle and open the file again.
-	ErrFlushFailed = errors.New("an earlier flush of the database failed")
 	// ErrClosed is returned when the database is closed.
 	ErrClosed = errors.New("database is closed")
 	// ErrOutOfOrder is returned by the bulk builder when a key is not above

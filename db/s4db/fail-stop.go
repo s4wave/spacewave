@@ -2,39 +2,37 @@ package s4db
 
 import (
 	"errors"
-	"os"
 	"sync/atomic"
 
 	"github.com/aperturerobotics/util/broadcast"
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
-// FailStopEnv names the switch for fail-stop. Set to "off", a failed flush
-// fails only its own call, and a later flush that succeeds marks every commit
-// published before it durable, as before fail-stop.
-const FailStopEnv = "SPACEWAVE_S4DB_FAIL_STOP"
-
-// failStopOff turns fail-stop off for every handle opened in this process.
-var failStopOff = os.Getenv(FailStopEnv) == "off"
-
 // failStop is the storage of a writable handle. It records the first failure
-// of a durable flush or a writeback, and fails every later one with it
-// without calling the file.
+// of a durable flush or a writeback, and then fails every flush, write and
+// truncation with it without calling the file. kvtx.FailStopOff turns it
+// off.
 //
 // A commit is published before its flush, so a failed flush leaves readers
 // seeing commits the file may not hold. A later flush cannot prove they are
 // held: after a failed fdatasync Linux may mark the unwritten pages clean, so
 // the next fdatasync succeeds without them, and a device keeps any part of a
-// failed call. Only recovery from the file, at the next open, shows what it
-// holds.
+// failed call. The file shows what it holds only to the next writable open,
+// which drops the file's cached pages (storage.evict) before recovery reads
+// them, so it reads what the drive holds rather than pages that never reached
+// it.
 //
-// Invariant: once a flush of this handle fails, no later flush succeeds, so
-// no commit published before the failure is reported durable, through
-// syncThrough or the flush job's setDurable. The handle also refuses every new
-// transaction and every commit (DB.failure), so no caller reads a commit whose
-// flush failed and takes it for stored.
+// Invariants, once a flush or writeback of this handle fails:
+//   - no later flush succeeds, so no commit published before the failure is
+//     reported durable, through syncThrough or the flush job's setDurable;
+//   - no later write or truncation reaches the file, so no record, free or
+//     shortening is built on a state the file may not hold;
+//   - the handle refuses every new transaction and every commit
+//     (DB.failure), so no caller reads a commit whose flush failed and takes
+//     it for stored.
 type failStop struct {
 	storage
-	// err is the first failure, joined with ErrFlushFailed, or nil.
+	// err is the first failure, joined with kvtx.ErrFlushFailed, or nil.
 	err atomic.Pointer[error]
 	// bcast wakes the handle's waiters once the failure is recorded, so a
 	// commit waiting for a flush to drain the memtable ends.
@@ -60,7 +58,7 @@ func (s *failStop) fail(err error) error {
 	if err == nil {
 		return nil
 	}
-	joined := errors.Join(ErrFlushFailed, err)
+	joined := errors.Join(kvtx.ErrFlushFailed, err)
 	if s.err.CompareAndSwap(nil, &joined) {
 		l := s.bcast.Lock()
 		l.Broadcast()
@@ -84,6 +82,22 @@ func (s *failStop) writeback(chunks []uint64) error {
 		return err
 	}
 	return s.fail(s.storage.writeback(chunks))
+}
+
+// WriteAt writes p at off unless a flush failed.
+func (s *failStop) WriteAt(p []byte, off int64) (int, error) {
+	if err := s.failed(); err != nil {
+		return 0, err
+	}
+	return s.storage.WriteAt(p, off)
+}
+
+// truncate sets the file length unless a flush failed.
+func (s *failStop) truncate(n int64) error {
+	if err := s.failed(); err != nil {
+		return err
+	}
+	return s.storage.truncate(n)
 }
 
 // failure returns why the handle refuses transactions and commits: the
