@@ -16,8 +16,8 @@ github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be h1:9AeTilPcZAjCFI
 github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be/go.mod h1:ySMOLuWl6zY27l47sB3qLNK6tF2fkHG55UZxx8oIVo4=
 github.com/aperturerobotics/abseil-cpp v0.0.0-20261118220503-715c128d7a7c h1:wYv4Fgr0SHwJG5Up7Jw4rVYXZGPNMJOMWriYcRFNnX0=
 github.com/aperturerobotics/abseil-cpp v0.0.0-20261118220503-715c128d7a7c/go.mod h1:lNSJTKECIUFAnfeSqy01kXYTYe1BHubW7198jNX3nEw=
-github.com/aperturerobotics/bbolt v0.0.0-20261024221644-3def6903e63a h1:aYUeQfr2ttWIQt6nQsIWWRJIsPhasaRBT7u0517nRN8=
-github.com/aperturerobotics/bbolt v0.0.0-20261024221644-3def6903e63a/go.mod h1:VL6V11Ng8RqywELkyPk8gbwwZIlO/ODtQEAEsXwlj0s=
+github.com/aperturerobotics/bbolt v0.0.0-20261127210914-22f96c60c0f3 h1:maadYFPYe+rBs7ir/irb32K0I4MM68UrkG64yIJJV5E=
+github.com/aperturerobotics/bbolt v0.0.0-20261127210914-22f96c60c0f3/go.mod h1:VL6V11Ng8RqywELkyPk8gbwwZIlO/ODtQEAEsXwlj0s=
 github.com/aperturerobotics/bldr-saucer v0.4.4 h1:kQvjAAQcdydvX2EYWipQW1vOBUe88F/27WaVU7mKRoE=
 github.com/aperturerobotics/bldr-saucer v0.4.4/go.mod h1:yH40259UVahR/9DU9c+Sg0+HGm5OtTWHV7CeEzneVho=
 github.com/aperturerobotics/cayley v0.15.1-0.20261110080746-0ca7434b350d h1:PAWQhlg4aGEcwK7Dqcyzp7dpa3+n+G9BOs8LdjfLy6E=
@@ -28,8 +28,8 @@ github.com/aperturerobotics/cli v1.1.1-0.20261120062312-a99f7a253ca1 h1:mu8bU+ZH
 github.com/aperturerobotics/cli v1.1.1-0.20261120062312-a99f7a253ca1/go.mod h1:1SZzsdyfNK4sMviqdMDvKFukCrtTK6XLvtSfqaSE/s8=
 github.com/aperturerobotics/common v0.38.5-0.20261118225926-2d4f4f877a91 h1:PyfQFeourKBuI7y7aK3Ni+G0Eh9x4gjhlrfH/NjrN7A=
 github.com/aperturerobotics/common v0.38.5-0.20261118225926-2d4f4f877a91/go.mod h1:ScP6os8RpgAhrC+jvlv7m8p6MfBgWLkcNM25lPFq6rc=
-github.com/aperturerobotics/controllerbus v0.53.6-0.20261127192832-dd0a38577071 h1:3+8Ai9pY2PK/RjwkAj+mRDflqVgKRP2RQ6EZ739D/7c=
-github.com/aperturerobotics/controllerbus v0.53.6-0.20261127192832-dd0a38577071/go.mod h1:60X5k6b9DYA+RmSwBmxrZ8O81CUrLojTzAld//Vz9xU=
+github.com/aperturerobotics/controllerbus v0.53.6-0.20261127223115-d5c12f027689 h1:0eJy8I351Jfzkc89DkqVsTR+Ds6kU3JVnj2f4Pe9y/s=
+github.com/aperturerobotics/controllerbus v0.53.6-0.20261127223115-d5c12f027689/go.mod h1:60X5k6b9DYA+RmSwBmxrZ8O81CUrLojTzAld//Vz9xU=
 github.com/aperturerobotics/cpp-yamux v0.0.0-20261024231300-09c82549af7a h1:1+aqnPBdCps2DXBoiQ9q586iwJSacGXdK3QI3Rk+Wg8=
 github.com/aperturerobotics/cpp-yamux v0.0.0-20261024231300-09c82549af7a/go.mod h1:z43wdjwvCS9HJwxnqEtWgedAqWpeK6c5vozJoGXtUug=
 github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 h1:OFfw+2XQglhiej7liQM/YQneJTkJvENZLfR/H4zmZ8Q=
