@@ -89,6 +89,17 @@ func (i *TablePartitionRowIter) Next(sctx *sql.Context) (sql.Row, error) {
 	return i.GetRow(sctx)
 }
 
+// NextWithKey advances to the next row and returns its stored primary key.
+// The key remains valid until the next iteration step or Close.
+func (i *TablePartitionRowIter) NextWithKey(sctx *sql.Context) (sql.Row, []byte, error) {
+	// Advance and decode through the same path as SQL row iteration.
+	row, err := i.Next(sctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	return row, i.it.Key(), nil
+}
+
 // Next2 appends the next row to frame, or returns io.EOF when exhausted.
 func (i *TablePartitionRowIter) Next2(ctx *sql.Context, frame *sql.RowFrame) error {
 	r, err := i.Next(ctx)

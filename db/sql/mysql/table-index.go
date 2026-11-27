@@ -149,14 +149,14 @@ func (t *Table) populateIndex(ctx *sql.Context, index *TableIndex) error {
 			defer rows.Close(ctx)
 			for {
 				// Encode the indexed values of each stored row.
-				row, err := rows.Next(ctx)
+				row, primaryKey, err := rows.NextWithKey(ctx)
 				if err == io.EOF {
 					return nil
 				}
 				if err != nil {
 					return err
 				}
-				key, unique, err := t.secondaryKey(ctx, index, row, rows.it.Key())
+				key, unique, err := t.secondaryKey(ctx, index, row, primaryKey)
 				if err != nil {
 					return err
 				}
@@ -171,7 +171,7 @@ func (t *Table) populateIndex(ctx *sql.Context, index *TableIndex) error {
 						return sql.ErrDuplicateEntry.New(index.GetName())
 					}
 				}
-				if err := tree.Set(GetDbContext(ctx), key, rows.it.Key()); err != nil {
+				if err := tree.Set(GetDbContext(ctx), key, primaryKey); err != nil {
 					return err
 				}
 			}

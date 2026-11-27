@@ -35,16 +35,11 @@ func (d *Database) CreateTable(ctx *sql.Context, name string, schema sql.Primary
 // DropTable deletes a table, if it exists.
 func (d *Database) DropTable(ctx *sql.Context, name string) error {
 	// Remove the named table record from the database root.
-	oldLen := len(d.root.GetTables())
-	_, _, ok := d.nsbs.DeleteByName(name)
-	if !ok {
+	if !d.nsbs.RemoveByName(name) {
 		return sql.ErrTableNotFound.New(name)
 	}
 
-	// Clear the removed table reference and invalidate its cached handle.
-	if cursor := d.nsbs.GetCursor(); cursor != nil && oldLen > len(d.root.GetTables()) {
-		cursor.ClearRef(uint32(oldLen - 1)) //nolint:gosec
-	}
+	// Invalidate the removed table and mark the database dirty.
 	delete(d.tbls, name)
 	d.MarkDirty()
 	return nil

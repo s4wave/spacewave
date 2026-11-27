@@ -275,6 +275,23 @@ func (r *NamedSubBlockSet) DeleteByName(name string) (NamedSubBlock, *block.Curs
 	return oldv, ncs, true
 }
 
+// RemoveByName removes a named entry and clears its vacated graph reference.
+// It reports whether the entry existed.
+func (r *NamedSubBlockSet) RemoveByName(name string) bool {
+	// Remove the entry using the set's positional cursor bookkeeping.
+	oldLen := r.Len()
+	_, _, ok := r.DeleteByName(name)
+	if !ok {
+		return false
+	}
+
+	// Clear the final slot after the remaining entries have moved into place.
+	if r.bcs != nil && oldLen > r.Len() {
+		r.bcs.ClearRef(uint32(oldLen - 1)) //nolint:gosec
+	}
+	return true
+}
+
 // ApplySubBlock applies a sub-block change with a field id.
 func (r *NamedSubBlockSet) ApplySubBlock(id uint32, next block.SubBlock) error {
 	// Validate the named sub-block replacement and update its container entry.

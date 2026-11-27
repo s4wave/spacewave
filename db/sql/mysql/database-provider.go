@@ -113,16 +113,11 @@ func (p *databaseProvider) DropDatabase(ctx *sql.Context, name string) error {
 
 	// Remove the named database from the stored catalog.
 	dbs := transaction.root.GetRootDbSet(transaction.bcs)
-	oldLen := len(transaction.root.GetDatabases())
-	_, _, ok := dbs.DeleteByName(name)
-	if !ok {
+	if !dbs.RemoveByName(name) {
 		return sql.ErrDatabaseNotFound.New(name)
 	}
 
-	// Clear the removed catalog reference and invalidate its cached database.
-	if cursor := dbs.GetCursor(); cursor != nil && oldLen > len(transaction.root.GetDatabases()) {
-		cursor.ClearRef(uint32(oldLen - 1)) //nolint:gosec
-	}
+	// Invalidate the removed database and mark the catalog dirty.
 	delete(transaction.openDbs, name)
 	transaction.bcs.SetBlock(transaction.root, true)
 	return nil
