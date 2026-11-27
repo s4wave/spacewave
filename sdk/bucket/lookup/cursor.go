@@ -63,11 +63,8 @@ func NewCursor(
 		conf,
 		func() {
 			once.Do(ref.Release)
-		},
+		}, resp.GetBucketIdOverride(),
 	)
-
-	// Preserve the server bucket override when following object references.
-	cursor.SetBucketIDOverride(resp.GetBucketIdOverride())
 
 	return cursor, nil
 }

@@ -86,11 +86,12 @@ func NewCursor(
 	opArgs *bucket.BucketOpArgs,
 	transformConf *block_transform.Config,
 ) *Cursor {
-	return NewCursorWithRelease(ctx, b, le, sfs, bkt, xfrm, ref, opArgs, transformConf, nil)
+	return NewCursorWithRelease(ctx, b, le, sfs, bkt, xfrm, ref, opArgs, transformConf, nil, "")
 }
 
 // NewCursorWithRelease constructs a new Cursor with the provided parameters and
-// release callback.
+// release callback. bucketIDOverride pins implicit references to a mounted
+// bucket; an empty value preserves the bucket in each reference.
 func NewCursorWithRelease(
 	ctx context.Context,
 	b bus.Bus,
@@ -102,23 +103,28 @@ func NewCursorWithRelease(
 	opArgs *bucket.BucketOpArgs,
 	transformConf *block_transform.Config,
 	rel func(),
+	bucketIDOverride string,
 ) *Cursor {
+	// Supply empty reference and operation records when the caller omitted them.
 	if ref == nil {
 		ref = &bucket.ObjectRef{}
 	}
 	if opArgs == nil {
 		opArgs = &bucket.BucketOpArgs{}
 	}
+
+	// Bind implicit reference routing before publishing the cursor.
 	return &Cursor{
-		le:            le,
-		bus:           b,
-		sfs:           sfs,
-		bkt:           bkt,
-		xfrm:          xfrm,
-		ref:           ref,
-		opArgs:        opArgs,
-		transformConf: transformConf,
-		rel:           rel,
+		le:               le,
+		bus:              b,
+		sfs:              sfs,
+		bkt:              bkt,
+		xfrm:             xfrm,
+		ref:              ref,
+		opArgs:           opArgs,
+		transformConf:    transformConf,
+		rel:              rel,
+		bucketIDOverride: bucketIDOverride,
 	}
 }
 
@@ -719,15 +725,6 @@ func (c *Cursor) GetOpArgs() *bucket.BucketOpArgs {
 		return &bucket.BucketOpArgs{}
 	}
 	return c.opArgs.CloneVT()
-}
-
-// SetBucketIDOverride forces FollowRef to resolve every implicit reference
-// through bucketID. Explicit FollowRefWithOpArgs calls remain unchanged.
-// The override is intended for self-contained mirrors whose stored refs retain
-// the authoring bucket ID but whose complete block DAG is mounted under an
-// alias.
-func (c *Cursor) SetBucketIDOverride(bucketID string) {
-	c.bucketIDOverride = bucketID
 }
 
 // GetBucketIDOverride returns the bucket used for implicit child references.

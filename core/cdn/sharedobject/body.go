@@ -33,7 +33,7 @@ type CdnSpaceBody struct {
 // without depending on the well-known Space ID.
 func NewCdnSpaceBody(so *CdnSharedObject, we *WorldEngine) *CdnSpaceBody {
 	soID := so.GetSharedObjectID()
-	bucketID := so.GetBlockStore().GetID()
+	bucketID := so.BlockStoreID()
 	ref := &sobject.SharedObjectRef{
 		ProviderResourceRef: &provider.ProviderResourceRef{
 			Id:                soID,

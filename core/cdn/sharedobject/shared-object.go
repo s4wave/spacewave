@@ -11,7 +11,10 @@ import (
 	cdn_bstore "github.com/s4wave/spacewave/core/cdn/bstore"
 	"github.com/s4wave/spacewave/core/sobject"
 	space_world "github.com/s4wave/spacewave/core/space/world"
+	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
+	"github.com/s4wave/spacewave/db/bucket"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
@@ -103,6 +106,72 @@ func (s *CdnSharedObject) GetSharedObjectID() string {
 // GetBlockStore returns the anonymous CDN-backed block store.
 func (s *CdnSharedObject) GetBlockStore() bstore.BlockStore {
 	return s.bs
+}
+
+// BlockStoreID returns the mounted bucket used for authored CDN references.
+func (s *CdnSharedObject) BlockStoreID() string {
+	return s.bs.GetID()
+}
+
+// newWorldCursor reads the published World through the mounted CDN bucket,
+// sharing its decoded cache when one is available.
+func (s *CdnSharedObject) newWorldCursor(
+	ctx context.Context,
+	b bus.Bus,
+	le *logrus.Entry,
+	sfs *block_transform.StepFactorySet,
+	xfrm block.Transformer,
+	headRef *bucket.ObjectRef,
+	transformConf *block_transform.Config,
+	bucketID string,
+) *bucket_lookup.Cursor {
+	// Share decoded blocks with sibling engines over this store.
+	blockStore := s.bs
+	decodedBlocks := blockStore.GetDecodedBlockCache()
+	if decodedBlocks == nil {
+		decodedBlocks = block.NewDecodedBlockCache()
+	}
+
+	// Hold the CDN cursor for every read and subsequent head update.
+	cursor := bucket_lookup.NewCursorWithRelease(
+		ctx,
+		b,
+		le,
+		sfs,
+		blockStore,
+		xfrm,
+		headRef,
+		&bucket.BucketOpArgs{
+			BucketId: bucketID,
+			VolumeId: bucketID,
+		},
+		transformConf, nil, bucketID,
+	)
+	cursor.SetDecodedBlockCache(decodedBlocks)
+
+	return cursor
+}
+
+// followPublishedHead applies each cached root pointer before waiting for its successor.
+func (s *CdnSharedObject) followPublishedHead(rctx context.Context, le *logrus.Entry, apply func(context.Context) error) error {
+	// Follow each pointer in the same cached-pointer wait sequence.
+	ptr := s.bs.Pointer()
+	for {
+		// Apply the head of the current pointer.
+		if err := apply(rctx); err != nil {
+			if rctx.Err() != nil {
+				return rctx.Err()
+			}
+			le.WithError(err).Warn("cdn engine refresh failed")
+		}
+
+		// Wait for the store to publish another pointer.
+		next, err := s.bs.WaitPointer(rctx, ptr)
+		if err != nil {
+			return err
+		}
+		ptr = next
+	}
 }
 
 // GetMeta returns the synthetic metadata used for display surfaces.

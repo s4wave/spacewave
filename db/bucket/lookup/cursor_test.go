@@ -59,7 +59,7 @@ func TestTransformConfEnvelopeRejectsUnknownVersion(t *testing.T) {
 func TestCursorBucketIDOverridePinsImplicitReferences(t *testing.T) {
 	// Pin the cursor's implicit bucket references to the public bucket.
 	ctx := context.Background()
-	cursor := NewCursor(
+	cursor := NewCursorWithRelease(
 		ctx,
 		nil,
 		nil,
@@ -68,9 +68,8 @@ func TestCursorBucketIDOverridePinsImplicitReferences(t *testing.T) {
 		nil,
 		&bucket.ObjectRef{},
 		&bucket.BucketOpArgs{BucketId: "public-cdn", VolumeId: "public-cdn"},
-		&block_transform.Config{},
+		&block_transform.Config{}, nil, "public-cdn",
 	)
-	cursor.SetBucketIDOverride("public-cdn")
 
 	// Verify an authoring bucket reference resolves through the pinned bucket.
 	followed, err := cursor.FollowRef(ctx, &bucket.ObjectRef{BucketId: "authoring-world"})

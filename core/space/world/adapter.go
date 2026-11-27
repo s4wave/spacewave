@@ -2336,9 +2336,9 @@ func newWorldCursor(
 	// Bind the cursor to the bucket, resolving implicit references through it.
 	ref := head.CloneVT()
 	ref.BucketId = bucketID
-	cursor := bucket_lookup.NewCursor(ctx, b, le, sfs, store, xfrm, ref,
-		&bucket.BucketOpArgs{BucketId: bucketID, VolumeId: bucketID}, conf)
-	cursor.SetBucketIDOverride(bucketID)
+	cursor := bucket_lookup.NewCursorWithRelease(ctx, b, le, sfs, store, xfrm, ref,
+		&bucket.BucketOpArgs{BucketId: bucketID, VolumeId: bucketID}, conf, nil, bucketID,
+	)
 	if decoded != nil {
 		cursor.SetDecodedBlockCache(decoded)
 	}

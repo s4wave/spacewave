@@ -8,10 +8,8 @@ import (
 	"github.com/aperturerobotics/util/routine"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
-	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
-	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	"github.com/sirupsen/logrus"
@@ -82,7 +80,7 @@ func NewWorldEngine(
 
 	// Route authored bucket references through the CDN block store.
 	headRef := inner.GetHeadRef().CloneVT()
-	bucketID := so.GetBlockStore().GetID()
+	bucketID := so.BlockStoreID()
 	headRef.BucketId = bucketID
 
 	// Decode the published head with its declared transform chain.
@@ -100,30 +98,8 @@ func NewWorldEngine(
 		}
 	}
 
-	// Share decoded blocks with sibling engines over this store.
-	blockStore := so.GetBlockStore()
-	decodedBlocks := blockStore.GetDecodedBlockCache()
-	if decodedBlocks == nil {
-		decodedBlocks = block.NewDecodedBlockCache()
-	}
-
-	// Hold the CDN cursor for every read and subsequent head update.
-	cursor := bucket_lookup.NewCursor(
-		ctx,
-		b,
-		le,
-		sfs,
-		blockStore,
-		xfrm,
-		headRef,
-		&bucket.BucketOpArgs{
-			BucketId: bucketID,
-			VolumeId: bucketID,
-		},
-		transformConf,
-	)
-	cursor.SetBucketIDOverride(bucketID)
-	cursor.SetDecodedBlockCache(decodedBlocks)
+	// Read through the shared object's mounted bucket and decoded cache.
+	cursor := so.newWorldCursor(ctx, b, le, sfs, xfrm, headRef, transformConf, bucketID)
 
 	// Build state access without importing application operation handlers.
 	bengine, err := world_block.NewEngine(ctx, le, cursor, nil, nil, false)
@@ -143,23 +119,7 @@ func NewWorldEngine(
 	// Follow the root pointer for the lifetime of the returned engine.
 	w.refresh = routine.NewRoutineContainerWithLogger(le)
 	w.refresh.SetRoutine(func(rctx context.Context) error {
-		ptr := so.bs.Pointer()
-		for {
-			// Apply the head of the current pointer.
-			if err := w.applyHead(rctx); err != nil {
-				if rctx.Err() != nil {
-					return rctx.Err()
-				}
-				le.WithError(err).Warn("cdn engine refresh failed")
-			}
-
-			// Wait for the store to publish another pointer.
-			next, err := so.bs.WaitPointer(rctx, ptr)
-			if err != nil {
-				return err
-			}
-			ptr = next
-		}
+		return so.followPublishedHead(rctx, le, w.applyHead)
 	})
 	w.refresh.SetContext(ctx, true)
 	return w, nil

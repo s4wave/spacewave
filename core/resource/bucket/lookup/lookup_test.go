@@ -364,7 +364,11 @@ func TestGetRefReturnsCursorOpArgs(t *testing.T) {
 	if !cursor.GetRef().GetTransformConf().GetEmpty() {
 		t.Fatal("test cursor unexpectedly stores transform config in raw ref")
 	}
-	cursor.SetBucketIDOverride("device-mirror")
+
+	// Rebuild the mounted cursor with its alias fixed at construction.
+	cursor = bucket_lookup.NewCursorWithRelease(ctx, tb.Bus, le, tb.StepFactorySet,
+		cursor.GetBucket(), cursor.GetTransformer(), cursor.GetRef(), cursor.GetOpArgs(),
+		cursor.GetTransformConf(), cursor.Release, "device-mirror")
 
 	// Verify the Resource reference preserves bucket operation arguments.
 	resource := NewBucketLookupCursorResource(le, tb.Bus, cursor)
@@ -398,7 +402,7 @@ func TestGetRefPreservesEmptyCursorOpArgs(t *testing.T) {
 		nil,
 		&bucket.BucketOpArgs{BucketId: "test"},
 		transformConf,
-		nil,
+		nil, "",
 	)
 	resource := NewBucketLookupCursorResource(nil, nil, cursor)
 
@@ -433,7 +437,7 @@ func TestPutBlockBatchUsesCursorBatch(t *testing.T) {
 		&bucket.ObjectRef{BucketId: "test"},
 		&bucket.BucketOpArgs{BucketId: "test"},
 		nil,
-		nil,
+		nil, "",
 	)
 	resource := NewBucketLookupCursorResource(nil, nil, cursor)
 
@@ -496,7 +500,7 @@ func TestGetBlockExistsBatchUsesCursorBatch(t *testing.T) {
 		&bucket.ObjectRef{BucketId: "test"},
 		&bucket.BucketOpArgs{BucketId: "test"},
 		nil,
-		nil,
+		nil, "",
 	)
 	resource := NewBucketLookupCursorResource(nil, nil, cursor)
 

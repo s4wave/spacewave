@@ -141,9 +141,8 @@ func (e *readCheckpointEngine) readOnlyCursor(ctx context.Context, cursor *bucke
 		cursor.GetRef(),
 		opArgs,
 		cursor.GetTransformConf(),
-		release,
+		release, cursor.GetBucketIDOverride(),
 	)
-	read.SetBucketIDOverride(cursor.GetBucketIDOverride())
 	return read
 }
 

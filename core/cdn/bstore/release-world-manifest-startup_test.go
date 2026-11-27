@@ -173,7 +173,7 @@ func newReleaseWorldProbeEngine(
 	}
 
 	// Construct the bucket cursor and world engine over the CDN store.
-	cursor := bucket_lookup.NewCursor(
+	cursor := bucket_lookup.NewCursorWithRelease(
 		ctx,
 		nil,
 		logger,
@@ -182,9 +182,8 @@ func newReleaseWorldProbeEngine(
 		transformer,
 		headRef,
 		&bucket.BucketOpArgs{BucketId: bucketID, VolumeId: bucketID},
-		transformConf,
+		transformConf, nil, bucketID,
 	)
-	cursor.SetBucketIDOverride(bucketID)
 	cursor.SetDecodedBlockCache(store.GetDecodedBlockCache())
 	engine, err := world_block.NewEngine(ctx, logger, cursor, nil, nil, false)
 	if err != nil {
