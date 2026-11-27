@@ -9,32 +9,12 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
-	forge_lib_git_allocation "github.com/s4wave/spacewave/forge/lib/git/allocation"
 )
 
 // Allocator materializes a writable cursor tree for a repo root on first write.
 type Allocator interface {
+	// AllocateWritableRepoTree materializes the repository tree for a mutation.
 	AllocateWritableRepoTree(ctx context.Context, req AllocationRequest) (*AllocationResult, error)
-}
-
-// AllocationRequest is passed to Allocator before a repo-root mutation.
-type AllocationRequest struct {
-	ResolvedPath
-	// Operation is the mutation operation that triggered allocation.
-	Operation string
-}
-
-// AllocationResult contains allocation provenance and a way to open writable
-// cursors.
-type AllocationResult struct {
-	// Allocation is the Forge/Git allocation record when one was persisted.
-	Allocation *forge_lib_git_allocation.Allocation
-	// AllocationObjectKey is the allocation object key.
-	AllocationObjectKey string
-	// EvidenceObjectKey points at raw provider Evidence when present.
-	EvidenceObjectKey string
-	// OpenCursor opens a fresh writable cursor at the allocated repo root.
-	OpenCursor func(ctx context.Context) (unixfs.FSCursor, error)
 }
 
 type allocatedRoot struct {
@@ -188,11 +168,8 @@ func (c *FSCursor) child(name string, base unixfs.FSCursor) *FSCursor {
 
 func (c *FSCursor) ensureWritable(ctx context.Context, operation string, mutationPath []string) (*allocatedRoot, bool, error) {
 	// Resolve repository provenance for the requested mutation.
-	resolved, err := c.tree.resolver.ResolveCursorPath(mutationPath)
+	resolved, err := c.tree.resolver.ResolveCursorPath(mutationPath, operation)
 	if err != nil {
-		if perr, ok := err.(*ProvenanceError); ok {
-			perr.Operation = operation
-		}
 		return nil, false, err
 	}
 	key := allocationKey(resolved)

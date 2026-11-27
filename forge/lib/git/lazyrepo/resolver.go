@@ -9,50 +9,6 @@ import (
 	"github.com/s4wave/spacewave/db/unixfs"
 )
 
-// MountProvenance identifies the v86fs/UnixFS mount a repo path came from.
-type MountProvenance struct {
-	// MountName is the v86fs mount name.
-	MountName string
-	// MountPath is the guest path where the UnixFS tree is mounted.
-	MountPath string
-}
-
-// RepoMount binds a repo/submodule root inside a mounted UnixFS tree.
-type RepoMount struct {
-	// MountName is the v86fs mount name.
-	MountName string
-	// MountPath is the guest path where the UnixFS tree is mounted.
-	MountPath string
-	// RepoRootPath is the repo/submodule path relative to the mounted tree.
-	RepoRootPath string
-	// RepoObjectKey is the Spacewave Git Repo object key.
-	RepoObjectKey string
-	// BaseCommitHash is the pinned base commit for allocation.
-	BaseCommitHash string
-	// PathFamily is the allocator path family. Defaults to RepoRootPath.
-	PathFamily string
-}
-
-// ResolvedPath is the provenance for a mutation path under a mounted repo root.
-type ResolvedPath struct {
-	// CursorPath is the mutation path relative to the mounted UnixFS tree.
-	CursorPath []string
-	// GuestPath is the mutation path in the guest filesystem.
-	GuestPath string
-	// RepoRootPath is the repo/submodule root relative to the mounted tree.
-	RepoRootPath string
-	// RepoRelativePath is the path below RepoRootPath.
-	RepoRelativePath []string
-	// RepoObjectKey is the Spacewave Git Repo object key.
-	RepoObjectKey string
-	// BaseCommitHash is the pinned base commit for allocation.
-	BaseCommitHash string
-	// PathFamily is the allocator path family.
-	PathFamily string
-	// Mount is the mount provenance for this path.
-	Mount MountProvenance
-}
-
 type normalizedRepoMount struct {
 	input          RepoMount
 	mountPathParts []string
@@ -116,12 +72,16 @@ func NewMountedRepoResolver(mounts []RepoMount) (*MountedRepoResolver, error) {
 	return &MountedRepoResolver{mounts: nmounts}, nil
 }
 
-// ResolveCursorPath resolves a path relative to the mounted UnixFS tree.
-func (r *MountedRepoResolver) ResolveCursorPath(pathParts []string) (ResolvedPath, error) {
+// ResolveCursorPath resolves a mounted UnixFS path for the attempted operation.
+// An empty operation resolves a path without mutation context.
+func (r *MountedRepoResolver) ResolveCursorPath(pathParts []string, operation string) (ResolvedPath, error) {
+	// Normalize the requested path before matching repository roots.
 	cleanPath, err := cleanPathParts(pathParts)
 	if err != nil {
 		return ResolvedPath{}, err
 	}
+
+	// Resolve the most specific configured repository root.
 	for _, mount := range r.mounts {
 		if !hasPathPrefix(cleanPath, mount.repoRootParts) {
 			continue
@@ -141,7 +101,10 @@ func (r *MountedRepoResolver) ResolveCursorPath(pathParts []string) (ResolvedPat
 			},
 		}, nil
 	}
+
+	// Report the attempted mutation when no repository owns this path.
 	return ResolvedPath{}, &ProvenanceError{
+		Operation:    operation,
 		MutationPath: unixfs.JoinPath(cleanPath, false),
 		Reason:       "path is outside configured repo roots",
 	}
@@ -149,6 +112,7 @@ func (r *MountedRepoResolver) ResolveCursorPath(pathParts []string) (ResolvedPat
 
 // ResolveGuestPath resolves a guest filesystem path through mount provenance.
 func (r *MountedRepoResolver) ResolveGuestPath(rawPath string) (ResolvedPath, error) {
+	// Find the most specific mount containing the guest path.
 	guestParts, _ := unixfs.SplitPath(path.Clean(rawPath))
 	for _, mount := range r.mounts {
 		if !hasPathPrefix(guestParts, mount.mountPathParts) {
@@ -158,13 +122,15 @@ func (r *MountedRepoResolver) ResolveGuestPath(rawPath string) (ResolvedPath, er
 		if !hasPathPrefix(cursorPath, mount.repoRootParts) {
 			continue
 		}
-		resolved, err := r.ResolveCursorPath(cursorPath)
+		resolved, err := r.ResolveCursorPath(cursorPath, "")
 		if err != nil {
 			return ResolvedPath{}, err
 		}
 		resolved.GuestPath = joinAbsPath(guestParts)
 		return resolved, nil
 	}
+
+	// Report guest paths outside every configured mount.
 	return ResolvedPath{}, &ProvenanceError{
 		MutationPath: joinAbsPath(guestParts),
 		Reason:       "path is outside configured mounts",

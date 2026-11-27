@@ -60,7 +60,10 @@ func ReleaseJobAllocations(ctx context.Context, ws world.WorldState, jobKey stri
 		}
 
 		// Drain every bound Execution before deleting its mutable checkout.
-		executions, err := world.CollectGraphPathStepWithKeys(ctx, ws, []string{key}, world.GraphPathDirectionIn, PredExecutionToAllocation.String(), allocationGraphPathLimit)
+		executions, err := world.CollectGraphPathStepWithKeys(
+			ctx, ws, []string{key}, world.GraphPathDirectionIn,
+			PredExecutionToAllocation.String(), allocationGraphPathLimit,
+		)
 		if err != nil {
 			return err
 		}
@@ -96,9 +99,14 @@ func markJobAllocationReleased(ctx context.Context, ws world.WorldState, key str
 		if err != nil {
 			return err
 		}
-		alloc.CleanupState = "released"
-		bcs.SetBlock(alloc, true)
+		alloc.recordRelease(bcs)
 		return nil
 	})
 	return err
+}
+
+// recordRelease writes the retained allocation after its checkout objects are removed.
+func (a *Allocation) recordRelease(bcs *block.Cursor) {
+	a.CleanupState = "released"
+	bcs.SetBlock(a, true)
 }
