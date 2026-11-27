@@ -162,7 +162,7 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 		defer adm.Release()
 	}
 	if err != nil {
-		return nil, err
+		return nil, namedUnknown(adm, err)
 	}
 	if !published.EqualsRef(nextRootRef) {
 		rootBlock = nil
@@ -421,6 +421,22 @@ func (e *EngineTx) waitDurable(ctx context.Context, adm world.Admission, next *b
 		return nil, err
 	}
 	return nil, stderrors.Join(errors.Wrapf(world.ErrSuperseded, "candidate lost: head at seqno %d", head.Seqno), err)
+}
+
+// namedUnknown names adm's signed operation in err when err leaves the
+// outcome unknown without naming it, as the deadline and engine close do, so
+// the writer can wait for the operation to settle (world.SettleWaiter). err
+// stays the cause. Before the Authority signed the operation it has no hash,
+// and err is returned as is.
+func namedUnknown(adm world.Admission, err error) error {
+	var named *world.DurabilityUnknownError
+	if !errors.Is(err, world.ErrDurabilityUnknown) || stderrors.As(err, &named) {
+		return err
+	}
+	if opHash := adm.OpHash(); len(opHash) != 0 {
+		return &world.DurabilityUnknownError{OpHash: opHash, Err: err}
+	}
+	return err
 }
 
 // Discard cancels the transaction.

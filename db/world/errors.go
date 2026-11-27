@@ -123,10 +123,14 @@ type DurabilityUnknownError struct {
 	Err error
 }
 
-// Error returns the cause behind the ErrDurabilityUnknown text.
+// Error returns the cause behind the ErrDurabilityUnknown text, or the cause
+// alone when it already says the durability is unknown.
 func (e *DurabilityUnknownError) Error() string {
-	if e.Err == nil {
+	switch {
+	case e.Err == nil:
 		return ErrDurabilityUnknown.Error()
+	case errors.Is(e.Err, ErrDurabilityUnknown):
+		return e.Err.Error()
 	}
 	return ErrDurabilityUnknown.Error() + ": " + e.Err.Error()
 }

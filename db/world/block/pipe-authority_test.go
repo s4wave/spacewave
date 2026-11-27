@@ -4,6 +4,7 @@ package world_block
 
 import (
 	"context"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -171,7 +172,8 @@ func (t *pipeTurn) Admit(ctx context.Context, candidate world.Candidate) (world.
 	if err != nil {
 		return nil, err
 	}
-	adm := &pipeAdmission{candidate: candidate, decided: make(chan struct{})}
+	opHash := []byte("pipe-op-" + strconv.FormatUint(candidate.Seqno, 10))
+	adm := &pipeAdmission{candidate: candidate, decided: make(chan struct{}), opHash: opHash}
 	t.a.mtx.Lock()
 	t.a.admitted = append(t.a.admitted, adm)
 	t.a.writer = world.Head{Root: candidate.Root, Seqno: candidate.Seqno}
@@ -198,6 +200,8 @@ type pipeAdmission struct {
 	decision world.Decision
 	// releases counts attempts to abandon this admission.
 	releases atomic.Int32
+	// opHash names the candidate's operation, as a signed one would.
+	opHash []byte
 }
 
 // resolve records the decision and wakes the writer.
@@ -245,6 +249,9 @@ func (a *pipeAdmission) WaitDurable(ctx context.Context) (uint64, error) {
 
 // Release records that the caller released the admission.
 func (a *pipeAdmission) Release() { a.releases.Add(1) }
+
+// OpHash returns the name the pipe gave the candidate's operation.
+func (a *pipeAdmission) OpHash() []byte { return a.opHash }
 
 // _ is a type assertion
 var (

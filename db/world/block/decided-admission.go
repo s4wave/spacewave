@@ -43,6 +43,9 @@ func (a *decidedAdmission) WaitDurable(context.Context) (uint64, error) {
 	}
 }
 
+// OpHash returns nil: the Authority orders no signed operation.
+func (a *decidedAdmission) OpHash() []byte { return nil }
+
 // Release does nothing: a decided candidate holds nothing it could release.
 func (a *decidedAdmission) Release() {}
 

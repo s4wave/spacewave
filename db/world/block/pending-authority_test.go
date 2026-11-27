@@ -173,6 +173,8 @@ type pendingAdmission struct {
 	done chan struct{}
 	// err is why it failed, set before done closes.
 	err error
+	// opHash is the signed operation's hash the test gives it, or nil.
+	opHash []byte
 }
 
 // resolve ends the wait with err.
@@ -206,6 +208,9 @@ func (a *pendingAdmission) WaitDurable(ctx context.Context) (uint64, error) {
 
 // Release does nothing: an accepted candidate stays the authority's.
 func (a *pendingAdmission) Release() {}
+
+// OpHash returns the hash the test set, or nil.
+func (a *pendingAdmission) OpHash() []byte { return a.opHash }
 
 // _ is a type assertion
 var (

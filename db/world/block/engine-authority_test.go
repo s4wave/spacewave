@@ -3,6 +3,7 @@
 package world_block
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"strconv"
@@ -378,6 +379,10 @@ func TestEngineAuthorityRunThrough(t *testing.T) {
 			}
 			if time.Since(started) < 250*time.Millisecond {
 				t.Fatal("the request cancellation ended the durability wait")
+			}
+			var named *world.DurabilityUnknownError
+			if !errors.As(err, &named) || !bytes.Equal(named.OpHash, adm.opHash) || !errors.Is(err, errDurabilityDeadline) {
+				t.Fatalf("ExecTransaction = %v, want the deadline naming operation %q", err, adm.opHash)
 			}
 		case <-time.After(3 * time.Second):
 			t.Fatal("post-admission commit still waiting after its 250ms durability budget")

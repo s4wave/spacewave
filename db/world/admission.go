@@ -36,6 +36,12 @@ type Admission interface {
 	// means it is durable. A writer that must learn the outcome passes a
 	// context that is not canceled.
 	WaitDurable(ctx context.Context) (uint64, error)
+	// OpHash returns the hash of the signed operation the Authority orders
+	// the candidate as, once it signed one. It returns nil before that, and
+	// for an Authority that orders no signed operation. An unknown outcome
+	// after admission names the operation by it (DurabilityUnknownError), so
+	// the writer can wait for it to settle. The caller must not modify it.
+	OpHash() []byte
 	// Release drops the admission.
 	// Call it once, after WaitDurable returns, or to abandon the candidate.
 	// Releasing a candidate the Authority has not accepted releases what

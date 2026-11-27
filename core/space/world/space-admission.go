@@ -143,6 +143,12 @@ func (s *spaceAdmission) WaitDurable(ctx context.Context) (uint64, error) {
 	return s.Head().Seqno, nil
 }
 
+// OpHash returns the signed operation's hash once the SharedObject signed
+// it, or nil before.
+func (s *spaceAdmission) OpHash() []byte {
+	return s.receipt.OpHash()
+}
+
 // Release drops an admission whose operation has not reached
 // QueueOperation, so it is never queued.
 func (s *spaceAdmission) Release() {
