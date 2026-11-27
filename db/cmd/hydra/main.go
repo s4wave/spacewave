@@ -6,18 +6,22 @@ import (
 	"os"
 
 	"github.com/aperturerobotics/cli"
+	hcli "github.com/s4wave/spacewave/db/cli"
+	hydra_util "github.com/s4wave/spacewave/db/cli/util"
 )
 
-// Commands are the CLI commands
-var commands []*cli.Command
-
+// main runs the Hydra client and daemon commands.
 func main() {
 	// Configure the Hydra command-line application.
 	app := cli.NewApp()
 	app.Name = "hydra"
 	app.HideVersion = true
 	app.Usage = "command-line node and tools for hydra"
-	app.Commands = commands
+	app.Commands = []*cli.Command{
+		new(hcli.ClientArgs).BuildCommand(),
+		new(daemonArgs).BuildCommand(),
+		new(hydra_util.UtilArgs).BuildCommand(),
+	}
 
 	// Run the command and report failures to stderr.
 	if err := app.Run(os.Args); err != nil {

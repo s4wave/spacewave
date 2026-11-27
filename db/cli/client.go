@@ -15,6 +15,7 @@ import (
 	api "github.com/s4wave/spacewave/db/daemon/api"
 	"github.com/s4wave/spacewave/db/volume"
 	bifrost_cli "github.com/s4wave/spacewave/net/cli"
+	bifrost_api "github.com/s4wave/spacewave/net/daemon/api"
 	"github.com/sirupsen/logrus"
 )
 
@@ -37,10 +38,10 @@ type ClientArgs struct {
 	ListBucketsReq volume.ListBucketsRequest
 	// ListBucketsReqVolumeIDs is the list of volume IDs to list.
 	ListBucketsReqVolumeIDs ucli.StringSlice
-	// CbusConf is the controller-bus configuration.
-	CbusConf cbus_cli.ClientArgs
-	// BifrostConf is the controller-bus configuration.
-	BifrostConf bifrost_cli.ClientArgs
+	// cbusArgs binds the ControllerBus commands.
+	cbusArgs cbus_cli.ClientArgs
+	// bifrostArgs binds the Bifrost commands.
+	bifrostArgs bifrost_cli.ClientArgs
 
 	// le is the logger entry.
 	le *logrus.Entry
@@ -75,6 +76,33 @@ func (a *ClientArgs) ParseRemotePeerIdsCsv() []string {
 		peerIds = append(peerIds, pt)
 	}
 	return peerIds
+}
+
+// BuildCommand binds the Hydra client command tree to its shared connection.
+func (a *ClientArgs) BuildCommand() *ucli.Command {
+	// Obtain the Hydra connection when the ControllerBus command runs.
+	cbusCmd := a.cbusArgs.BuildControllerBusCommand()
+	cbusCmd.Before = func(_ *ucli.Context) error {
+		client, err := a.BuildClient()
+		if err != nil {
+			return err
+		}
+		a.cbusArgs.SetClient(client)
+		return nil
+	}
+
+	// Append the service commands after the storage commands.
+	commands := append(a.BuildCommands(), cbusCmd,
+		a.bifrostArgs.BuildBifrostCommandWithClient(func() (bifrost_api.BifrostAPIClient, error) {
+			return a.BuildClient()
+		}),
+	)
+	return &ucli.Command{
+		Name:        "client",
+		Usage:       "client sub-commands",
+		Subcommands: commands,
+		Flags:       a.BuildFlags(),
+	}
 }
 
 // BuildFlags attaches the flags to a flag set.
