@@ -164,8 +164,8 @@ func TestLogoutReleasesCloudSessionForNextLogin(t *testing.T) {
 
 // mountTransportTestSession mounts the production provider Session on in-memory storage.
 func mountTransportTestSession(t *testing.T, endpoint string, configure func(*transportCompositionOwner)) (*Session, *ProviderAccount) {
-	// Load the production Session registry on the testbed volume.
-	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	// Keep the registry alive through cleanup, which deletes the mounted Session.
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	t.Cleanup(cancel)
 	tb, err := testbed.Default(ctx)
 	if err != nil {
