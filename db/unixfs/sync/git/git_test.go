@@ -1,9 +1,9 @@
 package unixfs_sync_git
 
 import (
-	"context"
 	"os"
-	"path"
+	"os/exec"
+	"path/filepath"
 	"testing"
 
 	hydra_testbed "github.com/s4wave/spacewave/db/testbed"
@@ -14,52 +14,59 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// TestSyncFromGitWorkdir synchronizes an isolated Git worktree into UnixFS.
 func TestSyncFromGitWorkdir(t *testing.T) {
-	// Select the test filesystem object to populate from the repository.
-	objKey := "test/fs"
+	// Populate a Git fixture independently of the source checkout's metadata.
+	srcRoot := t.TempDir()
+	files := map[string]string{
+		".gitignore":    "ignored.txt\n",
+		"tracked.txt":   "tracked content",
+		"untracked.txt": "untracked content",
+		"ignored.txt":   "ignored content",
+	}
+	for name, data := range files {
+		if err := os.WriteFile(filepath.Join(srcRoot, name), []byte(data), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
 
-	// Prepare logging and the testbed lifecycle context.
-	ctx := context.Background()
-	logger := logrus.New()
-	logger.SetLevel(logrus.DebugLevel)
-	le := logrus.NewEntry(logger)
+	// Stage one file, leaving the others to Git's untracked and ignored rules.
+	for _, args := range [][]string{{"init", "--quiet"}, {"add", "tracked.txt"}} {
+		cmd := exec.Command("git", args...)
+		cmd.Dir = srcRoot
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v: %s", args, err, out)
+		}
+	}
 
-	// Start the storage testbed for the synchronized filesystem.
+	// Start a World-backed filesystem under the test's lifecycle.
+	ctx := t.Context()
+	le := logrus.NewEntry(logrus.New())
 	tb, err := hydra_testbed.NewTestbed(ctx, le)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
-
-	// Attach a World testbed to the storage testbed.
+	defer tb.Release()
 	wtb, err := world_testbed.NewTestbed(tb)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 
-	// Initialize a watched UnixFS object in the World.
-	watchWorldChanges := true
-	fsHandle, err := unixfs_world_testbed.InitTestbed(wtb, objKey, watchWorldChanges)
+	// Attach the filesystem handle and synchronize the Git fixture into it.
+	fsHandle, err := unixfs_world_testbed.InitTestbed(wtb, "test/fs", true)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
+	}
+	defer fsHandle.Release()
+	if err := SyncFromGitWorkdir(ctx, fsHandle, srcRoot, unixfs_sync.DeleteMode_DeleteMode_DURING, nil); err != nil {
+		t.Fatal(err)
 	}
 
-	// Resolve the repository worktree containing this package.
-	wd, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Synchronize tracked Git files into the test filesystem.
-	srcRoot := path.Join(wd, "../../")
-	err = SyncFromGitWorkdir(ctx, fsHandle, srcRoot, unixfs_sync.DeleteMode_DeleteMode_DURING, nil)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Log successful sync and enumerate the resulting root entries.
-	le.Info("synchronized git files to workdir successfully")
-	_ = fsHandle.ReaddirAll(ctx, 0, func(ent unixfs.FSCursorDirent) error {
+	// Enumerate the synchronized root through the destination filesystem.
+	if err := fsHandle.ReaddirAll(ctx, 0, func(ent unixfs.FSCursorDirent) error {
 		le.Debugf("file: %s", ent.GetName())
 		return nil
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
