@@ -117,6 +117,12 @@ func (d *BodyDriver) Execute(ctx context.Context) error {
 	}
 	defer rel()
 
+	// Step again when the body's missing roots change, so the report shows
+	// them.
+	if w, ok := d.body.(RootWaiter); ok {
+		go d.wakeOnRootWaits(ctx, w)
+	}
+
 	// Each step's outcome arms at most one wake: the checkpoint deadline, the
 	// body's wait channel or the retry deadline. The next step's outcome stops
 	// it first, so a stale timer never steps a later state.
@@ -205,6 +211,23 @@ func (d *BodyDriver) wakeOn(ctx context.Context, ch <-chan struct{}) func() {
 		}
 	}()
 	return cancel
+}
+
+// wakeOnRootWaits steps the driver again each time w's roots change, until
+// ctx ends.
+func (d *BodyDriver) wakeOnRootWaits(ctx context.Context, w RootWaiter) {
+	for {
+		_, changed := w.RootWaits()
+		select {
+		case <-ctx.Done():
+			return
+		case <-changed:
+		}
+		select {
+		case d.wake <- errBodyRetry:
+		default:
+		}
+	}
 }
 
 // Step brings the body to the order of snap: it has the body hold what snap's
@@ -579,6 +602,9 @@ func (d *BodyDriver) publishReport(ev *OrderEvent) {
 	// Collect this device's revoked edits.
 	self := d.so.GetPeerID().String()
 	report := &BodyReport{CheckpointMismatch: d.mismatch, Replay: d.replay}
+	if w, ok := d.body.(RootWaiter); ok {
+		report.RootWaits, _ = w.RootWaits()
+	}
 	if ev.Set.Unordered() > 0 {
 		report.Unordered = uint32(ev.Set.Unordered()) //nolint:gosec // the operations held in memory.
 	}

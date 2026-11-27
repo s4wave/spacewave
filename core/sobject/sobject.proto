@@ -195,6 +195,12 @@ message SharedObjectHealth {
   // it. The body takes writes only while it is caught_up. Unset when no body
   // driver runs on the object.
   SOReplayState replay = 13;
+
+  // RootWaits lists the roots the replayed state keeps that this device's
+  // store lacks and no source has served, in the order the state lists them.
+  // Replay continues past them: the state keeps each root, and this device
+  // holds it once a source serves it.
+  repeated SORootWait root_waits = 14;
 }
 
 // SOReplayState is where this device's replay stands. The body driver sets it
@@ -259,6 +265,19 @@ message SOReplayWait {
     // body, which a newer build wrote.
     SOReplayWaitUpgrade upgrade = 9;
   }
+}
+
+// SORootWait is a root the replayed state keeps, such as a World snapshot an
+// export retains, that this device's store lacks and no source has served.
+// It is not a replay wait: replay applies the operations after it and the
+// Space takes writes. The state keeps referencing the root, and this device
+// holds it once a peer or backend serves it.
+message SORootWait {
+  // Name is the root's name in the state.
+  string name = 1;
+
+  // RootRef is the block the root references.
+  string root_ref = 2;
 }
 
 // SOReplayWaitHandler waits for a plugin on this device to register a handler

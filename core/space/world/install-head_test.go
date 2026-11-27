@@ -164,10 +164,13 @@ func trimNow(t *testing.T, a *Adapter) {
 // covers, that a later install of the same retained set reads and moves
 // nothing, that a kept install forgets a missing operation the checkpoint
 // covers but keeps one replay still applies, and that it judges which from
-// the operations above the checkpoint it installs, not a later state's.
+// the operations above the checkpoint it installs, not a later state's. A
+// retained root no source serves waits without stopping replay
+// (testRetainedRootWaits).
 func TestInstallHeadRetriesRetainedHold(t *testing.T) {
 	// Inject the queue and replay order around a second identical WorldOp.
 	t.Run("signed replay identity", testInstallHeadSignedReplay)
+	t.Run("a retained root no source serves waits", testRetainedRootWaits)
 
 	t.Run("retained root wait is bounded", func(t *testing.T) {
 		// Admit a retained-root operation while the SharedObject queue is stalled.

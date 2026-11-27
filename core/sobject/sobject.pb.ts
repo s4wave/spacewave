@@ -726,6 +726,13 @@ export interface SharedObjectHealth {
    * driver runs on the object.
    */
   replay?: SOReplayState
+  /**
+   * RootWaits lists the roots the replayed state keeps that this device's
+   * store lacks and no source has served, in the order the state lists them.
+   * Replay continues past them: the state keeps each root, and this device
+   * holds it once a source serves it.
+   */
+  rootWaits?: SORootWait[]
 }
 
 export const SharedObjectHealth: MessageType<SharedObjectHealth> =
@@ -745,6 +752,7 @@ export const SharedObjectHealth: MessageType<SharedObjectHealth> =
       [11, 'unordered_count', 13],
       [12, 'sync_peers', 11, 1, SOSyncPeer.codec],
       [13, 'replay', 11, 0, SOReplayState.codec],
+      [14, 'root_waits', 11, 1, SORootWait.codec],
     ],
   )
 
@@ -858,6 +866,32 @@ export const SOReplayWait: MessageType<SOReplayWait> =
       [9, 'upgrade', 11, 0, SOReplayWaitUpgrade.codec, 'state'],
     ],
   )
+
+/**
+ * SORootWait is a root the replayed state keeps, such as a World snapshot an
+ * export retains, that this device's store lacks and no source has served.
+ * It is not a replay wait: replay applies the operations after it and the
+ * Space takes writes. The state keeps referencing the root, and this device
+ * holds it once a peer or backend serves it.
+ *
+ * @generated from message sobject.SORootWait
+ */
+export interface SORootWait {
+  /**
+   * Name is the root's name in the state.
+   */
+  name?: string
+  /**
+   * RootRef is the block the root references.
+   */
+  rootRef?: string
+}
+
+export const SORootWait: MessageType<SORootWait> =
+  /* @__PURE__ */ createMessageType<SORootWait>('sobject.SORootWait', () => [
+    [1, 'name', 9],
+    [2, 'root_ref', 9],
+  ])
 
 /**
  * SOReplayWaitHandler waits for a plugin on this device to register a handler

@@ -17,6 +17,9 @@ type BodyReport struct {
 	Unordered uint32
 	// Replay is where replay stands.
 	Replay *SOReplayState
+	// RootWaits are the roots the replayed state keeps that this device holds
+	// no copy of, from a RootWaiter body.
+	RootWaits []*SORootWait
 }
 
 // equal reports whether r and other show the same health.
@@ -24,6 +27,7 @@ func (r *BodyReport) equal(other *BodyReport) bool {
 	return other != nil &&
 		r.Unordered == other.Unordered &&
 		r.Replay.EqualVT(other.Replay) &&
+		slices.EqualFunc(r.RootWaits, other.RootWaits, (*SORootWait).EqualVT) &&
 		r.CheckpointMismatch.EqualVT(other.CheckpointMismatch) &&
 		slices.EqualFunc(r.RejectedEdits, other.RejectedEdits, (*SORejectedEdit).EqualVT)
 }

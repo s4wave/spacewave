@@ -94,8 +94,8 @@ type Adapter struct {
 	stateHold *payloadState
 	// resetPlanned lets tests park a payload reset before it takes rootMtx.
 	resetPlanned func()
-	// retainedHeld lists retained roots under rootMtx.
-	retainedHeld []*RetainedRoot
+	// retained is the RootRetained root's state machine.
+	retained retainedHold
 	// cursorWorlds, pendingWorlds and checkpointWorlds hold World histories
 	// until checkpoint coverage releases them.
 	cursorWorlds, pendingWorlds, checkpointWorlds rootSet
@@ -223,6 +223,7 @@ func NewAdapter(le *logrus.Entry, so sobject.SharedObject, opts AdapterOptions) 
 		payloads:         rootSet{name: RootReplayPayloads},
 		payloadVersions:  make(map[string]uint32),
 		replayState:      newReplayOpening(),
+		retained:         newRetainedHold(),
 		settles:          settles,
 	}
 	a.pages.SetKeepStaged(keepStaged)
@@ -288,6 +289,7 @@ func (a *Adapter) Execute(ctx context.Context) error {
 	g.Go(func() error { return a.queue.execute(ctx, a.queued) })
 	g.Go(func() error { return a.executeStorageReclaim(ctx) })
 	g.Go(func() error { return a.adoptSettles(ctx) })
+	g.Go(func() error { return a.executeRetainedRetry(ctx) })
 
 	// Serve the engine once the World is initialized.
 	g.Go(func() error {
@@ -1644,14 +1646,27 @@ func (a *Adapter) moveRoots(ctx context.Context, entries []*block.PutBatchEntry,
 
 // lockRoots flushes reach outside rootMtx, then locks only for the root swap.
 // Release unlocks before ending the flush. Any additional reachable pages are
-// stored by the swap itself. A transient replay skips the flush.
+// stored by the swap itself. A transient replay skips the flush. A root no
+// source serves fails it with block.ErrUnavailable.
 func (a *Adapter) lockRoots(ctx context.Context, reach ...*block.BlockRef) (func(), error) {
+	release, unavailable, err := a.lockRootsServed(ctx, reach)
+	if err == nil && len(unavailable) != 0 {
+		release()
+		return nil, unavailableRootErr(unavailable)
+	}
+	return release, err
+}
+
+// lockRootsServed is lockRoots returning the roots no source served, which
+// the flush pinned nowhere, instead of failing.
+func (a *Adapter) lockRootsServed(ctx context.Context, reach []*block.BlockRef) (func(), []*block.BlockRef, error) {
 	// Store the pages outside the lock.
 	endFlush := func() {}
+	var unavailable []*block.BlockRef
 	if !a.opts.transient && len(reach) != 0 {
 		var err error
-		if endFlush, err = a.pages.Flush(ctx, reach); err != nil {
-			return nil, err
+		if endFlush, unavailable, err = a.pages.Flush(ctx, reach); err != nil {
+			return nil, nil, err
 		}
 	}
 
@@ -1659,12 +1674,12 @@ func (a *Adapter) lockRoots(ctx context.Context, reach ...*block.BlockRef) (func
 	unlock, err := a.rootMtx.Lock(ctx)
 	if err != nil {
 		endFlush()
-		return nil, err
+		return nil, nil, err
 	}
 	return func() {
 		unlock()
 		endFlush()
-	}, nil
+	}, unavailable, nil
 }
 
 // moveRootsLocked swaps roots through the kept pages. The caller holds rootMtx.
@@ -1849,21 +1864,6 @@ func (a *Adapter) appendsTo(ctx context.Context, ref, held *block.BlockRef) (boo
 	return false, nil
 }
 
-// readRetained loads retained roots under the caller's rootMtx hold.
-func (a *Adapter) readRetained(ctx context.Context) error {
-	// Read the block the root holds, then decode its roots.
-	data, err := a.readRootBlock(ctx, RootRetained, a.held[RootRetained])
-	if err != nil || data == nil {
-		return err
-	}
-	msg := &RetainedRootSet{}
-	if err := msg.UnmarshalVT(data); err != nil {
-		return err
-	}
-	a.retainedHeld = msg.GetRoots()
-	return nil
-}
-
 // addPayloads holds payloads before queueing or after remote replay. Local
 // writers require an existing hold because a released stage may have left its
 // tree available to collection. Root swaps store only the writer's pages.
@@ -1874,51 +1874,6 @@ func (a *Adapter) addPayloads(ctx context.Context, extra []*block.BlockRef, requ
 	}
 	defer release()
 	return a.appendRoots(ctx, &a.payloads, extra, requireHeld)
-}
-
-// holdRetained replaces the retained root's contents, releasing an empty set.
-func (a *Adapter) holdRetained(ctx context.Context, roots []*RetainedRoot) error {
-	// Skip unchanged retained roots; only the driver changes the set.
-	unlock, err := a.rootMtx.Lock(ctx)
-	if err != nil {
-		return err
-	}
-	same := slices.EqualFunc(roots, a.retainedHeld, (*RetainedRoot).EqualVT)
-	unlock()
-	if same {
-		return nil
-	}
-
-	// Store the retained Worlds' kept pages, then hold them.
-	refs := make([]*block.BlockRef, len(roots))
-	for i, root := range roots {
-		refs[i] = root.GetRootRef()
-	}
-	release, err := a.lockRoots(ctx, refs...)
-	if err != nil {
-		return err
-	}
-	defer release()
-
-	// Release the name when nothing is retained.
-	if len(roots) == 0 {
-		if err := a.moveRootsLocked(ctx, nil, block.NamedRoot{Name: RootRetained}); err != nil {
-			return err
-		}
-		a.retainedHeld = nil
-		return nil
-	}
-
-	// Hold them under one block.
-	entry, err := refsEntry(&RetainedRootSet{Roots: roots}, refs)
-	if err != nil {
-		return err
-	}
-	if err := a.moveRootsLocked(ctx, []*block.PutBatchEntry{entry}, block.NamedRoot{Name: RootRetained, Ref: entry.Ref}); err != nil {
-		return err
-	}
-	a.retainedHeld = slices.Clone(roots)
-	return nil
 }
 
 // sweep drops the kept pages no live World reaches: the replay base's, the

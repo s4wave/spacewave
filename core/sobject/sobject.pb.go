@@ -791,6 +791,11 @@ type SharedObjectHealth struct {
 	// it. The body takes writes only while it is caught_up. Unset when no body
 	// driver runs on the object.
 	Replay *SOReplayState `protobuf:"bytes,13,opt,name=replay,proto3" json:"replay,omitempty"`
+	// RootWaits lists the roots the replayed state keeps that this device's
+	// store lacks and no source has served, in the order the state lists them.
+	// Replay continues past them: the state keeps each root, and this device
+	// holds it once a source serves it.
+	RootWaits []*SORootWait `protobuf:"bytes,14,rep,name=root_waits,json=rootWaits,proto3" json:"rootWaits,omitempty"`
 }
 
 func (x *SharedObjectHealth) Reset() {
@@ -886,6 +891,13 @@ func (x *SharedObjectHealth) GetSyncPeers() []*SOSyncPeer {
 func (x *SharedObjectHealth) GetReplay() *SOReplayState {
 	if x != nil {
 		return x.Replay
+	}
+	return nil
+}
+
+func (x *SharedObjectHealth) GetRootWaits() []*SORootWait {
+	if x != nil {
+		return x.RootWaits
 	}
 	return nil
 }
@@ -1128,6 +1140,39 @@ func (*SOReplayWait_Gap) isSOReplayWait_State() {}
 func (*SOReplayWait_Retry) isSOReplayWait_State() {}
 
 func (*SOReplayWait_Upgrade) isSOReplayWait_State() {}
+
+// SORootWait is a root the replayed state keeps, such as a World snapshot an
+// export retains, that this device's store lacks and no source has served.
+// It is not a replay wait: replay applies the operations after it and the
+// Space takes writes. The state keeps referencing the root, and this device
+// holds it once a peer or backend serves it.
+type SORootWait struct {
+	unknownFields []byte
+	// Name is the root's name in the state.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// RootRef is the block the root references.
+	RootRef string `protobuf:"bytes,2,opt,name=root_ref,json=rootRef,proto3" json:"rootRef,omitempty"`
+}
+
+func (x *SORootWait) Reset() {
+	*x = SORootWait{}
+}
+
+func (*SORootWait) ProtoMessage() {}
+
+func (x *SORootWait) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *SORootWait) GetRootRef() string {
+	if x != nil {
+		return x.RootRef
+	}
+	return ""
+}
 
 // SOReplayWaitHandler waits for a plugin on this device to register a handler
 // for the operation type.
@@ -3343,6 +3388,7 @@ func (m *SharedObjectHealth) CloneVT() *SharedObjectHealth {
 	r.CheckpointMismatch = protobuf_go_lite.CloneVTValue(m.CheckpointMismatch)
 	r.SyncPeers = protobuf_go_lite.CloneVTSlice(m.SyncPeers)
 	r.Replay = protobuf_go_lite.CloneVTValue(m.Replay)
+	r.RootWaits = protobuf_go_lite.CloneVTSlice(m.RootWaits)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3524,6 +3570,23 @@ func (m *SOReplayWait_Upgrade) CloneVT() *SOReplayWait_Upgrade {
 }
 
 func (m *SOReplayWait_Upgrade) CloneOneofVT() isSOReplayWait_State {
+	return m.CloneVT()
+}
+
+func (m *SORootWait) CloneVT() *SORootWait {
+	if m == nil {
+		return (*SORootWait)(nil)
+	}
+	r := new(SORootWait)
+	r.Name = m.Name
+	r.RootRef = m.RootRef
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SORootWait) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -4542,6 +4605,9 @@ func (this *SharedObjectHealth) EqualVT(that *SharedObjectHealth) bool {
 	if !protobuf_go_lite.IsEqualVT(this.Replay, that.Replay) {
 		return false
 	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.RootWaits, that.RootWaits, func() *SORootWait { return &SORootWait{} }) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -4791,6 +4857,29 @@ func (this *SOReplayWait_Upgrade) EqualVT(thatIface isSOReplayWait_State) bool {
 		return false
 	}
 	return true
+}
+
+func (this *SORootWait) EqualVT(that *SORootWait) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Name != that.Name {
+		return false
+	}
+	if this.RootRef != that.RootRef {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SORootWait) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SORootWait)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
 }
 
 func (this *SOReplayWaitHandler) EqualVT(that *SOReplayWaitHandler) bool {
@@ -6939,6 +7028,17 @@ func (x *SharedObjectHealth) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("replay")
 		x.Replay.MarshalProtoJSON(s.WithField("replay"))
 	}
+	if len(x.RootWaits) > 0 || s.HasField("rootWaits") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rootWaits")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.RootWaits {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("rootWaits"))
+		}
+		s.WriteArrayEnd()
+	}
 	s.WriteObjectEnd()
 }
 
@@ -7041,6 +7141,24 @@ func (x *SharedObjectHealth) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Replay = &SOReplayState{}
 			x.Replay.UnmarshalProtoJSON(s.WithField("replay", true))
+		case "root_waits", "rootWaits":
+			s.AddField("root_waits")
+			if s.ReadNil() {
+				x.RootWaits = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.RootWaits = append(x.RootWaits, nil)
+					return
+				}
+				v := &SORootWait{}
+				v.UnmarshalProtoJSON(s.WithField("root_waits", false))
+				if s.Err() != nil {
+					return
+				}
+				x.RootWaits = append(x.RootWaits, v)
+			})
 		}
 	})
 }
@@ -7319,6 +7437,56 @@ func (x *SOReplayWait) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the SOReplayWait from JSON.
 func (x *SOReplayWait) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SORootWait message to JSON.
+func (x *SORootWait) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Name != "" || s.HasField("name") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("name")
+		s.WriteString(x.Name)
+	}
+	if x.RootRef != "" || s.HasField("rootRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rootRef")
+		s.WriteString(x.RootRef)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SORootWait to JSON.
+func (x *SORootWait) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SORootWait message from JSON.
+func (x *SORootWait) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "name":
+			s.AddField("name")
+			x.Name = s.ReadString()
+		case "root_ref", "rootRef":
+			s.AddField("root_ref")
+			x.RootRef = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SORootWait from JSON.
+func (x *SORootWait) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -10997,6 +11165,18 @@ func (m *SharedObjectHealth) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.RootWaits) > 0 {
+		for iNdEx := len(m.RootWaits) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.RootWaits[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x72
+		}
+	}
 	if m.Replay != nil {
 		size, err := m.Replay.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -11447,6 +11627,48 @@ func (m *SOReplayWait_Upgrade) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
 		i--
 		dAtA[i] = 0x4a
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SORootWait) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SORootWait) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SORootWait) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.RootRef) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.RootRef)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Name) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Name)
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -14158,6 +14380,10 @@ func (m *SharedObjectHealth) SizeVT() (n int) {
 		l = m.Replay.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	for _, e := range m.RootWaits {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -14329,6 +14555,18 @@ func (m *SOReplayWait_Upgrade) SizeVT() (n int) {
 	} else {
 		n += 2
 	}
+	return n
+}
+
+func (m *SORootWait) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Name)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.RootRef)
+	n += len(m.unknownFields)
 	return n
 }
 
@@ -15373,6 +15611,18 @@ func (x *SharedObjectHealth) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "replay")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Replay)
 	}
+	if len(x.RootWaits) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "root_waits")
+		for i, v := range x.RootWaits {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &SORootWait{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -15493,6 +15743,24 @@ func (x *SOReplayWait) MarshalProtoText() string {
 }
 
 func (x *SOReplayWait) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SORootWait) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SORootWait")
+	if x.Name != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "name")
+		protobuf_go_lite.TextWriteString(&sb, x.Name)
+	}
+	if x.RootRef != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "root_ref")
+		protobuf_go_lite.TextWriteString(&sb, x.RootRef)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SORootWait) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -17296,6 +17564,19 @@ func (m *SharedObjectHealth) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 14:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RootWaits", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.RootWaits = append(m.RootWaits, &SORootWait{})
+			if err := m.RootWaits[len(m.RootWaits)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -17666,6 +17947,69 @@ func (m *SOReplayWait) UnmarshalVT(dAtA []byte) error {
 				m.State = &SOReplayWait_Upgrade{Upgrade: v}
 			}
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SORootWait) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SORootWait: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SORootWait: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Name = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RootRef", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.RootRef = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

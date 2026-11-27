@@ -258,7 +258,7 @@ func TestPendingStoreRunThrough(t *testing.T) {
 	tr.add(t, "F1")
 	tr.add(t, "RF", "F1")
 	put(ps, "F1", "RF")
-	endFlush, err := ps.Flush(ctx, []*block.BlockRef{tr.ref("RF")})
+	endFlush, _, err := ps.Flush(ctx, []*block.BlockRef{tr.ref("RF")})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -280,7 +280,7 @@ func TestPendingStoreRunThrough(t *testing.T) {
 	tr.add(t, "G1")
 	tr.add(t, "RG", "G1")
 	put(ps, "G1", "RG")
-	endFlush, err = ps.Flush(ctx, []*block.BlockRef{tr.ref("RG")})
+	endFlush, _, err = ps.Flush(ctx, []*block.BlockRef{tr.ref("RG")})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -301,7 +301,7 @@ func TestPendingStoreRunThrough(t *testing.T) {
 	tr.add(t, "K1")
 	tr.add(t, "RK", "K1")
 	put(hps, "K1", "RK")
-	endFlush, err = hps.Flush(ctx, []*block.BlockRef{tr.ref("RK")})
+	endFlush, _, err = hps.Flush(ctx, []*block.BlockRef{tr.ref("RK")})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -323,11 +323,11 @@ func TestPendingStoreRunThrough(t *testing.T) {
 	tr.add(t, "S1")
 	tr.add(t, "RS", "S1")
 	put(ps, "S1", "RS")
-	endFirst, err := ps.Flush(ctx, []*block.BlockRef{tr.ref("RS")})
+	endFirst, _, err := ps.Flush(ctx, []*block.BlockRef{tr.ref("RS")})
 	if err != nil {
 		t.Fatal(err)
 	}
-	endSecond, err := ps.Flush(ctx, []*block.BlockRef{tr.ref("RS")})
+	endSecond, _, err := ps.Flush(ctx, []*block.BlockRef{tr.ref("RS")})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -112,14 +112,15 @@ func (h *SharedObjectHealth) WithSyncPeerConnection(peerID string, connected boo
 
 // WithReplay returns a snapshot showing what the body driver reports of this
 // device's replay: its revoked edits, a checkpoint whose state differs from
-// the replayed one, the edits the sequencer has not placed, and where
-// replay stands.
+// the replayed one, the edits the sequencer has not placed, where replay
+// stands, and the roots its state keeps that this device holds no copy of.
 func (h *SharedObjectHealth) WithReplay(r *BodyReport) *SharedObjectHealth {
 	// Keep the snapshot when the report shows nothing new.
 	if slices.EqualFunc(h.GetRejectedEdits(), r.RejectedEdits, (*SORejectedEdit).EqualVT) &&
 		h.GetCheckpointMismatch().EqualVT(r.CheckpointMismatch) &&
 		h.GetUnorderedCount() == r.Unordered &&
-		h.GetReplay().EqualVT(r.Replay) {
+		h.GetReplay().EqualVT(r.Replay) &&
+		slices.EqualFunc(h.GetRootWaits(), r.RootWaits, (*SORootWait).EqualVT) {
 		return h
 	}
 
@@ -129,6 +130,7 @@ func (h *SharedObjectHealth) WithReplay(r *BodyReport) *SharedObjectHealth {
 	next.CheckpointMismatch = r.CheckpointMismatch
 	next.UnorderedCount = r.Unordered
 	next.Replay = r.Replay
+	next.RootWaits = r.RootWaits
 	return next
 }
 

@@ -212,7 +212,7 @@ class SharedObjectMeta(_message.Message):
     def __init__(self, body_type: _Optional[str] = ..., body_meta: _Optional[bytes] = ..., account_private: _Optional[bool] = ...) -> None: ...
 
 class SharedObjectHealth(_message.Message):
-    __slots__ = ("status", "layer", "common_reason", "remediation_hint", "error", "metadata", "sync_denied_peer_ids", "sync_recovery_peer_ids", "rejected_edits", "checkpoint_mismatch", "unordered_count", "sync_peers", "replay")
+    __slots__ = ("status", "layer", "common_reason", "remediation_hint", "error", "metadata", "sync_denied_peer_ids", "sync_recovery_peer_ids", "rejected_edits", "checkpoint_mismatch", "unordered_count", "sync_peers", "replay", "root_waits")
     STATUS_FIELD_NUMBER: _ClassVar[int]
     LAYER_FIELD_NUMBER: _ClassVar[int]
     COMMON_REASON_FIELD_NUMBER: _ClassVar[int]
@@ -226,6 +226,7 @@ class SharedObjectHealth(_message.Message):
     UNORDERED_COUNT_FIELD_NUMBER: _ClassVar[int]
     SYNC_PEERS_FIELD_NUMBER: _ClassVar[int]
     REPLAY_FIELD_NUMBER: _ClassVar[int]
+    ROOT_WAITS_FIELD_NUMBER: _ClassVar[int]
     status: SharedObjectHealthStatus
     layer: SharedObjectHealthLayer
     common_reason: SharedObjectHealthCommonReason
@@ -239,7 +240,8 @@ class SharedObjectHealth(_message.Message):
     unordered_count: int
     sync_peers: _containers.RepeatedCompositeFieldContainer[SOSyncPeer]
     replay: SOReplayState
-    def __init__(self, status: _Optional[_Union[SharedObjectHealthStatus, str]] = ..., layer: _Optional[_Union[SharedObjectHealthLayer, str]] = ..., common_reason: _Optional[_Union[SharedObjectHealthCommonReason, str]] = ..., remediation_hint: _Optional[_Union[SharedObjectHealthRemediationHint, str]] = ..., error: _Optional[str] = ..., metadata: _Optional[bytes] = ..., sync_denied_peer_ids: _Optional[_Iterable[str]] = ..., sync_recovery_peer_ids: _Optional[_Iterable[str]] = ..., rejected_edits: _Optional[_Iterable[_Union[SORejectedEdit, _Mapping]]] = ..., checkpoint_mismatch: _Optional[_Union[SOCheckpointMismatch, _Mapping]] = ..., unordered_count: _Optional[int] = ..., sync_peers: _Optional[_Iterable[_Union[SOSyncPeer, _Mapping]]] = ..., replay: _Optional[_Union[SOReplayState, _Mapping]] = ...) -> None: ...
+    root_waits: _containers.RepeatedCompositeFieldContainer[SORootWait]
+    def __init__(self, status: _Optional[_Union[SharedObjectHealthStatus, str]] = ..., layer: _Optional[_Union[SharedObjectHealthLayer, str]] = ..., common_reason: _Optional[_Union[SharedObjectHealthCommonReason, str]] = ..., remediation_hint: _Optional[_Union[SharedObjectHealthRemediationHint, str]] = ..., error: _Optional[str] = ..., metadata: _Optional[bytes] = ..., sync_denied_peer_ids: _Optional[_Iterable[str]] = ..., sync_recovery_peer_ids: _Optional[_Iterable[str]] = ..., rejected_edits: _Optional[_Iterable[_Union[SORejectedEdit, _Mapping]]] = ..., checkpoint_mismatch: _Optional[_Union[SOCheckpointMismatch, _Mapping]] = ..., unordered_count: _Optional[int] = ..., sync_peers: _Optional[_Iterable[_Union[SOSyncPeer, _Mapping]]] = ..., replay: _Optional[_Union[SOReplayState, _Mapping]] = ..., root_waits: _Optional[_Iterable[_Union[SORootWait, _Mapping]]] = ...) -> None: ...
 
 class SOReplayState(_message.Message):
     __slots__ = ("opening", "waiting", "caught_up")
@@ -280,6 +282,14 @@ class SOReplayWait(_message.Message):
     retry: SOReplayWaitRetry
     upgrade: SOReplayWaitUpgrade
     def __init__(self, checkpoint_height: _Optional[int] = ..., position: _Optional[int] = ..., op_type_id: _Optional[str] = ..., plugin_id: _Optional[str] = ..., handler: _Optional[_Union[SOReplayWaitHandler, _Mapping]] = ..., approval: _Optional[_Union[SOReplayWaitApproval, _Mapping]] = ..., gap: _Optional[_Union[SOReplayWaitGap, _Mapping]] = ..., retry: _Optional[_Union[SOReplayWaitRetry, _Mapping]] = ..., upgrade: _Optional[_Union[SOReplayWaitUpgrade, _Mapping]] = ...) -> None: ...
+
+class SORootWait(_message.Message):
+    __slots__ = ("name", "root_ref")
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    ROOT_REF_FIELD_NUMBER: _ClassVar[int]
+    name: str
+    root_ref: str
+    def __init__(self, name: _Optional[str] = ..., root_ref: _Optional[str] = ...) -> None: ...
 
 class SOReplayWaitHandler(_message.Message):
     __slots__ = ()

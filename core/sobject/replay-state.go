@@ -12,6 +12,17 @@ type ReplayObserver interface {
 	ObserveReplay(state *SOReplayState)
 }
 
+// RootWaiter is a Body whose replayed state may keep roots this device's store
+// lacks. The driver shows them in each report, and steps again when they
+// change, so the health shows a root once the body finds it missing and drops
+// it once a source served it.
+type RootWaiter interface {
+	// RootWaits returns the roots the state keeps that this device holds no
+	// copy of, sorted by name, and a channel closed when they change. The
+	// caller keeps the roots unchanged.
+	RootWaits() ([]*SORootWait, <-chan struct{})
+}
+
 // replayOpening is the replay state before a step reached the end of the
 // order.
 var replayOpening = &SOReplayState{State: &SOReplayState_Opening{Opening: &SOReplayOpening{}}}
