@@ -101,12 +101,16 @@ func TestPackAheadDirSyncRetryFailedPack(t *testing.T) {
 	if !failed.Load() {
 		t.Fatal("the directory sync never failed")
 	}
-	expected := map[uint64]Block{1: a, 2: b}
+	if len(infos) != 2 || infos[0].Seq != 1 {
+		t.Fatalf("finalized packs %v, want the failed pack 1 and one later pack", infos)
+	}
 	for _, info := range infos {
-		// Match the file's size and the block written to this sequence.
-		want, ok := expected[info.Seq]
-		if !ok {
-			t.Fatalf("unexpected finalized pack %d", info.Seq)
+		// The failed pack holds a. b went to whichever pack its rotation
+		// took: the spare at seq 2, or seq 3 when the rotation reserved a
+		// seq while the maintainer was still creating that spare.
+		want := b
+		if info.Seq == 1 {
+			want = a
 		}
 		st, err := os.Stat(info.Path)
 		if err != nil {
