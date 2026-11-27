@@ -26,21 +26,29 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Testbed is a constructed testbed.
+// Testbed assembles storage and controllers for tests and higher-level harnesses.
+// Callers extend the exposed bus and resolver, use the configured volume directly,
+// and retain scenario-specific cleanup with AddReleaseFunc. Release owns the
+// lifetime of the controllers constructed by the testbed.
 type Testbed struct {
 	// Context is the root context.
 	Context context.Context
-	// Logger is the logger.
+	// Logger is the shared test logger. Callers derive entries with scenario
+	// fields and pass them to the components they install.
 	Logger *logrus.Entry
 	// VolumeController is the test volume controller.
 	VolumeController volume.Controller
-	// Volume is the test volume.
+	// Volume is the configured storage under test, or nil with
+	// WithVolumeConfig(nil). Callers exercise its block, bucket, and optional
+	// storage interfaces directly.
 	Volume volume.Volume
 	// BucketId is the id of the test bucket.
 	BucketId string
-	// StaticResolver is the static resolver.
+	// StaticResolver is the factory resolver callers extend when assembling
+	// scenario-specific controllers on Bus.
 	StaticResolver *srr.Resolver
-	// Bus is the controller bus.
+	// Bus is the bus on which callers install scenario-specific controllers
+	// and directives. Their references must be released before Release returns.
 	Bus bus.Bus
 	// StepFactorySet is the transformer step factory set.
 	StepFactorySet *block_transform.StepFactorySet

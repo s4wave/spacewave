@@ -44,9 +44,14 @@ type SessionClient interface {
 // TempFileFactory creates a temporary file for a staged pack.
 type TempFileFactory func(pattern string) (*os.File, error)
 
-// Options contains dependencies and endpoints for CDN Space publication.
+// Options supplies per-operation dependencies and endpoints for CDN publication.
+// Publication functions and higher-level mirror and release workflows share these
+// settings. The caller owns the authenticated session; Options does not construct
+// a service or retain publication state.
 type Options struct {
-	// Client authenticates every service request.
+	// Client is the caller-supplied authenticated session for pack and
+	// checkpoint requests. Publication does not replace or close it, so callers
+	// can reuse the session across operations.
 	Client SessionClient
 	// Logger receives progress, or nil.
 	Logger *logrus.Entry
