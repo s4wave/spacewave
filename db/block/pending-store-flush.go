@@ -19,10 +19,12 @@ const (
 // Flush stores the kept trees the roots reach under a stage of the inner store,
 // in puts of at most flushSliceBytes and flushSliceLinks, and pins each root it
 // keeps no block of and the inner store lacks. Pinning brings a root another
-// store backs, such as a peer, into the inner store. A root no store holds is
-// left to the swap. A root a source may hold but none served (ErrUnavailable)
-// is pinned nowhere and returned in unavailable, for the caller to decide
-// whether its swap may reference it. Until release, SetRoots puts no block the flush stored, so
+// store backs, such as a peer, into the inner store. Flush pins a root no
+// store holds (ErrNotFound) nowhere and returns it in absent, since a swap may
+// put that block itself. It pins a root a source may hold but none served
+// (ErrUnavailable) nowhere and returns it in unavailable. The caller decides
+// whether its swap may reference either. Until release, SetRoots puts no block
+// the flush stored, so
 // a writer that flushes before it takes the lock its root moves need holds that
 // lock, and the inner store's writer, only for the swap: the stage holds the
 // stored blocks until the swap references them. Each slice is marked once
@@ -38,7 +40,7 @@ const (
 // pin per unkept root, all before the caller's lock. A pin may wait on the
 // store's read path, such as a peer fetch, before it reports a root
 // unavailable.
-func (s *PendingStore) Flush(ctx context.Context, roots []*BlockRef) (release func(), unavailable []*BlockRef, err error) {
+func (s *PendingStore) Flush(ctx context.Context, roots []*BlockRef) (release func(), unavailable, absent []*BlockRef, err error) {
 	// Gather the kept trees no open flush stored, and the roots kept nowhere
 	// here.
 	tree, keys, stopped := s.reachSliced(roots, true)
@@ -54,7 +56,7 @@ func (s *PendingStore) Flush(ctx context.Context, roots []*BlockRef) (release fu
 	// Open the stage that holds them until the swap.
 	stage, releaseStage, err := OpenStage(ctx, s.StoreOps)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	var pins []func()
 	marked := 0
@@ -86,7 +88,7 @@ func (s *PendingStore) Flush(ctx context.Context, roots []*BlockRef) (release fu
 		}
 		if _, err := stage.PutBlockBatch(ctx, tree[marked:i+1]); err != nil {
 			cleanup()
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		s.mtx.Lock()
 		for _, key := range keys[marked : i+1] {
@@ -97,13 +99,13 @@ func (s *PendingStore) Flush(ctx context.Context, roots []*BlockRef) (release fu
 	}
 
 	// Pin each unkept root the inner store lacks, copying it in. A root no
-	// store holds yet, such as a block the swap itself puts, is left to the
-	// swap, and one no source served goes back to the caller.
+	// store holds yet, such as a block the swap itself puts, and one no
+	// source served go back to the caller.
 	for _, root := range unkept {
 		found, err := s.StoreOps.GetBlockExists(ctx, root)
 		if err != nil {
 			cleanup()
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		if found {
 			continue
@@ -111,20 +113,21 @@ func (s *PendingStore) Flush(ctx context.Context, roots []*BlockRef) (release fu
 		unpin, err := PinRoot(ctx, s.StoreOps, root)
 		switch {
 		case errors.Is(err, ErrNotFound):
+			absent = append(absent, root)
 			continue
 		case errors.Is(err, ErrUnavailable) && ctx.Err() == nil:
 			unavailable = append(unavailable, root)
 			continue
 		case err != nil:
 			cleanup()
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		pins = append(pins, unpin)
 	}
 
 	// Unmark them and release the stage once.
 	var once sync.Once
-	return func() { once.Do(cleanup) }, unavailable, nil
+	return func() { once.Do(cleanup) }, unavailable, absent, nil
 }
 
 // unmark ends one Flush's mark of each of keys.

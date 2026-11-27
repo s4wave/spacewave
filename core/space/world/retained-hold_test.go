@@ -16,13 +16,17 @@ import (
 // peerServedStore is a bucket whose PinRoot stands in for the local provider's
 // read path and peers: a pin of a root the bucket lacks fails with
 // block.ErrUnavailable until the test serves the root's block, and then stages
-// the block into the bucket and pins it.
+// the block into the bucket and pins it. A pin of a root marked not found fails
+// with block.ErrNotFound, as the local provider's read path answers when no
+// store holds the block.
 type peerServedStore struct {
 	*bucketStore
 	// mtx guards the fields below.
 	mtx sync.Mutex
 	// served holds the data a peer serves by ref.
 	served map[string][]byte
+	// notFound marks the refs whose pin answers block.ErrNotFound.
+	notFound map[string]bool
 	// tries counts the pins asked for by ref.
 	tries map[string]int
 	// gate, when set for a ref, holds its pin until closed, after sending
@@ -64,6 +68,14 @@ func (s *peerServedStore) PinRoot(ctx context.Context, ref *block.BlockRef) (fun
 		<-gate
 	}
 
+	// Answer that no store holds a root marked not found.
+	s.mtx.Lock()
+	notFound := s.notFound[key]
+	s.mtx.Unlock()
+	if notFound {
+		return nil, fmt.Errorf("%w: no store holds block %s", block.ErrNotFound, key)
+	}
+
 	// Pin a held root, and refuse one no peer serves.
 	found, err := s.GetBlockExists(ctx, ref)
 	if err != nil || found {
@@ -98,7 +110,9 @@ func (s *peerServedStore) PinRoot(ctx context.Context, ref *block.BlockRef) (fun
 // and a held root never waits. Once a peer serves it, the retrier holds it
 // even while an install lands meanwhile, and it survives collection after
 // the retrier's pin ends. An adapter opened again checks each root off the
-// install path, and finds the one still missing. With RetainedWaitEnv "off"
+// install path, and finds the one still missing. A root no store holds waits
+// as missing the same way, on the install path and at each retry, until a peer
+// serves it. With RetainedWaitEnv "off"
 // the install stops as before and holds nothing.
 func testRetainedRootWaits(t *testing.T) {
 	// Build an adapter over a Volume, with the bucket's pins standing in
@@ -109,6 +123,7 @@ func testRetainedRootWaits(t *testing.T) {
 	store := &peerServedStore{
 		bucketStore: bs,
 		served:      make(map[string][]byte),
+		notFound:    make(map[string]bool),
 		tries:       make(map[string]int),
 		gate:        make(map[string]chan struct{}),
 		entered:     make(chan string, 1),
@@ -317,6 +332,31 @@ func testRetainedRootWaits(t *testing.T) {
 		t.Fatalf("the retry after load pinned held roots again: tries %v, then %v", before, after)
 	}
 	expect(b, "checked after load", all, []string{"P"}, nil, heldRefs...)
+
+	// A root whose pin answers that no store holds it waits as missing, at
+	// the install and at each retry, and the retrier holds it once a peer
+	// serves it.
+	refQ := absent("Q")
+	rootQ := &RetainedRoot{Name: "Q", RootRef: refQ}
+	store.mtx.Lock()
+	store.notFound[refQ.MarshalString()] = true
+	store.mtx.Unlock()
+	if err := install(b, rootA, rootQ); err != nil {
+		t.Fatalf("the install of a root no store holds stopped replay: %v", err)
+	}
+	expect(b, "Q not found", []*RetainedRoot{rootA, rootQ}, []string{"Q"}, nil, refA)
+	if waiting, err := b.retryRetained(ctx); err != nil || !waiting {
+		t.Fatalf("the retry of a root no store holds returned waiting %v, error %v", waiting, err)
+	}
+	expect(b, "Q not found at retry", []*RetainedRoot{rootA, rootQ}, []string{"Q"}, nil, refA)
+	store.mtx.Lock()
+	delete(store.notFound, refQ.MarshalString())
+	store.mtx.Unlock()
+	store.serve([]byte("retained World Q"))
+	if waiting, err := b.retryRetained(ctx); err != nil || waiting {
+		t.Fatalf("the retry of a served root returned waiting %v, error %v", waiting, err)
+	}
+	expect(b, "Q served", []*RetainedRoot{rootA, rootQ}, nil, nil, refA, refQ)
 
 	// Only an install of a state that no longer retains a root releases it.
 	if err := install(b, rootA); err != nil {

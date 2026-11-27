@@ -1647,9 +1647,10 @@ func (a *Adapter) moveRoots(ctx context.Context, entries []*block.PutBatchEntry,
 // lockRoots flushes reach outside rootMtx, then locks only for the root swap.
 // Release unlocks before ending the flush. Any additional reachable pages are
 // stored by the swap itself. A transient replay skips the flush. A root no
-// source serves fails it with block.ErrUnavailable.
+// source serves fails it with block.ErrUnavailable. A root no store holds is
+// left to the swap, which fails unless it stores that block.
 func (a *Adapter) lockRoots(ctx context.Context, reach ...*block.BlockRef) (func(), error) {
-	release, unavailable, err := a.lockRootsServed(ctx, reach)
+	release, unavailable, _, err := a.lockRootsServed(ctx, reach)
 	if err == nil && len(unavailable) != 0 {
 		release()
 		return nil, unavailableRootErr(unavailable)
@@ -1657,16 +1658,14 @@ func (a *Adapter) lockRoots(ctx context.Context, reach ...*block.BlockRef) (func
 	return release, err
 }
 
-// lockRootsServed is lockRoots returning the roots no source served, which
-// the flush pinned nowhere, instead of failing.
-func (a *Adapter) lockRootsServed(ctx context.Context, reach []*block.BlockRef) (func(), []*block.BlockRef, error) {
+// lockRootsServed is lockRoots returning, instead of failing, the roots the
+// flush pinned nowhere: those no source served, and those no store holds.
+func (a *Adapter) lockRootsServed(ctx context.Context, reach []*block.BlockRef) (release func(), unavailable, absent []*block.BlockRef, err error) {
 	// Store the pages outside the lock.
 	endFlush := func() {}
-	var unavailable []*block.BlockRef
 	if !a.opts.transient && len(reach) != 0 {
-		var err error
-		if endFlush, unavailable, err = a.pages.Flush(ctx, reach); err != nil {
-			return nil, nil, err
+		if endFlush, unavailable, absent, err = a.pages.Flush(ctx, reach); err != nil {
+			return nil, nil, nil, err
 		}
 	}
 
@@ -1674,12 +1673,12 @@ func (a *Adapter) lockRootsServed(ctx context.Context, reach []*block.BlockRef) 
 	unlock, err := a.rootMtx.Lock(ctx)
 	if err != nil {
 		endFlush()
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	return func() {
 		unlock()
 		endFlush()
-	}, unavailable, nil
+	}, unavailable, absent, nil
 }
 
 // moveRootsLocked swaps roots through the kept pages. The caller holds rootMtx.

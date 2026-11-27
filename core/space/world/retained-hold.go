@@ -184,6 +184,17 @@ func refKeys(refs []*block.BlockRef) map[string]struct{} {
 	return keys
 }
 
+// unservedKeys returns the keys of the roots a flush pinned nowhere, which no
+// source served: unavailable, and absent, which no store holds. The retained
+// roots are never blocks a swap puts, so an absent one is missing too, unless
+// RetainedWaitEnv restores the stop, which leaves it to the swap.
+func unservedKeys(unavailable, absent []*block.BlockRef) map[string]struct{} {
+	if retainedWaitOff() {
+		return refKeys(unavailable)
+	}
+	return refKeys(slices.Concat(unavailable, absent))
+}
+
 // RootWaits returns the retained roots the store lacks and no source served,
 // in the order the state lists them, and a channel closed when they change.
 func (a *Adapter) RootWaits() ([]*sobject.SORootWait, <-chan struct{}) {
@@ -262,7 +273,10 @@ func (a *Adapter) holdRetained(ctx context.Context, roots []*RetainedRoot) error
 			reach = append(reach, refs[i])
 		}
 	}
-	release, unavailable, err := a.lockRootsServed(ctx, reach)
+
+	// Flush and lock. A root the flush pinned nowhere waits as missing, or
+	// stops the install when RetainedWaitEnv restores the stop.
+	release, unavailable, absent, err := a.lockRootsServed(ctx, reach)
 	if err != nil {
 		return err
 	}
@@ -270,6 +284,7 @@ func (a *Adapter) holdRetained(ctx context.Context, roots []*RetainedRoot) error
 	if len(unavailable) != 0 && retainedWaitOff() {
 		return unavailableRootErr(unavailable)
 	}
+	unserved := unservedKeys(unavailable, absent)
 
 	// Release the name when nothing is retained.
 	if len(roots) == 0 {
@@ -294,7 +309,6 @@ func (a *Adapter) holdRetained(ctx context.Context, roots []*RetainedRoot) error
 	// Keep the waits of the roots the set still lists, as the retrier left
 	// them, and add the roots no source served as missing.
 	waiting = waitIndex(a.retained.waits)
-	unserved := refKeys(unavailable)
 	var next []retainedWait
 	for _, root := range roots {
 		if _, ok := unserved[root.GetRootRef().MarshalString()]; ok {
@@ -330,7 +344,7 @@ func (a *Adapter) retryRetained(ctx context.Context) (bool, error) {
 	for i, w := range tried {
 		refs[i] = w.root.GetRootRef()
 	}
-	release, unavailable, err := a.pages.Flush(ctx, refs)
+	release, unavailable, absent, err := a.pages.Flush(ctx, refs)
 	if err != nil {
 		return true, err
 	}
@@ -347,7 +361,7 @@ func (a *Adapter) retryRetained(ctx context.Context) (bool, error) {
 	// missing otherwise. An install meanwhile may have dropped a root, and
 	// the root it added waits untried.
 	triedKeys := waitIndex(tried)
-	unserved := refKeys(unavailable)
+	unserved := unservedKeys(unavailable, absent)
 	var next, served []retainedWait
 	for _, w := range a.retained.waits {
 		_, wasTried := triedKeys[rootKey(w.root)]
