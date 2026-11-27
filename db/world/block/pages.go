@@ -7,7 +7,6 @@ import (
 	"strconv"
 
 	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/block/blob"
 	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
 	kvtx_block_iavl "github.com/s4wave/spacewave/db/kvtx/block/iavl"
 	kvtx_block_okra "github.com/s4wave/spacewave/db/kvtx/block/okra"
@@ -221,7 +220,7 @@ func (n pageNode) typedChildren(blk any) []pageNode {
 		for _, id := range slices.Sorted(maps.Keys(refs)) {
 			ctor := holder.GetBlockRefCtor(id)
 			if ctor == nil {
-				ctor = treeValueCtor(blk, id, refs[id], n.values)
+				ctor = kvtx_block.TreeValueCtor(blk, id, n.values)
 			}
 			out = append(out, n.child(refs[id], ctor, n.values))
 		}
@@ -253,27 +252,4 @@ func (n pageNode) child(ref *block.BlockRef, ctor, values block.Ctor) pageNode {
 		ctor:   ctor,
 		values: values,
 	}
-}
-
-// treeValueCtor returns the constructor of a value ref a tree node leaves
-// untyped: a blob when an Okra entry marks it so, values otherwise, and nil
-// for a ref that is no tree value.
-func treeValueCtor(blk any, id uint32, ref *block.BlockRef, values block.Ctor) block.Ctor {
-	switch b := blk.(type) {
-	case *kvtx_block_iavl.Node:
-		if id == 7 {
-			return values
-		}
-	case *kvtx_block_okra.Page:
-		for _, ent := range b.GetEntries() {
-			if ent.GetValueRef() != ref {
-				continue
-			}
-			if ent.GetValueIsBlob() {
-				return blob.NewBlobBlock
-			}
-			return values
-		}
-	}
-	return nil
 }

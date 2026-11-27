@@ -2,6 +2,7 @@ package kvtx_block_okra
 
 import (
 	"bytes"
+	"iter"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -155,24 +156,65 @@ func (p *Page) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 	return nil
 }
 
+// EntryRef is a ref that a page's block stores for one of its entries.
+type EntryRef struct {
+	// ID is the ref's id within the block.
+	ID uint32
+	// Entry is the entry that holds the ref.
+	Entry *Entry
+	// Ref is the stored ref, never empty.
+	Ref *block.BlockRef
+	// Child is set for a child page's ref and unset for a value's.
+	Child bool
+}
+
+// Refs yields each ref the page's block stores, in entry order, an entry's
+// child before its value. Every walker of a page's edges, such as garbage
+// collection, recovery and the typed walks, reads them here, so the refs a
+// walker sees are exactly the refs the block stores.
+func (p *Page) Refs() iter.Seq[EntryRef] {
+	return func(yield func(EntryRef) bool) {
+		for idx, ent := range p.GetEntries() {
+			if ref := ent.GetChildRef(); !ref.GetEmpty() {
+				if !yield(EntryRef{ID: entryChildRefID(idx), Entry: ent, Ref: ref, Child: true}) {
+					return
+				}
+			}
+			if ref := ent.GetValueRef(); !ref.GetEmpty() {
+				if !yield(EntryRef{ID: entryValueRefID(idx), Entry: ent, Ref: ref}) {
+					return
+				}
+			}
+		}
+	}
+}
+
 // GetBlockRefs returns all block references by ID.
 func (p *Page) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 	if p == nil {
 		return nil, nil
 	}
 	refs := make(map[uint32]*block.BlockRef)
-	for idx, ent := range p.GetEntries() {
-		if ent == nil {
-			continue
-		}
-		if !ent.GetChildRef().GetEmpty() {
-			refs[entryChildRefID(idx)] = ent.GetChildRef()
-		}
-		if !ent.GetValueRef().GetEmpty() {
-			refs[entryValueRefID(idx)] = ent.GetValueRef()
-		}
+	for r := range p.Refs() {
+		refs[r.ID] = r.Ref
 	}
 	return refs, nil
+}
+
+// TreeValueRef reports whether the ref with id is an entry's stored value,
+// and whether the entry marks it a Blob.
+func (p *Page) TreeValueRef(id uint32) (value, isBlob bool) {
+	idx, ok := entryIndexFromValueRefID(id)
+	if !ok || idx >= len(p.GetEntries()) || p.GetEntries()[idx].GetValueRef().GetEmpty() {
+		return false, false
+	}
+	return true, p.GetEntries()[idx].GetValueIsBlob()
+}
+
+// HasChild reports whether entry index stores a child page.
+func (p *Page) HasChild(index int) bool {
+	entries := p.GetEntries()
+	return index >= 0 && index < len(entries) && !entries[index].GetChildRef().GetEmpty()
 }
 
 // GetBlockRefCtor returns the constructor for the block at the ref id.

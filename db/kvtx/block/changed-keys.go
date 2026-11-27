@@ -463,7 +463,7 @@ func (n *diffTreeNode) load(ctx context.Context) error {
 		return nil
 	}
 	for i, entry := range slices.Backward(entries) {
-		if entry.GetChildRef().GetEmpty() {
+		if !page.HasChild(i) {
 			continue
 		}
 		lower := entry.GetKey()

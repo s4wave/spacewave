@@ -13,7 +13,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/block/blob"
 	"github.com/s4wave/spacewave/db/block/packcopy"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
@@ -280,7 +279,7 @@ func (t *Typer) children(blk any, nt *nodeType, values block.Ctor) ([]packcopy.T
 			}
 			ctor := holder.GetBlockRefCtor(id)
 			if ctor == nil {
-				ctor = treeValueCtor(blk, id, ref, values)
+				ctor = kvtx_block.TreeValueCtor(blk, id, values)
 			}
 			if ctor == nil {
 				t.count("untyped ref")
@@ -315,28 +314,6 @@ func (t *Typer) children(blk any, nt *nodeType, values block.Ctor) ([]packcopy.T
 		}
 	}
 	return out, nil
-}
-
-// treeValueCtor returns the constructor of a value ref a tree node leaves
-// untyped: a blob when an Okra entry marks it so, values otherwise.
-func treeValueCtor(blk any, id uint32, ref *block.BlockRef, values block.Ctor) block.Ctor {
-	switch b := blk.(type) {
-	case *kvtx_block_iavl.Node:
-		if id == 7 {
-			return values
-		}
-	case *kvtx_block_okra.Page:
-		for _, ent := range b.GetEntries() {
-			if ent.GetValueRef() != ref {
-				continue
-			}
-			if ent.GetValueIsBlob() {
-				return blob.NewBlobBlock
-			}
-			return values
-		}
-	}
-	return nil
 }
 
 // objectRoot returns an Object's root, typed by the object's type.

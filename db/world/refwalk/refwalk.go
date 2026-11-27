@@ -470,7 +470,7 @@ func (w *Walker) children(ctx context.Context, blk any, n Node, values block.Cto
 			}
 			ctor := holder.GetBlockRefCtor(id)
 			if ctor == nil {
-				ctor = treeValueCtor(blk, id, ref, values)
+				ctor = kvtx_block.TreeValueCtor(blk, id, values)
 			}
 			if ctor == nil {
 				reason := reflect.TypeOf(blk).String() + " ref " + strconv.FormatUint(uint64(id), 10)
@@ -508,28 +508,6 @@ func (w *Walker) children(ctx context.Context, blk any, n Node, values block.Cto
 		}
 	}
 	return out, nil
-}
-
-// treeValueCtor returns the constructor of a value ref a tree node leaves
-// untyped: a blob when an Okra entry marks it so, values otherwise.
-func treeValueCtor(blk any, id uint32, ref *block.BlockRef, values block.Ctor) block.Ctor {
-	switch b := blk.(type) {
-	case *kvtx_block_iavl.Node:
-		if id == 7 {
-			return values
-		}
-	case *kvtx_block_okra.Page:
-		for _, ent := range b.GetEntries() {
-			if ent.GetValueRef() != ref {
-				continue
-			}
-			if ent.GetValueIsBlob() {
-				return blob.NewBlobBlock
-			}
-			return values
-		}
-	}
-	return nil
 }
 
 // objectRoot returns the root of a World object, typed by the object's type.

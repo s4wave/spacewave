@@ -271,26 +271,32 @@ func (s *Scanner) children(ctx context.Context, node *Node, value any, tree stri
 		if tree != "" {
 			suffix = ":" + tree
 		}
-		for _, ent := range page.GetEntries() {
-			add(ent.GetChildRef(), "okra"+suffix, nil, context)
+		for r := range page.Refs() {
+			if r.Child {
+				add(r.Ref, "okra"+suffix, nil, context)
+				continue
+			}
 			ctor := "bytes"
 			if tree == "objects" {
 				ctor = "object"
 			}
-			if ent.GetValueIsBlob() {
+			if r.Entry.GetValueIsBlob() {
 				ctor = "blob"
 			}
-			add(ent.GetValueRef(), ctor, ent.GetKey(), context)
-			if ent.GetValueBlob() != nil {
-				if tree == "objects" {
-					return out, errors.New("inline Okra object values are unsupported")
-				}
-				kids, err := s.children(ctx, node, ent.GetValueBlob(), "")
-				if err != nil {
-					return nil, err
-				}
-				out = append(out, kids...)
+			add(r.Ref, ctor, r.Entry.GetKey(), context)
+		}
+		for _, ent := range page.GetEntries() {
+			if ent.GetValueBlob() == nil {
+				continue
 			}
+			if tree == "objects" {
+				return out, errors.New("inline Okra object values are unsupported")
+			}
+			kids, err := s.children(ctx, node, ent.GetValueBlob(), "")
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, kids...)
 		}
 		return out, nil
 	}

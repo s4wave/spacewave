@@ -171,6 +171,12 @@ func (n *Node) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 	}, nil
 }
 
+// TreeValueRef reports whether the ref with id is the node's value, which is
+// never a Blob: a Blob value is the inline sub-block.
+func (n *Node) TreeValueRef(id uint32) (value, isBlob bool) {
+	return id == 7, false
+}
+
 // GetBlockRefCtor returns the constructor for the block at the ref id.
 // Return nil to indicate invalid ref ID.
 func (n *Node) GetBlockRefCtor(id uint32) block.Ctor {

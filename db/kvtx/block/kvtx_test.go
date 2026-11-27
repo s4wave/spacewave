@@ -2,6 +2,8 @@ package kvtx_block
 
 import (
 	"context"
+	"fmt"
+	"slices"
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/config"
@@ -254,5 +256,52 @@ func TestSelectorSubBlocks(t *testing.T) {
 	}
 	if err := okraStore.ApplySubBlock(3, &iavl.Node{}); err != block.ErrUnexpectedType {
 		t.Fatalf("wrong Okra sub-block type err = %v, want %v", err, block.ErrUnexpectedType)
+	}
+}
+
+// TestTreeValueCtor checks the refs walkers type through the tree-value
+// contract: an Okra page's child refs are pages, its value refs are values or
+// Blobs as their entries mark them, and an IAVL node's value ref is a value.
+func TestTreeValueCtor(t *testing.T) {
+	ref := func(s string) *block.BlockRef {
+		r, err := block.BuildBlockRef([]byte(s), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return r
+	}
+	values := func() block.Block { return &okra.Root{} }
+	page := &okra.Page{Level: 1, Entries: []*okra.Entry{
+		{Anchor: true, ChildRef: ref("child")},
+		{Key: []byte("a"), ValueRef: ref("value")},
+		{Key: []byte("b"), ValueRef: ref("blob"), ValueIsBlob: true},
+	}}
+
+	// Each stored ref is yielded once, child before value, and typed by its role.
+	var got []string
+	for r := range page.Refs() {
+		ctor := page.GetBlockRefCtor(r.ID)
+		if ctor == nil {
+			ctor = TreeValueCtor(page, r.ID, values)
+		}
+		var kind string
+		switch blk := ctor().(type) {
+		case *okra.Page:
+			kind = "page"
+		case *okra.Root:
+			kind = "value"
+		default:
+			kind = fmt.Sprintf("%T", blk)
+		}
+		got = append(got, string(r.Entry.GetKey())+"="+kind)
+	}
+	if want := []string{"=page", "a=value", "b=*blob.Blob"}; !slices.Equal(got, want) {
+		t.Fatalf("typed refs = %v, want %v", got, want)
+	}
+
+	// An IAVL node's value ref is a value, its child refs are no tree value.
+	node := &iavl.Node{}
+	if TreeValueCtor(node, 7, values) == nil || TreeValueCtor(node, 5, values) != nil {
+		t.Fatal("iavl value ref typed wrongly")
 	}
 }
