@@ -41,4 +41,7 @@ type Pragmas struct {
 	// nor creates the table. The other pragmas that shape a file, such as PageSize, are
 	// ignored.
 	ReadOnly bool
+	// Immutable opens a checkpointed offline copy without WAL or SHM writes.
+	// The caller must also set ReadOnly and keep the file unchanged.
+	Immutable bool
 }

@@ -9,8 +9,6 @@ import (
 	"time"
 
 	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/kvtx"
-	"github.com/s4wave/spacewave/db/store/kvtx/sqlite/cgo"
 	"github.com/s4wave/spacewave/db/store/kvtx/sqlite/common"
 )
 
@@ -19,7 +17,7 @@ import (
 // an iteration whose bodies read in a second transaction both finish.
 func TestReadTurnsLeaveForCallbacks(t *testing.T) {
 	ctx := context.Background()
-	store, err := cgo.Open(ctx, filepath.Join(t.TempDir(), "turns.db"), "kv")
+	store, err := openReadTurnStore(ctx, filepath.Join(t.TempDir(), "turns.db"), "kv")
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -88,15 +86,12 @@ func TestReadTurnsLeaveForCallbacks(t *testing.T) {
 	}
 }
 
-// _ is a type assertion.
-var _ kvtx.Store = (*cgo.Store)(nil)
-
 // TestUrgentReadTakesNoTurn proves a read under the World's writer, of class
 // block.ReadUrgent, finishes while other readers hold every turn, and that an
 // ordinary read waits for a turn meanwhile.
 func TestUrgentReadTakesNoTurn(t *testing.T) {
 	ctx := context.Background()
-	store, err := cgo.Open(ctx, filepath.Join(t.TempDir(), "urgent.db"), "kv")
+	store, err := openReadTurnStore(ctx, filepath.Join(t.TempDir(), "urgent.db"), "kv")
 	if err != nil {
 		t.Fatal(err.Error())
 	}

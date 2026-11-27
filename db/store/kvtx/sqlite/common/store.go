@@ -325,6 +325,9 @@ func openPool[T SQLiteDriverConfig](config T, path string, pragmas Pragmas) (*sq
 			return nil, errors.New("sqlite: the driver cannot open a database read-only")
 		}
 		dsn = ro.OpenReadOnlyDSN(path)
+		if pragmas.Immutable {
+			dsn += "&immutable=1"
+		}
 	}
 	probe, err := sql.Open(config.DriverName(), dsn)
 	if err != nil {
