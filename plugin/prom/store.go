@@ -153,11 +153,19 @@ func (s *Store) Key() string {
 	return s.key
 }
 
-// Lost returns a channel closed when a commit finds that another writer wrote
-// the target's status since this Store opened it. A lost Store writes nothing
-// more. The writer reopens the target to write again.
-func (s *Store) Lost() <-chan struct{} {
-	return s.lost
+// WaitScrape waits for the next scrape tick, cancellation, or loss of the writer.
+// A commit that finds another writer changed the target's status since this
+// Store opened it stands the Store down. WaitScrape then returns ErrStoodDown;
+// the writer must reopen the target before writing again.
+func (s *Store) WaitScrape(ctx context.Context, tick <-chan time.Time) error {
+	select {
+	case <-ctx.Done():
+		return context.Cause(ctx)
+	case <-s.lost:
+		return ErrStoodDown
+	case <-tick:
+		return nil
+	}
 }
 
 // Append adds a sample of the series lset to the open window.
@@ -296,8 +304,7 @@ func (s *Store) finish(batch *commitBatch, written bool) {
 	}
 }
 
-// standDown ends the in-flight commit of batch without writing it and closes
-// Lost.
+// standDown ends the in-flight commit without writing it and wakes scrape waiters.
 func (s *Store) standDown() {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()

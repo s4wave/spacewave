@@ -121,10 +121,10 @@ func TestScrapeRunThrough(t *testing.T) {
 	// The first Device stands down at its next commit, writing nothing.
 	sc.scrape(ctx, t2.Add(time.Second))
 	commit(store)
-	select {
-	case <-store.Lost():
-	default:
-		t.Fatal("first Device did not stand down")
+	waitCtx, cancelWait := context.WithTimeout(ctx, time.Second)
+	defer cancelWait()
+	if err := store.WaitScrape(waitCtx, nil); !errors.Is(err, ErrStoodDown) {
+		t.Fatalf("first Device did not stand down: %v", err)
 	}
 	if _, status = readTarget(ctx, t, eng, key); status.GetDevicePeerId() != "peer-b" {
 		t.Fatalf("status after stand-down: %v", status)

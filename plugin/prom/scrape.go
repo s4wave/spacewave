@@ -63,12 +63,8 @@ func (s *scraper) run(ctx context.Context) error {
 	defer t.Stop()
 	for {
 		s.scrape(ctx, time.Now())
-		select {
-		case <-ctx.Done():
-			return context.Cause(ctx)
-		case <-s.store.Lost():
-			return ErrStoodDown
-		case <-t.C:
+		if err := s.store.WaitScrape(ctx, t.C); err != nil {
+			return err
 		}
 	}
 }
