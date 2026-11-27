@@ -43,7 +43,9 @@ export function SpaceStorageMove({
       ? [{ id: accountStorageChoice, name: "the account's own storage" }]
       : []),
     ...backends
-      .filter((b) => b.backend?.id && b.backend.id !== placedId)
+      .filter(
+        (b) => b.backend?.id && !b.backend.gdrive && b.backend.id !== placedId,
+      )
       .map((b) => ({
         id: b.backend?.id ?? '',
         name: b.backend?.displayName ?? '',

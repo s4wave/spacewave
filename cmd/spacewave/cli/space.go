@@ -54,6 +54,7 @@ func newSpaceCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 			newSpaceInviteCommand(&statePath, &sessionIdx),
 			newSpaceJoinCommand(&statePath, &sessionIdx),
 			newSpaceBackfillCommand(&statePath, &sessionIdx),
+			newSpaceBackupCommand(&statePath, &sessionIdx),
 			newSpaceRosterCommand(&statePath, &sessionIdx),
 			newSpaceTrimCommand(&statePath, &sessionIdx),
 			newSpaceOrderCommand(&statePath, &sessionIdx),
@@ -817,7 +818,9 @@ func newSpaceDeployCommand(statePath *string, sessionIdx *uint) *cli.Command {
 			w.WriteString("deploying manifest set " + manifestID + " to space " + sid + " (key=" + key + ")\n")
 			w.WriteString("source: " + dbPath + "\n")
 			for _, ref := range refs {
-				w.WriteString("platform=" + ref.GetMeta().GetPlatformId() + " rev=" + strconv.FormatUint(ref.GetMeta().GetRev(), 10) + " ref=" + ref.GetManifestRef().GetRootRef().MarshalString() + "\n")
+				w.WriteString("platform=" + ref.GetMeta().GetPlatformId() +
+					" rev=" + strconv.FormatUint(ref.GetMeta().GetRev(), 10) +
+					" ref=" + ref.GetManifestRef().GetRootRef().MarshalString() + "\n")
 			}
 
 			// Deploy the set, answering block requests from the devtool volume.

@@ -14,7 +14,9 @@ import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContex
 export function SpaceStorageCard() {
   const { spaceId } = SpaceContainerContext.useContext()
   const resource = useStorageBackends()
-  const backends = resource.value?.storageBackends ?? []
+  const backends = (resource.value?.storageBackends ?? []).filter(
+    (entry) => !entry.backend?.gdrive,
+  )
   if (resource.error || backends.length === 0) {
     return null
   }

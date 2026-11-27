@@ -60,7 +60,7 @@ func newStorageAddCommand(statePath *string, sessionIdx *uint) *cli.Command {
 	return &cli.Command{
 		Name:  "add",
 		Usage: "add a storage backend",
-		Subcommands: []*cli.Command{{
+		Subcommands: []*cli.Command{newStorageGdriveCommand(statePath, sessionIdx), {
 			Name:      "s3",
 			Usage:     "add an S3-compatible bucket",
 			ArgsUsage: "<name>",
@@ -283,10 +283,14 @@ func newStorageListCommand(statePath *string, sessionIdx *uint) *cli.Command {
 					if backend.GetId() == resp.GetDefaultStorageBackendId() {
 						isDefault = "yes"
 					}
+					location, endpoint := backend.GetS3().GetBucket(), backend.GetS3().GetEndpoint()
+					if drive := backend.GetGdrive(); drive != nil {
+						location, endpoint = drive.GetRootFolderId(), "Google Drive"
+					}
 					rows = append(rows, []string{
 						backend.GetDisplayName(),
-						backend.GetS3().GetBucket(),
-						backend.GetS3().GetEndpoint(),
+						location,
+						endpoint,
 						strconv.Itoa(len(info.GetPlacedSpaces())),
 						isDefault,
 					})
@@ -306,7 +310,9 @@ func newStorageTestCommand(statePath *string, sessionIdx *uint) *cli.Command {
 		ArgsUsage: "<name>",
 		Flags:     []cli.Flag{outputFlag()},
 		Action: func(c *cli.Context) error {
-			return withStorageBackend(c, *statePath, *sessionIdx, func(ctx context.Context, sess *s4wave_session.Session, backend *account_settings.StorageBackend) error {
+			return withStorageBackend(c, *statePath, *sessionIdx, func(
+				ctx context.Context, sess *s4wave_session.Session, backend *account_settings.StorageBackend,
+			) error {
 				// Validate the Space and destination arguments.
 				resp, err := sess.CheckStorageBackend(ctx, &s4wave_session.CheckStorageBackendRequest{StorageBackendId: backend.GetId()})
 				if err != nil {
@@ -359,7 +365,9 @@ func newStorageDefaultCommand(statePath *string, sessionIdx *uint) *cli.Command 
 					return nil
 				})
 			}
-			return withStorageBackend(c, *statePath, *sessionIdx, func(ctx context.Context, sess *s4wave_session.Session, backend *account_settings.StorageBackend) error {
+			return withStorageBackend(c, *statePath, *sessionIdx, func(
+				ctx context.Context, sess *s4wave_session.Session, backend *account_settings.StorageBackend,
+			) error {
 				if err := sess.SetDefaultStorageBackend(ctx, backend.GetId()); err != nil {
 					return errors.Wrap(err, "set default storage backend")
 				}
@@ -399,7 +407,9 @@ func newStoragePricingCommand(statePath *string, sessionIdx *uint) *cli.Command 
 			},
 		},
 		Action: func(c *cli.Context) error {
-			return withStorageBackend(c, *statePath, *sessionIdx, func(ctx context.Context, sess *s4wave_session.Session, backend *account_settings.StorageBackend) error {
+			return withStorageBackend(c, *statePath, *sessionIdx, func(
+				ctx context.Context, sess *s4wave_session.Session, backend *account_settings.StorageBackend,
+			) error {
 				// Build the new price list from the flags.
 				pricing := backend.GetS3().GetPricing()
 				set := slices.ContainsFunc(priceFlags, c.IsSet)
@@ -505,7 +515,9 @@ func newStorageRemoveCommand(statePath *string, sessionIdx *uint) *cli.Command {
 		Usage:     "remove a backend that holds no Space",
 		ArgsUsage: "<name>",
 		Action: func(c *cli.Context) error {
-			return withStorageBackend(c, *statePath, *sessionIdx, func(ctx context.Context, sess *s4wave_session.Session, backend *account_settings.StorageBackend) error {
+			return withStorageBackend(c, *statePath, *sessionIdx, func(
+				ctx context.Context, sess *s4wave_session.Session, backend *account_settings.StorageBackend,
+			) error {
 				if err := sess.RemoveStorageBackend(ctx, backend.GetId()); err != nil {
 					return errors.Wrap(err, "remove "+backend.GetDisplayName())
 				}

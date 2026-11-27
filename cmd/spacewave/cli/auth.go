@@ -222,10 +222,14 @@ func generateAndSaveBackupKey(c *cli.Context, statePath string, sessionIdx uint3
 	}
 	defer acctCleanup()
 
-	// Collect the credential that authorizes the change.
-	cred, err := resolveCredential(ctx, sess, acctSvc, authPemFile)
-	if err != nil {
-		return err
+	// A mounted local account can register its first recovery key. Cloud
+	// accounts authorize the change with an existing entity credential.
+	var cred *session_pb.EntityCredential
+	if !isLocalAuthSession(info) || authPemFile != "" {
+		cred, err = resolveCredential(ctx, sess, acctSvc, authPemFile)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Generate and persist the backup key through the account service.
