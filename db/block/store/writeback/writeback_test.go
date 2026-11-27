@@ -1145,7 +1145,7 @@ func TestUploadHoldsCorruptBlock(t *testing.T) {
 	<-done
 }
 
-// waitStatus waits until ok accepts the Store's status, failing on ctx's end.
+// waitCorruptStatus waits until ok accepts the Store's status, failing on ctx's end.
 func waitCorruptStatus(t *testing.T, ctx context.Context, s *Store, ok func(Status) bool) {
 	t.Helper()
 	for {
