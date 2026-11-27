@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"path"
 
+	cbackoff "github.com/aperturerobotics/util/backoff/cbackoff"
 	"github.com/aperturerobotics/util/refcount"
 	"github.com/aperturerobotics/util/ulid"
 	"github.com/pkg/errors"
@@ -150,12 +151,25 @@ func (a *ProviderAccount) leaveSharedObjectLookup(id string, demand *sharedObjec
 // that is current when it arrives. A reply superseded by an invalidation or
 // reconnect is discarded and the request repeats, so only a refusal, a
 // transport failure or the end of ctx fails the caller.
+//
+// The first repeat runs at once, because the change that superseded the reply
+// has already happened. Later repeats in the same call wait out the provider
+// backoff, 0.5s growing to 1.8s, so a stream of invalidations costs a request
+// per backoff step instead of one per round trip. ctx is the only limit.
 func (a *ProviderAccount) lookupSharedObject(ctx context.Context, id string) (*sobject.SharedObjectListEntry, error) {
 	// Each pass captures the generation current when it starts.
+	var bo cbackoff.BackOff
 	for {
 		entry, superseded, err := a.lookupSharedObjectOnce(ctx, id)
 		if !superseded {
 			return entry, err
+		}
+		if bo == nil {
+			bo = providerBackoff.Construct()
+			continue
+		}
+		if err := waitProviderRetryDelay(ctx, nil, bo.NextBackOff()); err != nil {
+			return nil, err
 		}
 	}
 }

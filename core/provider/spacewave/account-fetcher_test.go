@@ -318,7 +318,7 @@ func TestAccountFetcherRetryWakesOnSessionClientChange(t *testing.T) {
 
 func TestAccountFetcherRetryDelayBacksOffAndCancels(t *testing.T) {
 	start := time.Now()
-	if err := waitAccountFetcherRetryDelay(context.Background(), nil, 25*time.Millisecond); err != nil {
+	if err := waitProviderRetryDelay(context.Background(), nil, 25*time.Millisecond); err != nil {
 		t.Fatalf("retry wait: %v", err)
 	}
 	if elapsed := time.Since(start); elapsed < 25*time.Millisecond {
@@ -328,7 +328,7 @@ func TestAccountFetcherRetryDelayBacksOffAndCancels(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
 	go func() {
-		done <- waitAccountFetcherRetryDelay(ctx, nil, 2*time.Second)
+		done <- waitProviderRetryDelay(ctx, nil, 2*time.Second)
 	}()
 	cancel()
 	select {

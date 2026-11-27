@@ -167,6 +167,34 @@ func TestLookupSharedObjectInvalidation(t *testing.T) {
 	}
 }
 
+// TestLookupSharedObjectSupersededBackoff backs off a lookup whose every reply
+// is superseded, and ends it at the caller's deadline instead of a repeat cap.
+func TestLookupSharedObjectSupersededBackoff(t *testing.T) {
+	// Supersede each reply before the client can admit it.
+	var calls atomic.Int32
+	var acc *ProviderAccount
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		acc.invalidateSharedObjectLookup()
+		data, _ := (&api.LookupSObjectResponse{Entry: &sobject.SharedObjectListEntry{Ref: sobject.NewSharedObjectRef("", "test-account", lookupTestID, lookupTestID)}}).MarshalVT()
+		_, _ = w.Write(data)
+	}))
+	defer srv.Close()
+	acc = NewTestProviderAccount(t, srv.URL)
+
+	// The backoff waits 0.5s then 0.7s after the immediate repeat, so 1.5s
+	// holds four requests where an unpaced loop would send thousands.
+	ctx, cancel := context.WithTimeout(t.Context(), 1500*time.Millisecond)
+	defer cancel()
+	_, err := acc.LookupSharedObject(ctx, lookupTestID)
+	if err == nil || ctx.Err() == nil {
+		t.Fatalf("lookup ended with %v before the caller's deadline", err)
+	}
+	if n := calls.Load(); n < 3 || n > 5 {
+		t.Fatalf("superseded lookup sent %d requests in 1.5s, want about 4", n)
+	}
+}
+
 // TestLookupSharedObjectCatalogApart keeps an admitted descriptor out of the
 // catalog, and keeps it through a catalog snapshot fetched before admission.
 func TestLookupSharedObjectCatalogApart(t *testing.T) {

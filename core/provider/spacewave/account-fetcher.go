@@ -2,7 +2,6 @@ package provider_spacewave
 
 import (
 	"context"
-	"time"
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	cbackoff "github.com/aperturerobotics/util/backoff/cbackoff"
@@ -47,27 +46,7 @@ func (r *accountFetcherRetryOwner) WaitTransient(
 	err error,
 ) error {
 	delay := nextProviderRetryDelay(r.bo, err)
-	return waitAccountFetcherRetryDelay(ctx, wakeCh, delay)
-}
-
-// waitAccountFetcherRetryDelay waits for delay, wakeCh, or ctx, whichever comes
-// first, and returns ctx's error only when ctx ends the wait.
-func waitAccountFetcherRetryDelay(
-	ctx context.Context,
-	wakeCh <-chan struct{},
-	delay time.Duration,
-) error {
-	timer := time.NewTimer(delay)
-	defer timer.Stop()
-
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-wakeCh:
-		return nil
-	case <-timer.C:
-		return nil
-	}
+	return waitProviderRetryDelay(ctx, wakeCh, delay)
 }
 
 // accountFetcher refreshes persisted state on startup and after account epoch
