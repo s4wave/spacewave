@@ -970,4 +970,66 @@ func TestStagedTreeReplays(t *testing.T) {
 	f.collect(t)
 	requireBlocks(ctx, t, "collected after a replay from nothing", store, staged, true)
 	requireStagedFiles(ctx, t, "after a replay from nothing", eng, "files", files)
+
+	// A stage released after StoreRoots and before the adopting op commits,
+	// as when a plugin releases its stage early or dies: a collection may
+	// free the stored tree. The op must then be refused with nothing
+	// adopted, or commit with every block readable; it must never commit
+	// naming a freed block.
+	late, err := eng.StageWorldState(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lateFiles := map[string][]byte{"late.md": []byte("# Late\n"), "late.bin": draft}
+	lateRoot := stageTree(ctx, t, late, lateFiles)
+	lateBlocks := walkBlocks(ctx, t, stageStore(ctx, t, late), []*block.BlockRef{lateRoot.GetRootRef()})
+	late.Release()
+	f.collect(t)
+	lateN := 0
+	for _, ref := range lateBlocks {
+		if found, err := store.GetBlockExists(ctx, ref); err == nil && !found {
+			lateN++
+		}
+	}
+	t.Logf("released stage: the collect freed %d of %d stored blocks", lateN, len(lateBlocks))
+	err = world.ExecTransaction(ctx, eng, true, func(ctx context.Context, ws world.WorldState) error {
+		_, _, err := ws.ApplyWorldOp(ctx, &adoptStagedOp{MockWorldOp: world_mock.NewMockWorldOp("late", lateRoot.MarshalString())}, "")
+		return err
+	})
+	if err != nil {
+		t.Logf("released stage: the adopting op was refused: %v", err)
+		requireNoObject(ctx, t, eng, "late")
+	} else {
+		t.Log("released stage: the adopting op committed")
+		waitSetRoots(ctx, t, so, 4)
+		requireBlocks(ctx, t, "released stage, adopted", store, lateBlocks, true)
+		requireStagedFiles(ctx, t, "released stage, adopted", eng, "late", lateFiles)
+	}
+
+	// Every block under every stored op's roots reads.
+	for i, tx := range storedTxs(ctx, t, so) {
+		refs, err := tx.PayloadRefs(ctx, lookupAdoptStagedOp)
+		if err != nil {
+			t.Fatalf("operation %d: payload refs: %v", i, err)
+		}
+		if err := block.WalkGraph(ctx, store, refs, 0, func(*block.BlockRef, *block.StoredBlock) error { return nil }); err != nil {
+			t.Fatalf("operation %d names an unreadable block: %v", i, err)
+		}
+	}
+}
+
+// requireNoObject fails if the object at key exists.
+func requireNoObject(ctx context.Context, t *testing.T, eng world.Engine, key string) {
+	t.Helper()
+	err := world.ExecTransaction(ctx, eng, false, func(ctx context.Context, ws world.WorldState) error {
+		obj, found, err := ws.GetObject(ctx, key)
+		if found {
+			world.ReleaseObjectState(obj)
+			return errors.Errorf("object %s exists", key)
+		}
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 }
