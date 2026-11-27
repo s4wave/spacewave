@@ -13,7 +13,7 @@ const (
 // pciDevice implements the PCI configuration address/data mechanism: the
 // address latch selects the configuration bytes returned in the response.
 type pciDevice struct {
-	host      *HostRuntime
+	bus       *machineBus
 	addr      uint32
 	response  [4]byte
 	spaces    map[uint16][]byte
@@ -26,7 +26,7 @@ type pciDevice struct {
 func (h *HostRuntime) registerPCI() {
 	// Seed the Host PCI bus with its host and ISA bridges.
 	pci := &pciDevice{
-		host: h,
+		bus: h.machineBus,
 		spaces: map[uint16][]byte{
 			0:      newPCIHostBridgeSpace(),
 			1 << 3: newPCIISABridgeSpace(),
@@ -159,7 +159,7 @@ func (p *pciDevice) write(offset, value uint32, width int) {
 			if p.barIO[bdf] != nil && p.barIO[bdf][bar] {
 				oldPort := binary.LittleEndian.Uint32(space[addr:]) &^ 3
 				value |= 1
-				p.host.moveIOPorts(oldPort, value&^3, p.barSizes[bdf][bar])
+				p.bus.moveIOPorts(oldPort, value&^3, p.barSizes[bdf][bar])
 			}
 		}
 		binary.LittleEndian.PutUint32(space[addr:], value)

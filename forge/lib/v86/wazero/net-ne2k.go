@@ -61,7 +61,8 @@ const (
 
 // ne2kDevice models an NE2000-compatible Ethernet adapter: the 8390 controller.
 type ne2kDevice struct {
-	host *HostRuntime
+	bus  *machineBus
+	pci  *pciDevice
 	id   int
 	port uint16
 	bdf  uint16
@@ -93,23 +94,29 @@ type ne2kDevice struct {
 }
 
 // newNE2KDevice builds a device at its per-id IO base with a reset state.
-func newNE2KDevice(host *HostRuntime, id int, mac [6]byte) *ne2kDevice {
+// outbound is the NE2K-to-stack boundary for guest transmits: the device calls
+// it with a copied Ethernet frame on the CPU goroutine when the guest
+// transmits, and a nil outbound drops the frame. The reverse direction is
+// QueueInbound (off-thread) plus DrainInbound (CPU goroutine).
+func newNE2KDevice(bus *machineBus, pci *pciDevice, id int, mac [6]byte, outbound func(frame []byte)) *ne2kDevice {
 	d := &ne2kDevice{
-		host:   host,
-		id:     id,
-		port:   ne2kPort(id),
-		bdf:    ne2kPCIID(id),
-		memory: make([]byte, ne2kMemoryPages*ne2kPageSize),
-		mac:    mac,
-		mar:    [8]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+		bus:      bus,
+		pci:      pci,
+		id:       id,
+		port:     ne2kPort(id),
+		bdf:      ne2kPCIID(id),
+		memory:   make([]byte, ne2kMemoryPages*ne2kPageSize),
+		mac:      mac,
+		mar:      [8]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+		outbound: outbound,
 	}
 	d.resetState()
 	return d
 }
 
 // registerNE2K wires the device's PCI BAR and IO ports on the host runtime.
-func (h *HostRuntime) registerNE2K(ctx context.Context, id int, mac [6]byte) *ne2kDevice {
-	dev := newNE2KDevice(h, id, mac)
+func (h *HostRuntime) registerNE2K(ctx context.Context, id int, mac [6]byte, outbound func(frame []byte)) *ne2kDevice {
+	dev := newNE2KDevice(h.machineBus, h.pci, id, mac, outbound)
 	_ = dev.register(ctx)
 	return dev
 }
@@ -118,20 +125,20 @@ func (h *HostRuntime) registerNE2K(ctx context.Context, id int, mac [6]byte) *ne
 // handlers.
 func (d *ne2kDevice) register(ctx context.Context) error {
 	// Require the host PCI bus before registering the NE2000 adapter.
-	if d.host == nil || d.host.pci == nil {
+	if d.bus == nil || d.pci == nil {
 		return nil
 	}
 
 	// Register the NE2000 PCI function and byte-wide IO ports.
-	d.host.pci.spaces[d.bdf] = newNE2KPCISpace(d.port)
-	d.host.pci.setBARSize(d.bdf, 0, ne2kBARSize, true)
+	d.pci.spaces[d.bdf] = newNE2KPCISpace(d.port)
+	d.pci.setBARSize(d.bdf, 0, ne2kBARSize, true)
 	for i := range uint16(ne2kBARSize) {
 		offset := i
 		port := d.port + offset
-		d.host.RegisterIORead(port, 8, func(ctx context.Context, _ uint16) uint32 {
+		d.bus.RegisterIORead(port, 8, func(ctx context.Context, _ uint16) uint32 {
 			return uint32(d.readPort(ctx, offset))
 		})
-		d.host.RegisterIOWrite(port, 8, func(ctx context.Context, _ uint16, value uint32) {
+		d.bus.RegisterIOWrite(port, 8, func(ctx context.Context, _ uint16, value uint32) {
 			d.writePort(ctx, offset, byte(value&0xff)) //nolint:gosec // an 8-bit IO write uses only the low byte.
 		})
 	}
@@ -143,20 +150,20 @@ func (d *ne2kDevice) register(ctx context.Context) error {
 	// would also let a word read of offset 0x1e touch the reset port at
 	// 0x1f.
 	dataPort := d.port + ne2kDataPort
-	d.host.RegisterIORead(dataPort, 16, func(ctx context.Context, _ uint16) uint32 {
+	d.bus.RegisterIORead(dataPort, 16, func(ctx context.Context, _ uint16) uint32 {
 		return uint32(d.readData(ctx)) | uint32(d.readData(ctx))<<8
 	})
-	d.host.RegisterIOWrite(dataPort, 16, func(ctx context.Context, _ uint16, value uint32) {
+	d.bus.RegisterIOWrite(dataPort, 16, func(ctx context.Context, _ uint16, value uint32) {
 		d.writeData(ctx, byte(value&0xff)) //nolint:gosec // the 16-bit IO write is serialized one byte at a time.
 		d.writeData(ctx, byte(value>>8))   //nolint:gosec // the shifted 16-bit IO value is serialized as its high byte.
 	})
-	d.host.RegisterIORead(dataPort, 32, func(ctx context.Context, _ uint16) uint32 {
+	d.bus.RegisterIORead(dataPort, 32, func(ctx context.Context, _ uint16) uint32 {
 		return uint32(d.readData(ctx)) |
 			uint32(d.readData(ctx))<<8 |
 			uint32(d.readData(ctx))<<16 |
 			uint32(d.readData(ctx))<<24
 	})
-	d.host.RegisterIOWrite(dataPort, 32, func(ctx context.Context, _ uint16, value uint32) {
+	d.bus.RegisterIOWrite(dataPort, 32, func(ctx context.Context, _ uint16, value uint32) {
 		d.writeData(ctx, byte(value&0xff)) //nolint:gosec // the 32-bit IO write is serialized one byte at a time.
 		d.writeData(ctx, byte(value>>8))   //nolint:gosec // the shifted 32-bit IO value is serialized one byte at a time.
 		d.writeData(ctx, byte(value>>16))  //nolint:gosec // the shifted 32-bit IO value is serialized one byte at a time.
@@ -166,14 +173,6 @@ func (d *ne2kDevice) register(ctx context.Context) error {
 	// Synchronize the adapter interrupt line after registering its IO ports.
 	d.updateIRQ(ctx)
 	return nil
-}
-
-// SetOutbound installs the NE2K-to-stack boundary for guest transmits: the
-// device calls sink with a copied Ethernet frame on the CPU goroutine when the
-// guest transmits. Pass nil to detach the sink. The reverse direction is
-// QueueInbound (off-thread) plus DrainInbound (CPU goroutine).
-func (d *ne2kDevice) SetOutbound(sink func(frame []byte)) {
-	d.outbound = sink
 }
 
 // QueueInbound enqueues a guest-inbound Ethernet frame from any goroutine. The
@@ -242,7 +241,8 @@ func (d *ne2kDevice) ReceiveFrame(ctx context.Context, frame []byte) {
 	}
 
 	// Write the receive header, frame bytes, and minimum-length padding.
-	d.writeRing(offset, []byte{enrsrRXOK, next, byte(totalLen), byte(totalLen >> 8)}) //nolint:gosec // these are the two low bytes of the fixed-width NE2000 receive length.
+	lenLo, lenHi := byte(totalLen), byte(totalLen>>8) //nolint:gosec // these are the two low bytes of the fixed-width NE2000 receive length.
+	d.writeRing(offset, []byte{enrsrRXOK, next, lenLo, lenHi})
 	d.writeRing(offset+4, frame)
 	if len(frame) < ne2kMinFrameLen {
 		d.writeRingZeros(offset+4+uint16(len(frame)), ne2kMinFrameLen-len(frame)) //nolint:gosec // this branch proves len(frame) is below the 64-byte minimum.
@@ -561,22 +561,22 @@ func (d *ne2kDevice) updateIRQ(ctx context.Context) {
 	d.irqAsserted = asserted
 
 	// Require a host before delivering the adapter interrupt state.
-	if d.host == nil {
+	if d.bus == nil {
 		return
 	}
 
 	// Apply the adapter interrupt state to its assigned host IRQ line.
 	if asserted {
-		_ = d.host.raiseIRQ(ctx, d.assignedIRQ())
+		_ = d.bus.raiseIRQ(ctx, d.assignedIRQ())
 		return
 	}
-	_ = d.host.lowerIRQ(ctx, d.assignedIRQ())
+	_ = d.bus.lowerIRQ(ctx, d.assignedIRQ())
 }
 
 // assignedIRQ returns the ISA interrupt line the adapter signals.
 func (d *ne2kDevice) assignedIRQ() uint32 {
-	if d.host != nil && d.host.pci != nil {
-		space := d.host.pci.spaces[d.bdf]
+	if d.bus != nil && d.pci != nil {
+		space := d.pci.spaces[d.bdf]
 		if len(space) > 0x3c {
 			if line := space[0x3c]; line != 0 && line != 0xff {
 				return uint32(line)

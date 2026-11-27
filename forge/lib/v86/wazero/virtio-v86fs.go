@@ -36,7 +36,8 @@ const (
 type virtioV86FSDevice struct {
 	virtioCommonConfig
 
-	host    *HostRuntime
+	bus     *machineBus
+	pci     *pciDevice
 	session *unixfs_v86fs.LocalSession
 
 	queues [3]*virtioQueue
@@ -167,7 +168,7 @@ func (d *virtioV86FSDevice) stats() v86fsStats {
 
 // virtioQueueDevice is the seam the virtio queue needs into its owning device.
 type virtioQueueDevice interface {
-	virtioHost() *HostRuntime
+	virtioBus() *machineBus
 	virtioRaiseIRQ(context.Context, uint32)
 	featureNegotiated(uint32) bool
 }
@@ -206,19 +207,14 @@ type virtioBufferChain struct {
 	lengthWritten  uint32
 }
 
-// registerV86FS attaches a v86fs server to the host runtime as a three-queue
-// virtio PCI device.
-func (h *HostRuntime) registerV86FS(ctx context.Context, server *unixfs_v86fs.Server) {
-	// Require the host PCI bus before attaching the v86fs device.
-	if h.pci == nil {
-		return
-	}
-
-	// Create the v86fs session and its three guest descriptor queues.
+// newVirtioV86FSDevice builds the virtio v86fs device over session with three
+// 128-entry queues, each notified at its own offset.
+func newVirtioV86FSDevice(bus *machineBus, pci *pciDevice, session *unixfs_v86fs.LocalSession) *virtioV86FSDevice {
 	dev := &virtioV86FSDevice{
 		featuresOK: true,
-		host:       h,
-		session:    unixfs_v86fs.NewLocalSession(ctx, server),
+		bus:        bus,
+		pci:        pci,
+		session:    session,
 	}
 	dev.deviceFeatures[1] = 1 // VIRTIO_F_VERSION_1.
 	for i := range dev.queues {
@@ -229,6 +225,19 @@ func (h *HostRuntime) registerV86FS(ctx context.Context, server *unixfs_v86fs.Se
 			notifyOffset:  uint32(i),
 		}
 	}
+	return dev
+}
+
+// registerV86FS attaches a v86fs server to the host runtime as a three-queue
+// virtio PCI device.
+func (h *HostRuntime) registerV86FS(ctx context.Context, server *unixfs_v86fs.Server) {
+	// Require the host PCI bus before attaching the v86fs device.
+	if h.pci == nil {
+		return
+	}
+
+	// Create the v86fs session and its three guest descriptor queues.
+	dev := newVirtioV86FSDevice(h.machineBus, h.pci, unixfs_v86fs.NewLocalSession(ctx, server))
 
 	// Attach the v86fs device and reserve its PCI I/O regions.
 	h.v86fs = dev
@@ -257,8 +266,8 @@ func (d *virtioV86FSDevice) registerNotifyPorts() {
 	for i := range d.queues {
 		queueID := i
 		port := virtioV86FSNotifyPort + uint16(queueID*2)
-		d.host.RegisterIORead(port, 16, func(context.Context, uint16) uint32 { return 0xffff })
-		d.host.RegisterIOWrite(port, 16, func(ctx context.Context, _ uint16, _ uint32) {
+		d.bus.RegisterIORead(port, 16, func(context.Context, uint16) uint32 { return 0xffff })
+		d.bus.RegisterIOWrite(port, 16, func(ctx context.Context, _ uint16, _ uint32) {
 			d.kicks[queueID].Add(1)
 			if queueID == 2 {
 				d.flushNotifications(ctx)
@@ -409,7 +418,7 @@ func (d *virtioV86FSDevice) flushNotifications(ctx context.Context) {
 // completion interrupt and wait_for_completion in v86fs_request hangs the
 // mount.
 func (d *virtioV86FSDevice) assignedIRQ() uint32 {
-	space := d.host.pci.spaces[virtioV86FSPCIID]
+	space := d.pci.spaces[virtioV86FSPCIID]
 	if len(space) > 0x3c {
 		if line := space[0x3c]; line != 0 && line != 0xff {
 			return uint32(line)
@@ -421,18 +430,18 @@ func (d *virtioV86FSDevice) assignedIRQ() uint32 {
 // raiseIRQ asserts the routed device interrupt line with ISR bits set.
 func (d *virtioV86FSDevice) raiseIRQ(ctx context.Context, typ uint32) {
 	d.isrStatus |= typ
-	_ = d.host.raiseIRQ(ctx, d.assignedIRQ())
+	_ = d.bus.raiseIRQ(ctx, d.assignedIRQ())
 }
 
 // lowerIRQ clears the ISR state and deasserts the interrupt line.
 func (d *virtioV86FSDevice) lowerIRQ(ctx context.Context) {
 	d.isrStatus = 0
-	_ = d.host.lowerIRQ(ctx, d.assignedIRQ())
+	_ = d.bus.lowerIRQ(ctx, d.assignedIRQ())
 }
 
-// virtioHost exposes the owning host runtime to the queue machinery.
-func (d *virtioV86FSDevice) virtioHost() *HostRuntime {
-	return d.host
+// virtioBus exposes the machine bus to the queue machinery.
+func (d *virtioV86FSDevice) virtioBus() *machineBus {
+	return d.bus
 }
 
 // virtioRaiseIRQ routes queue completion interrupts through the device.
@@ -473,6 +482,48 @@ func (q *virtioQueue) canEnable() bool {
 	return q.descAddr != 0 && q.availAddr != 0 && q.usedAddr != 0 && q.size != 0
 }
 
+// readRegister reads the per-queue common configuration register at offset:
+// queue_size, queue_enable, queue_notify_off and the low ring address words.
+func (q *virtioQueue) readRegister(offset uint16) uint32 {
+	switch offset {
+	case 24:
+		return q.size
+	case 28:
+		if q.enabled {
+			return 1
+		}
+	case 30:
+		return q.notifyOffset
+	case 32:
+		return q.descAddr
+	case 40:
+		return q.availAddr
+	case 48:
+		return q.usedAddr
+	}
+	return 0
+}
+
+// writeRegister writes the per-queue common configuration register at offset.
+// Writing 1 to queue_enable enables the queue only once the driver has posted
+// every ring address, and queue_notify_off is read-only.
+func (q *virtioQueue) writeRegister(offset uint16, value uint32) {
+	switch offset {
+	case 24:
+		q.setSize(value)
+	case 28:
+		if value == 1 && q.canEnable() {
+			q.enabled = true
+		}
+	case 32:
+		q.descAddr = value
+	case 40:
+		q.availAddr = value
+	case 48:
+		q.usedAddr = value
+	}
+}
+
 // mask returns the ring index wrap mask derived from the queue size.
 func (q *virtioQueue) mask() uint32 {
 	return q.size - 1
@@ -502,19 +553,21 @@ func (q *virtioQueue) popRequest() (*virtioBufferChain, error) {
 func (q *virtioQueue) pushReply(chain *virtioBufferChain) {
 	// Stage the completed guest buffer and byte count in the virtqueue used ring.
 	usedIdx := (q.usedIdx() + uint16(q.stagedReplies)) & uint16(q.mask()) //nolint:gosec // virtio used-ring indices are intentionally 16-bit.
-	host := q.device.virtioHost()
-	host.guestWriteUint32(q.usedAddr+4+uint32(usedIdx)*8, uint32(chain.headIdx)) //nolint:gosec // descriptor indexes use the guest's fixed-width ring fields.
-	host.guestWriteUint32(q.usedAddr+8+uint32(usedIdx)*8, chain.lengthWritten)
+	bus := q.device.virtioBus()
+	bus.guestWriteUint32(q.usedAddr+4+uint32(usedIdx)*8, uint32(chain.headIdx)) //nolint:gosec // descriptor indexes use the guest's fixed-width ring fields.
+	bus.guestWriteUint32(q.usedAddr+8+uint32(usedIdx)*8, chain.lengthWritten)
 	q.stagedReplies++
 }
 
 // flushReplies publishes staged used entries, advances the used index, and
 // raises the interrupt when enabled.
 func (q *virtioQueue) flushReplies(ctx context.Context) {
+	// Publish the staged entries by advancing the guest-visible used index.
 	if q.stagedReplies == 0 {
 		return
 	}
-	q.device.virtioHost().guestWriteUint16(q.usedAddr+2, uint16(uint32(q.usedIdx())+q.stagedReplies)) //nolint:gosec // the virtio used index intentionally wraps at uint16.
+	usedIdx := uint16(uint32(q.usedIdx()) + q.stagedReplies) //nolint:gosec // the virtio used index intentionally wraps at uint16.
+	q.device.virtioBus().guestWriteUint16(q.usedAddr+2, usedIdx)
 	q.stagedReplies = 0
 	if q.device.featureNegotiated(29) || q.availFlags()&virtqAvailNoIRQ == 0 {
 		q.device.virtioRaiseIRQ(ctx, virtioISRQueue)
@@ -528,27 +581,27 @@ func (q *virtioQueue) notifyMeAfter(skipped uint32) {
 		return
 	}
 	availEvent := uint16(uint32(q.availIdx()) + skipped) //nolint:gosec // the virtio event index intentionally wraps at uint16.
-	q.device.virtioHost().guestWriteUint16(q.usedAddr+4+q.size*8, availEvent)
+	q.device.virtioBus().guestWriteUint16(q.usedAddr+4+q.size*8, availEvent)
 }
 
 // availFlags reads the avail ring flag word.
 func (q *virtioQueue) availFlags() uint16 {
-	return q.device.virtioHost().guestReadUint16(q.availAddr)
+	return q.device.virtioBus().guestReadUint16(q.availAddr)
 }
 
 // availIdx reads the driver write index of the avail ring.
 func (q *virtioQueue) availIdx() uint16 {
-	return q.device.virtioHost().guestReadUint16(q.availAddr + 2)
+	return q.device.virtioBus().guestReadUint16(q.availAddr + 2)
 }
 
 // availEntry reads the descriptor head at one avail ring slot.
 func (q *virtioQueue) availEntry(idx uint16) uint16 {
-	return q.device.virtioHost().guestReadUint16(q.availAddr + 4 + 2*(uint32(idx)&q.mask()))
+	return q.device.virtioBus().guestReadUint16(q.availAddr + 4 + 2*(uint32(idx)&q.mask()))
 }
 
 // usedIdx reads the device write index of the used ring.
 func (q *virtioQueue) usedIdx() uint16 {
-	return q.device.virtioHost().guestReadUint16(q.usedAddr + 2)
+	return q.device.virtioBus().guestReadUint16(q.usedAddr + 2)
 }
 
 // newVirtioBufferChain walks a descriptor chain from its head, following
@@ -588,21 +641,21 @@ func newVirtioBufferChain(q *virtioQueue, head uint16) (*virtioBufferChain, erro
 // descriptor reads one descriptor table entry from guest memory.
 func (q *virtioQueue) descriptor(tableAddr uint32, idx uint16) virtioDesc {
 	base := tableAddr + uint32(idx)*16
-	host := q.device.virtioHost()
+	bus := q.device.virtioBus()
 	return virtioDesc{
-		addr:  host.guestReadUint32(base),
-		len:   host.guestReadUint32(base + 8),
-		flags: host.guestReadUint16(base + 12),
-		next:  host.guestReadUint16(base + 14),
+		addr:  bus.guestReadUint32(base),
+		len:   bus.guestReadUint32(base + 8),
+		flags: bus.guestReadUint16(base + 12),
+		next:  bus.guestReadUint16(base + 14),
 	}
 }
 
 // readAll gathers the chain read buffers into one byte slice.
 func (c *virtioBufferChain) readAll() ([]byte, error) {
 	out := make([]byte, 0, c.lengthReadable)
-	host := c.queue.device.virtioHost()
+	bus := c.queue.device.virtioBus()
 	for _, buf := range c.readBuffers {
-		data, ok := host.guestRead(buf.addr, buf.len)
+		data, ok := bus.guestRead(buf.addr, buf.len)
 		if !ok {
 			return nil, errors.Errorf("read guest buffer at %#x", buf.addr)
 		}
@@ -616,7 +669,7 @@ func (c *virtioBufferChain) readAll() ([]byte, error) {
 func (c *virtioBufferChain) write(data []byte) uint32 {
 	// Track bytes accepted by the guest memory backing this buffer chain.
 	var written uint32
-	host := c.queue.device.virtioHost()
+	bus := c.queue.device.virtioBus()
 
 	// Scatter the response across the guest writable descriptors.
 	for _, buf := range c.writeBuffers {
@@ -624,7 +677,7 @@ func (c *virtioBufferChain) write(data []byte) uint32 {
 			break
 		}
 		n := min(len(data), int(buf.len))
-		if host.guestWrite(buf.addr, data[:n]) {
+		if bus.guestWrite(buf.addr, data[:n]) {
 			written += uint32(n) //nolint:gosec // n is bounded by the guest buffer's uint32 length.
 		}
 		data = data[n:]
@@ -634,59 +687,6 @@ func (c *virtioBufferChain) write(data []byte) uint32 {
 	c.lengthWritten += written
 
 	return written
-}
-
-// guestRead copies bytes out of guest linear memory, reporting ok=false
-// when the read is out of bounds.
-func (h *HostRuntime) guestRead(addr, size uint32) ([]byte, bool) {
-	if uint64(addr)+uint64(size) > uint64(h.guestMemorySize) {
-		return nil, false
-	}
-	data, ok := h.Module.Memory().Read(h.guestMemoryOffset+addr, size)
-	if !ok {
-		return nil, false
-	}
-	return append([]byte(nil), data...), true
-}
-
-// guestWrite copies bytes into guest linear memory, reporting success.
-func (h *HostRuntime) guestWrite(addr uint32, data []byte) bool {
-	if uint64(addr)+uint64(len(data)) > uint64(h.guestMemorySize) {
-		return false
-	}
-	return h.Module.Memory().Write(h.guestMemoryOffset+addr, data)
-}
-
-// guestReadUint16 reads one little-endian uint16 from guest memory.
-func (h *HostRuntime) guestReadUint16(addr uint32) uint16 {
-	data, ok := h.guestRead(addr, 2)
-	if !ok {
-		return 0
-	}
-	return binary.LittleEndian.Uint16(data)
-}
-
-// guestReadUint32 reads one little-endian uint32 from guest memory.
-func (h *HostRuntime) guestReadUint32(addr uint32) uint32 {
-	data, ok := h.guestRead(addr, 4)
-	if !ok {
-		return 0
-	}
-	return binary.LittleEndian.Uint32(data)
-}
-
-// guestWriteUint16 writes one little-endian uint16 to guest memory.
-func (h *HostRuntime) guestWriteUint16(addr uint32, value uint16) {
-	var data [2]byte
-	binary.LittleEndian.PutUint16(data[:], value)
-	h.guestWrite(addr, data[:])
-}
-
-// guestWriteUint32 writes one little-endian uint32 to guest memory.
-func (h *HostRuntime) guestWriteUint32(addr, value uint32) {
-	var data [4]byte
-	binary.LittleEndian.PutUint32(data[:], value)
-	h.guestWrite(addr, data[:])
 }
 
 // newVirtioV86FSPCISpace builds the device config space with its four PCI

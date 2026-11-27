@@ -22,8 +22,9 @@ const (
 type virtioHost9PDevice struct {
 	virtioCommonConfig
 
-	host *HostRuntime
-	fs   *Host9PFS
+	bus *machineBus
+	pci *pciDevice
+	fs  *Host9PFS
 
 	queue *virtioQueue
 
@@ -37,17 +38,14 @@ type virtioHost9PDevice struct {
 	queueConfigured atomic.Bool
 }
 
-// registerHost9P exposes a Host9PFS to the guest as a virtio PCI device.
-func (h *HostRuntime) registerHost9P(fs *Host9PFS) {
-	// Require a PCI bus and filesystem before exposing the virtio host9p device.
-	if h.pci == nil || fs == nil {
-		return
-	}
-
-	// Initialize the virtio host9p features and request queue.
+// newVirtioHost9PDevice builds the virtio host9p device with its features and
+// one 32-entry request queue.
+func newVirtioHost9PDevice(bus *machineBus, pci *pciDevice, fs *Host9PFS) *virtioHost9PDevice {
+	// Advertise the mount tag, indirect descriptors, event index and VERSION_1.
 	dev := &virtioHost9PDevice{
 		featuresOK: true,
-		host:       h,
+		bus:        bus,
+		pci:        pci,
 		fs:         fs,
 	}
 	dev.deviceFeatures[0] = virtioHost9PMountTagFeature | virtqDescIndirectFeature | virtqEventIdxFeature
@@ -57,8 +55,18 @@ func (h *HostRuntime) registerHost9P(fs *Host9PFS) {
 		size:          32,
 		sizeSupported: 32,
 	}
+	return dev
+}
+
+// registerHost9P exposes a Host9PFS to the guest as a virtio PCI device.
+func (h *HostRuntime) registerHost9P(fs *Host9PFS) {
+	// Require a PCI bus and filesystem before exposing the virtio host9p device.
+	if h.pci == nil || fs == nil {
+		return
+	}
 
 	// Attach the virtio host9p device and reserve its PCI I/O regions.
+	dev := newVirtioHost9PDevice(h.machineBus, h.pci, fs)
 	h.host9p = dev
 	h.pci.spaces[virtioHost9PPCIID] = newVirtioHost9PPCISpace()
 	h.pci.setBARSize(virtioHost9PPCIID, 0, 64, true)
@@ -83,8 +91,8 @@ func (d *virtioHost9PDevice) numQueues() uint32 { return 1 }
 
 // registerNotifyPorts wires the single queue notify port.
 func (d *virtioHost9PDevice) registerNotifyPorts() {
-	d.host.RegisterIORead(virtioHost9PNotifyPort, 16, func(context.Context, uint16) uint32 { return 0xffff })
-	d.host.RegisterIOWrite(virtioHost9PNotifyPort, 16, func(ctx context.Context, _ uint16, _ uint32) {
+	d.bus.RegisterIORead(virtioHost9PNotifyPort, 16, func(context.Context, uint16) uint32 { return 0xffff })
+	d.bus.RegisterIOWrite(virtioHost9PNotifyPort, 16, func(ctx context.Context, _ uint16, _ uint32) {
 		d.handleQueue(ctx)
 	})
 }
@@ -97,20 +105,20 @@ func (d *virtioHost9PDevice) registerISRPort() {
 // registerConfigPorts wires the config space carrying the mount tag.
 func (d *virtioHost9PDevice) registerConfigPorts() {
 	tag := []byte("host9p")
-	d.host.RegisterIORead(virtioHost9PConfigPort, 16, func(context.Context, uint16) uint32 {
+	d.bus.RegisterIORead(virtioHost9PConfigPort, 16, func(context.Context, uint16) uint32 {
 		return uint32(len(tag)) //nolint:gosec // the fixed host9p tag length fits the config register.
 	})
 	for i := range uint16(254) {
 		offset := i
-		d.host.RegisterIORead(virtioHost9PConfigPort+2+offset, 8, func(context.Context, uint16) uint32 {
+		d.bus.RegisterIORead(virtioHost9PConfigPort+2+offset, 8, func(context.Context, uint16) uint32 {
 			if int(offset) >= len(tag) {
 				return 0
 			}
 			return uint32(tag[offset])
 		})
-		d.host.RegisterIOWrite(virtioHost9PConfigPort+2+offset, 8, func(context.Context, uint16, uint32) {})
+		d.bus.RegisterIOWrite(virtioHost9PConfigPort+2+offset, 8, func(context.Context, uint16, uint32) {})
 	}
-	d.host.RegisterIOWrite(virtioHost9PConfigPort, 16, func(context.Context, uint16, uint32) {})
+	d.bus.RegisterIOWrite(virtioHost9PConfigPort, 16, func(context.Context, uint16, uint32) {})
 }
 
 // selectedQueue returns the single queue, or an empty queue when any other
@@ -181,18 +189,18 @@ func (d *virtioHost9PDevice) queueStats() (uint64, uint32, uint32, bool) {
 // raiseIRQ asserts the fixed ISA interrupt line with ISR bits set.
 func (d *virtioHost9PDevice) raiseIRQ(ctx context.Context, typ uint32) {
 	d.isrStatus |= typ
-	_ = d.host.raiseIRQ(ctx, virtioHost9PIRQ)
+	_ = d.bus.raiseIRQ(ctx, virtioHost9PIRQ)
 }
 
 // lowerIRQ clears the ISR state and deasserts the interrupt line.
 func (d *virtioHost9PDevice) lowerIRQ(ctx context.Context) {
 	d.isrStatus = 0
-	_ = d.host.lowerIRQ(ctx, virtioHost9PIRQ)
+	_ = d.bus.lowerIRQ(ctx, virtioHost9PIRQ)
 }
 
-// virtioHost exposes the owning host runtime to the queue machinery.
-func (d *virtioHost9PDevice) virtioHost() *HostRuntime {
-	return d.host
+// virtioBus exposes the machine bus to the queue machinery.
+func (d *virtioHost9PDevice) virtioBus() *machineBus {
+	return d.bus
 }
 
 // virtioRaiseIRQ routes queue completion interrupts through the device.

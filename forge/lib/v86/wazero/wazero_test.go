@@ -508,13 +508,7 @@ func TestHostBootOptionsKernelCmdlineDefault(t *testing.T) {
 func TestUARTSerialInputQueue(t *testing.T) {
 	// Create a HostRuntime with a COM1 input queue.
 	ctx := context.Background()
-	host := &HostRuntime{
-		ioPorts:      newIOPorts(),
-		ioReads:      make(map[uint16]uint64),
-		ioWrites:     make(map[uint16]uint64),
-		ioLastReads:  make(map[uint16]uint32),
-		ioLastWrites: make(map[uint16]uint32),
-	}
+	host := &HostRuntime{machineBus: newMachineBus()}
 	host.registerUART(0x3f8)
 
 	// Feed two bytes into the COM1 input queue.

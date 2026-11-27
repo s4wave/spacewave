@@ -11,15 +11,9 @@ import (
 func newNetworkingTestHost(t *testing.T) *HostRuntime {
 	// Create the HostRuntime with I/O tracking and PCI register state.
 	t.Helper()
-	host := &HostRuntime{
-		ioPorts:      newIOPorts(),
-		ioReads:      make(map[uint16]uint64),
-		ioWrites:     make(map[uint16]uint64),
-		ioLastReads:  make(map[uint16]uint32),
-		ioLastWrites: make(map[uint16]uint32),
-	}
+	host := &HostRuntime{machineBus: newMachineBus()}
 	host.pci = &pciDevice{
-		host:      host,
+		bus:       host.machineBus,
 		spaces:    make(map[uint16][]byte),
 		barSizes:  make(map[uint16]map[int]uint32),
 		barIO:     make(map[uint16]map[int]bool),
@@ -34,7 +28,7 @@ func newNetworkingTestHost(t *testing.T) *HostRuntime {
 }
 
 // TestRegisterNetworkingARPRoundTrip proves the wiring glue: a guest ARP request
-// for the gateway flows through SetOutbound into the stack, the stack's reply
+// for the gateway flows through the device outbound sink into the stack, the stack's reply
 // reaches the device through the inbound sink (QueueInbound), the wake channel is
 // signaled, and drainNetwork delivers the reply into the receive ring.
 func TestRegisterNetworkingARPRoundTrip(t *testing.T) {

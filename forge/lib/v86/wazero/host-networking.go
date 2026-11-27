@@ -56,7 +56,9 @@ func (c NetworkConfig) toUsernet(mac [6]byte) usernet.Config {
 // inbound sink queues host-origin frames on the device (thread-safe) and pokes
 // the wake channel so RunSerialConsole drains them on the next CPU tick instead
 // of waiting on the emulator idle timer. Guest transmits flow back out through
-// SetOutbound on the CPU goroutine.
+// the device's outbound sink on the CPU goroutine. The device and the stack
+// each hold the other's entry point, so the sink reads the stack variable,
+// which is set before the guest CPU can run.
 func (h *HostRuntime) registerNetworking(ctx context.Context, cfg NetworkConfig) {
 	// Require the Host PCI bus before attaching guest networking.
 	if h.pci == nil {
@@ -70,16 +72,18 @@ func (h *HostRuntime) registerNetworking(ctx context.Context, cfg NetworkConfig)
 	}
 
 	// Connect the guest NE2000 NIC to a usermode stack and inbound wake channel.
-	dev := h.registerNE2K(ctx, 0, mac)
+	var stack *usernet.Stack
+	dev := h.registerNE2K(ctx, 0, mac, func(frame []byte) {
+		stack.HandleOutbound(frame)
+	})
 	wake := make(chan struct{}, 1)
-	stack := usernet.New(cfg.toUsernet(mac), func(frame []byte) {
+	stack = usernet.New(cfg.toUsernet(mac), func(frame []byte) {
 		dev.QueueInbound(frame)
 		select {
 		case wake <- struct{}{}:
 		default:
 		}
 	}, cfg.Logger)
-	dev.SetOutbound(stack.HandleOutbound)
 
 	// Retain the guest NIC, network stack, and wake channel on the Host.
 	h.ne2k = dev

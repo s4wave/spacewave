@@ -5,7 +5,7 @@ import "context"
 // ps2Device models the i8042 keyboard/mouse controller: its command and data
 // registers.
 type ps2Device struct {
-	host                 *HostRuntime
+	bus                  *machineBus
 	commandRegister      uint8
 	controllerOutputPort uint8
 	readCommandRegister  bool
@@ -25,7 +25,7 @@ type ps2QueuedByte struct {
 // ports.
 func (h *HostRuntime) registerPS2() {
 	// Register the PS/2 controller data and command ports for the guest.
-	ps2 := &ps2Device{host: h, commandRegister: 1 | 4}
+	ps2 := &ps2Device{bus: h.machineBus, commandRegister: 1 | 4}
 	h.RegisterIORead(0x60, 8, func(ctx context.Context, _ uint16) uint32 {
 		return uint32(ps2.readData(ctx))
 	})
@@ -59,7 +59,7 @@ func (p *ps2Device) readData(ctx context.Context) uint8 {
 	if entry.aux {
 		irq = 12
 	}
-	_ = p.host.lowerIRQ(ctx, irq)
+	_ = p.bus.lowerIRQ(ctx, irq)
 	p.raiseIRQ(ctx)
 
 	return entry.value
@@ -170,13 +170,13 @@ func (p *ps2Device) raiseIRQ(ctx context.Context) {
 	}
 	if p.queue[0].aux {
 		if p.commandRegister&2 != 0 {
-			_ = p.host.lowerIRQ(ctx, 12)
-			_ = p.host.raiseIRQ(ctx, 12)
+			_ = p.bus.lowerIRQ(ctx, 12)
+			_ = p.bus.raiseIRQ(ctx, 12)
 		}
 		return
 	}
 	if p.commandRegister&1 != 0 {
-		_ = p.host.lowerIRQ(ctx, 1)
-		_ = p.host.raiseIRQ(ctx, 1)
+		_ = p.bus.lowerIRQ(ctx, 1)
+		_ = p.bus.raiseIRQ(ctx, 1)
 	}
 }

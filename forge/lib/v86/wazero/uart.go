@@ -26,7 +26,8 @@ const (
 // uartDevice models a 16550A UART: divisor latch, line/modem registers,
 // and input queue.
 type uartDevice struct {
-	host            *HostRuntime
+	bus             *machineBus
+	log             *serialLog
 	port            uint16
 	irq             uint32
 	ints            uint32
@@ -53,7 +54,8 @@ func (h *HostRuntime) registerUART(port uint16) {
 
 	// Initialize the UART with an empty transmitter and no active interrupt.
 	u := &uartDevice{
-		host: h,
+		bus:  h.machineBus,
+		log:  &h.serialLog,
 		port: port,
 		irq:  irq,
 		ints: 1 << uartIirTHRI,
@@ -72,14 +74,14 @@ func (h *HostRuntime) registerUART(port uint16) {
 // divisor latch ports.
 func (u *uartDevice) register() {
 	// Register UART data transfers and the low divisor latch.
-	u.host.RegisterIOWrite(u.port, 8, func(ctx context.Context, _ uint16, value uint32) {
+	u.bus.RegisterIOWrite(u.port, 8, func(ctx context.Context, _ uint16, value uint32) {
 		u.writeData(ctx, value)
 	})
-	u.host.RegisterIOWrite(u.port, 16, func(ctx context.Context, _ uint16, value uint32) {
+	u.bus.RegisterIOWrite(u.port, 16, func(ctx context.Context, _ uint16, value uint32) {
 		u.writeData(ctx, value&0xff)
 		u.writeData(ctx, value>>8)
 	})
-	u.host.RegisterIORead(u.port, 8, func(ctx context.Context, _ uint16) uint32 {
+	u.bus.RegisterIORead(u.port, 8, func(ctx context.Context, _ uint16) uint32 {
 		// Read the UART divisor latch when baud-rate programming is active.
 		if u.lineControl&uartDLAB != 0 {
 			return u.baudRate & 0xff
@@ -103,7 +105,7 @@ func (u *uartDevice) register() {
 	})
 
 	// Register the UART interrupt mask and high divisor latch.
-	u.host.RegisterIOWrite(u.port|1, 8, func(ctx context.Context, _ uint16, value uint32) {
+	u.bus.RegisterIOWrite(u.port|1, 8, func(ctx context.Context, _ uint16, value uint32) {
 		if u.lineControl&uartDLAB != 0 {
 			u.baudRate = (u.baudRate & 0xff) | (value << 8)
 			return
@@ -114,7 +116,7 @@ func (u *uartDevice) register() {
 		u.ier = value & 0xf
 		u.checkInterrupt(ctx)
 	})
-	u.host.RegisterIORead(u.port|1, 8, func(context.Context, uint16) uint32 {
+	u.bus.RegisterIORead(u.port|1, 8, func(context.Context, uint16) uint32 {
 		if u.lineControl&uartDLAB != 0 {
 			return u.baudRate >> 8
 		}
@@ -122,7 +124,7 @@ func (u *uartDevice) register() {
 	})
 
 	// Register UART interrupt acknowledgement and FIFO controls.
-	u.host.RegisterIORead(u.port|2, 8, func(ctx context.Context, _ uint16) uint32 {
+	u.bus.RegisterIORead(u.port|2, 8, func(ctx context.Context, _ uint16) uint32 {
 		ret := u.iir & 0xf
 		if u.iir == uartIirTHRI {
 			u.clearInterrupt(ctx, uartIirTHRI)
@@ -132,27 +134,27 @@ func (u *uartDevice) register() {
 		}
 		return ret
 	})
-	u.host.RegisterIOWrite(u.port|2, 8, func(_ context.Context, _ uint16, value uint32) {
+	u.bus.RegisterIOWrite(u.port|2, 8, func(_ context.Context, _ uint16, value uint32) {
 		u.fifoControl = value
 	})
 
 	// Register UART line, modem, and transmitter status controls.
-	u.host.RegisterIORead(u.port|3, 8, func(context.Context, uint16) uint32 { return u.lineControl })
-	u.host.RegisterIOWrite(u.port|3, 8, func(_ context.Context, _ uint16, value uint32) { u.lineControl = value })
-	u.host.RegisterIORead(u.port|4, 8, func(context.Context, uint16) uint32 { return u.modemControl })
-	u.host.RegisterIOWrite(u.port|4, 8, func(_ context.Context, _ uint16, value uint32) { u.modemControl = value })
-	u.host.RegisterIORead(u.port|5, 8, func(context.Context, uint16) uint32 { return u.lsr })
-	u.host.RegisterIOWrite(u.port|5, 8, func(context.Context, uint16, uint32) {})
+	u.bus.RegisterIORead(u.port|3, 8, func(context.Context, uint16) uint32 { return u.lineControl })
+	u.bus.RegisterIOWrite(u.port|3, 8, func(_ context.Context, _ uint16, value uint32) { u.lineControl = value })
+	u.bus.RegisterIORead(u.port|4, 8, func(context.Context, uint16) uint32 { return u.modemControl })
+	u.bus.RegisterIOWrite(u.port|4, 8, func(_ context.Context, _ uint16, value uint32) { u.modemControl = value })
+	u.bus.RegisterIORead(u.port|5, 8, func(context.Context, uint16) uint32 { return u.lsr })
+	u.bus.RegisterIOWrite(u.port|5, 8, func(context.Context, uint16, uint32) {})
 
 	// Register UART modem status acknowledgement and scratch storage.
-	u.host.RegisterIORead(u.port|6, 8, func(context.Context, uint16) uint32 {
+	u.bus.RegisterIORead(u.port|6, 8, func(context.Context, uint16) uint32 {
 		value := u.modemStatus
 		u.modemStatus &= 0xf0
 		return value
 	})
-	u.host.RegisterIOWrite(u.port|6, 8, func(_ context.Context, _ uint16, value uint32) { u.setModemStatus(value) })
-	u.host.RegisterIORead(u.port|7, 8, func(context.Context, uint16) uint32 { return u.scratchRegister })
-	u.host.RegisterIOWrite(u.port|7, 8, func(_ context.Context, _ uint16, value uint32) { u.scratchRegister = value })
+	u.bus.RegisterIOWrite(u.port|6, 8, func(_ context.Context, _ uint16, value uint32) { u.setModemStatus(value) })
+	u.bus.RegisterIORead(u.port|7, 8, func(context.Context, uint16) uint32 { return u.scratchRegister })
+	u.bus.RegisterIOWrite(u.port|7, 8, func(_ context.Context, _ uint16, value uint32) { u.scratchRegister = value })
 }
 
 // writeData transmits one byte: in loopback mode the byte feeds the receiver.
@@ -171,10 +173,7 @@ func (u *uartDevice) writeData(ctx context.Context, value uint32) {
 	}
 
 	// Deliver the UART output byte to the Host buffer and attached sink.
-	u.host.serialOutput = append(u.host.serialOutput, byte(value)) //nolint:gosec // UART data registers are one byte wide.
-	if u.host.serialSink != nil {
-		_, _ = u.host.serialSink.Write([]byte{byte(value)}) //nolint:gosec // UART data registers are one byte wide.
-	}
+	u.log.write(byte(value)) //nolint:gosec // UART data registers are one byte wide.
 }
 
 // receive queues an input byte and raises the data-ready interrupt.
@@ -194,19 +193,19 @@ func (u *uartDevice) checkInterrupt(ctx context.Context) {
 	switch {
 	case u.ints&(1<<uartIirCTI) != 0 && u.ier&uartIerRDI != 0:
 		u.iir = uartIirCTI
-		_ = u.host.raiseIRQ(ctx, u.irq)
+		_ = u.bus.raiseIRQ(ctx, u.irq)
 	case u.ints&(1<<uartIirRDI) != 0 && u.ier&uartIerRDI != 0:
 		u.iir = uartIirRDI
-		_ = u.host.raiseIRQ(ctx, u.irq)
+		_ = u.bus.raiseIRQ(ctx, u.irq)
 	case u.ints&(1<<uartIirTHRI) != 0 && u.ier&uartIerTHRI != 0:
 		u.iir = uartIirTHRI
-		_ = u.host.raiseIRQ(ctx, u.irq)
+		_ = u.bus.raiseIRQ(ctx, u.irq)
 	case u.ints&(1<<uartIirMSI) != 0 && u.ier&uartIerMSI != 0:
 		u.iir = uartIirMSI
-		_ = u.host.raiseIRQ(ctx, u.irq)
+		_ = u.bus.raiseIRQ(ctx, u.irq)
 	default:
 		u.iir = uartIirNoInt
-		_ = u.host.lowerIRQ(ctx, u.irq)
+		_ = u.bus.lowerIRQ(ctx, u.irq)
 	}
 }
 
@@ -229,22 +228,6 @@ func (u *uartDevice) setModemStatus(status uint32) {
 	u.modemStatus = status | delta
 }
 
-// raiseIRQ asserts a guest ISA interrupt line.
-func (h *HostRuntime) raiseIRQ(ctx context.Context, irq uint32) error {
-	if h.Module == nil {
-		return nil
-	}
-	return h.callVoid(ctx, "device_raise_irq", uint64(irq))
-}
-
-// lowerIRQ deasserts a guest ISA interrupt line.
-func (h *HostRuntime) lowerIRQ(ctx context.Context, irq uint32) error {
-	if h.Module == nil {
-		return nil
-	}
-	return h.callVoid(ctx, "device_lower_irq", uint64(irq))
-}
-
 // WriteSerialInput queues bytes received by the COM1 UART.
 func (h *HostRuntime) WriteSerialInput(ctx context.Context, data []byte) error {
 	if h.serial == nil {
@@ -258,7 +241,7 @@ func (h *HostRuntime) WriteSerialInput(ctx context.Context, data []byte) error {
 
 // SerialOutput returns bytes transmitted by the COM1 UART.
 func (h *HostRuntime) SerialOutput() []byte {
-	return append([]byte(nil), h.serialOutput...)
+	return h.serialLog.bytes()
 }
 
 // SetSerialSink installs a writer that receives each COM1 byte as the guest
@@ -266,5 +249,32 @@ func (h *HostRuntime) SerialOutput() []byte {
 // goroutine that drives MainLoop, so the sink must not call back into the
 // runtime. Pass nil to detach.
 func (h *HostRuntime) SetSerialSink(w io.Writer) {
-	h.serialSink = w
+	h.serialLog.setSink(w)
+}
+
+// serialLog is the bytes the COM1 UART transmitted and the writer that also
+// receives each one as it is sent.
+type serialLog struct {
+	// out is every byte transmitted.
+	out []byte
+	// sink receives each byte as it is transmitted, or is nil.
+	sink io.Writer
+}
+
+// write records one transmitted byte and passes it to the sink.
+func (l *serialLog) write(value byte) {
+	l.out = append(l.out, value)
+	if l.sink != nil {
+		_, _ = l.sink.Write([]byte{value})
+	}
+}
+
+// setSink replaces the writer that receives each transmitted byte.
+func (l *serialLog) setSink(w io.Writer) {
+	l.sink = w
+}
+
+// bytes returns a copy of the transmitted bytes.
+func (l *serialLog) bytes() []byte {
+	return append([]byte(nil), l.out...)
 }

@@ -45,7 +45,7 @@ const (
 // cmosDevice models the MC146818 CMOS RTC: its index/data register pair, the
 // clock, and interrupts.
 type cmosDevice struct {
-	host                  *HostRuntime
+	bus                   *machineBus
 	index                 byte
 	data                  [128]byte
 	rtcTime               int64
@@ -63,12 +63,19 @@ type cmosDevice struct {
 	nmiDisabled           byte
 }
 
+// selectIndex handles a write to the index port 0x70: the low seven bits pick
+// the register the data port reaches, and the high bit disables NMI.
+func (c *cmosDevice) selectIndex(value uint32) {
+	c.index = byte(value & 0x7f)     //nolint:gosec // CMOS index is the low 7 bits of the 8-bit hardware port.
+	c.nmiDisabled = byte(value >> 7) //nolint:gosec // the NMI flag is one hardware bit.
+}
+
 // registerCMOS seeds the CMOS from wall-clock time and wires its ports.
 func (h *HostRuntime) registerCMOS() {
 	// Seed the Host CMOS clock and default interrupt configuration.
 	now := time.Now().UnixMilli()
 	cmos := &cmosDevice{
-		host:                  h,
+		bus:                   h.machineBus,
 		rtcTime:               now,
 		lastUpdate:            now,
 		periodicInterruptTime: 1000.0 / 1024.0,
@@ -80,8 +87,7 @@ func (h *HostRuntime) registerCMOS() {
 
 	// Expose the CMOS index and data registers to the guest.
 	h.RegisterIOWrite(0x70, 8, func(_ context.Context, _ uint16, value uint32) {
-		cmos.index = byte(value & 0x7f)     //nolint:gosec // CMOS index is the low 7 bits of the 8-bit hardware port.
-		cmos.nmiDisabled = byte(value >> 7) //nolint:gosec // the NMI flag is one hardware bit.
+		cmos.selectIndex(value)
 	})
 	h.RegisterIORead(0x71, 8, func(ctx context.Context, _ uint16) uint32 {
 		return uint32(cmos.read(ctx))
@@ -150,7 +156,7 @@ func (c *cmosDevice) read(ctx context.Context) byte {
 	case cmosRTCYear:
 		return c.encodeTime(now.Year() % 100)
 	case cmosStatusA:
-		tick := c.host.microtick()
+		tick := c.bus.microtick()
 		if tick-float64(int64(tick/1000)*1000) >= 999 {
 			return c.statusA | 0x80
 		}
@@ -160,7 +166,7 @@ func (c *cmosDevice) read(ctx context.Context) byte {
 	case cmosStatusC:
 		value := c.statusC
 		c.statusC &^= 0xf0
-		_ = c.host.lowerIRQ(ctx, 8)
+		_ = c.bus.lowerIRQ(ctx, 8)
 		return value
 	case cmosStatusD:
 		return 1 << 7
@@ -248,7 +254,7 @@ func (c *cmosDevice) timer(ctx context.Context) float64 {
 
 	// Deliver the CMOS periodic interrupt and advance its deadline.
 	if c.periodicInterrupt && c.nextPeriodicInterrupt < now {
-		_ = c.host.raiseIRQ(ctx, 8)
+		_ = c.bus.raiseIRQ(ctx, 8)
 		c.statusC |= (1 << 6) | (1 << 7)
 		missed := float64(now-c.nextPeriodicInterrupt) / c.periodicInterruptTime
 		c.nextPeriodicInterrupt += int64(c.periodicInterruptTime * math.Ceil(missed))
@@ -256,14 +262,14 @@ func (c *cmosDevice) timer(ctx context.Context) float64 {
 
 	// Deliver and disarm the expired CMOS alarm.
 	if c.nextAlarmInterrupt != 0 && c.nextAlarmInterrupt < now {
-		_ = c.host.raiseIRQ(ctx, 8)
+		_ = c.bus.raiseIRQ(ctx, 8)
 		c.statusC |= (1 << 5) | (1 << 7)
 		c.nextAlarmInterrupt = 0
 	}
 
 	// Deliver the CMOS update interrupt and schedule the next second.
 	if c.updateInterrupt && c.updateInterruptTime < now {
-		_ = c.host.raiseIRQ(ctx, 8)
+		_ = c.bus.raiseIRQ(ctx, 8)
 		c.statusC |= (1 << 4) | (1 << 7)
 		c.updateInterruptTime = now + 1000
 	}

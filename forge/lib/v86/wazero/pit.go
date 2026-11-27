@@ -10,7 +10,7 @@ const pitOscillatorKHz = 1193.1816666
 // pitDevice models the Intel 8253/8254 programmable interval timer: three
 // counters.
 type pitDevice struct {
-	host              *HostRuntime
+	bus               *machineBus
 	counterStartTime  [3]float64
 	counterStartValue [3]uint16
 	counterNextLow    [4]uint8
@@ -23,25 +23,32 @@ type pitDevice struct {
 	speakerToggle     uint8
 }
 
+// readSystemControl handles a read of the system control port 0x61. Bit 4 is
+// the speaker reference toggle, which flips on every read, and bit 5 is the
+// counter-two output, or the toggle while counter two is disabled.
+func (p *pitDevice) readSystemControl() uint32 {
+	// Sample the timer outputs and emulate the speaker reference toggle.
+	now := p.bus.microtick()
+	p.speakerToggle ^= 1
+	refToggle := uint32(p.speakerToggle)
+	counter2Out := uint32(p.didRollover(2, now))
+	if p.counterEnabled[2] == 0 {
+		counter2Out = refToggle
+	}
+
+	return (refToggle << 4) | (counter2Out << 5)
+}
+
 // registerPIT wires the counter ports (0x40-0x42), the control register (0x43),
 // and the system control port (0x61).
 func (h *HostRuntime) registerPIT() {
 	// Attach the programmable interval timer to the host runtime.
-	pit := &pitDevice{host: h}
+	pit := &pitDevice{bus: h.machineBus}
 	h.pit = pit
 
 	// Expose speaker and counter-two output through the system control port.
 	h.RegisterIORead(0x61, 8, func(context.Context, uint16) uint32 {
-		// Sample the timer outputs and emulate the speaker reference toggle.
-		now := h.microtick()
-		pit.speakerToggle ^= 1
-		refToggle := uint32(pit.speakerToggle)
-		counter2Out := uint32(pit.didRollover(2, now))
-		if pit.counterEnabled[2] == 0 {
-			counter2Out = refToggle
-		}
-
-		return (refToggle << 4) | (counter2Out << 5)
+		return pit.readSystemControl()
 	})
 	h.RegisterIOWrite(0x61, 8, func(context.Context, uint16, uint32) {})
 
@@ -74,13 +81,13 @@ func (p *pitDevice) timer(ctx context.Context, now float64, noIRQ bool) float64 
 	if p.counterEnabled[0] != 0 && p.didRollover(0, now) != 0 {
 		p.counterStartValue[0] = p.counterValue(0, now)
 		p.counterStartTime[0] = now
-		_ = p.host.callVoid(ctx, "device_lower_irq", 0)
-		_ = p.host.callVoid(ctx, "device_raise_irq", 0)
+		_ = p.bus.callVoid(ctx, "device_lower_irq", 0)
+		_ = p.bus.callVoid(ctx, "device_raise_irq", 0)
 		if p.counterMode[0] == 0 {
 			p.counterEnabled[0] = 0
 		}
 	} else {
-		_ = p.host.callVoid(ctx, "device_lower_irq", 0)
+		_ = p.bus.callVoid(ctx, "device_lower_irq", 0)
 	}
 
 	// Compute the next PIT deadline from the remaining counter ticks.
@@ -112,7 +119,7 @@ func (p *pitDevice) counterRead(i int) uint8 {
 	if p.counterMode[i] == 3 {
 		p.counterNextLow[i] ^= 1
 	}
-	value := p.counterValue(i, p.host.microtick())
+	value := p.counterValue(i, p.bus.microtick())
 	if nextLow != 0 {
 		return uint8(value) //nolint:gosec // the PIT counter is a 16-bit hardware register.
 	}
@@ -134,7 +141,7 @@ func (p *pitDevice) counterWrite(i int, value uint8) {
 		}
 		p.counterStartValue[i] = p.counterReload[i]
 		p.counterEnabled[i] = 1
-		p.counterStartTime[i] = p.host.microtick()
+		p.counterStartTime[i] = p.bus.microtick()
 	}
 	if p.counterReadMode[i] == 3 {
 		p.counterNextLow[i] ^= 1
@@ -155,7 +162,7 @@ func (p *pitDevice) writeControl(ctx context.Context, value uint8) {
 	// Snapshot the selected PIT counter for a two-byte latched read.
 	if readMode == 0 {
 		p.counterLatch[i] = 2
-		counterValue := p.counterValue(i, p.host.microtick())
+		counterValue := p.counterValue(i, p.bus.microtick())
 		if counterValue != 0 {
 			counterValue--
 		}
@@ -178,7 +185,7 @@ func (p *pitDevice) writeControl(ctx context.Context, value uint8) {
 
 	// Clear counter-zero interrupt state before applying its new PIT mode.
 	if i == 0 {
-		_ = p.host.callVoid(ctx, "device_lower_irq", 0)
+		_ = p.bus.callVoid(ctx, "device_lower_irq", 0)
 	}
 	p.counterMode[i] = mode
 	p.counterReadMode[i] = readMode

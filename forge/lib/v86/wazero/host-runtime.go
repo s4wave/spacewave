@@ -2,9 +2,7 @@ package v86_wazero
 
 import (
 	"context"
-	"io"
 	"sync/atomic"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/forge/lib/v86/wazero/usernet"
@@ -20,53 +18,32 @@ const (
 	envModuleName             = "env"
 )
 
-// IOReadFunc handles a v86 IO-port read for a registered width.
-type IOReadFunc func(ctx context.Context, port uint16) uint32
-
-// IOWriteFunc handles a v86 IO-port write for a registered width.
-type IOWriteFunc func(ctx context.Context, port uint16, value uint32)
-
-// MmapReadFunc handles a v86 memory-mapped read for a registered range.
-type MmapReadFunc func(addr uint32) uint32
-
-// MmapWriteFunc handles a v86 memory-mapped write for a registered range.
-type MmapWriteFunc func(addr uint32, value uint32)
-
 // HostRuntime is an instantiated v86 wasm module and its Go-owned host surface.
 type HostRuntime struct {
+	// machineBus is the bus the devices share. It holds the v86 Module.
+	*machineBus
+
 	// Runtime owns the wazero modules instantiated for the guest.
 	Runtime wazero.Runtime
-	// Module is the instantiated v86 guest.
-	Module api.Module
 	// Report describes the guest's wasm imports and exports.
 	Report *ImportReport
 
-	started           time.Time
-	random            atomic.Uint32
-	ioPorts           []ioPort
-	ioReads           map[uint16]uint64
-	ioWrites          map[uint16]uint64
-	ioLastReads       map[uint16]uint32
-	ioLastWrites      map[uint16]uint32
-	mmapBlocks        map[uint32]mmapBlock
-	guestMemoryOffset uint32
-	guestMemorySize   uint32
-	pci               *pciDevice
-	v86fs             *virtioV86FSDevice
-	ne2k              *ne2kDevice
-	network           *usernet.Stack
-	netWake           chan struct{}
-	pit               *pitDevice
-	cmos              *cmosDevice
-	fwValue           []byte
-	fwPointer         int
-	optionROMs        []optionROM
-	serial            *uartDevice
-	serialOutput      []byte
-	serialSink        io.Writer
-	haltEvents        atomic.Uint64
-	exceptions        atomic.Uint64
-	lastException     atomic.Uint32
+	random        atomic.Uint32
+	pci           *pciDevice
+	v86fs         *virtioV86FSDevice
+	ne2k          *ne2kDevice
+	network       *usernet.Stack
+	netWake       chan struct{}
+	pit           *pitDevice
+	cmos          *cmosDevice
+	fwValue       []byte
+	fwPointer     int
+	optionROMs    []optionROM
+	serial        *uartDevice
+	serialLog     serialLog
+	haltEvents    atomic.Uint64
+	exceptions    atomic.Uint64
+	lastException atomic.Uint32
 
 	// Logs holds messages written by the guest through its wasm log callbacks.
 	Logs []string
@@ -104,15 +81,9 @@ func InstantiateHostRuntime(ctx context.Context, wasmBytes []byte, opts HostRunt
 		return nil, errors.Wrap(err, "parse v86 wasm imports")
 	}
 	host := &HostRuntime{
-		Runtime:      r,
-		Report:       report,
-		started:      time.Now(),
-		ioPorts:      newIOPorts(),
-		ioReads:      make(map[uint16]uint64),
-		ioWrites:     make(map[uint16]uint64),
-		ioLastReads:  make(map[uint16]uint32),
-		ioLastWrites: make(map[uint16]uint32),
-		mmapBlocks:   make(map[uint32]mmapBlock),
+		machineBus: newMachineBus(),
+		Runtime:    r,
+		Report:     report,
 	}
 
 	// Instantiate the shared v86 memory and table before installing host callbacks.
@@ -180,53 +151,6 @@ func (h *HostRuntime) RustInit(ctx context.Context) error {
 	return errors.Wrap(err, "call v86 rust_init")
 }
 
-// RegisterIORead installs a handler for one IO-port read width.
-func (h *HostRuntime) RegisterIORead(port uint16, width int, fn IOReadFunc) {
-	slot := &h.ioPorts[port]
-	switch width {
-	case 8:
-		slot.read8 = fn
-	case 16:
-		slot.read16 = fn
-	case 32:
-		slot.read32 = fn
-	default:
-		panic("unsupported v86 io read width")
-	}
-}
-
-// RegisterIOWrite installs a handler for one IO-port write width.
-func (h *HostRuntime) RegisterIOWrite(port uint16, width int, fn IOWriteFunc) {
-	slot := &h.ioPorts[port]
-	switch width {
-	case 8:
-		slot.write8 = fn
-	case 16:
-		slot.write16 = fn
-	case 32:
-		slot.write32 = fn
-	default:
-		panic("unsupported v86 io write width")
-	}
-}
-
-// RegisterMmap installs handlers for every v86 MMIO block touched by the range.
-func (h *HostRuntime) RegisterMmap(start, size uint32, read8 MmapReadFunc, write8 MmapWriteFunc, read32 MmapReadFunc, write32 MmapWriteFunc) {
-	if size == 0 {
-		return
-	}
-	first := start >> mmapBlockBits
-	last := (start + size - 1) >> mmapBlockBits
-	for block := first; block <= last; block++ {
-		h.mmapBlocks[block] = mmapBlock{
-			read8:   read8,
-			write8:  write8,
-			read32:  read32,
-			write32: write32,
-		}
-	}
-}
-
 // HaltEvents returns the number of CPU halt events observed by the host.
 func (h *HostRuntime) HaltEvents() uint64 {
 	return h.haltEvents.Load()
@@ -266,7 +190,7 @@ func (h *HostRuntime) callback(name string, results []api.ValueType) api.GoModul
 	return api.GoModuleFunc(func(ctx context.Context, mod api.Module, stack []uint64) {
 		switch name {
 		case "microtick":
-			stack[0] = api.EncodeF64(float64(time.Since(h.started).Microseconds()) / 1000)
+			stack[0] = api.EncodeF64(h.microtick())
 		case "get_rand_int":
 			stack[0] = api.EncodeI32(int32(h.random.Add(0x9e3779b9))) //nolint:gosec // wasm i32 uses the PRNG's low 32-bit bit pattern.
 		case "cpu_exception_hook":
@@ -370,91 +294,6 @@ func (h *HostRuntime) apicTimer(ctx context.Context, now float64) float64 {
 	return api.DecodeF64(result[0])
 }
 
-// readIO services a guest IO port read through its registered handler.
-func (h *HostRuntime) readIO(ctx context.Context, port uint32, width int) uint32 {
-	// Count the guest port read in the host I/O diagnostics.
-	if h.ioReads != nil {
-		h.ioReads[uint16(port)]++ //nolint:gosec // x86 IO port addresses are the low 16 bits of the guest port value.
-	}
-
-	// Dispatch the guest read at its requested hardware port width.
-	slot := h.ioPorts[uint16(port)] //nolint:gosec // x86 IO port addresses are the low 16 bits of the guest port value.
-	var value uint32
-	switch width {
-	case 8:
-		value = slot.read8(ctx, uint16(port)) & 0xff //nolint:gosec // the registered port is an x86 16-bit IO address.
-	case 16:
-		value = slot.read16(ctx, uint16(port)) & 0xffff //nolint:gosec // the registered port is an x86 16-bit IO address.
-	case 32:
-		value = slot.read32(ctx, uint16(port)) //nolint:gosec // the registered port is an x86 16-bit IO address.
-	default:
-		value = 0
-	}
-
-	// Retain the last guest port value for host I/O diagnostics.
-	if h.ioLastReads != nil {
-		h.ioLastReads[uint16(port)] = value //nolint:gosec // x86 IO port addresses are the low 16 bits of the guest port value.
-	}
-
-	return value
-}
-
-// writeIO services a guest IO port write through its registered handler.
-func (h *HostRuntime) writeIO(ctx context.Context, port, value uint32, width int) {
-	if h.ioWrites != nil {
-		h.ioWrites[uint16(port)]++ //nolint:gosec // x86 IO port addresses are the low 16 bits of the guest port value.
-	}
-	if h.ioLastWrites != nil {
-		h.ioLastWrites[uint16(port)] = value //nolint:gosec // x86 IO port addresses are the low 16 bits of the guest port value.
-	}
-	slot := h.ioPorts[uint16(port)] //nolint:gosec // x86 IO port addresses are the low 16 bits of the guest port value.
-	switch width {
-	case 8:
-		slot.write8(ctx, uint16(port), value&0xff) //nolint:gosec // the registered port is an x86 16-bit IO address.
-	case 16:
-		slot.write16(ctx, uint16(port), value&0xffff) //nolint:gosec // the registered port is an x86 16-bit IO address.
-	case 32:
-		slot.write32(ctx, uint16(port), value) //nolint:gosec // the registered port is an x86 16-bit IO address.
-	}
-}
-
-// readMmap services a memory-mapped device read from its registered block.
-func (h *HostRuntime) readMmap(addr uint32, width int) uint32 {
-	block := h.mmapBlocks[addr>>mmapBlockBits]
-	switch width {
-	case 8:
-		if block.read8 != nil {
-			return block.read8(addr) & 0xff
-		}
-		return 0xff
-	case 32:
-		if block.read32 != nil {
-			return block.read32(addr)
-		}
-		return 0xffffffff
-	default:
-		return 0
-	}
-}
-
-// writeMmap services a memory-mapped device write to its registered block.
-func (h *HostRuntime) writeMmap(addr, value uint32, width int) {
-	block := h.mmapBlocks[addr>>mmapBlockBits]
-	switch width {
-	case 8:
-		if block.write8 != nil {
-			block.write8(addr, value&0xff)
-		}
-	case 16:
-		h.writeMmap(addr, value&0xff, 8)
-		h.writeMmap(addr+1, value>>8, 8)
-	case 32:
-		if block.write32 != nil {
-			block.write32(addr, value)
-		}
-	}
-}
-
 // codegenFinalize notifies the guest that asynchronous code generation has
 // finished.
 func (h *HostRuntime) codegenFinalize(ctx context.Context, stack []uint64) {
@@ -487,11 +326,6 @@ func (h *HostRuntime) appendLog(mod api.Module, stack []uint64) {
 	h.Logs = append(h.Logs, string(data))
 }
 
-// microtick returns milliseconds elapsed since the runtime started.
-func (h *HostRuntime) microtick() float64 {
-	return float64(time.Since(h.started).Microseconds()) / 1000
-}
-
 // setZeroResults zeroes the return slots of an env callback invocation.
 func setZeroResults(stack []uint64, results []api.ValueType) {
 	for i, typ := range results {
@@ -504,58 +338,4 @@ func setZeroResults(stack []uint64, results []api.ValueType) {
 			stack[i] = 0
 		}
 	}
-}
-
-// ioPort holds the registered handlers for one IO port address.
-type ioPort struct {
-	read8   IOReadFunc
-	read16  IOReadFunc
-	read32  IOReadFunc
-	write8  IOWriteFunc
-	write16 IOWriteFunc
-	write32 IOWriteFunc
-}
-
-// newIOPorts builds the full 64K IO port table with empty handlers.
-func newIOPorts() []ioPort {
-	ports := make([]ioPort, 0x10000)
-	for i := range ports {
-		ports[i] = emptyIOPort()
-	}
-	return ports
-}
-
-// emptyIOPort returns open-bus handlers: reads return all ones and writes do
-// nothing.
-func emptyIOPort() ioPort {
-	return ioPort{
-		read8:   func(context.Context, uint16) uint32 { return 0xff },
-		read16:  func(context.Context, uint16) uint32 { return 0xffff },
-		read32:  func(context.Context, uint16) uint32 { return 0xffffffff },
-		write8:  func(context.Context, uint16, uint32) {},
-		write16: func(context.Context, uint16, uint32) {},
-		write32: func(context.Context, uint16, uint32) {},
-	}
-}
-
-// moveIOPorts relocates size ports from one base to another after a BAR write.
-func (h *HostRuntime) moveIOPorts(from, to uint32, size uint32) {
-	if from == to || size == 0 {
-		return
-	}
-	if uint64(from)+uint64(size) > uint64(len(h.ioPorts)) || uint64(to)+uint64(size) > uint64(len(h.ioPorts)) {
-		return
-	}
-	for i := range size {
-		h.ioPorts[to+i] = h.ioPorts[from+i]
-		h.ioPorts[from+i] = emptyIOPort()
-	}
-}
-
-// mmapBlock holds the registered handlers for one memory-mapped block.
-type mmapBlock struct {
-	read8   MmapReadFunc
-	write8  MmapWriteFunc
-	read32  MmapReadFunc
-	write32 MmapWriteFunc
 }

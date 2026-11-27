@@ -23,8 +23,8 @@ type virtioCommonConfig struct {
 type virtioCommonConfigDevice interface {
 	// commonConfig exposes the shared register state.
 	commonConfig() *virtioCommonConfig
-	// virtioHost returns the host runtime that owns the IO ports.
-	virtioHost() *HostRuntime
+	// virtioBus returns the machine bus that owns the IO ports.
+	virtioBus() *machineBus
 	// numQueues reports the value wired into the NUM_QUEUES field.
 	numQueues() uint32
 	// selectedQueue returns the queue addressed by queueSelect.
@@ -89,6 +89,41 @@ func (c *virtioCommonConfig) handleStatusWrite(
 	return value
 }
 
+// readRegister reads the shared common configuration register at offset:
+// the feature selectors and windows, the config generation, and queue_select.
+func (c *virtioCommonConfig) readRegister(offset uint16) uint32 {
+	switch offset {
+	case 0:
+		return c.deviceFeatureSelect
+	case 4:
+		return c.deviceFeatures[c.deviceFeatureSelect&3]
+	case 8:
+		return c.driverFeatureSelect
+	case 12:
+		return c.driverFeatures[c.driverFeatureSelect&3]
+	case 21:
+		return c.configGeneration
+	case 22:
+		return c.queueSelect
+	}
+	return 0
+}
+
+// writeRegister writes the shared common configuration register at offset.
+// The device feature window and the config generation are read-only.
+func (c *virtioCommonConfig) writeRegister(offset uint16, value uint32) {
+	switch offset {
+	case 0:
+		c.deviceFeatureSelect = value
+	case 8:
+		c.driverFeatureSelect = value
+	case 12:
+		c.writeDriverFeatures(value)
+	case 22:
+		c.queueSelect = value
+	}
+}
+
 // resetState clears the common configuration registers.
 func (c *virtioCommonConfig) resetState() {
 	// Restore the virtio feature selectors and advertised feature set.
@@ -105,46 +140,51 @@ func (c *virtioCommonConfig) resetState() {
 // registerVirtioCommonPorts wires the virtio common configuration structure
 // to the ISA ports at basePort.
 func registerVirtioCommonPorts(basePort uint16, dev virtioCommonConfigDevice) {
-	// Describe the virtio common registers and their device-specific accessors.
-	host := dev.virtioHost()
+	// Describe the virtio common registers. The shared configuration and the
+	// selected queue each decode their own registers, and the device answers
+	// NUM_QUEUES and STATUS writes.
+	bus := dev.virtioBus()
 	c := dev.commonConfig()
 	nop := func(context.Context, uint32) {}
-	fields := []struct {
+	constant := func(value uint32) func() uint32 {
+		return func() uint32 { return value }
+	}
+	type field struct {
 		offset uint16
 		width  int
 		read   func() uint32
 		write  func(context.Context, uint32)
-	}{
-		{0, 32, func() uint32 { return c.deviceFeatureSelect }, func(_ context.Context, value uint32) { c.deviceFeatureSelect = value }},
-		{4, 32, func() uint32 { return c.deviceFeatures[c.deviceFeatureSelect&3] }, nop},
-		{8, 32, func() uint32 { return c.driverFeatureSelect }, func(_ context.Context, value uint32) { c.driverFeatureSelect = value }},
-		{12, 32, func() uint32 { return c.driverFeatures[c.driverFeatureSelect&3] }, func(_ context.Context, value uint32) {
-			c.writeDriverFeatures(value)
-		}},
-		{16, 16, func() uint32 { return 0xffff }, nop},
+	}
+	common := func(offset uint16, width int) field {
+		return field{offset, width, func() uint32 { return c.readRegister(offset) }, func(_ context.Context, value uint32) {
+			c.writeRegister(offset, value)
+		}}
+	}
+	queue := func(offset uint16, width int) field {
+		return field{offset, width, func() uint32 { return dev.selectedQueue().readRegister(offset) }, func(_ context.Context, value uint32) {
+			dev.selectedQueue().writeRegister(offset, value)
+		}}
+	}
+	fields := []field{
+		common(0, 32),
+		common(4, 32),
+		common(8, 32),
+		common(12, 32),
+		{16, 16, constant(0xffff), nop},
 		{18, 16, dev.numQueues, nop},
 		{20, 8, func() uint32 { return c.status }, dev.applyStatus},
-		{21, 8, func() uint32 { return c.configGeneration }, nop},
-		{22, 16, func() uint32 { return c.queueSelect }, func(_ context.Context, value uint32) { c.queueSelect = value }},
-		{24, 16, func() uint32 { return dev.selectedQueue().size }, func(_ context.Context, value uint32) { dev.selectedQueue().setSize(value) }},
-		{26, 16, func() uint32 { return 0xffff }, nop},
-		{28, 16, func() uint32 {
-			if dev.selectedQueue().enabled {
-				return 1
-			}
-			return 0
-		}, func(_ context.Context, value uint32) {
-			if value == 1 && dev.selectedQueue().canEnable() {
-				dev.selectedQueue().enabled = true
-			}
-		}},
-		{30, 16, func() uint32 { return dev.selectedQueue().notifyOffset }, nop},
-		{32, 32, func() uint32 { return dev.selectedQueue().descAddr }, func(_ context.Context, value uint32) { dev.selectedQueue().descAddr = value }},
-		{36, 32, func() uint32 { return 0 }, nop},
-		{40, 32, func() uint32 { return dev.selectedQueue().availAddr }, func(_ context.Context, value uint32) { dev.selectedQueue().availAddr = value }},
-		{44, 32, func() uint32 { return 0 }, nop},
-		{48, 32, func() uint32 { return dev.selectedQueue().usedAddr }, func(_ context.Context, value uint32) { dev.selectedQueue().usedAddr = value }},
-		{52, 32, func() uint32 { return 0 }, nop},
+		common(21, 8),
+		common(22, 16),
+		queue(24, 16),
+		{26, 16, constant(0xffff), nop},
+		queue(28, 16),
+		queue(30, 16),
+		queue(32, 32),
+		{36, 32, constant(0), nop},
+		queue(40, 32),
+		{44, 32, constant(0), nop},
+		queue(48, 32),
+		{52, 32, constant(0), nop},
 	}
 
 	// Register the virtio common fields with their supported I/O access widths.
@@ -152,26 +192,26 @@ func registerVirtioCommonPorts(basePort uint16, dev virtioCommonConfigDevice) {
 		port := basePort + field.offset
 		switch field.width {
 		case 8:
-			host.RegisterIORead(port, 8, func(context.Context, uint16) uint32 { return field.read() & 0xff })
-			host.RegisterIOWrite(port, 8, func(ctx context.Context, _ uint16, value uint32) { field.write(ctx, value&0xff) })
+			bus.RegisterIORead(port, 8, func(context.Context, uint16) uint32 { return field.read() & 0xff })
+			bus.RegisterIOWrite(port, 8, func(ctx context.Context, _ uint16, value uint32) { field.write(ctx, value&0xff) })
 		case 16:
-			host.RegisterIORead(port, 16, func(context.Context, uint16) uint32 { return field.read() & 0xffff })
-			host.RegisterIORead(port, 8, func(_ context.Context, p uint16) uint32 {
+			bus.RegisterIORead(port, 16, func(context.Context, uint16) uint32 { return field.read() & 0xffff })
+			bus.RegisterIORead(port, 8, func(_ context.Context, p uint16) uint32 {
 				return (field.read() >> ((p - port) * 8)) & 0xff
 			})
-			host.RegisterIORead(port+1, 8, func(_ context.Context, p uint16) uint32 {
+			bus.RegisterIORead(port+1, 8, func(_ context.Context, p uint16) uint32 {
 				return (field.read() >> ((p - port) * 8)) & 0xff
 			})
-			host.RegisterIOWrite(port, 16, func(ctx context.Context, _ uint16, value uint32) { field.write(ctx, value&0xffff) })
+			bus.RegisterIOWrite(port, 16, func(ctx context.Context, _ uint16, value uint32) { field.write(ctx, value&0xffff) })
 		case 32:
-			host.RegisterIORead(port, 32, func(context.Context, uint16) uint32 { return field.read() })
+			bus.RegisterIORead(port, 32, func(context.Context, uint16) uint32 { return field.read() })
 			for i := range uint16(4) {
 				offset := i
-				host.RegisterIORead(port+offset, 8, func(context.Context, uint16) uint32 {
+				bus.RegisterIORead(port+offset, 8, func(context.Context, uint16) uint32 {
 					return (field.read() >> (offset * 8)) & 0xff
 				})
 			}
-			host.RegisterIOWrite(port, 32, func(ctx context.Context, _ uint16, value uint32) { field.write(ctx, value) })
+			bus.RegisterIOWrite(port, 32, func(ctx context.Context, _ uint16, value uint32) { field.write(ctx, value) })
 		}
 	}
 }
@@ -179,12 +219,12 @@ func registerVirtioCommonPorts(basePort uint16, dev virtioCommonConfigDevice) {
 // registerVirtioISRPort wires the ISR status port at port. Reading it returns
 // the pending ISR flags and lowers the interrupt line.
 func registerVirtioISRPort(port uint16, dev virtioCommonConfigDevice) {
-	host := dev.virtioHost()
+	bus := dev.virtioBus()
 	c := dev.commonConfig()
-	host.RegisterIORead(port, 8, func(ctx context.Context, _ uint16) uint32 {
+	bus.RegisterIORead(port, 8, func(ctx context.Context, _ uint16) uint32 {
 		value := c.isrStatus
 		dev.lowerIRQ(ctx)
 		return value
 	})
-	host.RegisterIOWrite(port, 8, func(context.Context, uint16, uint32) {})
+	bus.RegisterIOWrite(port, 8, func(context.Context, uint16, uint32) {})
 }

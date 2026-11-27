@@ -131,9 +131,9 @@ func TestNE2KTransmitOutboundAndIRQGating(t *testing.T) {
 	// Capture the NE2K outbound callback for the prepared ring frame.
 	copy(dev.memory[ne2kStartPage<<8:], frame)
 	var sent []byte
-	dev.SetOutbound(func(frame []byte) {
+	dev.outbound = func(frame []byte) {
 		sent = append([]byte(nil), frame...)
-	})
+	}
 
 	// Transmit the ring frame with NE2K transmit interrupts enabled.
 	host.writeIO(ctx, uint32(dev.port+en0TPSR), ne2kStartPage, 8)
@@ -388,15 +388,9 @@ func newNE2KTestDevice(t *testing.T) (*HostRuntime, *ne2kDevice) {
 	// Create a HostRuntime with I/O tracking and PCI register state.
 	t.Helper()
 	ctx := context.Background()
-	host := &HostRuntime{
-		ioPorts:      newIOPorts(),
-		ioReads:      make(map[uint16]uint64),
-		ioWrites:     make(map[uint16]uint64),
-		ioLastReads:  make(map[uint16]uint32),
-		ioLastWrites: make(map[uint16]uint32),
-	}
+	host := &HostRuntime{machineBus: newMachineBus()}
 	host.pci = &pciDevice{
-		host:      host,
+		bus:       host.machineBus,
 		spaces:    make(map[uint16][]byte),
 		barSizes:  make(map[uint16]map[int]uint32),
 		barIO:     make(map[uint16]map[int]bool),
@@ -404,7 +398,7 @@ func newNE2KTestDevice(t *testing.T) (*HostRuntime, *ne2kDevice) {
 	}
 
 	// Register the NE2K device on the test host.
-	dev := newNE2KDevice(host, 0, [6]byte{0x02, 0x22, 0x15, 0x00, 0x00, 0x01})
+	dev := newNE2KDevice(host.machineBus, host.pci, 0, [6]byte{0x02, 0x22, 0x15, 0x00, 0x00, 0x01}, nil)
 	if err := dev.register(ctx); err != nil {
 		t.Fatalf("register NE2K: %v", err)
 	}

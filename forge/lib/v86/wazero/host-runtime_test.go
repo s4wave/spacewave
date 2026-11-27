@@ -7,7 +7,7 @@ import (
 
 func TestHostRuntimeIODispatch(t *testing.T) {
 	// Create a HostRuntime with an empty I/O port registry.
-	host := &HostRuntime{ioPorts: newIOPorts()}
+	host := &HostRuntime{machineBus: newMachineBus()}
 	ctx := context.Background()
 
 	// Verify unregistered I/O reads return all bits set at each width.
@@ -53,7 +53,7 @@ func TestHostRuntimeIODispatch(t *testing.T) {
 
 func TestHostRuntimeMmapDispatch(t *testing.T) {
 	// Create a HostRuntime with an empty memory-mapped I/O registry.
-	host := &HostRuntime{mmapBlocks: make(map[uint32]mmapBlock)}
+	host := &HostRuntime{machineBus: newMachineBus()}
 
 	// Verify unregistered memory-mapped reads return all bits set.
 	if got := host.readMmap(0xf0000000, 8); got != 0xff {

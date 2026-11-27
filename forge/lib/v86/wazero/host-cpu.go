@@ -167,10 +167,12 @@ func (h *HostRuntime) createMemory(ctx context.Context, opts HostBootOptions) er
 // loadBIOS copies the BIOS image to end at 1 MiB and the optional VGA BIOS to
 // 0xc0000 in guest memory.
 func (h *HostRuntime) loadBIOS(ctx context.Context, bios []byte, vgaBIOS []byte) error {
+	// Place the BIOS so its last byte sits just below 1 MiB.
 	if len(bios) > 0x100000 {
 		return errors.Errorf("BIOS image too large for v86 low memory window: %d bytes", len(bios))
 	}
-	if err := h.writeGuestBlob(ctx, uint32(0x100000-len(bios)), bios); err != nil { //nolint:gosec // the preceding 1 MiB BIOS bound makes the offset non-negative and uint32-sized.
+	biosOffset := uint32(0x100000 - len(bios)) //nolint:gosec // the preceding 1 MiB BIOS bound makes the offset non-negative and uint32-sized.
+	if err := h.writeGuestBlob(ctx, biosOffset, bios); err != nil {
 		return errors.Wrap(err, "write BIOS")
 	}
 	if len(vgaBIOS) != 0 {
@@ -205,35 +207,6 @@ func (h *HostRuntime) writeGuestBlob(ctx context.Context, guestOffset uint32, da
 	}
 
 	return nil
-}
-
-// callVoid invokes an exported no-result function by name with uint64 args.
-func (h *HostRuntime) callVoid(ctx context.Context, name string, args ...uint64) error {
-	results, err := h.call(ctx, name, args...)
-	if err != nil {
-		return err
-	}
-	if len(results) != 0 {
-		return errors.Errorf("v86 %s returned %d results, want none", name, len(results))
-	}
-	return nil
-}
-
-// call invokes an exported function by name and returns its first result.
-func (h *HostRuntime) call(ctx context.Context, name string, args ...uint64) ([]uint64, error) {
-	// Resolve the requested v86 wasm export.
-	fn := h.Module.ExportedFunction(name)
-	if fn == nil {
-		return nil, errors.Errorf("v86 wasm does not export %s", name)
-	}
-
-	// Invoke the v86 export with its arguments and preserve error context.
-	results, err := fn.Call(ctx, args...)
-	if err != nil {
-		return nil, errors.Wrapf(err, "call v86 %s", name)
-	}
-
-	return results, nil
 }
 
 // alignGuestMemorySize rounds a memory size up to the guest page multiple.
