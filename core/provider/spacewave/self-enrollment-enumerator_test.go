@@ -216,6 +216,7 @@ func TestSelfEnrollmentSummaryRefreshesOnCacheWrite(t *testing.T) {
 	// Build an account with a pending missing-cache entry.
 	priv, sessionPID, _ := generateEntityKey(t)
 	acc := newSelfEnrollmentSummaryTestAccount(t, priv, sessionPID.String())
+	acc.soListCtr.SetValue(&sobject.SharedObjectList{})
 	acc.cacheSharedObjectListEntry(selfEnrollmentListEntry("needs"))
 
 	// The initial summary must report the pending entry.
@@ -236,6 +237,7 @@ func TestSelfEnrollmentSummaryRefreshesOnSessionPeerChange(t *testing.T) {
 	// Build an account with a pending entry and capture its summary.
 	priv, sessionPID, _ := generateEntityKey(t)
 	acc := newSelfEnrollmentSummaryTestAccount(t, priv, sessionPID.String())
+	acc.soListCtr.SetValue(&sobject.SharedObjectList{})
 	acc.cacheSharedObjectListEntry(selfEnrollmentListEntry("needs"))
 	writeSelfEnrollmentCache(t, acc, "needs", "acct-1", "", sobject.SOParticipantRole_SOParticipantRole_READER)
 	first := waitSelfEnrollmentSummary(t, acc, "generation key", func(got *SelfEnrollmentSummary) bool {
@@ -257,6 +259,7 @@ func TestSelfEnrollmentSummaryClearsWhenPeerEnrolled(t *testing.T) {
 	// Build an account with a pending entry before enrollment.
 	priv, sessionPID, _ := generateEntityKey(t)
 	acc := newSelfEnrollmentSummaryTestAccount(t, priv, sessionPID.String())
+	acc.soListCtr.SetValue(&sobject.SharedObjectList{})
 	acc.cacheSharedObjectListEntry(selfEnrollmentListEntry("needs"))
 	writeSelfEnrollmentCache(t, acc, "needs", "acct-1", "", sobject.SOParticipantRole_SOParticipantRole_READER)
 	waitSelfEnrollmentSummary(t, acc, "one pending entry", func(got *SelfEnrollmentSummary) bool {

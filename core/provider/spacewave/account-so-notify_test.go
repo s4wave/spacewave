@@ -18,6 +18,7 @@ func TestHandleAccountSONotifyMetadataAppliesCaches(t *testing.T) {
 	if err != nil {
 		t.Fatalf("build old metadata: %v", err)
 	}
+	acc.soListCtr.SetValue(&sobject.SharedObjectList{})
 	acc.cacheSharedObjectListEntry(&sobject.SharedObjectListEntry{
 		Ref:    acc.buildSharedObjectRef("so-1"),
 		Meta:   meta,
@@ -62,6 +63,7 @@ func TestHandleAccountSONotifyDeleteRemovesCaches(t *testing.T) {
 	if err != nil {
 		t.Fatalf("build old metadata: %v", err)
 	}
+	acc.soListCtr.SetValue(&sobject.SharedObjectList{})
 	acc.cacheSharedObjectListEntry(&sobject.SharedObjectListEntry{
 		Ref:    acc.buildSharedObjectRef("so-1"),
 		Meta:   meta,
@@ -98,6 +100,7 @@ func TestHandleAccountSONotifyStateEventKeepsKnownCaches(t *testing.T) {
 	if err != nil {
 		t.Fatalf("build shared object metadata: %v", err)
 	}
+	acc.soListCtr.SetValue(&sobject.SharedObjectList{})
 	acc.cacheSharedObjectListEntry(&sobject.SharedObjectListEntry{
 		Ref:    acc.buildSharedObjectRef("so-1"),
 		Meta:   meta,
@@ -163,6 +166,7 @@ func TestHandleAccountSONotifyAccessChangedInvalidatesList(t *testing.T) {
 	if err != nil {
 		t.Fatalf("build shared object metadata: %v", err)
 	}
+	acc.soListCtr.SetValue(&sobject.SharedObjectList{})
 	acc.cacheSharedObjectListEntry(&sobject.SharedObjectListEntry{
 		Ref:    acc.buildSharedObjectRef("so-1"),
 		Meta:   meta,
@@ -196,6 +200,7 @@ func TestHandleAccountSONotifyAccessChangedSettlesCreatedEntry(t *testing.T) {
 	if err != nil {
 		t.Fatalf("build shared object metadata: %v", err)
 	}
+	acc.soListCtr.SetValue(&sobject.SharedObjectList{})
 	acc.cacheSharedObjectListEntry(&sobject.SharedObjectListEntry{
 		Ref:    acc.buildSharedObjectRef("so-1"),
 		Meta:   meta,
@@ -208,7 +213,7 @@ func TestHandleAccountSONotifyAccessChangedSettlesCreatedEntry(t *testing.T) {
 	})
 
 	// A cloud snapshot without the object now drops it.
-	merged := mergeSharedObjectListSnapshot(&sobject.SharedObjectList{}, acc.soListCtr.GetValue())
+	merged := acc.soCreated.merge(&sobject.SharedObjectList{}, acc.soListCtr.GetValue(), 0)
 	if n := len(merged.GetSharedObjects()); n != 0 {
 		t.Fatalf("expected the created entry to leave with the snapshot, got %d entries", n)
 	}

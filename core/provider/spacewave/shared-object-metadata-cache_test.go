@@ -324,6 +324,7 @@ func TestUpdateSharedObjectMetadataSeedsCache(t *testing.T) {
 	if err != nil {
 		t.Fatalf("build old metadata: %v", err)
 	}
+	acc.soListCtr.SetValue(&sobject.SharedObjectList{})
 	acc.cacheSharedObjectListEntry(&sobject.SharedObjectListEntry{
 		Ref:    acc.buildSharedObjectRef("so-1"),
 		Meta:   oldMeta,

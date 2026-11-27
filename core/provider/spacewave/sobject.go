@@ -565,8 +565,12 @@ func (a *ProviderAccount) buildSharedObjectRef(id string) *sobject.SharedObjectR
 	return sobject.NewSharedObjectRef(providerID, providerAccountID, id, blockStoreID)
 }
 
-// cacheSharedObjectListEntry ensures the cached shared object list contains the
-// given entry before the next full refresh arrives from the cloud.
+// cacheSharedObjectListEntry adds entry to the loaded catalog, or updates the
+// entry with its ID, before the next full refresh arrives from the cloud. A
+// created entry stays until a snapshot taken after its create decides it
+// (createdSharedObjects). Before the catalog loads it writes nothing: nil
+// means loading, and a one-entry list would claim the catalog complete. The
+// first snapshot lists the entry once the cloud holds it.
 func (a *ProviderAccount) cacheSharedObjectListEntry(
 	entry *sobject.SharedObjectListEntry,
 ) {
@@ -579,13 +583,20 @@ func (a *ProviderAccount) cacheSharedObjectListEntry(
 		return
 	}
 
+	// Number a create after the cloud's reply, before the cache write.
+	var seq uint64
+	if entry.GetSource() == "created" {
+		seq = a.soCreated.seq.Add(1)
+	}
+
 	// Update the cached entry in place or append it.
 	a.soListCtr.SwapValue(func(list *sobject.SharedObjectList) *sobject.SharedObjectList {
-		// Start a list for the first entry.
+		// Leave a catalog that has not loaded.
 		if list == nil {
-			return &sobject.SharedObjectList{
-				SharedObjects: []*sobject.SharedObjectListEntry{entry.CloneVT()},
-			}
+			return nil
+		}
+		if seq != 0 {
+			a.soCreated.add(soID, seq)
 		}
 
 		// Merge into an existing entry with the same ID.
@@ -649,6 +660,8 @@ func (a *ProviderAccount) RemoveSharedObjectListEntry(
 		return entry.GetRef().GetProviderResourceRef().GetId() == soID
 	}
 	a.soListCtr.SwapValue(func(list *sobject.SharedObjectList) *sobject.SharedObjectList {
+		// Forget the create's number, then drop any entry.
+		delete(a.soCreated.entries, soID)
 		if !slices.ContainsFunc(list.GetSharedObjects(), match) {
 			return list
 		}
@@ -663,6 +676,8 @@ func (a *ProviderAccount) RemoveSharedObjectListEntry(
 // cached entry, so the next cloud list snapshot decides whether it stays.
 func (a *ProviderAccount) settleCreatedSharedObjectListEntry(soID string) {
 	a.soListCtr.SwapValue(func(list *sobject.SharedObjectList) *sobject.SharedObjectList {
+		// Forget the create's number, then clear the created source.
+		delete(a.soCreated.entries, soID)
 		for i, entry := range list.GetSharedObjects() {
 			if entry.GetRef().GetProviderResourceRef().GetId() != soID || entry.GetSource() != "created" {
 				continue
@@ -793,11 +808,13 @@ func (a *ProviderAccount) HasCachedSharedObject(soID string) bool {
 // fetchSharedObjectList fetches the shared object list from the server and
 // updates the persistent container.
 func (a *ProviderAccount) fetchSharedObjectList(ctx context.Context) error {
-	// Fetch and decode the cloud list.
+	// Fetch and decode the cloud list, reading the create counter first so
+	// the merge knows which creates the snapshot may predate.
 	cli := a.currentSessionClient()
 	if cli == nil {
 		return errors.New("Session is not available to list shared objects")
 	}
+	since := a.soCreated.seq.Load()
 	listData, err := cli.ListSharedObjects(ctx)
 	if err != nil {
 		return err
@@ -807,9 +824,11 @@ func (a *ProviderAccount) fetchSharedObjectList(ctx context.Context) error {
 		return err
 	}
 
-	// Store it, keeping created entries the snapshot does not list yet, and
-	// mark cached metadata the snapshot shows changed as stale.
-	a.soListCtr.SetValue(mergeSharedObjectListSnapshot(list, a.soListCtr.GetValue()))
+	// Store it, keeping created entries the snapshot may predate, and mark
+	// cached metadata the snapshot shows changed as stale.
+	a.soListCtr.SwapValue(func(cached *sobject.SharedObjectList) *sobject.SharedObjectList {
+		return a.soCreated.merge(list, cached, since)
+	})
 	a.selfEnrollmentRefresh.Trigger()
 	a.reconcileSharedObjectMetadata(list)
 	return nil
@@ -832,41 +851,6 @@ func DecodeSharedObjectList(data []byte, providerID string) (*sobject.SharedObje
 		}
 	}
 	return list, nil
-}
-
-// mergeSharedObjectListSnapshot returns snapshot with the created entries of
-// cached that snapshot does not list yet.
-func mergeSharedObjectListSnapshot(
-	snapshot *sobject.SharedObjectList,
-	cached *sobject.SharedObjectList,
-) *sobject.SharedObjectList {
-	// Copy the snapshot and index its IDs.
-	if cached == nil {
-		return snapshot
-	}
-	next := snapshot.CloneVT()
-	if next == nil {
-		next = &sobject.SharedObjectList{}
-	}
-	seen := make(map[string]bool, len(next.GetSharedObjects()))
-	for _, entry := range next.GetSharedObjects() {
-		soID := entry.GetRef().GetProviderResourceRef().GetId()
-		if soID != "" {
-			seen[soID] = true
-		}
-	}
-	for _, entry := range cached.GetSharedObjects() {
-		if entry.GetSource() != "created" {
-			continue
-		}
-		soID := entry.GetRef().GetProviderResourceRef().GetId()
-		if soID == "" || seen[soID] {
-			continue
-		}
-		next.SharedObjects = append(next.SharedObjects, entry.CloneVT())
-		seen[soID] = true
-	}
-	return next
 }
 
 // SobjectBlockStoreID returns the block store ID for a shared object.

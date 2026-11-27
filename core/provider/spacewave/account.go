@@ -86,6 +86,8 @@ type ProviderAccount struct {
 	wsTracker *wsTracker
 	// soLookup holds catalog-miss lookups apart from soListCtr, guarded by accountBcast.
 	soLookup sharedObjectLookups
+	// soCreated orders created catalog entries against snapshots.
+	soCreated createdSharedObjects
 	// soListCtr is the persistent shared object list container.
 	soListCtr *ccontainer.CContainer[*sobject.SharedObjectList]
 	// soListRc coordinates SO list fetches so all callers share one invalidatable path.

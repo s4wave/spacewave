@@ -319,6 +319,7 @@ func TestDeleteSharedObjectRemovesMetadataAndListCaches(t *testing.T) {
 	if err != nil {
 		t.Fatalf("build shared object metadata: %v", err)
 	}
+	acc.soListCtr.SetValue(&sobject.SharedObjectList{})
 	acc.cacheSharedObjectListEntry(&sobject.SharedObjectListEntry{
 		Ref:    acc.buildSharedObjectRef(soID),
 		Meta:   meta,
@@ -379,43 +380,85 @@ func TestCreateSharedObjectDeletesUninitializedObject(t *testing.T) {
 	}
 }
 
-// TestFetchSharedObjectListPreservesCreatedCacheEntry retains locally created entries during list refresh.
-func TestFetchSharedObjectListPreservesCreatedCacheEntry(t *testing.T) {
+// TestFetchSharedObjectListSettlesCreatedEntry keeps a created entry through a
+// snapshot that may predate its create, and drops it at the first snapshot
+// taken after the create that omits it, as when the account lost the Space
+// while its notification was missed. It also checks that a create before the
+// catalog loads leaves the catalog loading.
+func TestFetchSharedObjectListSettlesCreatedEntry(t *testing.T) {
+	// Serve empty lists, holding each reply until the test releases it.
 	const soID = "so-created"
+	received := make(chan struct{})
+	release := make(chan struct{})
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/sobject/list" {
-			t.Fatalf("unexpected path: %s", r.URL.Path)
+			t.Errorf("unexpected path: %s", r.URL.Path)
+			return
 		}
+		received <- struct{}{}
+		<-release
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write(mustMarshalVT(t, &sobject.SharedObjectList{}))
 	}))
 	defer srv.Close()
-
 	acc := NewTestProviderAccount(t, srv.URL)
 	acc.syncSharedObjectListAccess(s4wave_provider_spacewave.BillingStatus_BillingStatus_ACTIVE)
 	meta, err := space.NewSharedObjectMeta("Created Space")
 	if err != nil {
 		t.Fatalf("NewSharedObjectMeta: %v", err)
 	}
-	acc.cacheSharedObjectListEntry(&sobject.SharedObjectListEntry{
+	created := &sobject.SharedObjectListEntry{
 		Ref:    acc.buildSharedObjectRef(soID),
 		Meta:   meta,
 		Source: "created",
-	})
+	}
 
-	if err := acc.fetchSharedObjectList(context.Background()); err != nil {
-		t.Fatalf("fetchSharedObjectList: %v", err)
+	// fetch starts a list fetch and returns once the server holds its request.
+	fetch := func() <-chan error {
+		done := make(chan error, 1)
+		go func() { done <- acc.fetchSharedObjectList(context.Background()) }()
+		<-received
+		return done
 	}
-	list := acc.soListCtr.GetValue()
-	if list == nil || len(list.GetSharedObjects()) != 1 {
-		t.Fatalf("expected created shared object preserved, got %#v", list)
+	// finish releases the held reply and waits for the fetch to store it.
+	finish := func(done <-chan error) {
+		t.Helper()
+		release <- struct{}{}
+		if err := <-done; err != nil {
+			t.Fatalf("fetchSharedObjectList: %v", err)
+		}
 	}
-	entry := list.GetSharedObjects()[0]
-	if got := entry.GetRef().GetProviderResourceRef().GetId(); got != soID {
-		t.Fatalf("expected cached SO id %q, got %q", soID, got)
+	// cached reports whether the catalog holds soID.
+	cached := func() bool {
+		return acc.HasCachedSharedObject(soID)
 	}
-	if got := entry.GetSource(); got != "created" {
+
+	// A create before the catalog loads leaves it loading.
+	acc.cacheSharedObjectListEntry(created)
+	if list := acc.soListCtr.GetValue(); list != nil {
+		t.Fatalf("expected the catalog to stay loading, got %#v", list)
+	}
+	finish(fetch())
+
+	// A snapshot requested before the create keeps the created entry.
+	done := fetch()
+	acc.cacheSharedObjectListEntry(created)
+	finish(done)
+	if !cached() {
+		t.Fatal("expected the created entry kept through a snapshot that predates it")
+	}
+	if got := acc.soListCtr.GetValue().GetSharedObjects()[0].GetSource(); got != "created" {
 		t.Fatalf("expected source created, got %q", got)
+	}
+
+	// The first snapshot requested after the create decides, with no
+	// notification: omitting the Space drops it.
+	finish(fetch())
+	if cached() {
+		t.Fatal("expected a snapshot taken after the create to drop the omitted entry")
+	}
+	if n := len(acc.soCreated.entries); n != 0 {
+		t.Fatalf("expected no created entries retained, got %d", n)
 	}
 }
 
