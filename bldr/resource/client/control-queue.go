@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/util/broadcast"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/bldr/resource"
 )
 
@@ -36,6 +37,16 @@ func newResourceControlQueue(
 	}
 	go q.run()
 	return q
+}
+
+// waitInit waits for the initial control write or generation cancellation.
+func (q *resourceControlQueue) waitInit(ctx context.Context) error {
+	select {
+	case err := <-q.firstSent:
+		return errors.Wrap(err, "send resource client init")
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 func (q *resourceControlQueue) enqueue(req *resource.ResourceClientRequest) bool {

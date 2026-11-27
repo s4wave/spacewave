@@ -82,15 +82,9 @@ func NewClient(ctx context.Context, service resource.SRPCResourceServiceClient) 
 		clientCancel()
 		return nil, errors.New("resource client control queue closed before init")
 	}
-	select {
-	case err := <-controls.firstSent:
-		if err != nil {
-			clientCancel()
-			return nil, pkgerrors.Wrap(err, "send resource client init")
-		}
-	case <-clientCtx.Done():
+	if err := controls.waitInit(clientCtx); err != nil {
 		clientCancel()
-		return nil, clientCtx.Err()
+		return nil, err
 	}
 
 	// Receive and validate the matching generation identity.

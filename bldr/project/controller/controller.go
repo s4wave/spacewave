@@ -428,11 +428,10 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 	// Reconfigure and run the frontend with the current configuration.
 	if c.frontend != nil {
-		if err := c.frontend.configure(c.GetConfig()); err != nil {
+		if err := c.frontend.start(ctx, c.GetConfig()); err != nil {
 			c.lifecycleMtx.Unlock()
 			return err
 		}
-		c.frontend.run.SetContext(ctx, true)
 	}
 
 	// Keyed routines retain ctx after Execute returns.

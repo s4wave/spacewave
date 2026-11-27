@@ -86,12 +86,10 @@ func NewRepositoryCompiler(ctx context.Context, le *logrus.Entry, b bus.Bus, sou
 	}
 
 	// Retain only the configuration needed by this build, without starting esbuild.
-	target, err := NewCompiler(le, b, source, dependencies, conf)
-	if err != nil {
+	if err := conf.Validate(); err != nil {
 		return nil, err
 	}
-	target.repository = plugin.CloneVT()
-	return target, nil
+	return &Compiler{le: le, bus: b, source: source, dependencies: dependencies, config: conf, repository: plugin.CloneVT()}, nil
 }
 
 // BuildManifest compiles once and returns the committed manifest and source

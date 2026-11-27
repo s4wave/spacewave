@@ -80,6 +80,18 @@ func newFrontendService(le *logrus.Entry, b bus.Bus) *FrontendService {
 	return f
 }
 
+// start configures the frontend and binds its compiler to the controller context.
+func (f *FrontendService) start(ctx context.Context, conf *Config) error {
+	// Validate and apply configuration before starting the compiler.
+	if err := f.configure(conf); err != nil {
+		return err
+	}
+
+	// Retain the controller context for the configured environment.
+	f.run.SetContext(ctx, true)
+	return nil
+}
+
 // configure replaces the graph only when its configured inputs change.
 func (f *FrontendService) configure(cc *Config) error {
 	// Build the compiler configuration from the project's JS manifests.

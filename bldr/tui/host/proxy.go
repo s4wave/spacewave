@@ -88,6 +88,21 @@ func startUnixProxyWithDial(
 	return proxy, nil
 }
 
+// waitHostEvent waits for loader readiness, child exit, cancellation, or proxy failure.
+// ready and exited identify host events; neither means cancellation or proxy completion.
+func (p *unixProxy) waitHostEvent(ctx context.Context, readyResult, waitResult <-chan error) (ready, exited, canceled bool, err error) {
+	select {
+	case err := <-readyResult:
+		return true, false, false, err
+	case err := <-waitResult:
+		return false, true, false, err
+	case <-ctx.Done():
+		return false, false, true, nil
+	case err := <-p.done:
+		return false, false, false, err
+	}
+}
+
 func (p *unixProxy) endpoint() string {
 	return "unix://" + p.path
 }

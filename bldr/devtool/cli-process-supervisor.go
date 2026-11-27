@@ -83,9 +83,17 @@ func (s *cliSubprocessSupervisor) startCommand(cmd *exec.Cmd) error {
 	return nil
 }
 
-// wait returns the channel delivering the subprocess exit error.
-func (s *cliSubprocessSupervisor) wait() <-chan error {
-	return s.done
+// wait waits for process exit, a manifest rebuild, or caller cancellation.
+// exited and rebuilt identify the selected event; neither means cancellation.
+func (s *cliSubprocessSupervisor) wait(ctx context.Context, rebuild <-chan error) (exited, rebuilt bool, err error) {
+	select {
+	case err := <-s.done:
+		return true, false, err
+	case err := <-rebuild:
+		return false, true, err
+	case <-ctx.Done():
+		return false, false, ctx.Err()
+	}
 }
 
 // terminate stops the subprocess, escalating to kill after the kill

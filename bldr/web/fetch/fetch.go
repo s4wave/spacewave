@@ -4,7 +4,6 @@ import (
 	context "context"
 	"io"
 	"net/http"
-	"runtime/trace"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -76,19 +75,8 @@ func HandleFetch(
 	// construct response writer
 	rw := NewFetchResponseWriter(strm)
 
-	// Trace the complete handler window and propagate its task to downstream work.
-	var handlerTask *trace.Task
-	if trace.IsEnabled() {
-		handlerCtx, task := trace.NewTask(httpRequest.Context(), "bldr/web/fetch/serve-http")
-		handlerTask = task
-		rw.traceCtx = handlerCtx
-		httpRequest = httpRequest.WithContext(handlerCtx)
-	}
-	err = serveFetchHTTP(rw, httpRequest, handler)
-	if handlerTask != nil {
-		handlerTask.End()
-	}
-	if err != nil {
+	// Serve the handler with response-body tracing under its handler task.
+	if err := rw.serveHTTP(httpRequest, handler); err != nil {
 		return err
 	}
 

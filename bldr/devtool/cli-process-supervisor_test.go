@@ -26,7 +26,7 @@ func TestCliSubprocessSupervisorWaitReturnsExitError(t *testing.T) {
 	}
 
 	// Expect the wait channel to report the exit code.
-	err := <-supervisor.wait()
+	_, _, err := supervisor.wait(context.Background(), nil)
 	var exitErr *exec.ExitError
 	if !errors.As(err, &exitErr) {
 		t.Fatalf("wait error = %T %[1]v, want exec.ExitError", err)
@@ -56,10 +56,10 @@ func TestCliSubprocessSupervisorStartContextCancelUsesTerminatePath(t *testing.T
 
 	// Cancel the context and expect the process to survive until termination.
 	cancel()
-	select {
-	case err := <-supervisor.wait():
+	waitCtx, cancelWait := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancelWait()
+	if exited, _, err := supervisor.wait(waitCtx, nil); exited {
 		t.Fatalf("context cancel ended process before supervisor termination: %v", err)
-	case <-time.After(100 * time.Millisecond):
 	}
 
 	// Terminate the surviving helper process.

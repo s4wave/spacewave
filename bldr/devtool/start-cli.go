@@ -163,14 +163,16 @@ func (a *DevtoolArgs) runCliSubprocess(
 		}
 
 		// Handle CLI exit, manifest rebuild, or command cancellation.
-		select {
-		case err := <-proc.wait():
+		exited, rebuilt, waitErr := proc.wait(ctx, rebuildCh)
+		switch {
+		case exited:
 			// subprocess exited on its own (not killed by the supervisor)
 			// propagate exit code to parent
 			cancelRun()
-			return exitWithChildCode(err)
+			return exitWithChildCode(waitErr)
 
-		case watchErr := <-rebuildCh:
+		case rebuilt:
+			watchErr := waitErr
 			if watchErr != nil {
 				cancelRun()
 				_ = proc.terminate()
@@ -181,7 +183,7 @@ func (a *DevtoolArgs) runCliSubprocess(
 			cancelRun()
 			_ = proc.terminate()
 
-		case <-ctx.Done():
+		default:
 			cancelRun()
 			return exitWithChildCode(proc.terminate())
 		}

@@ -36,6 +36,23 @@ func NewFetchResponseWriter(strm SRPCFetchService_FetchStream) *FetchResponseWri
 	}
 }
 
+// serveHTTP traces the handler and nests response writes under the same task.
+func (w *FetchResponseWriter) serveHTTP(req *http.Request, handler http.HandlerFunc) error {
+	// Propagate the handler task to both the request and response writes.
+	var task *trace.Task
+	if trace.IsEnabled() {
+		w.traceCtx, task = trace.NewTask(req.Context(), "bldr/web/fetch/serve-http")
+		req = req.WithContext(w.traceCtx)
+	}
+
+	// End the handler task before the caller flushes the response.
+	err := serveFetchHTTP(w, req, handler)
+	if task != nil {
+		task.End()
+	}
+	return err
+}
+
 // Header returns the header map that will be sent by WriteHeader.
 func (w *FetchResponseWriter) Header() http.Header {
 	return w.header

@@ -183,16 +183,16 @@ func (h *Host) runAttempt(ctx context.Context, onReady func()) (runErr error) {
 	}
 
 	// Handle readiness, process exit, cancellation, and proxy failure.
-	proxyDone := proxy.done
 	for {
-		select {
-		case err := <-readyResult:
+		readyEvent, exited, canceled, err := proxy.waitHostEvent(ctx, readyResult, waitResult)
+		switch {
+		case readyEvent:
 			readyResult = nil
 			if err != nil {
 				return h.stopChild(cmd, waitResult, err)
 			}
 			reportAttemptReady()
-		case err := <-waitResult:
+		case exited:
 			if !ready && readyResult != nil {
 				if readyErr := <-readyResult; readyErr == nil {
 					reportAttemptReady()
@@ -205,13 +205,10 @@ func (h *Host) runAttempt(ctx context.Context, onReady func()) (runErr error) {
 				return errors.New("Bun TuiView host exited before readiness")
 			}
 			return nil
-		case <-ctx.Done():
-			return h.stopChild(cmd, waitResult, nil)
-		case err := <-proxyDone:
-			if err != nil {
+		default:
+			if err != nil || canceled {
 				return h.stopChild(cmd, waitResult, err)
 			}
-			proxyDone = nil
 		}
 	}
 }
