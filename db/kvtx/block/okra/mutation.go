@@ -224,7 +224,7 @@ func (t *Tx) replaceLevelEntries(
 		}
 
 		// Build replacement pages and carry their entries into the parent level.
-		pages, err := t.buildPagesFromLevelNodes(level, windowNodes, upper)
+		pages, err := t.buildPagesFromLevelNodes(ctx, level, windowNodes, upper)
 		if err != nil {
 			return err
 		}
@@ -240,7 +240,7 @@ func (t *Tx) replaceLevelEntries(
 // setRootFromLevelNodes builds pages from the nodes and collapses upward until
 // a single-entry page above level becomes the new root.
 func (t *Tx) setRootFromLevelNodes(ctx context.Context, level uint32, nodes []okraLevelNode) error {
-	pages, err := t.buildPagesFromLevelNodes(level, nodes, nil)
+	pages, err := t.buildPagesFromLevelNodes(ctx, level, nodes, nil)
 	if err != nil {
 		return err
 	}
@@ -253,7 +253,7 @@ func (t *Tx) setRootFromLevelNodes(ctx context.Context, level uint32, nodes []ok
 			return err
 		}
 		level++
-		pages, err = t.buildPagesFromLevelNodes(level, parentNodes, nil)
+		pages, err = t.buildPagesFromLevelNodes(ctx, level, parentNodes, nil)
 		if err != nil {
 			return err
 		}
@@ -290,12 +290,13 @@ func (t *Tx) setRootPage(ctx context.Context, page okraBuiltPage) error {
 	// Install the root metadata and release the detached build cursor.
 	rootEntry := page.page.GetEntries()[0]
 	t.replaceRoot(&Root{
-		Size:         page.page.GetSize(),
-		Height:       page.page.GetLevel(),
-		RootHash:     slices.Clone(rootEntry.GetHash()),
-		RootPageRef:  page.cursor.GetRef().Clone(),
-		HashSize:     HashSize,
-		FanoutDegree: FanoutDegree,
+		Size:           page.page.GetSize(),
+		Height:         page.page.GetLevel(),
+		RootHash:       slices.Clone(rootEntry.GetHash()),
+		RootPageRef:    page.cursor.GetRef().Clone(),
+		HashSize:       HashSize,
+		FanoutDegree:   FanoutDegree,
+		LevelsPerBlock: t.levelsPerBlock,
 	}, page.cursor)
 	discardPages(builtRoot)
 	return ctx.Err()
@@ -331,18 +332,23 @@ func (t *Tx) replaceRoot(root *Root, page *block.Cursor) {
 	}
 }
 
-// discardPages releases only internal pages. Value cursors may outlive their key.
+// discardPages releases only internal pages, stored as their own blocks or
+// embedded. Value cursors may outlive their key.
 func discardPages(cursor *block.Cursor) {
 	for id, child := range cursor.DiscardDetached() {
-		if _, ok := entryIndexFromChildRefID(id); ok {
+		_, isRef := entryIndexFromChildRefID(id)
+		_, isPage := entryIndexFromChildPageID(id)
+		if isRef || isPage {
 			discardPages(child)
 		}
 	}
 }
 
 // buildPagesFromLevelNodes splits the nodes at page boundaries and builds one
-// page per group, using finalUpper as the last page's upper bound.
-func (t *Tx) buildPagesFromLevelNodes(level uint32, nodes []okraLevelNode, finalUpper []byte) ([]okraBuiltPage, error) {
+// page per group, using finalUpper as the last page's upper bound. Each child
+// is embedded in its parent's block or referenced as its own block, as its
+// level requires, whichever form it had before.
+func (t *Tx) buildPagesFromLevelNodes(ctx context.Context, level uint32, nodes []okraLevelNode, finalUpper []byte) ([]okraBuiltPage, error) {
 	// Require entries before building replacement pages.
 	if len(nodes) == 0 {
 		return nil, ErrUnexpectedPageMetadata
@@ -369,9 +375,21 @@ func (t *Tx) buildPagesFromLevelNodes(level uint32, nodes []okraLevelNode, final
 		cursor := t.bcs.Detach(false)
 		cursor.ClearAllRefs()
 		cursor.SetBlock(page, true)
+		embed := level != 0 && embedsLevel(t.levelsPerBlock, level-1)
 		for idx, node := range nodes[start:end] {
-			if node.child != nil {
+			if node.child == nil {
+				continue
+			}
+			if !embed {
 				cursor.SetRef(entryChildRefID(idx), node.child)
+				continue
+			}
+			if _, err := loadPage(ctx, node.child); err != nil {
+				return nil, err
+			}
+			page.Entries[idx].ChildRef = nil
+			if err := node.child.SetAsSubBlock(entryChildPageID(idx), cursor); err != nil {
+				return nil, err
 			}
 		}
 

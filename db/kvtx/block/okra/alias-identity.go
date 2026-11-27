@@ -6,3 +6,8 @@ import "github.com/s4wave/spacewave/db/block"
 func (r *Root) BlockAliasIdentity() *block.AliasIdentityToken {
 	return &r.unknownFields
 }
+
+// BlockAliasIdentity returns the in-memory alias token for Page.
+func (p *Page) BlockAliasIdentity() *block.AliasIdentityToken {
+	return &p.unknownFields
+}

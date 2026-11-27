@@ -39,7 +39,7 @@ func NewIterator(ctx context.Context, tx *Tx, prefix []byte, sort, reverse bool)
 		prefix:  bytes.Clone(prefix),
 	}
 	if tx.readRoot != nil {
-		it.walk = &leafWalk[*flatPage, block.ReadCursor]{t: tx, r: flatPages{tx}}
+		it.walk = &leafWalk[*flatPage, flatPos]{t: tx, r: flatPages{tx}}
 	} else {
 		it.walk = &cursorWalk{leafWalk: leafWalk[*Page, *block.Cursor]{t: tx, r: cursorPages{tx}}}
 	}

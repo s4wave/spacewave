@@ -145,8 +145,7 @@ func changedKeys(
 
 		// Skip KV subtrees with identical references and representations.
 		if a != nil && b != nil && a.cursor != nil && b.cursor != nil {
-			ref := a.cursor.GetRef()
-			if !ref.GetEmpty() && ref.EqualsRef(b.cursor.GetRef()) && a.kind == b.kind {
+			if a.id != "" && a.id == b.id && a.kind == b.kind {
 				left, right = left[:len(left)-1], right[:len(right)-1]
 				continue
 			}
@@ -292,8 +291,8 @@ func childrenToVisit(frontier, other []*diffTreeNode, ranges []KeyRange) []*diff
 	// Record the subtrees of the other frontier that overlap the node.
 	shared := make(map[string]struct{})
 	addShared := func(node *diffTreeNode) {
-		if node.cursor != nil && node.kind == n.kind {
-			shared[string(node.cursor.GetRef().GetHash().GetHash())] = struct{}{}
+		if node.cursor != nil && node.kind == n.kind && node.id != "" {
+			shared[node.id] = struct{}{}
 		}
 	}
 	for _, node := range slices.Backward(other) {
@@ -316,7 +315,7 @@ func childrenToVisit(frontier, other []*diffTreeNode, ranges []KeyRange) []*diff
 		if child.loaded {
 			continue
 		}
-		if _, ok := shared[string(child.cursor.GetRef().GetHash().GetHash())]; ok {
+		if _, ok := shared[child.id]; ok && child.id != "" {
 			continue
 		}
 		if ranges != nil && !spanHoldsKeyIn(child.lower, childEnd, ranges) {
@@ -361,6 +360,11 @@ func loadDiffTreeNodes(ctx context.Context, nodes []*diffTreeNode) error {
 type diffTreeNode struct {
 	cursor *block.Cursor
 	kind   KVImplType
+	// id names the subtree's contents, empty when unknown: a root page's or
+	// IAVL node's block ref digest, or an Okra child's entry hash, which
+	// covers every key and value below it however the pages are packed into
+	// blocks. Two nodes of one kind with the same id hold the same entries.
+	id     string
 	loaded bool
 	leaf   bool
 	height uint32
@@ -385,12 +389,18 @@ func newDiffTree(ctx context.Context, cursor *block.Cursor) ([]*diffTreeNode, er
 		if root.GetIavlRoot().GetSize() == 0 {
 			return nil, nil
 		}
-		return []*diffTreeNode{{cursor: cursor.FollowSubBlock(2), kind: kind}}, nil
-	case KVImplType_KV_IMPL_TYPE_OKRA, KVImplType_KV_IMPL_TYPE_OKRA_INLINE:
+		treeCursor := cursor.FollowSubBlock(2)
+		return []*diffTreeNode{{cursor: treeCursor, kind: kind, id: refID(treeCursor.GetRef())}}, nil
+	case KVImplType_KV_IMPL_TYPE_OKRA, KVImplType_KV_IMPL_TYPE_OKRA_INLINE, KVImplType_KV_IMPL_TYPE_OKRA_MULTI_LEVEL:
 		if root.GetOkraRoot().GetSize() == 0 {
 			return nil, nil
 		}
-		return []*diffTreeNode{{cursor: cursor.FollowSubBlock(3).FollowRef(4, root.GetOkraRoot().GetRootPageRef()), kind: kind}}, nil
+		okraRoot := root.GetOkraRoot()
+		return []*diffTreeNode{{
+			cursor: cursor.FollowSubBlock(3).FollowRef(4, okraRoot.GetRootPageRef()),
+			kind:   kind,
+			id:     refID(okraRoot.GetRootPageRef()),
+		}}, nil
 	default:
 		return nil, NewErrUnknownImpl(root.GetImplType())
 	}
@@ -428,8 +438,8 @@ func (n *diffTreeNode) load(ctx context.Context) error {
 			return err
 		}
 		n.children = []*diffTreeNode{
-			{cursor: n.cursor.FollowRef(6, node.GetRightChildRef()), kind: n.kind, lower: node.GetKey()},
-			{cursor: n.cursor.FollowRef(5, node.GetLeftChildRef()), kind: n.kind, lower: n.lower},
+			{cursor: n.cursor.FollowRef(6, node.GetRightChildRef()), kind: n.kind, id: refID(node.GetRightChildRef()), lower: node.GetKey()},
+			{cursor: n.cursor.FollowRef(5, node.GetLeftChildRef()), kind: n.kind, id: refID(node.GetLeftChildRef()), lower: n.lower},
 		}
 		return nil
 	}
@@ -471,7 +481,20 @@ func (n *diffTreeNode) load(ctx context.Context) error {
 		if entry.GetAnchor() {
 			lower = n.lower
 		}
-		n.children = append(n.children, &diffTreeNode{cursor: page.FollowChild(n.cursor, i), kind: n.kind, lower: lower})
+		n.children = append(n.children, &diffTreeNode{
+			cursor: page.FollowChild(n.cursor, i),
+			kind:   n.kind,
+			id:     string(entry.GetHash()),
+			lower:  lower,
+		})
 	}
 	return nil
+}
+
+// refID names the block a ref points at, or returns empty for an empty ref.
+func refID(ref *block.BlockRef) string {
+	if ref.GetEmpty() {
+		return ""
+	}
+	return string(ref.GetHash().GetHash())
 }

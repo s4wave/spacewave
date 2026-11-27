@@ -13,7 +13,7 @@ import (
 // TestChangedKeys checks inserts, removals, value edits, tree rotations, bounded
 // fallback, and the comparison restricted to key ranges.
 func TestChangedKeys(t *testing.T) {
-	for _, impl := range []KVImplType{KVImplType_KV_IMPL_TYPE_IAVL, KVImplType_KV_IMPL_TYPE_OKRA, KVImplType_KV_IMPL_TYPE_OKRA_INLINE} {
+	for _, impl := range []KVImplType{KVImplType_KV_IMPL_TYPE_IAVL, KVImplType_KV_IMPL_TYPE_OKRA, KVImplType_KV_IMPL_TYPE_OKRA_INLINE, KVImplType_KV_IMPL_TYPE_OKRA_MULTI_LEVEL} {
 		t.Run(impl.String(), func(t *testing.T) {
 			// Create a block store and deterministic KV mutation sequence.
 			ctx := t.Context()

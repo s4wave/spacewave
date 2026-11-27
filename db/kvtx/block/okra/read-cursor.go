@@ -9,44 +9,68 @@ import (
 	"github.com/s4wave/spacewave/net/hash"
 )
 
+// flatPos is where a read found a flat page: the reader of the block that
+// stores it, and the page, which is the block's root page or a page embedded
+// in it. A position whose page is nil names a block not yet loaded.
+type flatPos struct {
+	// cursor reads the block that stores the page.
+	cursor block.ReadCursor
+	// page is the page, or nil until a load reads the block's root page.
+	page *flatPage
+}
+
+// load returns the position's page, loading the block's root page when the
+// position names a block not yet loaded.
+func (pos flatPos) load(ctx context.Context) (flatPos, error) {
+	if pos.page != nil {
+		return pos, nil
+	}
+	page, err := loadFlatPage(ctx, pos.cursor)
+	return flatPos{cursor: pos.cursor, page: page}, err
+}
+
 // findReadEntry follows immutable page nodes for a readonly point lookup.
 // Writers and staged reads use findEntry on the mutable cursor tree. The
 // returned page is flat: it borrows its key and value bytes from its buffer.
-func (t *Tx) findReadEntry(ctx context.Context, key []byte) (*flatPage, block.ReadCursor, int, error) {
+func (t *Tx) findReadEntry(ctx context.Context, key []byte) (flatPos, int, error) {
 	// Bind this revision's root without comparing it with an earlier revision.
-	cursor := *t.readRoot
-	page, err := loadFlatPage(ctx, cursor)
+	pos, err := flatPos{cursor: *t.readRoot}.load(ctx)
 	if err != nil {
-		return nil, cursor, 0, err
+		return flatPos{}, 0, err
 	}
 
 	// Follow only the child page containing the requested key.
-	for page.GetLevel() != 0 {
-		index := page.searchEntry(key)
+	for pos.page.GetLevel() != 0 {
+		index := pos.page.searchEntry(key)
 		if index < 0 {
-			return nil, cursor, 0, nil
+			return flatPos{}, 0, nil
 		}
-		cursor = page.followChild(cursor, index)
-		page, err = loadFlatPage(ctx, cursor)
+		pos, err = pos.child(index).load(ctx)
 		if err != nil {
-			return nil, cursor, 0, err
+			return flatPos{}, 0, err
 		}
-		if !page.containsKey(key) {
-			return nil, cursor, 0, nil
+		if !pos.page.containsKey(key) {
+			return flatPos{}, 0, nil
 		}
 	}
 
 	// Require the exact non-anchor leaf entry.
+	page := pos.page
 	index := page.searchEntry(key)
 	if index < 0 || page.isAnchor(index) || !bytes.Equal(page.entryKey(index), key) {
-		return nil, cursor, 0, nil
+		return flatPos{}, 0, nil
 	}
-	return page, cursor, index, nil
+	return pos, index, nil
 }
 
-// followChild returns a reader at entry index's child page.
-func (p *flatPage) followChild(cursor block.ReadCursor, index int) block.ReadCursor {
-	return followFlatRef(cursor, entryChildRefID(index), p, p.entries[index].child)
+// child returns the position of entry index's child page: the page itself
+// when the entry embeds it, or the block the entry's ref names.
+func (pos flatPos) child(index int) flatPos {
+	p := pos.page
+	if child := p.embeddedChild(index); child != nil {
+		return flatPos{cursor: pos.cursor, page: child}
+	}
+	return flatPos{cursor: followFlatRef(pos.cursor, entryChildRefID(index), p, p.entries[index].child)}
 }
 
 // followValue returns a reader at entry index's external value.
@@ -64,27 +88,54 @@ func followFlatRef(cursor block.ReadCursor, id uint32, p *flatPage, r flatRef) b
 }
 
 // readEntryValue preserves the existing raw, inline and chunked Blob layouts.
-func readEntryValue(ctx context.Context, page *flatPage, cursor block.ReadCursor, index int) ([]byte, error) {
+func readEntryValue(ctx context.Context, pos flatPos, index int) ([]byte, error) {
 	// Copy an inline raw value without constructing any cursor graph.
+	page := pos.page
 	if raw, ok := page.rawInlineValue(index); ok {
 		return bytes.Clone(raw), ctx.Err()
 	}
 
 	// Leave inline chunked sub-block traversal on the existing Blob cursor path.
 	if page.hasInlineBlob(index) {
-		loaded := cursor.Cursor()
-		mutable, err := block.UnmarshalBlock[Page](ctx, loaded)
+		value, err := pos.inlineBlobCursor(ctx, index)
 		if err != nil {
 			return nil, err
 		}
-		return blob.FetchToBytes(ctx, mutable.FollowValue(loaded, index))
+		return blob.FetchToBytes(ctx, value)
 	}
 
 	// Read external values under the same transaction and storage authority.
-	value := page.followValue(cursor, index)
+	value := page.followValue(pos.cursor, index)
 	if page.valueIsBlob(index) {
 		return blob.FetchToBytes(ctx, value.Cursor())
 	}
 	data, _, err := value.FetchLeaf(ctx)
 	return data, err
+}
+
+// valueCursor returns a private cursor at entry index's value.
+func (pos flatPos) valueCursor(ctx context.Context, index int) (*block.Cursor, error) {
+	if !pos.page.hasInlineBlob(index) {
+		return pos.page.followValue(pos.cursor, index).Cursor(), nil
+	}
+	return pos.inlineBlobCursor(ctx, index)
+}
+
+// inlineBlobCursor returns a private cursor at entry index's inline Blob. The
+// Blob is a sub-block of its page, so the block's pages are decoded onto a
+// private cursor down the page's route to reach it.
+func (pos flatPos) inlineBlobCursor(ctx context.Context, index int) (*block.Cursor, error) {
+	// Decode the block's root page, then each page down the route.
+	cursor := pos.cursor.Cursor()
+	page, err := loadPage(ctx, cursor)
+	if err != nil {
+		return nil, err
+	}
+	for _, idx := range pos.page.route {
+		cursor = page.FollowChild(cursor, int(idx))
+		if page, err = loadPage(ctx, cursor); err != nil {
+			return nil, err
+		}
+	}
+	return page.FollowValue(cursor, index), nil
 }

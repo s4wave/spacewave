@@ -272,32 +272,36 @@ func (s *Scanner) children(ctx context.Context, node *Node, value any, tree stri
 		if tree != "" {
 			suffix = ":" + tree
 		}
-		for r := range page.Refs() {
-			if r.Child {
-				add(r.Ref, "okra"+suffix, nil, context)
-				continue
+		// A block holds its page and the pages embedded in it, each with its
+		// own refs and inline values.
+		for pg := range page.BlockPages() {
+			for r := range pg.Refs() {
+				if r.Child {
+					add(r.Ref, "okra"+suffix, nil, context)
+					continue
+				}
+				ctor := "bytes"
+				if tree == "objects" {
+					ctor = "object"
+				}
+				if r.Entry.GetValueIsBlob() {
+					ctor = "blob"
+				}
+				add(r.Ref, ctor, r.Entry.GetKey(), context)
 			}
-			ctor := "bytes"
-			if tree == "objects" {
-				ctor = "object"
+			for _, ent := range pg.GetEntries() {
+				if ent.GetValueBlob() == nil {
+					continue
+				}
+				if tree == "objects" {
+					return out, errors.New("inline Okra object values are unsupported")
+				}
+				kids, err := s.children(ctx, node, ent.GetValueBlob(), "")
+				if err != nil {
+					return nil, err
+				}
+				out = append(out, kids...)
 			}
-			if r.Entry.GetValueIsBlob() {
-				ctor = "blob"
-			}
-			add(r.Ref, ctor, r.Entry.GetKey(), context)
-		}
-		for _, ent := range page.GetEntries() {
-			if ent.GetValueBlob() == nil {
-				continue
-			}
-			if tree == "objects" {
-				return out, errors.New("inline Okra object values are unsupported")
-			}
-			kids, err := s.children(ctx, node, ent.GetValueBlob(), "")
-			if err != nil {
-				return nil, err
-			}
-			out = append(out, kids...)
 		}
 		return out, nil
 	}

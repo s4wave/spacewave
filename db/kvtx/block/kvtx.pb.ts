@@ -57,6 +57,12 @@ export enum KVImplType {
    * KV_IMPL_TYPE_IAVL_NODE_GRAPH.
    */
   KV_IMPL_TYPE_OKRA_NODE_GRAPH = 6,
+
+  /**
+   * KV_IMPL_TYPE_OKRA_MULTI_LEVEL is an inline Okra tree whose blocks each
+   * hold several levels of pages, as its Root's levels_per_block records.
+   */
+  KV_IMPL_TYPE_OKRA_MULTI_LEVEL = 7,
 }
 
 export const KVImplType_Enum = /* @__PURE__ */ createEnumType(
@@ -69,6 +75,7 @@ export const KVImplType_Enum = /* @__PURE__ */ createEnumType(
     [4, 'KV_IMPL_TYPE_OKRA_INLINE_NODE_GRAPH'],
     [5, 'KV_IMPL_TYPE_IAVL_NODE_GRAPH'],
     [6, 'KV_IMPL_TYPE_OKRA_NODE_GRAPH'],
+    [7, 'KV_IMPL_TYPE_OKRA_MULTI_LEVEL'],
   ],
 )
 

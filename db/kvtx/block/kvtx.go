@@ -105,10 +105,10 @@ func BuildKvTransaction(ctx context.Context, bcs *block.Cursor, write bool) (kvt
 	return kvs.BuildKvTransaction(taskCtx, bcs, write)
 }
 
-// layout returns the tree layout an implementation stores: IAVL, Okra or
-// inline Okra, or 0 when the implementation is unknown. The node graph tags
-// store the same layouts. The tags exist so a build that predates the node
-// graph World rejects its trees.
+// layout returns the tree layout an implementation stores: IAVL, Okra, inline
+// Okra or multi-level Okra, or 0 when the implementation is unknown. The node
+// graph tags store the same layouts. The tags exist so a build that predates
+// the node graph World rejects its trees.
 func (i KVImplType) layout() KVImplType {
 	switch i {
 	case KVImplType_KV_IMPL_TYPE_IAVL, KVImplType_KV_IMPL_TYPE_IAVL_NODE_GRAPH:
@@ -117,6 +117,8 @@ func (i KVImplType) layout() KVImplType {
 		return KVImplType_KV_IMPL_TYPE_OKRA
 	case KVImplType_KV_IMPL_TYPE_OKRA_INLINE, KVImplType_KV_IMPL_TYPE_OKRA_INLINE_NODE_GRAPH:
 		return KVImplType_KV_IMPL_TYPE_OKRA_INLINE
+	case KVImplType_KV_IMPL_TYPE_OKRA_MULTI_LEVEL:
+		return KVImplType_KV_IMPL_TYPE_OKRA_MULTI_LEVEL
 	}
 	return 0
 }
@@ -139,7 +141,7 @@ func (k *KeyValueStore) Validate() error {
 		if err := k.GetIavlRoot().Validate(); err != nil {
 			return errors.Wrap(err, "iavl_root")
 		}
-	case KVImplType_KV_IMPL_TYPE_OKRA, KVImplType_KV_IMPL_TYPE_OKRA_INLINE:
+	case KVImplType_KV_IMPL_TYPE_OKRA, KVImplType_KV_IMPL_TYPE_OKRA_INLINE, KVImplType_KV_IMPL_TYPE_OKRA_MULTI_LEVEL:
 		if err := k.GetOkraRoot().Validate(); err != nil {
 			return errors.Wrap(err, "okra_root")
 		}
@@ -161,17 +163,20 @@ func (k *KeyValueStore) BuildKvTransaction(ctx context.Context, bcs *block.Curso
 		return iavl.NewTx(taskCtx, treeBcs, nil, write, func(ncs *block.Cursor) {
 			_ = ncs.SetAsSubBlock(2, bcs)
 		})
-	case KVImplType_KV_IMPL_TYPE_OKRA, KVImplType_KV_IMPL_TYPE_OKRA_INLINE:
+	case KVImplType_KV_IMPL_TYPE_OKRA, KVImplType_KV_IMPL_TYPE_OKRA_INLINE, KVImplType_KV_IMPL_TYPE_OKRA_MULTI_LEVEL:
 		treeBcs := bcs.FollowSubBlock(3)
 		taskCtx, subtask := trace.NewTask(ctx, "hydra/kvtx-block/key-value-store/build-kv-transaction/okra-new-tx")
 		defer subtask.End()
-		newTx := okra.NewTx
-		if impl.layout() == KVImplType_KV_IMPL_TYPE_OKRA_INLINE {
-			newTx = okra.NewTxWithInlineValues
-		}
-		return newTx(taskCtx, treeBcs, nil, write, func(ncs *block.Cursor) {
+		rootChanged := func(ncs *block.Cursor) {
 			_ = ncs.SetAsSubBlock(3, bcs)
-		})
+		}
+		switch impl.layout() {
+		case KVImplType_KV_IMPL_TYPE_OKRA_INLINE:
+			return okra.NewTxWithInlineValues(taskCtx, treeBcs, nil, write, rootChanged)
+		case KVImplType_KV_IMPL_TYPE_OKRA_MULTI_LEVEL:
+			return okra.NewTxWithLevels(taskCtx, treeBcs, nil, write, rootChanged, okra.DefaultLevelsPerBlock)
+		}
+		return okra.NewTx(taskCtx, treeBcs, nil, write, rootChanged)
 	default:
 		return nil, NewErrUnknownImpl(impl)
 	}

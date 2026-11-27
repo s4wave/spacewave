@@ -2,7 +2,10 @@ package kvtx_block_okra
 
 import (
 	"bytes"
+	"context"
 	"fmt"
+	"slices"
+	"sync"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -118,53 +121,265 @@ func TestInlineValuesRetainExistingDataAndCursors(t *testing.T) {
 // TestInlineReplaceAllMatchesSet preserves deterministic packed roots across
 // bulk construction and incremental insertion, including empty and large values.
 func TestInlineReplaceAllMatchesSet(t *testing.T) {
-	// Create a sorted stream of empty, small and large values.
+	// Create a sorted stream of empty, small and Blob-sized values, on a
+	// store that records the refs each write declares.
 	ctx := t.Context()
-	store := newOkraTestStore()
+	store := &refGraphStore{StoreOps: newOkraTestStore()}
+	const count = 4096
+	key := func(i int) []byte { return []byte(fmt.Sprintf("key-%05d", i)) }
 	values := func(yield func([]byte, []byte) bool) {
-		for i := range 512 {
-			key := []byte(fmt.Sprintf("key-%04d", i))
-			value := bytes.Repeat([]byte{byte(i % 256)}, i)
-			if !yield(key, value) {
+		for i := range count {
+			if !yield(key(i), bytes.Repeat([]byte{byte(i % 256)}, i%300)) {
 				return
 			}
 		}
 	}
 
-	// Compare packed roots built by bulk replacement and incremental writes.
-	var want *block.BlockRef
-	for _, bulk := range []bool{false, true} {
-		// Build the packed tree through the selected write API.
-		ref := writeMutatedOkraRoot(t, ctx, store, func(tx *Tx) {
-			tx.inlineValues = true
-			if bulk {
-				if err := tx.ReplaceAll(ctx, values); err != nil {
-					t.Fatal(err)
+	// Build the tree one page per block and several levels per block.
+	var rootHash []byte
+	blocks := make(map[uint32]int)
+	for _, levels := range []uint32{0, 2, 3} {
+		// Require the bulk and incremental builds to agree on every block.
+		var want *block.BlockRef
+		for _, bulk := range []bool{false, true} {
+			ref := writeMutatedOkraRoot(t, ctx, store, func(tx *Tx) {
+				tx.inlineValues = true
+				tx.levelsPerBlock = levels
+				if bulk {
+					if err := tx.ReplaceAll(ctx, values); err != nil {
+						t.Fatal(err)
+					}
+					return
 				}
-			} else {
 				for key, value := range values {
 					if err := tx.Set(ctx, key, value); err != nil {
 						t.Fatal(err)
 					}
 				}
+			})
+			if want == nil {
+				want = ref
+			} else if !want.EqualsRef(ref) {
+				t.Fatalf("levels %d: bulk root differs from incremental root", levels)
 			}
-		})
-
-		// Require the packed root to be independent of the construction API.
-		if want == nil {
-			want = ref
-		} else if !want.EqualsRef(ref) {
-			t.Fatal("packed bulk root differs from incremental root")
 		}
 
-		// Require every streamed value to read back from the packed tree.
-		read := openOkraRoot(t, ctx, store, ref, false)
-		for key, want := range values {
+		// Require the layout to keep the tree's hash and record its levels.
+		read := openOkraRoot(t, ctx, store, want, false)
+		if got := read.root.GetLevelsPerBlock(); got != levels {
+			t.Fatalf("levels %d: root records %d", levels, got)
+		}
+		if rootHash == nil {
+			rootHash = read.root.GetRootHash()
+		} else if !bytes.Equal(rootHash, read.root.GetRootHash()) {
+			t.Fatalf("levels %d: root hash depends on the layout", levels)
+		}
+		read.Discard()
+
+		// Require both decoded forms of every page block to list the refs
+		// its write recorded, embedded pages' refs included.
+		store.assertPageRefs(t, ctx, want)
+
+		// Copy only the blocks the recorded refs reach, as a collector keeps
+		// them, and require every value to read back from the copy alone.
+		copied, n := store.copyReachable(t, ctx, want)
+		blocks[levels] = n
+		read = openOkraRoot(t, ctx, copied, want, false)
+		for key, value := range values {
 			got, found, err := read.Get(ctx, key)
-			if err != nil || !found || !bytes.Equal(got, want) {
-				t.Fatalf("%s readback failed: %v", key, err)
+			if err != nil || !found || !bytes.Equal(got, value) {
+				t.Fatalf("levels %d: %s readback from the reachable copy failed: %v", levels, key, err)
 			}
 		}
 		read.Discard()
+
+		// Delete every third key in place, collapsing and merging pages, and
+		// require the result to match a rebuild of the remaining keys.
+		btx, rootCursor := block.NewTransaction(store, nil, want, nil)
+		edit, err := NewTxWithInlineValues(ctx, rootCursor, nil, true, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i := 0; i < count; i += 3 {
+			if err := edit.Delete(ctx, key(i)); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if err := edit.Commit(ctx); err != nil {
+			t.Fatal(err)
+		}
+		edited, _, err := btx.Write(ctx, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		rebuilt := writeMutatedOkraRoot(t, ctx, store, func(tx *Tx) {
+			tx.inlineValues = true
+			tx.levelsPerBlock = levels
+			err := tx.ReplaceAll(ctx, func(yield func([]byte, []byte) bool) {
+				i := 0
+				for key, value := range values {
+					i++
+					if (i-1)%3 == 0 {
+						continue
+					}
+					if !yield(key, value) {
+						return
+					}
+				}
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+		})
+		if !edited.EqualsRef(rebuilt) {
+			t.Fatalf("levels %d: deleting in place differs from a rebuild", levels)
+		}
+		store.assertPageRefs(t, ctx, edited)
+		copied, _ = store.copyReachable(t, ctx, edited)
+		read = openOkraRoot(t, ctx, copied, edited, false)
+		for i := range count {
+			_, found, err := read.Get(ctx, key(i))
+			if err != nil || found != (i%3 != 0) {
+				t.Fatalf("levels %d: key %d after deletes: found %v, %v", levels, i, found, err)
+			}
+		}
+		read.Discard()
+	}
+
+	// Require each added level per block to store the tree in fewer blocks.
+	if blocks[2] >= blocks[0] || blocks[3] >= blocks[2] {
+		t.Fatalf("blocks by levels per block = %v", blocks)
+	}
+}
+
+// refGraphStore records the outgoing refs each write declares, the edges a
+// collector follows to decide which blocks to keep.
+type refGraphStore struct {
+	block.StoreOps
+	mu   sync.Mutex
+	refs map[string][]*block.BlockRef
+}
+
+func (s *refGraphStore) record(ref *block.BlockRef, refs []*block.BlockRef, known bool) {
+	if ref == nil || !known {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.refs == nil {
+		s.refs = make(map[string][]*block.BlockRef)
+	}
+	s.refs[ref.MarshalString()] = refs
+}
+
+func (s *refGraphStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	ref, exists, err := s.StoreOps.PutBlock(ctx, data, opts)
+	if err == nil {
+		s.record(ref, opts.GetRefs(), opts.GetRefsKnown())
+	}
+	return ref, exists, err
+}
+
+func (s *refGraphStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	exists, err := s.StoreOps.PutBlockBatch(ctx, entries)
+	if err == nil {
+		for _, entry := range entries {
+			s.record(entry.Ref, entry.Refs, entry.RefsKnown)
+		}
+	}
+	return exists, err
+}
+
+// copyReachable copies the blocks root reaches through the recorded refs into
+// a new store, and returns it with the number of blocks copied.
+func (s *refGraphStore) copyReachable(t *testing.T, ctx context.Context, root *block.BlockRef) (block.StoreOps, int) {
+	t.Helper()
+	out := newOkraTestStore()
+	seen := make(map[string]bool)
+	stack := []*block.BlockRef{root}
+	for len(stack) != 0 {
+		ref := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+		id := ref.MarshalString()
+		if seen[id] {
+			continue
+		}
+		seen[id] = true
+		data, found, err := s.GetBlock(ctx, ref)
+		if err != nil || !found {
+			t.Fatalf("reachable block %s missing: %v", id, err)
+		}
+		if _, _, err := out.PutBlock(ctx, data, nil); err != nil {
+			t.Fatal(err)
+		}
+		s.mu.Lock()
+		stack = append(stack, s.refs[id]...)
+		s.mu.Unlock()
+	}
+	return out, len(seen)
+}
+
+// assertPageRefs walks the Okra pages under the root block at ref and
+// requires the refs ExtractBlockRefs finds in each page block, decoded as a
+// Page and as a flat page, to equal the refs its write recorded.
+func (s *refGraphStore) assertPageRefs(t *testing.T, ctx context.Context, ref *block.BlockRef) {
+	t.Helper()
+	read := func(ref *block.BlockRef) []byte {
+		data, found, err := s.GetBlock(ctx, ref)
+		if err != nil || !found {
+			t.Fatalf("block %s missing: %v", ref.MarshalString(), err)
+		}
+		return data
+	}
+	names := func(refs []*block.BlockRef) []string {
+		out := make([]string, len(refs))
+		for i, ref := range refs {
+			out[i] = ref.MarshalString()
+		}
+		slices.Sort(out)
+		return out
+	}
+	root := &Root{}
+	if err := root.UnmarshalVT(read(ref)); err != nil {
+		t.Fatal(err)
+	}
+	stack := []*block.BlockRef{root.GetRootPageRef()}
+	for len(stack) != 0 {
+		ref := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+		data := read(ref)
+		page := &Page{}
+		if err := page.UnmarshalVT(data); err != nil {
+			t.Fatal(err)
+		}
+		flat := &flatPage{}
+		if err := flat.UnmarshalDecodedBlock(data); err != nil {
+			t.Fatal(err)
+		}
+		pageRefs, err := block.ExtractBlockRefs(page)
+		if err != nil {
+			t.Fatal(err)
+		}
+		flatRefs, err := block.ExtractBlockRefs(flat)
+		if err != nil {
+			t.Fatal(err)
+		}
+		s.mu.Lock()
+		recorded := s.refs[ref.MarshalString()]
+		s.mu.Unlock()
+		want := names(recorded)
+		if got := names(pageRefs); !slices.Equal(got, want) {
+			t.Fatalf("page block %s: Page refs %d, recorded %d", ref.MarshalString(), len(got), len(want))
+		}
+		if got := names(flatRefs); !slices.Equal(got, want) {
+			t.Fatalf("page block %s: flat page refs %d, recorded %d", ref.MarshalString(), len(got), len(want))
+		}
+		for pg := range page.BlockPages() {
+			for r := range pg.Refs() {
+				if r.Child {
+					stack = append(stack, r.Ref)
+				}
+			}
+		}
 	}
 }

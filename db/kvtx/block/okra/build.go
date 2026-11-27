@@ -13,11 +13,14 @@ import (
 // BuildEntry is one sorted key/value entry used by the Okra tree builder.
 // The builder copies the entry before requesting the next one.
 type BuildEntry struct {
+	// Key is the entry key.
 	Key []byte
-
-	ValueRef    *block.BlockRef
+	// ValueRef names the value's block, nil for an inline value.
+	ValueRef *block.BlockRef
+	// ValueIsBlob marks the value at ValueRef as a Blob.
 	ValueIsBlob bool
-	ValueBlob   *blob.Blob
+	// ValueBlob is the value stored inline in the page.
+	ValueBlob *blob.Blob
 }
 
 // BuildTree builds a packed Okra page DAG from sorted key/value refs.
@@ -50,7 +53,7 @@ func BuildTreeWithEntries(
 	tx, rootCursor := block.NewTransaction(store, xfrm, nil, putOpts)
 	root, err := buildTree(entries, func(page *Page) (*block.BlockRef, error) {
 		return writeStagedBlock(ctx, rootCursor, page)
-	})
+	}, 0)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -60,11 +63,12 @@ func BuildTreeWithEntries(
 	return tx, rootCursor, nil
 }
 
-// buildTree packs the sorted entries into pages, writing each finished page
-// with writePage, and returns the root referencing the top page.
-func buildTree(entries iter.Seq[BuildEntry], writePage func(*Page) (*block.BlockRef, error)) (*Root, error) {
+// buildTree packs the sorted entries into pages of levelsPerBlock levels per
+// block, writing each finished block with writePage, and returns the root
+// referencing the top page.
+func buildTree(entries iter.Seq[BuildEntry], writePage func(*Page) (*block.BlockRef, error), levelsPerBlock uint32) (*Root, error) {
 	// Pack sorted input entries into the Okra page builder.
-	builder := newTreeBuilder(writePage)
+	builder := newTreeBuilder(writePage, levelsPerBlock)
 	var prevKey []byte
 	for ent := range entries {
 		// Require nonempty input keys in strictly increasing order.
@@ -107,11 +111,12 @@ func buildTree(entries iter.Seq[BuildEntry], writePage func(*Page) (*block.Block
 		return nil, err
 	}
 	return &Root{
-		Size:         top.GetSize(),
-		Height:       height,
-		RootHash:     slices.Clone(top.GetHash()),
-		HashSize:     HashSize,
-		FanoutDegree: FanoutDegree,
-		RootPageRef:  rootPageRef,
+		Size:           top.GetSize(),
+		Height:         height,
+		RootHash:       slices.Clone(top.GetHash()),
+		HashSize:       HashSize,
+		FanoutDegree:   FanoutDegree,
+		RootPageRef:    rootPageRef,
+		LevelsPerBlock: levelsPerBlock,
 	}, nil
 }

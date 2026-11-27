@@ -71,7 +71,7 @@ func (t *Tx) replaceAll(ctx context.Context, values iter.Seq2[BuildEntry, error]
 	// Build the tree and stage its pages.
 	root, err := buildTree(entries, func(page *Page) (*block.BlockRef, error) {
 		return writeStagedBlock(ctx, t.bcs, page)
-	})
+	}, t.levelsPerBlock)
 	if valueErr != nil {
 		return valueErr
 	}

@@ -32,6 +32,10 @@ type Root struct {
 	HashSize uint32 `protobuf:"varint,5,opt,name=hash_size,json=hashSize,proto3" json:"hashSize,omitempty"`
 	// FanoutDegree records the Okra Q promotion constant used by this tree.
 	FanoutDegree uint32 `protobuf:"varint,6,opt,name=fanout_degree,json=fanoutDegree,proto3" json:"fanoutDegree,omitempty"`
+	// LevelsPerBlock is how many Okra levels one block holds. A page whose
+	// level is not a block root's level is stored as its parent entry's
+	// child_page. Zero and one store every page in its own block.
+	LevelsPerBlock uint32 `protobuf:"varint,7,opt,name=levels_per_block,json=levelsPerBlock,proto3" json:"levelsPerBlock,omitempty"`
 }
 
 func (x *Root) Reset() {
@@ -78,6 +82,13 @@ func (x *Root) GetHashSize() uint32 {
 func (x *Root) GetFanoutDegree() uint32 {
 	if x != nil {
 		return x.FanoutDegree
+	}
+	return 0
+}
+
+func (x *Root) GetLevelsPerBlock() uint32 {
+	if x != nil {
+		return x.LevelsPerBlock
 	}
 	return 0
 }
@@ -168,7 +179,8 @@ type Entry struct {
 	Hash []byte `protobuf:"bytes,3,opt,name=hash,proto3" json:"hash,omitempty"`
 	// Size contains the number of leaf keys below this node.
 	Size uint64 `protobuf:"varint,4,opt,name=size,proto3" json:"size,omitempty"`
-	// ChildRef points to the child page for internal nodes.
+	// ChildRef points to the child page for internal nodes whose child page
+	// roots its own block. Empty when ChildPage holds the child.
 	ChildRef *block.BlockRef `protobuf:"bytes,5,opt,name=child_ref,json=childRef,proto3" json:"childRef,omitempty"`
 	// ValueRef points to the value block for leaf nodes.
 	ValueRef *block.BlockRef `protobuf:"bytes,6,opt,name=value_ref,json=valueRef,proto3" json:"valueRef,omitempty"`
@@ -178,6 +190,10 @@ type Entry struct {
 	// ValueBlob is present only in stores tagged KV_IMPL_TYPE_OKRA_INLINE.
 	// ValueRef is empty and ValueIsBlob is true when this field is present.
 	ValueBlob *blob.Blob `protobuf:"bytes,8,opt,name=value_blob,json=valueBlob,proto3" json:"valueBlob,omitempty"`
+	// ChildPage embeds the child page in this page's block. Present only in
+	// stores tagged KV_IMPL_TYPE_OKRA_MULTI_LEVEL, for a child whose level is
+	// not a block root's level. ChildRef is empty when this field is present.
+	ChildPage *Page `protobuf:"bytes,9,opt,name=child_page,json=childPage,proto3" json:"childPage,omitempty"`
 }
 
 func (x *Entry) Reset() {
@@ -242,6 +258,13 @@ func (x *Entry) GetValueBlob() *blob.Blob {
 	return nil
 }
 
+func (x *Entry) GetChildPage() *Page {
+	if x != nil {
+		return x.ChildPage
+	}
+	return nil
+}
+
 func (m *Root) CloneVT() *Root {
 	if m == nil {
 		return (*Root)(nil)
@@ -251,6 +274,7 @@ func (m *Root) CloneVT() *Root {
 	r.Height = m.Height
 	r.HashSize = m.HashSize
 	r.FanoutDegree = m.FanoutDegree
+	r.LevelsPerBlock = m.LevelsPerBlock
 	r.RootHash = protobuf_go_lite.CloneBytes(m.RootHash)
 	r.RootPageRef = protobuf_go_lite.CloneVTValue(m.RootPageRef)
 	if len(m.unknownFields) > 0 {
@@ -298,6 +322,7 @@ func (m *Entry) CloneVT() *Entry {
 	r.ChildRef = protobuf_go_lite.CloneVTValue(m.ChildRef)
 	r.ValueRef = protobuf_go_lite.CloneVTValue(m.ValueRef)
 	r.ValueBlob = protobuf_go_lite.CloneVTValue(m.ValueBlob)
+	r.ChildPage = protobuf_go_lite.CloneVTValue(m.ChildPage)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -330,6 +355,9 @@ func (this *Root) EqualVT(that *Root) bool {
 		return false
 	}
 	if this.FanoutDegree != that.FanoutDegree {
+		return false
+	}
+	if this.LevelsPerBlock != that.LevelsPerBlock {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -411,6 +439,9 @@ func (this *Entry) EqualVT(that *Entry) bool {
 	if !protobuf_go_lite.IsEqualVT(this.ValueBlob, that.ValueBlob) {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.ChildPage, that.ChildPage) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -460,6 +491,11 @@ func (x *Root) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("fanoutDegree")
 		s.WriteUint32(x.FanoutDegree)
 	}
+	if x.LevelsPerBlock != 0 || s.HasField("levelsPerBlock") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("levelsPerBlock")
+		s.WriteUint32(x.LevelsPerBlock)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -499,6 +535,9 @@ func (x *Root) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "fanout_degree", "fanoutDegree":
 			s.AddField("fanout_degree")
 			x.FanoutDegree = s.ReadUint32()
+		case "levels_per_block", "levelsPerBlock":
+			s.AddField("levels_per_block")
+			x.LevelsPerBlock = s.ReadUint32()
 		}
 	})
 }
@@ -667,6 +706,11 @@ func (x *Entry) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("valueBlob")
 		x.ValueBlob.MarshalProtoJSON(s.WithField("valueBlob"))
 	}
+	if x.ChildPage != nil || s.HasField("childPage") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("childPage")
+		x.ChildPage.MarshalProtoJSON(s.WithField("childPage"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -720,6 +764,13 @@ func (x *Entry) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.ValueBlob = &blob.Blob{}
 			x.ValueBlob.UnmarshalProtoJSON(s.WithField("value_blob", true))
+		case "child_page", "childPage":
+			if s.ReadNil() {
+				x.ChildPage = nil
+				return
+			}
+			x.ChildPage = &Page{}
+			x.ChildPage.UnmarshalProtoJSON(s.WithField("child_page", true))
 		}
 	})
 }
@@ -757,6 +808,11 @@ func (m *Root) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.LevelsPerBlock != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.LevelsPerBlock))
+		i--
+		dAtA[i] = 0x38
 	}
 	if m.FanoutDegree != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.FanoutDegree))
@@ -899,6 +955,16 @@ func (m *Entry) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.ChildPage != nil {
+		size, err := m.ChildPage.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x4a
+	}
 	if m.ValueBlob != nil {
 		size, err := m.ValueBlob.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -972,6 +1038,7 @@ func (m *Root) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.HashSize)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.FanoutDegree)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.LevelsPerBlock)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1019,6 +1086,10 @@ func (m *Entry) SizeVT() (n int) {
 		l = m.ValueBlob.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	if m.ChildPage != nil {
+		l = m.ChildPage.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1049,6 +1120,10 @@ func (x *Root) MarshalProtoText() string {
 	if x.FanoutDegree != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "fanout_degree")
 		protobuf_go_lite.TextWriteUint(&sb, x.FanoutDegree)
+	}
+	if x.LevelsPerBlock != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "levels_per_block")
+		protobuf_go_lite.TextWriteUint(&sb, x.LevelsPerBlock)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1138,6 +1213,10 @@ func (x *Entry) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "value_blob")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.ValueBlob)
 	}
+	if x.ChildPage != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "child_page")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.ChildPage)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -1221,6 +1300,15 @@ func (m *Root) UnmarshalVT(dAtA []byte) error {
 			}
 			m.FanoutDegree = 0
 			m.FanoutDegree, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LevelsPerBlock", wireType)
+			}
+			m.LevelsPerBlock = 0
+			m.LevelsPerBlock, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
@@ -1361,6 +1449,7 @@ type arenaPage struct {
 	buf []byte
 	// n and np count the messages and repeated field elements of each type.
 	n, np [10]int
+	t0    []Page
 	t1    []Entry
 	p1    []*Entry
 	t2    []block.BlockRef
@@ -1388,6 +1477,9 @@ func (m *Page) UnmarshalVTArena(dAtA []byte) error {
 		return m.UnmarshalVT(dAtA)
 	}
 	a.buf = bytes.Clone(dAtA)
+	if a.n[0] != 0 {
+		a.t0 = make([]Page, a.n[0])
+	}
 	if a.n[1] != 0 {
 		a.t1 = make([]Entry, a.n[1])
 	}
@@ -1620,6 +1712,20 @@ func (a *arenaPage) count1(dAtA []byte) bool {
 			}
 			a.n[3]++
 			iNdEx = end
+		case 9:
+			if wire&7 != 2 {
+				return false
+			}
+			if seen[0]&0x8 != 0 {
+				return false
+			}
+			seen[0] |= 0x8
+			start, end, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, next)
+			if err != nil || !a.count0(dAtA[start:end]) {
+				return false
+			}
+			a.n[0]++
+			iNdEx = end
 		case 1, 2, 3, 4, 7:
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
 			if err != nil {
@@ -1745,6 +1851,24 @@ func (a *arenaPage) decode1(m *Entry, dAtA []byte) error {
 				return err
 			}
 			m.ValueBlob = v
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ChildPage", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if len(a.t0) == 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			v := &a.t0[0]
+			a.t0 = a.t0[1:]
+			if err := a.decode0(v, dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			m.ChildPage = v
 			iNdEx = postIndex
 		default:
 			return fmt.Errorf("proto: Entry: unknown field %d in arena decode", fieldNum)
@@ -2358,7 +2482,7 @@ func (a *arenaPage) count8(dAtA []byte) bool {
 			return false
 		}
 		switch wire >> 3 {
-		case 1, 2, 3, 4:
+		case 1, 4, 2, 3:
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
 			if err != nil {
 				return false
@@ -2394,6 +2518,16 @@ func (a *arenaPage) decode8(m *blob.RabinArgs, dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RandomPol", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.RandomPol = bool(v)
 		case 2:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ChunkingMinSize", wireType)
@@ -2412,16 +2546,6 @@ func (a *arenaPage) decode8(m *blob.RabinArgs, dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RandomPol", wireType)
-			}
-			var v bool
-			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.RandomPol = bool(v)
 		default:
 			return fmt.Errorf("proto: RabinArgs: unknown field %d in arena decode", fieldNum)
 		}
@@ -2620,6 +2744,21 @@ func (m *Entry) UnmarshalVT(dAtA []byte) error {
 				m.ValueBlob = &blob.Blob{}
 			}
 			if err := m.ValueBlob.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ChildPage", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.ChildPage == nil {
+				m.ChildPage = &Page{}
+			}
+			if err := m.ChildPage.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

@@ -55,6 +55,9 @@ type flatEntry struct {
 	child, value flatRef
 	// raw locates the data of an inline raw blob value.
 	raw flatSpan
+	// childPage is one more than the index in the page's children of the
+	// child page embedded in this entry, or zero when the entry embeds none.
+	childPage uint32
 	// flags holds the flat* bits.
 	flags uint8
 }
@@ -80,10 +83,17 @@ type flatPage struct {
 	size uint64
 	// lower, upper and pageHash locate the bounds and the page hash.
 	lower, upper, pageHash flatSpan
+	// children are the child pages embedded in this page's entries. Each
+	// shares buf, and is decoded with the page, so a page in the decoded-block
+	// cache holds every page its block stores.
+	children []flatPage
+	// route is the entry index of each embedded page from the block's root
+	// page down to this page. It is empty for the block's root page.
+	route []uint32
 }
 
 // flatPageHeapSize is the allocation size of a flatPage header.
-const flatPageHeapSize = 112
+const flatPageHeapSize = 160
 
 // flatEntrySize is the size of one flatEntry.
 const flatEntrySize = int(unsafe.Sizeof(flatEntry{}))
@@ -103,7 +113,20 @@ func (p *flatPage) DecodedHeapSize() int {
 	if p == nil {
 		return 0
 	}
-	return flatPageHeapSize + heapAlloc(cap(p.buf)) + heapAlloc(cap(p.entries)*flatEntrySize)
+	return flatPageHeapSize + heapAlloc(cap(p.buf)) + p.indexHeapSize()
+}
+
+// indexHeapSize returns the heap bytes of the page's entry index, route and
+// embedded pages, which share the buffer of the block's root page.
+func (p *flatPage) indexHeapSize() int {
+	n := heapAlloc(cap(p.entries)*flatEntrySize) + heapAlloc(cap(p.route)*4)
+	if cap(p.children) != 0 {
+		n += heapAlloc(cap(p.children) * flatPageHeapSize)
+	}
+	for i := range p.children {
+		n += p.children[i].indexHeapSize()
+	}
+	return n
 }
 
 // MarshalVT returns a copy of the encoded page.
@@ -125,26 +148,47 @@ func (p *flatPage) UnmarshalDecodedBlock(data []byte) error {
 		return errors.Wrap(ErrMalformedPage, "page larger than 4 GiB")
 	}
 
-	// Count entries so the index is allocated once at its exact size.
-	var count int
-	if err := forEachField(data, 0, func(num uint64, wire int, _ uint64, _ flatSpan) error {
-		if num == 7 && wire == 2 {
-			count++
-		}
-		return nil
-	}); err != nil {
-		return err
-	}
-
-	// Index every page field into a fresh page.
-	next := flatPage{buf: bytes.Clone(data), entries: make([]flatEntry, 0, count)}
-	if err := forEachField(next.buf, 0, func(num uint64, wire int, v uint64, s flatSpan) error {
-		return next.decodeField(num, wire, v, s)
-	}); err != nil {
+	// Index the page and its embedded pages over a copy of data.
+	buf := bytes.Clone(data)
+	next, err := decodeFlatPage(buf, flatSpan{n: uint32(len(buf))}, nil) //nolint:gosec // bounded by the 4 GiB check.
+	if err != nil {
 		return err
 	}
 	*p = next
 	return nil
+}
+
+// decodeFlatPage indexes the page message at s in buf, reached from the
+// block's root page through route.
+func decodeFlatPage(buf []byte, s flatSpan, route []uint32) (flatPage, error) {
+	// Count entries and embedded pages so each index is allocated once at its
+	// exact size.
+	msg := buf[s.off : s.off+s.n]
+	var count, children int
+	if err := forEachField(msg, s.off, func(num uint64, wire int, _ uint64, e flatSpan) error {
+		if num != 7 || wire != 2 {
+			return nil
+		}
+		count++
+		return forEachField(buf[e.off:e.off+e.n], e.off, func(num uint64, wire int, _ uint64, _ flatSpan) error {
+			if num == 9 && wire == 2 {
+				children++
+			}
+			return nil
+		})
+	}); err != nil {
+		return flatPage{}, err
+	}
+
+	// Index every page field into a fresh page.
+	next := flatPage{buf: buf, entries: make([]flatEntry, 0, count), route: route}
+	if children != 0 {
+		next.children = make([]flatPage, 0, children)
+	}
+	err := forEachField(msg, s.off, func(num uint64, wire int, v uint64, f flatSpan) error {
+		return next.decodeField(num, wire, v, f)
+	})
+	return next, err
 }
 
 // decodeField records one top-level page field.
@@ -199,7 +243,9 @@ func (p *flatPage) decodeEntry(s flatSpan) (flatEntry, error) {
 			e.flags = setFlag(e.flags, flatValueIsBlob, v != 0)
 		case num == 8 && wire == 2:
 			return p.decodeBlob(&e, f)
-		case num >= 1 && num <= 8:
+		case num == 9 && wire == 2:
+			return p.decodeChildPage(&e, f)
+		case num >= 1 && num <= 9:
 			return errors.Wrapf(ErrMalformedPage, "wire type %d for entry field %d", wire, num)
 		}
 		return nil
@@ -251,6 +297,23 @@ func (p *flatPage) decodeBlob(e *flatEntry, s flatSpan) error {
 		e.raw = raw
 	}
 	return err
+}
+
+// decodeChildPage indexes the child page embedded at s as the child of the
+// entry p is decoding, which is the next entry of p.
+func (p *flatPage) decodeChildPage(e *flatEntry, s flatSpan) error {
+	// Accept one child page per entry, decoded on the entry's route.
+	if e.childPage != 0 {
+		return errors.Wrap(ErrMalformedPage, "repeated child page")
+	}
+	route := append(slices.Clip(p.route), uint32(len(p.entries))) //nolint:gosec // page entry indexes are bounded by the 4 GiB check.
+	child, err := decodeFlatPage(p.buf, s, route)
+	if err != nil {
+		return err
+	}
+	p.children = append(p.children, child)
+	e.childPage = uint32(len(p.children)) //nolint:gosec // bounded by the entry count.
+	return nil
 }
 
 // setFlag sets or clears flag in flags.
@@ -336,6 +399,15 @@ func (p *flatPage) isAnchor(i int) bool { return p.entries[i].flags&flatAnchor !
 
 // entryKey returns the key of entry i, borrowed from the page buffer.
 func (p *flatPage) entryKey(i int) []byte { return p.view(p.entries[i].key) }
+
+// embeddedChild returns entry i's child page when the entry embeds it in this
+// page's block, or nil when the child roots its own block.
+func (p *flatPage) embeddedChild(i int) *flatPage {
+	if n := p.entries[i].childPage; n != 0 {
+		return &p.children[n-1]
+	}
+	return nil
+}
 
 // childRef returns an owned copy of entry i's child page reference.
 func (p *flatPage) childRef(i int) *block.BlockRef { return p.refOf(p.entries[i].child) }
@@ -423,6 +495,11 @@ func (p *flatPage) ValidateDecodedBlock() error {
 		if err := p.validateEntryRefs(idx); err != nil {
 			return err
 		}
+		if child := p.embeddedChild(idx); child != nil {
+			if err := child.validateChildOf(p, idx); err != nil {
+				return errors.Wrapf(err, "entry %d child page", idx)
+			}
+		}
 		size += e.size
 	}
 
@@ -436,7 +513,7 @@ func (p *flatPage) validateEntryRefs(idx int) error {
 	e := &p.entries[idx]
 	inline := p.hasInlineBlob(idx)
 	if p.level == 0 {
-		if !e.child.empty() {
+		if !e.child.empty() || e.childPage != 0 {
 			return errors.Wrapf(ErrUnexpectedEntryMetadata, "entry %d leaf child ref", idx)
 		}
 		if p.isAnchor(idx) && (!e.value.empty() || p.valueIsBlob(idx) || inline) {
@@ -445,6 +522,9 @@ func (p *flatPage) validateEntryRefs(idx int) error {
 	} else {
 		if !e.value.empty() || p.valueIsBlob(idx) || inline {
 			return errors.Wrapf(ErrUnexpectedEntryMetadata, "entry %d internal value", idx)
+		}
+		if !e.child.empty() && e.childPage != 0 {
+			return errors.Wrapf(ErrUnexpectedEntryMetadata, "entry %d child ref and child page", idx)
 		}
 		if !e.child.empty() {
 			if err := p.refOf(e.child).Validate(false); err != nil {
@@ -456,6 +536,15 @@ func (p *flatPage) validateEntryRefs(idx int) error {
 		return errors.Wrapf(ErrUnexpectedEntryMetadata, "entry %d ambiguous inline value", idx)
 	}
 	return nil
+}
+
+// validateChildOf validates p as the page embedded in entry idx of parent,
+// one level below it.
+func (p *flatPage) validateChildOf(parent *flatPage, idx int) error {
+	if p.level+1 != parent.level {
+		return errors.Wrapf(ErrUnexpectedPageMetadata, "child level %d under level %d", p.level, parent.level)
+	}
+	return p.ValidateDecodedBlock()
 }
 
 // validateBounds checks the page bounds and size against its entries.
@@ -525,6 +614,51 @@ func (p *flatPage) GetBlockRefCtor(id uint32) block.Ctor {
 	return nil
 }
 
+// RangeSubBlocks calls fn with each embedded child page, so a walk of the
+// block's refs reaches the refs the embedded pages hold.
+func (p *flatPage) RangeSubBlocks(fn func(id uint32, subBlock block.SubBlock)) {
+	if p == nil {
+		return
+	}
+	for i := range p.entries {
+		if child := p.embeddedChild(i); child != nil {
+			fn(entryChildPageID(i), child)
+		}
+	}
+}
+
+// GetSubBlocks returns the embedded child pages by child page ID.
+func (p *flatPage) GetSubBlocks() map[uint32]block.SubBlock {
+	return block.CollectSubBlocks(p)
+}
+
+// GetSubBlockCtor returns the embedded child page at id, or nil when the
+// entry embeds none. It never creates one: a flat page is read-only.
+func (p *flatPage) GetSubBlockCtor(id uint32) block.SubBlockCtor {
+	// Return the existing embedded page and never construct one.
+	idx, ok := entryIndexFromChildPageID(id)
+	if !ok || idx >= len(p.entries) {
+		return nil
+	}
+	child := p.embeddedChild(idx)
+	if child == nil {
+		return nil
+	}
+	return func(bool) block.SubBlock { return child }
+}
+
+// ApplySubBlock rejects the change: a flat page is never written.
+func (p *flatPage) ApplySubBlock(id uint32, next block.SubBlock) error {
+	return errors.New("okra page: flat page is read-only")
+}
+
+// IsNil reports whether the page is nil.
+func (p *flatPage) IsNil() bool { return p == nil }
+
+// BlockAliasIdentity returns the page's in-memory identity. Each page,
+// embedded ones included, holds its own view of the block bytes.
+func (p *flatPage) BlockAliasIdentity() *block.AliasIdentityToken { return &p.buf }
+
 // newFlatPageBlock constructs an empty flat page.
 func newFlatPageBlock() block.Block { return &flatPage{} }
 
@@ -532,6 +666,9 @@ func newFlatPageBlock() block.Block { return &flatPage{} }
 var (
 	_ block.Block                   = (*flatPage)(nil)
 	_ block.BlockWithRefs           = (*flatPage)(nil)
+	_ block.BlockWithSubBlocks      = (*flatPage)(nil)
+	_ block.BlockWithSubBlockRange  = (*flatPage)(nil)
+	_ block.SubBlock                = (*flatPage)(nil)
 	_ block.DecodedBlockShareable   = (*flatPage)(nil)
 	_ block.DecodedBlockValidator   = (*flatPage)(nil)
 	_ block.DecodedBlockUnmarshaler = (*flatPage)(nil)

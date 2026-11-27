@@ -43,6 +43,9 @@ const (
 	// predates the layout rejects the tag as it does
 	// KV_IMPL_TYPE_IAVL_NODE_GRAPH.
 	KVImplType_KV_IMPL_TYPE_OKRA_NODE_GRAPH KVImplType = 6
+	// KV_IMPL_TYPE_OKRA_MULTI_LEVEL is an inline Okra tree whose blocks each
+	// hold several levels of pages, as its Root's levels_per_block records.
+	KVImplType_KV_IMPL_TYPE_OKRA_MULTI_LEVEL KVImplType = 7
 )
 
 // Enum value maps for KVImplType.
@@ -55,6 +58,7 @@ var (
 		4: "KV_IMPL_TYPE_OKRA_INLINE_NODE_GRAPH",
 		5: "KV_IMPL_TYPE_IAVL_NODE_GRAPH",
 		6: "KV_IMPL_TYPE_OKRA_NODE_GRAPH",
+		7: "KV_IMPL_TYPE_OKRA_MULTI_LEVEL",
 	}
 	KVImplType_value = map[string]int32{
 		"KV_IMPL_TYPE_UNKNOWN":                0,
@@ -64,6 +68,7 @@ var (
 		"KV_IMPL_TYPE_OKRA_INLINE_NODE_GRAPH": 4,
 		"KV_IMPL_TYPE_IAVL_NODE_GRAPH":        5,
 		"KV_IMPL_TYPE_OKRA_NODE_GRAPH":        6,
+		"KV_IMPL_TYPE_OKRA_MULTI_LEVEL":       7,
 	}
 )
 

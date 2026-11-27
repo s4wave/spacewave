@@ -28,6 +28,32 @@ func NewTxWithInlineValues(
 	return t, nil
 }
 
+// DefaultLevelsPerBlock is the levels per block a new tree tagged
+// KV_IMPL_TYPE_OKRA_MULTI_LEVEL records.
+const DefaultLevelsPerBlock = 2
+
+// NewTxWithLevels opens an Okra transaction with inline values whose owning
+// store is tagged KV_IMPL_TYPE_OKRA_MULTI_LEVEL. A tree records its levels
+// per block in its root; an empty tree takes levelsPerBlock. One level per
+// block records zero, as a tree written before the count existed does.
+func NewTxWithLevels(
+	ctx context.Context,
+	bcs *block.Cursor,
+	btx *block.Transaction,
+	write bool,
+	rootChangedCb func(*block.Cursor),
+	levelsPerBlock uint32,
+) (*Tx, error) {
+	t, err := NewTxWithInlineValues(ctx, bcs, btx, write, rootChangedCb)
+	if err != nil {
+		return nil, err
+	}
+	if t.root.GetSize() == 0 && levelsPerBlock > 1 {
+		t.levelsPerBlock = levelsPerBlock
+	}
+	return t, nil
+}
+
 // buildValueEntry chooses the value's storage layout. An inline value borrows
 // the caller's bytes. The tree builder copies them before the next entry.
 func (t *Tx) buildValueEntry(ctx context.Context, key, value []byte) (BuildEntry, error) {

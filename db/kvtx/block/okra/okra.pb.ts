@@ -37,6 +37,12 @@ export interface Root {
    * FanoutDegree records the Okra Q promotion constant used by this tree.
    */
   fanoutDegree?: number
+  /**
+   * LevelsPerBlock is how many Okra levels one block holds. A page whose
+   * level is not a block root's level is stored as its parent entry's
+   * child_page. Zero and one store every page in its own block.
+   */
+  levelsPerBlock?: number
 }
 
 export const Root: MessageType<Root> = /* @__PURE__ */ createMessageType<Root>(
@@ -48,6 +54,7 @@ export const Root: MessageType<Root> = /* @__PURE__ */ createMessageType<Root>(
     [4, 'root_page_ref', 11, 0, BlockRef.codec],
     [5, 'hash_size', 13],
     [6, 'fanout_degree', 13],
+    [7, 'levels_per_block', 13],
   ],
 )
 
@@ -124,7 +131,8 @@ export interface Entry {
    */
   size?: bigint
   /**
-   * ChildRef points to the child page for internal nodes.
+   * ChildRef points to the child page for internal nodes whose child page
+   * roots its own block. Empty when ChildPage holds the child.
    */
   childRef?: BlockRef
   /**
@@ -141,6 +149,12 @@ export interface Entry {
    * ValueRef is empty and ValueIsBlob is true when this field is present.
    */
   valueBlob?: Blob
+  /**
+   * ChildPage embeds the child page in this page's block. Present only in
+   * stores tagged KV_IMPL_TYPE_OKRA_MULTI_LEVEL, for a child whose level is
+   * not a block root's level. ChildRef is empty when this field is present.
+   */
+  childPage?: Page
 }
 
 export const Entry: MessageType<Entry> =
@@ -153,4 +167,5 @@ export const Entry: MessageType<Entry> =
     [6, 'value_ref', 11, 0, BlockRef.codec],
     [7, 'value_is_blob', 8],
     [8, 'value_blob', 11, 0, Blob.codec],
+    [9, 'child_page', 11, 0, Page.codec],
   ])

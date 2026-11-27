@@ -11,11 +11,15 @@ import (
 const maxRootLevel = 254
 
 // treeBuilder packs sorted entries into pages as their page boundaries arrive.
-// Each finished page is written at once and referenced by ref, so a build
-// holds only the open page of each level.
+// A finished page that roots a block is written at once and referenced by
+// ref; one embedded in its parent's block is held by its parent entry until
+// that block is written. A build holds only the open page of each level and
+// the embedded pages of the open blocks.
 type treeBuilder struct {
 	// writePage stores a finished page and returns its reference.
 	writePage func(*Page) (*block.BlockRef, error)
+	// levelsPerBlock is the tree's levels per block, as embedsLevel reads it.
+	levelsPerBlock uint32
 	// levels holds the open page of each level, indexed by page level.
 	levels []treeLevel
 }
@@ -30,11 +34,12 @@ type treeLevel struct {
 }
 
 // newTreeBuilder starts a tree whose first leaf is the anchor entry.
-func newTreeBuilder(writePage func(*Page) (*block.BlockRef, error)) *treeBuilder {
+func newTreeBuilder(writePage func(*Page) (*block.BlockRef, error), levelsPerBlock uint32) *treeBuilder {
 	anchor := &Entry{Anchor: true, Hash: mustAnchorHash()}
 	return &treeBuilder{
-		writePage: writePage,
-		levels:    []treeLevel{{entries: []*Entry{anchor}}},
+		writePage:      writePage,
+		levelsPerBlock: levelsPerBlock,
+		levels:         []treeLevel{{entries: []*Entry{anchor}}},
 	}
 }
 
@@ -61,9 +66,11 @@ func (b *treeBuilder) buildPage(level uint32, upper []byte) error {
 		return errors.New("okra tree exceeded maximum height")
 	}
 
-	// Write the open page and hash its entry range.
+	// Write the open page, or hold it for its parent's block, and hash its
+	// entry range.
 	entries := b.levels[level].entries
-	page, ref, err := b.createPage(level, entries, upper)
+	embed := embedsLevel(b.levelsPerBlock, level)
+	page, ref, err := b.createPage(level, entries, upper, !embed)
 	if err != nil {
 		return err
 	}
@@ -80,6 +87,9 @@ func (b *treeBuilder) buildPage(level uint32, upper []byte) error {
 		Size:     page.GetSize(),
 		ChildRef: ref,
 	}
+	if embed {
+		parent.ChildPage = page
+	}
 	clear(entries)
 	b.levels[level].entries = entries[:0]
 	b.levels[level].built = true
@@ -93,7 +103,7 @@ func (b *treeBuilder) finish() (*block.BlockRef, *Entry, uint32, error) {
 	for level := uint32(0); ; level++ {
 		open := b.levels[level]
 		if level != 0 && !open.built && len(open.entries) == 1 {
-			_, ref, err := b.createPage(level, open.entries, nil)
+			_, ref, err := b.createPage(level, open.entries, nil, true)
 			return ref, open.entries[0], level, err
 		}
 		if err := b.buildPage(level, nil); err != nil {
@@ -102,9 +112,10 @@ func (b *treeBuilder) finish() (*block.BlockRef, *Entry, uint32, error) {
 	}
 }
 
-// createPage writes one page over the staged entries. The page takes the
-// entries without copying them.
-func (b *treeBuilder) createPage(level uint32, entries []*Entry, upper []byte) (*Page, *block.BlockRef, error) {
+// createPage assembles one page over the staged entries and, when write is
+// set, writes it as its own block. The page takes the entries without
+// copying them.
+func (b *treeBuilder) createPage(level uint32, entries []*Entry, upper []byte, write bool) (*Page, *block.BlockRef, error) {
 	// Assemble the page over the staged entries.
 	page := &Page{
 		Level:          level,
@@ -125,11 +136,24 @@ func (b *treeBuilder) createPage(level uint32, entries []*Entry, upper []byte) (
 		return nil, nil, err
 	}
 	page.PageHash = pageHash
+	if !write {
+		return page, nil, nil
+	}
 	ref, err := b.writePage(page)
 	if err != nil {
 		return nil, nil, err
 	}
 	return page, ref, nil
+}
+
+// embedsLevel reports whether a page at level is stored inside its parent's
+// block in a tree of levelsPerBlock levels per block. Blocks root at the
+// levels one below each multiple of levelsPerBlock, and the tree's root page
+// always roots its own block, so the layout depends only on the tree's
+// contents. A reader needs no levels count: an entry's child_page holds an
+// embedded child and its child_ref names a block.
+func embedsLevel(levelsPerBlock, level uint32) bool {
+	return levelsPerBlock > 1 && level%levelsPerBlock != levelsPerBlock-1
 }
 
 // mustAnchorHash returns the anchor entry's hash, panicking only if the

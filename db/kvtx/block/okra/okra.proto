@@ -18,6 +18,10 @@ message Root {
   uint32 hash_size = 5;
   // FanoutDegree records the Okra Q promotion constant used by this tree.
   uint32 fanout_degree = 6;
+  // LevelsPerBlock is how many Okra levels one block holds. A page whose
+  // level is not a block root's level is stored as its parent entry's
+  // child_page. Zero and one store every page in its own block.
+  uint32 levels_per_block = 7;
 }
 
 // Page is a packed Okra level page.
@@ -49,7 +53,8 @@ message Entry {
   bytes hash = 3;
   // Size contains the number of leaf keys below this node.
   uint64 size = 4;
-  // ChildRef points to the child page for internal nodes.
+  // ChildRef points to the child page for internal nodes whose child page
+  // roots its own block. Empty when ChildPage holds the child.
   .block.BlockRef child_ref = 5;
   // ValueRef points to the value block for leaf nodes.
   .block.BlockRef value_ref = 6;
@@ -59,4 +64,8 @@ message Entry {
   // ValueBlob is present only in stores tagged KV_IMPL_TYPE_OKRA_INLINE.
   // ValueRef is empty and ValueIsBlob is true when this field is present.
   .blob.Blob value_blob = 8;
+  // ChildPage embeds the child page in this page's block. Present only in
+  // stores tagged KV_IMPL_TYPE_OKRA_MULTI_LEVEL, for a child whose level is
+  // not a block root's level. ChildRef is empty when this field is present.
+  Page child_page = 9;
 }

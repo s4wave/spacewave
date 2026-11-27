@@ -107,34 +107,37 @@ func (r cursorPages) valueCursor(_ context.Context, page *Page, cursor *block.Cu
 type flatPages struct{ t *Tx }
 
 // rootPage loads the stored root page.
-func (r flatPages) rootPage(ctx context.Context) (*flatPage, block.ReadCursor, error) {
-	cursor := *r.t.readRoot
-	page, err := loadFlatPage(ctx, cursor)
-	return page, cursor, err
+func (r flatPages) rootPage(ctx context.Context) (*flatPage, flatPos, error) {
+	pos, err := flatPos{cursor: *r.t.readRoot}.load(ctx)
+	return pos.page, pos, err
 }
 
-// childAt returns a reader at the entry's stored child page.
-func (r flatPages) childAt(page *flatPage, cursor block.ReadCursor, index int) block.ReadCursor {
-	return page.followChild(cursor, index)
+// childAt returns the position of the entry's child page.
+func (r flatPages) childAt(_ *flatPage, pos flatPos, index int) flatPos {
+	return pos.child(index)
 }
 
-// loadAt loads the stored page at a reader.
-func (r flatPages) loadAt(ctx context.Context, cursor block.ReadCursor) (*flatPage, error) {
-	return loadFlatPage(ctx, cursor)
+// loadAt loads the page at a position.
+func (r flatPages) loadAt(ctx context.Context, pos flatPos) (*flatPage, error) {
+	pos, err := pos.load(ctx)
+	return pos.page, err
 }
 
-// aheadPage adds the stored page the decoded-block cache lacks.
-func (r flatPages) aheadPage(ctx context.Context, b *block.BatchLoad, cursor block.ReadCursor) {
-	block.AddRead[flatPage](ctx, b, cursor)
+// aheadPage adds the stored block of a position the decoded-block cache
+// lacks. An embedded page is part of its parent's block.
+func (r flatPages) aheadPage(ctx context.Context, b *block.BatchLoad, pos flatPos) {
+	if pos.page == nil {
+		block.AddRead[flatPage](ctx, b, pos.cursor)
+	}
 }
 
 // aheadValue adds the entry's stored value block, or the root of its stored
 // Blob. An inline value is part of its page.
-func (r flatPages) aheadValue(ctx context.Context, b *block.BatchLoad, page *flatPage, cursor block.ReadCursor, index int) {
+func (r flatPages) aheadValue(ctx context.Context, b *block.BatchLoad, page *flatPage, pos flatPos, index int) {
 	if _, ok := page.rawInlineValue(index); ok || page.hasInlineBlob(index) {
 		return
 	}
-	value := page.followValue(cursor, index)
+	value := page.followValue(pos.cursor, index)
 	if page.valueIsBlob(index) {
 		block.AddRead[blob.Blob](ctx, b, value)
 		return
@@ -143,25 +146,13 @@ func (r flatPages) aheadValue(ctx context.Context, b *block.BatchLoad, page *fla
 }
 
 // entryValue returns an owned copy of the entry's value.
-func (r flatPages) entryValue(ctx context.Context, page *flatPage, cursor block.ReadCursor, index int) ([]byte, error) {
-	return readEntryValue(ctx, page, cursor, index)
+func (r flatPages) entryValue(ctx context.Context, _ *flatPage, pos flatPos, index int) ([]byte, error) {
+	return readEntryValue(ctx, pos, index)
 }
 
-// valueCursor materializes a private cursor at the entry's value. An inline
-// Blob is a sub-block of its page, so its page is decoded onto that cursor.
-func (r flatPages) valueCursor(ctx context.Context, page *flatPage, cursor block.ReadCursor, index int) (*block.Cursor, error) {
-	// A stored value needs no page cursor.
-	if !page.hasInlineBlob(index) {
-		return page.followValue(cursor, index).Cursor(), nil
-	}
-
-	// Decode the page onto a private cursor to reach the inline Blob.
-	loaded := cursor.Cursor()
-	mutable, err := loadPage(ctx, loaded)
-	if err != nil {
-		return nil, err
-	}
-	return mutable.FollowValue(loaded, index), nil
+// valueCursor materializes a private cursor at the entry's value.
+func (r flatPages) valueCursor(ctx context.Context, _ *flatPage, pos flatPos, index int) (*block.Cursor, error) {
+	return pos.valueCursor(ctx, index)
 }
 
 // loadFlatPage returns the validated flat page stored at cursor. A reader

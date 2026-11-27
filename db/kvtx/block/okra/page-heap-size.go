@@ -52,7 +52,8 @@ func entryDecodedHeapSize(e *Entry) int {
 		heapBytes(e.unknownFields) +
 		blockRefDecodedHeapSize(e.ChildRef) +
 		blockRefDecodedHeapSize(e.ValueRef) +
-		blobDecodedHeapSize(e.ValueBlob)
+		blobDecodedHeapSize(e.ValueBlob) +
+		e.ChildPage.DecodedHeapSize()
 }
 
 // blockRefDecodedHeapSize estimates the heap bytes a block ref retains.
