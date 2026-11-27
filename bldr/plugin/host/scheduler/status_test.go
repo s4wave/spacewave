@@ -454,16 +454,12 @@ func TestPluginStatusWritersSkipObservation(t *testing.T) {
 	defer cancel()
 	errs := make(chan error, watchers)
 	for range watchers {
+		// Each watcher starts from the snapshot before the first write, and
+		// checks every snapshot it holds before it waits for the next.
+		current := ctrl.GetPluginStatusCtr().GetValue()
 		go func() {
 			var seen uint64
-			current := ctrl.GetPluginStatusCtr().GetValue()
 			for {
-				next, err := ctrl.GetPluginStatusCtr().WaitValueChange(ctx, current, nil)
-				if err != nil {
-					errs <- err
-					return
-				}
-				current = next
 				rev := current.GetExecutions()[0].GetRunningManifestRev()
 				if rev < seen {
 					errs <- errors.Errorf("watcher saw rev %d after %d", rev, seen)
@@ -474,6 +470,12 @@ func TestPluginStatusWritersSkipObservation(t *testing.T) {
 					errs <- nil
 					return
 				}
+				next, err := ctrl.GetPluginStatusCtr().WaitValueChange(ctx, current, nil)
+				if err != nil {
+					errs <- err
+					return
+				}
+				current = next
 			}
 		}()
 	}

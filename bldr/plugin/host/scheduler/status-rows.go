@@ -21,9 +21,9 @@ import (
 // A stored row is never mutated: a writer stores a new row in its place.
 // A reader can therefore copy row pointers under bcast and clone them after.
 //
-// A snapshot holds the rows of exactly one revision.
-// The cached snapshot only moves to a newer revision, so a reader never sees
-// an older snapshot after a newer one.
+// A snapshot holds the rows of exactly one revision, and a reader gets the
+// snapshot of the revision current when it asks. Revisions only grow, so a
+// reader never sees an older snapshot after a newer one.
 //
 // Watchers wake on each revision and return only a snapshot that differs from
 // the one they hold, so they see each published state or a later one.
@@ -122,15 +122,15 @@ func (r *pluginStatusRows) snapshot() (*bldr_plugin.PluginStatusSnapshot, uint64
 		// Clone and sort the copied rows without holding bcast.
 		built := buildPluginStatusSnapshot(plugins, recovery, executions)
 
-		// Cache the build unless a newer one landed, reusing an equal snapshot.
+		// Cache the build, reusing an equal snapshot. Builds are serialized and
+		// each claims the revision current at its start, which is newer than
+		// the cached one, so the cache only moves forward.
 		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			r.building = false
-			if r.snap == nil || rev > r.snapRev {
-				if r.snap != nil && r.snap.EqualVT(built) {
-					built = r.snap
-				}
-				r.snap, r.snapRev = built, rev
+			if r.snap != nil && r.snap.EqualVT(built) {
+				built = r.snap
 			}
+			r.snap, r.snapRev = built, rev
 			broadcast()
 		})
 		return built, rev
