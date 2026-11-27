@@ -24,6 +24,7 @@ const h = vi.hoisted(() => ({
   typeFails: false,
   breakStream: false,
   opens: 0,
+  reopen: undefined as Promise<void> | undefined,
   rootResource: {
     value: { id: 1 } as object,
     loading: false,
@@ -40,6 +41,7 @@ vi.mock('@s4wave/sdk/world/world-query.js', () => ({
     signal: AbortSignal,
   ) {
     h.opens++
+    if (h.opens > 1) await h.reopen
     for (;;) {
       yield { seqno: 0n, value: await query(snapshot(h.exists), signal) }
       await new Promise<void>((resolve) => {
@@ -117,19 +119,26 @@ function commit(exists: boolean, root = h.root) {
 }
 
 afterEach(() => {
+  // Release mounted hooks before resetting the watch fixture.
   cleanup()
+
+  // Reset the World snapshot and pending notification.
   h.exists = false
   h.root = 'r1'
   h.push = undefined
+
+  // Reset failure injection and client-generation controls.
   h.formatFails = false
   h.typeFails = false
   h.breakStream = false
   h.opens = 0
+  h.reopen = undefined
   h.rootResource = { ...h.rootResource, value: { id: 1 } }
 })
 
 describe('useObjectViewerSetup', () => {
   it('follows an object the World gains and loses after mount', async () => {
+    // Mount a viewer against an initially empty World.
     const world = liveWorld(() => h.exists)
     const { result } = renderHook(() => useObjectViewerSetup(world, objectKey))
 
@@ -153,6 +162,7 @@ describe('useObjectViewerSetup', () => {
   })
 
   it('keeps the root row while a new root formats', async () => {
+    // Record every displayed root while the watch is active.
     h.exists = true
     const world = liveWorld(() => h.exists)
     const shown: (string | undefined)[] = []
@@ -185,6 +195,7 @@ describe('useObjectViewerSetup', () => {
   })
 
   it('shows a present object whose root fails to format', async () => {
+    // Keep the object present while its reference formatter fails.
     h.exists = true
     h.formatFails = true
     const world = liveWorld(() => h.exists)
@@ -200,17 +211,20 @@ describe('useObjectViewerSetup', () => {
   })
 
   it('reports a failed watch as an error, not a missing object', async () => {
+    // Fail the first type lookup before the watch can answer.
     h.exists = true
     h.typeFails = true
     const world = liveWorld(() => h.exists)
     const { result } = renderHook(() => useObjectViewerSetup(world, objectKey))
 
+    // Report the failed read without claiming that the object is missing.
     await waitFor(() => expect(result.current.objectState.error).not.toBeNull())
     expect(result.current.objectState.loading).toBe(false)
     expect(result.current.objectState.value).toBeNull()
   })
 
   it('keeps the watch and the content through a Root reload', async () => {
+    // Count content mounts while the viewer follows a live World.
     h.exists = true
     const world = liveWorld(() => h.exists)
     let mounts = 0
@@ -220,6 +234,7 @@ describe('useObjectViewerSetup', () => {
       }, [])
       return null
     }
+
     // Viewer draws its content once the object arrives, as ObjectViewer does.
     function Viewer() {
       const setup = useObjectViewerSetup(world, objectKey)
@@ -240,6 +255,7 @@ describe('useObjectViewerSetup', () => {
   })
 
   it('watches a UnixFS-typed object for every viewer', async () => {
+    // Mount an absent object with a viewer type hint.
     const world = liveWorld(() => h.exists)
     const { result } = renderHook(() =>
       useObjectViewerSetup(world, objectKey, { typeIDHint: 'unixfs/fs-node' }),
@@ -250,6 +266,7 @@ describe('useObjectViewerSetup', () => {
     expect(result.current.objectState.value).toBeNull()
     expect(h.opens).toBe(1)
 
+    // Publish the newly created object through the existing watch.
     commit(true)
     await waitFor(() =>
       expect(result.current.objectState.value?.getKey()).toBe(objectKey),
@@ -257,11 +274,13 @@ describe('useObjectViewerSetup', () => {
   })
 
   it('opens no watch without an object key', async () => {
+    // Render a viewer that has only a type hint.
     const world = liveWorld(() => true)
     const { result } = renderHook(() =>
       useObjectViewerSetup(world, undefined, { typeIDHint: 'unixfs/fs-node' }),
     )
 
+    // Preserve the hint without opening a World-object watch.
     await waitFor(() => expect(result.current.objectState.loading).toBe(false))
     expect(result.current.objectState.value).toBeNull()
     expect(result.current.objectState.error).toBeNull()
@@ -270,6 +289,7 @@ describe('useObjectViewerSetup', () => {
   })
 
   it('reopens the watch on Retry after a failure before answering', async () => {
+    // Reject the initial watch before it can publish an object.
     h.exists = true
     h.typeFails = true
     const world = liveWorld(() => h.exists)
@@ -277,6 +297,7 @@ describe('useObjectViewerSetup', () => {
     await waitFor(() => expect(result.current.objectState.error).not.toBeNull())
     expect(h.opens).toBe(1)
 
+    // Retry the failed read after clearing its injected failure.
     h.typeFails = false
     act(() => result.current.objectState.retry())
     await waitFor(() =>
@@ -286,6 +307,9 @@ describe('useObjectViewerSetup', () => {
   })
 
   it('reports reopening, then missing for an object deleted meanwhile', async () => {
+    // Hold the next watch until the test deletes its object.
+    const reopen = Promise.withResolvers<void>()
+    h.reopen = reopen.promise
     h.exists = true
     const world = liveWorld(() => h.exists)
     const { result } = renderHook(() => useObjectViewerSetup(world, objectKey))
@@ -305,6 +329,7 @@ describe('useObjectViewerSetup', () => {
     // The object is deleted before the watch reopens: the watch then shows
     // the object as missing.
     h.exists = false
+    act(() => reopen.resolve())
     await waitFor(() => expect(result.current.objectState.loading).toBe(false))
     expect(result.current.objectState.value).toBeNull()
     expect(result.current.objectState.error).toBeNull()
