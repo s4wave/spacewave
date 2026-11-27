@@ -80,6 +80,12 @@ func (s *graphTestStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef
 	return s.RefStore.GetStoredBlock(ctx, ref)
 }
 
+// GetStoredBlockBatch reads each ref through GetStoredBlock, so a batch read
+// counts like single reads; the embedded RefStore's batch would bypass it.
+func (s *graphTestStore) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
+	return block.GetStoredBlockEach(ctx, s, refs, fn)
+}
+
 // put writes a block with refs, marking a leaf with an empty list.
 func (s *graphTestStore) put(t *testing.T, data string, refs ...*block.BlockRef) *block.BlockRef {
 	// Store a test graph block with explicit leaf or child references.
