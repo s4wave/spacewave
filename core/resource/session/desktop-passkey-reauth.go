@@ -4,7 +4,6 @@ package resource_session
 
 import (
 	"github.com/pkg/errors"
-	provider_spacewave_handoff "github.com/s4wave/spacewave/core/provider/spacewave/handoff"
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 )
@@ -46,12 +45,8 @@ func (r *SpacewaveSessionResource) StartDesktopPasskeyReauth(
 	}
 
 	// Open the browser and wait for its result.
-	p := r.swAcc.GetProvider()
-	result, err := provider_spacewave_handoff.WaitForDesktopPasskeyReauth(
+	result, err := r.swAcc.WaitForDesktopPasskeyReauth(
 		ctx,
-		p.GetHTTPClient(),
-		p.GetEndpoint(),
-		p.GetAccountEndpoint(),
 		startResp.GetNonce(),
 		startResp.GetWsTicket(),
 		startResp.GetOpenUrl(),

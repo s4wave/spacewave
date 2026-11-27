@@ -2574,7 +2574,7 @@ func (r *SpacewaveSessionResource) EnrollForHandoff(
 		AccountId:     registration.GetAccountId(),
 		EntityId:      registration.GetEntityId(),
 	}
-	if err := r.swAcc.GetProvider().RelayHandoffCompletion(ctx, nonce, completion); err != nil {
+	if err := r.swAcc.RelayHandoffCompletion(ctx, nonce, completion); err != nil {
 		return nil, err
 	}
 
@@ -2889,14 +2889,13 @@ func (r *SpacewaveSessionResource) ApproveSpaceLink(
 	defer relSO()
 
 	// Approve the verified SpaceLink through the account's entity client.
-	entityCli := r.swAcc.GetEntityClient()
 	return approveVerifiedSpaceLink(
 		ctx,
 		verified,
 		req.GetResourceId(),
 		r.session.GetPeerId().String(),
 		r.swAcc,
-		entityCli,
+		r.swAcc,
 		mountedSpaceLinkTargetSpace{swSO: swSO},
 	)
 }

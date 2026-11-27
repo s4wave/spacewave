@@ -3,7 +3,6 @@ package entitykeystore
 import (
 	"crypto/ed25519"
 	"slices"
-	"sync"
 	"time"
 
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
@@ -36,12 +35,6 @@ const DefaultEntityKeyStoreGrace = 30 * time.Second
 // MultiSigContext is the signing context for multi-sig actions.
 const MultiSigContext = "spacewave 2026-03-19 multi-sig action v2."
 
-// EntityKeyStoreRef is a retention ref for unlocked entity keys.
-type EntityKeyStoreRef struct {
-	store *EntityKeyStore
-	once  sync.Once
-}
-
 // NewEntityKeyStore creates a new EntityKeyStore.
 func NewEntityKeyStore() *EntityKeyStore {
 	return NewEntityKeyStoreWithGrace(DefaultEntityKeyStoreGrace)
@@ -53,16 +46,6 @@ func NewEntityKeyStoreWithGrace(grace time.Duration) *EntityKeyStore {
 		keys:  make(map[peer.ID]bifrost_crypto.PrivKey),
 		grace: grace,
 	}
-}
-
-// Release releases a retention ref.
-func (r *EntityKeyStoreRef) Release() {
-	if r == nil || r.store == nil {
-		return
-	}
-	r.once.Do(func() {
-		r.store.releaseRef()
-	})
 }
 
 // Retain keeps unlocked entity keys alive until the returned ref is released.
@@ -99,10 +82,13 @@ func (s *EntityKeyStore) Lock(peerID peer.ID) {
 // LockAll removes all unlocked private keys and broadcasts.
 func (s *EntityKeyStore) LockAll() {
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Scrub every key before clearing its entry.
 		for _, key := range s.keys {
 			scrubPrivKey(key)
 		}
 		clear(s.keys)
+
+		// Invalidate pending retention expiry and notify watchers.
 		s.graceSeq++
 		if s.graceTimer != nil {
 			s.graceTimer.Stop()
@@ -132,6 +118,7 @@ func (s *EntityKeyStore) GetUnlockedCount() int {
 
 // GetAnyUnlockedKey returns one unlocked key using deterministic peer ordering.
 func (s *EntityKeyStore) GetAnyUnlockedKey() (bifrost_crypto.PrivKey, peer.ID, bool) {
+	// Snapshot the unlocked peer IDs.
 	var peerIDs []peer.ID
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		for id := range s.keys {
@@ -141,6 +128,8 @@ func (s *EntityKeyStore) GetAnyUnlockedKey() (bifrost_crypto.PrivKey, peer.ID, b
 	if len(peerIDs) == 0 {
 		return nil, "", false
 	}
+
+	// Select the first peer in deterministic order.
 	slices.SortFunc(peerIDs, func(a, b peer.ID) int {
 		if a < b {
 			return -1
@@ -150,6 +139,8 @@ func (s *EntityKeyStore) GetAnyUnlockedKey() (bifrost_crypto.PrivKey, peer.ID, b
 		}
 		return 0
 	})
+
+	// Read the selected key, which may have been locked since the snapshot.
 	var priv bifrost_crypto.PrivKey
 	var ok bool
 	pid := peerIDs[0]
@@ -200,6 +191,7 @@ func (s *EntityKeyStore) SignRaw(peerID peer.ID, payload []byte) ([]byte, error)
 // the multi-sig signing context and returns the signatures. Returns nil if no
 // keys are unlocked.
 func (s *EntityKeyStore) SignAll(envelope []byte) ([]*api.EntitySignature, error) {
+	// Snapshot the unlocked signers.
 	type keyEntry struct {
 		peerID  peer.ID
 		privKey bifrost_crypto.PrivKey
@@ -213,6 +205,8 @@ func (s *EntityKeyStore) SignAll(envelope []byte) ([]*api.EntitySignature, error
 	if len(entries) == 0 {
 		return nil, nil
 	}
+
+	// Sign the same timestamped payload with each unlocked key.
 	now := timestamppb.New(time.Now().Truncate(time.Millisecond))
 	payload := BuildMultiSigPayload(now, envelope)
 	sigs := make([]*api.EntitySignature, 0, len(entries))
@@ -232,6 +226,7 @@ func (s *EntityKeyStore) SignAll(envelope []byte) ([]*api.EntitySignature, error
 
 // BuildMultiSigPayload constructs the signing payload for a multi-sig action.
 func BuildMultiSigPayload(signedAt *timestamppb.Timestamp, envelope []byte) []byte {
+	// Encode the context and timestamp before the action envelope.
 	ctx := []byte(MultiSigContext)
 	ts, _ := signedAt.MarshalVT()
 	payload := make([]byte, 0, len(ctx)+len(ts)+len(envelope))
@@ -255,9 +250,18 @@ func (s *EntityKeyStore) GetUnlockedKeysAndPeerIDs() ([]bifrost_crypto.PrivKey, 
 	return keys, peerIDs
 }
 
-// GetBroadcast returns the broadcast for watching state changes.
-func (s *EntityKeyStore) GetBroadcast() *broadcast.Broadcast {
-	return &s.bcast
+// WatchUnlockedPeers returns the unlocked peers and a channel for the next change.
+// The channel is captured before reading peers so a concurrent change wakes the
+// consumer even when that change is included in the returned snapshot.
+func (s *EntityKeyStore) WatchUnlockedPeers() (map[peer.ID]bool, <-chan struct{}) {
+	// Capture the wakeup before reading the current peers.
+	var waitCh <-chan struct{}
+	s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		waitCh = getWaitCh()
+	})
+
+	// Read peers after releasing the broadcast lock, preserving the watch order.
+	return s.GetUnlockedPeerIDs(), waitCh
 }
 
 // WatchUnlockedCount returns the unlocked key count and wait channel.
@@ -271,10 +275,13 @@ func (s *EntityKeyStore) WatchUnlockedCount() (int, <-chan struct{}) {
 	return count, ch
 }
 
+// releaseRef starts expiry after the last retention is released.
 func (s *EntityKeyStore) releaseRef() {
+	// Schedule expiry under the same lock that counts retained references.
 	var expireNow bool
 	var seq uint64
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		// Drop an active retention and stop when another remains.
 		if s.refs == 0 {
 			return
 		}
@@ -282,6 +289,8 @@ func (s *EntityKeyStore) releaseRef() {
 		if s.refs != 0 {
 			return
 		}
+
+		// Invalidate older callbacks and handle an empty key set.
 		s.graceSeq++
 		seq = s.graceSeq
 		if len(s.keys) == 0 {
@@ -291,6 +300,8 @@ func (s *EntityKeyStore) releaseRef() {
 			}
 			return
 		}
+
+		// Expire immediately or schedule the configured grace period.
 		if s.grace <= 0 {
 			expireNow = true
 			return
@@ -302,16 +313,22 @@ func (s *EntityKeyStore) releaseRef() {
 			s.expireGrace(seq)
 		})
 	})
+
+	// Run immediate expiry after releasing the broadcast lock.
 	if expireNow {
 		s.expireGrace(seq)
 	}
 }
 
+// expireGrace scrubs keys only for the current unretained generation.
 func (s *EntityKeyStore) expireGrace(seq uint64) {
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Ignore an expiry cancelled by a newer retention.
 		if s.refs != 0 || s.graceSeq != seq {
 			return
 		}
+
+		// Scrub expired keys and notify watchers.
 		for _, key := range s.keys {
 			scrubPrivKey(key)
 		}
@@ -321,6 +338,7 @@ func (s *EntityKeyStore) expireGrace(seq uint64) {
 	})
 }
 
+// scrubPrivKey clears writable Ed25519 private key bytes.
 func scrubPrivKey(priv bifrost_crypto.PrivKey) {
 	if priv == nil {
 		return

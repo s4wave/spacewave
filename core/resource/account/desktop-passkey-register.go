@@ -6,7 +6,6 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	provider_spacewave_handoff "github.com/s4wave/spacewave/core/provider/spacewave/handoff"
 	s4wave_account "github.com/s4wave/spacewave/sdk/account"
 )
 
@@ -32,12 +31,8 @@ func (r *AccountResource) StartDesktopPasskeyRegisterHandoff(
 	}
 
 	// Wait for the browser to supply the desktop passkey registration artifacts.
-	p := acc.GetProvider()
-	result, err := provider_spacewave_handoff.WaitForDesktopPasskeyRegister(
+	result, err := acc.WaitForDesktopPasskeyRegister(
 		ctx,
-		p.GetHTTPClient(),
-		p.GetEndpoint(),
-		p.GetAccountEndpoint(),
 		startResp.GetNonce(),
 		startResp.GetWsTicket(),
 		startResp.GetOpenUrl(),

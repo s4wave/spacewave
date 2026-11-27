@@ -638,11 +638,6 @@ func (a *ProviderAccount) ReplaceEntityClient(cli *EntityClient) {
 	a.entityCli = cli
 }
 
-// GetEntityClient returns the entity client for registration flows.
-func (a *ProviderAccount) GetEntityClient() *EntityClient {
-	return a.entityCli
-}
-
 // GetVolume returns the parent volume for the account.
 func (a *ProviderAccount) GetVolume() volume.Volume {
 	return a.vol
@@ -661,11 +656,6 @@ func (a *ProviderAccount) GetAccountID() string {
 // GetProviderID returns the provider identifier.
 func (a *ProviderAccount) GetProviderID() string {
 	return a.p.info.GetProviderId()
-}
-
-// GetProvider returns the parent Provider.
-func (a *ProviderAccount) GetProvider() *Provider {
-	return a.p
 }
 
 // GetCheckoutWatcher returns the checkout status watcher.

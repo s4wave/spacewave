@@ -26,7 +26,7 @@ func (r *AccountResource) SSOCodeExchange(
 	if err != nil {
 		return nil, err
 	}
-	result, err := acc.GetEntityClient().SSOCodeExchange(ctx, provider, code, redirectUri)
+	result, err := acc.SSOCodeExchange(ctx, provider, code, redirectUri)
 	if err != nil {
 		return nil, errors.Wrap(err, "sso callback")
 	}

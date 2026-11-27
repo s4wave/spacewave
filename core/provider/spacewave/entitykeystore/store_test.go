@@ -136,10 +136,7 @@ func waitForEntityKeyStoreBroadcast(t *testing.T, store *EntityKeyStore, trigger
 }
 
 func entityKeyStoreWaitCh(store *EntityKeyStore) <-chan struct{} {
-	var ch <-chan struct{}
-	store.GetBroadcast().HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-		ch = getWaitCh()
-	})
+	_, ch := store.WatchUnlockedCount()
 	return ch
 }
 

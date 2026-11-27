@@ -6,7 +6,6 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	provider_spacewave_handoff "github.com/s4wave/spacewave/core/provider/spacewave/handoff"
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
 )
 
@@ -37,11 +36,8 @@ func (r *SpacewaveSessionResource) StartDesktopSSOLink(
 	}
 
 	// Wait for the browser OAuth result on the auth-session WebSocket.
-	p := r.swAcc.GetProvider()
-	result, err := provider_spacewave_handoff.WaitForDesktopSSOLink(
+	result, err := r.swAcc.WaitForDesktopSSOLink(
 		ctx,
-		p.GetHTTPClient(),
-		p.GetEndpoint(),
 		provider,
 		startResp.GetWsTicket(),
 		startResp.GetOpenUrl(),

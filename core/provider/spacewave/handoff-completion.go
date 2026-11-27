@@ -43,3 +43,8 @@ func (p *Provider) RelayHandoffCompletion(ctx context.Context, nonce string, com
 
 	return nil
 }
+
+// RelayHandoffCompletion delivers account enrollment through the account's provider.
+func (a *ProviderAccount) RelayHandoffCompletion(ctx context.Context, nonce string, completion *session_handoff.HandoffCompletion) error {
+	return a.p.RelayHandoffCompletion(ctx, nonce, completion)
+}

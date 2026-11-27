@@ -42,10 +42,7 @@ func (r *AccountResource) WatchEntityKeypairs(
 	ctx := strm.Context()
 	store := acc.GetEntityKeyStore()
 	state := &entityKeypairsWatchState{unlockedPeers: store.GetUnlockedPeerIDs()}
-	acc.GetAccountBroadcast().HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		state.keypairs = acc.KeypairsSnapshot()
-		state.valid = acc.AccountStateSnapshot() != nil
-	})
+	state.initializeAccount(acc)
 
 	// Forward account and key-store changes into the combined watch state.
 	bridgeCtx, cancelBridges := context.WithCancel(ctx)
@@ -71,6 +68,14 @@ type entityKeypairsWatchState struct {
 	valid bool
 	// unlockedPeers is the set of entity keys unlocked in the key store.
 	unlockedPeers map[peer.ID]bool
+}
+
+// initializeAccount seeds account inputs before the bridges and watch loop start.
+func (s *entityKeypairsWatchState) initializeAccount(acc *provider_spacewave.ProviderAccount) {
+	acc.GetAccountBroadcast().HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		s.keypairs = acc.KeypairsSnapshot()
+		s.valid = acc.AccountStateSnapshot() != nil
+	})
 }
 
 // bridgeAccount forwards account broadcast wakeups into the local broadcast,
@@ -116,17 +121,11 @@ func (s *entityKeypairsWatchState) bridgeStore(
 	ctx context.Context,
 	store *provider_spacewave.EntityKeyStore,
 ) {
-	storeBcast := store.GetBroadcast()
 	for {
-		// Take the wait channel before reading the unlocked peers, so an
-		// unlock during the read wakes the next iteration.
-		var waitCh <-chan struct{}
-		storeBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			waitCh = getWaitCh()
-		})
+		// Capture the store wakeup before reading its unlocked peers.
+		unlockedPeers, waitCh := store.WatchUnlockedPeers()
 
 		// Publish the unlocked peers when they differ from the watch state.
-		unlockedPeers := store.GetUnlockedPeerIDs()
 		s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			if maps.Equal(s.unlockedPeers, unlockedPeers) {
 				return
