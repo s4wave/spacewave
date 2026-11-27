@@ -162,6 +162,103 @@ func TestCheckStoredCountsLiveQueued(t *testing.T) {
 	}
 }
 
+// TestReadsAnswerEachKey checks that the reads the collector decides on
+// answer for the record they name: a holder row reports the queue, released
+// and parked keys at its count's ripe sequence each in its own field, and
+// each batched read reports every key at its index as its point read does,
+// the last one included.
+func TestReadsAnswerEachKey(t *testing.T) {
+	ctx := t.Context()
+	keys, err := store_kvkey.NewKVKey(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx, err := store_kvtx_inmem.NewStore().NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+	rec := NewRecords(tx, []byte("l/"))
+	blocks := block_store_kvtx.NewKVTxBlock(keys, kvtx.NewTxStore(tx), 0)
+	if err := rec.SetState(ctx, &LivenessState{Generation: Generation_GENERATION_OPEN, UpCursor: 10}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Give each of three blocks at zero, ripe at 5, one proof record.
+	const ripe = 5
+	proofs := []struct {
+		name string
+		key  func(uint64, []byte) []byte
+		want func(HolderRow) bool
+	}{
+		{"queued", rec.queueKey, func(r HolderRow) bool { return r.Queued && !r.Released && !r.Parked }},
+		{"released", rec.releasedKey, func(r HolderRow) bool { return !r.Queued && r.Released && !r.Parked }},
+		{"parked", rec.parkedKey, func(r HolderRow) bool { return !r.Queued && !r.Released && r.Parked }},
+	}
+	refs := make([]*block.BlockRef, len(proofs))
+	for i, proof := range proofs {
+		ref, _, err := blocks.PutBlock(ctx, []byte(proof.name+" block"), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		refs[i] = ref
+		for _, err := range []error{
+			rec.PutChildren(ctx, ref, nil),
+			rec.SetHolders(ctx, ref, 0, ripe),
+			tx.Set(ctx, proof.key(ripe, BlockKey(ref)), nil),
+		} {
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	for i, proof := range proofs {
+		row, err := readHolderRow(ctx, rec, blocks, 10, refs[i])
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !proof.want(row) {
+			t.Errorf("%s row: queued %v released %v parked %v", proof.name, row.Queued, row.Released, row.Parked)
+		}
+	}
+
+	// Read the lists and counts of the three, an unlisted block between
+	// them and none after, in batches and one at a time.
+	unlisted, err := block.BuildBlockRef([]byte("unlisted block"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bkeys := [][]byte{BlockKey(refs[0]), BlockKey(unlisted), BlockKey(refs[1]), BlockKey(refs[2])}
+	listed, err := rec.listedBatch(ctx, bkeys)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lists, found, err := rec.childListsBatch(ctx, bkeys)
+	if err != nil {
+		t.Fatal(err)
+	}
+	counts, counted, err := rec.countsBatch(ctx, rec.kindKeys(kindCount, bkeys))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, key := range bkeys {
+		list, ok, err := rec.childList(ctx, key)
+		if err != nil {
+			t.Fatal(err)
+		}
+		count, countOK, err := tx.Get(ctx, rec.key(kindCount, key))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if want := i != 1; ok != want || listed[i] != want || found[i] != want || countOK != want || counted[i] != want {
+			t.Errorf("key %d: listed %v, batch listed %v, found %v; counted %v, batch %v; want %v", i, ok, listed[i], found[i], countOK, counted[i], want)
+		}
+		if !bytes.Equal(lists[i], list) || !bytes.Equal(counts[i], count) {
+			t.Errorf("key %d: batch read %x %x, point read %x %x", i, lists[i], counts[i], list, count)
+		}
+	}
+}
+
 // TestSettleWaitsForNetting checks that neither the front pop, the free nor
 // the flip runs while the free could not: a paged release in progress (the model's
 // FlipSettled, mutant rps-noflipsettled), an adoption younger than the grace
