@@ -41,6 +41,7 @@ func (a *ProviderAccount) handleAccountSONotify(
 	// The cloud list now decides membership, even for an object this account
 	// created.
 	if payload.GetChangeType() == "access_changed" {
+		a.invalidateSharedObjectLookup()
 		a.settleCreatedSharedObjectListEntry(soID)
 		a.le.WithField("sobject-id", soID).Debug("invalidating shared object list after access change")
 		a.invalidateSharedObjectList()

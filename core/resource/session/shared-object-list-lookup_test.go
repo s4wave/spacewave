@@ -19,10 +19,16 @@ import (
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 )
 
+// testSOListProvider supplies catalog and targeted lookup responses.
 type testSOListProvider struct {
-	ctr       *ccontainer.CContainer[*sobject.SharedObjectList]
+	// ctr holds the current catalog, including its loading state.
+	ctr *ccontainer.CContainer[*sobject.SharedObjectList]
+	// refreshed counts explicit legacy catalog reloads.
 	refreshed int
-	entry     *sobject.SharedObjectListEntry
+	// entry is published by a legacy refresh.
+	entry *sobject.SharedObjectListEntry
+	// lookup handles a supported targeted operation.
+	lookup func(context.Context, string) (*sobject.SharedObjectListEntry, error)
 }
 
 type testAcceptedCloudInviteAccount struct {
@@ -70,6 +76,14 @@ func (p *testSOListProvider) RefreshSharedObjectList(context.Context) error {
 		SharedObjects: []*sobject.SharedObjectListEntry{p.entry},
 	})
 	return nil
+}
+
+// LookupSharedObject leaves the legacy fixture on catalog refresh.
+func (p *testSOListProvider) LookupSharedObject(ctx context.Context, id string) (*sobject.SharedObjectListEntry, error) {
+	if p.lookup != nil {
+		return p.lookup(ctx, id)
+	}
+	return nil, sobject.ErrSharedObjectLookupUnsupported
 }
 
 type testInviteProviderAccount struct {
@@ -311,6 +325,45 @@ func BenchmarkResourcesListResponse(b *testing.B) {
 		response.EqualVT(previous)
 		if _, err := response.MarshalVT(); err != nil {
 			b.Fatal(err)
+		}
+	}
+}
+
+// TestMountLookupBypassesLoadingCatalog resolves a miss without waiting for the
+// first catalog value, and never refreshes after a supported route's refusal.
+func TestMountLookupBypassesLoadingCatalog(t *testing.T) {
+	for _, loaded := range []bool{false, true} {
+		// Leave the initial list nil or load a snapshot that lacks this ID.
+		ctr := ccontainer.NewCContainer[*sobject.SharedObjectList](nil)
+		if loaded {
+			ctr.SetValue(&sobject.SharedObjectList{})
+		}
+		entry := &sobject.SharedObjectListEntry{Ref: sobject.NewSharedObjectRef("spacewave", "account-1", "so-1", "so-1")}
+		calls := 0
+		p := &testSOListProvider{ctr: ctr, lookup: func(context.Context, string) (*sobject.SharedObjectListEntry, error) {
+			calls++
+			return entry, nil
+		}}
+
+		// One targeted request resolves either miss while the catalog stays held.
+		got, err := lookupMountSharedObjectListEntry(t.Context(), p, ctr, "so-1")
+		if err != nil || got != entry || calls != 1 || p.refreshed != 0 {
+			t.Fatalf("loaded=%v: %v %v, lookups=%d refreshes=%d", loaded, got, err, calls, p.refreshed)
+		}
+
+		// A supported refusal never reloads the catalog or invents an entry.
+		refused := errors.New("unavailable to this account")
+		p.lookup = func(context.Context, string) (*sobject.SharedObjectListEntry, error) { return nil, refused }
+		got, err = lookupMountSharedObjectListEntry(t.Context(), p, ctr, "so-1")
+		if got != nil || !errors.Is(err, refused) || p.refreshed != 0 {
+			t.Fatalf("refusal: %v %v, refreshes=%d", got, err, p.refreshed)
+		}
+
+		// The catalog's offline descriptor avoids targeted lookup entirely.
+		ctr.SetValue(&sobject.SharedObjectList{SharedObjects: []*sobject.SharedObjectListEntry{entry}})
+		got, err = lookupMountSharedObjectListEntry(t.Context(), p, ctr, "so-1")
+		if got != entry || err != nil || calls != 1 {
+			t.Fatalf("cached hit: %v %v, lookups=%d", got, err, calls)
 		}
 	}
 }

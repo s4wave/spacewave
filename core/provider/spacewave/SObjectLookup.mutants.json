@@ -1,0 +1,14 @@
+[
+  {
+    "name": "a stale reply restores a descriptor after invalidation",
+    "replace": [["outcome = \"found\" /\\ started = generation", "outcome = \"found\""]],
+    "expect": "Fresh",
+    "config": "SObjectLookup.cfg"
+  },
+  {
+    "name": "a resource refusal is mistaken for an absent route",
+    "replace": [["outcome = \"absent\" /\\ started = generation", "outcome \\in {\"absent\", \"refused\"} /\\ started = generation"]],
+    "expect": "Legacy",
+    "config": "SObjectLookup.cfg"
+  }
+]

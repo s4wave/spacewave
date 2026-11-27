@@ -3,6 +3,7 @@ package provider_spacewave
 import (
 	"context"
 
+	"github.com/aperturerobotics/util/refcount"
 	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/provider/spacewave/seedflight"
@@ -30,6 +31,8 @@ type sharedObjectMetadataState struct {
 	// gen increments on every store, invalidation, or deletion so an
 	// in-flight fetch can detect that it was superseded.
 	gen uint64
+	// lookup shares a descriptor request while any caller still needs it.
+	lookup *refcount.RefCount[*sobject.SharedObjectListEntry]
 	// seed coordinates concurrent callers around a single seed HTTP fetch.
 	// Guarded by accountBcast like the rest of the state.
 	seed seedflight.Seed
