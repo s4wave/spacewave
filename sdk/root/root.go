@@ -17,13 +17,16 @@ import (
 //
 // This Go SDK implementation wraps RootResourceService.
 type Root struct {
-	client  *resource_client.Client
-	ref     resource_client.ResourceRef
+	// client supplies resource adoption on the borrowed connection.
+	client resource_client.ReferenceCreator
+	// ref retains the root until Release.
+	ref resource_client.ResourceRef
+	// service invokes the retained root resource.
 	service SRPCRootResourceServiceClient
 }
 
 // NewRoot creates a new Root resource wrapper.
-func NewRoot(client *resource_client.Client, ref resource_client.ResourceRef) (*Root, error) {
+func NewRoot(client resource_client.ReferenceCreator, ref resource_client.ResourceRef) (*Root, error) {
 	srpcClient, err := ref.GetClient()
 	if err != nil {
 		return nil, err

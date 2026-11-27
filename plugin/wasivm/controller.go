@@ -127,7 +127,7 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 // through scope. It returns the registrations made, even on error.
 func register(
 	ctx context.Context,
-	client *resource_client.Client,
+	client resource_client.ReferenceCreator,
 	scope srpc.Client,
 ) ([]resource_client.ResourceRef, error) {
 	// Retain each registration until the caller releases it.

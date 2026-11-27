@@ -52,15 +52,14 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 	defer resources.Release()
-	root := resources.Client.AccessRootResource()
-	defer root.Release()
-	client, err := root.GetClient()
+	client, root, err := resources.OpenRootClient()
 	if err != nil {
 		return err
 	}
+	defer root.Release()
 
 	// Hold the registrations while this plugin instance runs.
-	release, err := Register(ctx, c.GetBus(), resources.Client, client, EditorEntrypoint.GetEntrypointHref())
+	release, err := Register(ctx, c.GetBus(), resources, client, EditorEntrypoint.GetEntrypointHref())
 	if err != nil {
 		return err
 	}

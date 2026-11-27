@@ -34,8 +34,8 @@ func (f *CoreClientFactory) NewClient(ctx context.Context, c *cli.Context) (runn
 	}
 
 	// Open the root resource and release the connection if initialization fails.
-	rootRef := resources.Client.AccessRootResource()
-	root, err := s4wave_root.NewRoot(resources.Client, rootRef)
+	rootRef := resources.AccessRootResource()
+	root, err := s4wave_root.NewRoot(resources, rootRef)
 	if err != nil {
 		rootRef.Release()
 		resources.Release()
@@ -77,8 +77,8 @@ func (c *coreClient) MountSession(ctx context.Context, idx uint32) (runner.Sessi
 	}
 
 	// Adopt the mounted session resource into a runner session.
-	sessRef := c.resources.Client.CreateResourceReference(resp.GetResourceId())
-	sess, err := s4wave_session.NewSession(c.resources.Client, sessRef)
+	sessRef := c.resources.CreateResourceReference(resp.GetResourceId())
+	sess, err := s4wave_session.NewSession(c.resources, sessRef)
 	if err != nil {
 		sessRef.Release()
 		return nil, errors.Wrap(err, "session resource")

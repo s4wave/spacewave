@@ -194,7 +194,7 @@ func (r *registrationFactory) objectType() objecttype.ObjectType {
 // openResources opens a Resource client generation to the handler serving
 // the registration: the caller-attached handler, or the plugin instance under
 // ctx.
-func (r *registrationFactory) openResources(ctx context.Context) (*resource_client.Client, func(), func() bool, error) {
+func (r *registrationFactory) openResources(ctx context.Context) (handlerResources, func(), func() bool, error) {
 	if r.reg.attached != nil {
 		return openAttachedResources(r.reg.attached)
 	}
@@ -285,7 +285,7 @@ func isUnimplemented(err error) bool {
 // openAttachedResources opens a Resource client generation on a
 // caller-attached handler. The generation lives until released or until the
 // caller generation that supplied the handler ends.
-func openAttachedResources(handler *attachedObjectTypeHandler) (*resource_client.Client, func(), func() bool, error) {
+func openAttachedResources(handler *attachedObjectTypeHandler) (handlerResources, func(), func() bool, error) {
 	client, err := resource_client.NewClient(
 		handler.ctx,
 		resource.NewSRPCResourceServiceClient(handler.client),
@@ -299,13 +299,13 @@ func openAttachedResources(handler *attachedObjectTypeHandler) (*resource_client
 // openPluginResources opens a Resource client generation on the plugin
 // instance. The alive callback reports whether the plugin runtime still holds
 // the generation.
-func openPluginResources(ctx context.Context, b bus.Bus, pluginID, instanceKey string) (*resource_client.Client, func(), func() bool, error) {
+func openPluginResources(ctx context.Context, b bus.Bus, pluginID, instanceKey string) (handlerResources, func(), func() bool, error) {
 	resources, err := s4wave_plugin.ConnectPluginInstanceResources(ctx, b, pluginID, instanceKey)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	alive := func() bool { return !resources.Client.Retired() }
-	return resources.Client, resources.Release, alive, nil
+	alive := func() bool { return !resources.Retired() }
+	return resources, resources.Release, alive, nil
 }
 
 // invokeAttached creates an ObjectType proxy through a caller-attached handler.
@@ -370,7 +370,7 @@ type pluginResourceSession struct {
 	// openResources opens the ResourceClient generation. The alive callback
 	// reports whether the generation is still usable. A nil callback means
 	// always.
-	openResources func(ctx context.Context) (*resource_client.Client, func(), func() bool, error)
+	openResources func(ctx context.Context) (handlerResources, func(), func() bool, error)
 	// detachCtx outlives one request and is used to detach the engine.
 	detachCtx context.Context
 
@@ -378,7 +378,7 @@ type pluginResourceSession struct {
 	mtx sync.Mutex
 
 	// resources is the nested Resource client retained under mtx.
-	resources *resource_client.Client
+	resources handlerResources
 	// releaseResources releases the nested Resource client generation under mtx.
 	releaseResources func()
 	// alive reports whether the nested client generation remains usable under mtx.
@@ -568,7 +568,7 @@ func newAttachedObjectTypeInvoker(
 		engineID:  engineID,
 		caller:    caller,
 		detachCtx: handler.ctx,
-		openResources: func(_ context.Context) (*resource_client.Client, func(), func() bool, error) {
+		openResources: func(_ context.Context) (handlerResources, func(), func() bool, error) {
 			return openAttachedResources(handler)
 		},
 	}
@@ -624,7 +624,7 @@ func newPluginObjectTypeInvoker(
 		engineID:  engineID,
 		caller:    caller,
 		detachCtx: resourceClientCtx,
-		openResources: func(_ context.Context) (*resource_client.Client, func(), func() bool, error) {
+		openResources: func(_ context.Context) (handlerResources, func(), func() bool, error) {
 			return openPluginResources(resourceClientCtx, b, reg.GetPluginId(), instanceKey)
 		},
 	}

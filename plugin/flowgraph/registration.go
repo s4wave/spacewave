@@ -14,7 +14,7 @@ import (
 
 // Register publishes the Stream Echo compiler and editor through the core Resource client.
 // The returned release withdraws both registrations and detaches the compiler.
-func Register(ctx context.Context, b bus.Bus, client *resource_client.Client, root srpc.Client, editorPath string) (func() error, error) {
+func Register(ctx context.Context, b bus.Bus, client RegistrationResources, root srpc.Client, editorPath string) (func() error, error) {
 	// Require the bundled editor before publishing the plugin's node type.
 	if editorPath == "" {
 		return nil, errors.New("Stream Echo editor bundle is unavailable")
@@ -45,13 +45,14 @@ func Register(ctx context.Context, b bus.Bus, client *resource_client.Client, ro
 	}
 
 	// Publish the editor with the existing config type registry.
-	editor, err := s4wave_configtype_registry.NewSRPCConfigTypeRegistryResourceServiceClient(root).RegisterConfigType(ctx, &s4wave_configtype_registry.RegisterConfigTypeRequest{
-		ConfigId:    stream_echo.ConfigID,
-		PluginId:    PluginID,
-		DisplayName: nodeType.GetDisplayName(),
-		Category:    "Network",
-		ScriptPath:  editorPath,
-	})
+	editor, err := s4wave_configtype_registry.NewSRPCConfigTypeRegistryResourceServiceClient(root).
+		RegisterConfigType(ctx, &s4wave_configtype_registry.RegisterConfigTypeRequest{
+			ConfigId:    stream_echo.ConfigID,
+			PluginId:    PluginID,
+			DisplayName: nodeType.GetDisplayName(),
+			Category:    "Network",
+			ScriptPath:  editorPath,
+		})
 	if err != nil {
 		if detachErr := release(); detachErr != nil {
 			return nil, errors.Wrapf(err, "detach compiler: %v", detachErr)

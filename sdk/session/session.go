@@ -16,7 +16,7 @@ import (
 // This Go SDK implementation wraps SessionResourceService.
 type Session struct {
 	// client supplies the borrowed resource connection.
-	client *resource_client.Client
+	client resource_client.ReferenceCreator
 	// ref retains the mounted Session until Release.
 	ref resource_client.ResourceRef
 	// service invokes the mounted Session resource.
@@ -24,7 +24,7 @@ type Session struct {
 }
 
 // NewSession creates a new Session resource wrapper.
-func NewSession(client *resource_client.Client, ref resource_client.ResourceRef) (*Session, error) {
+func NewSession(client resource_client.ReferenceCreator, ref resource_client.ResourceRef) (*Session, error) {
 	srpcClient, err := ref.GetClient()
 	if err != nil {
 		return nil, err

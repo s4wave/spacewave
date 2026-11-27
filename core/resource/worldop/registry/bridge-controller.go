@@ -365,12 +365,12 @@ func (o *bridgeOperation) applyWorldOp(
 	}
 
 	// Attach the operation-scoped World services and detach them after the call.
-	worldStateResourceID, err := resources.Client.AttachResource(ctx, "world-state", stateMux)
+	worldStateResourceID, err := resources.AttachResource(ctx, "world-state", stateMux)
 	if err != nil {
 		return true, o.callErr(ctx, errors.Wrap(err, "attach world state resource"), false)
 	}
 	defer func() {
-		_ = resources.Client.DetachResource(ctx, worldStateResourceID)
+		_ = resources.DetachResource(ctx, worldStateResourceID)
 	}()
 
 	// Apply the encoded World operation through the attached state services.
@@ -457,12 +457,12 @@ func (o *bridgeOperation) applyWorldObjectOp(
 	// The handler reaches only os, the object its caller targeted.
 	lookupOp := space_world_optypes.BuildSpaceLookupOp(o.b, o.le, o.engineID)
 	objResource := resource_world.NewObjectStateResource(o.le, o.b, os, lookupOp, resource_world.WithSessionPeerID(sender))
-	objectStateResourceID, err := resources.Client.AttachResource(ctx, "object-state", objResource.GetMux())
+	objectStateResourceID, err := resources.AttachResource(ctx, "object-state", objResource.GetMux())
 	if err != nil {
 		return true, o.callErr(ctx, errors.Wrap(err, "attach object state resource"), false)
 	}
 	defer func() {
-		_ = resources.Client.DetachResource(ctx, objectStateResourceID)
+		_ = resources.DetachResource(ctx, objectStateResourceID)
 	}()
 
 	// Apply the encoded object operation through the attached object service.
@@ -685,19 +685,14 @@ func (o *bridgeOperation) unavailable(err error) error {
 // getHandlerService returns the WorldOpHandlerService client from the plugin root resource.
 func (o *bridgeOperation) getHandlerService(resources *s4wave_plugin.PluginResources) (s4wave_worldop_registry.SRPCWorldOpHandlerServiceClient, func(), error) {
 	// Access the plugin root service while retaining its resource reference.
-	rootRef := resources.Client.AccessRootResource()
-	rootClient, err := rootRef.GetClient()
+	rootClient, rootRef, err := resources.OpenRootClient()
 	if err != nil {
-		rootRef.Release()
 		return nil, nil, errors.Wrap(err, "get plugin root client")
 	}
 
 	// Return the handler client with cleanup for its retained root reference.
 	svc := s4wave_worldop_registry.NewSRPCWorldOpHandlerServiceClient(rootClient)
-	cleanup := func() {
-		rootRef.Release()
-	}
-	return svc, cleanup, nil
+	return svc, rootRef.Release, nil
 }
 
 // _ is a type assertion

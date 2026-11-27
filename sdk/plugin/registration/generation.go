@@ -22,7 +22,7 @@ const corePluginID = "spacewave-core"
 // owns every returned reference.
 type RegisterFunc func(
 	ctx context.Context,
-	client *resource_client.Client,
+	client resource_client.ReferenceCreator,
 	scope srpc.Client,
 ) ([]resource_client.ResourceRef, error)
 
@@ -75,15 +75,14 @@ func (h *Holder) Hold(ctx context.Context, b bus.Bus) error {
 		return err
 	}
 	defer resources.Release()
-	rootRef := resources.Client.AccessRootResource()
-	defer rootRef.Release()
-	root, err := rootRef.GetClient()
+	root, rootRef, err := resources.OpenRootClient()
 	if err != nil {
 		return err
 	}
+	defer rootRef.Release()
 
 	// Open the generation scope. A historical worker gets none.
-	scopeRef, err := PrepareGeneration(ctx, b, resources.Client, root)
+	scopeRef, err := PrepareGeneration(ctx, b, resources, root)
 	if err != nil {
 		return err
 	}
@@ -99,7 +98,7 @@ func (h *Holder) Hold(ctx context.Context, b bus.Bus) error {
 	}
 
 	// Register through the scope, then admit the registrations together.
-	refs, err := h.register(ctx, resources.Client, scope)
+	refs, err := h.register(ctx, resources, scope)
 	defer func() {
 		for _, ref := range slices.Backward(refs) {
 			ref.Release()
@@ -127,7 +126,7 @@ func (h *Holder) Hold(ctx context.Context, b bus.Bus) error {
 func PrepareGeneration(
 	ctx context.Context,
 	b bus.Bus,
-	core *resource_client.Client,
+	core resource_client.ReferenceCreator,
 	root srpc.Client,
 ) (resource_client.ResourceRef, error) {
 	// Read this worker's identity from its plugin host.

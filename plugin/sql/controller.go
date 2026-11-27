@@ -129,7 +129,7 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 // viewers through scope. It returns the registrations made, even on error.
 func registerSQL(
 	ctx context.Context,
-	client *resource_client.Client,
+	client resource_client.ReferenceCreator,
 	scope srpc.Client,
 ) ([]resource_client.ResourceRef, error) {
 	// Track resource references so registrations can be released together.

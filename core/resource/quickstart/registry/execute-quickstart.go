@@ -65,19 +65,17 @@ func (r *QuickstartRegistryResource) ExecuteQuickstart(
 	if err != nil {
 		return nil, err
 	}
-	engineResourceID, err := resources.Client.AttachResource(ctx, "quickstart-world-engine", engineResource.GetMux())
+	engineResourceID, err := resources.AttachResource(ctx, "quickstart-world-engine", engineResource.GetMux())
 	if err != nil {
 		return nil, errors.Wrap(err, "attach quickstart world engine")
 	}
 	defer func() {
-		_ = resources.Client.DetachResource(ctx, engineResourceID)
+		_ = resources.DetachResource(ctx, engineResourceID)
 	}()
 
 	// Acquire the plugin root client for the seed handler.
-	rootRef := resources.Client.AccessRootResource()
-	rootClient, err := rootRef.GetClient()
+	rootClient, rootRef, err := resources.OpenRootClient()
 	if err != nil {
-		rootRef.Release()
 		return nil, errors.Wrap(err, "get plugin root client")
 	}
 	defer rootRef.Release()

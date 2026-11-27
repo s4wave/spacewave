@@ -95,7 +95,7 @@ var objectTypes = []struct {
 // registrations made, even on error.
 func register(
 	ctx context.Context,
-	client *resource_client.Client,
+	client resource_client.ReferenceCreator,
 	scope srpc.Client,
 ) ([]resource_client.ResourceRef, error) {
 	registry := s4wave_objecttype_registry.NewSRPCObjectTypeRegistryResourceServiceClient(scope)

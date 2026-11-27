@@ -157,8 +157,8 @@ func (p *targetProcess) openSource(ctx context.Context, cfg *s4wave_prom.ScrapeC
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "connect core plugin")
 	}
-	rootRef := resources.Client.AccessRootResource()
-	root, err := s4wave_root.NewRoot(resources.Client, rootRef)
+	rootRef := resources.AccessRootResource()
+	root, err := s4wave_root.NewRoot(resources, rootRef)
 	if err != nil {
 		rootRef.Release()
 		resources.Release()

@@ -15,25 +15,6 @@ import (
 
 const pluginResourceConnectAttempts = 3
 
-// PluginResources holds the resource client and directive reference for a cross-plugin connection.
-// Release must be called when done to clean up both the resource client and the plugin reference.
-type PluginResources struct {
-	// Client is the resource client for the target plugin.
-	Client *resource_client.Client
-	// pluginRef is the directive reference for the plugin load.
-	pluginRef directive.Reference
-}
-
-// Release releases the resource client and the plugin directive reference.
-func (p *PluginResources) Release() {
-	if p.Client != nil {
-		p.Client.Release()
-	}
-	if p.pluginRef != nil {
-		p.pluginRef.Release()
-	}
-}
-
 // ConnectPluginResources connects to another plugin's resource service.
 // It waits for the target plugin to be loaded, then creates a resource client.
 // The caller must call Release on the returned PluginResources when done.
@@ -86,7 +67,7 @@ func connectPluginResources(ctx context.Context, b bus.Bus, pluginID, instanceKe
 		resClient, err := resource_client.NewClient(ctx, resourceSvc)
 		if err == nil {
 			return &PluginResources{
-				Client:    resClient,
+				client:    resClient,
 				pluginRef: pluginRef,
 			}, nil
 		}
