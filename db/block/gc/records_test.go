@@ -839,6 +839,24 @@ func TestSettleStatusFrontCauses(t *testing.T) {
 		}
 	}
 
+	// The run is complete only once its completion entry exists.
+	if status.RunComplete {
+		t.Fatal("status reports a run with no completion entry complete")
+	}
+	tx, err = data.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Set(ctx, NewRecords(tx, []byte("l/")).key(kindUnmarked, runComplete), nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if status, err = collector.SettleStatus(ctx, 100); err != nil || !status.RunComplete {
+		t.Fatalf("status after the completion entry: complete %v, err %v", status.RunComplete, err)
+	}
+
 	// Bound the proof scan with the same limit as the front count.
 	limited, err := collector.SettleStatus(ctx, 1)
 	if err != nil {
