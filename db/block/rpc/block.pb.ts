@@ -11,6 +11,33 @@ import type { StoreFeature } from '../block.pb.js'
 import { BlockRef, PutOpts, StoreFeature_Enum } from '../block.pb.js'
 
 /**
+ * WriteBlockFailure classifies a failed block write.
+ *
+ * @generated from enum block.rpc.WriteBlockFailure
+ */
+export enum WriteBlockFailure {
+  /**
+   * WRITE_BLOCK_FAILURE_ERROR is any failure without a class below. The error
+   * field carries the failure text.
+   */
+  ERROR = 0,
+
+  /**
+   * WRITE_BLOCK_FAILURE_NOT_WRITE means the serving store refused the write
+   * because its transaction is read-only: tx.ErrNotWrite.
+   */
+  NOT_WRITE = 1,
+}
+
+export const WriteBlockFailure_Enum = /* @__PURE__ */ createEnumType(
+  'block.rpc.WriteBlockFailure',
+  [
+    [0, 'WRITE_BLOCK_FAILURE_ERROR'],
+    [1, 'WRITE_BLOCK_FAILURE_NOT_WRITE'],
+  ],
+)
+
+/**
  * GetBlockFailure classifies a failed block read.
  *
  * @generated from enum block.rpc.GetBlockFailure
@@ -142,6 +169,11 @@ export interface PutBlockResponse {
    * Error is any error adding the block to the store.
    */
   error?: string
+  /**
+   * Failure classifies error, so the client returns the same error identity
+   * the serving store did.
+   */
+  failure?: WriteBlockFailure
 }
 
 export const PutBlockResponse: MessageType<PutBlockResponse> =
@@ -151,6 +183,7 @@ export const PutBlockResponse: MessageType<PutBlockResponse> =
       [1, 'ref', 11, 0, BlockRef.codec],
       [2, 'existed', 8],
       [3, 'error', 9],
+      [4, 'failure', 14, 0, WriteBlockFailure_Enum],
     ],
   )
 
@@ -227,6 +260,10 @@ export interface PutBlockBatchResponse {
    * already stored before the write. A tombstone entry reports false.
    */
   existed?: boolean[]
+  /**
+   * Failure classifies error, as PutBlockResponse.failure does.
+   */
+  failure?: WriteBlockFailure
 }
 
 export const PutBlockBatchResponse: MessageType<PutBlockBatchResponse> =
@@ -235,6 +272,7 @@ export const PutBlockBatchResponse: MessageType<PutBlockBatchResponse> =
     () => [
       [1, 'error', 9],
       [2, 'existed', 8, 3],
+      [3, 'failure', 14, 0, WriteBlockFailure_Enum],
     ],
   )
 
@@ -431,12 +469,19 @@ export interface RmBlockResponse {
    * Will be empty if the block did not exist.
    */
   error?: string
+  /**
+   * Failure classifies error, as PutBlockResponse.failure does.
+   */
+  failure?: WriteBlockFailure
 }
 
 export const RmBlockResponse: MessageType<RmBlockResponse> =
   /* @__PURE__ */ createMessageType<RmBlockResponse>(
     'block.rpc.RmBlockResponse',
-    () => [[1, 'error', 9]],
+    () => [
+      [1, 'error', 9],
+      [2, 'failure', 14, 0, WriteBlockFailure_Enum],
+    ],
   )
 
 /**

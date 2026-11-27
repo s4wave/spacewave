@@ -74,6 +74,9 @@ message PutBlockResponse {
   bool existed = 2;
   // Error is any error adding the block to the store.
   string error = 3;
+  // Failure classifies error, so the client returns the same error identity
+  // the serving store did.
+  WriteBlockFailure failure = 4;
 }
 
 // PutBlockBatchEntry is one block write in a batch request.
@@ -103,6 +106,18 @@ message PutBlockBatchResponse {
   // Existed reports, for each request entry in order, whether the block was
   // already stored before the write. A tombstone entry reports false.
   repeated bool existed = 2;
+  // Failure classifies error, as PutBlockResponse.failure does.
+  WriteBlockFailure failure = 3;
+}
+
+// WriteBlockFailure classifies a failed block write.
+enum WriteBlockFailure {
+  // WRITE_BLOCK_FAILURE_ERROR is any failure without a class below. The error
+  // field carries the failure text.
+  WRITE_BLOCK_FAILURE_ERROR = 0;
+  // WRITE_BLOCK_FAILURE_NOT_WRITE means the serving store refused the write
+  // because its transaction is read-only: tx.ErrNotWrite.
+  WRITE_BLOCK_FAILURE_NOT_WRITE = 1;
 }
 
 // GetBlockRequest requests to get a block from the store.
@@ -183,6 +198,8 @@ message RmBlockResponse {
   // Error is any error removing the block in the store.
   // Will be empty if the block did not exist.
   string error = 1;
+  // Failure classifies error, as PutBlockResponse.failure does.
+  WriteBlockFailure failure = 2;
 }
 
 // StatBlockRequest requests metadata about a block.

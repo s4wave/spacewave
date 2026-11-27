@@ -8,6 +8,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_rpc "github.com/s4wave/spacewave/db/block/rpc"
 	block_store "github.com/s4wave/spacewave/db/block/store"
+	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/net/hash"
 )
 
@@ -93,8 +94,8 @@ func (v *BlockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 	if err != nil {
 		return nil, false, err
 	}
-	if errStr := resp.GetError(); errStr != "" {
-		return nil, false, errors.New(errStr)
+	if err := writeFailure(resp.GetError(), resp.GetFailure()); err != nil {
+		return nil, false, err
 	}
 	addedRef := resp.GetRef()
 	if err := addedRef.Validate(false); err != nil {
@@ -131,8 +132,8 @@ func (v *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 		if err != nil {
 			return err
 		}
-		if errStr := resp.GetError(); errStr != "" {
-			return errors.New(errStr)
+		if err := writeFailure(resp.GetError(), resp.GetFailure()); err != nil {
+			return err
 		}
 		if len(resp.GetExisted()) != len(req.Entries) {
 			return ErrBatchExistenceMismatch
@@ -308,11 +309,7 @@ func (v *BlockStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	}
 
 	// Propagate any removal failure reported by the remote store.
-	if errStr := resp.GetError(); errStr != "" {
-		return errors.New(errStr)
-	}
-
-	return nil
+	return writeFailure(resp.GetError(), resp.GetFailure())
 }
 
 // Sync requests a remote durability barrier and reports whether the remote
@@ -341,6 +338,33 @@ func readFailure(ref *block.BlockRef, resp *block_rpc.GetBlockResponse) error {
 	}
 	return errors.New(errStr)
 }
+
+// writeFailure returns the error of a block write response with the identity
+// the serving store returned, so a read-only transaction's refusal still
+// matches tx.ErrNotWrite on this side of the RPC.
+func writeFailure(errStr string, failure block_rpc.WriteBlockFailure) error {
+	if errStr == "" {
+		return nil
+	}
+	if failure == block_rpc.WriteBlockFailure_WRITE_BLOCK_FAILURE_NOT_WRITE {
+		return &remoteError{text: errStr, cause: tx.ErrNotWrite}
+	}
+	return errors.New(errStr)
+}
+
+// remoteError keeps the serving store's error text and the sentinel it named.
+type remoteError struct {
+	// text is the serving store's complete error text.
+	text string
+	// cause is the sentinel the response's failure class names.
+	cause error
+}
+
+// Error returns the serving store's error text.
+func (e *remoteError) Error() string { return e.text }
+
+// Unwrap returns the sentinel the failure class names.
+func (e *remoteError) Unwrap() error { return e.cause }
 
 // _ verifies the remote store contract.
 var _ block.StoreOps = (*BlockStore)(nil)
