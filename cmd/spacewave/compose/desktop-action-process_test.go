@@ -148,9 +148,10 @@ func runCopiedDaemonFixture(statePath, pipeID string) (retErr error) {
 // attachment, and later attachment without the installed bundle source.
 func TestDesktopStarterUsesCopiedBundle(t *testing.T) {
 	// Copy this built test executable into an isolated fake app bundle.
+	// The production startup budget covers copying the race-instrumented binary.
 	statePath := desktopActionStatePath(t)
 	t.Setenv(copiedDaemonFixtureEnv, "1")
-	t.Setenv(daemon.StartupTimeoutEnvVar, "15s")
+	t.Setenv(daemon.StartupTimeoutEnvVar, "")
 	bundle := filepath.Join(statePath, "Spacewave.app", "Contents", "MacOS")
 	if err := os.MkdirAll(bundle, 0o700); err != nil {
 		t.Fatal(err)
@@ -233,7 +234,7 @@ func TestDesktopStarterUsesCopiedBundle(t *testing.T) {
 	})
 
 	// Concurrent desktop requests converge on one detached daemon.
-	ctx, cancel := context.WithTimeout(t.Context(), 25*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 2*daemon.DefaultStartupTimeout)
 	defer cancel()
 	connector := daemon.NewConnector(nil, func(ctx context.Context, root string) error {
 		return daemon.StartCopiedProcess(ctx, root, source)
@@ -291,17 +292,18 @@ func TestDesktopStarterUsesCopiedBundle(t *testing.T) {
 // its child and leaves no published readiness or damaged executable behind.
 func TestDesktopStarterFailureLeavesVerifiedCopy(t *testing.T) {
 	// Set up a state root and point the starter at this executable.
+	// The production startup budget covers copying the race-instrumented binary.
 	statePath := desktopActionStatePath(t)
 	t.Setenv(copiedDaemonFixtureEnv, "1")
 	t.Setenv(copiedDaemonFixtureFailEnv, "1")
-	t.Setenv(daemon.StartupTimeoutEnvVar, "10s")
+	t.Setenv(daemon.StartupTimeoutEnvVar, "")
 	source, err := os.Executable()
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Start the failing child and confirm no ownership, readiness, or partial copies remain.
-	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 2*daemon.DefaultStartupTimeout)
 	defer cancel()
 	if err := daemon.StartCopiedProcess(ctx, statePath, source); err == nil || !strings.Contains(err.Error(), "injected fixture startup failure") {
 		t.Fatalf("failed child startup: %v", err)

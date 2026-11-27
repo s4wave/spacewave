@@ -38,13 +38,14 @@ func TestAppBundleReplacementRetainsSharedDaemon(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = os.RemoveAll(statePath) })
 
-	// Set the daemon environment and a timeout context.
+	// Use the production startup budget for copying the race-instrumented
+	// executable and waiting for child readiness.
 	t.Setenv(sharedDaemonFixtureMode, "native")
 	t.Setenv("SPACEWAVE_STATE_PATH", statePath)
 	t.Setenv("SPACEWAVE_SOCKET_PATH", "")
 	t.Setenv(daemonIdleTimeoutEnvVar, "30s")
-	t.Setenv(daemon.StartupTimeoutEnvVar, "15s")
-	ctx, cancel := context.WithTimeout(t.Context(), 35*time.Second)
+	t.Setenv(daemon.StartupTimeoutEnvVar, "")
+	ctx, cancel := context.WithTimeout(t.Context(), 2*daemon.DefaultStartupTimeout)
 	defer cancel()
 
 	// Watch the state directory.
