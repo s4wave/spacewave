@@ -8,19 +8,17 @@ import (
 
 // LocalProvider is the SDK wrapper for the LocalProviderResourceService.
 type LocalProvider struct {
-	client  *resource_client.Client
 	ref     resource_client.ResourceRef
 	service SRPCLocalProviderResourceServiceClient
 }
 
 // NewLocalProvider creates a new LocalProvider resource wrapper.
-func NewLocalProvider(client *resource_client.Client, ref resource_client.ResourceRef) (*LocalProvider, error) {
+func NewLocalProvider(ref resource_client.ResourceRef) (*LocalProvider, error) {
 	srpcClient, err := ref.GetClient()
 	if err != nil {
 		return nil, err
 	}
 	return &LocalProvider{
-		client:  client,
 		ref:     ref,
 		service: NewSRPCLocalProviderResourceServiceClient(srpcClient),
 	}, nil

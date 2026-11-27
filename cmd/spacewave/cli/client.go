@@ -604,7 +604,7 @@ func (c *sdkClient) lookupLocalProvider(ctx context.Context) (*s4wave_provider_l
 
 	// Build the SDK wrapper over the provider resource.
 	ref := c.resClient.CreateResourceReference(resourceID)
-	prov, err := s4wave_provider_local.NewLocalProvider(c.resClient, ref)
+	prov, err := s4wave_provider_local.NewLocalProvider(ref)
 	if err != nil {
 		ref.Release()
 		return nil, nil, errors.Wrap(err, "local provider")

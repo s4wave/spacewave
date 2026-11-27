@@ -505,7 +505,7 @@ func (d *sharedElectronDaemon) attachCLI(t *testing.T, spaceName string) *shared
 	if err != nil {
 		t.Fatal(err)
 	}
-	provider, err := sdk_local.NewLocalProvider(resourceClient, resourceClient.CreateResourceReference(providerID))
+	provider, err := sdk_local.NewLocalProvider(resourceClient.CreateResourceReference(providerID))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -120,7 +120,7 @@ func mountFreshLocalSession(ctx context.Context, t *testing.T, sess *TestSession
 	defer provRef.Release()
 
 	// Open the local provider client.
-	lp, err := s4wave_provider_local.NewLocalProvider(sess.ResourceClient(), provRef)
+	lp, err := s4wave_provider_local.NewLocalProvider(provRef)
 	if err != nil {
 		t.Fatalf("NewLocalProvider: %v", err)
 	}
