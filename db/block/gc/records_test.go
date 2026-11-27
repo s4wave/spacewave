@@ -259,6 +259,62 @@ func TestReadsAnswerEachKey(t *testing.T) {
 	}
 }
 
+// TestRequeueMovesStillParked checks that once an adopted Volume's
+// generation left Open, the requeue moves a block its transaction still reads
+// parked back onto the free queue at its ripe sequence, and skips one whose
+// parked key a Land deleted since the page was read.
+func TestRequeueMovesStillParked(t *testing.T) {
+	ctx := t.Context()
+	tx, err := store_kvtx_inmem.NewStore().NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+	rec := NewRecords(tx, []byte("l/"))
+	state := &LivenessState{
+		Adoption:   Adoption_ADOPTION_ADOPTED,
+		Generation: Generation_GENERATION_SWEEPING,
+		UpCursor:   10,
+	}
+	if err := rec.SetState(ctx, state); err != nil {
+		t.Fatal(err)
+	}
+	parked := []struct {
+		key  []byte
+		ripe uint64
+	}{{[]byte("parked block"), 5}, {[]byte("stored again"), 7}}
+	for _, p := range parked {
+		if err := tx.Set(ctx, rec.parkedKey(p.ripe, p.key), nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	page := pageIn(ctx, t, rec, kindParked)
+	if err := tx.Delete(ctx, rec.parkedKey(parked[1].ripe, parked[1].key)); err != nil {
+		t.Fatal(err)
+	}
+
+	var res CollectResult
+	if _, _, _, err := NewCollector(nil, CollectorOptions{Frees: true}).requeueSlice(ctx, rec, &res, nil, page); err != nil {
+		t.Fatal(err)
+	}
+	if res.Requeued != 1 {
+		t.Fatalf("requeued %d, want the one still parked", res.Requeued)
+	}
+	for i, p := range parked {
+		queued, err := rec.hasQueueKey(ctx, p.ripe, p.key)
+		if err != nil {
+			t.Fatal(err)
+		}
+		still, err := rec.hasParkedKey(ctx, p.ripe, p.key)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if queued != (i == 0) || still {
+			t.Errorf("%s: queued %v, parked %v; want queued %v and not parked", p.key, queued, still, i == 0)
+		}
+	}
+}
+
 // TestSettleWaitsForNetting checks that neither the front pop, the free nor
 // the flip runs while the free could not: a paged release in progress (the model's
 // FlipSettled, mutant rps-noflipsettled), an adoption younger than the grace
