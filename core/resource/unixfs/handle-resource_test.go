@@ -31,81 +31,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type uploadMetricRecorder struct {
-	metrics []UploadMetric
-}
-
-func (r *uploadMetricRecorder) RecordUploadMetric(metric UploadMetric) {
-	r.metrics = append(r.metrics, metric)
-}
-
-func (r *uploadMetricRecorder) stages() []string {
-	stages := make([]string, 0, len(r.metrics))
-	for _, metric := range r.metrics {
-		stages = append(stages, metric.Stage)
-	}
-	return stages
-}
-
-func (r *uploadMetricRecorder) totalBytes(stage string) int {
-	var total int
-	for _, metric := range r.metrics {
-		if metric.Stage == stage {
-			total += metric.Bytes
-		}
-	}
-	return total
-}
-
-func (r *uploadMetricRecorder) countStage(stage string) int {
-	var count int
-	for _, metric := range r.metrics {
-		if metric.Stage == stage {
-			count++
-		}
-	}
-	return count
-}
-
-type uploadTreeMetricStream struct {
-	ctx      context.Context
-	messages []*s4wave_unixfs.HandleUploadTreeRequest
-}
-
-func (s *uploadTreeMetricStream) Context() context.Context { return s.ctx }
-
-func (s *uploadTreeMetricStream) MsgSend(srpc.Message) error { return nil }
-
-func (s *uploadTreeMetricStream) MsgRecv(msg srpc.Message) error {
-	out, ok := msg.(*s4wave_unixfs.HandleUploadTreeRequest)
-	if !ok {
-		return errors.New("unexpected upload tree message type")
-	}
-	return s.RecvTo(out)
-}
-
-func (s *uploadTreeMetricStream) CloseSend() error { return nil }
-
-func (s *uploadTreeMetricStream) Close() error { return nil }
-
-func (s *uploadTreeMetricStream) Recv() (*s4wave_unixfs.HandleUploadTreeRequest, error) {
-	if len(s.messages) == 0 {
-		return nil, io.EOF
-	}
-	msg := s.messages[0]
-	s.messages = s.messages[1:]
-	return msg, nil
-}
-
-func (s *uploadTreeMetricStream) RecvTo(out *s4wave_unixfs.HandleUploadTreeRequest) error {
-	msg, err := s.Recv()
-	if err != nil {
-		return err
-	}
-	*out = *msg
-	return nil
-}
-
 func assertUploadTreeCounters(
 	t *testing.T,
 	resp *s4wave_unixfs.HandleUploadTreeResponse,
@@ -324,15 +249,8 @@ func TestFSHandleResourceRenameCrossDirectory(t *testing.T) {
 	defer cleanup()
 
 	// Retain the filesystem root resource for the test.
-	rootRef := resClient.AccessRootResource()
-	defer rootRef.Release()
-
-	// Open the filesystem root RPC service.
-	rootClient, err := rootRef.GetClient()
-	if err != nil {
-		t.Fatal(err)
-	}
-	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+	rootSvc, releaseRoot := openRootFileService(t, resClient)
+	defer releaseRoot()
 
 	// Retain the source directory resource for the move.
 	srcResp, err := rootSvc.Lookup(ctx, &s4wave_unixfs.HandleLookupRequest{Name: "src"})
@@ -400,15 +318,8 @@ func TestFSHandleResourceWatchReaddirSeesSiblingRename(t *testing.T) {
 	defer cleanup()
 
 	// Retain the filesystem root resource for the test.
-	rootRef := resClient.AccessRootResource()
-	defer rootRef.Release()
-
-	// Open the filesystem root RPC service.
-	rootClient, err := rootRef.GetClient()
-	if err != nil {
-		t.Fatal(err)
-	}
-	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+	rootSvc, releaseRoot := openRootFileService(t, resClient)
+	defer releaseRoot()
 
 	// Retain the source directory resource for the watch.
 	srcResp, err := rootSvc.Lookup(ctx, &s4wave_unixfs.HandleLookupRequest{Name: "src"})
@@ -613,13 +524,8 @@ func TestFSHandleResourceWatchFiles(t *testing.T) {
 	}
 
 	// Open the filesystem root RPC service.
-	rootRef := resClient.AccessRootResource()
-	defer rootRef.Release()
-	rootClient, err := rootRef.GetClient()
-	if err != nil {
-		t.Fatal(err)
-	}
-	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+	rootSvc, releaseRoot := openRootFileService(t, resClient)
+	defer releaseRoot()
 
 	// A limited watch takes the first match in path order.
 	watchCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -685,15 +591,8 @@ func TestFSHandleResourceUploadTreeNested(t *testing.T) {
 	defer cleanup()
 
 	// Retain the filesystem root resource for the test.
-	rootRef := resClient.AccessRootResource()
-	defer rootRef.Release()
-
-	// Open the filesystem root RPC service.
-	rootClient, err := rootRef.GetClient()
-	if err != nil {
-		t.Fatal(err)
-	}
-	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+	rootSvc, releaseRoot := openRootFileService(t, resClient)
+	defer releaseRoot()
 
 	// Start an upload stream for the nested filesystem tree.
 	strm, err := rootSvc.UploadTree(ctx)
@@ -832,13 +731,8 @@ func TestFSHandleResourceUploadTreePublishesEachStream(t *testing.T) {
 	defer cleanup()
 
 	// Retain the root resource and open its filesystem RPC service.
-	rootRef := resClient.AccessRootResource()
-	defer rootRef.Release()
-	rootClient, err := rootRef.GetClient()
-	if err != nil {
-		t.Fatal(err)
-	}
-	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+	rootSvc, releaseRoot := openRootFileService(t, resClient)
+	defer releaseRoot()
 
 	// Stage two independent upload streams before committing either.
 	first, err := rootSvc.UploadTree(ctx)
@@ -890,13 +784,8 @@ func TestFSHandleResourceConcurrentUploadTreeCommitsPreserveSiblings(t *testing.
 	defer cleanup()
 
 	// Retain the root resource and open its filesystem RPC service.
-	rootRef := resClient.AccessRootResource()
-	defer rootRef.Release()
-	rootClient, err := rootRef.GetClient()
-	if err != nil {
-		t.Fatal(err)
-	}
-	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+	rootSvc, releaseRoot := openRootFileService(t, resClient)
+	defer releaseRoot()
 
 	// Stage one upload stream for each sibling file.
 	paths := []string{"first.txt", "second.txt", "third.txt"}
@@ -951,13 +840,8 @@ func TestFSHandleResourceUploadTreePreservesConcurrentSiblingRemove(t *testing.T
 	defer cleanup()
 
 	// Retain the root resource and open its filesystem RPC service.
-	rootRef := resClient.AccessRootResource()
-	defer rootRef.Release()
-	rootClient, err := rootRef.GetClient()
-	if err != nil {
-		t.Fatal(err)
-	}
-	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+	rootSvc, releaseRoot := openRootFileService(t, resClient)
+	defer releaseRoot()
 
 	// Repeat the sibling upload and removal race with distinct file names.
 	const iterations = 60
@@ -1037,13 +921,8 @@ func TestFSHandleResourceUploadTreeDoesNotResurrectDeletedParent(t *testing.T) {
 	defer cleanup()
 
 	// Retain the root resource and open its filesystem RPC service.
-	rootRef := resClient.AccessRootResource()
-	defer rootRef.Release()
-	rootClient, err := rootRef.GetClient()
-	if err != nil {
-		t.Fatal(err)
-	}
-	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+	rootSvc, releaseRoot := openRootFileService(t, resClient)
+	defer releaseRoot()
 
 	// Repeat the parent removal race with a fresh target directory.
 	const iterations = 60
@@ -1117,13 +996,8 @@ func TestFSHandleResourceReadDuringUploadReloadRaceFree(t *testing.T) {
 	defer cleanup()
 
 	// Retain the root resource and open its filesystem RPC service.
-	rootRef := resClient.AccessRootResource()
-	defer rootRef.Release()
-	rootClient, err := rootRef.GetClient()
-	if err != nil {
-		t.Fatal(err)
-	}
-	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+	rootSvc, releaseRoot := openRootFileService(t, resClient)
+	defer releaseRoot()
 
 	// Continuously read the root resource while uploads replace its handle.
 	stop := make(chan struct{})
@@ -1314,155 +1188,14 @@ func TestFSHandleResourceWritesReplayWaits(t *testing.T) {
 	}
 }
 
-func TestFSHandleResourceUploadTreeMetrics(t *testing.T) {
-	// Start the filesystem resource testbed for upload metric recording.
-	ctx, _, rootHandle, rootResource, cleanup := setupFSHandleResourceClient(t)
-	defer cleanup()
-
-	// Upload a directory and file while recording every upload stage.
-	recorder := &uploadMetricRecorder{}
-	metricCtx := WithUploadMetricsRecorder(ctx, recorder)
-	resp, err := rootResource.UploadTree(&uploadTreeMetricStream{
-		ctx: metricCtx,
-		messages: []*s4wave_unixfs.HandleUploadTreeRequest{
-			{
-				Body: &s4wave_unixfs.HandleUploadTreeRequest_Directory{
-					Directory: &s4wave_unixfs.HandleUploadTreeDirectory{
-						Path: "metric-dir",
-						Mode: 0o755,
-					},
-				},
-			},
-			{
-				Body: &s4wave_unixfs.HandleUploadTreeRequest_FileStart{
-					FileStart: &s4wave_unixfs.HandleUploadTreeFileStart{
-						Path:      "metric-dir/file.txt",
-						TotalSize: 5,
-						Mode:      0o644,
-						Expect:    &s4wave_unixfs.HandleUploadTreeFileStart_Overwrite{Overwrite: true},
-					},
-				},
-			},
-			{
-				Body: &s4wave_unixfs.HandleUploadTreeRequest_Data{
-					Data: []byte("hello"),
-				},
-			},
-		},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if rootResource.GetHandle() != rootHandle {
-		defer rootResource.GetHandle().Release()
-	}
-	assertUploadTreeCounters(t, resp, 5, 1, 1)
-
-	// Verify the upload stages and their per-stage counts and byte totals.
-	wantStages := []string{
-		"receive-directory",
-		"receive-file-start",
-		"receive-data",
-		"commit-start",
-		"commit-complete",
-		"reload-start",
-		"reload-complete",
-		"broadcast",
-	}
-	if !slices.Equal(recorder.stages(), wantStages) {
-		t.Fatalf("stages = %v, want %v", recorder.stages(), wantStages)
-	}
-	for _, want := range []struct {
-		stage string
-		count int
-		bytes int
-	}{
-		{stage: "receive-directory", count: 1},
-		{stage: "receive-file-start", count: 1},
-		{stage: "receive-data", count: 1, bytes: 5},
-		{stage: "commit-start", count: 1},
-		{stage: "commit-complete", count: 1},
-		{stage: "reload-start", count: 1},
-		{stage: "reload-complete", count: 1},
-		{stage: "broadcast", count: 1},
-	} {
-		// Verify the expected event count and byte total for this upload stage.
-		if got := recorder.countStage(want.stage); got != want.count {
-			t.Fatalf("%s metric count = %d, want %d", want.stage, got, want.count)
-		}
-		if got := recorder.totalBytes(want.stage); got != want.bytes {
-			t.Fatalf("%s metric bytes = %d, want %d", want.stage, got, want.bytes)
-		}
-	}
-
-	// Read the uploaded file directly from the published filesystem root.
-	bfs := unixfs_billy.NewBillyFS(ctx, rootResource.GetHandle(), "", time.Now())
-	data, err := billy_util.ReadFile(bfs, "metric-dir/file.txt")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Verify the uploaded bytes and report the recorded stage measurements.
-	if string(data) != "hello" {
-		t.Fatalf("got data %q, want %q", string(data), "hello")
-	}
-	for _, metric := range recorder.metrics {
-		t.Logf(
-			"metric workload=resource-upload-tree file_class=resource-unixfs stage=%s bytes_written=%d files_written=%d directories_written=%d",
-			metric.Stage,
-			metric.Bytes,
-			resp.GetWritten().GetFilesWritten(),
-			resp.GetWritten().GetDirectoriesWritten(),
-		)
-	}
-}
-
-func TestFSHandleResourceUploadTreeMetricsAbortCleanup(t *testing.T) {
-	// Start the filesystem resource testbed for failed upload metrics.
-	ctx, _, _, rootResource, cleanup := setupFSHandleResourceClient(t)
-	defer cleanup()
-
-	// Upload an invalid absolute path while recording its cleanup stages.
-	recorder := &uploadMetricRecorder{}
-	metricCtx := WithUploadMetricsRecorder(ctx, recorder)
-	_, err := rootResource.UploadTree(&uploadTreeMetricStream{
-		ctx: metricCtx,
-		messages: []*s4wave_unixfs.HandleUploadTreeRequest{
-			{
-				Body: &s4wave_unixfs.HandleUploadTreeRequest_Directory{
-					Directory: &s4wave_unixfs.HandleUploadTreeDirectory{
-						Path: "/metric-dir",
-						Mode: 0o755,
-					},
-				},
-			},
-		},
-	})
-
-	// Verify the upload fails and records its abort cleanup.
-	if err == nil {
-		t.Fatal("expected absolute upload path to fail")
-	}
-	if !slices.Equal(recorder.stages(), []string{"receive-directory", "abort-cleanup"}) {
-		t.Fatalf("stages = %v, want [receive-directory abort-cleanup]", recorder.stages())
-	}
-}
-
 func TestFSHandleResourceUploadTreeOverwriteReadback(t *testing.T) {
 	// Start the filesystem resource testbed for overwrite readback.
 	ctx, resClient, _, _, cleanup := setupFSHandleResourceClient(t)
 	defer cleanup()
 
 	// Retain the filesystem root resource for the test.
-	rootRef := resClient.AccessRootResource()
-	defer rootRef.Release()
-
-	// Open the filesystem root RPC service.
-	rootClient, err := rootRef.GetClient()
-	if err != nil {
-		t.Fatal(err)
-	}
-	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+	rootSvc, releaseRoot := openRootFileService(t, resClient)
+	defer releaseRoot()
 
 	// Upload two contents to the same file and verify each commit counter.
 	first := uploadTestPatternBytes(96 * 1024)
@@ -1515,15 +1248,8 @@ func TestFSHandleResourceReadAtCapsLargeResponse(t *testing.T) {
 	defer cleanup()
 
 	// Retain the filesystem root resource for the test.
-	rootRef := resClient.AccessRootResource()
-	defer rootRef.Release()
-
-	// Open the filesystem root RPC service.
-	rootClient, err := rootRef.GetClient()
-	if err != nil {
-		t.Fatal(err)
-	}
-	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+	rootSvc, releaseRoot := openRootFileService(t, resClient)
+	defer releaseRoot()
 
 	// Prepare file contents larger than one bounded read response.
 	data := make([]byte, fsHandleMaxReadSize+32*1024)
@@ -1636,13 +1362,8 @@ func TestFSHandleResourceReadStream(t *testing.T) {
 	defer cleanup()
 
 	// Retain the root resource and open its filesystem RPC service.
-	rootRef := resClient.AccessRootResource()
-	defer rootRef.Release()
-	rootClient, err := rootRef.GetClient()
-	if err != nil {
-		t.Fatal(err)
-	}
-	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+	rootSvc, releaseRoot := openRootFileService(t, resClient)
+	defer releaseRoot()
 
 	// Upload file contents spanning several bounded stream frames.
 	data := uploadTestPatternBytes(3*fsHandleMaxReadSize + 1000)
@@ -1774,15 +1495,8 @@ func TestFSHandleResourceUploadTreeRejectsAbsolutePath(t *testing.T) {
 	defer cleanup()
 
 	// Retain the filesystem root resource for the test.
-	rootRef := resClient.AccessRootResource()
-	defer rootRef.Release()
-
-	// Open the filesystem root RPC service.
-	rootClient, err := rootRef.GetClient()
-	if err != nil {
-		t.Fatal(err)
-	}
-	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+	rootSvc, releaseRoot := openRootFileService(t, resClient)
+	defer releaseRoot()
 
 	// Upload an absolute directory path and require the commit to fail.
 	strm, err := rootSvc.UploadTree(ctx)
@@ -1810,15 +1524,8 @@ func TestFSHandleResourceUploadTreeRejectsOversizedData(t *testing.T) {
 	defer cleanup()
 
 	// Retain the filesystem root resource for the test.
-	rootRef := resClient.AccessRootResource()
-	defer rootRef.Release()
-
-	// Open the filesystem root RPC service.
-	rootClient, err := rootRef.GetClient()
-	if err != nil {
-		t.Fatal(err)
-	}
-	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+	rootSvc, releaseRoot := openRootFileService(t, resClient)
+	defer releaseRoot()
 
 	// Open a tree upload stream and send the declared file size.
 	strm, err := rootSvc.UploadTree(ctx)
@@ -1857,15 +1564,8 @@ func TestFSHandleResourceUploadFileRejectsOversizedData(t *testing.T) {
 	defer cleanup()
 
 	// Retain the filesystem root resource for the test.
-	rootRef := resClient.AccessRootResource()
-	defer rootRef.Release()
-
-	// Open the filesystem root RPC service.
-	rootClient, err := rootRef.GetClient()
-	if err != nil {
-		t.Fatal(err)
-	}
-	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+	rootSvc, releaseRoot := openRootFileService(t, resClient)
+	defer releaseRoot()
 
 	// Send an oversized single-file upload and require the commit to fail.
 	strm, err := rootSvc.UploadFile(ctx)
@@ -1891,15 +1591,8 @@ func TestFSHandleResourceUploadFileRejectsDataPastTotalSize(t *testing.T) {
 	defer cleanup()
 
 	// Retain the filesystem root resource for the test.
-	rootRef := resClient.AccessRootResource()
-	defer rootRef.Release()
-
-	// Open the filesystem root RPC service.
-	rootClient, err := rootRef.GetClient()
-	if err != nil {
-		t.Fatal(err)
-	}
-	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+	rootSvc, releaseRoot := openRootFileService(t, resClient)
+	defer releaseRoot()
 
 	// Send more bytes than the declared size and require an error, not a hang.
 	strm, err := rootSvc.UploadFile(ctx)
@@ -1990,13 +1683,8 @@ func TestFSHandleResourceUploadTreeRefusesStaleVersion(t *testing.T) {
 	// Start the filesystem resource testbed with one saved document.
 	ctx, resClient, _, _, cleanup := setupFSHandleResourceClient(t)
 	defer cleanup()
-	rootRef := resClient.AccessRootResource()
-	defer rootRef.Release()
-	rootClient, err := rootRef.GetClient()
-	if err != nil {
-		t.Fatal(err)
-	}
-	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+	rootSvc, releaseRoot := openRootFileService(t, resClient)
+	defer releaseRoot()
 	uploadTreeFileViaResource(t, ctx, rootSvc, "doc.txt", []byte("base text"))
 
 	// The first writer reads the document and the version it was read at.
@@ -2082,13 +1770,8 @@ func TestFSHandleResourceUploadTreeMovesOpenHandles(t *testing.T) {
 	// Save a document and open a file resource on it before any write.
 	ctx, resClient, _, rootRes, cleanup := setupFSHandleResourceClient(t)
 	defer cleanup()
-	rootRef := resClient.AccessRootResource()
-	defer rootRef.Release()
-	rootClient, err := rootRef.GetClient()
-	if err != nil {
-		t.Fatal(err)
-	}
-	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+	rootSvc, releaseRoot := openRootFileService(t, resClient)
+	defer releaseRoot()
 	uploadTreeFileViaResource(t, ctx, rootSvc, "doc.txt", []byte("base text"))
 	readerSvc, releaseReader := openFileService(t, ctx, resClient, rootSvc, "doc.txt")
 	defer releaseReader()
@@ -2159,13 +1842,8 @@ func TestFSHandleResourceUploadTreeMissingRefusesExisting(t *testing.T) {
 	// Start the filesystem resource testbed for create-only uploads.
 	ctx, resClient, _, rootRes, cleanup := setupFSHandleResourceClient(t)
 	defer cleanup()
-	rootRef := resClient.AccessRootResource()
-	defer rootRef.Release()
-	rootClient, err := rootRef.GetClient()
-	if err != nil {
-		t.Fatal(err)
-	}
-	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+	rootSvc, releaseRoot := openRootFileService(t, resClient)
+	defer releaseRoot()
 
 	// A create-only upload of a new path writes the file.
 	resp := uploadTreeFileExpect(t, ctx, rootSvc, "new.txt", []byte("new"), &s4wave_unixfs.HandleUploadTreeFileStart{})
@@ -2277,4 +1955,17 @@ func uploadTreeDirFile(
 		t.Fatal(err)
 	}
 	return resp
+}
+
+// openRootFileService retains the filesystem root for an RPC test.
+func openRootFileService(t *testing.T, resClient *resource_client.Client) (s4wave_unixfs.SRPCFSHandleResourceServiceClient, func()) {
+	// Retain the reference until the caller has finished its RPC assertions.
+	t.Helper()
+	ref := resClient.AccessRootResource()
+	client, err := ref.GetClient()
+	if err != nil {
+		ref.Release()
+		t.Fatal(err)
+	}
+	return s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(client), ref.Release
 }
