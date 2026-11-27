@@ -111,33 +111,11 @@ func copyObjectToBucket(
 	batchExistence = batchExistence && !skipSubtreeExists
 	trace.Logf(ctx, "copy-batch-existence", "%t", batchExistence)
 
-	// Preserve the source encoding in the destination reference.
+	// Preserve source encoding while selecting the destination bucket.
 	srcRef := srcCursor.GetRef()
-	destinationRef := srcRef.Clone()
-	destinationRef.BucketId = destCursor.GetOpArgs().GetBucketId()
-	destinationRef.TransformConf = srcCursor.GetTransformConf().Clone()
-	destinationRef.TransformConfRef = nil
-
-	// An empty source transform means the copied blocks are raw at rest. When
-	// the destination parent is transformed, make that raw encoding explicit
-	// in the returned ref so nested references reset the inherited decoder.
-	if srcCursor.GetTransformConf().GetEmpty() && !destCursor.GetTransformConf().GetEmpty() {
-		destBucket, ok := destCursor.GetBucket().(bucket.Bucket)
-		if !ok {
-			return nil, ObjectCopyStats{}, errors.New("destination bucket does not support transform config writes")
-		}
-		transformConfRef, _, err := WriteTransformConf(
-			ctx,
-			destBucket,
-			destCursor.GetTransformer(),
-			destCursor.defaultPutOpts(),
-			&block_transform.Config{},
-		)
-		if err != nil {
-			return nil, ObjectCopyStats{}, errors.Wrap(err, "write raw transform config")
-		}
-		destinationRef.TransformConf = nil
-		destinationRef.TransformConfRef = transformConfRef
+	destinationRef, err := destCursor.copyDestinationRef(ctx, srcCursor)
+	if err != nil {
+		return nil, ObjectCopyStats{}, err
 	}
 
 	// Cursors in the same bucket and volume already share storage.

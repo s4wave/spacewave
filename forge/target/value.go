@@ -159,8 +159,7 @@ func copyGraphToCursor(ctx context.Context, dst *bucket_lookup.Cursor, ref *buck
 	defer src.Release()
 
 	// Refuse a copy whose stored bytes the destination would decode wrongly.
-	srcConf, dstConf := src.GetTransformConf(), dst.GetTransformConf()
-	if (!srcConf.GetEmpty() || !dstConf.GetEmpty()) && !srcConf.EqualVT(dstConf) {
+	if !src.SameTransform(dst) {
 		return errors.Errorf(
 			"copy %s from bucket %s: source transform config differs from the destination",
 			ref.GetRootRef().MarshalString(),

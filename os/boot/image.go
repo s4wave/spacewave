@@ -63,8 +63,8 @@ func imageBlock(image *bucket.ObjectRef) (*block.PutBatchEntry, error) {
 // tool layout, and archive, when set, its regular files and directories.
 func WriteImage(ctx context.Context, cs *bucket_lookup.Cursor, executable, busybox, archive io.Reader) (*bucket.ObjectRef, error) {
 	// Refuse an untransformed image.
-	conf := cs.GetTransformConf()
-	if conf.GetEmpty() {
+	image := cs.RefWithInlineTransform(&bucket.ObjectRef{})
+	if image.TransformConf.GetEmpty() {
 		return nil, errors.New("image: storage has no transform")
 	}
 
@@ -94,7 +94,8 @@ func WriteImage(ctx context.Context, cs *bucket_lookup.Cursor, executable, busyb
 	if err := buildImage(ctx, handle, executable, busybox, archive); err != nil {
 		return nil, err
 	}
-	return &bucket.ObjectRef{RootRef: tree.GetRef().GetRootRef(), TransformConf: conf.Clone()}, nil
+	image.RootRef = tree.GetRef().GetRootRef()
+	return image, nil
 }
 
 // buildImage writes the image layout into the empty directory root.

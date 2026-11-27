@@ -29,7 +29,6 @@ import (
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
 	"github.com/s4wave/spacewave/db/blocktype"
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/s4db"
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
@@ -126,17 +125,7 @@ func TestDebugRefRepair(t *testing.T) {
 	defer base.Release()
 
 	// Start the World engine on a cursor over the copying bucket.
-	cursor := bucket_lookup.NewCursor(
-		ctx,
-		htb.Bus,
-		le,
-		htb.StepFactorySet,
-		&untrackedCopyBucket{BucketOps: base.GetBucket(), vol: vol},
-		base.GetTransformer(),
-		base.GetRef(),
-		base.GetOpArgs(),
-		base.GetTransformConf(),
-	)
+	cursor := base.Rebind(ctx, &untrackedCopyBucket{BucketOps: base.GetBucket(), vol: vol}, base.GetRef(), base.GetOpArgs(), nil)
 	defer cursor.Release()
 	eng, err := world_block.NewEngine(ctx, le, cursor, world.NewSchema(unixfs_world.UnixfsTypes).LookupOp, nil, false)
 	if err != nil {
@@ -169,10 +158,9 @@ func TestDebugRefRepair(t *testing.T) {
 	}
 
 	// Store a replay cursor pointing to the World.
-	state := &space_world.InnerState{HeadRef: &bucket.ObjectRef{
-		RootRef:       eng.GetRootRef().GetRootRef(),
-		TransformConf: base.GetTransformConf(),
-	}}
+	state := &space_world.InnerState{HeadRef: base.RefWithInlineTransform(&bucket.ObjectRef{
+		RootRef: eng.GetRootRef().GetRootRef(),
+	})}
 	worldRoot := state.GetHeadRef().GetRootRef()
 	outcome := &space_world.ReplayCursorOutcome{World: worldRoot, Payloads: []*block.BlockRef{worldRoot}}
 	data, err := (&space_world.ReplayCursor{Base: state, Head: state, Outcomes: []*space_world.ReplayCursorOutcome{outcome}}).MarshalVT()

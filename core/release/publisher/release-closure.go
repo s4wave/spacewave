@@ -233,12 +233,11 @@ func (c *releaseClosure) collect(ctx context.Context, eng world.Engine, metadata
 			if err != nil {
 				return err
 			}
-			transformData, err := walk.GetTransformConf().MarshalVT()
+			transform, err := walk.TransformKey()
 			if err != nil {
 				walk.Release()
 				return err
 			}
-			transform := string(transformData)
 			bucketID := walk.GetOpArgs().GetBucketId()
 			source, ok := sources[bucketID]
 			if !ok {

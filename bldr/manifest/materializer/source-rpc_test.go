@@ -111,9 +111,7 @@ func TestMaterializeManifestSourceRpcService(t *testing.T) {
 	client := NewSRPCMaterializerClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux))))
 
 	// Normalize the source ref: resolved inline transform, no conf ref.
-	srcRefWithOpArgs := srcCursor.GetRefWithOpArgs()
-	srcRefWithOpArgs.TransformConf = srcCursor.GetTransformConf().CloneVT()
-	srcRefWithOpArgs.TransformConfRef = nil
+	srcRefWithOpArgs := srcCursor.RefWithInlineTransform(srcCursor.GetRefWithOpArgs())
 
 	// Call the RPC with the normalized source ref and the rpc-dest bucket.
 	strm, err := client.MaterializeManifest(ctx, &MaterializeManifestRequest{

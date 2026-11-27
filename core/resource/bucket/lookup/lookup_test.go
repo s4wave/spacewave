@@ -368,7 +368,7 @@ func TestGetRefReturnsCursorOpArgs(t *testing.T) {
 	// Rebuild the mounted cursor with its alias fixed at construction.
 	cursor = bucket_lookup.NewCursorWithRelease(ctx, tb.Bus, le, tb.StepFactorySet,
 		cursor.GetBucket(), cursor.GetTransformer(), cursor.GetRef(), cursor.GetOpArgs(),
-		cursor.GetTransformConf(), cursor.Release, "device-mirror")
+		transformConf, cursor.Release, "device-mirror")
 
 	// Verify the Resource reference preserves bucket operation arguments.
 	resource := NewBucketLookupCursorResource(le, tb.Bus, cursor)

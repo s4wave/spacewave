@@ -314,7 +314,7 @@ func benchmarkWorldSeededStoredPages(b *testing.B, c worldSeededWriteCase, windo
 	pages := block.NewPendingStore(stored, 1<<30)
 	head := seedRef.CloneVT()
 	head.BucketId = tbed.BucketId
-	cursor := bucket_lookup.NewCursor(ctx, tbed.Bus, tbed.Logger, tbed.StepFactorySet, pages, ocs.GetTransformer(), head, ocs.GetOpArgs(), ocs.GetTransformConf())
+	cursor := ocs.Rebind(ctx, pages, head, ocs.GetOpArgs(), nil)
 	defer cursor.Release()
 	le := logrus.NewEntry(logrus.New())
 	eng, err := world_block.NewEngine(ctx, le, cursor, world_mock.LookupMockOp, nil, false)

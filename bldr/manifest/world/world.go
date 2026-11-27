@@ -310,8 +310,7 @@ func CanonicalizeManifestObjectRef(
 		return nil, errors.New("manifest object ref transform config requires world access")
 	}
 	err := access(ctx, ref, func(bls *bucket_lookup.Cursor) error {
-		out.TransformConf = bls.GetTransformConf().Clone()
-		out.TransformConfRef = nil
+		out = bls.RefWithInlineTransform(out)
 		return nil
 	})
 	if err != nil {

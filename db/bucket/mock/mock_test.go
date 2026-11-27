@@ -108,7 +108,7 @@ func TestCursor(t *testing.T) {
 	// fetch the root out again building a whole new cursor
 	ocr := oc.GetRef()
 
-	// oct := oc.GetTransformConf()
+	// The transform configuration travels in the reference.
 	oc.Release()
 	oc, err = bucket_lookup.BuildCursor(
 		ctx,
@@ -117,7 +117,6 @@ func TestCursor(t *testing.T) {
 		tb.StepFactorySet,
 		volID,
 		ocr,
-		// oct,
 		nil, // NOTE: The transform conf is in the reference.
 	)
 	if err != nil {
@@ -193,7 +192,7 @@ func TestCursor(t *testing.T) {
 	}
 
 	// Require the encrypted cursor to retain its inline transform.
-	if !nc.GetTransformConf().EqualVT(tconf) {
+	if !nc.RefWithInlineTransform(nc.GetRef()).TransformConf.EqualVT(tconf) {
 		t.FailNow()
 	}
 	nc.Release()

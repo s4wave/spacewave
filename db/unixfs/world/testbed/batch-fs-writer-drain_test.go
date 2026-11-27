@@ -11,7 +11,6 @@ import (
 	"github.com/aperturerobotics/util/prng"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	hydra_testbed "github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
@@ -63,17 +62,7 @@ func TestBatchFSWriter_CommitWritesBlobsOnce(t *testing.T) {
 	}
 	defer base.Release()
 	counter := &batchCountBucket{BucketOps: base.GetBucket()}
-	cursor := bucket_lookup.NewCursor(
-		ctx,
-		htb.Bus,
-		le,
-		htb.StepFactorySet,
-		counter,
-		base.GetTransformer(),
-		base.GetRef(),
-		base.GetOpArgs(),
-		base.GetTransformConf(),
-	)
+	cursor := base.Rebind(ctx, counter, base.GetRef(), base.GetOpArgs(), nil)
 	defer cursor.Release()
 
 	// Start the World engine on the counting bucket cursor.

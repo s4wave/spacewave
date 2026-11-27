@@ -165,8 +165,8 @@ func TestCursorCrossBucketExternalRootClearsSourceTransform(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer external.Release()
-	if external.GetTransformConf() != nil && !external.GetTransformConf().GetEmpty() {
-		t.Fatalf("external root retained source transform: %v", external.GetTransformConf())
+	if external.transformConf != nil && !external.transformConf.GetEmpty() {
+		t.Fatalf("external root retained source transform: %v", external.transformConf)
 	}
 
 	// Verify the external root uses raw bytes without the source transform.

@@ -111,9 +111,7 @@ func (c *Controller) materializeManifest(
 	// transform configuration instead of a transform conf ref, and the
 	// destination keeps its bucket while selecting the plugin-host volume
 	// for lookups.
-	sourceRef := src.GetRefWithOpArgs()
-	sourceRef.TransformConfRef = nil
-	sourceRef.TransformConf = src.GetTransformConf().CloneVT()
+	sourceRef := src.RefWithInlineTransform(src.GetRefWithOpArgs())
 
 	// Point the destination at the plugin-host proxy volume.
 	destOpArgs := dest.GetOpArgs()
@@ -124,7 +122,7 @@ func (c *Controller) materializeManifest(
 	req := &bldr_manifest_materializer.MaterializeManifestRequest{
 		Source:                   sourceRef,
 		Destination:              destOpArgs,
-		DestinationTransformConf: dest.GetTransformConf().CloneVT(),
+		DestinationTransformConf: dest.RefWithInlineTransform(dest.GetRef()).TransformConf,
 		Concurrency:              uint32(concurrency), //nolint:gosec // concurrency comes from the uint32 scheduler setting and the positive default.
 		SourceServiceId:          bldr_plugin.HostServiceIDPrefix + sourceID,
 		DestinationServiceId:     bldr_plugin.HostServiceIDPrefix + destID,

@@ -75,17 +75,13 @@ func (a *Adapter) openReadCheckpoint(ctx context.Context, snap sobject.SharedObj
 		cursor.Release()
 		releaseStage()
 	}
-	return &readCheckpointEngine{Engine: engine, bus: a.opts.Bus, le: a.le}, release, nil
+	return &readCheckpointEngine{Engine: engine}, release, nil
 }
 
 // readCheckpointEngine rejects mutations through every exported World surface.
 type readCheckpointEngine struct {
 	// Engine serves the replayed World.
 	*world_block.Engine
-	// bus resolves the read-only cursors.
-	bus bus.Bus
-	// le is the logger.
-	le *logrus.Entry
 }
 
 // NewTransaction opens a read snapshot. A write request cannot acquire
@@ -131,19 +127,7 @@ func (e *readCheckpointEngine) readOnlyCursor(ctx context.Context, cursor *bucke
 	opArgs.VolumeId = ""
 
 	// Wrap the bucket in a read-only store at the cursor's position.
-	read := bucket_lookup.NewCursorWithRelease(
-		ctx,
-		e.bus,
-		e.le,
-		cursor.GetStepFactorySet(),
-		block.NewReadOnlyStore(cursor.GetBucket()),
-		cursor.GetTransformer(),
-		cursor.GetRef(),
-		opArgs,
-		cursor.GetTransformConf(),
-		release, cursor.GetBucketIDOverride(),
-	)
-	return read
+	return cursor.Rebind(ctx, block.NewReadOnlyStore(cursor.GetBucket()), cursor.GetRef(), opArgs, release)
 }
 
 // _ asserts that readCheckpointEngine implements world.Engine.

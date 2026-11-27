@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -751,9 +752,71 @@ func (c *Cursor) GetRefWithOpArgs() *bucket.ObjectRef {
 	return ref
 }
 
-// GetTransformConf returns the current transform config.
-func (c *Cursor) GetTransformConf() *block_transform.Config {
-	return c.transformConf
+// RefWithInlineTransform returns a copy of ref with the cursor's resolved
+// transform inline and no transform configuration reference. Other reference
+// fields, including an empty bucket ID, remain unchanged.
+func (c *Cursor) RefWithInlineTransform(ref *bucket.ObjectRef) *bucket.ObjectRef {
+	// Replace only the transform metadata in a copied reference.
+	out := ref.Clone()
+	if out == nil {
+		out = &bucket.ObjectRef{}
+	}
+	out.TransformConf = c.transformConf.Clone()
+	out.TransformConfRef = nil
+	return out
+}
+
+// Rebind constructs a cursor over a replacement bucket at ref and opArgs,
+// retaining the current decoder and implicit bucket override. The caller keeps
+// the source cursor alive and releases the returned cursor separately.
+// release, when non-nil, runs when the returned cursor is released.
+func (c *Cursor) Rebind(ctx context.Context, bkt bucket.BucketOps, ref *bucket.ObjectRef, opArgs *bucket.BucketOpArgs, release func()) *Cursor {
+	return NewCursorWithRelease(ctx, c.bus, c.le, c.sfs, bkt, c.xfrm, ref, opArgs, c.transformConf, release, c.bucketIDOverride)
+}
+
+// SameTransform reports whether both cursors decode the same stored encoding.
+// Nil and empty configurations both describe raw blocks.
+func (c *Cursor) SameTransform(other *Cursor) bool {
+	return (c.transformConf.GetEmpty() && other.transformConf.GetEmpty()) || c.transformConf.EqualVT(other.transformConf)
+}
+
+// TransformKey returns the serialized transform identity used to distinguish
+// traversals of stored blocks under different decoders.
+func (c *Cursor) TransformKey() (string, error) {
+	data, err := c.transformConf.MarshalVT()
+	return string(data), err
+}
+
+// copyDestinationRef preserves the source encoding in a reference into this
+// cursor's bucket, explicitly resetting an inherited transform for raw data.
+func (c *Cursor) copyDestinationRef(ctx context.Context, srcCursor *Cursor) (*bucket.ObjectRef, error) {
+	// Preserve the source encoding in the destination reference.
+	destinationRef := srcCursor.RefWithInlineTransform(srcCursor.ref)
+	destinationRef.BucketId = c.opArgs.GetBucketId()
+
+	// An empty source transform means the copied blocks are raw at rest. When
+	// the destination parent is transformed, make that raw encoding explicit
+	// in the returned ref so nested references reset the inherited decoder.
+	if srcCursor.transformConf.GetEmpty() && !c.transformConf.GetEmpty() {
+		destBucket, ok := c.bkt.(bucket.Bucket)
+		if !ok {
+			return nil, pkgerrors.New("destination bucket does not support transform config writes")
+		}
+		transformConfRef, _, err := WriteTransformConf(
+			ctx,
+			destBucket,
+			c.xfrm,
+			c.defaultPutOpts(),
+			&block_transform.Config{},
+		)
+		if err != nil {
+			return nil, pkgerrors.Wrap(err, "write raw transform config")
+		}
+		destinationRef.TransformConf = nil
+		destinationRef.TransformConfRef = transformConfRef
+	}
+
+	return destinationRef, nil
 }
 
 // SetDecodedBlockCache sets the lifecycle-owned decoded-block cache borrowed by the cursor.

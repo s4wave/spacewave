@@ -17,10 +17,16 @@ import (
 func newSpaceWorldExportCommand(statePath *string, sessionIdx *uint, spaceID *string) *cli.Command {
 	var retainName string
 	return &cli.Command{
-		Name:        "export-root",
-		Usage:       "save a recovery root after local persistence and remote uploads complete",
-		ArgsUsage:   "NEW_FILE",
-		Description: "Writes a binary WorldRootSnapshot with mode 0600, refusing to overwrite a file.\nThe file contains decryption material: encrypt it before storing it offsite.\nKeep the Space's S3 endpoint, bucket, and block-store prefix with the recovery file.\nThe referenced packfiles must remain available; this file does not contain them.\nWith --retain, the Space keeps the root's blocks through storage reclaim until\nrelease-root releases the name. A Space holds at most 16 retained roots.\nWithout it, storage reclaim may delete blocks the root alone references.",
+		Name:      "export-root",
+		Usage:     "save a recovery root after local persistence and remote uploads complete",
+		ArgsUsage: "NEW_FILE",
+		Description: "Writes a binary WorldRootSnapshot with mode 0600, refusing to overwrite a file.\n" +
+			"The file contains decryption material: encrypt it before storing it offsite.\n" +
+			"Keep the Space's S3 endpoint, bucket, and block-store prefix with the recovery file.\n" +
+			"The referenced packfiles must remain available; this file does not contain them.\n" +
+			"With --retain, the Space keeps the root's blocks through storage reclaim until\n" +
+			"release-root releases the name. A Space holds at most 16 retained roots.\n" +
+			"Without it, storage reclaim may delete blocks the root alone references.",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "retain",
@@ -54,9 +60,7 @@ func newSpaceWorldExportCommand(statePath *string, sessionIdx *uint, spaceID *st
 				return err
 			}
 			if err := tx.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
-				snapshot.RootRef = cursor.GetRef()
-				snapshot.RootRef.TransformConf = cursor.GetTransformConf().CloneVT()
-				snapshot.RootRef.TransformConfRef = nil
+				snapshot.RootRef = cursor.RefWithInlineTransform(cursor.GetRef())
 				return nil
 			}); err != nil {
 				return errors.Wrap(err, "resolve recovery transform")
@@ -115,10 +119,12 @@ func newSpaceWorldExportCommand(statePath *string, sessionIdx *uint, spaceID *st
 // newSpaceWorldReleaseRootCommand releases a root export-root retained.
 func newSpaceWorldReleaseRootCommand(statePath *string, sessionIdx *uint, spaceID *string) *cli.Command {
 	return &cli.Command{
-		Name:        "release-root",
-		Usage:       "release a retained recovery root",
-		ArgsUsage:   "NAME",
-		Description: "Releases the root export-root --retain kept under NAME.\nThe next storage reclaim pass may delete blocks only that root referenced,\nso recovery files of the root stop restoring.",
+		Name:      "release-root",
+		Usage:     "release a retained recovery root",
+		ArgsUsage: "NAME",
+		Description: "Releases the root export-root --retain kept under NAME.\n" +
+			"The next storage reclaim pass may delete blocks only that root referenced,\n" +
+			"so recovery files of the root stop restoring.",
 		Action: func(c *cli.Context) error {
 			// Require one name and mount the Space's World.
 			if c.NArg() != 1 {
