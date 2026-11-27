@@ -101,7 +101,9 @@ export function StorageBackendRow({ info, isDefault }: StorageBackendRowProps) {
             )}
           </div>
           <p className="text-foreground-alt/60 mt-0.5 truncate text-xs">
-            {formatStorageLocation(backend?.s3)}
+            {backend?.gdrive
+              ? 'Google Drive encrypted backup'
+              : formatStorageLocation(backend?.s3)}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1">
@@ -112,24 +114,26 @@ export function StorageBackendRow({ info, isDefault }: StorageBackendRowProps) {
           >
             Check
           </DashboardButton>
-          <DashboardButton
-            icon={
-              isDefault ? (
-                <LuStarOff className="size-3.5" />
-              ) : (
-                <LuStar className="size-3.5" />
-              )
-            }
-            onClick={handleDefault}
-            disabled={busy}
-            title={
-              isDefault
-                ? "New Spaces use the account's own storage"
-                : 'New Spaces store their data in this bucket'
-            }
-          >
-            {isDefault ? 'Stop using for new' : 'Use for new'}
-          </DashboardButton>
+          {!backend?.gdrive && (
+            <DashboardButton
+              icon={
+                isDefault ? (
+                  <LuStarOff className="size-3.5" />
+                ) : (
+                  <LuStar className="size-3.5" />
+                )
+              }
+              onClick={handleDefault}
+              disabled={busy}
+              title={
+                isDefault
+                  ? "New Spaces use the account's own storage"
+                  : 'New Spaces store their data in this bucket'
+              }
+            >
+              {isDefault ? 'Stop using for new' : 'Use for new'}
+            </DashboardButton>
+          )}
           <DashboardButton
             icon={<LuTrash2 className="size-3.5" />}
             variant="destructive"
@@ -156,23 +160,35 @@ export function StorageBackendRow({ info, isDefault }: StorageBackendRowProps) {
         </div>
       )}
 
-      {placed.length === 0 ? (
-        <p className="text-foreground-alt/60 mt-2 text-xs">No Spaces yet.</p>
-      ) : (
-        <ul className="mt-2 space-y-2">
-          {placed.map((space) => (
-            <li key={space.spaceId}>
-              <div className="text-foreground text-xs">
-                {space.name || space.spaceId}
-              </div>
-              <SpaceUploadStatus
-                sharedObjectId={space.spaceId ?? ''}
-                preset={preset}
-              />
-            </li>
-          ))}
-        </ul>
-      )}
+      {!backend?.gdrive && <PlacedSpaces placed={placed} preset={preset} />}
     </div>
+  )
+}
+
+// PlacedSpaces shows which Spaces use a primary backend and their upload state.
+function PlacedSpaces({
+  placed,
+  preset,
+}: {
+  placed: NonNullable<StorageBackendInfo['placedSpaces']>
+  preset: ReturnType<typeof guessStoragePreset>
+}) {
+  if (placed.length === 0) {
+    return <p className="text-foreground-alt/60 mt-2 text-xs">No Spaces yet.</p>
+  }
+  return (
+    <ul className="mt-2 space-y-2">
+      {placed.map((space) => (
+        <li key={space.spaceId}>
+          <div className="text-foreground text-xs">
+            {space.name || space.spaceId}
+          </div>
+          <SpaceUploadStatus
+            sharedObjectId={space.spaceId ?? ''}
+            preset={preset}
+          />
+        </li>
+      ))}
+    </ul>
   )
 }

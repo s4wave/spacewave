@@ -19,7 +19,9 @@ export function NewSpaceStorageChoice({
 }: NewSpaceStorageChoiceProps) {
   const id = useId()
   const resource = useStorageBackends()
-  const backends = resource.value?.storageBackends ?? []
+  const backends = (resource.value?.storageBackends ?? []).filter(
+    (entry) => !entry.backend?.gdrive,
+  )
   if (resource.error || backends.length === 0) {
     return null
   }

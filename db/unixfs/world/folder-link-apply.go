@@ -74,7 +74,7 @@ import (
 //
 // The producers of a remote change, each a commit to the Drive this node did
 // not make: a member's mounted Drive (UploadTree), the CLI's fs write, rm, mv
-// and mkdir through the unixfs resource, fs sync and restore-s3, another
+// and mkdir through the unixfs resource, fs sync and restore, another
 // linked folder or Device bound to the Drive, and account replication bringing
 // any of those from another Device. The node's own commits record their
 // versions as the base, so it never applies its own change. The one-shot fs

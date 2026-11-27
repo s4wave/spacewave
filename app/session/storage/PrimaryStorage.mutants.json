@@ -1,0 +1,3 @@
+[
+  {"name":"Offer backup folders as primary storage", "replace":[["PrimaryChoices == available \\ {\"drive\"}", "PrimaryChoices == available"]], "expect":"NoBackupAsPrimary", "config":"PrimaryStorage.cfg"}
+]
