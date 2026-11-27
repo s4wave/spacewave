@@ -41,6 +41,11 @@ type Walker struct {
 	Children func(context.Context, *block.BlockRef) ([]*block.BlockRef, bool, error)
 	// Describe returns a type label and typed children, without storing state.
 	Describe func(context.Context, *block.BlockRef, []byte, []byte) (string, []Child, error)
+
+	// types caches the interned id of each type descriptor; the walk sees a handful.
+	types map[string]int64
+	// sighted is the lowest depth among unmerged sightings, or -1 when none are known.
+	sighted int
 }
 
 // Open creates or resumes a scratch database. Close releases it. Callers must
@@ -59,23 +64,35 @@ func Open(path string) (*Walker, error) {
  ref TEXT PRIMARY KEY, type BLOB NOT NULL, depth INTEGER NOT NULL, pack INTEGER NOT NULL,
  off INTEGER NOT NULL, n INTEGER NOT NULL, state INTEGER NOT NULL DEFAULT 0,
  kind TEXT NOT NULL DEFAULT '', bytes INTEGER NOT NULL DEFAULT 0);
- CREATE INDEX IF NOT EXISTS frontier ON nodes(state,depth,pack,off);
  CREATE TABLE IF NOT EXISTS edges(child TEXT NOT NULL,parent TEXT NOT NULL,PRIMARY KEY(child,parent));
  CREATE TABLE IF NOT EXISTS cache(ref TEXT PRIMARY KEY,data BLOB NOT NULL);
  CREATE TABLE IF NOT EXISTS location_holes(ref TEXT PRIMARY KEY,kind TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS locations(ref TEXT PRIMARY KEY,pack INTEGER NOT NULL,n INTEGER NOT NULL);
  CREATE TABLE IF NOT EXISTS descriptors(ref TEXT NOT NULL,type BLOB NOT NULL,done INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(ref,type));
  CREATE TABLE IF NOT EXISTS sources(ref TEXT PRIMARY KEY,kind TEXT NOT NULL);
- CREATE TABLE IF NOT EXISTS failures(ref TEXT PRIMARY KEY,kind TEXT NOT NULL);`)
+ CREATE TABLE IF NOT EXISTS failures(ref TEXT PRIMARY KEY,kind TEXT NOT NULL);
+ CREATE TABLE IF NOT EXISTS types(id INTEGER PRIMARY KEY,type BLOB NOT NULL UNIQUE);
+ CREATE TABLE IF NOT EXISTS sightings(child TEXT NOT NULL,parent TEXT NOT NULL,type INTEGER NOT NULL,depth INTEGER NOT NULL);
+ CREATE TABLE IF NOT EXISTS merge_cursor(child TEXT NOT NULL,rid INTEGER NOT NULL);`)
+	if err == nil {
+		// An interrupted merge keeps the frontier index dropped until it finishes.
+		var merging bool
+		if err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM merge_cursor)").Scan(&merging); err == nil && !merging {
+			_, err = db.Exec(frontierIndex)
+		}
+	}
 	if err != nil {
 		store.Close()
 		return nil, err
 	}
-	return &Walker{DB: db, store: store, wal: path + "-wal"}, nil
+	return &Walker{DB: db, store: store, wal: path + "-wal", types: map[string]int64{}, sighted: -1}, nil
 }
 
+// frontierIndex orders pending nodes by level and pack position for next.
+const frontierIndex = "CREATE INDEX IF NOT EXISTS frontier ON nodes(state,depth,pack,off)"
+
 // walBound is the WAL size past which the walker checkpoints and truncates it.
-var walBound int64 = 64 << 20
+var walBound int64 = 256 << 20
 
 // checkpoint bounds the scratch WAL. The store's pool disables SQLite's
 // automatic checkpoint, and its background checkpointer wakes only on the
@@ -324,6 +341,18 @@ func (w *Walker) Run(ctx context.Context) error {
 		return err
 	}
 
+	// Finish an interrupted merge first: next needs the frontier index it rebuilds.
+	var merging bool
+	if err := w.DB.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM merge_cursor), coalesce((SELECT min(depth) FROM sightings),-1)").Scan(&merging, &w.sighted); err != nil {
+		return err
+	}
+	if merging {
+		if err := w.merge(ctx); err != nil {
+			return err
+		}
+	}
+
+	// Walk one bounded run, or one merge, per iteration.
 	for {
 		// Bound the log the previous run's commits added.
 		if err := w.checkpoint(ctx); err != nil {
@@ -332,8 +361,19 @@ func (w *Walker) Run(ctx context.Context) error {
 
 		// Read the next breadth-first run, outside any scratch transaction.
 		run, err := w.next(ctx)
-		if err != nil || len(run) == 0 {
+		if err != nil {
 			return err
+		}
+
+		// File a level's sightings before any node at or below their depth is read.
+		if w.sighted >= 0 && (len(run) == 0 || run[0].depth >= w.sighted) {
+			if err = w.merge(ctx); err != nil {
+				return err
+			}
+			continue
+		}
+		if len(run) == 0 {
+			return nil
 		}
 		if run[0].n == 0 {
 			if _, err = w.DB.ExecContext(ctx, "UPDATE nodes SET state=1,kind='hole:index' WHERE ref=?", run[0].ref); err != nil {
@@ -571,18 +611,28 @@ func (w *Walker) visit(ctx context.Context, it item) error {
 	}
 
 	// Preserve the stored closure even when a type is unknown or its list differs.
+	kids = kids[:len(kids):len(kids)]
+	for _, kid := range stored.Refs {
+		kids = append(kids, Child{Ref: kid})
+	}
+	ids := make([]int64, len(kids))
+	for i, kid := range kids {
+		if ids[i], err = w.typeID(ctx, kid.Type); err != nil {
+			return err
+		}
+	}
+
+	// Append the children to the sighting log; merge files them in ref order.
 	tx, err := w.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
-	for _, kid := range kids {
-		if err = w.enqueue(ctx, tx, kid, it.ref, it.depth+1); err != nil {
-			return err
+	for i, kid := range kids {
+		if kid.Ref.GetEmpty() {
+			continue
 		}
-	}
-	for _, kid := range stored.Refs {
-		if err = w.enqueue(ctx, tx, Child{Ref: kid}, it.ref, it.depth+1); err != nil {
+		if _, err = tx.ExecContext(ctx, "INSERT INTO sightings VALUES(?,?,?,?)", kid.Ref.MarshalString(), it.ref, ids[i], it.depth+1); err != nil {
 			return err
 		}
 	}
@@ -596,7 +646,148 @@ func (w *Walker) visit(ctx context.Context, it item) error {
 	if err != nil {
 		return err
 	}
-	return tx.Commit()
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+	if len(kids) != 0 && (w.sighted < 0 || it.depth+1 < w.sighted) {
+		w.sighted = it.depth + 1
+	}
+	return nil
+}
+
+// typeID interns a type descriptor in its own commit, so a rolled-back visit
+// never leaves a sighting that names a missing type. Zero means untyped.
+func (w *Walker) typeID(ctx context.Context, typ []byte) (int64, error) {
+	// Serve the untyped id and known types without a statement.
+	if len(typ) == 0 {
+		return 0, nil
+	}
+	if id, ok := w.types[string(typ)]; ok {
+		return id, nil
+	}
+
+	// Intern a new type once and keep its id for the rest of the process.
+	if _, err := w.DB.ExecContext(ctx, "INSERT OR IGNORE INTO types(type) VALUES(?)", typ); err != nil {
+		return 0, err
+	}
+	var id int64
+	if err := w.DB.QueryRowContext(ctx, "SELECT id FROM types WHERE type=?", typ).Scan(&id); err != nil {
+		return 0, err
+	}
+	w.types[string(typ)] = id
+	return id, nil
+}
+
+// mergeChunk bounds the sightings one merge commit files.
+var mergeChunk = 4096
+
+// merge files every logged sighting into the graph in ref order. Filing a
+// child dirties the same sorted leaves of nodes, edges, descriptors and
+// locations as its neighbors, so each page is written once per chunk instead
+// of once per child. The frontier index, ordered by pack, would take one
+// random leaf per new node, so it is dropped during the merge and rebuilt in
+// one sorted pass. A cursor commits with each chunk: an interrupted merge
+// resumes after the last filed sighting, and enqueue is idempotent, so a
+// repeated chunk changes nothing.
+func (w *Walker) merge(ctx context.Context) error {
+	// Begin once: the sort index, the cursor and the dropped frontier commit together.
+	tx, err := w.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if _, err = tx.ExecContext(ctx, `INSERT INTO merge_cursor SELECT '',0 WHERE NOT EXISTS(SELECT 1 FROM merge_cursor);
+ DROP INDEX IF EXISTS frontier;
+ CREATE INDEX IF NOT EXISTS sightings_order ON sightings(child)`); err != nil {
+		return err
+	}
+	var cursor string
+	var rid int64
+	if err = tx.QueryRowContext(ctx, "SELECT child,rid FROM merge_cursor").Scan(&cursor, &rid); err != nil {
+		return err
+	}
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+
+	// Stream the log past the cursor, one bounded chunk at a time.
+	type sighting struct {
+		rid    int64
+		child  string
+		parent string
+		typ    []byte
+		depth  int
+	}
+	for {
+		// Read one chunk past the cursor, then release the only connection. The
+		// two halves each seek the index exactly, even past a child with many parents.
+		rows, err := w.DB.QueryContext(ctx, `SELECT s.rid,s.child,s.parent,coalesce(t.type,x''),s.depth FROM (
+ SELECT * FROM (SELECT rowid AS rid,* FROM sightings INDEXED BY sightings_order WHERE child=?1 AND rowid>?2 ORDER BY rowid LIMIT ?3)
+ UNION ALL SELECT * FROM (SELECT rowid AS rid,* FROM sightings INDEXED BY sightings_order WHERE child>?1 ORDER BY child,rowid LIMIT ?3)
+ LIMIT ?3) s LEFT JOIN types t ON t.id=s.type`, cursor, rid, mergeChunk)
+		if err != nil {
+			return err
+		}
+		var chunk []sighting
+		for rows.Next() {
+			var s sighting
+			if err = rows.Scan(&s.rid, &s.child, &s.parent, &s.typ, &s.depth); err != nil {
+				break
+			}
+			chunk = append(chunk, s)
+		}
+		if err == nil {
+			err = rows.Err()
+		}
+		rows.Close()
+		if err != nil {
+			return err
+		}
+		if len(chunk) == 0 {
+			break
+		}
+
+		// File the chunk and advance the cursor in one commit.
+		tx, err := w.DB.BeginTx(ctx, nil)
+		if err != nil {
+			return err
+		}
+		for _, s := range chunk {
+			ref, err := block.UnmarshalBlockRefB58(s.child)
+			if err == nil {
+				err = w.enqueue(ctx, tx, Child{Ref: ref, Type: s.typ}, s.parent, s.depth)
+			}
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+		last := chunk[len(chunk)-1]
+		if _, err = tx.ExecContext(ctx, "UPDATE merge_cursor SET child=?,rid=?", last.child, last.rid); err != nil {
+			tx.Rollback()
+			return err
+		}
+		if err = tx.Commit(); err != nil {
+			return err
+		}
+		cursor, rid = last.child, last.rid
+		if err = w.checkpoint(ctx); err != nil {
+			return err
+		}
+	}
+
+	// Finish in idempotent steps; the cursor row goes last, after the frontier exists.
+	if _, err = w.DB.ExecContext(ctx, "DELETE FROM sightings; DROP INDEX IF EXISTS sightings_order"); err != nil {
+		return err
+	}
+	if _, err = w.DB.ExecContext(ctx, frontierIndex); err != nil {
+		return err
+	}
+	if _, err = w.DB.ExecContext(ctx, "DELETE FROM merge_cursor"); err != nil {
+		return err
+	}
+	w.sighted = -1
+	return w.checkpoint(ctx)
 }
 
 // Report streams stable tab-separated totals, histograms, pack live fractions
@@ -616,6 +807,7 @@ func (w *Walker) Report(ctx context.Context, out io.Writer) error {
 		`SELECT 'holes',kind,count(*) FROM nodes WHERE kind LIKE 'hole:%' GROUP BY kind`,
 		`SELECT 'total',count(*),coalesce(sum(bytes),0) FROM nodes WHERE state=1 AND kind NOT LIKE 'hole:%'`,
 		`SELECT 'pending',count(*),0 FROM nodes WHERE state=0`,
+		`SELECT 'pending:sightings',count(*),0 FROM sightings`,
 		`SELECT 'holes:index-unresolved',count(*),0 FROM nodes WHERE kind='hole:index'`,
 		`SELECT 'holes:source-unavailable',count(*),0 FROM nodes WHERE kind='hole:source'`,
 		`SELECT 'histogram',kind,bin,count(*),sum(bytes),sum(n) FROM

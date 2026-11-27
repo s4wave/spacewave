@@ -5,6 +5,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -440,5 +441,146 @@ func TestMeasureBoundsWAL(t *testing.T) {
 	}
 	if info.Size() > 4*walBound {
 		t.Fatalf("WAL is %d bytes after the walk, bound %d", info.Size(), walBound)
+	}
+}
+
+// TestMeasureResumeMatchesUninterrupted stops a shared, typed DAG at every
+// range read and at every index lookup, which lands both inside a level and
+// inside a sighting merge, and requires each resumed walk to report exactly
+// what one uninterrupted walk reports.
+func TestMeasureResumeMatchesUninterrupted(t *testing.T) {
+	// Three levels share children, so a merge files each child from several parents.
+	var pack []byte
+	type place struct {
+		off int64
+		n   int
+	}
+	locations := map[string]place{}
+	put := func(data string, kids ...*block.BlockRef) *block.BlockRef {
+		ref, err := block.BuildBlockRef([]byte(data), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		raw, err := block.EncodeBlockObject([]byte(data), kids, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		locations[ref.MarshalString()] = place{int64(len(pack)), len(raw)}
+		pack = append(pack, raw...)
+		return ref
+	}
+	hole, err := block.BuildBlockRef([]byte("absent"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var leaves, mids, tops []*block.BlockRef
+	for i := range 6 {
+		leaves = append(leaves, put("leaf-"+strconv.Itoa(i)))
+	}
+	for i := range 12 {
+		mids = append(mids, put("mid-"+strconv.Itoa(i), leaves[i%6], leaves[(i+1)%6], hole))
+	}
+	for i := range 8 {
+		tops = append(tops, put("top-"+strconv.Itoa(i), mids[i%12], mids[(i+3)%12], mids[(i+7)%12]))
+	}
+	root := put("root", tops...)
+
+	// Small chunks let a stopped lookup land between two merge commits.
+	prev := mergeChunk
+	mergeChunk = 3
+	defer func() { mergeChunk = prev }()
+
+	// walk runs to completion, failing once at the given read or lookup.
+	walk := func(failRead, failLocate int) (string, bool) {
+		path := filepath.Join(t.TempDir(), "work.db")
+		reads, locates := 0, 0
+		merging, seeded := false, false
+		open := func() *Walker {
+			w, err := Open(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			w.Locate = func(_ context.Context, ref *block.BlockRef) (uint32, int64, int, bool, error) {
+				if seeded {
+					locates++
+				}
+				if seeded && locates == failLocate {
+					return 0, 0, 0, false, errors.New("stopped lookup")
+				}
+				p, ok := locations[ref.MarshalString()]
+				return 1, p.off, p.n, ok, nil
+			}
+			w.ReadRange = func(_ context.Context, _ string, off int64, n int) ([]byte, error) {
+				reads++
+				if reads == failRead {
+					return nil, errors.New("stopped read")
+				}
+				return pack[off : off+int64(n)], nil
+			}
+			// The root types its tops, so each top also carries a descriptor context.
+			w.Describe = func(_ context.Context, ref *block.BlockRef, _ []byte, _ []byte) (string, []Child, error) {
+				if ref.MarshalString() != root.MarshalString() {
+					return "fixture", nil, nil
+				}
+				kids := make([]Child, 0, len(tops))
+				for _, top := range tops {
+					kids = append(kids, Child{Ref: top, Type: []byte("top")})
+				}
+				return "fixture", kids, nil
+			}
+			if err = w.AddPack(t.Context(), 1, "one", uint64(len(pack))); err != nil {
+				t.Fatal(err)
+			}
+			return w
+		}
+		w := open()
+		if err := w.Seed(t.Context(), "head", root, nil); err != nil {
+			t.Fatal(err)
+		}
+		seeded = true
+		for attempt := 0; ; attempt++ {
+			err := w.Run(t.Context())
+			if err == nil {
+				break
+			}
+			if attempt != 0 {
+				t.Fatalf("second stop: %v", err)
+			}
+			if err = w.DB.QueryRowContext(t.Context(), "SELECT EXISTS(SELECT 1 FROM merge_cursor WHERE child<>'')").Scan(&merging); err != nil {
+				t.Fatal(err)
+			}
+			if err = w.Close(); err != nil {
+				t.Fatal(err)
+			}
+			w = open()
+		}
+		defer w.Close()
+		var out bytes.Buffer
+		if err := w.Report(t.Context(), &out); err != nil {
+			t.Fatal(err)
+		}
+		lines := strings.Split(strings.TrimSpace(out.String()), "\n")
+		slices.Sort(lines)
+		return strings.Join(lines, "\n"), merging
+	}
+
+	want, _ := walk(0, 0)
+	if !strings.Contains(want, "total\t27\t") || !strings.Contains(want, "pending\t0\t0") || !strings.Contains(want, "pending:sightings\t0\t0") {
+		t.Fatalf("wrong uninterrupted walk:\n%s", want)
+	}
+	midMerge := false
+	for i := 1; i <= 40; i++ {
+		got, _ := walk(i, 0)
+		if got != want {
+			t.Fatalf("read %d resumed differently:\n%s\nwant:\n%s", i, got, want)
+		}
+		got, merging := walk(0, i)
+		if got != want {
+			t.Fatalf("lookup %d resumed differently:\n%s\nwant:\n%s", i, got, want)
+		}
+		midMerge = midMerge || merging
+	}
+	if !midMerge {
+		t.Fatal("no stop landed inside a merge")
 	}
 }
