@@ -66,7 +66,7 @@ func (a *Agent) Run(ctx context.Context, r io.Reader, w io.Writer) error {
 		size := v.GetInt64("size")
 		switch event := string(v.GetStringBytes("event")); event {
 		case "init":
-			err = out.send(out.arena.NewObject())
+			err = out.initialize(nil)
 		case "upload":
 			err = a.upload(ctx, out, oid, size, string(v.GetStringBytes("path")))
 		case "download":
@@ -94,9 +94,7 @@ func Refuse(r io.Reader, w io.Writer, cause error) error {
 
 	// Answer it with the cause.
 	out := &events{w: bufio.NewWriter(w)}
-	msg := out.arena.NewObject()
-	msg.Set("error", out.error(cause))
-	return out.send(msg)
+	return out.initialize(cause)
 }
 
 // upload stores the file at path as oid unless the Store already holds it,
@@ -202,6 +200,23 @@ func (e *events) send(v *fastjson.Value) error {
 	return e.w.Flush()
 }
 
+// initialize answers init with either acceptance or the reason for refusal.
+func (e *events) initialize(cause error) error {
+	msg := e.arena.NewObject()
+	if cause != nil {
+		msg.Set("error", e.error(cause))
+	}
+	return e.send(msg)
+}
+
+// reportProgress sends the accumulated and current transfer byte counts.
+func (e *events) reportProgress(oid string, total int64, count int) error {
+	msg := e.event("progress", oid)
+	msg.Set("bytesSoFar", e.arena.NewNumberString(strconv.FormatInt(total, 10)))
+	msg.Set("bytesSinceLast", e.arena.NewNumberInt(count))
+	return e.send(msg)
+}
+
 // complete reports the end of a transfer: its downloaded path when set, or
 // transferErr when the transfer failed.
 func (e *events) complete(oid, path string, transferErr error) error {
@@ -246,10 +261,7 @@ type progress struct {
 func (p *progress) Write(b []byte) (int, error) {
 	// Report the accumulated and current byte counts for the LFS transfer.
 	p.sofar += int64(len(b))
-	msg := p.out.event("progress", p.oid)
-	msg.Set("bytesSoFar", p.out.arena.NewNumberString(strconv.FormatInt(p.sofar, 10)))
-	msg.Set("bytesSinceLast", p.out.arena.NewNumberInt(len(b)))
-	if err := p.out.send(msg); err != nil {
+	if err := p.out.reportProgress(p.oid, p.sofar, len(b)); err != nil {
 		return 0, err
 	}
 	return len(b), nil

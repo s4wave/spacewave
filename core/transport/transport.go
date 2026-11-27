@@ -211,11 +211,10 @@ func (t *SessionTransport) GetPrivKey() bifrost_crypto.PrivKey {
 	return t.sessionKey
 }
 
-// GetFrameSubscriptions returns the registry that admits frame groups sent to
-// this Session's viewers. Register a subscription on it before writing the
-// subscription to a Device's control stream.
-func (t *SessionTransport) GetFrameSubscriptions() *frametrack.SubscriptionRegistry {
-	return t.frames
+// RegisterFrameSubscription admits frame groups for a viewer before its
+// subscription is sent on the Device's control stream. The caller releases it.
+func (t *SessionTransport) RegisterFrameSubscription(ctx context.Context, control link.MountedStream, readGroup func(context.Context, *frametrack.GroupReader)) (*frametrack.Subscription, func(), error) {
+	return t.frames.Register(ctx, control, readGroup)
 }
 
 // GetChildBus returns the active session bus, or nil outside Execute.

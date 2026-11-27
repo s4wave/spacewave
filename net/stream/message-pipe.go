@@ -23,8 +23,8 @@ var ErrMessageTooLarge = errors.New("message exceeds the maximum message size")
 // larger than one packet fail on a link. The control streams are a net.Pipe.
 func NewMessagePipe(maxSize int) (MessageStream, MessageStream) {
 	left, right := net.Pipe()
-	a, b := newMessagePipe(left, maxSize), newMessagePipe(right, maxSize)
-	a.peer, b.peer = b, a
+	a := newMessagePipe(left, maxSize)
+	b := a.connect(right)
 	return a, b
 }
 
@@ -51,6 +51,13 @@ func newMessagePipe(control net.Conn, maxSize int) *messagePipe {
 		readDeadline:  deadline.New(),
 		writeDeadline: deadline.New(),
 	}
+}
+
+// connect constructs the other end and joins their message planes.
+func (p *messagePipe) connect(control net.Conn) *messagePipe {
+	other := newMessagePipe(control, p.maxSize)
+	p.peer, other.peer = other, p
+	return other
 }
 
 // Control returns the reliable stream of this message stream.

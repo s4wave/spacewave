@@ -72,6 +72,13 @@ func newPattern() *Pattern {
 	return &Pattern{frame: image.NewRGBA(bars.Bounds()), pointer: image.Pt(-1, -1)}
 }
 
+// Render draws the next frame with pointer and returns its JPEG encoding.
+func (p *Pattern) Render(pointer image.Point) ([]byte, error) {
+	p.pointer = pointer
+	p.Draw()
+	return p.Encode()
+}
+
 // SetPointer sets the cross position for future frames in frame pixels.
 // A point outside the frame hides the cross.
 func (p *Pattern) SetPointer(pointer image.Point) {

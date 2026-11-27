@@ -6,9 +6,11 @@ import (
 	"context"
 	"crypto/rand"
 	"errors"
+	"io"
 	"io/fs"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/s4wave/spacewave/db/coord/filelock"
 )
@@ -84,6 +86,18 @@ func openNamedStage(ctx context.Context, journal *uploadJournal, dir *os.Root, d
 	}
 	stage = &uploadStage{dir: dir, name: name, lease: lease, file: file, journal: journal}
 	return stage, nil
+}
+
+// prepare validates the payload and closes it with its publication metadata.
+func (s *uploadStage) prepare(src io.Reader, size int64, mode fs.FileMode, ts time.Time) error {
+	// Finish the bytes before applying the publication timestamp.
+	if err := writeStage(s.file, src, size, mode); err != nil {
+		return err
+	}
+	if err := s.dir.Chtimes(s.name, ts, ts); err != nil {
+		return err
+	}
+	return s.file.Close()
 }
 
 // discard releases the stage and leaves its lease marker if the payload cannot be removed.

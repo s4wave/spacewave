@@ -106,7 +106,7 @@ func (c *Client) Play(
 	if err != nil {
 		return err
 	}
-	subscription, releaseSubscription, err := st.GetFrameSubscriptions().Register(ctx, ms, relay.ReadGroup)
+	subscription, releaseSubscription, err := st.RegisterFrameSubscription(ctx, ms, relay.ReadGroup)
 	if err != nil {
 		return err
 	}

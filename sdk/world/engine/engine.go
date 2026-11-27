@@ -3,6 +3,10 @@ package sdk_world_engine
 import (
 	"context"
 
+	"github.com/aperturerobotics/starpc/srpc"
+
+	"github.com/pkg/errors"
+
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -58,6 +62,29 @@ func NewSDKEngine(client ResourceClient, ref resource_client.ResourceRef) (*SDKE
 // GetEngineInfo returns the engine's identity and the session it serves.
 func (e *SDKEngine) GetEngineInfo(ctx context.Context) (*s4wave_world.GetEngineInfoResponse, error) {
 	return e.service.GetEngineInfo(ctx, &s4wave_world.GetEngineInfoRequest{})
+}
+
+// TypedObject mounts the typed object and returns its owned reference and client.
+func (e *SDKEngine) TypedObject(ctx context.Context, res ResourceClient, objectKey string) (resource_client.ResourceRef, srpc.Client, error) {
+	// Access the typed object through the engine client.
+	engineClient, err := e.ref.GetClient()
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "engine client")
+	}
+	typedSvc := s4wave_world.NewSRPCTypedObjectResourceServiceClient(engineClient)
+	resp, err := s4wave_world.AccessTypedObject(ctx, typedSvc, &s4wave_world.AccessTypedObjectRequest{ObjectKey: objectKey})
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "access typed object")
+	}
+
+	// Wrap the typed object resource reference.
+	ref := res.CreateResourceReference(resp.GetResourceId())
+	typedClient, err := ref.GetClient()
+	if err != nil {
+		ref.Release()
+		return nil, nil, errors.Wrap(err, "typed object client")
+	}
+	return ref, typedClient, nil
 }
 
 // GetResourceRef returns the engine's resource reference, which Release frees.

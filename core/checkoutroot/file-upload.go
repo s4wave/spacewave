@@ -82,13 +82,7 @@ func publishFile(ctx context.Context, root *os.Root, journal *uploadJournal, pub
 			rerr = errors.Join(rerr, err)
 		}
 	}()
-	if err := writeStage(stage.file, src, start.GetTotalSize(), mode); err != nil {
-		return err
-	}
-	if err := dir.Chtimes(stage.name, ts, ts); err != nil {
-		return err
-	}
-	if err := stage.file.Close(); err != nil {
+	if err := stage.prepare(src, start.GetTotalSize(), mode, ts); err != nil {
 		return err
 	}
 

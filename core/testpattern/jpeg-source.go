@@ -63,11 +63,9 @@ func (s *JPEGSource) ReadFrame(ctx context.Context) (*frametrack.GroupHeader, *f
 	s.mtx.Lock()
 	pointer := s.pointer
 	s.mtx.Unlock()
-	s.pattern.SetPointer(pointer)
-	s.pattern.Draw()
 
 	// Encode the current picture into bytes owned by this frame.
-	encoded, err := s.pattern.Encode()
+	encoded, err := s.pattern.Render(pointer)
 	if err != nil {
 		return nil, nil, err
 	}

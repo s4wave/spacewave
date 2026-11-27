@@ -155,7 +155,7 @@ func (r *SubscriptionRegistry) readGroup(ctx context.Context, set *peerSubscript
 		return
 	}
 	r.mtx.Lock()
-	sub, ok := set.byID[group.Header().GetSubscriptionId()]
+	sub, ok := group.subscriptionIn(set.byID)
 	r.mtx.Unlock()
 	if !ok || sub.ctx.Err() != nil {
 		return

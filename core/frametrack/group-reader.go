@@ -69,3 +69,19 @@ func (r *GroupReader) ReadFrame() (*Frame, error) {
 	r.started = true
 	return frame, nil
 }
+
+// relayTo forwards complete frames while the relay admits this group.
+func (r *GroupReader) relayTo(relay *Relay) {
+	for {
+		frame, err := r.ReadFrame()
+		if err != nil || !relay.enqueue(r.header, frame) {
+			return
+		}
+	}
+}
+
+// subscriptionIn resolves this group's claimed subscription in its peer's set.
+func (r *GroupReader) subscriptionIn(subscriptions map[string]viewerSubscription) (viewerSubscription, bool) {
+	sub, ok := subscriptions[r.header.GetSubscriptionId()]
+	return sub, ok
+}

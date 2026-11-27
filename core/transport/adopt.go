@@ -46,12 +46,7 @@ func (t *SessionTransport) AdoptLink(ctx context.Context, lnk link.Link) error {
 	// Register an attached transport controller under the session lifetime.
 	linkCtx, cancel := context.WithCancel(owner)
 	attached := &attachedTransport{lnk: lnk, cancel: cancel}
-	ctrl := transport_controller.NewController(t.le, b,
-		controller.NewInfo(fmt.Sprintf("alpha/transport/attached/%d", lnk.GetUUID()), controller.MustParseVersion("0.0.1"), "authenticated attached connection"),
-		t.peerID, false, func(_ context.Context, _ *logrus.Entry, _ crypto.PrivKey, handler net_transport.TransportHandler) (net_transport.Transport, error) {
-			attached.handler = handler
-			return attached, nil
-		})
+	ctrl := attached.newController(t.le, b, t.peerID)
 	release, err := b.AddController(linkCtx, ctrl, nil)
 	if err != nil {
 		_ = attached.Close()
@@ -98,6 +93,16 @@ type attachedTransport struct {
 	handler   net_transport.TransportHandler
 	cancel    context.CancelFunc
 	closeOnce sync.Once
+}
+
+// newController routes the attached link through the session's transport handler.
+func (t *attachedTransport) newController(le *logrus.Entry, b bus.Bus, peerID peer.ID) *transport_controller.Controller {
+	return transport_controller.NewController(le, b,
+		controller.NewInfo(fmt.Sprintf("alpha/transport/attached/%d", t.lnk.GetUUID()), controller.MustParseVersion("0.0.1"), "authenticated attached connection"),
+		peerID, false, func(_ context.Context, _ *logrus.Entry, _ crypto.PrivKey, handler net_transport.TransportHandler) (net_transport.Transport, error) {
+			t.handler = handler
+			return t, nil
+		})
 }
 
 func (t *attachedTransport) GetUUID() uint64    { return t.lnk.GetUUID() }

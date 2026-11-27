@@ -37,27 +37,7 @@ func NewRelay(ctx context.Context, window int) (*Relay, error) {
 // ReadGroup reads the newest source group until it ends or the relay cuts it.
 // It can run concurrently for different groups on the same subscription.
 func (r *Relay) ReadGroup(_ context.Context, group *GroupReader) {
-	header := group.Header()
-	for {
-		// Admit only complete pictures of the current or a newer group.
-		frame, err := group.ReadFrame()
-		if err != nil {
-			return
-		}
-
-		// Hold this ordering decision through the nonblocking queue append.
-		r.mtx.Lock()
-		queued := false
-		sequence := header.GetGroupSequence()
-		if sequence > r.newest || (sequence == r.newest && !frame.GetKeyframe()) {
-			r.newest = sequence
-			queued = r.sender.Send(header, frame)
-		}
-		r.mtx.Unlock()
-		if !queued {
-			return
-		}
-	}
+	group.relayTo(r)
 }
 
 // ReadFrame takes the next picture or reports why ctx ended.
@@ -93,4 +73,17 @@ func (r *Relay) writeGroup(ctx context.Context, header *GroupHeader, drain func(
 			return nil
 		}
 	})
+}
+
+// enqueue admits a complete picture of the current or a newer group.
+func (r *Relay) enqueue(header *GroupHeader, frame *Frame) bool {
+	// Hold the group ordering decision through the nonblocking queue append.
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+	sequence := header.GetGroupSequence()
+	if sequence > r.newest || (sequence == r.newest && !frame.GetKeyframe()) {
+		r.newest = sequence
+		return r.sender.Send(header, frame)
+	}
+	return false
 }

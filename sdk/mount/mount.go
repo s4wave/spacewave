@@ -14,7 +14,6 @@ import (
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 	s4wave_sobject "github.com/s4wave/spacewave/sdk/sobject"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
-	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 	sdk_engine "github.com/s4wave/spacewave/sdk/world/engine"
 )
 
@@ -171,23 +170,5 @@ func WorldEngine(ctx context.Context, res *resource_client.Client, spaceSvc s4wa
 // It returns the object's resource reference, which the caller
 // releases, and the client for its services.
 func TypedObject(ctx context.Context, res *resource_client.Client, engine *sdk_engine.SDKEngine, objectKey string) (resource_client.ResourceRef, srpc.Client, error) {
-	// Access the typed object through the engine client.
-	engineClient, err := engine.GetResourceRef().GetClient()
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "engine client")
-	}
-	typedSvc := s4wave_world.NewSRPCTypedObjectResourceServiceClient(engineClient)
-	resp, err := s4wave_world.AccessTypedObject(ctx, typedSvc, &s4wave_world.AccessTypedObjectRequest{ObjectKey: objectKey})
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "access typed object")
-	}
-
-	// Wrap the typed object resource reference.
-	ref := res.CreateResourceReference(resp.GetResourceId())
-	typedClient, err := ref.GetClient()
-	if err != nil {
-		ref.Release()
-		return nil, nil, errors.Wrap(err, "typed object client")
-	}
-	return ref, typedClient, nil
+	return engine.TypedObject(ctx, res, objectKey)
 }
