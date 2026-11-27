@@ -32,7 +32,6 @@ var bucketAdopters sync.Map
 
 // storeAdopter adopts packs into one mounted store's open backend.
 type storeAdopter struct {
-	t *bstoreTracker
 	p *placementState
 }
 
@@ -40,7 +39,7 @@ type storeAdopter struct {
 // returns the function that removes it.
 func (t *bstoreTracker) registerAdopter(p *placementState) func() {
 	key := adoptKey{volumeID: StorageVolumeID(t.a.GetProviderID(), t.a.GetAccountID()), storeID: t.id}
-	value := &storeAdopter{t: t, p: p}
+	value := &storeAdopter{p: p}
 	bucketAdopters.Store(key, value)
 	return func() { bucketAdopters.CompareAndDelete(key, value) }
 }
@@ -80,6 +79,7 @@ func lookupAdopter(providerID, accountID, storeID string) (*storeAdopter, error)
 // The located-block clear the node adopter runs is skipped: a pack adopted
 // from the bucket was not written by this store's upload queue.
 func AdoptBucketPack(ctx context.Context, providerID, accountID, storeID string, entry *packfile.PackfileEntry) (registered bool, err error) {
+	// Find the mounted store. A serve-mode store writes no index of its own.
 	a, err := lookupAdopter(providerID, accountID, storeID)
 	if err != nil {
 		return false, err
@@ -97,6 +97,7 @@ func AdoptBucketPack(ctx context.Context, providerID, accountID, storeID string,
 // HasPackfile reports whether the mounted block store storeID of the account
 // holds pack id registered in its open backend.
 func HasPackfile(ctx context.Context, providerID, accountID, storeID, id string) (bool, error) {
+	// Ask the mounted store's open backend.
 	a, err := lookupAdopter(providerID, accountID, storeID)
 	if err != nil {
 		return false, err

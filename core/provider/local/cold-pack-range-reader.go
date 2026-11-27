@@ -2,6 +2,7 @@ package provider_local
 
 import (
 	"context"
+	"sync/atomic"
 
 	account_settings "github.com/s4wave/spacewave/core/account/settings"
 	"github.com/s4wave/spacewave/db/block"
@@ -11,8 +12,8 @@ import (
 // coldPackRangeReader borrows the hot backend's S3 client for cold range reads
 // without allowing the cold manifest to follow a change of placement.
 type coldPackRangeReader struct {
-	// tracker publishes the current backend client after it opens.
-	tracker *bstoreTracker
+	// remote is the tracker's open backend, published after it opens.
+	remote *atomic.Pointer[openBackend]
 	// backend is the mount's S3 location and credentials identity.
 	backend *account_settings.StorageBackend
 }
@@ -21,7 +22,7 @@ type coldPackRangeReader struct {
 // the main read path, it never waits for an unavailable backend to open.
 func (r *coldPackRangeReader) GetColdPackRange(ctx context.Context, bucket, key string, off int64, length int, size uint64) ([]byte, []byte, error) {
 	// A missing or changed placement cannot read this manifest's objects.
-	opened := r.tracker.remote.Load()
+	opened := r.remote.Load()
 	if opened == nil || opened.s3 == nil || !opened.backend.EqualVT(r.backend) {
 		return nil, nil, block.ErrUnavailable
 	}

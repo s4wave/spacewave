@@ -319,7 +319,7 @@ func (a *ProviderAccount) WatchUploadStatus(ctx context.Context, sharedObjectID 
 	}
 	tkrRef, tkr, _ := a.bstores.AddKeyRef(blockStoreID)
 	defer tkrRef.Release()
-	return watchTrackerUploadStatus(ctx, tkr, fn)
+	return tkr.watchUploadStatus(ctx, fn)
 }
 
 // UploadedBefore reports whether the storage backend of a SharedObject's
@@ -360,11 +360,11 @@ func (a *ProviderAccount) PackaheadStats(sharedObjectID string) (PackaheadStats,
 	return bs.GetPackaheadStats()
 }
 
-// watchTrackerUploadStatus calls fn with each upload status of the tracker's
-// mounted handle, following the handle across remounts.
-func watchTrackerUploadStatus(ctx context.Context, tkr *bstoreTracker, fn func(UploadStatus) error) error {
+// watchUploadStatus calls fn with each upload status of the tracker's mounted
+// handle, following the handle across remounts.
+func (t *bstoreTracker) watchUploadStatus(ctx context.Context, fn func(UploadStatus) error) error {
 	for {
-		bs, err := tkr.bstoreCtr.WaitValue(ctx, nil)
+		bs, err := t.bstoreCtr.WaitValue(ctx, nil)
 		if err != nil {
 			return err
 		}
@@ -372,7 +372,7 @@ func watchTrackerUploadStatus(ctx context.Context, tkr *bstoreTracker, fn func(U
 		// Follow the handle until the tracker replaces it.
 		handleCtx, handleCancel := context.WithCancel(ctx)
 		go func() {
-			_, _ = tkr.bstoreCtr.WaitValueChange(handleCtx, bs, nil)
+			_, _ = t.bstoreCtr.WaitValueChange(handleCtx, bs, nil)
 			handleCancel()
 		}()
 		err = watchHandleUploadStatus(handleCtx, bs, fn)

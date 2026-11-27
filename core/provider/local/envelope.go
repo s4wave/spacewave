@@ -81,17 +81,17 @@ func (a *ProviderAccount) RewrapSessionEnvelope(ctx context.Context, keypairs []
 		}
 
 		// Replace the unlocked Session's envelope with the current keypairs.
-		if err := rewrapForSession(ctx, sess, tkr.id, keypairs); err != nil {
+		if err := sess.rewrapEnvelope(ctx, tkr.id, keypairs); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-// rewrapForSession builds and writes a Shamir envelope for a single session.
-func rewrapForSession(ctx context.Context, sess *Session, sessionID string, keypairs []*session.EntityKeypair) error {
+// rewrapEnvelope builds and writes the Session's Shamir envelope.
+func (s *Session) rewrapEnvelope(ctx context.Context, sessionID string, keypairs []*session.EntityKeypair) error {
 	// Scrub the serialized Session private key when the rewrap returns.
-	privPEM, err := keypem.MarshalPrivKeyPem(sess.sessionPriv)
+	privPEM, err := keypem.MarshalPrivKeyPem(s.sessionPriv)
 	if err != nil {
 		return errors.Wrap(err, "marshal session privkey PEM")
 	}
@@ -144,7 +144,7 @@ func rewrapForSession(ctx context.Context, sess *Session, sessionID string, keyp
 	}
 
 	// Persist the replacement before reporting the rewrap complete.
-	if err := session_lock.WriteEnvelope(ctx, sess.objStore, sessionID, envData); err != nil {
+	if err := session_lock.WriteEnvelope(ctx, s.objStore, sessionID, envData); err != nil {
 		return errors.Wrap(err, "write session envelope")
 	}
 	return nil

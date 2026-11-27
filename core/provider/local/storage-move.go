@@ -138,11 +138,11 @@ func (a *ProviderAccount) MoveSpaceStorage(
 		}
 	}
 	if backendID != "" {
-		if err := waitUploaded(ctx, tkr, backendID, since, fn); err != nil {
+		if err := tkr.waitUploaded(ctx, backendID, since, fn); err != nil {
 			return err
 		}
 	} else if current != "" {
-		if err := waitUnplaced(ctx, tkr); err != nil {
+		if err := tkr.waitUnplaced(ctx); err != nil {
 			return err
 		}
 	}
@@ -320,8 +320,8 @@ func (s *coldMoveReads) GetStoredBlock(ctx context.Context, ref *block.BlockRef)
 
 // waitUnplaced waits until the store leaves its backend and stops queueing
 // writes for upload.
-func waitUnplaced(ctx context.Context, tkr *bstoreTracker) error {
-	err := watchTrackerUploadStatus(ctx, tkr, func(status UploadStatus) error {
+func (t *bstoreTracker) waitUnplaced(ctx context.Context) error {
+	err := t.watchUploadStatus(ctx, func(status UploadStatus) error {
 		if status.Backend == nil && !status.Enabled {
 			return errMoved
 		}
@@ -336,15 +336,14 @@ func waitUnplaced(ctx context.Context, tkr *bstoreTracker) error {
 // waitUploaded reports upload progress until the store is placed on backendID,
 // its blocks are queued for upload, and every block written before since has
 // uploaded. Later writes wait out their settle age without holding the move.
-func waitUploaded(
+func (t *bstoreTracker) waitUploaded(
 	ctx context.Context,
-	tkr *bstoreTracker,
 	backendID string,
 	since time.Time,
 	fn func(MoveProgress) error,
 ) error {
 	var prev UploadStatus
-	err := watchTrackerUploadStatus(ctx, tkr, func(status UploadStatus) error {
+	err := t.watchUploadStatus(ctx, func(status UploadStatus) error {
 		// Wait for the placement to reach the store and queue its blocks.
 		if status.Backend.GetId() != backendID || status.Target != backendID {
 			return nil

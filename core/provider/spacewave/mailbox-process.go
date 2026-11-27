@@ -273,7 +273,7 @@ func (a *ProviderAccount) acceptMailboxEntry(
 	}
 
 	// Validate the invitation and responder proof.
-	redemption, err := validateMailboxEntryForAccept(ctx, swSO, soID, entry, ownerAccountID)
+	redemption, err := validateMailboxEntryForAccept(ctx, swSO.host, soID, entry, ownerAccountID)
 	if err != nil {
 		return err
 	}
@@ -384,12 +384,12 @@ type mailboxRedemption struct {
 	enrolled bool
 }
 
-// validateMailboxEntryForAccept checks a mailbox entry against the current
-// Space state and returns the redemption it describes. An entry that can never
+// validateMailboxEntryForAccept checks a mailbox entry against the Space state
+// host holds and returns the redemption it describes. An entry that can never
 // be accepted returns an invalidMailboxEntryError.
 func validateMailboxEntryForAccept(
 	ctx context.Context,
-	swSO *SharedObject,
+	host *cloudSOHost,
 	soID string,
 	entry *api.MailboxEntry,
 	ownerAccountID string,
@@ -414,7 +414,7 @@ func validateMailboxEntryForAccept(
 	}
 
 	// Find the redeemed invite in the current state.
-	state, err := swSO.host.getHostState(ctx)
+	state, err := host.getHostState(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "get current shared object state")
 	}

@@ -118,6 +118,6 @@ func (t *bstoreTracker) openColdPacks(
 	if serve {
 		opts.PromotedLog = ""
 	}
-	reader := &coldPackRangeReader{tracker: t, backend: backend}
+	reader := &coldPackRangeReader{remote: &t.remote, backend: backend}
 	return block_store_s3.NewColdPackStore(ctx, le, reader, location.GetBucket(), opts)
 }
