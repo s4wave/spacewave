@@ -2,9 +2,7 @@ package kvtx_cayley_nodegraph
 
 import (
 	"context"
-	"path/filepath"
 	"reflect"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -30,14 +28,9 @@ func newTestStore(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 
 // TestQuadStore_Conformance runs the Cayley quad store conformance suite.
 //
-// The path tests load data/testdata.nq relative to the working directory, so
-// the test runs from the graphtest package's source directory.
+// The path tests load data/testdata.nq from this package, including when
+// dependencies are vendored or source paths are trimmed.
 func TestQuadStore_Conformance(t *testing.T) {
-	file, _ := runtime.FuncForPC(reflect.ValueOf(graphtest.TestAll).Pointer()).FileLine(0)
-	if !filepath.IsAbs(file) {
-		t.Skip("graphtest source path unavailable")
-	}
-	t.Chdir(filepath.Dir(file))
 	graphtest.TestAll(t, newTestStore, &graphtest.Config{})
 }
 
