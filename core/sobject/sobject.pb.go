@@ -2293,6 +2293,13 @@ type SOCheckpointOutcomes struct {
 	// before the field existed, whose previous heads are unknown. Set with no
 	// authors when the previous checkpoint covered none, as genesis.
 	PrevAuthors *SOCheckpointAuthors `protobuf:"bytes,2,opt,name=prev_authors,json=prevAuthors,proto3" json:"prevAuthors,omitempty"`
+	// Carried are the outcomes earlier checkpoints recorded for each author
+	// that has not acknowledged them, sorted by peer_id, so a device that
+	// missed those checkpoints can decide its operations they covered. An
+	// author acknowledges a checkpoint by covering an operation that built on
+	// every author head of that checkpoint. An author with no entry is owed
+	// nothing below prev_authors, or its signer recorded no carried outcomes.
+	Carried []*SOCheckpointCarried `protobuf:"bytes,3,rep,name=carried,proto3" json:"carried,omitempty"`
 }
 
 func (x *SOCheckpointOutcomes) Reset() {
@@ -2311,6 +2318,55 @@ func (x *SOCheckpointOutcomes) GetRefused() []*SOOperationPosition {
 func (x *SOCheckpointOutcomes) GetPrevAuthors() *SOCheckpointAuthors {
 	if x != nil {
 		return x.PrevAuthors
+	}
+	return nil
+}
+
+func (x *SOCheckpointOutcomes) GetCarried() []*SOCheckpointCarried {
+	if x != nil {
+		return x.Carried
+	}
+	return nil
+}
+
+// SOCheckpointCarried are the outcomes one author is owed from checkpoints
+// before the previous one.
+type SOCheckpointCarried struct {
+	unknownFields []byte
+	// PeerId is the author.
+	PeerId string `protobuf:"bytes,1,opt,name=peer_id,json=peerId,proto3" json:"peerId,omitempty"`
+	// From is the author's last operation covered below the operations it is
+	// owed. Unset when they start at its first operation.
+	From *SOOperationPosition `protobuf:"bytes,2,opt,name=from,proto3" json:"from,omitempty"`
+	// Refused are the author's refused operations above from and at or below
+	// its entry in prev_authors, in order. Every other operation of the author
+	// in that span applied.
+	Refused []*SOOperationPosition `protobuf:"bytes,3,rep,name=refused,proto3" json:"refused,omitempty"`
+}
+
+func (x *SOCheckpointCarried) Reset() {
+	*x = SOCheckpointCarried{}
+}
+
+func (*SOCheckpointCarried) ProtoMessage() {}
+
+func (x *SOCheckpointCarried) GetPeerId() string {
+	if x != nil {
+		return x.PeerId
+	}
+	return ""
+}
+
+func (x *SOCheckpointCarried) GetFrom() *SOOperationPosition {
+	if x != nil {
+		return x.From
+	}
+	return nil
+}
+
+func (x *SOCheckpointCarried) GetRefused() []*SOOperationPosition {
+	if x != nil {
+		return x.Refused
 	}
 	return nil
 }
@@ -4089,6 +4145,7 @@ func (m *SOCheckpointOutcomes) CloneVT() *SOCheckpointOutcomes {
 	r := new(SOCheckpointOutcomes)
 	r.Refused = protobuf_go_lite.CloneVTSlice(m.Refused)
 	r.PrevAuthors = protobuf_go_lite.CloneVTValue(m.PrevAuthors)
+	r.Carried = protobuf_go_lite.CloneVTSlice(m.Carried)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -4096,6 +4153,24 @@ func (m *SOCheckpointOutcomes) CloneVT() *SOCheckpointOutcomes {
 }
 
 func (m *SOCheckpointOutcomes) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SOCheckpointCarried) CloneVT() *SOCheckpointCarried {
+	if m == nil {
+		return (*SOCheckpointCarried)(nil)
+	}
+	r := new(SOCheckpointCarried)
+	r.PeerId = m.PeerId
+	r.From = protobuf_go_lite.CloneVTValue(m.From)
+	r.Refused = protobuf_go_lite.CloneVTSlice(m.Refused)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOCheckpointCarried) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -5621,11 +5696,40 @@ func (this *SOCheckpointOutcomes) EqualVT(that *SOCheckpointOutcomes) bool {
 	if !protobuf_go_lite.IsEqualVT(this.PrevAuthors, that.PrevAuthors) {
 		return false
 	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Carried, that.Carried, func() *SOCheckpointCarried { return &SOCheckpointCarried{} }) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *SOCheckpointOutcomes) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SOCheckpointOutcomes)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SOCheckpointCarried) EqualVT(that *SOCheckpointCarried) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.PeerId != that.PeerId {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.From, that.From) {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Refused, that.Refused, func() *SOOperationPosition { return &SOOperationPosition{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOCheckpointCarried) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOCheckpointCarried)
 	if !ok {
 		return false
 	}
@@ -9404,6 +9508,17 @@ func (x *SOCheckpointOutcomes) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("prevAuthors")
 		x.PrevAuthors.MarshalProtoJSON(s.WithField("prevAuthors"))
 	}
+	if len(x.Carried) > 0 || s.HasField("carried") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("carried")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Carried {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("carried"))
+		}
+		s.WriteArrayEnd()
+	}
 	s.WriteObjectEnd()
 }
 
@@ -9446,12 +9561,113 @@ func (x *SOCheckpointOutcomes) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.PrevAuthors = &SOCheckpointAuthors{}
 			x.PrevAuthors.UnmarshalProtoJSON(s.WithField("prev_authors", true))
+		case "carried":
+			s.AddField("carried")
+			if s.ReadNil() {
+				x.Carried = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Carried = append(x.Carried, nil)
+					return
+				}
+				v := &SOCheckpointCarried{}
+				v.UnmarshalProtoJSON(s.WithField("carried", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Carried = append(x.Carried, v)
+			})
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the SOCheckpointOutcomes from JSON.
 func (x *SOCheckpointOutcomes) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOCheckpointCarried message to JSON.
+func (x *SOCheckpointCarried) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.PeerId != "" || s.HasField("peerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("peerId")
+		s.WriteString(x.PeerId)
+	}
+	if x.From != nil || s.HasField("from") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("from")
+		x.From.MarshalProtoJSON(s.WithField("from"))
+	}
+	if len(x.Refused) > 0 || s.HasField("refused") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("refused")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Refused {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("refused"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOCheckpointCarried to JSON.
+func (x *SOCheckpointCarried) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOCheckpointCarried message from JSON.
+func (x *SOCheckpointCarried) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "peer_id", "peerId":
+			s.AddField("peer_id")
+			x.PeerId = s.ReadString()
+		case "from":
+			if s.ReadNil() {
+				x.From = nil
+				return
+			}
+			x.From = &SOOperationPosition{}
+			x.From.UnmarshalProtoJSON(s.WithField("from", true))
+		case "refused":
+			s.AddField("refused")
+			if s.ReadNil() {
+				x.Refused = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Refused = append(x.Refused, nil)
+					return
+				}
+				v := &SOOperationPosition{}
+				v.UnmarshalProtoJSON(s.WithField("refused", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Refused = append(x.Refused, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SOCheckpointCarried from JSON.
+func (x *SOCheckpointCarried) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -13237,6 +13453,18 @@ func (m *SOCheckpointOutcomes) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.Carried) > 0 {
+		for iNdEx := len(m.Carried) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Carried[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
 	if m.PrevAuthors != nil {
 		size, err := m.PrevAuthors.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -13258,6 +13486,65 @@ func (m *SOCheckpointOutcomes) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 			i--
 			dAtA[i] = 0xa
 		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOCheckpointCarried) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOCheckpointCarried) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOCheckpointCarried) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Refused) > 0 {
+		for iNdEx := len(m.Refused) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Refused[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if m.From != nil {
+		size, err := m.From.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.PeerId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PeerId)
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -15201,6 +15488,29 @@ func (m *SOCheckpointOutcomes) SizeVT() (n int) {
 		l = m.PrevAuthors.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	for _, e := range m.Carried {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SOCheckpointCarried) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PeerId)
+	if m.From != nil {
+		l = m.From.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	for _, e := range m.Refused {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -16689,10 +16999,52 @@ func (x *SOCheckpointOutcomes) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "prev_authors")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.PrevAuthors)
 	}
+	if len(x.Carried) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "carried")
+		for i, v := range x.Carried {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &SOCheckpointCarried{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *SOCheckpointOutcomes) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOCheckpointCarried) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOCheckpointCarried")
+	if x.PeerId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "peer_id")
+		protobuf_go_lite.TextWriteString(&sb, x.PeerId)
+	}
+	if x.From != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "from")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.From)
+	}
+	if len(x.Refused) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "refused")
+		for i, v := range x.Refused {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &SOOperationPosition{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOCheckpointCarried) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -20309,6 +20661,100 @@ func (m *SOCheckpointOutcomes) UnmarshalVT(dAtA []byte) error {
 				m.PrevAuthors = &SOCheckpointAuthors{}
 			}
 			if err := m.PrevAuthors.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Carried", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Carried = append(m.Carried, &SOCheckpointCarried{})
+			if err := m.Carried[len(m.Carried)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOCheckpointCarried) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOCheckpointCarried: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOCheckpointCarried: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PeerId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PeerId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field From", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.From == nil {
+				m.From = &SOOperationPosition{}
+			}
+			if err := m.From.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Refused", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Refused = append(m.Refused, &SOOperationPosition{})
+			if err := m.Refused[len(m.Refused)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

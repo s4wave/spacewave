@@ -1760,6 +1760,15 @@ export interface SOCheckpointOutcomes {
    * authors when the previous checkpoint covered none, as genesis.
    */
   prevAuthors?: SOCheckpointAuthors
+  /**
+   * Carried are the outcomes earlier checkpoints recorded for each author
+   * that has not acknowledged them, sorted by peer_id, so a device that
+   * missed those checkpoints can decide its operations they covered. An
+   * author acknowledges a checkpoint by covering an operation that built on
+   * every author head of that checkpoint. An author with no entry is owed
+   * nothing below prev_authors, or its signer recorded no carried outcomes.
+   */
+  carried?: SOCheckpointCarried[]
 }
 
 export const SOCheckpointOutcomes: MessageType<SOCheckpointOutcomes> =
@@ -1768,6 +1777,41 @@ export const SOCheckpointOutcomes: MessageType<SOCheckpointOutcomes> =
     () => [
       [1, 'refused', 11, 1, SOOperationPosition.codec],
       [2, 'prev_authors', 11, 0, SOCheckpointAuthors.codec],
+      [3, 'carried', 11, 1, SOCheckpointCarried.codec],
+    ],
+  )
+
+/**
+ * SOCheckpointCarried are the outcomes one author is owed from checkpoints
+ * before the previous one.
+ *
+ * @generated from message sobject.SOCheckpointCarried
+ */
+export interface SOCheckpointCarried {
+  /**
+   * PeerId is the author.
+   */
+  peerId?: string
+  /**
+   * From is the author's last operation covered below the operations it is
+   * owed. Unset when they start at its first operation.
+   */
+  from?: SOOperationPosition
+  /**
+   * Refused are the author's refused operations above from and at or below
+   * its entry in prev_authors, in order. Every other operation of the author
+   * in that span applied.
+   */
+  refused?: SOOperationPosition[]
+}
+
+export const SOCheckpointCarried: MessageType<SOCheckpointCarried> =
+  /* @__PURE__ */ createMessageType<SOCheckpointCarried>(
+    'sobject.SOCheckpointCarried',
+    () => [
+      [1, 'peer_id', 9],
+      [2, 'from', 11, 0, SOOperationPosition.codec],
+      [3, 'refused', 11, 1, SOOperationPosition.codec],
     ],
   )
 
