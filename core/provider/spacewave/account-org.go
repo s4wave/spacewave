@@ -5,13 +5,16 @@ import (
 
 	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
-	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
+// organizationMemberNotFoundError identifies a missing organization membership.
 type organizationMemberNotFoundError struct {
+	// accountID is the account whose membership is missing.
 	accountID string
-	orgID     string
+	// orgID is the organization queried for the account.
+	orgID string
 }
 
 // Error identifies the account and the organization it is missing from.
@@ -19,6 +22,7 @@ func (e *organizationMemberNotFoundError) Error() string {
 	return "account " + e.accountID + " is not a member of organization " + e.orgID
 }
 
+// isOrganizationMemberNotFound reports whether a membership lookup found no member.
 func isOrganizationMemberNotFound(err error) bool {
 	var target *organizationMemberNotFoundError
 	return errors.As(err, &target)
@@ -402,17 +406,26 @@ func (a *ProviderAccount) enrollMountedSpaceMember(
 	accountID string,
 	role sobject.SOParticipantRole,
 ) error {
+	// Resolve the target account's current peers.
 	enrollResp, err := cli.EnrollMember(ctx, spaceID, accountID, false)
 	if err != nil {
 		return errors.Wrap(err, "resolve member peers")
 	}
 
+	// Enroll every peer at the member's current role.
 	for _, p := range enrollResp.GetPeers() {
-		targetPub, err := session.ExtractPublicKeyFromPeerID(p.GetPeerId())
+		parsedPeerID, targetPub, err := peer.ParsePeerIDWithPubKey(p.GetPeerId())
 		if err != nil {
+			// Preserve the failed peer-ID stage in the caller's error.
+			errContext := "extract public key"
+			if parsedPeerID == "" {
+				errContext = "decode peer ID"
+			}
+			err = errors.Wrap(err, errContext)
 			return errors.Wrapf(err, "extract pubkey for %s", p.GetPeerId())
 		}
 
+		// Apply the role and entity binding to the mounted Space.
 		if _, _, _, err := swSO.AddParticipant(ctx, p.GetPeerId(), targetPub, role, accountID, enrollResp.GetEntityId()); err != nil {
 			return errors.Wrapf(err, "add participant %s", p.GetPeerId())
 		}

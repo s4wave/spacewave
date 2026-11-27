@@ -6,8 +6,8 @@ import (
 	"github.com/pkg/errors"
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
-	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/net/peer"
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
 )
 
@@ -104,8 +104,14 @@ func (r *SpacewaveSessionResource) EnrollSpaceMember(
 	for _, p := range peers {
 		peerID := p.GetPeerId()
 		result := &s4wave_provider_spacewave.EnrollSpaceMemberResult{PeerId: peerID}
-		targetPub, err := session.ExtractPublicKeyFromPeerID(peerID)
+		parsedPeerID, targetPub, err := peer.ParsePeerIDWithPubKey(peerID)
 		if err != nil {
+			// Preserve the failed peer-ID stage in the caller's error.
+			errContext := "extract public key"
+			if parsedPeerID == "" {
+				errContext = "decode peer ID"
+			}
+			err = errors.Wrap(err, errContext)
 			result.Error = errors.Wrap(err, "extract pubkey").Error()
 			results = append(results, result)
 			continue

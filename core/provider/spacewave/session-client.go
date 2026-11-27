@@ -969,8 +969,14 @@ func VerifyTargetedInvitationEnvelope(envelope *api.TargetedInvitationEnvelope) 
 	}
 
 	// Check the signature against the signer's peer ID.
-	pub, err := session.ExtractPublicKeyFromPeerID(envelope.GetSignerPeerId())
+	parsedPeerID, pub, err := peer.ParsePeerIDWithPubKey(envelope.GetSignerPeerId())
 	if err != nil {
+		// Preserve the failed peer-ID stage in the caller's error.
+		errContext := "extract public key"
+		if parsedPeerID == "" {
+			errContext = "decode peer ID"
+		}
+		err = errors.Wrap(err, errContext)
 		return err
 	}
 	payload, err := targetedInvitationSignaturePayload(envelope)

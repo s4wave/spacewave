@@ -9,7 +9,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
-	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
@@ -98,6 +97,7 @@ func (c *SessionClient) InitEmptyStandaloneSpace(
 	return true, nil
 }
 
+// loadStandaloneInitState reads the initial state and its config chain.
 func (c *SessionClient) loadStandaloneInitState(
 	ctx context.Context,
 	spaceID string,
@@ -129,6 +129,7 @@ func (c *SessionClient) loadStandaloneInitState(
 	return state, chain, nil
 }
 
+// buildStandaloneSpaceInitStepFactorySet supplies the genesis compression and encryption steps.
 func buildStandaloneSpaceInitStepFactorySet() *block_transform.StepFactorySet {
 	sfs := block_transform.NewStepFactorySet()
 	sfs.AddStepFactory(transform_gzip.NewStepFactory())
@@ -158,6 +159,7 @@ func buildInitialWorldStateData(seedWorldHead bool) ([]byte, error) {
 	return data, nil
 }
 
+// initializeCloudSharedObjectState publishes the signed genesis config and checkpoint.
 func initializeCloudSharedObjectState(
 	ctx context.Context,
 	cli *SessionClient,
@@ -304,22 +306,28 @@ func buildStandaloneGenesisParticipants(
 	return participants, nil
 }
 
+// buildFriendDmRecoveryEnvelopes seals the initial grant for each friend DM account.
 func buildFriendDmRecoveryEnvelopes(
 	accounts []*api.FriendDmAccount,
 	cfg *sobject.SharedObjectConfig,
 	keyEpoch uint64,
 	grantInner *sobject.SOGrantInner,
 ) ([]*sobject.SOEntityRecoveryEnvelope, error) {
+	// Require the config and grant material for the recovery envelopes.
 	if cfg == nil {
 		return nil, errors.New("friend dm recovery config is required")
 	}
 	if grantInner == nil {
 		return nil, errors.New("friend dm recovery grant material is required")
 	}
+
+	// Require one readable entity for each friend DM account.
 	entityRoles := listReadableEntityRoles(cfg)
 	if len(entityRoles) != len(accounts) {
 		return nil, errors.New("friend dm recovery entities do not match accounts")
 	}
+
+	// Seal a recovery envelope to each account's distinct public keys.
 	envelopes := make([]*sobject.SOEntityRecoveryEnvelope, 0, len(accounts))
 	for _, account := range accounts {
 		role, ok := entityRoles[account.GetAccountId()]
@@ -335,6 +343,8 @@ func buildFriendDmRecoveryEnvelopes(
 				account.GetAccountId(),
 			)
 		}
+
+		// Decode the account's recovery keys before sealing its grant.
 		recipientPubs := make([]crypto.PubKey, 0, len(account.RecoveryKeypairs))
 		seenRecoveryPeers := make(map[string]struct{}, len(account.RecoveryKeypairs))
 		for _, recoveryKeypair := range account.RecoveryKeypairs {
@@ -345,8 +355,14 @@ func buildFriendDmRecoveryEnvelopes(
 				)
 			}
 			seenRecoveryPeers[recoveryKeypair.GetPeerId()] = struct{}{}
-			pub, err := session.ExtractPublicKeyFromPeerID(recoveryKeypair.GetPeerId())
+			parsedPeerID, pub, err := peer.ParsePeerIDWithPubKey(recoveryKeypair.GetPeerId())
 			if err != nil {
+				// Preserve the failed peer-ID stage in the caller's error.
+				errContext := "extract public key"
+				if parsedPeerID == "" {
+					errContext = "decode peer ID"
+				}
+				err = errors.Wrap(err, errContext)
 				return nil, errors.Wrapf(
 					err,
 					"extract friend dm recovery pubkey %s",
@@ -355,6 +371,8 @@ func buildFriendDmRecoveryEnvelopes(
 			}
 			recipientPubs = append(recipientPubs, pub)
 		}
+
+		// Encrypt the account's grant for its recovery recipients.
 		env, err := sobject.BuildSOEntityRecoveryEnvelope(
 			account.GetAccountId(),
 			keyEpoch,
@@ -378,6 +396,7 @@ func buildFriendDmRecoveryEnvelopes(
 	return envelopes, nil
 }
 
+// marshalFriendDmInitialState encodes the genesis config and checkpoint requests.
 func marshalFriendDmInitialState(
 	state *standaloneSpaceInitState,
 ) ([]byte, []byte, error) {
@@ -400,6 +419,7 @@ func marshalFriendDmInitialState(
 	return configData, checkpointData, nil
 }
 
+// buildStandaloneSpaceInitState builds the signed genesis state and participant grants.
 func buildStandaloneSpaceInitState(
 	ctx context.Context,
 	cli *SessionClient,
@@ -566,14 +586,18 @@ func buildCreateWithStateRequest(
 	}, nil
 }
 
+// buildInitialSpaceTransform creates the encryption key and transform for a new Space.
 func buildInitialSpaceTransform(
 	le *logrus.Entry,
 	sfs *block_transform.StepFactorySet,
 ) (*block_transform.Config, *block_transform.Transformer, *sobject.SOGrantInner, error) {
+	// Generate the Space's initial block encryption key.
 	encKey := make([]byte, 32)
 	if _, err := rand.Read(encKey); err != nil {
 		return nil, nil, nil, errors.Wrap(err, "generate encryption key")
 	}
+
+	// Configure block encryption with the generated key.
 	soTransformConf, err := block_transform.NewConfig([]config.Config{
 		&transform_blockenc.Config{
 			BlockEnc: hydra_blockenc.DefaultBlockEnc,
@@ -583,6 +607,8 @@ func buildInitialSpaceTransform(
 	if err != nil {
 		return nil, nil, nil, errors.Wrap(err, "build transform config")
 	}
+
+	// Construct the transform and its recoverable grant material.
 	soTransform, err := block_transform.NewTransformer(
 		controller.ConstructOpts{Logger: le},
 		sfs,

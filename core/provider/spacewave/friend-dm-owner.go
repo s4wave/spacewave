@@ -10,7 +10,6 @@ import (
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
-	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/core/space"
 	"github.com/s4wave/spacewave/db/world"
@@ -180,6 +179,7 @@ func (a *ProviderAccount) OpenFriendDM(
 	}, nil
 }
 
+// validateFriendDmBootstrap checks the authenticated account pair and their peer identities.
 func validateFriendDmBootstrap(
 	bootstrap *api.GetFriendDmResponse,
 	localAccountID string,
@@ -220,7 +220,13 @@ func validateFriendDmBootstrap(
 				)
 			}
 			sessionPeers[sess.GetPeerId()] = struct{}{}
-			if _, err := session.ExtractPublicKeyFromPeerID(sess.GetPeerId()); err != nil {
+			if parsedPeerID, _, err := peer.ParsePeerIDWithPubKey(sess.GetPeerId()); err != nil {
+				// Preserve the failed peer-ID stage in the caller's error.
+				errContext := "extract public key"
+				if parsedPeerID == "" {
+					errContext = "decode peer ID"
+				}
+				err = errors.Wrap(err, errContext)
 				return errors.Wrapf(err, "parse friend dm peer %s", sess.GetPeerId())
 			}
 		}
@@ -238,7 +244,13 @@ func validateFriendDmBootstrap(
 				)
 			}
 			recoveryPeers[recoveryPeer.GetPeerId()] = struct{}{}
-			if _, err := session.ExtractPublicKeyFromPeerID(recoveryPeer.GetPeerId()); err != nil {
+			if parsedPeerID, _, err := peer.ParsePeerIDWithPubKey(recoveryPeer.GetPeerId()); err != nil {
+				// Preserve the failed peer-ID stage in the caller's error.
+				errContext := "extract public key"
+				if parsedPeerID == "" {
+					errContext = "decode peer ID"
+				}
+				err = errors.Wrap(err, errContext)
 				return errors.Wrapf(
 					err,
 					"parse friend dm recovery peer %s",
@@ -280,18 +292,27 @@ func validateFriendDmBootstrap(
 	return nil
 }
 
+// friendDmParticipant describes a session peer to enroll in a friend DM.
 type friendDmParticipant struct {
-	peerID    string
+	// peerID is the session identity to enroll.
+	peerID string
+	// accountID is the account that holds the session.
 	accountID string
-	username  string
-	role      sobject.SOParticipantRole
+	// username is the account username recorded on the participant.
+	username string
+	// role is the participant role required by the account.
+	role sobject.SOParticipantRole
 }
 
+// friendDmParticipantPlan lists the changes needed to reconcile active friend DM sessions.
 type friendDmParticipantPlan struct {
-	removals  []string
+	// removals lists peers whose participant entries are stale.
+	removals []string
+	// additions lists missing or changed participant entries.
 	additions []friendDmParticipant
 }
 
+// buildFriendDmParticipantPlan reconciles participant entries against active account sessions.
 func buildFriendDmParticipantPlan(
 	current []*sobject.SOParticipantConfig,
 	accounts []*api.FriendDmAccount,
@@ -405,8 +426,14 @@ func (s *SharedObject) reconcileFriendDmParticipants(
 	// Parse public keys for the participants being added.
 	parsedPubs := make(map[string]crypto.PubKey, len(plan.additions))
 	for _, participant := range plan.additions {
-		targetPub, err := session.ExtractPublicKeyFromPeerID(participant.peerID)
+		parsedPeerID, targetPub, err := peer.ParsePeerIDWithPubKey(participant.peerID)
 		if err != nil {
+			// Preserve the failed peer-ID stage in the caller's error.
+			errContext := "extract public key"
+			if parsedPeerID == "" {
+				errContext = "decode peer ID"
+			}
+			err = errors.Wrap(err, errContext)
 			return errors.Wrapf(err, "parse friend dm peer %s", participant.peerID)
 		}
 		parsedPubs[participant.peerID] = targetPub

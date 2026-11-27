@@ -18,6 +18,7 @@ import (
 	bifrost_crypto "github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/envelope"
 	"github.com/s4wave/spacewave/net/keypem"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
 // resolveEntityPrivKey derives the entity private key from an EntityCredential.
@@ -108,7 +109,7 @@ func (s *Session) rewrapEnvelope(ctx context.Context, sessionID string, keypairs
 		if kp.GetPeerId() == "" {
 			continue
 		}
-		pub, err := session.ExtractPublicKeyFromPeerID(kp.GetPeerId())
+		_, pub, err := peer.ParsePeerIDWithPubKey(kp.GetPeerId())
 		if err != nil {
 			continue
 		}

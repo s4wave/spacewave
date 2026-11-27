@@ -31,6 +31,7 @@ func newTestSignedClient(t *testing.T, baseURL string) (*SignedHTTPClient, peer.
 	return cli, pid
 }
 
+// TestNormalizeSigningEnvPrefix checks the default and explicit signing namespaces.
 func TestNormalizeSigningEnvPrefix(t *testing.T) {
 	cases := []struct {
 		name          string
@@ -61,6 +62,7 @@ func TestNormalizeSigningEnvPrefix(t *testing.T) {
 	}
 }
 
+// TestClientConstructorsUseExplicitSigningEnvPrefix checks that clients retain their signing namespace.
 func TestClientConstructorsUseExplicitSigningEnvPrefix(t *testing.T) {
 	priv, pid := generateTestKeypair(t)
 
@@ -555,6 +557,7 @@ func TestUpdateSOMetadata_Success(t *testing.T) {
 	}
 }
 
+// TestSessionClientUsernameTargetedInviteRequests checks username and invitation request encoding.
 func TestSessionClientUsernameTargetedInviteRequests(t *testing.T) {
 	priv, pid := generateTestKeypair(t)
 
@@ -626,7 +629,9 @@ func TestSessionClientUsernameTargetedInviteRequests(t *testing.T) {
 	})
 }
 
+// TestTargetedInvitationEnvelopeSignatureVerification checks signer identity and payload integrity.
 func TestTargetedInvitationEnvelopeSignatureVerification(t *testing.T) {
+	// Sign an invitation with the session identity.
 	priv, pid := generateTestKeypair(t)
 	cli := NewSessionClient(http.DefaultClient, "http://localhost", DefaultSigningEnvPrefix, priv, pid.String())
 	envelope := &api.TargetedInvitationEnvelope{
@@ -653,11 +658,30 @@ func TestTargetedInvitationEnvelopeSignatureVerification(t *testing.T) {
 		t.Fatalf("VerifyTargetedInvitationEnvelope: %v", err)
 	}
 
+	// Reject a payload changed after signing.
 	tampered := envelope.CloneVT()
 	tampered.Payload = []byte("other-payload")
 	if err := VerifyTargetedInvitationEnvelope(tampered); err == nil {
 		t.Fatalf("expected tampered envelope verification to fail")
 	}
+
+	// Preserve the peer parsing stage for malformed and non-embedded signer keys.
+	for _, tc := range []struct {
+		peerID string
+		prefix string
+	}{
+		{peerID: "invalid-peer", prefix: "decode peer ID: failed to parse peer ID: "},
+		{peerID: peer.ID("\x12\x20" + strings.Repeat("\x00", 32)).String(), prefix: "extract public key: public key is not embedded in peer ID"},
+	} {
+		t.Run(tc.prefix, func(t *testing.T) {
+			invalid := envelope.CloneVT()
+			invalid.SignerPeerId = tc.peerID
+			if err := VerifyTargetedInvitationEnvelope(invalid); err == nil || !strings.HasPrefix(err.Error(), tc.prefix) {
+				t.Fatalf("signer error = %v, want prefix %q", err, tc.prefix)
+			}
+		})
+	}
+
 }
 
 // TestRegisterAccount_Success verifies RegisterAccount sends the correct proto
@@ -821,6 +845,7 @@ func TestRegisterSessionDirect_Success(t *testing.T) {
 	}
 }
 
+// TestRegisterSessionWithRequest_SendsRequestShape checks the session registration request fields.
 func TestRegisterSessionWithRequest_SendsRequestShape(t *testing.T) {
 	priv, pid := generateTestKeypair(t)
 	_, sessionPID := generateTestKeypair(t)
@@ -898,6 +923,7 @@ func TestRegisterSessionWithRequest_SendsRequestShape(t *testing.T) {
 	}
 }
 
+// TestRollbackSessionRegistration_Success checks rollback request encoding.
 func TestRollbackSessionRegistration_Success(t *testing.T) {
 	priv, pid := generateTestKeypair(t)
 	_, sessionPID := generateTestKeypair(t)
@@ -1214,6 +1240,7 @@ func TestRevokeSession_Success(t *testing.T) {
 	}
 }
 
+// TestEnsureAccountSObjectBinding_Success checks the account object binding request.
 func TestEnsureAccountSObjectBinding_Success(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -1271,6 +1298,7 @@ func TestEnsureAccountSObjectBinding_Success(t *testing.T) {
 	}
 }
 
+// TestFinalizeAccountSObjectBinding_Success checks finalization of the account object binding.
 func TestFinalizeAccountSObjectBinding_Success(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {

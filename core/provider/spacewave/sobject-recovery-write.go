@@ -9,12 +9,16 @@ import (
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/net/crypto"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
+// missingRecoveryKeypairsError identifies an entity without recovery keys.
 type missingRecoveryKeypairsError struct {
+	// entityID is the readable entity whose recovery keys are missing.
 	entityID string
 }
 
+// Error identifies the entity that cannot receive a recovery envelope.
 func (e *missingRecoveryKeypairsError) Error() string {
 	return "missing recovery keypairs for entity " + e.entityID
 }
@@ -117,8 +121,14 @@ func pubKeysFromEntityKeypairs(keypairs []*session.EntityKeypair) ([]crypto.PubK
 		if kp.GetPeerId() == "" {
 			continue
 		}
-		pub, err := session.ExtractPublicKeyFromPeerID(kp.GetPeerId())
+		parsedPeerID, pub, err := peer.ParsePeerIDWithPubKey(kp.GetPeerId())
 		if err != nil {
+			// Preserve the failed peer-ID stage in the caller's error.
+			errContext := "extract public key"
+			if parsedPeerID == "" {
+				errContext = "decode peer ID"
+			}
+			err = errors.Wrap(err, errContext)
 			return nil, err
 		}
 		pubs = append(pubs, pub)

@@ -11,6 +11,7 @@ import (
 	bifrost_crypto "github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/envelope"
 	"github.com/s4wave/spacewave/net/keypem"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
 // envelopeContext is the application context string for session envelopes.
@@ -82,8 +83,14 @@ func (a *ProviderAccount) rewrapForSession(ctx context.Context, sess *Session, s
 		if kp.GetPeerId() == "" {
 			continue
 		}
-		pub, err := session.ExtractPublicKeyFromPeerID(kp.GetPeerId())
+		parsedPeerID, pub, err := peer.ParsePeerIDWithPubKey(kp.GetPeerId())
 		if err != nil {
+			// Preserve the failed peer-ID stage in the caller's error.
+			errContext := "extract public key"
+			if parsedPeerID == "" {
+				errContext = "decode peer ID"
+			}
+			err = errors.Wrap(err, errContext)
 			a.le.WithError(err).Warn("skipping unparseable entity peer id for envelope")
 			continue
 		}
@@ -107,20 +114,24 @@ func (a *ProviderAccount) rewrapForSession(ctx context.Context, sess *Session, s
 		GrantConfigs: grantConfigs,
 	}
 
+	// Wrap the Session private key for its recovery recipients.
 	env, err := envelope.BuildEnvelope(rand.Reader, envelopeContext, privPEM, pubKeys, config)
 	if err != nil {
 		return errors.Wrap(err, "build session envelope")
 	}
 
+	// Encode the replacement Session envelope.
 	envData, err := env.MarshalVT()
 	if err != nil {
 		return errors.Wrap(err, "marshal session envelope")
 	}
 
+	// Persist the replacement envelope before reporting success.
 	if err := session_lock.WriteEnvelope(ctx, sess.objStore, sessionID, envData); err != nil {
 		return errors.Wrap(err, "write session envelope")
 	}
 
+	// Report the completed Session envelope replacement.
 	a.le.Debug("re-wrapped session envelope with updated entity keypairs")
 	return nil
 }
