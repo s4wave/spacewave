@@ -694,13 +694,7 @@ func (h *cloudSOHost) verifyStateAgainst(state, held *sobject.SOState) error {
 			heldGrants[grant.GetPeerId()] = append(heldGrants[grant.GetPeerId()], grant)
 		}
 		for _, grant := range epoch.GetGrants() {
-			unchanged := false
-			for _, previous := range heldGrants[grant.GetPeerId()] {
-				if grant.EqualVT(previous) {
-					unchanged = true
-					break
-				}
-			}
+			unchanged := slices.ContainsFunc(heldGrants[grant.GetPeerId()], grant.EqualVT)
 			if unchanged {
 				continue
 			}
@@ -960,25 +954,13 @@ func rebaseLocalWrite(sharedObjectID string, base, written, current *sobject.SOS
 	// Collect the operations and control messages the write added.
 	added := &api.PendingSOPublication{}
 	for _, op := range written.GetOps() {
-		unchanged := false
-		for _, previous := range baseOps[string(op.GetInner())] {
-			if op.EqualVT(previous) {
-				unchanged = true
-				break
-			}
-		}
+		unchanged := slices.ContainsFunc(baseOps[string(op.GetInner())], op.EqualVT)
 		if !unchanged {
 			added.Operations = append(added.Operations, op)
 		}
 	}
 	for _, msg := range written.GetControlMessages() {
-		unchanged := false
-		for _, previous := range baseControl[string(msg.GetInner())] {
-			if msg.EqualVT(previous) {
-				unchanged = true
-				break
-			}
-		}
+		unchanged := slices.ContainsFunc(baseControl[string(msg.GetInner())], msg.EqualVT)
 		if !unchanged {
 			added.Control = append(added.Control, msg)
 		}
