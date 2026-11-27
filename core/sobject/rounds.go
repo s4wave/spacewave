@@ -129,6 +129,18 @@ func (t *roundTally) quorumAny(typ SOControlMessageType, round uint32) bool {
 	return HasQuorum(voterWeight(t.cfg, t.any[roundVote{typ: typ, round: round}]), t.cfg.TotalVotingWeight())
 }
 
+// nextRound returns the highest round after current that more than a third of
+// the voting weight reached, or zero when no later round has that support.
+func (t *roundTally) nextRound(current uint32) uint32 {
+	var next uint32
+	for round, voters := range t.rounds {
+		if round > current && round > next && exceedsFaultyWeight(voterWeight(t.cfg, voters), t.cfg.TotalVotingWeight()) {
+			next = round
+		}
+	}
+	return next
+}
+
 // voterWeight sums the weight cfg gives the voters keyed in set.
 func voterWeight[V any](cfg *SharedObjectConfig, set map[string]V) uint64 {
 	var w uint64
@@ -220,13 +232,7 @@ func stepRound(in *roundInput) *roundOutput {
 
 	// Skip to a later round that more than a third of the weight reached.
 	r := in.round
-	var skip uint32
-	for round, voters := range t.rounds {
-		if round > r && round > skip && exceedsFaultyWeight(voterWeight(in.cfg, voters), in.cfg.TotalVotingWeight()) {
-			skip = round
-		}
-	}
-	if skip != 0 {
+	if skip := t.nextRound(r); skip != 0 {
 		return &roundOutput{round: skip}
 	}
 

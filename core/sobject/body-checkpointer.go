@@ -91,7 +91,7 @@ func (c *BodyCheckpointer) adopt(ctx context.Context, le *logrus.Entry, so Share
 	if err != nil {
 		return err
 	}
-	return c.host.GetOperationVerifier().AdoptCheckpoint(state, checkpoint)
+	return c.host.AdoptCheckpoint(state, checkpoint)
 }
 
 // verified returns the operations state holds as a verified set, through the
@@ -99,7 +99,7 @@ func (c *BodyCheckpointer) adopt(ctx context.Context, le *logrus.Entry, so Share
 // verified before: the held ones were verified when the host's state took
 // them, so a checkpoint or a vote checks none of them again.
 func (c *BodyCheckpointer) verified(state *SOState) (*SOOperationSet, error) {
-	return c.host.GetOperationVerifier().OperationSet(state)
+	return c.host.OperationSet(state)
 }
 
 // handle returns the local participant's view of state.

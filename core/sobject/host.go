@@ -74,11 +74,30 @@ func (s *SOHost) GetSharedObjectID() string {
 	return s.sharedObjectID
 }
 
-// GetOperationVerifier returns the verifier of the shared object's operations.
-// Snapshots of the host's states share it, so a state that gains an operation
-// verifies only that one.
-func (s *SOHost) GetOperationVerifier() *SOOperationVerifier {
-	return s.verifier
+// OperationSet returns the verified operations above state's checkpoint through
+// the host's shared cache, checking only operations not held unchanged last time.
+func (s *SOHost) OperationSet(state *SOState) (*SOOperationSet, error) {
+	return s.verifier.OperationSet(state)
+}
+
+// AdoptCheckpoint adopts next into state through the host's shared verification
+// cache. The caller holds state for mutation, as with SOState.AdoptCheckpoint.
+func (s *SOHost) AdoptCheckpoint(state *SOState, next *SOCheckpoint) error {
+	return s.verifier.AdoptCheckpoint(state, next)
+}
+
+// NewStateParticipantHandle returns a participant snapshot of state whose
+// verification and grant caches are shared with the host's other snapshots.
+func (s *SOHost) NewStateParticipantHandle(
+	le *logrus.Entry,
+	sfs *block_transform.StepFactorySet,
+	state *SOState,
+	privKey crypto.PrivKey,
+	localPeerID peer.ID,
+) *SOStateParticipantHandle {
+	return NewSOStateParticipantHandle(le, sfs, s.sharedObjectID, state, privKey, localPeerID).
+		WithOperationVerifier(s.verifier).
+		WithGrantKeyring(s.keyring)
 }
 
 // GetGrantKeyring returns the keyring of the local peer's grants. Snapshots of

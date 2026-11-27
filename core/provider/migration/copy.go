@@ -40,10 +40,8 @@ func Roots(
 		return nil, errors.New("source cannot read its migration state")
 	}
 	soHost := host.GetSOHost()
-	snap := sobject.NewSOStateParticipantHandle(le, factories, object.GetSharedObjectID(), accepted, host.GetPrivKey(), object.GetPeerID()).
-		WithConfigHistory(soHost.ReadConfigEntry).
-		WithOperationVerifier(soHost.GetOperationVerifier()).
-		WithGrantKeyring(soHost.GetGrantKeyring())
+	snap := soHost.NewStateParticipantHandle(le, factories, accepted, host.GetPrivKey(), object.GetPeerID()).
+		WithConfigHistory(soHost.ReadConfigEntry)
 	return space_world.ImportRoots(ctx, le, b, object, space.SpaceEngineId(ref), space_world_engine.OpTypes, snap)
 }
 

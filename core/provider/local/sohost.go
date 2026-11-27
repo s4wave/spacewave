@@ -116,14 +116,13 @@ func (l *LocalSOHost) end() {
 
 // buildSnapshot returns the local participant's snapshot of state.
 func (l *LocalSOHost) buildSnapshot(state *sobject.SOState) *sobject.SOStateParticipantHandle {
-	return sobject.NewSOStateParticipantHandle(
+	return l.soHost.NewStateParticipantHandle(
 		l.le,
 		l.sfs,
-		l.sharedObjectID,
 		state,
 		l.privKey,
 		l.peerID,
-	).WithConfigHistory(l.soHost.ReadConfigEntry).WithOperationVerifier(l.soHost.GetOperationVerifier()).WithGrantKeyring(l.soHost.GetGrantKeyring())
+	).WithConfigHistory(l.soHost.ReadConfigEntry)
 }
 
 // waitPublishedConfig waits until body readers can observe target or a verified descendant.

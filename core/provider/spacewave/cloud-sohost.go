@@ -384,10 +384,10 @@ func (h *cloudSOHost) runSnapDeriver(ctx context.Context) error {
 // newSnapshot returns a participant handle for state that resolves the config
 // of an operation written under an earlier config from the verified history.
 func (h *cloudSOHost) newSnapshot(state *sobject.SOState) *sobject.SOStateParticipantHandle {
-	snap := sobject.NewSOStateParticipantHandle(h.le, h.sfs, h.soID, state, h.privKey, h.peerID)
+	snap := h.soHost.NewStateParticipantHandle(h.le, h.sfs, state, h.privKey, h.peerID)
 	return snap.WithConfigHistory(func(ctx context.Context, hash []byte) (*sobject.SOConfigChange, error) {
 		return h.readConfigEntry(ctx, h.soID, hash)
-	}).WithOperationVerifier(h.soHost.GetOperationVerifier()).WithGrantKeyring(h.soHost.GetGrantKeyring())
+	})
 }
 
 // pullOnTrigger fetches fresh state via HTTP GET after a pull signal.
@@ -689,8 +689,19 @@ func (h *cloudSOHost) verifyStateAgainst(state, held *sobject.SOState) error {
 	cfg := state.GetConfig()
 	for _, epoch := range state.GetKeyEpochs() {
 		heldEpoch := held.GetKeyEpoch(epoch.GetEpoch())
+		heldGrants := make(map[string][]*sobject.SOGrant, len(heldEpoch.GetGrants()))
+		for _, grant := range heldEpoch.GetGrants() {
+			heldGrants[grant.GetPeerId()] = append(heldGrants[grant.GetPeerId()], grant)
+		}
 		for _, grant := range epoch.GetGrants() {
-			if slices.ContainsFunc(heldEpoch.GetGrants(), grant.EqualVT) {
+			unchanged := false
+			for _, previous := range heldGrants[grant.GetPeerId()] {
+				if grant.EqualVT(previous) {
+					unchanged = true
+					break
+				}
+			}
+			if unchanged {
 				continue
 			}
 			if err := grant.ValidateSignature(h.soID, cfg); err != nil {
@@ -936,15 +947,39 @@ func (h *cloudSOHost) acceptLocalWrite(ctx context.Context, base, written *sobje
 // written onto current. It returns the rebased state and the operations and
 // control messages the write added.
 func rebaseLocalWrite(sharedObjectID string, base, written, current *sobject.SOState) (*sobject.SOState, *api.PendingSOPublication, error) {
+	// Index the base records by body, retaining variants for exact equality.
+	baseOps := make(map[string][]*sobject.SOOperation, len(base.GetOps()))
+	for _, op := range base.GetOps() {
+		baseOps[string(op.GetInner())] = append(baseOps[string(op.GetInner())], op)
+	}
+	baseControl := make(map[string][]*sobject.SOControlMessage, len(base.GetControlMessages()))
+	for _, msg := range base.GetControlMessages() {
+		baseControl[string(msg.GetInner())] = append(baseControl[string(msg.GetInner())], msg)
+	}
+
 	// Collect the operations and control messages the write added.
 	added := &api.PendingSOPublication{}
 	for _, op := range written.GetOps() {
-		if !slices.ContainsFunc(base.GetOps(), op.EqualVT) {
+		unchanged := false
+		for _, previous := range baseOps[string(op.GetInner())] {
+			if op.EqualVT(previous) {
+				unchanged = true
+				break
+			}
+		}
+		if !unchanged {
 			added.Operations = append(added.Operations, op)
 		}
 	}
 	for _, msg := range written.GetControlMessages() {
-		if !slices.ContainsFunc(base.GetControlMessages(), msg.EqualVT) {
+		unchanged := false
+		for _, previous := range baseControl[string(msg.GetInner())] {
+			if msg.EqualVT(previous) {
+				unchanged = true
+				break
+			}
+		}
+		if !unchanged {
 			added.Control = append(added.Control, msg)
 		}
 	}

@@ -3,7 +3,6 @@ package sobject
 import (
 	"bytes"
 	"crypto/sha256"
-	"slices"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -98,11 +97,20 @@ func (s *SOState) BuildNextCheckpoint(sharedObjectID string, privKey crypto.Priv
 	if err != nil {
 		return nil, err
 	}
-	held := make([][]byte, 0, set.Len())
-	for key := range set.ops {
+	return set.buildNextCheckpoint(s, privKey, stateDataEnc)
+}
+
+// buildNextCheckpoint signs the next checkpoint of state covering every held
+// operation, with stateDataEnc encrypted under state's current key epoch.
+func (s *SOOperationSet) buildNextCheckpoint(state *SOState, privKey crypto.PrivKey, stateDataEnc []byte) (*SOCheckpoint, error) {
+	// Cover the full set, including operations replay has not placed.
+	held := make([][]byte, 0, s.Len())
+	for key := range s.ops {
 		held = append(held, []byte(key))
 	}
-	return s.signStableCheckpoint(sharedObjectID, set, privKey, held, stateDataEnc, nil)
+
+	// Sign through the same builder as a checkpoint of a stable prefix.
+	return state.signStableCheckpoint(s.sharedObjectID, s, privKey, held, stateDataEnc, nil)
 }
 
 // UnmarshalInner decodes and checks the checkpoint body.
@@ -250,8 +258,12 @@ func (c *SOCheckpoint) ValidateAuthority(sharedObjectID string, cfg *SharedObjec
 	}
 
 	// An owner signs under owner control.
+	signed := make(map[string]struct{}, len(signers))
+	for _, signer := range signers {
+		signed[signer] = struct{}{}
+	}
 	for _, p := range cfg.GetParticipants() {
-		if IsOwner(p.GetRole()) && slices.Contains(signers, p.GetPeerId()) {
+		if _, ok := signed[p.GetPeerId()]; ok && IsOwner(p.GetRole()) {
 			return inner, nil
 		}
 	}

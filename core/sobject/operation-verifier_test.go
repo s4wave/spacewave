@@ -66,8 +66,7 @@ func BenchmarkCommit(b *testing.B) {
 				if err != nil {
 					b.Fatal(err)
 				}
-				snap := NewSOStateParticipantHandle(le, testStepFactorySet(), mockSharedObjectID, current, owner, peerID).
-					WithOperationVerifier(host.GetOperationVerifier())
+				snap := host.NewStateParticipantHandle(le, testStepFactorySet(), current, owner, peerID)
 				set, err := snap.GetOperationSet(b.Context())
 				if err != nil {
 					b.Fatal(err)
