@@ -42,8 +42,8 @@ func (c CGOConfig) IsBusyError(err error) bool {
 }
 
 // SyncWAL flushes the database's WAL on the local file system.
-func (c CGOConfig) SyncWAL(path string) error {
-	return common.SyncLocalWAL(path)
+func (c CGOConfig) SyncWAL(wal *common.LocalWAL, path string) error {
+	return wal.Sync(path)
 }
 
 // Store is a SQLite database key-value store using CGO SQLite driver.

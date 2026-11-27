@@ -4,31 +4,96 @@ import (
 	"errors"
 	"io/fs"
 	"os"
+	"sync"
 )
 
-// SyncLocalWAL makes durable every commit the WAL of the database file at
-// dbPath holds, and the directory entries of the database and its WAL. The
-// WAL is flushed through a handle of its own: a flush covers the file's
-// written pages whichever handle wrote them. An empty path, or a database with
-// no WAL file, has nothing to flush.
-func SyncLocalWAL(dbPath string) error {
+// LocalWAL flushes the WAL of one Store's database file on the local file
+// system.
+//
+// Invariant: a directory flush is owed once per creation or rename of an
+// entry in it, and a commit's durability comes from the WAL's data flush. So
+// Sync flushes the directory only when the WAL it finds is not the file whose
+// entry it flushed before. That covers the database file too: SQLite creates
+// it before the WAL, so the first Sync to find a WAL, and every Sync after
+// SQLite deletes and recreates the WAL, flushes both entries. SQLite neither
+// renames the database nor its WAL.
+//
+// The WAL whose entry was flushed stays open in synced, so its inode cannot
+// be reused by a WAL created later at the same path, which would otherwise
+// look like the same file and skip the directory flush it owes.
+type LocalWAL struct {
+	// mtx serializes Sync and Close.
+	mtx sync.Mutex
+	// synced is the WAL whose directory entry is durable, nil before the
+	// first Sync that found one and after the WAL it named was deleted.
+	synced *os.File
+}
+
+// Sync makes durable every commit the WAL of the database file at dbPath
+// holds, and the directory entries of the database and its WAL. An empty
+// path, or a database with no WAL file, has nothing to flush.
+func (w *LocalWAL) Sync(dbPath string) error {
 	// Skip a database with no file.
 	if dbPath == "" {
 		return nil
 	}
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
 
-	// Flush the WAL's data.
-	f, err := os.OpenFile(dbPath+"-wal", os.O_RDWR, 0)
+	// Flush the WAL whose entry is durable when the path still names it.
+	walPath := dbPath + "-wal"
+	info, err := os.Stat(walPath)
+	if errors.Is(err, fs.ErrNotExist) {
+		return w.closeLocked()
+	}
+	if err != nil {
+		return err
+	}
+	if w.synced != nil {
+		if held, err := w.synced.Stat(); err == nil && os.SameFile(held, info) {
+			return syncFileData(w.synced)
+		}
+		if err := w.closeLocked(); err != nil {
+			return err
+		}
+	}
+
+	// Flush a WAL created since, then the directory holding its entry.
+	f, err := os.OpenFile(walPath, os.O_RDWR, 0)
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil
 	}
 	if err != nil {
 		return err
 	}
-	if err := errors.Join(syncFileData(f), f.Close()); err != nil {
-		return err
+	if err := syncFileData(f); err != nil {
+		return errors.Join(err, f.Close())
+	}
+	if err := syncDir(dbPath); err != nil {
+		return errors.Join(err, f.Close())
 	}
 
-	// Flush the directory so a newly created database or WAL survives.
-	return syncDir(dbPath)
+	// Keep it open where holding it leaves SQLite free to delete it.
+	if !keepSyncedWAL {
+		return f.Close()
+	}
+	w.synced = f
+	return nil
+}
+
+// Close closes the WAL Sync kept open.
+func (w *LocalWAL) Close() error {
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
+	return w.closeLocked()
+}
+
+// closeLocked closes synced. The caller holds mtx.
+func (w *LocalWAL) closeLocked() error {
+	f := w.synced
+	w.synced = nil
+	if f == nil {
+		return nil
+	}
+	return f.Close()
 }

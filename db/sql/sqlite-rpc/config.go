@@ -27,7 +27,7 @@ func (Config) IsBusyError(err error) bool {
 }
 
 // SyncWAL returns nil: the bridge flushes the database on its own terms.
-func (Config) SyncWAL(string) error {
+func (Config) SyncWAL(*common.LocalWAL, string) error {
 	return nil
 }
 

@@ -110,6 +110,8 @@ type Store[T SQLiteDriverConfig] struct {
 	file string
 	// fileRead marks file as read.
 	fileRead bool
+	// wal flushes the WAL beside file on the local file system.
+	wal LocalWAL
 
 	// hold is the Store's hold on its database file, taken before the pool
 	// opened it and released in Close after the pool closes, as sharedFiles
@@ -373,6 +375,7 @@ func applyPageSize(ctx context.Context, db *sql.DB, size int32) error {
 // file's header, after which SQLite applies the new mode only on a VACUUM,
 // which on an empty file rewrites one page.
 func setFreshAutoVacuum(ctx context.Context, db *sql.DB) error {
+	// Leave a database that already holds a table as it is.
 	var tables int
 	if err := db.QueryRowContext(ctx, "SELECT count(*) FROM sqlite_master").Scan(&tables); err != nil {
 		return err
@@ -380,6 +383,8 @@ func setFreshAutoVacuum(ctx context.Context, db *sql.DB) error {
 	if tables != 0 {
 		return nil
 	}
+
+	// Set the mode and rewrite the empty file on one connection.
 	conn, err := db.Conn(ctx)
 	if err != nil {
 		return err
@@ -390,6 +395,8 @@ func setFreshAutoVacuum(ctx context.Context, db *sql.DB) error {
 			return fmt.Errorf("%s: %w", q, err)
 		}
 	}
+
+	// Confirm the file took the incremental mode.
 	var mode int
 	if err := conn.QueryRowContext(ctx, "PRAGMA auto_vacuum").Scan(&mode); err != nil {
 		return err
@@ -739,7 +746,7 @@ func (s *Store[T]) Close() error {
 	// so SQLite keeps its locks.
 	s.urgentReads.close()
 	s.writeConn.close()
-	return errors.Join(s.flusher.Close(), s.db.Close(), s.hold.release())
+	return errors.Join(s.flusher.Close(), s.db.Close(), s.wal.Close(), s.hold.release())
 }
 
 // flushWAL makes every commit the WAL holds durable through the driver.
@@ -751,7 +758,7 @@ func (s *Store[T]) flushWAL() error {
 	if err != nil {
 		return err
 	}
-	return s.config.SyncWAL(file)
+	return s.config.SyncWAL(&s.wal, file)
 }
 
 // dbFile returns the main database file SQLite reports, empty for one in

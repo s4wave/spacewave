@@ -75,7 +75,7 @@ func (c crashConfig) OpenDSN(path string) string {
 }
 
 // SyncWAL flushes the device.
-func (c crashConfig) SyncWAL(string) error {
+func (c crashConfig) SyncWAL(*common.LocalWAL, string) error {
 	return c.dev.mem.Write(context.Background(), nil, true)
 }
 

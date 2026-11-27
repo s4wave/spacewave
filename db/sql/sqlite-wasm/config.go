@@ -48,7 +48,7 @@ func (c SqliteWasmBridgeConfig) IsBusyError(err error) bool {
 }
 
 // SyncWAL returns nil: the bridge flushes the database on its own terms.
-func (SqliteWasmBridgeConfig) SyncWAL(string) error {
+func (SqliteWasmBridgeConfig) SyncWAL(*common.LocalWAL, string) error {
 	return nil
 }
 

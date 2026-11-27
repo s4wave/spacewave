@@ -13,9 +13,10 @@ type SQLiteDriverConfig interface {
 	// IsBusyError checks if the error is a SQLITE_BUSY error for this driver.
 	IsBusyError(err error) bool
 	// SyncWAL makes durable every commit the WAL of the database at path
-	// holds, where path is the file SQLite reports for the main database. A
-	// driver behind a bridge returns nil.
-	SyncWAL(path string) error
+	// holds, where path is the file SQLite reports for the main database and
+	// wal is the Store's state for flushing it locally, as LocalWAL.Sync
+	// does. A driver behind a bridge returns nil.
+	SyncWAL(wal *LocalWAL, path string) error
 }
 
 // SQLiteReadOnlyDSN is a driver that opens a database read-only, as

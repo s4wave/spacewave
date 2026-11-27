@@ -45,8 +45,8 @@ func (c PureGoConfig) IsBusyError(err error) bool {
 }
 
 // SyncWAL flushes the database's WAL on the local file system.
-func (c PureGoConfig) SyncWAL(path string) error {
-	return common.SyncLocalWAL(path)
+func (c PureGoConfig) SyncWAL(wal *common.LocalWAL, path string) error {
+	return wal.Sync(path)
 }
 
 // Store is a SQLite database key-value store using pure Go SQLite driver.

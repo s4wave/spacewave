@@ -1,6 +1,9 @@
 package common
 
-import "time"
+import (
+	"os"
+	"time"
+)
 
 // SetCheckpointHook sets the hook told each step of fillWALGap, and the
 // deadline of the pass that closes the gap, for the rest of the test binary.
@@ -48,4 +51,12 @@ func HoldReadTurns[T SQLiteDriverConfig](s *Store[T]) func() {
 			<-s.readTurns
 		}
 	}
+}
+
+// SyncedWAL returns the WAL w keeps open because its directory entry is
+// durable, nil when it keeps none.
+func (w *LocalWAL) SyncedWAL() *os.File {
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
+	return w.synced
 }
