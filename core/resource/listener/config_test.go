@@ -3,10 +3,11 @@
 package resource_listener
 
 import (
+	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 
-	"github.com/aperturerobotics/util/gitroot"
 	"github.com/s4wave/spacewave/bldr/entrypoint/storagepath"
 	"github.com/sirupsen/logrus"
 )
@@ -64,6 +65,7 @@ func TestDetermineSocketPathEmptyConfigDisablesListener(t *testing.T) {
 	}
 }
 
+// TestExplicitSocketPathsTakePrecedenceAndResolve checks explicit path prefixes.
 func TestExplicitSocketPathsTakePrecedenceAndResolve(t *testing.T) {
 	// Configure home and storage roots that explicit socket paths override.
 	home := filepath.Join(t.TempDir(), "home")
@@ -71,11 +73,18 @@ func TestExplicitSocketPathsTakePrecedenceAndResolve(t *testing.T) {
 	dataRoot := filepath.Join(t.TempDir(), "storage")
 	t.Setenv("SPACEWAVE_DATA_DIR", dataRoot)
 
-	// Prepare explicit socket paths rooted in Git, home, and an absolute directory.
-	gitRoot, err := gitroot.FindRepoRoot()
-	if err != nil {
+	// Resolve Git-relative paths from a nested directory of an isolated repository.
+	gitRoot := t.TempDir()
+	if out, err := exec.Command("git", "init", "--quiet", gitRoot).CombinedOutput(); err != nil {
+		t.Fatalf("initialize Git fixture: %v: %s", err, out)
+	}
+	cwd := filepath.Join(gitRoot, "nested")
+	if err := os.Mkdir(cwd, 0o755); err != nil {
 		t.Fatal(err)
 	}
+	t.Chdir(cwd)
+
+	// Prepare explicit socket paths rooted in Git, home, and an absolute directory.
 	absolutePath := filepath.Join(t.TempDir(), "absolute.sock")
 	tests := []struct {
 		name     string
