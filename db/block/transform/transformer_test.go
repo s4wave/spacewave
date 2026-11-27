@@ -10,9 +10,11 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
+	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
 	transform_chksum "github.com/s4wave/spacewave/db/block/transform/chksum"
 	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
+	"github.com/s4wave/spacewave/db/util/blockenc"
 )
 
 func TestTransformerDecodedBlockCacheTransformKeyStable(t *testing.T) {
@@ -51,6 +53,32 @@ func TestGzipEncodeDecode(t *testing.T) {
 	// Verify the gzip round trip preserves the input block.
 	if !bytes.Equal(decoded, input) {
 		t.Fatalf("decoded gzip block = %q, want %q", decoded, input)
+	}
+}
+
+// TestTransformerAuthenticates checks that one authenticating step is enough.
+func TestTransformerAuthenticates(t *testing.T) {
+	// Compare pipelines with and without a step that proves decoded bytes.
+	none := &transform_blockenc.Config{BlockEnc: blockenc.BlockEnc_BlockEnc_NONE}
+	sealed := &transform_blockenc.Config{BlockEnc: blockenc.DefaultBlockEnc, Key: make([]byte, 32)}
+	compression := &transform_gzip.Config{}
+	tests := []struct {
+		name string
+		xfrm *block_transform.Transformer
+		want bool
+	}{
+		{"nil", nil, false},
+		{"empty", newTestTransformer(t), false},
+		{"compression only", newTestTransformer(t, compression), false},
+		{"no-op cipher", newTestTransformer(t, none), false},
+		{"compression with authenticated encryption", newTestTransformer(t, compression, sealed), true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.xfrm.Authenticates(); got != tt.want {
+				t.Fatalf("Authenticates() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
 
@@ -326,6 +354,7 @@ func newTestTransformer(t *testing.T, steps ...config.Config) *block_transform.T
 
 	// Register the transform factories supported by the tests.
 	sfs := block_transform.NewStepFactorySet()
+	sfs.AddStepFactory(transform_blockenc.NewStepFactory())
 	sfs.AddStepFactory(transform_chksum.NewStepFactory())
 	sfs.AddStepFactory(transform_gzip.NewStepFactory())
 	sfs.AddStepFactory(transform_s2.NewStepFactory())

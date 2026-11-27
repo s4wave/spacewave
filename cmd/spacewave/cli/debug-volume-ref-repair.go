@@ -45,6 +45,8 @@ type debugRefRepairArgs struct {
 	frontRoots bool
 	// scanUntyped also reads the blocks below each untyped ref by scanning.
 	scanUntyped bool
+	// scanVerify verifies the child lists of the blocks read by scanning.
+	scanVerify bool
 	// upgrade decides whether the open upgrades the volume's format.
 	upgrade *FormatUpgrade
 }
@@ -86,8 +88,15 @@ func (a *debugRefRepairArgs) BuildFlags() []cli.Flag {
 		&cli.BoolFlag{
 			Name: "scan-untyped",
 			Usage: "also read the blocks below each ref the walk cannot type by scanning their bytes for hashes, and compare what the bytes name " +
-				"with each stored list; it scans every typed block too and counts the typed refs the scan misses. It verifies nothing",
+				"with each stored list. It scans every typed block too and counts the typed refs the scan misses. It verifies nothing unless --scan-verify is given",
 			Destination: &a.scanUntyped,
+		},
+		&cli.BoolFlag{
+			Name: "scan-verify",
+			Usage: "verify scanned blocks' lists by keeping their stored children and adding hashes known by the volume's bytes or child lists, or by --peer-blocks. " +
+				"A block that is not a message needs an authenticating transform and an empty stored list. " +
+				"Requires --scan-untyped. Fill unknown blocks before verifying by scan",
+			Destination: &a.scanVerify,
 		},
 	}, a.upgrade.BuildFlags()...)
 }
@@ -121,8 +130,13 @@ func (a *debugRefRepairArgs) Run(c *cli.Context) error {
 // opts reads the peer and synthetic stand-ins the flags name, with what more
 // the run measures.
 func (a *debugRefRepairArgs) opts() (refRepairOpts, error) {
+	// Require the scan before it can verify lists.
+	if a.scanVerify && !a.scanUntyped {
+		return refRepairOpts{}, errors.New("--scan-verify requires --scan-untyped")
+	}
+
 	// Read the peer store and the synthetic list the flags name.
-	opts := refRepairOpts{frontRoots: a.frontRoots, scanUntyped: a.scanUntyped}
+	opts := refRepairOpts{frontRoots: a.frontRoots, scanUntyped: a.scanUntyped, scanVerify: a.scanVerify}
 	if a.peerBlocks != "" {
 		opts.peer = packcopy.NewSourceStore([]packcopy.Source{dirBlocks(a.peerBlocks)})
 	}
@@ -154,6 +168,8 @@ type refRepairOpts struct {
 	frontRoots bool
 	// scanUntyped makes the walk scan, as refRepair.scanUntyped describes.
 	scanUntyped bool
+	// scanVerify verifies scanned lists, as refRepair.visitScanned describes.
+	scanVerify bool
 	// peer reads the blocks the volume lacks, as the serve reads them from
 	// the Space's peers. Nil reads the volume alone.
 	peer block.StoreOps
@@ -322,6 +338,7 @@ func repairVolumeRefs(
 	// Make the repair with what the run measures.
 	rr := newRefRepair(le, vol, opts.peer, lookup)
 	rr.synthetic = opts.synthetic
+	rr.scanVerify = opts.scanVerify
 	if opts.scanUntyped {
 		rr.scanUntyped()
 	}
@@ -428,7 +445,8 @@ func newDebugRefRepairCommand(upgrade *FormatUpgrade) *cli.Command {
 			"It reports the reached blocks it still owes: once none is owed, the collector settles the volume's old generation and may free older blocks. " +
 			"A block it cannot decode stays owed and is reported, and so does one whose decoded refs drop a child its unmarked stored list names. " +
 			"It compares lists already marked too, adds a child one lacks whatever else the list names, and reports the marked lists it could not compare. " +
-			"An operation payload root that no walked World types is read as a blob only when it certainly is one; otherwise it is reported and verified for nothing. " +
+			"An operation payload root that no walked World types is read as a blob only when it certainly is one. " +
+			"Otherwise the walk reports it and can read it with --scan-untyped. " +
 			"A volume whose old generation has settled is only walked and never repaired. " +
 			"A list that gains a child on an adopted volume makes the settle return it to unadopted, so an adoption recounts every list before anything more frees. " +
 			"Blocks stored before puts carried their child lists have none. " +

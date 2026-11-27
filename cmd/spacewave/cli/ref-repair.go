@@ -36,6 +36,15 @@ const (
 	// frontUndecodable is the front cause of a block that does not decode
 	// as its type.
 	frontUndecodable = "undecodable as its type"
+	// frontOpaqueUnauthenticated is the scan's front cause when bytes fail
+	// to parse as a message and the transform cannot prove them.
+	frontOpaqueUnauthenticated = "not a message, under a transform that does not authenticate"
+	// frontOpaqueUnlisted is the scan's front cause when opaque bytes have
+	// no recorded child list to preserve.
+	frontOpaqueUnlisted = "not a message, without a stored list"
+	// frontOpaqueListed is the scan's front cause when the stored list
+	// names children the opaque bytes cannot account for.
+	frontOpaqueListed = "not a message, with a stored list that names children"
 	// frontUntyped prefixes the front cause of a ref whose type the walk
 	// cannot name, followed by the walker's reason.
 	frontUntyped = "untyped, "
@@ -143,6 +152,8 @@ type refRepair struct {
 	buckets bucket_store.Store
 	// walker walks the blocks below the Worlds.
 	walker *refwalk.Walker
+	// scanVerify verifies the lists of the blocks the walk reads by scanning.
+	scanVerify bool
 	// peer reads the blocks the volume lacks, nil to read the volume alone.
 	// The walk never fills the volume from it.
 	peer block.StoreOps
@@ -609,8 +620,8 @@ func (r *refRepair) walkVisit(ctx context.Context, batch []refwalk.Visit) error 
 // visit counts a batch of reads and verifies each decoded block's list.
 func (r *refRepair) visit(ctx context.Context, batch []refwalk.Visit) error {
 	for _, rd := range batch {
-		// Compare a block read by scanning with its stored list; the walk
-		// verifies nothing for it.
+		// Compare a block read by scanning with its stored list and verify
+		// the list if the run asked for it.
 		if rd.Node.Untyped != "" {
 			if err := r.visitScanned(ctx, rd); err != nil {
 				return err
@@ -749,8 +760,8 @@ func (r *refRepair) countBlock() {
 	}
 }
 
-// verify hands the refs of a block decoded as typ to the list rebuild,
-// unless the volume's old generation had left Open.
+// verify hands the block's refs and its type or scan reason to the list
+// rebuild, unless the volume's old generation had left Open.
 func (r *refRepair) verify(ctx context.Context, ref *block.BlockRef, refs []*block.BlockRef, typ string) error {
 	if r.rebuild == nil {
 		return nil

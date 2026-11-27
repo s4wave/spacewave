@@ -14,7 +14,9 @@ const decodedBlockCacheTransformConfigKeyPrefix = "transform:config:v1:"
 
 // Transformer is constructed using a factory set and a configuration.
 type Transformer struct {
-	steps                         []Step
+	// steps apply in order when encoding and in reverse order when decoding.
+	steps []Step
+	// decodedBlockCacheTransformKey identifies the configuration to the block cache.
 	decodedBlockCacheTransformKey string
 }
 
@@ -74,6 +76,23 @@ func (t *Transformer) DecodedBlockCacheTransformKey() string {
 		return ""
 	}
 	return t.decodedBlockCacheTransformKey
+}
+
+// Authenticates reports whether a decode that returns no error proves the bytes
+// were encoded with this transform's key.
+func (t *Transformer) Authenticates() bool {
+	// A missing transformer leaves bytes as they are.
+	if t == nil {
+		return false
+	}
+
+	// Any authenticating step can prove the bytes.
+	for _, step := range t.steps {
+		if auth, ok := step.(interface{ Authenticates() bool }); ok && auth.Authenticates() {
+			return true
+		}
+	}
+	return false
 }
 
 // EncodeBlock encodes the block according to the config.

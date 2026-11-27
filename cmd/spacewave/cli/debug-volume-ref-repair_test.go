@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/binary"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -23,14 +24,18 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/byteslice"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
+	block_transform "github.com/s4wave/spacewave/db/block/transform"
+	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
 	"github.com/s4wave/spacewave/db/blocktype"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/s4db"
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
+	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	hydra_testbed "github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
+	"github.com/s4wave/spacewave/db/util/blockenc"
 	"github.com/s4wave/spacewave/db/volume"
 	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
@@ -549,6 +554,192 @@ func TestDebugRefRepair(t *testing.T) {
 		return rec.PutChildren(ctx, rootRef, children)
 	})
 
+	// The verifier needs the scan to read the untyped blocks.
+	scanArgs := &debugRefRepairArgs{scanVerify: true}
+	if _, err := scanArgs.opts(); err == nil || err.Error() != "--scan-verify requires --scan-untyped" {
+		t.Fatalf("scan verify without the scan: %v", err)
+	}
+	scanArgs.scanUntyped = true
+
+	// Give the peer directory a child whose bytes the Volume never stores.
+	peerData, err := (&space_world.ReplayCursorOutcome{Seqno: 1}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	peerChild, err := block.BuildBlockRef(peerData, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	scanArgs.peerBlocks = t.TempDir()
+	if err := os.WriteFile(filepath.Join(scanArgs.peerBlocks, peerChild.MarshalString()), peerData, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	scanOpts, err := scanArgs.opts()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Copy an opaque block with a non-empty list onto the front. Use a marked
+	// child so the fixture owes only the copied blocks.
+	stopped, err := openStoppedVolume(ctx, le, path, volumeWritable)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stopped.Close()
+	opaqueData := []byte("raw bytes outside protobuf")
+	if _, ok := refwalk.ScanHits(opaqueData); ok {
+		t.Fatal("opaque fixture bytes parsed as a message")
+	}
+	copied := &block.PutOpts{Refs: []*block.BlockRef{extra}}
+	opaque, _, err := stopped.PutBlock(ctx, opaqueData, copied)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Evict a child's bytes, leaving its marked list on the Volume.
+	evicted, _, err := stopped.PutBlock(ctx, []byte("evicted scan child"), &block.PutOpts{RefsKnown: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := stopped.RmBlock(ctx, evicted); err != nil {
+		t.Fatal(err)
+	}
+
+	// Copy a parent whose bytes name the opaque block, the evicted child,
+	// the peer child and an unknown hash. Its list names the marked child.
+	stranger, err := block.BuildBlockRef([]byte("absent scan child"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	parentData, err := (&space_world.HeldRoots{Roots: []*block.BlockRef{opaque, evicted, peerChild}, Prev: stranger}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	parent, _, err := stopped.PutBlock(ctx, parentData, copied)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Point the replay cursor at the payload so the walk reaches it by scan.
+	scanCursor, err := (&space_world.ReplayCursor{Base: state, Head: state, Outcomes: []*space_world.ReplayCursorOutcome{
+		{World: worldRoot, Payloads: []*block.BlockRef{parent}},
+	}}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := putKey(ctx, stopped, key, scanCursor); err != nil {
+		t.Fatal(err)
+	}
+	if err := stopped.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	// The dry scan predicts the opaque block's fate even in measuring mode.
+	scanBefore := sum()
+	measuringOpts := scanOpts
+	measuringOpts.scanVerify = false
+	measured, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, measuringOpts, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	opaqueFate := "left, scanned and not a message, under a transform that does not authenticate"
+	if measured.scan.front[opaqueFate] != 1 || measured.scan.front["read by scanning"] != 1 {
+		t.Fatalf("measuring scan front: %v", measured.scan.front)
+	}
+
+	// The dry scan counts the parent rewrite and the peer child's new list
+	// without changing the file.
+	scanDry, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, scanOpts, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if scanDry.rebuild.Rewritten != 2 || scanDry.rebuild.Dropped != 0 || sum() != scanBefore {
+		t.Fatalf("dry scan verification: %+v", scanDry.rebuild)
+	}
+	if !maps.Equal(measured.scan.front, scanDry.scan.front) {
+		t.Fatalf("dry verification front: %v, want %v", scanDry.scan.front, measured.scan.front)
+	}
+
+	// The report locates the absent hash and samples the unauthenticated reads.
+	strangerRow := [2]string{
+		"Scan: hashes naming no known block, outside the list, below payload root that is not certainly a blob, field 2.1",
+		"1 (" + parent.MarshalString() + ")",
+	}
+	opaqueSample := "1 (" + opaque.MarshalString() + ")"
+	messageSample := "2 (" + parent.MarshalString() + ")"
+	scanRows := [][2]string{
+		strangerRow,
+		{"Scan: hashes naming no known block, outside the list", "1"},
+		{"Scan: hashes naming blocks with a stored list and no bytes, outside the list", "1 (" + evicted.MarshalString() + ")"},
+		{"Scan: hashes naming blocks known only by the peer, outside the list", "1 (" + peerChild.MarshalString() + ")"},
+		{"Scan: scanned blocks that are not messages, with a non-empty list", opaqueSample},
+		{"Scan: scanned blocks that are not messages, under a transform that does not authenticate", opaqueSample},
+		{"Scan: scanned messages under a transform that does not authenticate", messageSample},
+	}
+	reportRows := make(map[[2]string]struct{})
+	for _, row := range refRepairFields(path, true, scanDry) {
+		reportRows[row] = struct{}{}
+	}
+	for _, row := range scanRows {
+		if _, ok := reportRows[row]; !ok {
+			t.Fatalf("scan report lacks %v", row)
+		}
+	}
+
+	// The real scan removes the parent's front entry and leaves the opaque
+	// block on the front with the predicted cause.
+	scanFixed, err := repairVolumeRefs(ctx, le, path, "", false, space_world_optypes.LookupBlockType, scanOpts, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if scanFixed.rebuild.Front != 1 || !slices.ContainsFunc(scanFixed.rebuild.FrontSample, opaque.EqualVT) ||
+		scanFixed.scan.front[opaqueFate] != 1 {
+		t.Fatalf("verification front: %+v, fates %v", scanFixed.rebuild, scanFixed.scan.front)
+	}
+
+	// Verify the marked list holds every known child, including the evicted
+	// child and the peer child. The unknown hash stays outside the list.
+	restored, err := openStoppedVolume(ctx, le, path, volumeWritable)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer restored.Close()
+	scannedList, source, err := restored.GetChildList(ctx, parent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if scanFixed.rebuild.Rewritten != 2 || source != block.RefsAsserted || len(scannedList) != 4 ||
+		!slices.ContainsFunc(scannedList, opaque.EqualVT) || !slices.ContainsFunc(scannedList, extra.EqualVT) ||
+		!slices.ContainsFunc(scannedList, evicted.EqualVT) || !slices.ContainsFunc(scannedList, peerChild.EqualVT) {
+		t.Fatalf("scan verification: %+v, list %v, source %v", scanFixed.rebuild, scannedList, source)
+	}
+
+	// The scan records the peer child's list while its bytes stay on the peer.
+	if children, source, err := restored.GetChildList(ctx, peerChild); err != nil || source != block.RefsAsserted || len(children) != 0 {
+		t.Fatalf("peer child list %v from %v, err %v", children, source, err)
+	}
+	if exists, err := restored.Store.GetBlockExists(ctx, peerChild); err != nil || exists {
+		t.Fatalf("peer child's bytes in the Volume: %v, err %v", exists, err)
+	}
+
+	// The opaque block's original list remains unverified.
+	opaqueList, source, err := restored.GetChildList(ctx, opaque)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if source != block.RefsListed || !slices.EqualFunc(opaqueList, copied.Refs, (*block.BlockRef).EqualVT) {
+		t.Fatalf("opaque list %v from %v, want the original unverified list", opaqueList, source)
+	}
+	checkAuthenticatedOpaqueScan(t, le, restored, opaqueData, copied)
+
+	// Restore the original replay cursor for the adoption and audit.
+	if err := putKey(ctx, restored, key, data); err != nil {
+		t.Fatal(err)
+	}
+	if err := restored.Close(); err != nil {
+		t.Fatal(err)
+	}
+
 	// Adoption refuses while a stored child list names a block stored
 	// without one: the raw block only a parent's list names.
 	refused, err := adoptVolume(ctx, le, path, nil)
@@ -594,6 +785,206 @@ func TestDebugRefRepair(t *testing.T) {
 	if audit.Unlisted == 0 || !strings.Contains(auditReport.String(), orphan.MarshalString()) {
 		t.Fatalf("audit does not name the orphan %s: %+v", orphan.MarshalString(), audit)
 	}
+
+	// Use a separate Volume with frees on to exercise an actual park.
+	t.Run("parked child", func(t *testing.T) { checkParkedChildScan(t, le) })
+}
+
+// checkAuthenticatedOpaqueScan verifies an authenticated opaque block only
+// when the Volume has an empty list to preserve.
+func checkAuthenticatedOpaqueScan(t *testing.T, le *logrus.Entry, vol *volume_s4db.Volume, raw []byte, copied *block.PutOpts) {
+	// Copy the sealed bytes and their unverified list into the fixture.
+	t.Helper()
+	ctx := t.Context()
+	enc, err := transform_blockenc.NewBlockEnc(&transform_blockenc.Config{BlockEnc: blockenc.DefaultBlockEnc, Key: make([]byte, 32)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	xfrm := block_transform.NewTransformerWithSteps([]block_transform.Step{enc})
+	sealed, err := xfrm.EncodeBlock(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ref, _, err := vol.PutBlock(ctx, sealed, copied)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Put a second authenticated opaque block onto the front, then remove
+	// its list to reproduce a block held without a recorded list.
+	sealed, err = xfrm.EncodeBlock([]byte{0})
+	if err != nil {
+		t.Fatal(err)
+	}
+	unlisted, _, err := vol.PutBlock(ctx, sealed, copied)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeRecords(t, vol, func(rec *block_gc.Records) error {
+		return rec.DeleteChildren(ctx, unlisted)
+	})
+
+	// Copy an authenticated opaque block with an empty list onto the front.
+	sealed, err = xfrm.EncodeBlock([]byte{0, 0})
+	if err != nil {
+		t.Fatal(err)
+	}
+	empty, _, err := vol.PutBlock(ctx, sealed, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Both modes classify the opaque blocks by what their lists prove.
+	nodes := []refwalk.Node{
+		{Ref: ref, Untyped: "authenticated copied payload", Xfrm: xfrm},
+		{Ref: unlisted, Untyped: "authenticated copied payload", Xfrm: xfrm},
+		{Ref: empty, Untyped: "authenticated copied payload", Xfrm: xfrm},
+	}
+	measured := runUntypedScan(t, le, vol, true, nodes...)
+	verified := runUntypedScan(t, le, vol, false, nodes...)
+	fate := "left, scanned and not a message, without a stored list"
+	listedFate := "left, scanned and not a message, with a stored list that names children"
+	if measured.scan.front[fate] != 1 || verified.scan.front[fate] != 1 {
+		t.Fatalf("unlisted opaque block's front fates: measuring %v, verifying %v", measured.scan.front, verified.scan.front)
+	}
+	if measured.scan.front[listedFate] != 1 || verified.scan.front[listedFate] != 1 {
+		t.Fatalf("listed opaque block's front fates: measuring %v, verifying %v", measured.scan.front, verified.scan.front)
+	}
+	row := [2]string{"Scan: scanned blocks that are not messages, without a stored list", "1 (" + unlisted.MarshalString() + ")"}
+	if !slices.Contains(scanFields(verified.scan, false), row) {
+		t.Fatalf("scan report lacks %v", row)
+	}
+
+	// The non-empty list stays unverified and keeps its front entry.
+	children, source, err := vol.GetChildList(ctx, ref)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.ContainsFunc(verified.rebuild.FrontSample, ref.EqualVT) ||
+		source != block.RefsListed || !slices.EqualFunc(children, copied.Refs, (*block.BlockRef).EqualVT) {
+		t.Fatalf("listed opaque block: front %+v, list %v from %v", verified.rebuild, children, source)
+	}
+
+	// The unlisted opaque block keeps its front entry and gains no list.
+	if _, has, err := vol.GetChildren(ctx, unlisted); err != nil || has {
+		t.Fatalf("unlisted opaque block: has list %v, err %v", has, err)
+	}
+	if !slices.ContainsFunc(verified.rebuild.FrontSample, unlisted.EqualVT) {
+		t.Fatalf("unlisted opaque block left the front: %+v", verified.rebuild)
+	}
+
+	// Verification marks the empty list and removes its front entry.
+	if children, source, err := vol.GetChildList(ctx, empty); err != nil || source != block.RefsAsserted || len(children) != 0 {
+		t.Fatalf("empty opaque block list %v from %v, err %v", children, source, err)
+	}
+	if slices.ContainsFunc(verified.rebuild.FrontSample, empty.EqualVT) {
+		t.Fatalf("empty opaque block stayed on the front: %+v", verified.rebuild)
+	}
+}
+
+// checkParkedChildScan parks the unheld child of a short list and verifies
+// that the scanner keeps its hold.
+func checkParkedChildScan(t *testing.T, le *logrus.Entry) {
+	// Let the test drive frees on an isolated Volume with a short grace.
+	t.Helper()
+	ctx := t.Context()
+	vol, err := volume_s4db.NewVolume(ctx, le, &volume_s4db.Config{
+		Path:        filepath.Join(t.TempDir(), "parked.s4wave"),
+		StoreConfig: &store_kvtx.Config{CollectorFrees: true, CollectorGraceDur: "1ns"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer vol.Close()
+
+	// Store the child in the same batch that gives it a root.
+	childData := []byte("parked scan child")
+	child, err := block.BuildBlockRef(childData, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	childEntries := []*block.PutBatchEntry{{Ref: child, Data: childData, RefsKnown: true}}
+	childRoots := []block.NamedRoot{{Name: "child", Ref: child}}
+	if err := vol.SetBucketRoots(ctx, "scan", childEntries, childRoots); err != nil {
+		t.Fatal(err)
+	}
+
+	// Root the parent's copied list to open the generation and keep the
+	// front owed. Release the child's only holder in the same batch.
+	parentData, err := (&space_world.HeldRoots{Roots: []*block.BlockRef{child}}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	parent, err := block.BuildBlockRef(parentData, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entries := []*block.PutBatchEntry{{Ref: parent, Data: parentData}}
+	roots := []block.NamedRoot{{Name: "parent", Ref: parent}, {Name: "child", Previous: child}}
+	if err := vol.SetBucketRoots(ctx, "scan", entries, roots); err != nil {
+		t.Fatal(err)
+	}
+
+	// The collector parks the child and the writer's existence check hides it.
+	res, err := vol.Collect(ctx)
+	if err != nil || res.Parked != 1 || res.Flipped {
+		t.Fatalf("collect before scan: %+v, err %v", res, err)
+	}
+	if exists, err := vol.GetBlockExists(ctx, child); err != nil || exists {
+		t.Fatalf("writer sees parked child: %v, err %v", exists, err)
+	}
+	if exists, err := vol.Store.GetBlockExists(ctx, child); err != nil || !exists {
+		t.Fatalf("raw store sees parked child: %v, err %v", exists, err)
+	}
+
+	// The scan adds the parked child to the parent's list using the raw bytes.
+	verified := runUntypedScan(t, le, vol, false, refwalk.Node{Ref: parent, Untyped: "copied parent"})
+	children, source, err := vol.GetChildList(ctx, parent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if source != block.RefsAsserted || len(children) != 1 || !child.EqualVT(children[0]) ||
+		verified.rebuild.Rewritten != 1 || verified.scan.knownByList.count != 0 {
+		t.Fatalf("parked child's parent: list %v from %v, rebuild %+v", children, source, verified.rebuild)
+	}
+}
+
+// runUntypedScan runs the repair's walker and front report for explicit
+// untyped roots in the fixture's Volume.
+func runUntypedScan(t *testing.T, le *logrus.Entry, vol *volume_s4db.Volume, dryRun bool, nodes ...refwalk.Node) refRepairResult {
+	// Open the measuring or verifying rebuild on the same walker.
+	t.Helper()
+	ctx := t.Context()
+	repair := newRefRepair(le, vol, nil, space_world_optypes.LookupBlockType)
+	defer repair.close()
+	repair.scanUntyped()
+	repair.scanVerify = !dryRun
+	switch {
+	case dryRun:
+		repair.rebuild = vol.OpenListCheck()
+	default:
+		var err error
+		repair.rebuild, err = vol.OpenListRebuild(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Walk each root, finish the rebuild and report the front's fates.
+	for _, node := range nodes {
+		if err := repair.walker.Walk(ctx, node, repair.walkVisit); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var err error
+	repair.res.rebuild, err = repair.rebuild.Finish(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := repair.measureFront(ctx, dryRun, false); err != nil {
+		t.Fatal(err)
+	}
+	return repair.res
 }
 
 // writeRecords runs fn over the liveness records of vol in one committed

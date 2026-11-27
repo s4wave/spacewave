@@ -43,26 +43,45 @@ type refRepairScan struct {
 	undecodable refRepairFront
 	// opaque is the number of scanned blocks whose bytes are not a message.
 	opaque uint64
+	// opaqueListed counts scanned blocks whose bytes are not a message and
+	// whose stored list names at least one child.
+	opaqueListed refRepairFront
+	// opaqueUnauthenticated counts scanned blocks whose bytes are not a
+	// message and whose transform does not authenticate them.
+	opaqueUnauthenticated refRepairFront
+	// opaqueUnlisted counts scanned blocks whose bytes are not a message
+	// and that have no stored list.
+	opaqueUnlisted refRepairFront
+	// messageUnauthenticated counts scanned messages whose transform does
+	// not authenticate them.
+	messageUnauthenticated refRepairFront
 	// unlisted is the number of scanned blocks stored without a child list.
 	unlisted uint64
-	// short counts the scanned blocks whose stored list lacks a stored block
-	// their bytes name, and shortRefs those blocks, by why the walk had no
-	// type and the hash's field.
+	// short counts the scanned blocks whose list lacks a known block, and
+	// shortRefs those hits, by type and the hash's field.
 	short     refRepairFront
 	shortRefs map[string]refRepairFront
+	// knownByList counts hashes outside the list that the Volume knows
+	// only from their own stored child lists.
+	knownByList refRepairFront
+	// knownByPeer counts hashes outside the list that only the peer knows.
+	knownByPeer refRepairFront
 	// unseen counts the scanned blocks whose stored list names a child their
 	// bytes do not, and unseenRefs those children.
 	unseen     refRepairFront
 	unseenRefs uint64
-	// strangers is the number of hashes in scanned blocks that name no
-	// stored block and that the block's list does not name.
+	// strangers counts hashes outside the scanned block's list that neither
+	// the Volume nor the peer knows.
 	strangers uint64
-	// failed holds the scanned refs that did not read, by ref, with why.
+	// strangerRefs counts those hashes by why the walk had no type and
+	// the hash's field, with the first block that holds one.
+	strangerRefs map[string]refRepairFront
+	// failed holds the scanned refs the scan could not verify, with why.
 	failed map[string]string
 	// front counts the front's entries by what a walk whose scan verified
 	// would do with each, as scanFate names it.
 	front map[string]uint64
-	// weak holds each stored block that bytes name outside a list, by ref,
+	// weak holds each known block that bytes name outside a list, by ref,
 	// with where the first such hash sits, and weakRefs those blocks in the
 	// order found.
 	weak     map[string]string
@@ -84,19 +103,20 @@ func (f *refRepairFront) add(ref *block.BlockRef) {
 func (r *refRepair) scanUntyped() {
 	r.walker.ScanUntyped()
 	r.res.scan = refRepairScan{
-		on:          true,
-		missed:      make(map[string]refRepairFront),
-		extraStored: make(map[string]refRepairFront),
-		blocks:      make(map[string]uint64),
-		shortRefs:   make(map[string]refRepairFront),
-		failed:      make(map[string]string),
-		front:       make(map[string]uint64),
-		weak:        make(map[string]string),
-		loose:       make(map[string]refRepairFront),
+		on:           true,
+		missed:       make(map[string]refRepairFront),
+		extraStored:  make(map[string]refRepairFront),
+		blocks:       make(map[string]uint64),
+		shortRefs:    make(map[string]refRepairFront),
+		strangerRefs: make(map[string]refRepairFront),
+		failed:       make(map[string]string),
+		front:        make(map[string]uint64),
+		weak:         make(map[string]string),
+		loose:        make(map[string]refRepairFront),
 	}
 }
 
-// noteWeak records a stored block that bytes at where name outside a list.
+// noteWeak records a known block that bytes at where name outside a list.
 func (s *refRepairScan) noteWeak(ref *block.BlockRef, where string) {
 	key := ref.MarshalString()
 	if _, ok := s.weak[key]; ok {
@@ -192,8 +212,62 @@ func (r *refRepair) visitTyped(ctx context.Context, rd refwalk.Visit) error {
 	return nil
 }
 
-// visitScanned counts one read of an untyped block and compares the refs its
-// bytes hold with its stored list.
+// scanBlockSource is the first source that knows a scanned hash.
+type scanBlockSource uint8
+
+const (
+	// scanBlockUnknown means neither store knows the hash.
+	scanBlockUnknown scanBlockSource = iota
+	// scanBlockBytes means the raw Volume store has the block's bytes.
+	scanBlockBytes
+	// scanBlockList means the Volume has the child list but no bytes.
+	scanBlockList
+	// scanBlockPeer means only the peer has the block.
+	scanBlockPeer
+)
+
+// scanKnowsBlock reports which source knows a hash. Ask for stored bytes because
+// the Volume's ordinary existence check hides parked blocks that still have them.
+func (r *refRepair) scanKnowsBlock(ctx context.Context, ref *block.BlockRef) (scanBlockSource, error) {
+	// Look for bytes even when the Volume has parked the block.
+	found, err := r.vol.HasBlockBytes(ctx, ref)
+	if err != nil {
+		return scanBlockUnknown, err
+	}
+	if found {
+		return scanBlockBytes, nil
+	}
+
+	// A recorded child list keeps a block known after its bytes leave.
+	_, has, err := r.vol.GetChildren(ctx, ref)
+	if err != nil {
+		return scanBlockUnknown, err
+	}
+	if has {
+		return scanBlockList, nil
+	}
+
+	// The peer may hold a child the Volume has never seen.
+	if r.peer == nil {
+		return scanBlockUnknown, nil
+	}
+	found, err = r.peer.GetBlockExists(ctx, ref)
+	if err != nil || !found {
+		return scanBlockUnknown, err
+	}
+	return scanBlockPeer, nil
+}
+
+// visitScanned compares the refs an untyped block's bytes hold with its stored list.
+//
+// The verified list includes every child on the stored list, so the scan never
+// removes a hold. Add a hash when the Volume has its bytes or its child list,
+// or the peer has its bytes. Fill unknown blocks before running verification,
+// since they gain no hold from this list.
+// Verify opaque bytes only under an authenticating transform with an empty
+// stored list. Together these indicate a childless block such as a raw blob
+// chunk. A list that names children shows the scan cannot read the content.
+// Without --scan-verify, the walk writes nothing for a scanned block.
 func (r *refRepair) visitScanned(ctx context.Context, rd refwalk.Visit) error {
 	// Count a ref no read resolves, and a block its holder's transform does
 	// not decode.
@@ -210,11 +284,8 @@ func (r *refRepair) visitScanned(ctx context.Context, rd refwalk.Visit) error {
 		return nil
 	}
 	s.blocks[rd.Node.Untyped]++
-	if rd.Opaque {
-		s.opaque++
-	}
 
-	// Read the stored list.
+	// Read and index the stored list, which already holds each child once.
 	list, has, err := r.vol.GetChildren(ctx, ref)
 	if err != nil {
 		return err
@@ -227,29 +298,75 @@ func (r *refRepair) visitScanned(ctx context.Context, rd refwalk.Visit) error {
 		listed[child.MarshalString()] = struct{}{}
 	}
 
-	// Count the stored blocks the bytes name and the list lacks.
+	// Count suspicious reads and record the same front cause in both modes.
+	auth, ok := rd.Node.Xfrm.(interface{ Authenticates() bool })
+	authenticated := ok && auth.Authenticates()
+	var cause string
+	switch {
+	case rd.Opaque:
+		s.opaque++
+		if len(list) != 0 {
+			s.opaqueListed.add(ref)
+			cause = frontOpaqueListed
+		}
+		if !authenticated {
+			s.opaqueUnauthenticated.add(ref)
+			cause = frontOpaqueUnauthenticated
+		}
+		if !has {
+			s.opaqueUnlisted.add(ref)
+			cause = frontOpaqueUnlisted
+		}
+	case !authenticated:
+		s.messageUnauthenticated.add(ref)
+	}
+	if cause != "" {
+		s.failed[ref.MarshalString()] = cause
+	}
+
+	// Count the hashes outside the list and add the known ones to the
+	// verified refs. ScanHits gives each hash once.
 	scanned := make(map[string]struct{}, len(rd.Refs))
+	refs := slices.Clip(list)
 	var short uint64
 	for _, hit := range rd.ScanHits {
+		// Find out which source knows the hash outside the list.
 		child := hit.Ref
 		key := child.MarshalString()
 		scanned[key] = struct{}{}
 		if _, ok := listed[key]; ok {
 			continue
 		}
-		stored, err := r.vol.GetBlockExists(ctx, child)
+		source, err := r.scanKnowsBlock(ctx, child)
 		if err != nil {
 			return err
 		}
-		if !stored {
+
+		// Count unknown hashes by the field where they appear.
+		where := rd.Node.Untyped + ", field " + hit.Path
+		if source == scanBlockUnknown {
 			s.strangers++
+			at := s.strangerRefs[where]
+			at.add(ref)
+			s.strangerRefs[where] = at
 			continue
 		}
+
+		// Count and keep the known children the list lacks.
 		short++
-		at := s.shortRefs[rd.Node.Untyped+", field "+hit.Path]
+		at := s.shortRefs[where]
 		at.add(ref)
-		s.shortRefs[rd.Node.Untyped+", field "+hit.Path] = at
-		s.noteWeak(child, rd.Node.Untyped+", field "+hit.Path)
+		s.shortRefs[where] = at
+		s.noteWeak(child, where)
+		switch source {
+		case scanBlockList:
+			s.knownByList.add(child)
+		case scanBlockPeer:
+			s.knownByPeer.add(child)
+		}
+		if r.scanVerify {
+			refs = append(refs, child)
+		}
 	}
 	if short != 0 {
 		s.short.add(ref)
@@ -265,6 +382,11 @@ func (r *refRepair) visitScanned(ctx context.Context, rd refwalk.Visit) error {
 	if unseen != 0 {
 		s.unseen.add(ref)
 		s.unseenRefs += unseen
+	}
+
+	// Verify the list once the scan has enough evidence.
+	if r.scanVerify && cause == "" {
+		return r.verify(ctx, ref, refs, rd.Node.Untyped)
 	}
 	return nil
 }
@@ -321,12 +443,15 @@ func scanFields(s refRepairScan, rooted bool) [][2]string {
 		fields = append(fields, [2]string{"Scan: untyped blocks read below " + reason, num(s.blocks[reason])})
 	}
 	for _, at := range slices.Sorted(maps.Keys(s.shortRefs)) {
-		fields = append(fields, [2]string{"Scan: stored blocks a list lacks, below " + at, sampled(s.shortRefs[at])})
+		fields = append(fields, [2]string{"Scan: known blocks a list lacks, below " + at, sampled(s.shortRefs[at])})
+	}
+	for _, at := range slices.Sorted(maps.Keys(s.strangerRefs)) {
+		fields = append(fields, [2]string{"Scan: hashes naming no known block, outside the list, below " + at, sampled(s.strangerRefs[at])})
 	}
 	for _, fate := range slices.Sorted(maps.Keys(s.front)) {
 		fields = append(fields, [2]string{"Scan: front entries " + fate, num(s.front[fate])})
 	}
-	fields = append(fields, [2]string{"Scan: stored blocks that bytes name outside a list", num(uint64(len(s.weakRefs)))})
+	fields = append(fields, [2]string{"Scan: known blocks that bytes name outside a list", num(uint64(len(s.weakRefs)))})
 	if rooted {
 		fields = append(fields, s.looseFields()...)
 	}
@@ -335,10 +460,16 @@ func scanFields(s refRepairScan, rooted bool) [][2]string {
 		[2]string{"Scan: scanned refs no read resolves", num(s.absent)},
 		[2]string{"Scan: blocks the holder's transform does not decode", sampled(s.undecodable)},
 		[2]string{"Scan: scanned blocks that are not messages", num(s.opaque)},
+		[2]string{"Scan: scanned blocks that are not messages, with a non-empty list", sampled(s.opaqueListed)},
+		[2]string{"Scan: scanned blocks that are not messages, under a transform that does not authenticate", sampled(s.opaqueUnauthenticated)},
+		[2]string{"Scan: scanned blocks that are not messages, without a stored list", sampled(s.opaqueUnlisted)},
+		[2]string{"Scan: scanned messages under a transform that does not authenticate", sampled(s.messageUnauthenticated)},
 		[2]string{"Scan: scanned blocks without a stored list", num(s.unlisted)},
-		[2]string{"Scan: scanned blocks whose list lacks a stored block their bytes name", sampled(s.short)},
+		[2]string{"Scan: scanned blocks whose list lacks a known block their bytes name", sampled(s.short)},
 		[2]string{"Scan: scanned blocks whose list names a child their bytes do not", sampled(s.unseen)},
 		[2]string{"Scan: the children those bytes do not name", num(s.unseenRefs)},
-		[2]string{"Scan: hashes naming no stored block, outside the list", num(s.strangers)},
+		[2]string{"Scan: hashes naming no known block, outside the list", num(s.strangers)},
+		[2]string{"Scan: hashes naming blocks with a stored list and no bytes, outside the list", sampled(s.knownByList)},
+		[2]string{"Scan: hashes naming blocks known only by the peer, outside the list", sampled(s.knownByPeer)},
 	)
 }

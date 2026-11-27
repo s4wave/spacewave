@@ -14,25 +14,37 @@ type BlockEnc struct {
 	// sync.Pool may discard pooled items at any GC tick, so the pool floor
 	// is best-effort; New must always be able to build a fresh Method.
 	cryptArena sync.Pool
-	alloc      blockenc.AllocFn
+	// alloc provides buffers for encryption and decryption.
+	alloc blockenc.AllocFn
+	// cipher selects the method every pooled instance uses.
+	cipher blockenc.BlockEnc
 }
 
 // NewBlockEnc constructs the block enc step.
 func NewBlockEnc(c *Config) (*BlockEnc, error) {
 	// Validate the config eagerly so the pool's New func can safely
 	// discard the build error on subsequent calls.
-	if _, err := blockenc.BuildBlockEnc(c.GetBlockEnc(), c.GetKey()); err != nil {
+	cipher, key := c.GetBlockEnc(), c.GetKey()
+	if _, err := blockenc.BuildBlockEnc(cipher, key); err != nil {
 		return nil, err
 	}
-	enc := &BlockEnc{alloc: blockenc.DefaultAllocFn()}
+
+	// Use the validated cipher and key for each pooled method.
+	enc := &BlockEnc{alloc: blockenc.DefaultAllocFn(), cipher: cipher}
 	enc.cryptArena = sync.Pool{
 		New: func() any {
-			// note: we asserted this doesn't error above
-			crypt, _ := blockenc.BuildBlockEnc(c.GetBlockEnc(), c.GetKey())
+			// The constructor already validated this cipher and key size.
+			crypt, _ := blockenc.BuildBlockEnc(cipher, key)
 			return crypt
 		},
 	}
 	return enc, nil
+}
+
+// Authenticates reports whether a decode that returns no error proves the bytes
+// were encoded with this transform's key. UNKNOWN selects the same no-op as NONE.
+func (s *BlockEnc) Authenticates() bool {
+	return s.cipher != blockenc.BlockEnc_BlockEnc_NONE && s.cipher != blockenc.BlockEnc_BlockEnc_UNKNOWN
 }
 
 // EncodeBlock encodes the block according to the config.

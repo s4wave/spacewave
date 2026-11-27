@@ -38,6 +38,35 @@ func TestBlockEncRoundTripUsesLazyPool(t *testing.T) {
 	}
 }
 
+// TestBlockEncAuthenticates checks which ciphers prove the decoded bytes.
+func TestBlockEncAuthenticates(t *testing.T) {
+	// The no-op ciphers leave bytes untouched. Each sealed cipher proves them.
+	tests := []struct {
+		cipher blockenc.BlockEnc
+		want   bool
+	}{
+		{blockenc.BlockEnc_BlockEnc_NONE, false},
+		{blockenc.BlockEnc_BlockEnc_UNKNOWN, false},
+		{blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305, true},
+		{blockenc.BlockEnc_BlockEnc_SECRET_BOX, true},
+		{blockenc.BlockEnc_BlockEnc_AES_256_GCM, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.cipher.String(), func(t *testing.T) {
+			// Construct the same step a configured decoder would use.
+			enc, err := NewBlockEnc(&Config{BlockEnc: tt.cipher, Key: make([]byte, blockenc.BlockEnc_KeySize[tt.cipher])})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// Check the step's claim about a successful decode.
+			if got := enc.Authenticates(); got != tt.want {
+				t.Fatalf("Authenticates() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestNewBlockEncRejectsInvalidConfigBeforePoolUse(t *testing.T) {
 	_, err := NewBlockEnc(&Config{
 		BlockEnc: blockenc.BlockEnc_BlockEnc_SECRET_BOX,
