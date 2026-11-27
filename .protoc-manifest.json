@@ -128,7 +128,7 @@
           ]
         },
         "github.com/s4wave/spacewave/core/sobject": {
-          "hash": "4bd42066d71ff8c3c86593635ce3dc0834ae41788fb8c3fd6498a48bb0e0347f",
+          "hash": "7c9a38b0e2a083d2ff278014416e2ba6e9f93da348f22f8aa000487fe9252cf2",
           "generatedFiles": [
             "core/sobject/sobject_pb2.py",
             "core/sobject/sobject_pb2.pyi"
@@ -2010,7 +2010,7 @@
           ]
         },
         "github.com/s4wave/spacewave/core/sobject": {
-          "hash": "4bd42066d71ff8c3c86593635ce3dc0834ae41788fb8c3fd6498a48bb0e0347f",
+          "hash": "7c9a38b0e2a083d2ff278014416e2ba6e9f93da348f22f8aa000487fe9252cf2",
           "generatedFiles": [
             "core/sobject/sobject.pb.go",
             "core/sobject/sobject.pb.ts"

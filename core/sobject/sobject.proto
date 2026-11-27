@@ -826,9 +826,14 @@ message SOCheckpointCarried {
   SOOperationPosition from = 2;
 
   // Refused are the author's refused operations above from and at or below
-  // its entry in prev_authors, in order. Every other operation of the author
-  // in that span applied.
+  // its entry in prev_authors, ordered by nonce, then op_hash. Operations at
+  // one nonce, which the author equivocated, are each listed. Every other
+  // operation of the author in that span applied.
   repeated SOOperationPosition refused = 3;
+
+  // Height is the height of the first checkpoint whose outcomes the entry
+  // carries. A signer short of room drops the lowest first.
+  uint64 height = 4;
 }
 
 // SOCheckpointAuthors are the author heads of one checkpoint.

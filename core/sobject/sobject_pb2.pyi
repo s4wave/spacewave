@@ -570,13 +570,15 @@ class SOCheckpointOutcomes(_message.Message):
     def __init__(self, refused: _Optional[_Iterable[_Union[SOOperationPosition, _Mapping]]] = ..., prev_authors: _Optional[_Union[SOCheckpointAuthors, _Mapping]] = ..., carried: _Optional[_Iterable[_Union[SOCheckpointCarried, _Mapping]]] = ...) -> None: ...
 
 class SOCheckpointCarried(_message.Message):
-    __slots__ = ("peer_id", "refused")
+    __slots__ = ("peer_id", "refused", "height")
     PEER_ID_FIELD_NUMBER: _ClassVar[int]
     FROM_FIELD_NUMBER: _ClassVar[int]
     REFUSED_FIELD_NUMBER: _ClassVar[int]
+    HEIGHT_FIELD_NUMBER: _ClassVar[int]
     peer_id: str
     refused: _containers.RepeatedCompositeFieldContainer[SOOperationPosition]
-    def __init__(self, peer_id: _Optional[str] = ..., refused: _Optional[_Iterable[_Union[SOOperationPosition, _Mapping]]] = ..., **kwargs) -> None: ...
+    height: int
+    def __init__(self, peer_id: _Optional[str] = ..., refused: _Optional[_Iterable[_Union[SOOperationPosition, _Mapping]]] = ..., height: _Optional[int] = ..., **kwargs) -> None: ...
 
 class SOCheckpointAuthors(_message.Message):
     __slots__ = ("authors",)
