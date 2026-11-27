@@ -61,10 +61,8 @@ func NewSqliteWithOptions(
 
 	// Wrap the opened store as a volume with database deletion support.
 	path := conf.GetPath()
-	vol, err := NewWithStore(ctx, le, conf, store, func() error { return os.Remove(path) }, kvtx.Backend{
-		Coordinate: func(_ string, inner coord.Coordinator) coord.Coordinator {
-			return coord_filelock.NewCoordinator(filepath.Dir(path), path+"\x00"+conf.GetTable(), inner)
-		},
+	vol, err := NewWithStore(ctx, le, conf, store, func() error { return os.Remove(path) }, func(_ string, inner coord.Coordinator) coord.Coordinator {
+		return coord_filelock.NewCoordinator(filepath.Dir(path), path+"\x00"+conf.GetTable(), inner)
 	})
 	if err != nil {
 		return nil, err
@@ -85,7 +83,14 @@ type Store interface {
 
 // NewWithStore takes ownership of an opened SQLite store, including on failure.
 // The opener configures durability and coordinates access to the backing path.
-func NewWithStore(ctx context.Context, le *logrus.Entry, conf *Config, store Store, deleteFn func() error, backend ...kvtx.Backend) (*Sqlite, error) {
+func NewWithStore(
+	ctx context.Context,
+	le *logrus.Entry,
+	conf *Config,
+	store Store,
+	deleteFn func() error,
+	coordinate ...func(string, coord.Coordinator) coord.Coordinator,
+) (*Sqlite, error) {
 	// Configure the volume key namespace while taking ownership of the store.
 	db := store.GetDB()
 	kvkey, err := kvkey.NewKVKey(conf.GetKvKeyOpts())
@@ -101,12 +106,12 @@ func NewWithStore(ctx context.Context, le *logrus.Entry, conf *Config, store Sto
 	}
 
 	// Build the volume with SQLite storage statistics and pool cleanup.
-	var policy kvtx.Backend
-	if len(backend) != 0 {
-		policy = backend[0]
+	var policy func(string, coord.Coordinator) coord.Coordinator
+	if len(coordinate) != 0 {
+		policy = coordinate[0]
 	}
 	vol, err := kvtx.NewVolumeWithBackend(
-		policy,
+		policy, nil, nil,
 		ctx,
 		ControllerID,
 		kvkey,

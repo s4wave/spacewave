@@ -57,9 +57,9 @@ func NewRedis(
 
 	// Construct the volume over the store.
 	vol, err := kvtx.NewVolumeWithBackend(
-		kvtx.Backend{Coordinate: func(_ string, inner coord.Coordinator) coord.Coordinator {
+		func(_ string, inner coord.Coordinator) coord.Coordinator {
 			return store.NewCoordinator(string(kvkey.GetObjectStorePrefixByID(ControllerID)), inner)
-		}},
+		}, nil, nil,
 		ctx,
 		ControllerID,
 		kvkey,

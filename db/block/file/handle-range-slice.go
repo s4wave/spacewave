@@ -12,11 +12,9 @@ type HandleRangeSlice struct {
 	ranges   *[]*Range
 }
 
-// rangeSlice binds sorting to the handle's ranges and block graph.
-func (r *Handle) rangeSlice() *HandleRangeSlice {
-	ranges := &r.root.Ranges
-	rangeSet := r.rangeSet
-	return &HandleRangeSlice{rangeSet: rangeSet, ranges: ranges}
+// sortRanges sorts the handle's ranges together with their block graph.
+func (r *Handle) sortRanges() {
+	sort.Sort(&HandleRangeSlice{rangeSet: r.rangeSet, ranges: &r.root.Ranges})
 }
 
 // Len is the number of elements in the collection.

@@ -6,7 +6,6 @@ import (
 	"io"
 	"math"
 	"slices"
-	"sort"
 
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
@@ -556,12 +555,6 @@ func (w *Writer) moveRangeToRootBlob() error {
 	// Discard read state that refers to the former range.
 	w.clearReadState()
 	return nil
-}
-
-// sortRanges sorts the root ranges stitching the block graph.
-func (w *Writer) sortRanges() {
-	hrs := w.rangeSlice()
-	sort.Sort(hrs)
 }
 
 func (w *Writer) compactOccludedRanges() {
