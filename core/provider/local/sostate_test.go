@@ -64,7 +64,7 @@ func newTestGenesisHost(t *testing.T, store kvtx.Store) (*sobject.SOHost, crypto
 	// Seed a genesis store and host it.
 	t.Helper()
 	_, _, priv := seedTestGenesisState(t, store)
-	watch, lock, syncFuncs := NewObjectStoreSOStateFuncs(t.Context(), store, "", &SOStateRuns{Reload: func() {}})
+	watch, lock, syncFuncs := NewObjectStoreSOStateFuncs(t.Context(), store, "", &SOStateRuns{Reload: func() {}}, stateLayout)
 	host := sobject.NewSOHost(t.Context(), watch, lock, testSharedObjectID, syncFuncs)
 	t.Cleanup(host.ClearContext)
 	return host, priv
@@ -85,9 +85,9 @@ func testStepFactorySet() *block_transform.StepFactorySet {
 func TestStateLayoutConversionKeepsEveryOp(t *testing.T) {
 	// Seed a genesis in the whole layout.
 	ctx := t.Context()
-	selected := stateLayoutLog
-	t.Cleanup(func() { stateLayoutLog = selected })
-	stateLayoutLog = false
+	selected := stateLayout
+	t.Cleanup(func() { stateLayout = selected })
+	stateLayout = SOStateLayoutWhole
 	store := store_kvtx_inmem.NewStore()
 	_, _, priv := seedTestGenesisState(t, store)
 	le := logrus.NewEntry(logrus.New())
@@ -111,7 +111,7 @@ func TestStateLayoutConversionKeepsEveryOp(t *testing.T) {
 		t.Helper()
 		hctx, cancel := context.WithCancel(ctx)
 		defer cancel()
-		watch, lock, syncFuncs := NewObjectStoreSOStateFuncs(hctx, store, "", &SOStateRuns{Reload: func() {}})
+		watch, lock, syncFuncs := NewObjectStoreSOStateFuncs(hctx, store, "", &SOStateRuns{Reload: func() {}}, stateLayout)
 		host := sobject.NewSOHost(hctx, watch, lock, testSharedObjectID, syncFuncs)
 		defer host.ClearContext()
 		for i := range n {
@@ -132,7 +132,7 @@ func TestStateLayoutConversionKeepsEveryOp(t *testing.T) {
 		t.Helper()
 		var state *sobject.SOState
 		err := run(false, func(tx kvtx.Tx) error {
-			selected, other := soStateLayouts(testSharedObjectID)
+			selected, other := stateLayout.layouts(testSharedObjectID)
 			var found bool
 			var err error
 			if state, _, found, err = selected.load(ctx, tx); err == nil && !found {
@@ -171,17 +171,17 @@ func TestStateLayoutConversionKeepsEveryOp(t *testing.T) {
 	}
 
 	// A conversion that never commits leaves the whole layout as it was.
-	stateLayoutLog = true
+	stateLayout = SOStateLayoutLog
 	if err := convert(false); err != nil {
 		t.Fatal(err)
 	}
-	stateLayoutLog = false
+	stateLayout = SOStateLayoutWhole
 	if got := stored(); !got.EqualVT(whole) {
 		t.Fatal("an uncommitted conversion changed the stored state")
 	}
 
 	// Convert to the log: the same ops, and no stray op.
-	stateLayoutLog = true
+	stateLayout = SOStateLayoutLog
 	if err := convert(true); err != nil {
 		t.Fatal(err)
 	}
@@ -213,7 +213,7 @@ func TestStateLayoutConversionKeepsEveryOp(t *testing.T) {
 	if got := stored(); !got.EqualVT(logged) {
 		t.Fatal("the log stores another state than its host committed")
 	}
-	stateLayoutLog = false
+	stateLayout = SOStateLayoutWhole
 	if err := convert(true); err != nil {
 		t.Fatal(err)
 	}
@@ -233,14 +233,14 @@ func TestStateLayoutConversionKeepsEveryOp(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	stateLayoutLog = true
+	stateLayout = SOStateLayoutLog
 	if err := run(true, func(tx kvtx.Tx) error {
 		_, err := convertSOState(ctx, tx, testSharedObjectID)
 		return err
 	}); !errors.Is(err, errStateLayoutMismatch) {
 		t.Fatalf("want errStateLayoutMismatch, got %v", err)
 	}
-	stateLayoutLog = false
+	stateLayout = SOStateLayoutWhole
 	if got := stored(); len(got.GetOps()) != len(logged.GetOps()) {
 		t.Fatal("a failed conversion changed the stored state")
 	}

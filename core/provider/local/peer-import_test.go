@@ -41,7 +41,7 @@ func TestPeerImportRetainsAuthority(t *testing.T) {
 	}
 
 	// Apply it and read the resulting state.
-	seedWatch, seedLock, seedSync := NewObjectStoreSOStateFuncs(ctx, backend, readerID, &SOStateRuns{Reload: func() {}})
+	seedWatch, seedLock, seedSync := NewObjectStoreSOStateFuncs(ctx, backend, readerID, &SOStateRuns{Reload: func() {}}, stateLayout)
 	seedHost := sobject.NewSOHost(ctx, seedWatch, seedLock, testSharedObjectID, seedSync)
 	if err := seedHost.ApplyConfigChange(ctx, addReader, nil); err != nil {
 		t.Fatal(err)
@@ -55,7 +55,7 @@ func TestPeerImportRetainsAuthority(t *testing.T) {
 	// Open a host over a store whose first commit fails.
 	faults := kvtest.NewFaultStore(backend, kvtest.FaultBeforeCommit)
 	store := &configHistoryFaultStore{backend: backend, writes: faults}
-	watch, lock, syncFuncs := NewObjectStoreSOStateFuncs(ctx, store, readerID, &SOStateRuns{Reload: func() {}})
+	watch, lock, syncFuncs := NewObjectStoreSOStateFuncs(ctx, store, readerID, &SOStateRuns{Reload: func() {}}, stateLayout)
 	host := sobject.NewSOHost(ctx, watch, lock, testSharedObjectID, syncFuncs)
 	t.Cleanup(host.ClearContext)
 
@@ -91,7 +91,7 @@ func TestPeerImportRetainsAuthority(t *testing.T) {
 	}
 
 	// A reopened host holds the candidate and its suffix.
-	watchAgain, lockAgain, syncAgain := NewObjectStoreSOStateFuncs(ctx, backend, readerID, &SOStateRuns{Reload: func() {}})
+	watchAgain, lockAgain, syncAgain := NewObjectStoreSOStateFuncs(ctx, backend, readerID, &SOStateRuns{Reload: func() {}}, stateLayout)
 	reopened := sobject.NewSOHost(ctx, watchAgain, lockAgain, testSharedObjectID, syncAgain)
 	t.Cleanup(reopened.ClearContext)
 	got, err = reopened.GetHostState(ctx)

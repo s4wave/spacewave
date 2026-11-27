@@ -45,8 +45,10 @@ type SOStateRuns struct {
 // localPeer disables retention.
 // runs is shared by every run of the object's mount (SOStateRuns). A mount
 // with no other runs passes its own.
+// layout is the layout states are loaded from and written in. A state stored
+// in the other layout does not load, so the caller converts it first.
 // watchFn watches the committed state.
-func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStore, localPeer peer.ID, runs *SOStateRuns) (
+func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStore, localPeer peer.ID, runs *SOStateRuns, layout SOStateLayout) (
 	watchFn sobject.SOStateWatchFunc,
 	lockFn sobject.SOStateLockFunc,
 	syncFuncs *sobject.SOHostSyncFuncs,
@@ -55,8 +57,8 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 	reads := mountTransactions{ObjectStore: objStore, ctx: rctx}
 	soRc := keyed.NewKeyedRefCount(
 		func(sharedObjectID string) (keyed.Routine, *soStateEntry) {
-			layout, _ := soStateLayouts(sharedObjectID)
-			ent := newSOStateEntry(layout)
+			selected, _ := layout.layouts(sharedObjectID)
+			ent := newSOStateEntry(selected)
 			return func(ctx context.Context) error {
 				return ent.execute(ctx, reads, runs, sharedObjectID)
 			}, ent

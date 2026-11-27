@@ -684,7 +684,7 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 
 	// Share the accepted-state watch and lock with the local persistence owner.
 	// State writes share the account volume, which reports their durability.
-	watchFn, lockFn, syncFuncs := NewObjectStoreSOStateFuncs(ctx, objStore, localPeerID, &t.runs)
+	watchFn, lockFn, syncFuncs := NewObjectStoreSOStateFuncs(ctx, objStore, localPeerID, &t.runs, stateLayout)
 	vol := t.a.vol
 	syncFuncs.WaitDurable = func(ctx context.Context) error {
 		return volume.WaitDurable(ctx, vol)
@@ -1004,14 +1004,14 @@ func (a *ProviderAccount) RefreshSharedObjectList(context.Context) error {
 
 // loadSharedObjectState validates the object's stored state, first
 // converting a state stored in the other layout to the selected one
-// (stateLayoutLog). An object the account lists with no stored state, such as one listed before create stored
+// (stateLayout). An object the account lists with no stored state, such as one listed before create stored
 // a genesis, gets a genesis in a transaction that rereads the list. An
 // unlisted object with none was deleted or never created and returns
 // ErrSharedObjectNotFound. Under DeleteStateEnv's old behavior any object with
 // no stored state gets a genesis.
 func (t *sobjectTracker) loadSharedObjectState(ctx context.Context, store mountTransactions, sharedObjectID string) error {
 	// Validate the stored state, or learn whether the object is listed.
-	selected, _ := soStateLayouts(sharedObjectID)
+	selected, _ := stateLayout.layouts(sharedObjectID)
 	var found, convert, listed bool
 	err := kvtx.RunTransaction(ctx, false,
 		func(ctx context.Context) (kvtx.Tx, error) {
@@ -1030,7 +1030,7 @@ func (t *sobjectTracker) loadSharedObjectState(ctx context.Context, store mountT
 			if err != nil {
 				return err
 			}
-			if convert = stored && inLog != stateLayoutLog; convert {
+			if convert = stored && inLog != (stateLayout == SOStateLayoutLog); convert {
 				return nil
 			}
 			if stored {

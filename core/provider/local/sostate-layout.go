@@ -10,8 +10,8 @@ import (
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
-// stateLayoutLog selects the log layout (sobject_statestore.LayoutEnv) over
-// the whole state under the host key. It is read once, here, at startup.
+// SOStateLayout names how a SharedObject's state is stored under its host
+// key.
 //
 // Invariants of the two layouts and the conversion between them:
 //
@@ -39,7 +39,28 @@ import (
 // first run this build once with the whole layout selected
 // (SPACEWAVE_SOBJECT_STATE_LAYOUT=whole), so each mount converts its state
 // back under the host key.
-var stateLayoutLog = sobject_statestore.LogSelected()
+type SOStateLayout int
+
+const (
+	// SOStateLayoutWhole stores the whole encoded state under the host key,
+	// rewriting it on each write.
+	SOStateLayoutWhole SOStateLayout = iota
+	// SOStateLayoutLog stores the state as a head and one key per part
+	// (sobject_statestore.Store), with logLayoutMarker under the host key.
+	SOStateLayoutLog
+)
+
+// stateLayout is the layout the local provider stores states in, selected by
+// sobject_statestore.LayoutEnv. It is read once, here, at startup.
+var stateLayout = selectedStateLayout()
+
+// selectedStateLayout returns the layout sobject_statestore.LayoutEnv selects.
+func selectedStateLayout() SOStateLayout {
+	if sobject_statestore.LogSelected() {
+		return SOStateLayoutLog
+	}
+	return SOStateLayoutWhole
+}
 
 // logLayoutMarker is the host key's value while the log layout holds the
 // state. Its first byte, 0x00, is a protobuf tag of field 0, which every
@@ -65,10 +86,10 @@ type soStateLayout interface {
 	clear(ctx context.Context, tx kvtx.TxOps) error
 }
 
-// soStateLayouts returns the selected layout of id's state and the other one.
-func soStateLayouts(id string) (selected, other soStateLayout) {
+// layouts returns layout l of id's state and the other one.
+func (l SOStateLayout) layouts(id string) (selected, other soStateLayout) {
 	whole, log := soStateLayoutPair(id)
-	if stateLayoutLog {
+	if l == SOStateLayoutLog {
 		return log, whole
 	}
 	return whole, log
@@ -82,7 +103,7 @@ func soStateLayoutPair(id string) (wholeLayout, logLayout) {
 
 // soStateKeys returns the token keys of both layouts of id's state.
 func soStateKeys(id string) [2][]byte {
-	selected, other := soStateLayouts(id)
+	selected, other := stateLayout.layouts(id)
 	return [2][]byte{selected.tokenKey(), other.tokenKey()}
 }
 
@@ -124,7 +145,7 @@ func ReadSOStateData(ctx context.Context, tx kvtx.TxOps, id string) ([]byte, boo
 // ReplaceSOState stores state as id's new lineage in the selected layout and
 // clears the other one.
 func ReplaceSOState(ctx context.Context, tx kvtx.TxOps, id string, state *sobject.SOState) error {
-	selected, other := soStateLayouts(id)
+	selected, other := stateLayout.layouts(id)
 	if err := other.clear(ctx, tx); err != nil {
 		return err
 	}
@@ -133,16 +154,16 @@ func ReplaceSOState(ctx context.Context, tx kvtx.TxOps, id string, state *sobjec
 }
 
 // convertSOState moves id's state into the selected layout when it is stored
-// in the other one, following the invariants on stateLayoutLog, and returns
+// in the other one, following the invariants on SOStateLayout, and returns
 // the converted state as the selected layout loads it, or nil when it wrote
 // nothing.
 func convertSOState(ctx context.Context, tx kvtx.TxOps, id string) (*sobject.SOState, error) {
 	// A state already in the selected layout, or none, needs nothing.
 	stored, inLog, err := soStateInLog(ctx, tx, id)
-	if err != nil || !stored || inLog == stateLayoutLog {
+	if err != nil || !stored || inLog == (stateLayout == SOStateLayoutLog) {
 		return nil, err
 	}
-	selected, other := soStateLayouts(id)
+	selected, other := stateLayout.layouts(id)
 	state, _, found, err := other.load(ctx, tx)
 	if err != nil || !found {
 		return nil, err
