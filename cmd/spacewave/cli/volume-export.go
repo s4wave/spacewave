@@ -15,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/packcopy"
+	"github.com/s4wave/spacewave/db/world/refwalk"
 )
 
 // volumeExportTempPrefix reserves temporary filenames for incomplete exports.
@@ -34,21 +35,37 @@ type volumeExportResult struct {
 	missing uint64
 	// mismatch is the number of source blocks that fail their hash.
 	mismatch uint64
+	// followed is the number of children placed or verified in the output.
+	followed uint64
+	// receiverHolds is the number of child hits where the receiver stops the walk.
+	receiverHolds uint64
+	// neitherHolds is the number of child hits absent from both volumes.
+	neitherHolds uint64
+}
+
+// volumeBlockPresence checks the receiver without loading its block bytes.
+type volumeBlockPresence interface {
+	// HasBlock reports whether the receiver physically holds the ref.
+	HasBlock(ctx context.Context, ref *block.BlockRef) (bool, error)
 }
 
 // volumeExport streams verified blocks into a private directory.
 type volumeExport struct {
 	// source reads the stopped source's raw blocks.
 	source packcopy.Source
+	// receiver stops the child walk at present blocks; nil disables following.
+	receiver volumeBlockPresence
+	// seen contains only refs verified in the output during this run.
+	seen map[string]struct{}
 	// out is the private output directory.
 	out string
-	// lacks receives missing or corrupt refs in input order.
+	// lacks receives missing named refs and corrupt source refs in traversal order.
 	lacks io.Writer
 	// result accumulates the input and output counts.
 	result volumeExportResult
 }
 
-// run exports each parsed ref while retaining at most one block's bytes.
+// run streams requested refs and optionally follows receiver-absent descendants.
 func (r *volumeExport) run(ctx context.Context, input io.Reader) (err error) {
 	// Make every successful publication and removal durable before the run returns.
 	out, err := os.Open(r.out)
@@ -82,6 +99,11 @@ func (r *volumeExport) run(ctx context.Context, input io.Reader) (err error) {
 		}
 	}
 
+	// Track only exported refs when following is enabled.
+	if r.receiver != nil {
+		r.seen = make(map[string]struct{})
+	}
+
 	// Keep only one block's bytes while consuming the requested refs.
 	return streamVolumeBlockRefs(ctx, input, 1, func(refs []*block.BlockRef) error {
 		return r.exportBlock(ctx, refs[0])
@@ -98,14 +120,38 @@ func (r *volumeExport) exportBlock(ctx context.Context, ref *block.BlockRef) err
 	}
 	if present {
 		r.result.already++
-		return nil
+		return r.followChildren(ctx, ref)
 	}
 
 	// Verify source bytes here so a corrupt source never reaches the write path.
+	stored, err := r.readSourceBlock(ctx, ref, false)
+	if err != nil || stored == nil {
+		return err
+	}
+
+	// Publish one completed file before reading another block.
+	if err := r.writeBlock(ref, stored.Data); err != nil {
+		return err
+	}
+	r.result.exported++
+	r.result.bytes += uint64(len(stored.Data))
+	return r.followChildren(ctx, ref)
+}
+
+// readSourceBlock returns verified source bytes and accounts for unusable blocks.
+// A missing child may be a hash that is not a ref, so it stays out of the report.
+func (r *volumeExport) readSourceBlock(ctx context.Context, ref *block.BlockRef, child bool) (*block.StoredBlock, error) {
+	// Read the raw source before allowing its bytes to reach writeBlock.
 	stored, err := r.source.GetStoredBlock(ctx, ref)
 	if err != nil {
-		return errors.Wrapf(err, "read source block %s", ref.MarshalString())
+		return nil, errors.Wrapf(err, "read source block %s", ref.MarshalString())
 	}
+	if stored == nil && child {
+		r.result.neitherHolds++
+		return nil, nil
+	}
+
+	// Record corrupt children and every unusable explicitly requested block.
 	why := ""
 	switch {
 	case stored == nil:
@@ -117,16 +163,97 @@ func (r *volumeExport) exportBlock(ctx context.Context, ref *block.BlockRef) err
 	}
 	if why != "" {
 		_, err := io.WriteString(r.lacks, ref.MarshalString()+"\t"+why+"\n")
-		return errors.Wrap(err, "write lacks output")
+		return nil, errors.Wrap(err, "write lacks output")
 	}
+	return stored, nil
+}
 
-	// Publish one completed file before reading another block.
-	if err := r.writeBlock(ref, stored.Data); err != nil {
-		return err
+// followChildren walks exported blocks with a ref stack instead of retaining their bytes.
+// Only verified output refs enter seen; receiver stops and absent hits are not retained.
+func (r *volumeExport) followChildren(ctx context.Context, ref *block.BlockRef) error {
+	// Start each verified output block at most once in this run.
+	if r.receiver == nil {
+		return nil
 	}
-	r.result.exported++
-	r.result.bytes += uint64(len(stored.Data))
+	if _, ok := r.seen[ref.MarshalString()]; ok {
+		return nil
+	}
+	r.seen[ref.MarshalString()] = struct{}{}
+	stack := []*block.BlockRef{ref}
+
+	// Re-read output bytes when scanning instead of retaining pending blocks' bytes.
+	for len(stack) != 0 {
+		// Release the scanned block's bytes before reading any child from the source.
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		last := len(stack) - 1
+		hits, err := r.scanExportedBlock(ctx, stack[last])
+		stack = stack[:last]
+		if err != nil {
+			return err
+		}
+
+		// Inspect hits in wire order and stop wherever the receiver already holds one.
+		for _, hit := range hits {
+			// Keep the per-run set bounded by verified output refs.
+			child := hit.Ref
+			key := child.MarshalString()
+			if _, ok := r.seen[key]; ok {
+				continue
+			}
+			present, err := r.receiver.HasBlock(ctx, child)
+			if err != nil {
+				return errors.Wrapf(err, "check receiver block %s", key)
+			}
+			if present {
+				r.result.receiverHolds++
+				continue
+			}
+
+			// Require verified source bytes even if a previous run left the child on disk.
+			stored, err := r.readSourceBlock(ctx, child, true)
+			if err != nil {
+				return err
+			}
+			if stored == nil {
+				continue
+			}
+			present, err = r.reuseBlock(ctx, child)
+			if err != nil {
+				return err
+			}
+			if present {
+				r.result.already++
+			} else {
+				if err := r.writeBlock(child, stored.Data); err != nil {
+					return err
+				}
+				r.result.exported++
+				r.result.bytes += uint64(len(stored.Data))
+			}
+
+			// Mark only completed output and queue its ref for the next scan.
+			r.result.followed++
+			r.seen[key] = struct{}{}
+			stack = append(stack, child)
+		}
+	}
 	return nil
+}
+
+// scanExportedBlock releases its bytes after extracting the child refs.
+func (r *volumeExport) scanExportedBlock(ctx context.Context, ref *block.BlockRef) ([]refwalk.ScanHit, error) {
+	// Read a published file through the carrier's regular-file checks.
+	stored, err := dirBlocks(r.out).GetStoredBlock(ctx, ref)
+	if err != nil {
+		return nil, err
+	}
+	if stored == nil {
+		return nil, errors.Errorf("exported block %s disappeared before scanning", ref.MarshalString())
+	}
+	hits, _ := refwalk.ScanHits(stored.Data)
+	return hits, nil
 }
 
 // reuseBlock keeps a verified existing file and removes corrupt output bytes.
@@ -190,5 +317,8 @@ func volumeExportFields(path string, r volumeExportResult) [][2]string {
 		{"Already in directory", strconv.FormatUint(r.already, 10)},
 		{"Source lacks", strconv.FormatUint(r.missing, 10)},
 		{"Hash mismatch", strconv.FormatUint(r.mismatch, 10)},
+		{"Children followed", strconv.FormatUint(r.followed, 10)},
+		{"Children the receiver holds", strconv.FormatUint(r.receiverHolds, 10)},
+		{"Children neither holds", strconv.FormatUint(r.neitherHolds, 10)},
 	}
 }

@@ -1675,6 +1675,7 @@ func checkVolumeExportReport(t *testing.T, report, path string, exported, size, 
 		{"Volume", path}, {"Refs read", "6"}, {"Blocks exported", strconv.Itoa(exported)},
 		{"Bytes exported", strconv.Itoa(size)}, {"Already in directory", strconv.Itoa(already)},
 		{"Source lacks", "2"}, {"Hash mismatch", "1"},
+		{"Children followed", "0"}, {"Children the receiver holds", "0"}, {"Children neither holds", "0"},
 	}
 	lines := strings.Split(strings.TrimSpace(report), "\n")
 	if len(lines) != len(want) {

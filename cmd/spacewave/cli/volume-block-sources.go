@@ -39,6 +39,16 @@ func (s *s4dbBlocks) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*
 	return &block.StoredBlock{Data: data}, nil
 }
 
+// HasBlock reports physical presence without reading the block's bytes.
+func (s *s4dbBlocks) HasBlock(ctx context.Context, ref *block.BlockRef) (bool, error) {
+	// Resolve the same physical key used by GetStoredBlock.
+	key, err := ref.MarshalKey()
+	if err != nil {
+		return false, err
+	}
+	return s.tx.Exists(ctx, s.keys.GetBlockKey(key))
+}
+
 // openS4DBBlocks opens a stopped source and holds one snapshot for the caller's stream.
 // The caller must call closeSource to discard the snapshot before closing the file.
 // Only the engine's reader-slot bookkeeping may write to this read-only source.
@@ -117,6 +127,7 @@ func (d dirBlocks) GetStoredBlock(_ context.Context, ref *block.BlockRef) (_ *bl
 
 // _ is a type assertion.
 var (
-	_ packcopy.Source = (*s4dbBlocks)(nil)
-	_ packcopy.Source = dirBlocks("")
+	_ volumeBlockPresence = (*s4dbBlocks)(nil)
+	_ packcopy.Source     = (*s4dbBlocks)(nil)
+	_ packcopy.Source     = dirBlocks("")
 )
