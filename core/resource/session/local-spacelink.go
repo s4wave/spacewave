@@ -175,7 +175,7 @@ func (r *LocalSessionResource) mountLocalSpace(
 	providerID := localAcc.GetProviderID()
 	found := false
 	sharedCopy := false
-	for _, entry := range localAcc.GetSOListCtr().GetValue().GetSharedObjects() {
+	for _, entry := range localAcc.GetSharedObjectList().GetSharedObjects() {
 		if entry.GetRef().GetProviderResourceRef().GetId() == resourceID {
 			found = true
 			sharedCopy = entry.GetSource() == "shared"

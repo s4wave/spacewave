@@ -146,7 +146,14 @@ func (a *ProviderAccount) GetProviderID() string {
 	return a.t.accountInfo.GetProviderId()
 }
 
-// GetSOListCtr returns the shared object list container.
+// GetSharedObjectList returns the current shared object list. The list is
+// shared and must not be modified.
+func (a *ProviderAccount) GetSharedObjectList() *sobject.SharedObjectList {
+	return a.soListCtr.GetValue()
+}
+
+// GetSOListCtr returns the shared object list container, for tests that set
+// or wait on the list. Production readers use GetSharedObjectList.
 func (a *ProviderAccount) GetSOListCtr() *ccontainer.CContainer[*sobject.SharedObjectList] {
 	return a.soListCtr
 }

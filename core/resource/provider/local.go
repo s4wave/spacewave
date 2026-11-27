@@ -383,7 +383,7 @@ func (s *LocalProviderResource) lookupLocalSessionByPeerID(
 // invite is redeemed.
 func localAccountRedeemedInvite(ctx context.Context, localAcc *provider_local.ProviderAccount, invite *sobject.SOInviteMessage) (bool, error) {
 	// Find the account's entry for the invite's shared object.
-	entries := localAcc.GetSOListCtr().GetValue().GetSharedObjects()
+	entries := localAcc.GetSharedObjectList().GetSharedObjects()
 	idx := slices.IndexFunc(entries, func(entry *sobject.SharedObjectListEntry) bool {
 		return entry.GetRef().GetProviderResourceRef().GetId() == invite.GetSharedObjectId()
 	})

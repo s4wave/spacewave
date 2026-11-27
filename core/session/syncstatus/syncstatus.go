@@ -154,7 +154,7 @@ func buildLocalSyncStatusSnapshot(
 	progress, copyCh := acc.GetAccountCopyProgress()
 	var inventory *sobject.SharedObjectList
 	if p2pRunning {
-		inventory = acc.GetSOListCtr().GetValue()
+		inventory = acc.GetSharedObjectList()
 	}
 	for _, entry := range inventory.GetSharedObjects() {
 		if !provider_local.ReplicatesSpace(entry) {
