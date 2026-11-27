@@ -30,11 +30,10 @@ func NewTxStore(ops TxOps) *TxStore {
 // Always call Discard() after finishing with the transaction.
 func (t *TxStore) NewTransaction(ctx context.Context, write bool) (Tx, error) {
 	// Build the transaction and record its writes on the store.
-	tx, err := NewTxStoreTx(t.tx)
+	tx, err := newTxStoreTx(t.tx, &t.wrote)
 	if err != nil {
 		return nil, err
 	}
-	tx.wrote = &t.wrote
 
 	// Batch writes when the underlying operations support batches.
 	if batch, ok := t.tx.(WriteBatchTxOps); write && ok {

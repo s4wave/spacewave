@@ -24,10 +24,15 @@ type TxStoreTx struct {
 
 // NewTxStoreTx constructs a new TxStoreTx from a TxOps.
 func NewTxStoreTx(ops TxOps) (*TxStoreTx, error) {
+	return newTxStoreTx(ops, nil)
+}
+
+// newTxStoreTx constructs a virtual transaction with its optional write tracker.
+func newTxStoreTx(ops TxOps, wrote *atomic.Bool) (*TxStoreTx, error) {
 	if ops == nil {
 		return nil, errors.New("tx ops cannot be empty")
 	}
-	return &TxStoreTx{tx: ops}, nil
+	return &TxStoreTx{tx: ops, wrote: wrote}, nil
 }
 
 // GetTxOps returns the transaction ops object.
