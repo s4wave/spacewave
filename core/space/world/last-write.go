@@ -71,12 +71,14 @@ var errBaseUnsigned = errors.New("built on a write that was never signed")
 // expectWrite returns adm's operation with the ExpectedWrite of what its
 // candidate was built after: the signed hash of the admission it built on, or
 // this device's LastWrite in the installed head it built on. It returns adm's
-// operation unchanged when this device's writes carry none, and
-// errBaseUnsigned when the admission it built on was never signed. The queue goroutine calls it once,
+// operation unchanged when this device's writes carry none, or when adm has no
+// candidate, as an operation such as SetRetainedRoot built on no World
+// expects no write and records none. It returns errBaseUnsigned when the
+// admission it built on was never signed. The queue goroutine calls it once,
 // after queueing every earlier admission, so a signed base has its receipt.
 func (a *Adapter) expectWrite(adm *spaceAdmission) ([]byte, error) {
 	// Take the write the candidate was built after.
-	if !a.expectWrites {
+	if !a.expectWrites || adm.getCandidate() == nil {
 		return adm.op, nil
 	}
 	hash := adm.afterHead
