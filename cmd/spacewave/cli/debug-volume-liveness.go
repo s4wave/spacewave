@@ -238,8 +238,9 @@ func newDebugVolumeAuditCommand() *cli.Command {
 		Description: "Walks every block a named root reaches through child lists in one snapshot, and compares the walk " +
 			"with the counts and the free queue the collector keeps. Live blocks queued to free and undercounted blocks " +
 			"are errors in the counts that would free a live block; leaked and unlisted blocks are garbage the collector " +
-			"does not free. It frees nothing, but records each hole under a live root that no record names yet, so a " +
-			"later put of that block counts it as stored. It keeps the reached set in memory, so run it on a copy host. " +
+			"does not free. It opens the volume read-only and writes nothing, so it records no hole; debug " +
+			"volume-write-off and debug payload-restore run the same walk and record each hole under a live root. " +
+			"It keeps the reached set in memory, so run it on a copy host. " +
 			"Run it only on a stopped volume.",
 		Flags:  args.BuildFlags(),
 		Action: args.Run,

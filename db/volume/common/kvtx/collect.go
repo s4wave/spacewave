@@ -163,6 +163,17 @@ func (v *Volume) Audit(ctx context.Context) (block_gc.AuditResult, error) {
 	return block_gc.Audit(block.WithBackground(ctx), collectorStore{v: v}, v.now(), !v.readOnly)
 }
 
+// WriteOffHoles writes off the recorded hole of each block in refs, so it no
+// longer holds the settle's flip, as block_gc.WriteOffHoles describes with
+// what the write-off gives up. It writes nothing when a ref has no hole
+// record. An operator's stopped-volume command calls it.
+func (v *Volume) WriteOffHoles(ctx context.Context, refs []*block.BlockRef) (block_gc.WriteOffResult, error) {
+	if !v.HoldsRoots() {
+		return block_gc.WriteOffResult{}, block.ErrAtomicCommitUnsupported
+	}
+	return block_gc.WriteOffHoles(block.WithBackground(ctx), collectorStore{v: v}, refs)
+}
+
 // SettleStatus reads what the settle's flip checks find, counting the front
 // and the recorded holes up to limit each, as block_gc.SettleStatus
 // describes. It writes nothing.

@@ -6440,6 +6440,108 @@ func TestLivenessSettle(t *testing.T) {
 		requireKept(t, v, clk, store, tr, "D", "H and C's short list")
 	})
 
+	for _, late := range []bool{false, true} {
+		t.Run("written-off hole, put after the sweep="+strconv.FormatBool(late), func(t *testing.T) {
+			// Main holds A -> H -> C -> D, A -> B -> H and A -> Q, with
+			// C's list cut. The store loses H and Q, and an audit records
+			// both holes, which hold the flip. An operator writes off H
+			// alone: H leaves the front, the walk of B does not push it
+			// again, and Q still holds the flip until a put refills it. A put of H from content
+			// before the flip is the refill, which pushes C, so D stays.
+			// Without one the flip passes H and the sweep deletes C and D,
+			// which no walk reached, the loss the operator accepted. A put
+			// of H, C and D from content after it ends the hole, and H's
+			// list holds C from then on.
+			tr := testTree{}
+			tr.add(t, "D")
+			tr.add(t, "C", "D")
+			h := tr.add(t, "H", "C")
+			q := tr.add(t, "Q")
+			tr.add(t, "B", "H")
+			tr.add(t, "A", "H", "Q", "B")
+			v, clk, store := oldStore(t, tr, "A", []string{"D", "C", "H", "Q", "B", "A"}, "C")
+			ctx := t.Context()
+			punchHole(t, v, h)
+			punchHole(t, v, q)
+			if res, err := v.Audit(ctx); err != nil || res.Holes != 2 {
+				t.Fatalf("audit recorded %d holes err %v, want 2", res.Holes, err)
+			}
+			verify(t, v, tr, "A")
+			holes := func() (int, int) {
+				t.Helper()
+				st, err := v.SettleStatus(ctx, 8)
+				if err != nil {
+					t.Fatal(err)
+				}
+				return st.Holes, st.OpenHoles
+			}
+
+			// A list naming a block that is no hole writes off nothing.
+			if _, err := v.WriteOffHoles(ctx, []*block.BlockRef{h, tr["D"].Ref}); !errors.Is(err, block_gc.ErrNotHole) {
+				t.Fatalf("write-off naming the stored D err %v, want refused", err)
+			}
+			if n, open := holes(); n != 2 || open != 2 || !has(t, store, front, h) {
+				t.Fatalf("the refused write-off left %d holes, %d open, want both open and H on the front", n, open)
+			}
+
+			// Write off H, twice: the second changes nothing.
+			for range 2 {
+				if res, err := v.WriteOffHoles(ctx, []*block.BlockRef{h}); err != nil || res.WrittenOff != 1 || res.Ended != 0 {
+					t.Fatalf("write-off of H = %+v err %v, want one hole written off", res, err)
+				}
+			}
+			if n, open := holes(); n != 2 || open != 1 || has(t, store, front, h) || !has(t, store, front, q) {
+				t.Fatalf("after the write-off %d holes, %d open, want Q's open and only Q on the front", n, open)
+			}
+
+			// The walk of B, which names H, pushes nothing, and Q holds
+			// the flip.
+			verify(t, v, tr, "B")
+			clk.Add(block_gc.DefaultGrace + time.Second)
+			if res := collectAll(t, v); res.Flipped || has(t, store, front, h) {
+				t.Fatalf("collect with Q's hole open = %+v, want no flip and H off the front", res)
+			}
+
+			// A put of H before the flip is the refill.
+			if !late {
+				if _, err := v.PutBlockBatch(ctx, tr.entries("H")); err != nil {
+					t.Fatal(err)
+				}
+				if n, _ := holes(); n != 1 || !has(t, store, front, tr["C"].Ref) {
+					t.Fatalf("the refill of H left %d holes, want Q's, and C on the front", n)
+				}
+			}
+
+			// Refill Q and settle.
+			if _, err := v.PutBlockBatch(ctx, tr.entries("Q")); err != nil {
+				t.Fatal(err)
+			}
+			settleAll(t, v, clk, store, tr)
+			requireStored(t, v, tr, true, "A", "Q", "B")
+			requireStored(t, v, tr, !late, "H", "C", "D")
+			if n, open := holes(); late && (n != 1 || open != 0) {
+				t.Fatalf("after the sweep %d holes, %d open, want H's written off", n, open)
+			}
+
+			// Put the lost tree from content and let two grace periods
+			// pass.
+			if late {
+				if _, err := v.PutBlockBatch(ctx, tr.entries("D", "C", "H")); err != nil {
+					t.Fatal(err)
+				}
+			}
+			for range 2 {
+				clk.Add(block_gc.DefaultGrace + time.Second)
+				collectAll(t, v)
+			}
+			if n, _ := holes(); n != 0 {
+				t.Fatalf("%d holes after every put, want none", n)
+			}
+			requireReads(t, v, tr, "A", "H", "C", "D", "Q", "B")
+			requireAudit(t, v, 0)
+		})
+	}
+
 	// oldU builds the root A, verified, and an unreached old block U -> K,
 	// with U's list cut when cut is set.
 	oldU := func(t *testing.T, cut bool) (*Volume, *testClock, kvtx.Store, testTree) {

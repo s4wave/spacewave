@@ -225,6 +225,7 @@ func settleStatusFields(st *block_gc.SettleStatus, frees, graced bool) [][2]stri
 	// Report the remaining flip checks after the front proof.
 	fields = append(fields, [][2]string{
 		{"Recorded holes", settleCount(st.Holes, st.HolesMore)},
+		{"Holes not written off", settleCount(st.OpenHoles, st.HolesMore)},
 		{"Ripe block queued, not parked", strconv.FormatBool(st.RipeQueued)},
 		{"Flip held by", flipHeldBy(st, frees, graced)},
 	}...)
@@ -264,8 +265,10 @@ func flipHeldBy(st *block_gc.SettleStatus, frees, graced bool) string {
 		return "the unmarked run is not complete"
 	case st.Front != 0:
 		return "the front: blocks without a verified child list; a pass takes off the ones nothing holds, and debug ref-repair walks the rest"
-	case st.Holes != 0:
-		return "recorded holes: blocks lost with their lists that a put must store again"
+	case st.OpenHoles != 0:
+		return "recorded holes: blocks lost with their lists that a put must store again, or debug volume-write-off must write off"
+	case st.HolesMore:
+		return "more recorded holes than the report reads, if one of them is not written off"
 	case st.RipeQueued:
 		return "a ripe block queued to free, which the next free parks"
 	default:

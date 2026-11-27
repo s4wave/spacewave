@@ -317,5 +317,38 @@
     ],
     "expect": "HeldPresent",
     "config": "Settle-upgrade.cfg"
+  },
+  {
+    "name": "a put onto a written-off hole lists it with no children",
+    "replace": [
+      [
+        "            /\\ short' = short \\ {b}\n            /\\ front' = (front \\ {b})",
+        "            /\\ short' = IF b \\in off THEN short \\cup {b} ELSE short \\ {b}\n            /\\ front' = (front \\ {b})"
+      ]
+    ],
+    "expect": "ReachedShown",
+    "config": "Settle-off.cfg"
+  },
+  {
+    "name": "the write-off leaves the hole on the front",
+    "replace": [
+      [
+        "  /\\ front' = front \\ {b}\n  /\\ UNCHANGED <<gen, stored, verified, short, seeded, run,",
+        "  /\\ UNCHANGED front\n  /\\ UNCHANGED <<gen, stored, verified, short, seeded, run,"
+      ]
+    ],
+    "expect": "EventuallySettled",
+    "config": "Settle-off.cfg"
+  },
+  {
+    "name": "a push returns a written-off hole to the front",
+    "replace": [
+      [
+        "Owed(S) == {b \\in S : b \\notin verified /\\ b \\notin off}",
+        "Owed(S) == {b \\in S : b \\notin verified}"
+      ]
+    ],
+    "expect": "EventuallySettled",
+    "config": "Settle-off.cfg"
   }
 ]

@@ -79,12 +79,14 @@ const (
 	kindLeaseRoot byte = 'o'
 	// kindHole keys a hole the audit found under a live root, by the block:
 	// a block the store lost together with its child list, whose parents'
-	// lists still reference it. It holds no value. Its children's counts
-	// may lack its holder: no recount reads a list for it, and an audit
-	// cannot tell whether the last one ran before the loss. A put of the
-	// block counts it as stored, as Land describes, gives its children its
-	// holder, and deletes the record. When the counts held it already, they
-	// stay one high until a recount.
+	// lists still reference it. Its value is empty, or holeWrittenOff once
+	// an operator wrote the hole off, as Records.writeOffHole describes.
+	// Its children's counts may lack its holder: no recount reads a list
+	// for it, and an audit cannot tell whether the last one ran before the
+	// loss. A put of the block counts it as stored, as Land describes,
+	// gives its children its holder, and deletes the record, written off
+	// or not. When the counts held it already, they stay one high until a
+	// recount.
 	kindHole byte = 'O'
 	// kindParked keys a Dead block the free held back while the generation
 	// is Open, by its big-endian ripe sequence, then the block, as the free
@@ -111,7 +113,8 @@ const (
 	// and so does the collector once its free proof holds for the block. An
 	// entry whose block the store does not list stays while it has holders
 	// or its bytes remain, for the walk to list it. With neither the proof
-	// pops it.
+	// pops it. A written-off hole is never on it, as Records.writeOffHole
+	// describes.
 	kindFront byte = 'G'
 	// kindUnmarked keys an entry of the unmarked run, by the block: a block
 	// whose bytes or list the store holds without a list from content, or
@@ -166,12 +169,13 @@ const (
 	kindPopMark byte = 'k'
 	// kindAddRev is one record, with no key past the kind, whose value is
 	// the big-endian add revision: every transaction that writes a front
-	// or hole key raises it once, through Records.addFront or
-	// Records.addHole, the only writers of either kind. A reader that found
-	// no front and no hole key in a read snapshot at revision n knows a
-	// later transaction that reads n finds none either, from that one point
-	// read, without seeking the prefixes over their deleted keys, as
-	// flipProof describes. An absent record is revision zero.
+	// or hole key raises it once, through Records.addFront,
+	// Records.addHole or Records.writeOffHole, the only writers of either
+	// kind. A reader that found no front key, and no hole key but a
+	// written-off one, in a read snapshot at revision n knows a later
+	// transaction that reads n finds the same, from that one point read,
+	// without seeking the prefixes over their deleted keys, as flipProof
+	// describes. An absent record is revision zero.
 	kindAddRev byte = 'v'
 	// kindHolesClear is one record, with no key past the kind and no
 	// value, present only while no hole key exists. Each collector pass
@@ -1128,7 +1132,8 @@ func (r *Records) addFront(ctx context.Context, key []byte) error {
 
 // addHole records the block at key as a hole, raising the add revision
 // and deleting the holes-clear mark, as kindAddRev and kindHolesClear
-// describe. It is the one writer of a hole key.
+// describe. It is the one writer that adds a hole key: writeOffHole
+// rewrites the value of one that exists.
 func (r *Records) addHole(ctx context.Context, key []byte) error {
 	if err := r.raiseAddRev(ctx); err != nil {
 		return err
@@ -1166,11 +1171,83 @@ func (r *Records) addRev(ctx context.Context) (uint64, error) {
 	return binary.BigEndian.Uint64(value), nil
 }
 
+// holeWrittenOff is the value of a hole key an operator wrote off.
+var holeWrittenOff = []byte{'w'}
+
+// writeOffHole writes off the hole at key and takes it off the front,
+// and reports whether a hole record exists there. A hole written off
+// already keeps its value.
+//
+// Invariant: a written-off hole has no front key. This deletes the key,
+// and pushOwed, the one push that reaches a block without a list, skips a
+// written-off hole. So the front holds the flip for it no longer, and no
+// scan of an idle front has to find it. The delete raises no pop mark:
+// the mark makes the flip wait for the Dead parents of a popped child to
+// park, so none revives over a child the sweep deleted, as kindPopMark
+// describes, and the sweep has nothing of a hole to delete. The record
+// stays a hole key, so the holes-clear mark stays absent, Land still reads
+// the key for a put of the block and refills it, a copied put stays
+// refused, an audit finds it recorded, and the adoption forgets it once no
+// holder references it. What the write-off gives up is what the Volume
+// stores only below the hole: no list names it, so the walk never reaches
+// it and the sweep deletes it with the run.
+//
+// Cost: three point reads and three writes, in an operator's transaction.
+func (r *Records) writeOffHole(ctx context.Context, key []byte) (bool, error) {
+	// Require the hole record.
+	hole, err := r.tx.Exists(ctx, r.key(kindHole, key))
+	if err != nil || !hole {
+		return false, err
+	}
+
+	// Write it off, raising the add revision as every hole write does.
+	if err := r.raiseAddRev(ctx); err != nil {
+		return true, err
+	}
+	if err := r.tx.Set(ctx, r.key(kindHole, key), holeWrittenOff); err != nil {
+		return true, err
+	}
+	return true, r.tx.Delete(ctx, r.key(kindFront, key))
+}
+
+// writtenOff reports whether the block at key is a written-off hole. It
+// reads the holes-clear mark, and the hole key only while the mark is
+// absent, so it costs one point read while no hole is recorded.
+func (r *Records) writtenOff(ctx context.Context, key []byte) (bool, error) {
+	open, err := r.holesOpen(ctx)
+	if err != nil || !open {
+		return false, err
+	}
+	value, found, err := r.tx.Get(ctx, r.key(kindHole, key))
+	return found && bytes.Equal(value, holeWrittenOff), err
+}
+
 // holesOpen reports whether a hole key may exist: the holes-clear mark is
 // absent, as kindHolesClear describes. It reads one key.
 func (r *Records) holesOpen(ctx context.Context) (bool, error) {
 	clear, err := r.tx.Exists(ctx, r.key(kindHolesClear))
 	return !clear, err
+}
+
+// holesHold reports whether a recorded hole may hold the flip: the
+// holes-clear mark is absent and a hole key is not written off. It reads
+// the mark, and without it every hole key and value, which a Volume
+// carries only while an operator leaves a loss recorded.
+func (r *Records) holesHold(ctx context.Context) (bool, error) {
+	// Take the mark's word.
+	open, err := r.holesOpen(ctx)
+	if err != nil || !open {
+		return false, err
+	}
+
+	// Stop at the first hole nobody wrote off.
+	var holds bool
+	err = r.scan(ctx, r.key(kindHole), nil, func(_ []byte, value func() ([]byte, error)) (bool, error) {
+		v, err := value()
+		holds = err == nil && !bytes.Equal(v, holeWrittenOff)
+		return err == nil && !holds, err
+	})
+	return holds, err
 }
 
 // anyKey reports whether a key begins with prefix.

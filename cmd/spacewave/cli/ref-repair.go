@@ -5,7 +5,6 @@ package spacewave_cli
 import (
 	"bufio"
 	"context"
-	"maps"
 	"reflect"
 	"slices"
 	"strings"
@@ -98,9 +97,6 @@ type refRepairResult struct {
 	peerListing bool
 	// peerListed counts distinct refs served by the peer and listed.
 	peerListed uint64
-	// synthetic is the number of blocks listed with no children because the
-	// synthetic set contains them, as refRepair.synthetic describes.
-	synthetic uint64
 	// payloadBlobs is the number of payload roots read as blobs, which the
 	// walker typed by a guess it could confirm.
 	payloadBlobs uint64
@@ -178,11 +174,6 @@ type refRepair struct {
 	// peer reads the blocks the volume lacks, nil to read the volume alone.
 	// The walk never fills the volume from it.
 	peer block.StoreOps
-	// synthetic records the blocks a rehearsal lists with no children when no
-	// read decodes them, by their keys, and records whether the walk did.
-	// The set proves nothing about those blocks: the set lets a rehearsal
-	// reach the flip on a copy whose unresolved blocks hold the flip.
-	synthetic map[string]bool
 	// rebuild verifies the decoded blocks' lists, or on a dry run compares
 	// them. Nil on a volume whose old generation had left Open.
 	rebuild *block_gc.ListRebuild
@@ -715,14 +706,6 @@ func (r *refRepair) visit(ctx context.Context, batch []refwalk.Visit) error {
 			continue
 		}
 
-		// List a synthetic block no read decodes with no children.
-		if (!rd.Found || rd.DecodeErr != nil) && r.listSynthetic(rd.Node.Ref) {
-			if err := r.verify(ctx, rd.Node.Ref, nil, ""); err != nil {
-				return err
-			}
-			continue
-		}
-
 		// Count a block no read resolves, a leaf, and an undecodable block.
 		if !rd.Found {
 			r.res.absent++
@@ -775,39 +758,6 @@ func (r *refRepair) visit(ctx context.Context, batch []refwalk.Visit) error {
 			return err
 		}
 		if err := r.visitDecoded(ctx, rd.Node.Ref, rd.Refs, nodeType(rd.Node)); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// listSynthetic reports whether the synthetic set contains ref, and records
-// that the walk listed it.
-func (r *refRepair) listSynthetic(ref *block.BlockRef) bool {
-	// Mark the named ref listed and count it.
-	key := ref.MarshalString()
-	if _, ok := r.synthetic[key]; !ok {
-		return false
-	}
-	r.synthetic[key] = true
-	r.res.synthetic++
-	return true
-}
-
-// listUnwalkedSynthetic lists with no children each block of the synthetic
-// set the walk never reached, such as an object root whose type does not
-// read.
-func (r *refRepair) listUnwalkedSynthetic(ctx context.Context) error {
-	for _, key := range slices.Sorted(maps.Keys(r.synthetic)) {
-		if r.synthetic[key] {
-			continue
-		}
-		ref, err := block.UnmarshalBlockRefB58(key)
-		if err != nil {
-			return err
-		}
-		r.listSynthetic(ref)
-		if err := r.verify(ctx, ref, nil, ""); err != nil {
 			return err
 		}
 	}

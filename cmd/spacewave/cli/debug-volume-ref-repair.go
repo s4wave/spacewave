@@ -6,7 +6,6 @@ import (
 	"context"
 	stderrors "errors"
 	"maps"
-	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -35,9 +34,6 @@ type debugRefRepairArgs struct {
 	peerBlocks string
 	// peerOut names the file of refs served by the peer.
 	peerOut string
-	// syntheticEmpty is a file of B58 refs, one per line, listed with no
-	// children when no read decodes them.
-	syntheticEmpty string
 	// histogram reads every walked block's bytes and reports the blocks and
 	// bytes by type and by size.
 	histogram bool
@@ -84,11 +80,6 @@ func (a *debugRefRepairArgs) BuildFlags() []cli.Flag {
 			Name:        "peer-out",
 			Usage:       "write each ref served by --peer-blocks once, in first-served order, for volume-export or volume-refill --refs",
 			Destination: &a.peerOut,
-		},
-		&cli.StringFlag{
-			Name:        "synthetic-empty",
-			Usage:       "file of B58 refs to list with no children when no read decodes them, for a rehearsal on a copy",
-			Destination: &a.syntheticEmpty,
 		},
 		&cli.BoolFlag{
 			Name:        "histogram",
@@ -155,35 +146,23 @@ func (a *debugRefRepairArgs) Run(c *cli.Context) error {
 	return nil
 }
 
-// opts reads the peer and synthetic stand-ins the flags select, with what more
-// the run measures.
+// opts returns the peer stand-in the flags select, with what more the run
+// measures.
 func (a *debugRefRepairArgs) opts() (refRepairOpts, error) {
 	// Require the scan before it can verify lists.
 	if a.scanVerify && !a.scanUntyped {
 		return refRepairOpts{}, errors.New("--scan-verify requires --scan-untyped")
 	}
 
-	// Read the peer store and the synthetic list the flags select.
+	// Name the peer store and the listings the flags select.
 	opts := refRepairOpts{
 		frontRoots: a.frontRoots, frontOut: a.frontOut, lacksOut: a.lacksOut,
-		peerPath: a.peerBlocks, peerOut: a.peerOut, syntheticPath: a.syntheticEmpty,
+		peerPath: a.peerBlocks, peerOut: a.peerOut,
 		scanUntyped: a.scanUntyped, scanVerify: a.scanVerify,
 		dropLegacySpans: a.dropLegacySpans,
 	}
 	if a.peerOut != "" && a.peerBlocks == "" {
 		return opts, errors.New("--peer-out requires --peer-blocks")
-	}
-	if a.syntheticEmpty != "" {
-		data, err := os.ReadFile(a.syntheticEmpty)
-		if err != nil {
-			return opts, err
-		}
-		opts.synthetic = make(map[string]bool)
-		for line := range strings.Lines(string(data)) {
-			if key := strings.TrimSpace(line); key != "" {
-				opts.synthetic[key] = false
-			}
-		}
 	}
 
 	// Make the histogram the run fills.
@@ -216,11 +195,6 @@ type refRepairOpts struct {
 	peerPath string
 	// peerOut names the listing of refs served by the peer.
 	peerOut string
-	// syntheticPath names the synthetic ref input protected from output replacement.
-	syntheticPath string
-	// synthetic selects blocks to list with no children when no read
-	// decodes them, as refRepair.synthetic describes.
-	synthetic map[string]bool
 	// histogram counts the walked blocks by type and size when set. The walk
 	// then reads every block's bytes, leaves included. The root blocks the
 	// Space's bucket names, read before the walk, are not counted.
@@ -252,7 +226,6 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 		fields = append(fields, [2]string{"Peer blocks listed", strconv.FormatUint(res.peerListed, 10)})
 	}
 	fields = append(fields, [][2]string{
-		{"Blocks listed synthetically empty", strconv.FormatUint(res.synthetic, 10)},
 		{"Blocks undecodable", strconv.FormatUint(res.undecodable, 10)},
 		{"Blocks without a child list", strconv.FormatUint(res.lacking, 10)},
 		{"Children they name", strconv.FormatUint(res.edges, 10)},
@@ -366,19 +339,19 @@ func repairVolumeRefs(
 	// Open the optional listing before the walk, so a path that cannot be
 	// written fails at once and not after a large Volume's walk. A run that
 	// fails removes its partial listing and leaves the path as it was.
-	front, err := openRefRepairListing(path, opts.frontOut, opts.peerPath, opts.syntheticPath, opts.lacksOut, opts.peerOut)
+	front, err := openRefRepairListing(path, opts.frontOut, opts.peerPath, opts.lacksOut, opts.peerOut)
 	if err != nil {
 		return refRepairResult{}, err
 	}
 	defer func() { err = stderrors.Join(err, front.discard()) }()
-	lacks, err := openRefRepairListing(path, opts.lacksOut, opts.peerPath, opts.syntheticPath, opts.frontOut, opts.peerOut)
+	lacks, err := openRefRepairListing(path, opts.lacksOut, opts.peerPath, opts.frontOut, opts.peerOut)
 	if err != nil {
 		return refRepairResult{}, err
 	}
 	defer func() { err = stderrors.Join(err, lacks.discard()) }()
 
 	// Prepare the peer listing before opening the target for writing.
-	listing, err := openRefRepairListing(path, opts.peerOut, opts.peerPath, opts.syntheticPath, opts.frontOut, opts.lacksOut)
+	listing, err := openRefRepairListing(path, opts.peerOut, opts.peerPath, opts.frontOut, opts.lacksOut)
 	if err != nil {
 		return refRepairResult{}, err
 	}
@@ -417,7 +390,6 @@ func repairVolumeRefs(
 	// Make the repair with what the run measures.
 	rr := newRefRepair(le, vol, peer, lookup)
 	rr.lacks = lacks.writer
-	rr.synthetic = opts.synthetic
 	rr.scanVerify = opts.scanVerify
 	rr.dropLegacySpans = opts.dropLegacySpans
 	rr.dryRun = dryRun
@@ -446,11 +418,6 @@ func repairVolumeRefs(
 	for _, sc := range cursors {
 		if err := rr.walkSpace(ctx, sc); err != nil {
 			return refRepairResult{}, errors.Wrapf(err, "walk space %s", sc.spaceID)
-		}
-	}
-	if rr.rebuild != nil && !dryRun {
-		if err := rr.listUnwalkedSynthetic(ctx); err != nil {
-			return refRepairResult{}, err
 		}
 	}
 	rr.close()

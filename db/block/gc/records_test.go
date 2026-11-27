@@ -220,6 +220,92 @@ func TestFlipRefusesWriteAfterProof(t *testing.T) {
 	}
 }
 
+// TestFlipPassesOnlyWrittenOffHoles checks the proof's read of the hole
+// records: with the front empty, an open hole holds the flip, alone or in
+// either key order beside a written-off one, and written-off holes alone
+// let the flip pass. An open hole that a verified list names is on the front
+// as well, so only this read holds the flip for one that is not.
+func TestFlipPassesOnlyWrittenOffHoles(t *testing.T) {
+	ctx := context.Background()
+	var keys [2][]byte
+	for i, data := range []string{"first hole", "second hole"} {
+		ref, err := block.BuildBlockRef([]byte(data), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		keys[i] = BlockKey(ref)
+	}
+	cases := []struct {
+		name string
+		// off selects which of the two recorded holes are written off.
+		off  [2]bool
+		want bool
+	}{
+		{"both open", [2]bool{false, false}, false},
+		{"the first written off", [2]bool{true, false}, false},
+		{"the second written off", [2]bool{false, true}, false},
+		{"both written off", [2]bool{true, true}, true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			// An adopted Open Volume with the run complete, an empty free
+			// queue, and two recorded holes, each pushed onto the front as
+			// the walk of its parent pushes it.
+			tx, err := store_kvtx_inmem.NewStore().NewTransaction(ctx, true)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer tx.Discard()
+			rec := NewRecords(tx, []byte("l/"))
+			state := &LivenessState{
+				Adoption:         Adoption_ADOPTION_ADOPTED,
+				Generation:       Generation_GENERATION_OPEN,
+				AdoptAtUnixMilli: 1,
+				UpCursor:         10,
+			}
+			for _, err := range []error{
+				tx.Set(ctx, rec.key(kindUnmarked, runComplete), nil),
+				rec.SetState(ctx, state),
+				rec.addHole(ctx, keys[0]),
+				rec.addHole(ctx, keys[1]),
+				rec.addFront(ctx, keys[0]),
+				rec.addFront(ctx, keys[1]),
+			} {
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			// Write off the selected holes, and take the others off the
+			// front, as a hole no verified list names is.
+			for i, key := range keys {
+				if !tc.off[i] {
+					if err := tx.Delete(ctx, rec.key(kindFront, key)); err != nil {
+						t.Fatal(err)
+					}
+					continue
+				}
+				if hole, err := rec.writeOffHole(ctx, key); err != nil || !hole {
+					t.Fatalf("write-off found a hole %v, err %v", hole, err)
+				}
+				if pushed, err := rec.pushOwed(ctx, key); err != nil || pushed {
+					t.Fatalf("a push of the written-off hole pushed %v, err %v; want none", pushed, err)
+				}
+			}
+
+			// Read the proof and flip.
+			c := NewCollector(nil, CollectorOptions{Frees: true})
+			var res CollectResult
+			if err := c.flip(ctx, rec, &res, proofIn(ctx, t, c, rec)); err != nil {
+				t.Fatal(err)
+			}
+			if res.Flipped != tc.want {
+				t.Fatalf("flipped %v, want %v", res.Flipped, tc.want)
+			}
+		})
+	}
+}
+
 // TestNettingKeepsParkOnRaiseToZero checks that a block parked while Open,
 // whose park released its list, stays parked at its ripe sequence when one
 // netting gives it an up and a down: requeued, the free would park it again

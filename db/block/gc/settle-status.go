@@ -1,6 +1,7 @@
 package block_gc
 
 import (
+	"bytes"
 	"context"
 	"time"
 
@@ -34,11 +35,14 @@ type SettleStatus struct {
 	FrontSample []*block.BlockRef
 	// FrontCauses counts the front entries read by their detailed proof, with one ref per cause.
 	FrontCauses [5]FrontCauseCount
-	// Holes counts the recorded holes, up to the limit.
+	// Holes counts the recorded holes, up to the limit, written off or not.
 	Holes int
+	// OpenHoles counts the holes among Holes no operator wrote off, which
+	// are the ones that hold the flip.
+	OpenHoles int
 	// HolesMore reports that more holes are recorded than Holes.
 	HolesMore bool
-	// HoleSample holds the first recorded holes' blocks.
+	// HoleSample holds the first open holes' blocks.
 	HoleSample []*block.BlockRef
 	// RipeQueued reports that a block queued to free at or below the pop
 	// mark and the up cursor is not parked yet. That queued block holds the
@@ -76,7 +80,7 @@ func (c *Collector) SettleStatus(ctx context.Context, limit int) (SettleStatus, 
 		if err = st.readFront(ctx, rec, blocks, limit); err != nil {
 			return err
 		}
-		if st.Holes, st.HolesMore, st.HoleSample, err = rec.countKeys(ctx, kindHole, limit); err != nil {
+		if err = st.readHoles(ctx, rec, limit); err != nil {
 			return err
 		}
 
@@ -92,32 +96,33 @@ func (c *Collector) SettleStatus(ctx context.Context, limit int) (SettleStatus, 
 	return st, err
 }
 
-// countKeys counts the block-keyed records of kind up to limit, reports
-// whether more exist, and returns the first sampleSize blocks.
-func (r *Records) countKeys(ctx context.Context, kind byte, limit int) (int, bool, []*block.BlockRef, error) {
-	// Scan the kind's keys up to the limit.
-	var n int
-	var more bool
-	var sample []*block.BlockRef
-	err := r.scan(ctx, r.key(kind), nil, func(key []byte, _ func() ([]byte, error)) (bool, error) {
+// readHoles counts the recorded holes up to limit and the open ones among
+// them, and samples the first open holes' blocks, since those are the ones
+// a put must store again.
+func (s *SettleStatus) readHoles(ctx context.Context, rec *Records, limit int) error {
+	return rec.scan(ctx, rec.key(kindHole), nil, func(key []byte, value func() ([]byte, error)) (bool, error) {
 		// Stop past the limit.
-		if n == limit {
-			more = true
+		if s.Holes == limit {
+			s.HolesMore = true
 			return false, nil
 		}
-		n++
+		s.Holes++
 
-		// Sample the first blocks.
-		if len(sample) < sampleSize {
+		// Count and sample an open hole.
+		v, err := value()
+		if err != nil || bytes.Equal(v, holeWrittenOff) {
+			return err == nil, err
+		}
+		s.OpenHoles++
+		if len(s.HoleSample) < sampleSize {
 			ref, _, err := ParseBlockKey(key)
 			if err != nil {
 				return false, err
 			}
-			sample = append(sample, ref)
+			s.HoleSample = append(s.HoleSample, ref)
 		}
 		return true, nil
 	})
-	return n, more, sample, err
 }
 
 // readFront counts and classifies each front entry in the same bounded scan.

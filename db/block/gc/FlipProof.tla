@@ -1,8 +1,13 @@
 ---- MODULE FlipProof ----
 \* The collector proves the flip in a read snapshot (settle.go proveFlip)
-\* and confirms it with point reads (flip). The front and holes must be
-\* empty. A queue entry holds the flip only when a pop mark exists and the
-\* entry is at or below the lesser of the pop mark and up cursor.
+\* and confirms it with point reads (flip). The front must be empty, and
+\* every recorded hole written off: off holds the holes an operator wrote
+\* off, which the flip may pass. The snapshot takes the holes-clear mark's
+\* word, or else reads every hole record. The flip reads no hole: a hole
+\* is opened only by Records.addHole, which raises the add revision, so
+\* the revision the flip confirms covers the holes too. A queue entry
+\* holds the flip only when a pop mark exists and the entry is at or below
+\* the lesser of the pop mark and up cursor.
 \*
 \* The collector serializes its steps. A Land, the audit, or an adoption
 \* can write between the snapshot and its confirmation. A fresh adoption
@@ -28,6 +33,7 @@ GroundProof == [rev |-> 0, adoptAt |-> 0, upTo |-> NoPop, ripe |-> FALSE]
 TypeOK ==
   /\ s.front \subseteq Keys
   /\ s.holes \subseteq Keys
+  /\ s.off \subseteq s.holes
   /\ s.clear \in BOOLEAN
   /\ s.rev \in 0..MaxRev
   /\ s.adds \in 0..MaxRev
@@ -45,7 +51,7 @@ TypeOK ==
   /\ s.unsafe \in BOOLEAN
 
 Init ==
-  s = [front |-> {}, holes |-> {}, clear |-> FALSE, rev |-> 0, adds |-> 0,
+  s = [front |-> {}, holes |-> {}, off |-> {}, clear |-> FALSE, rev |-> 0, adds |-> 0,
        queue |-> {}, parked |-> {}, mark |-> NoPop, upSeq |-> 0, upCursor |-> 0,
        adoptAt |-> 0, adoption |-> "adopted", pc |-> "idle", seen |-> 0,
        proof |-> GroundProof, unsafe |-> FALSE]
@@ -59,16 +65,26 @@ Push(k, writer) ==
                    !.rev = IF Skip = writer THEN @ ELSE @ + 1]
 
 \* The audit records a hole, raising the revision and deleting the mark.
+\* A hole it finds again keeps its write-off.
 RecordHole(k) ==
   /\ s.adds < MaxRev
   /\ s' = [s EXCEPT !.holes = @ \cup {k}, !.adds = @ + 1,
                    !.rev = IF Skip = "hole-rev" THEN @ ELSE @ + 1,
                    !.clear = Skip = "hole-clear" /\ @]
 
-\* A put fills a hole. A Land can delete a queue entry or append an up.
+\* An operator writes a recorded hole off and takes it off the front. It
+\* adds no key and only lets the flip pass, so the proof needs no revision
+\* from it. The sweep has nothing of a hole to delete, so the pop mark
+\* stays.
+WriteOff(k) ==
+  /\ k \in s.holes
+  /\ s' = [s EXCEPT !.off = @ \cup {k}, !.front = @ \ {k}]
+
+\* A put fills a hole, written off or not. A Land can delete a queue entry
+\* or append an up.
 FillHole(k) ==
   /\ k \in s.holes
-  /\ s' = [s EXCEPT !.holes = @ \ {k}]
+  /\ s' = [s EXCEPT !.holes = @ \ {k}, !.off = @ \ {k}]
 
 LandDequeue(p) ==
   /\ p \in s.queue
@@ -142,7 +158,8 @@ ClearWrite ==
 
 \* proveFlip reads the bound, with NoPop representing an absent pop mark.
 Prove ==
-  /\ s.pc = "idle" /\ s.adoption = "adopted" /\ s.front = {} /\ s.clear
+  /\ s.pc = "idle" /\ s.adoption = "adopted" /\ s.front = {}
+  /\ s.clear \/ Skip = "prove-off" \/ s.holes \subseteq s.off
   /\ LET upTo == PopBound(s.mark, s.upCursor)
      IN s' = [s EXCEPT !.pc = "proved",
                        !.proof = [rev |-> s.rev, adoptAt |-> s.adoptAt,
@@ -150,7 +167,7 @@ Prove ==
 
 \* flip rechecks the records and deletes the pop mark on success. Record
 \* whether the generation changed while a condition for the flip was false.
-\* The flip-clear mutant survives: deleting the mark also raises rev.
+\* The flip reads neither the mark nor a hole: opening a hole raises rev.
 \* The flip-pop mutant survives: only the idle collector can change the
 \* bound while adopted. A recount can change the bound while the Volume is
 \* ineligible for the flip, and stamps before it becomes adopted again.
@@ -159,13 +176,12 @@ Flip ==
   /\ s.pc = "proved"
   /\ LET upTo == PopBound(s.mark, s.upCursor)
          confirmed == s.adoption = "adopted" /\ ~s.proof.ripe
-           /\ (Skip = "flip-clear" \/ s.clear)
            /\ (Skip = "flip-rev" \/ s.rev = s.proof.rev)
            /\ (Skip = "flip-adopt" \/ s.adoptAt = s.proof.adoptAt)
            /\ (Skip = "flip-pop" \/ upTo = s.proof.upTo)
      IN IF confirmed
         THEN s' = [s EXCEPT !.pc = "flipped", !.proof = GroundProof, !.mark = NoPop,
-                            !.unsafe = s.front # {} \/ s.holes # {} \/ Ripe(s.queue, upTo)]
+                            !.unsafe = s.front # {} \/ s.holes \ s.off # {} \/ Ripe(s.queue, upTo)]
         ELSE s' = [s EXCEPT !.pc = "idle", !.proof = GroundProof]
 
 Next ==
@@ -173,7 +189,7 @@ Next ==
   \/ /\ s.pc # "flipped"
      /\ \/ \E k \in Keys :
              \/ \E writer \in {"land-rev", "copied-rev", "adopt-rev"} : Push(k, writer)
-             \/ RecordHole(k) \/ FillHole(k)
+             \/ RecordHole(k) \/ WriteOff(k) \/ FillHole(k)
              \/ \E p \in Positions : Pop(k, p)
         \/ \E p \in Positions :
              \/ LandDequeue(p)
@@ -189,7 +205,8 @@ AddRevision == s.rev = s.adds
 \* The mark is present only while no hole is recorded.
 ClearSound == s.clear => s.holes = {}
 
-\* No flip commits with a front entry, a hole or a ripe queue entry.
+\* No flip commits with a front entry, a hole nobody wrote off or a ripe
+\* queue entry.
 NoUnsafeFlip == ~s.unsafe
 
 ====

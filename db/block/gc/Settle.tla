@@ -61,8 +61,19 @@
 \* SettledLive. With no peer holding the child, Lost, the child stays on the
 \* front while held and the generation never settles again.
 \*
-\* The spec does not represent three things. Holes: an audit's recorded
-\* hole, which a copied put refuses and only a put from content refills.
+\* An operator may write such a block off: off holds the absent blocks
+\* whose recorded hole carries the write-off. The write-off takes the hole
+\* off the front, no push returns it, and it no longer holds the flip, so
+\* the sweep takes what the Volume stores only below it, which no count
+\* holds. The hole record stays, so
+\* a later put from content still lists the block from that content and
+\* holds its children, and a copied put is still refused. Held is what the
+\* root reaches without passing through a written-off hole, and the
+\* invariants speak of Held.
+\*
+\* The spec does not represent three things. Holes nobody wrote off: an
+\* audit's recorded hole, which a copied put refuses and only a put from
+\* content refills; FlipProof.tla holds the flip on them.
 \* Fills: a fill drops each copied entry of a block the records do not
 \* list, which changes no record, so it is no action here. And the children
 \* a CopyWrite names: the spec requires each present, where Land refuses
@@ -100,6 +111,8 @@
 \*                                                      n at once
 \*   Settle-lost.cfg         2    on h     g, n  S      every block but h
 \*                                                      resolved, the flip held
+\*   Settle-off.cfg          2    no h     -     S, L   h written off, then
+\*                                                      put again from content
 \*   Settle-reopen-g.cfg     3    no {}    g     R, L   a reopen beside g
 \*   Settle-reopen-n.cfg     3    no {}    n     R, L   a reopen beside n's
 \*                                                      writes
@@ -121,6 +134,7 @@ CONSTANTS
   MaxTxns,  \* bounds the Land transactions, so the model is finite
   Upgrade,  \* whether the format upgrade may run
   Lost,     \* the blocks no read resolves once the Volume lacks them
+  WriteOffs,\* the absent blocks an operator may write off
   Extra     \* the optional blocks the Volume has: g, n, both or neither
 
 \* r is the root's block, whose old list was cut and lacks h; a's was cut and
@@ -151,8 +165,9 @@ VARIABLES
   fmt,       \* the store format
   owed,      \* an unpark of a released list or a rewrite owes a recount
   gained,    \* <<p, c>>: a rewrite gave p's list c without c's holder
-  txns       \* Land transactions so far
-vars == <<gen, stored, verified, short, front, seeded, run, complete, parked, released, debt, unmarked, root, fmt, owed, gained, txns>>
+  txns,      \* Land transactions so far
+  off        \* absent blocks whose recorded hole an operator wrote off
+vars == <<gen, stored, verified, short, front, seeded, run, complete, parked, released, debt, unmarked, root, fmt, owed, gained, txns, off>>
 
 List(b) == IF b \in verified \ short THEN True[b] ELSE Cut[b]
 
@@ -173,15 +188,24 @@ Present(b) == b \in stored /\ ~Hidden(b)
 Unverified(S) == {b \in S : b \in stored /\ b \notin verified}
 
 \* The blocks of S the walk still owes a decode: those without a list from
-\* content, whether or not the Volume stores them.
-Owed(S) == {b \in S : b \notin verified}
+\* content, whether or not the Volume stores them. It owes a written-off
+\* hole none, so no push returns one to the front.
+Owed(S) == {b \in S : b \notin verified /\ b \notin off}
 
 RECURSIVE Reach(_)
 Reach(S) ==
   LET next == S \cup UNION {True[b] : b \in S}
   IN IF next = S THEN S ELSE Reach(next)
 
+\* The blocks the root holds: Reach, stopped at each written-off hole, whose
+\* children no record names.
+RECURSIVE Held(_)
+Held(S) ==
+  LET next == S \cup UNION {True[b] : b \in S \ off}
+  IN IF next = S THEN S ELSE Held(next)
+
 Init ==
+  /\ off = {}
   /\ gen = "open"
   /\ stored = {"r", "a", "b", "k"} \cup (Extra \cap {"g"})
   /\ verified = {}
@@ -221,9 +245,11 @@ Verify(V) ==
 \* Put writes b from its content. A block without a list, or a hidden one,
 \* is born again with every child present, and its list holds them as a
 \* fresh put's does, gained children included; a stored one is verified
-\* while Open and otherwise keeps its list.
+\* while Open and otherwise keeps its list. A put onto a written-off hole
+\* is such a birth, and ends the hole.
 Put(b) ==
   /\ txns < MaxTxns
+  /\ off' = off \ {b}
   /\ \A k \in True[b] : Present(k)
   /\ IF Present(b)
        THEN /\ gen = "open"
@@ -254,6 +280,7 @@ Move(t) ==
   /\ front' = IF gen = "open" THEN front \cup Owed({t}) ELSE front
   /\ txns' = txns + 1
   /\ UNCHANGED <<gen, stored, verified, short, seeded, run, complete, parked, released, debt, unmarked, fmt, owed, gained>>
+  /\ UNCHANGED off
 
 \* MarkCopied marks the copied lists of V as Verify marks a decoded one,
 \* which only a defect does: the lists stay cut.
@@ -271,17 +298,20 @@ MarkCopied(V) ==
 \* one leaves the park with its list, which holds its children again, and
 \* returns to the front. While
 \* Settled, a block not stored lands as while Open and reopens the
-\* generation. While Sweeping, a block that reads absent is refused.
+\* generation. While Sweeping, a block that reads absent is refused, and
+\* so is a hole in every generation, written off or not.
 CopyWrite(b) ==
   /\ txns < MaxTxns
+  /\ b \notin off
   /\ \A k \in Cut[b] : Present(k)
   /\ CASE b \in verified /\ ~Present(b) ->
             Put(b)
        [] Present(b) ->
             /\ txns' = txns + 1
             /\ UNCHANGED <<gen, stored, verified, short, front, seeded, run, complete, parked, unmarked, root, fmt, owed, gained>>
-            /\ UNCHANGED <<released, debt>>
+            /\ UNCHANGED <<released, debt, off>>
        [] gen = "open" /\ b \notin stored ->
+            /\ UNCHANGED off
             /\ stored' = stored \cup {b}
             /\ run' = run \cup {b}
             /\ front' = front \cup {b}
@@ -289,6 +319,7 @@ CopyWrite(b) ==
             /\ UNCHANGED <<gen, verified, short, seeded, complete, parked, unmarked, root, fmt, owed, gained>>
             /\ UNCHANGED <<released, debt>>
        [] gen = "settled" /\ b \notin stored ->
+            /\ UNCHANGED off
             /\ stored' = stored \cup {b}
             /\ run' = run \cup {b}
             /\ front' = front \cup {b}
@@ -297,6 +328,7 @@ CopyWrite(b) ==
             /\ UNCHANGED <<verified, short, seeded, complete, parked, unmarked, root, fmt, owed, gained>>
             /\ UNCHANGED <<released, debt>>
        [] gen = "open" /\ b \in parked /\ b \notin verified ->
+            /\ UNCHANGED off
             /\ parked' = parked \ {b}
             /\ front' = front \cup {b}
             /\ released' = released \ {b}
@@ -312,6 +344,7 @@ Seed ==
   /\ seeded' = TRUE
   /\ front' = front \cup Owed({root})
   /\ UNCHANGED <<gen, stored, verified, short, run, complete, parked, released, debt, unmarked, root, fmt, owed, gained, txns>>
+  /\ UNCHANGED off
 
 \* Walk takes a front block off the front. It decodes only a block the root
 \* reaches, as the walk reads through the root's tree: a present block, which
@@ -322,19 +355,22 @@ Seed ==
 \* it; any other block stays until the root reaches it or its holders go.
 \* Nothing pops while a recount is owed, since a count may miss a holder,
 \* and the recount returns only a stored child to the front, so an absent
-\* child popped then would never return.
+\* child popped then would never return. The walk never meets a
+\* written-off hole, which is never on the front; a peer's read that lists
+\* one, as a repair's walk of the whole tree can, is Put.
 Walk(b) ==
   /\ b \in front
   /\ \/ /\ b \in stored /\ ~Hidden(b) /\ b \in Reach({root})
         /\ Verify({b})
-        /\ UNCHANGED stored
+        /\ UNCHANGED <<stored, off>>
      \/ /\ gen = "open" /\ b \notin stored /\ b \notin Lost /\ b \in Reach({root})
         /\ stored' = stored \cup {b}
         /\ Verify({b})
+        /\ UNCHANGED off
      \/ /\ ~owed
         /\ Hidden(b) \/ Count(b) = 0
         /\ front' = front \ {b}
-        /\ UNCHANGED <<stored, verified, short, run, owed, gained>>
+        /\ UNCHANGED <<stored, verified, short, run, owed, gained, off>>
   /\ UNCHANGED <<gen, seeded, complete, parked, released, debt, unmarked, root, fmt, txns>>
 
 BuildRun ==
@@ -343,6 +379,7 @@ BuildRun ==
   /\ complete' = TRUE
   /\ run' = run \cup Unverified(stored)
   /\ UNCHANGED <<gen, stored, verified, short, front, seeded, parked, released, debt, unmarked, root, fmt, owed, gained, txns>>
+  /\ UNCHANGED off
 
 \* Free deletes a block at zero holders, except that while Open it parks it.
 \* A park is a free that keeps the bytes and the list: it releases the
@@ -368,6 +405,7 @@ Free(b) ==
   /\ short' = IF gen = "open" THEN short ELSE short \ {b}
   /\ debt' = [k \in Blocks |-> debt[k] + (IF b \in released /\ k \in List(b) THEN 1 ELSE 0)]
   /\ UNCHANGED <<gen, front, seeded, complete, unmarked, root, fmt, owed, gained, txns>>
+  /\ UNCHANGED off
 
 \* Unpark ends the park of a block that gained a holder. A park that kept
 \* its holds leaves a list that holds; a released one stays released, since
@@ -382,6 +420,7 @@ Unpark(b) ==
   /\ run' = IF b \in verified THEN run \ {b} ELSE run
   /\ front' = front \cup Owed({b})
   /\ UNCHANGED <<gen, stored, verified, short, seeded, complete, released, unmarked, root, fmt, txns, debt, gained>>
+  /\ UNCHANGED off
 
 Flip ==
   /\ gen = "open"
@@ -394,6 +433,7 @@ Flip ==
   /\ unmarked' = run
   /\ parked' = {}
   /\ UNCHANGED <<stored, verified, short, front, seeded, run, complete, released, debt, root, fmt, owed, gained, txns>>
+  /\ UNCHANGED off
 
 \* Sweep deletes an unmarked block. A block its park released gives no
 \* downs, since the park gave them; any other gives its downs as a free does.
@@ -406,6 +446,7 @@ Sweep(b) ==
   /\ released' = released \ {b}
   /\ debt' = debt
   /\ UNCHANGED <<gen, front, seeded, run, complete, parked, root, fmt, owed, gained, txns>>
+  /\ UNCHANGED off
 
 Settle ==
   /\ gen = "sweeping"
@@ -413,6 +454,7 @@ Settle ==
   /\ gen' = "settled"
   /\ run' = {}
   /\ UNCHANGED <<stored, verified, short, front, seeded, complete, parked, released, debt, unmarked, root, fmt, owed, gained, txns>>
+  /\ UNCHANGED off
 
 \* Recount is the adoption's recount: it drops every park first, taking a
 \* verified parked block out of the run and returning an unverified one to
@@ -449,6 +491,7 @@ Readopt ==
   /\ seeded
   /\ Recount
   /\ UNCHANGED <<gen, stored, verified, short, seeded, complete, unmarked, root, fmt, txns>>
+  /\ UNCHANGED off
 
 \* UpgradeFormat moves the store to format 10. It recounts and keeps the
 \* generation, the run and the unmarked blocks.
@@ -458,10 +501,25 @@ UpgradeFormat ==
   /\ fmt' = 10
   /\ Recount
   /\ UNCHANGED <<gen, stored, verified, short, seeded, complete, unmarked, root, txns>>
+  /\ UNCHANGED off
+
+\* WriteOff is the operator's command on a recorded hole: a block with no
+\* list that the operator accepts no read will resolve. It takes the hole
+\* off the front, whatever holds it, and changes no count and no list. It
+\* acts once on a hole: a second run finds it written off and changes
+\* nothing, so only Owed keeps a later push from returning it to the front.
+WriteOff(b) ==
+  /\ b \in WriteOffs
+  /\ b \notin stored
+  /\ b \notin verified
+  /\ b \notin off
+  /\ off' = off \cup {b}
+  /\ front' = front \ {b}
+  /\ UNCHANGED <<gen, stored, verified, short, seeded, run, complete, parked, released, debt, unmarked, root, fmt, owed, gained, txns>>
 
 Next ==
   \/ Land \/ Seed \/ BuildRun \/ Flip \/ Settle \/ Readopt \/ UpgradeFormat
-  \/ \E b \in Blocks : Walk(b) \/ Free(b) \/ Unpark(b) \/ Sweep(b)
+  \/ \E b \in Blocks : Walk(b) \/ Free(b) \/ Unpark(b) \/ Sweep(b) \/ WriteOff(b)
 
 Spec ==
   /\ Init /\ [][Next]_vars
@@ -469,10 +527,11 @@ Spec ==
   /\ WF_vars(Readopt)
   /\ \A b \in Blocks : WF_vars(Walk(b)) /\ WF_vars(Unpark(b)) /\ WF_vars(Sweep(b))
   /\ \A b \in Blocks : WF_vars(Free(b))
+  /\ \A b \in WriteOffs : WF_vars(WriteOff(b))
 
-\* Every block the root reaches through its content is stored, except the
+\* Every block the root holds through its content is stored, except the
 \* block the Volume lacks.
-LiveStored == Reach({root}) \ {"h"} \subseteq stored
+LiveStored == Held({root}) \ {"h"} \subseteq stored
 
 \* The root's block reads present.
 HeldPresent == ~Hidden(root)
@@ -491,8 +550,8 @@ FlipReady ==
   /\ gen = "open" /\ complete /\ seeded /\ front = {} /\ ~owed
   /\ \A b \in parked : Count(b) = 0
 ReachedShown ==
-  /\ \A b \in Reach({root}) : Hidden(b) /\ Holding(b) # {} => Count(b) > 0
-  /\ FlipReady => \A b \in Reach({root}) : ~Hidden(b)
+  /\ \A b \in Held({root}) : Hidden(b) /\ Holding(b) # {} => Count(b) > 0
+  /\ FlipReady => \A b \in Held({root}) : ~Hidden(b)
 
 \* Once Settled every list was written from content and no settle record
 \* remains, so the settle's code and records can go.

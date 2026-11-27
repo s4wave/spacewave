@@ -11,7 +11,9 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/cli"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/sirupsen/logrus"
@@ -139,6 +141,104 @@ func TestDebugVolumeCollect(t *testing.T) {
 	}
 	if head != nil {
 		t.Fatalf("the load's scratch root still holds %s", head.MarshalString())
+	}
+}
+
+// TestDebugVolumeWriteOff runs the write-off command on a stopped volume whose
+// live head lists a block the store lost with its list: the command records
+// the hole, refuses a list that names a stored block without writing any hole
+// off, and writes off the lost block when the list names only it.
+func TestDebugVolumeWriteOff(t *testing.T) {
+	// Store a head under a root, and list a child under it that was never
+	// stored, as a volume that lost the child's bytes and list reads.
+	ctx := t.Context()
+	le := logrus.NewEntry(logrus.New())
+	dir := t.TempDir()
+	path := filepath.Join(dir, "volume.s4wave")
+	vol, err := volume_s4db.NewVolume(ctx, le, &volume_s4db.Config{Path: path})
+	if err != nil {
+		t.Fatal(err)
+	}
+	head, err := block.BuildBlockRef([]byte("head"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lost, err := block.BuildBlockRef([]byte("lost child"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entries := []*block.PutBatchEntry{{Ref: head, Data: []byte("head"), RefsKnown: true}}
+	if err := vol.SetBucketRoots(ctx, "fill", entries, []block.NamedRoot{{Name: "head", Ref: head}}); err != nil {
+		t.Fatal(err)
+	}
+	writeRecords(t, vol, func(rec *block_gc.Records) error {
+		return rec.PutChildren(ctx, head, []*block.BlockRef{lost})
+	})
+	if err := vol.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	// holes reads the recorded and the open holes of the stopped volume.
+	holes := func() (int, int) {
+		st, _, err := readVolumeState(ctx, le, path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return st.Holes, st.OpenHoles
+	}
+	refsFile := func(name string, refs ...*block.BlockRef) string {
+		var lines []string
+		for _, ref := range refs {
+			lines = append(lines, ref.MarshalString()+"\tnote")
+		}
+		file := filepath.Join(dir, name)
+		if err := os.WriteFile(file, []byte(strings.Join(lines, "\n")), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		return file
+	}
+
+	// A list that names no block, or a stored block beside the hole, writes
+	// off nothing. The audit still records the hole.
+	if _, err := runVolumeBlockCLI(t, "volume-write-off", "--refs", refsFile("none.tsv"), path); err == nil {
+		t.Fatal("the write-off accepted an empty list")
+	}
+	if recorded, open := holes(); recorded != 0 || open != 0 {
+		t.Fatalf("an empty list left %d holes, %d open; want none recorded", recorded, open)
+	}
+	_, err = runVolumeBlockCLI(t, "volume-write-off", "--refs", refsFile("stored.tsv", lost, head), path)
+	if err == nil || !errors.Is(err, block_gc.ErrNotHole) || !strings.Contains(err.Error(), head.MarshalString()) {
+		t.Fatalf("a write-off naming a stored block: %v", err)
+	}
+	if recorded, open := holes(); recorded != 1 || open != 1 {
+		t.Fatalf("the refused write-off left %d holes, %d open; want 1 and 1", recorded, open)
+	}
+
+	// The list of the lost block alone writes it off, on a first and a
+	// second run.
+	want := map[string]string{
+		"Holes under a live root": "1", "Holes the audit recorded": "0", "Holes written off": "1",
+		"Named holes that ended first": "0", "Recorded holes": "1", "Holes not written off": "0",
+	}
+	for range 2 {
+		report, err := runVolumeBlockCLI(t, "volume-write-off", "--refs", refsFile("lost.tsv", lost), path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, line := range strings.Split(strings.TrimSpace(report), "\n") {
+			label, value, _ := strings.Cut(line, ":")
+			if count, ok := want[label]; ok && strings.TrimSpace(value) != count {
+				t.Fatalf("write-off row %q, want %s:\n%s", line, count, report)
+			}
+		}
+		for label := range want {
+			if !strings.Contains(report, label+":") {
+				t.Fatalf("write-off report lacks %q:\n%s", label, report)
+			}
+		}
+		if recorded, open := holes(); recorded != 1 || open != 0 {
+			t.Fatalf("the write-off left %d holes, %d open; want 1 and 0", recorded, open)
+		}
 	}
 }
 

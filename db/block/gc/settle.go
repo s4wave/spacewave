@@ -181,11 +181,21 @@ func (r *Records) listState(ctx context.Context, key []byte) (listed, marked boo
 // the Volume stores its bytes, and reports whether it did. An absent block
 // has no list, so no count holds a stored block only it references: it stays on
 // the front while it has holders, until the walk reads it through the full
-// read chain and writes its list, as ListRebuild describes.
+// read chain and writes its list, as ListRebuild describes. The walk owes
+// a written-off hole no decode, so no push returns one to the front, as
+// Records.writeOffHole describes.
+//
+// Cost: one list read, and for a block without a list one point read
+// more, or two while a hole is recorded.
 func (r *Records) pushOwed(ctx context.Context, key []byte) (bool, error) {
-	_, marked, err := r.listState(ctx, key)
+	listed, marked, err := r.listState(ctx, key)
 	if err != nil || marked {
 		return false, err
+	}
+	if !listed {
+		if off, err := r.writtenOff(ctx, key); err != nil || off {
+			return false, err
+		}
 	}
 	return true, r.addFront(ctx, key)
 }
@@ -488,20 +498,22 @@ func (c *Collector) settle(ctx context.Context, past func() bool, res *CollectRe
 //
 // Invariant: between the snapshot and the flip's transaction the free
 // queue gains no entry while the adoption mark stands, and the front and
-// the holes gain no key while the add revision stands. Only the collector's
+// the holes gain no key while the add revision stands, and no hole loses
+// its write-off but by leaving. Only the collector's
 // transactions and the adoption write queue entries, as Collector.queueFrom
 // describes; the collector runs one step at a time, and the settle runs
 // nothing between the snapshot and the flip; an adoption stamps a new
 // AdoptAtUnixMilli, which the flip compares. A Land only deletes queue
-// entries. Every front and hole key is written through Records.addFront or
-// Records.addHole, which raise the add revision in the same transaction.
+// entries. Every front and hole key is written through Records.addFront,
+// Records.addHole or Records.writeOffHole, which raise the add revision in
+// the same transaction.
 // FlipProof.tla models the writers, the pop bound and the point checks
 // that confirm the proof.
 type flipProof struct {
 	// read reports that the snapshot found the flip's conditions holding
 	// but the queue's: Open, freeable, no recount owed, the run complete,
-	// no front key and the holes-clear mark. Without it the flip does not
-	// run in this pass.
+	// no front key, and the holes-clear mark or every hole written off.
+	// Without it the flip does not run in this pass.
 	read bool
 	// rev is the add revision the snapshot read.
 	rev uint64
@@ -529,7 +541,8 @@ type flipProof struct {
 // Cost: per pass that reaches the flip, the state, the recount mark, the
 // run's completion entry, the holes-clear mark, the add revision and the
 // pop mark, then one seek of the front and one of the queue, all in a
-// snapshot.
+// snapshot. While a hole is recorded and the front is empty, it also reads
+// the hole keys up to the first one nobody wrote off.
 func (c *Collector) readFlipProof(ctx context.Context) (flipProof, error) {
 	var proof flipProof
 	err := c.store.View(ctx, func(rec *Records) error {
@@ -548,12 +561,15 @@ func (c *Collector) proveFlip(ctx context.Context, rec *Records) (flipProof, err
 	if err != nil || state.GetGeneration() != Generation_GENERATION_OPEN || !c.freeable(state) {
 		return proof, err
 	}
-	for _, check := range []func(context.Context) (bool, error){rec.recountOwed, rec.runIncomplete, rec.holesOpen} {
+	for _, check := range []func(context.Context) (bool, error){rec.recountOwed, rec.runIncomplete} {
 		if fails, err := check(ctx); err != nil || fails {
 			return proof, err
 		}
 	}
 	if fronted, err := rec.anyKey(ctx, rec.key(kindFront)); err != nil || fronted {
+		return proof, err
+	}
+	if holds, err := rec.holesHold(ctx); err != nil || holds {
 		return proof, err
 	}
 	if proof.rev, err = rec.addRev(ctx); err != nil {
@@ -1120,8 +1136,9 @@ func (c *Collector) frontProven(ctx context.Context, rec *Records, blocks block.
 //
 // proof is what a read snapshot found of the flip's conditions, as
 // readFlipProof reads them. The flip seeks no key under the writer: it
-// confirms the snapshot's empty front and the absent holes from point
-// reads of the add revision and the holes-clear mark, and the snapshot's
+// confirms the snapshot's empty front, and that no hole but a written-off
+// one is recorded, from one point read of the add revision, which every
+// new front and hole key raises, and the snapshot's
 // finding of the queue from the adoption mark and the pop mark, as
 // flipProof describes. A pass whose proof the point reads do not confirm
 // does not flip, and the next pass reads a fresh one. A ripe entry at the
@@ -1130,8 +1147,8 @@ func (c *Collector) frontProven(ctx context.Context, rec *Records, blocks block.
 //
 // Cost: in one transaction, once per collector pass until the flip, point
 // reads of the state, the recount mark, the run's completion entry, the
-// holes-clear mark, the add revision and the pop mark. None of it grows
-// with the deleted keys of any kind.
+// add revision and the pop mark. None of it grows with the deleted keys of
+// any kind.
 func (c *Collector) flip(ctx context.Context, rec *Records, res *CollectResult, proof flipProof) error {
 	// Require an Open Volume the free may run in: adopted Grace ago, so a
 	// head a reader saw before the mark, which the walk does not seed, is
@@ -1161,15 +1178,13 @@ func (c *Collector) flip(ctx context.Context, rec *Records, res *CollectResult, 
 		return rec.SetState(ctx, state)
 	}
 
-	// Require the run complete, no recorded hole and the front the
-	// snapshot found empty.
+	// Require the run complete, and the front and the holes as the
+	// snapshot found them: no front key, and no hole but a written-off one.
 	if !proof.read || proof.adoptAt != state.GetAdoptAtUnixMilli() {
 		return nil
 	}
-	for _, check := range []func(context.Context) (bool, error){rec.runIncomplete, rec.holesOpen} {
-		if fails, err := check(ctx); err != nil || fails {
-			return err
-		}
+	if incomplete, err := rec.runIncomplete(ctx); err != nil || incomplete {
+		return err
 	}
 	if rev, err := rec.addRev(ctx); err != nil || rev != proof.rev {
 		return err
