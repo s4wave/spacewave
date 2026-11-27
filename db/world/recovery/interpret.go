@@ -96,7 +96,11 @@ func (s *Scanner) interpret(ctx context.Context) error {
 	} else {
 		decoded, err = s.construct(ctx, node.GetConstructor())
 		if err == nil {
-			transformer, xerr := block_transform.NewTransformer(controller.ConstructOpts{Logger: logrus.NewEntry(logrus.New())}, transform_all.BuildFactorySet(), node.GetContext().GetTransformConf())
+			transformer, xerr := block_transform.NewTransformer(
+				controller.ConstructOpts{Logger: logrus.NewEntry(logrus.New())},
+				transform_all.BuildFactorySet(),
+				node.GetContext().GetTransformConf(),
+			)
 			if xerr != nil {
 				err = xerr
 			} else {

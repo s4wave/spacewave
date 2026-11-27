@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
 	"github.com/s4wave/spacewave/net/hash"
@@ -139,5 +140,30 @@ func TestFlatPageBudget(t *testing.T) {
 	stats := cache.Snapshot()
 	if stats.RetainedCost > stats.MaxCost || stats.Evictions == 0 {
 		t.Fatalf("budget not exercised: %+v", stats)
+	}
+}
+
+// TestFlatPageNestDepth checks that the flat decoder accepts pages nested as
+// deeply as maxEmbeddedPageDepth and rejects one level more, so a crafted
+// block cannot make the decoder copy routes for a million nested pages.
+func TestFlatPageNestDepth(t *testing.T) {
+	nest := func(depth int) []byte {
+		page := &Page{}
+		for range depth {
+			page = &Page{Entries: []*Entry{{Key: []byte("k"), ChildPage: page}}}
+		}
+		data, err := page.MarshalVT()
+		if err != nil {
+			t.Fatal(err)
+		}
+		return data
+	}
+	data := nest(maxEmbeddedPageDepth)
+	if _, err := decodeFlatPage(data, flatSpan{n: uint32(len(data))}, nil); err != nil { //nolint:gosec // test sizes are small.
+		t.Fatalf("depth %d: %v", maxEmbeddedPageDepth, err)
+	}
+	data = nest(maxEmbeddedPageDepth + 1)
+	if _, err := decodeFlatPage(data, flatSpan{n: uint32(len(data))}, nil); !errors.Is(err, ErrMalformedPage) { //nolint:gosec // test sizes are small.
+		t.Fatalf("depth %d: got %v, want ErrMalformedPage", maxEmbeddedPageDepth+1, err)
 	}
 }

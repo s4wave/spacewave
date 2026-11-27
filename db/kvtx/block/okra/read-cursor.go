@@ -70,7 +70,12 @@ func (pos flatPos) child(index int) flatPos {
 	if child := p.embeddedChild(index); child != nil {
 		return flatPos{cursor: pos.cursor, page: child}
 	}
-	return flatPos{cursor: followFlatRef(pos.cursor, entryChildRefID(index), p, p.entries[index].child)}
+	return flatPos{cursor: p.followChildRef(pos.cursor, index)}
+}
+
+// followChildRef returns a reader at the block entry index's child ref names.
+func (p *flatPage) followChildRef(cursor block.ReadCursor, index int) block.ReadCursor {
+	return followFlatRef(cursor, entryChildRefID(index), p, p.entries[index].child)
 }
 
 // followValue returns a reader at entry index's external value.
@@ -125,17 +130,25 @@ func (pos flatPos) valueCursor(ctx context.Context, index int) (*block.Cursor, e
 // Blob is a sub-block of its page, so the block's pages are decoded onto a
 // private cursor down the page's route to reach it.
 func (pos flatPos) inlineBlobCursor(ctx context.Context, index int) (*block.Cursor, error) {
-	// Decode the block's root page, then each page down the route.
-	cursor := pos.cursor.Cursor()
-	page, err := loadPage(ctx, cursor)
+	page, cursor, err := pos.page.decodeOnto(ctx, pos.cursor.Cursor())
 	if err != nil {
 		return nil, err
 	}
-	for _, idx := range pos.page.route {
+	return page.FollowValue(cursor, index), nil
+}
+
+// decodeOnto decodes the pages of the block at cursor down p's route, and
+// returns p as a decoded Page with the cursor that holds it.
+func (p *flatPage) decodeOnto(ctx context.Context, cursor *block.Cursor) (*Page, *block.Cursor, error) {
+	page, err := loadPage(ctx, cursor)
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, idx := range p.route {
 		cursor = page.FollowChild(cursor, int(idx))
 		if page, err = loadPage(ctx, cursor); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
-	return page.FollowValue(cursor, index), nil
+	return page, cursor, nil
 }

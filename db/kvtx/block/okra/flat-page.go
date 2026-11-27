@@ -299,12 +299,22 @@ func (p *flatPage) decodeBlob(e *flatEntry, s flatSpan) error {
 	return err
 }
 
+// maxEmbeddedPageDepth bounds how deeply pages nest inside one block. A block
+// embeds at most levels_per_block - 1 levels below its root page, and an Okra
+// tree is about log32 of its key count tall, so no real tree comes near it.
+const maxEmbeddedPageDepth = 64
+
 // decodeChildPage indexes the child page embedded at s as the child of the
 // entry p is decoding, which is the next entry of p.
 func (p *flatPage) decodeChildPage(e *flatEntry, s flatSpan) error {
-	// Accept one child page per entry, decoded on the entry's route.
+	// Accept one child page per entry, decoded on the entry's route, and
+	// reject a nest deeper than any tree, whose route copies would grow with
+	// the square of its depth.
 	if e.childPage != 0 {
 		return errors.Wrap(ErrMalformedPage, "repeated child page")
+	}
+	if len(p.route) >= maxEmbeddedPageDepth {
+		return errors.Wrapf(ErrMalformedPage, "child pages nested deeper than %d", maxEmbeddedPageDepth)
 	}
 	route := append(slices.Clip(p.route), uint32(len(p.entries))) //nolint:gosec // page entry indexes are bounded by the 4 GiB check.
 	child, err := decodeFlatPage(p.buf, s, route)
