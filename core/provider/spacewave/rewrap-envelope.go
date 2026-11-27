@@ -83,14 +83,8 @@ func (a *ProviderAccount) rewrapForSession(ctx context.Context, sess *Session, s
 		if kp.GetPeerId() == "" {
 			continue
 		}
-		parsedPeerID, pub, err := peer.ParsePeerIDWithPubKey(kp.GetPeerId())
+		_, pub, err := peer.ParsePeerIDWithPubKey(kp.GetPeerId())
 		if err != nil {
-			// Preserve the failed peer-ID stage in the caller's error.
-			errContext := "extract public key"
-			if parsedPeerID == "" {
-				errContext = "decode peer ID"
-			}
-			err = errors.Wrap(err, errContext)
 			a.le.WithError(err).Warn("skipping unparseable entity peer id for envelope")
 			continue
 		}

@@ -414,14 +414,8 @@ func (a *ProviderAccount) enrollMountedSpaceMember(
 
 	// Enroll every peer at the member's current role.
 	for _, p := range enrollResp.GetPeers() {
-		parsedPeerID, targetPub, err := peer.ParsePeerIDWithPubKey(p.GetPeerId())
+		_, targetPub, err := peer.ParsePeerIDWithPubKey(p.GetPeerId())
 		if err != nil {
-			// Preserve the failed peer-ID stage in the caller's error.
-			errContext := "extract public key"
-			if parsedPeerID == "" {
-				errContext = "decode peer ID"
-			}
-			err = errors.Wrap(err, errContext)
 			return errors.Wrapf(err, "extract pubkey for %s", p.GetPeerId())
 		}
 

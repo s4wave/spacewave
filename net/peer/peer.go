@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/net/crypto"
 )
 
@@ -89,18 +90,19 @@ func NewPeerWithID(id ID) (Peer, error) {
 	return NewPeerWithPubKey(pubKey)
 }
 
-// ParsePeerIDWithPubKey parses the peer id and extracts the public key.
+// ParsePeerIDWithPubKey parses the peer ID and extracts the public key.
+// Errors identify whether decoding the peer ID or extracting its key failed.
 func ParsePeerIDWithPubKey(peerIDStr string) (ID, crypto.PubKey, error) {
 	// Decode the peer identity from its base58 representation.
 	peerID, err := IDB58Decode(peerIDStr)
 	if err != nil {
-		return "", nil, err
+		return "", nil, errors.Wrap(err, "decode peer ID")
 	}
 
 	// Recover the public key embedded in the decoded peer identity.
 	peerPub, err := peerID.ExtractPublicKey()
 	if err != nil {
-		return peerID, nil, err
+		return peerID, nil, errors.Wrap(err, "extract public key")
 	}
 	return peerID, peerPub, nil
 }

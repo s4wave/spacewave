@@ -121,14 +121,8 @@ func pubKeysFromEntityKeypairs(keypairs []*session.EntityKeypair) ([]crypto.PubK
 		if kp.GetPeerId() == "" {
 			continue
 		}
-		parsedPeerID, pub, err := peer.ParsePeerIDWithPubKey(kp.GetPeerId())
+		_, pub, err := peer.ParsePeerIDWithPubKey(kp.GetPeerId())
 		if err != nil {
-			// Preserve the failed peer-ID stage in the caller's error.
-			errContext := "extract public key"
-			if parsedPeerID == "" {
-				errContext = "decode peer ID"
-			}
-			err = errors.Wrap(err, errContext)
 			return nil, err
 		}
 		pubs = append(pubs, pub)

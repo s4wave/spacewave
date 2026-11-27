@@ -104,14 +104,8 @@ func (r *SpacewaveSessionResource) EnrollSpaceMember(
 	for _, p := range peers {
 		peerID := p.GetPeerId()
 		result := &s4wave_provider_spacewave.EnrollSpaceMemberResult{PeerId: peerID}
-		parsedPeerID, targetPub, err := peer.ParsePeerIDWithPubKey(peerID)
+		_, targetPub, err := peer.ParsePeerIDWithPubKey(peerID)
 		if err != nil {
-			// Preserve the failed peer-ID stage in the caller's error.
-			errContext := "extract public key"
-			if parsedPeerID == "" {
-				errContext = "decode peer ID"
-			}
-			err = errors.Wrap(err, errContext)
 			result.Error = errors.Wrap(err, "extract pubkey").Error()
 			results = append(results, result)
 			continue

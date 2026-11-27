@@ -355,14 +355,8 @@ func buildFriendDmRecoveryEnvelopes(
 				)
 			}
 			seenRecoveryPeers[recoveryKeypair.GetPeerId()] = struct{}{}
-			parsedPeerID, pub, err := peer.ParsePeerIDWithPubKey(recoveryKeypair.GetPeerId())
+			_, pub, err := peer.ParsePeerIDWithPubKey(recoveryKeypair.GetPeerId())
 			if err != nil {
-				// Preserve the failed peer-ID stage in the caller's error.
-				errContext := "extract public key"
-				if parsedPeerID == "" {
-					errContext = "decode peer ID"
-				}
-				err = errors.Wrap(err, errContext)
 				return nil, errors.Wrapf(
 					err,
 					"extract friend dm recovery pubkey %s",

@@ -220,13 +220,7 @@ func validateFriendDmBootstrap(
 				)
 			}
 			sessionPeers[sess.GetPeerId()] = struct{}{}
-			if parsedPeerID, _, err := peer.ParsePeerIDWithPubKey(sess.GetPeerId()); err != nil {
-				// Preserve the failed peer-ID stage in the caller's error.
-				errContext := "extract public key"
-				if parsedPeerID == "" {
-					errContext = "decode peer ID"
-				}
-				err = errors.Wrap(err, errContext)
+			if _, _, err := peer.ParsePeerIDWithPubKey(sess.GetPeerId()); err != nil {
 				return errors.Wrapf(err, "parse friend dm peer %s", sess.GetPeerId())
 			}
 		}
@@ -244,13 +238,7 @@ func validateFriendDmBootstrap(
 				)
 			}
 			recoveryPeers[recoveryPeer.GetPeerId()] = struct{}{}
-			if parsedPeerID, _, err := peer.ParsePeerIDWithPubKey(recoveryPeer.GetPeerId()); err != nil {
-				// Preserve the failed peer-ID stage in the caller's error.
-				errContext := "extract public key"
-				if parsedPeerID == "" {
-					errContext = "decode peer ID"
-				}
-				err = errors.Wrap(err, errContext)
+			if _, _, err := peer.ParsePeerIDWithPubKey(recoveryPeer.GetPeerId()); err != nil {
 				return errors.Wrapf(
 					err,
 					"parse friend dm recovery peer %s",
@@ -426,14 +414,8 @@ func (s *SharedObject) reconcileFriendDmParticipants(
 	// Parse public keys for the participants being added.
 	parsedPubs := make(map[string]crypto.PubKey, len(plan.additions))
 	for _, participant := range plan.additions {
-		parsedPeerID, targetPub, err := peer.ParsePeerIDWithPubKey(participant.peerID)
+		_, targetPub, err := peer.ParsePeerIDWithPubKey(participant.peerID)
 		if err != nil {
-			// Preserve the failed peer-ID stage in the caller's error.
-			errContext := "extract public key"
-			if parsedPeerID == "" {
-				errContext = "decode peer ID"
-			}
-			err = errors.Wrap(err, errContext)
 			return errors.Wrapf(err, "parse friend dm peer %s", participant.peerID)
 		}
 		parsedPubs[participant.peerID] = targetPub
