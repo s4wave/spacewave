@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/util/prng"
 	"github.com/pkg/errors"
 	space_world "github.com/s4wave/spacewave/core/space/world"
