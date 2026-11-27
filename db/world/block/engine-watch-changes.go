@@ -94,8 +94,6 @@ type changeSubscriber struct {
 // one watcher, still joined to its change watch and indexed by the interest of
 // its last call.
 type slotSubscriber struct {
-	// e is the Engine whose watch sub joined.
-	e *Engine
 	// w is the change watch sub joined.
 	w *engineChangeWatch
 	// sub is the kept subscriber.
@@ -104,7 +102,7 @@ type slotSubscriber struct {
 
 // ReleaseWatch leaves the change watch.
 func (s *slotSubscriber) ReleaseWatch() {
-	s.e.leaveChangeWatch(s.w, s.sub)
+	s.w.leave(s.sub)
 }
 
 // WatchChanges calls cb with each later seqno whose changes touches accepts,
@@ -231,7 +229,7 @@ func (e *Engine) subscribeChanges(ctx context.Context, interest *world.ChangeInt
 		if !ok {
 			slot = nil
 		} else if held != nil {
-			if kept, _ = held.(*slotSubscriber); kept == nil || kept.e != e {
+			if kept, _ = held.(*slotSubscriber); kept == nil || kept.w.bcast != &e.bcast {
 				held.ReleaseWatch()
 				kept = nil
 			}
@@ -289,26 +287,14 @@ func (e *Engine) subscribeChanges(ctx context.Context, interest *world.ChangeInt
 
 	// End the call by keeping the subscriber in the slot, idle, or by leaving.
 	if slot == nil {
-		return w, sub, func(uint64) { e.leaveChangeWatch(w, sub) }, nil
+		return w, sub, func(uint64) { w.leave(sub) }, nil
 	}
 	return w, sub, func(covered uint64) {
 		sub.mtx.Lock()
 		sub.idle, sub.changes = true, nil
 		sub.mtx.Unlock()
-		slot.Put(&slotSubscriber{e: e, w: w, sub: sub}, covered)
+		slot.Put(&slotSubscriber{w: w, sub: sub}, covered)
 	}, nil
-}
-
-// leaveChangeWatch removes sub from w's index and then from w, which may let
-// w go idle.
-func (e *Engine) leaveChangeWatch(w *engineChangeWatch, sub *changeSubscriber) {
-	// Leave the index first, under its own lock.
-	w.unindexSub(sub)
-
-	// Then leave the watch.
-	locked := e.bcast.Lock()
-	w.removeSubLocked(sub)
-	locked.Unlock()
 }
 
 // watchedHeadLocked returns the one recorded head at seqno, or nil when the

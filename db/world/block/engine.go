@@ -127,14 +127,10 @@ type Engine struct {
 	// head the commits build on: the head NewEngine or the last SetRootRef
 	// installed. Nil otherwise. Guarded by bcast.
 	unpinBase func()
-	// deferDurability enables deferred durability for an engine without an
-	// Authority: commits stay in memory until Sync.
-	deferDurability bool
+	// engineOptions are the integrations NewEngine's options chose.
+	engineOptions
 	// headWatchRelease stops the Authority's head watch, or is nil.
 	headWatchRelease func()
-	// readerPinDelay is how long a replaced head a reader holds waits before
-	// the engine pins it.
-	readerPinDelay time.Duration
 	// changeWatch compares each new head once for every watcher. It is nil
 	// while no watcher is registered. Guarded by bcast.
 	changeWatch *engineChangeWatch
@@ -166,6 +162,16 @@ type Engine struct {
 	// its decoded World root, so a turn whose base is that candidate builds
 	// on it without reading the root block. Guarded by bcast.
 	admitted *admittedHead
+}
+
+// engineOptions are the optional Engine integrations an EngineOption sets.
+type engineOptions struct {
+	// deferDurability enables deferred durability for an engine without an
+	// Authority: commits stay in memory until Sync.
+	deferDurability bool
+	// readerPinDelay is how long a replaced head a reader holds waits before
+	// the engine pins it.
+	readerPinDelay time.Duration
 	// recordOps makes write transactions record their World operations, so
 	// a commit's Candidate carries them as its Operation.
 	recordOps bool
@@ -186,14 +192,14 @@ func (e *Engine) OperationAuthor(context.Context) (peer.ID, string, error) {
 }
 
 // EngineOption configures optional Engine integrations.
-type EngineOption func(*Engine)
+type EngineOption func(*engineOptions)
 
 // WithDeferredDurability keeps the commits of an engine without an Authority
 // in memory until Sync. An engine with an Authority ignores it: its commits
 // are durable when the Authority reports them so.
 func WithDeferredDurability() EngineOption {
-	return func(e *Engine) {
-		e.deferDurability = true
+	return func(o *engineOptions) {
+		o.deferDurability = true
 	}
 }
 
@@ -203,8 +209,8 @@ func WithDeferredDurability() EngineOption {
 // own bucket ID cleared from its object roots. An Authority that replays
 // operations, such as a Space's, needs it. The local Authority does not.
 func WithRecordedOperations() EngineOption {
-	return func(e *Engine) {
-		e.recordOps = true
+	return func(o *engineOptions) {
+		o.recordOps = true
 	}
 }
 
@@ -213,8 +219,8 @@ func WithRecordedOperations() EngineOption {
 // the commit that replaced it returns, for a Volume whose grace period is
 // shorter than any reader.
 func WithReaderPinDelay(delay time.Duration) EngineOption {
-	return func(e *Engine) {
-		e.readerPinDelay = delay
+	return func(o *engineOptions) {
+		o.readerPinDelay = delay
 	}
 }
 
@@ -232,32 +238,33 @@ func NewEngine(
 	verbose bool,
 	opts ...EngineOption,
 ) (*Engine, error) {
-	// Construct the publication state before applying optional integrations.
+	// Apply the optional integrations over their defaults.
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/engine/new")
 	defer task.End()
+	options := engineOptions{readerPinDelay: defaultReaderPinDelay}
+	for _, opt := range opts {
+		if opt != nil {
+			opt(&options)
+		}
+	}
 
 	// Keep the base cursor and published read head as separate authorities.
 	e := &Engine{
-		le:             le,
-		baseRoot:       root,
-		lookupOp:       lookupOp,
-		authority:      authority,
-		head:           &engineHead{root: root.Clone()},
-		verbose:        verbose,
-		snapshotTxs:    make(map[*EngineTx]struct{}),
-		snapChanged:    make(chan struct{}),
-		live:           make(map[*publishedHead]struct{}),
-		watchedHeads:   make([]*watchedHead, 0, changeWatchHeads),
-		readerPinDelay: defaultReaderPinDelay,
+		le:            le,
+		baseRoot:      root,
+		lookupOp:      lookupOp,
+		authority:     authority,
+		head:          &engineHead{root: root.Clone()},
+		verbose:       verbose,
+		snapshotTxs:   make(map[*EngineTx]struct{}),
+		snapChanged:   make(chan struct{}),
+		live:          make(map[*publishedHead]struct{}),
+		watchedHeads:  make([]*watchedHead, 0, changeWatchHeads),
+		engineOptions: options,
 	}
 	e.headSignal.Store(&headSignal{changed: make(chan struct{})})
 	e.snapIdle = sync.NewCond(&e.snapMu)
 	e.closing, e.stopClosing = context.WithCancelCause(context.Background())
-	for _, opt := range opts {
-		if opt != nil {
-			opt(e)
-		}
-	}
 
 	// Without an Authority, deferred durability keeps commits in one
 	// long-lived BufferedStore until Sync, under a stage and over a pinned
@@ -1171,7 +1178,7 @@ func (e *Engine) StageWorldState(ctx context.Context) (world.WorldStage, error) 
 	if !e.deferredDurability() {
 		return stage, nil
 	}
-	return &deferredStage{WorldStage: stage, e: e}, nil
+	return &deferredStage{WorldStage: stage, store: e.writeBlockStore, le: e.le}, nil
 }
 
 // pinnedStage releases the pin on its base head after the stage.
@@ -1190,14 +1197,17 @@ func (s *pinnedStage) Release() {
 // deferredStage flushes the engine's buffered blocks before it releases.
 type deferredStage struct {
 	world.WorldStage
-	e *Engine
+	// store is the engine's buffered block store.
+	store block.StoreOps
+	// le logs a failed flush.
+	le *logrus.Entry
 }
 
 // Release makes the adopting commits durable, then releases the stage. A
 // failed flush keeps the stage until its process owner is reaped.
 func (s *deferredStage) Release() {
-	if _, err := s.e.writeBlockStore.Sync(context.Background()); err != nil {
-		s.e.le.WithError(err).Warn("keeping world stage after failed block flush")
+	if _, err := s.store.Sync(context.Background()); err != nil {
+		s.le.WithError(err).Warn("keeping world stage after failed block flush")
 		return
 	}
 	s.WorldStage.Release()

@@ -54,6 +54,8 @@ func (e *Engine) GetUnknownChangeCount() uint64 {
 // methods named Locked need bcast. The ones that take indexMtx must be called
 // without bcast.
 type engineChangeWatch struct {
+	// bcast is the Engine's publication lock and broadcast.
+	bcast *broadcast.Broadcast
 	// ctx cancels a comparison in flight when the Engine closes.
 	ctx context.Context
 	// cancel cancels ctx.
@@ -240,7 +242,7 @@ func (e *Engine) startChangeWatchLocked() (*engineChangeWatch, error) {
 
 	// Start from the published head, held while it is the base.
 	base, release := e.holdHeadLocked()
-	w := newEngineChangeWatch(base, e.headSeqnoLocked(), e.published, release)
+	w := newEngineChangeWatch(&e.bcast, base, e.headSeqnoLocked(), e.published, release)
 	e.changeWatch = w
 	e.changeWatches++
 	go e.runChangeWatch(w)
@@ -443,11 +445,13 @@ func (e *Engine) readWatchedRevs(ctx context.Context, w *engineChangeWatch, head
 	return revs
 }
 
-// newEngineChangeWatch returns a watch whose base is the held head base at
-// seqno and publication, which release lets go. The caller starts its loop.
-func newEngineChangeWatch(base *bucket_lookup.Cursor, seqno, publication uint64, release func()) *engineChangeWatch {
+// newEngineChangeWatch returns a watch under the Engine's bcast whose base is
+// the held head base at seqno and publication, which release lets go. The
+// caller starts its loop.
+func newEngineChangeWatch(bcast *broadcast.Broadcast, base *bucket_lookup.Cursor, seqno, publication uint64, release func()) *engineChangeWatch {
 	ctx, cancel := context.WithCancel(context.Background())
 	w := &engineChangeWatch{
+		bcast:           bcast,
 		ctx:             ctx,
 		cancel:          cancel,
 		base:            base,
@@ -461,6 +465,18 @@ func newEngineChangeWatch(base *bucket_lookup.Cursor, seqno, publication uint64,
 	}
 	w.handed.Store(seqno)
 	return w
+}
+
+// leave removes sub from the index and then from the watch, which may let the
+// watch go idle. The caller must not hold bcast.
+func (w *engineChangeWatch) leave(sub *changeSubscriber) {
+	// Leave the index first, under its own lock.
+	w.unindexSub(sub)
+
+	// Then leave the watch.
+	locked := w.bcast.Lock()
+	w.removeSubLocked(sub)
+	locked.Unlock()
 }
 
 // baseRefLocked returns the reference of the base. The caller must hold
