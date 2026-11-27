@@ -1752,12 +1752,41 @@ export interface SOCheckpointOutcomes {
    * Refused are the covered operations replay refused, in order.
    */
   refused?: SOOperationPosition[]
+  /**
+   * PrevAuthors are the Authors of the previous checkpoint, where the
+   * operations this checkpoint newly covers start, so a device that never
+   * installed the previous one can decide them. Unset on a checkpoint signed
+   * before the field existed, whose previous heads are unknown. Set with no
+   * authors when the previous checkpoint covered none, as genesis.
+   */
+  prevAuthors?: SOCheckpointAuthors
 }
 
 export const SOCheckpointOutcomes: MessageType<SOCheckpointOutcomes> =
   /* @__PURE__ */ createMessageType<SOCheckpointOutcomes>(
     'sobject.SOCheckpointOutcomes',
-    () => [[1, 'refused', 11, 1, SOOperationPosition.codec]],
+    () => [
+      [1, 'refused', 11, 1, SOOperationPosition.codec],
+      [2, 'prev_authors', 11, 0, SOCheckpointAuthors.codec],
+    ],
+  )
+
+/**
+ * SOCheckpointAuthors are the author heads of one checkpoint.
+ *
+ * @generated from message sobject.SOCheckpointAuthors
+ */
+export interface SOCheckpointAuthors {
+  /**
+   * Authors are the last covered operation of each author, sorted by peer_id.
+   */
+  authors?: SOOperationPosition[]
+}
+
+export const SOCheckpointAuthors: MessageType<SOCheckpointAuthors> =
+  /* @__PURE__ */ createMessageType<SOCheckpointAuthors>(
+    'sobject.SOCheckpointAuthors',
+    () => [[1, 'authors', 11, 1, SOOperationPosition.codec]],
   )
 
 /**

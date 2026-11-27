@@ -560,10 +560,18 @@ class SOCheckpointInner(_message.Message):
     def __init__(self, shared_object_id: _Optional[str] = ..., height: _Optional[int] = ..., prev_checkpoint_hash: _Optional[bytes] = ..., config_hash: _Optional[bytes] = ..., state_data: _Optional[bytes] = ..., replay_version: _Optional[int] = ..., key_epoch: _Optional[int] = ..., authors: _Optional[_Iterable[_Union[SOOperationPosition, _Mapping]]] = ..., sequence: _Optional[_Union[SOSequenceHead, _Mapping]] = ..., outcomes: _Optional[_Union[SOCheckpointOutcomes, _Mapping]] = ...) -> None: ...
 
 class SOCheckpointOutcomes(_message.Message):
-    __slots__ = ("refused",)
+    __slots__ = ("refused", "prev_authors")
     REFUSED_FIELD_NUMBER: _ClassVar[int]
+    PREV_AUTHORS_FIELD_NUMBER: _ClassVar[int]
     refused: _containers.RepeatedCompositeFieldContainer[SOOperationPosition]
-    def __init__(self, refused: _Optional[_Iterable[_Union[SOOperationPosition, _Mapping]]] = ...) -> None: ...
+    prev_authors: SOCheckpointAuthors
+    def __init__(self, refused: _Optional[_Iterable[_Union[SOOperationPosition, _Mapping]]] = ..., prev_authors: _Optional[_Union[SOCheckpointAuthors, _Mapping]] = ...) -> None: ...
+
+class SOCheckpointAuthors(_message.Message):
+    __slots__ = ("authors",)
+    AUTHORS_FIELD_NUMBER: _ClassVar[int]
+    authors: _containers.RepeatedCompositeFieldContainer[SOOperationPosition]
+    def __init__(self, authors: _Optional[_Iterable[_Union[SOOperationPosition, _Mapping]]] = ...) -> None: ...
 
 class SOOperationPosition(_message.Message):
     __slots__ = ("peer_id", "nonce", "op_hash")

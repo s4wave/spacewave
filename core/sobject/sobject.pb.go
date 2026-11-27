@@ -2287,6 +2287,12 @@ type SOCheckpointOutcomes struct {
 	unknownFields []byte
 	// Refused are the covered operations replay refused, in order.
 	Refused []*SOOperationPosition `protobuf:"bytes,1,rep,name=refused,proto3" json:"refused,omitempty"`
+	// PrevAuthors are the Authors of the previous checkpoint, where the
+	// operations this checkpoint newly covers start, so a device that never
+	// installed the previous one can decide them. Unset on a checkpoint signed
+	// before the field existed, whose previous heads are unknown. Set with no
+	// authors when the previous checkpoint covered none, as genesis.
+	PrevAuthors *SOCheckpointAuthors `protobuf:"bytes,2,opt,name=prev_authors,json=prevAuthors,proto3" json:"prevAuthors,omitempty"`
 }
 
 func (x *SOCheckpointOutcomes) Reset() {
@@ -2298,6 +2304,33 @@ func (*SOCheckpointOutcomes) ProtoMessage() {}
 func (x *SOCheckpointOutcomes) GetRefused() []*SOOperationPosition {
 	if x != nil {
 		return x.Refused
+	}
+	return nil
+}
+
+func (x *SOCheckpointOutcomes) GetPrevAuthors() *SOCheckpointAuthors {
+	if x != nil {
+		return x.PrevAuthors
+	}
+	return nil
+}
+
+// SOCheckpointAuthors are the author heads of one checkpoint.
+type SOCheckpointAuthors struct {
+	unknownFields []byte
+	// Authors are the last covered operation of each author, sorted by peer_id.
+	Authors []*SOOperationPosition `protobuf:"bytes,1,rep,name=authors,proto3" json:"authors,omitempty"`
+}
+
+func (x *SOCheckpointAuthors) Reset() {
+	*x = SOCheckpointAuthors{}
+}
+
+func (*SOCheckpointAuthors) ProtoMessage() {}
+
+func (x *SOCheckpointAuthors) GetAuthors() []*SOOperationPosition {
+	if x != nil {
+		return x.Authors
 	}
 	return nil
 }
@@ -4055,6 +4088,7 @@ func (m *SOCheckpointOutcomes) CloneVT() *SOCheckpointOutcomes {
 	}
 	r := new(SOCheckpointOutcomes)
 	r.Refused = protobuf_go_lite.CloneVTSlice(m.Refused)
+	r.PrevAuthors = protobuf_go_lite.CloneVTValue(m.PrevAuthors)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -4062,6 +4096,22 @@ func (m *SOCheckpointOutcomes) CloneVT() *SOCheckpointOutcomes {
 }
 
 func (m *SOCheckpointOutcomes) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SOCheckpointAuthors) CloneVT() *SOCheckpointAuthors {
+	if m == nil {
+		return (*SOCheckpointAuthors)(nil)
+	}
+	r := new(SOCheckpointAuthors)
+	r.Authors = protobuf_go_lite.CloneVTSlice(m.Authors)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOCheckpointAuthors) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -5568,11 +5618,34 @@ func (this *SOCheckpointOutcomes) EqualVT(that *SOCheckpointOutcomes) bool {
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.Refused, that.Refused, func() *SOOperationPosition { return &SOOperationPosition{} }) {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.PrevAuthors, that.PrevAuthors) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *SOCheckpointOutcomes) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SOCheckpointOutcomes)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SOCheckpointAuthors) EqualVT(that *SOCheckpointAuthors) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Authors, that.Authors, func() *SOOperationPosition { return &SOOperationPosition{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOCheckpointAuthors) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOCheckpointAuthors)
 	if !ok {
 		return false
 	}
@@ -9326,6 +9399,11 @@ func (x *SOCheckpointOutcomes) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if x.PrevAuthors != nil || s.HasField("prevAuthors") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("prevAuthors")
+		x.PrevAuthors.MarshalProtoJSON(s.WithField("prevAuthors"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -9361,12 +9439,82 @@ func (x *SOCheckpointOutcomes) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.Refused = append(x.Refused, v)
 			})
+		case "prev_authors", "prevAuthors":
+			if s.ReadNil() {
+				x.PrevAuthors = nil
+				return
+			}
+			x.PrevAuthors = &SOCheckpointAuthors{}
+			x.PrevAuthors.UnmarshalProtoJSON(s.WithField("prev_authors", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the SOCheckpointOutcomes from JSON.
 func (x *SOCheckpointOutcomes) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOCheckpointAuthors message to JSON.
+func (x *SOCheckpointAuthors) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Authors) > 0 || s.HasField("authors") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("authors")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Authors {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("authors"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOCheckpointAuthors to JSON.
+func (x *SOCheckpointAuthors) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOCheckpointAuthors message from JSON.
+func (x *SOCheckpointAuthors) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "authors":
+			s.AddField("authors")
+			if s.ReadNil() {
+				x.Authors = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Authors = append(x.Authors, nil)
+					return
+				}
+				v := &SOOperationPosition{}
+				v.UnmarshalProtoJSON(s.WithField("authors", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Authors = append(x.Authors, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SOCheckpointAuthors from JSON.
+func (x *SOCheckpointAuthors) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -13089,9 +13237,63 @@ func (m *SOCheckpointOutcomes) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.PrevAuthors != nil {
+		size, err := m.PrevAuthors.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
 	if len(m.Refused) > 0 {
 		for iNdEx := len(m.Refused) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.Refused[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOCheckpointAuthors) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOCheckpointAuthors) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOCheckpointAuthors) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Authors) > 0 {
+		for iNdEx := len(m.Authors) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Authors[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
 			if err != nil {
 				return 0, err
 			}
@@ -14995,6 +15197,24 @@ func (m *SOCheckpointOutcomes) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	if m.PrevAuthors != nil {
+		l = m.PrevAuthors.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SOCheckpointAuthors) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	for _, e := range m.Authors {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -16465,10 +16685,36 @@ func (x *SOCheckpointOutcomes) MarshalProtoText() string {
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
+	if x.PrevAuthors != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "prev_authors")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.PrevAuthors)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *SOCheckpointOutcomes) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOCheckpointAuthors) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOCheckpointAuthors")
+	if len(x.Authors) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "authors")
+		for i, v := range x.Authors {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &SOOperationPosition{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOCheckpointAuthors) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -20048,6 +20294,77 @@ func (m *SOCheckpointOutcomes) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Refused = append(m.Refused, &SOOperationPosition{})
 			if err := m.Refused[len(m.Refused)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PrevAuthors", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.PrevAuthors == nil {
+				m.PrevAuthors = &SOCheckpointAuthors{}
+			}
+			if err := m.PrevAuthors.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOCheckpointAuthors) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOCheckpointAuthors: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOCheckpointAuthors: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Authors", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Authors = append(m.Authors, &SOOperationPosition{})
+			if err := m.Authors[len(m.Authors)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
