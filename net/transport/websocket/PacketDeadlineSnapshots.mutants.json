@@ -1,0 +1,7 @@
+[
+  {
+    "name": "shared time words expose a partially updated deadline",
+    "replace": [["ImmutableSnapshots == TRUE", "ImmutableSnapshots == FALSE"]],
+    "expect": "NoTornTime"
+  }
+]

@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net"
+	"sync/atomic"
 	"time"
 )
 
@@ -16,8 +17,10 @@ type packetConn struct {
 	// localAddr is the local address.
 	localAddr net.Addr
 
-	rd time.Time // read deadline
-	wd time.Time // write deadline
+	// rd publishes an immutable read deadline; nil means no deadline.
+	rd atomic.Pointer[time.Time]
+	// wd publishes an immutable write deadline; nil means no deadline.
+	wd atomic.Pointer[time.Time]
 
 	// packetCh is the packet channel.
 	packetCh chan *incPacket
@@ -45,7 +48,9 @@ func newPacketConn(
 
 // incPacket is an incoming packet.
 type incPacket struct {
+	// addr is the packet sender.
 	addr net.Addr
+	// data is the copied packet payload.
 	data []byte
 }
 
@@ -61,11 +66,11 @@ type incPacket struct {
 // See SetDeadline and SetReadDeadline.
 func (c *packetConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
 	// Apply the configured read deadline to the packet context.
-	deadline := c.rd
+	deadline := c.rd.Load()
 	ctx := c.ctx
-	if !deadline.IsZero() {
+	if deadline != nil {
 		var ctxCancel context.CancelFunc
-		ctx, ctxCancel = context.WithDeadline(c.ctx, deadline)
+		ctx, ctxCancel = context.WithDeadline(c.ctx, *deadline)
 		defer ctxCancel()
 	}
 
@@ -108,11 +113,11 @@ func (c *packetConn) HandlePacket(ctx context.Context, p []byte, addr net.Addr) 
 // On packet-oriented connections, write timeouts are rare.
 func (c *packetConn) WriteTo(p []byte, addr net.Addr) (n int, err error) {
 	// Apply the configured write deadline to the packet context.
-	deadline := c.wd
+	deadline := c.wd.Load()
 	ctx := c.ctx
-	if !deadline.IsZero() {
+	if deadline != nil {
 		var ctxCancel context.CancelFunc
-		ctx, ctxCancel = context.WithDeadline(c.ctx, deadline)
+		ctx, ctxCancel = context.WithDeadline(c.ctx, *deadline)
 		defer ctxCancel()
 	}
 
@@ -141,8 +146,13 @@ func (c *packetConn) LocalAddr() net.Addr {
 //
 // A zero value for t means I/O operations will not time out.
 func (c *packetConn) SetDeadline(t time.Time) error {
-	_ = c.SetReadDeadline(t)
-	_ = c.SetWriteDeadline(t)
+	// Share one immutable snapshot between both deadline publications.
+	var deadline *time.Time
+	if !t.IsZero() {
+		deadline = new(t)
+	}
+	c.rd.Store(deadline)
+	c.wd.Store(deadline)
 	return nil
 }
 
@@ -150,7 +160,12 @@ func (c *packetConn) SetDeadline(t time.Time) error {
 // and any currently-blocked ReadFrom call.
 // A zero value for t means ReadFrom will not time out.
 func (c *packetConn) SetReadDeadline(t time.Time) error {
-	c.rd = t
+	// Publish a fresh snapshot without mutating one a reader still holds.
+	var deadline *time.Time
+	if !t.IsZero() {
+		deadline = new(t)
+	}
+	c.rd.Store(deadline)
 	return nil
 }
 
@@ -160,7 +175,12 @@ func (c *packetConn) SetReadDeadline(t time.Time) error {
 // some of the data was successfully written.
 // A zero value for t means WriteTo will not time out.
 func (c *packetConn) SetWriteDeadline(t time.Time) error {
-	c.wd = t
+	// Publish a fresh snapshot without mutating one a writer still holds.
+	var deadline *time.Time
+	if !t.IsZero() {
+		deadline = new(t)
+	}
+	c.wd.Store(deadline)
 	return nil
 }
 
