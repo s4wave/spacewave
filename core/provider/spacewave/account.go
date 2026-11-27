@@ -137,6 +137,8 @@ type ProviderAccount struct {
 	bstores *keyed.KeyedRefCount[string, *bstoreTracker]
 	// sobjects contains the set of mounted shared objects.
 	sobjects *keyed.KeyedRefCount[string, *sobjectTracker]
+	// sobjectRuns orders each shared object's tracker runs and cache deletes.
+	sobjectRuns cloudRunHandoff
 	// sessions contains the set of mounted sessions.
 	sessions *keyed.KeyedRefCount[string, *sessionTracker]
 

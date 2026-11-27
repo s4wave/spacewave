@@ -1049,7 +1049,10 @@ func (h *cloudSOHost) applyConfigMutation(
 	nextInvites []*sobject.SOInvite,
 	epoch *sobject.SOKeyEpoch,
 ) error {
-	// Serialize with peer imports.
+	// Serialize with peer imports. Every caller posts the change to the cloud
+	// first, so a closed host returns errHostClosed for a change the cloud
+	// has committed. The host stores nothing, and the next mount verifies the
+	// change when it pulls the cloud's config chain.
 	release, err := h.lockAccept(ctx)
 	if err != nil {
 		return err

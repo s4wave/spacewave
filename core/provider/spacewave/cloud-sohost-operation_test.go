@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/aperturerobotics/util/keyed"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
@@ -571,6 +572,221 @@ func TestCloudHostWriteBarrier(t *testing.T) {
 	}
 	if ctx.Err() == nil {
 		t.Fatal("failed persist left the host running")
+	}
+}
+
+// TestCloudHostWriteBarrierAcrossKeyRemoval checks the barrier when a mount
+// is removed and added again. keyed starts the new routine at once, without
+// waiting for the old one, so only the run slot keeps run B's load behind run
+// A's paused persist. The routine below follows the tracker's order: take the
+// slot, load, run the host, close it, then leave the slot.
+func TestCloudHostWriteBarrierAcrossKeyRemoval(t *testing.T) {
+	// Fail any request: acceptance never contacts the cloud.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Errorf("unexpected request: %s", r.URL.Path)
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	t.Cleanup(server.Close)
+
+	// Seed the cache with a genesis state and one operation, as an earlier
+	// run leaves it.
+	initial, key := newTestGenesisState(t)
+	peerID := mustPeerID(t, key)
+	client := newTestPublicationClient(server, key, peerID)
+	account := &ProviderAccount{objStore: newSyncTestKvStore()}
+	var hold atomic.Pointer[func()]
+	persist := func(ctx context.Context, cache *api.VerifiedSOStateCache, changes []*sobject.SOConfigChange) error {
+		if fn := hold.Swap(nil); fn != nil {
+			(*fn)()
+		}
+		return account.writeVerifiedSOStateCache(ctx, testSharedObjectID, cache, changes)
+	}
+	seed := &cloudSOHost{
+		le: logrus.New().WithField("test", t.Name()), client: client,
+		soID: testSharedObjectID, peerID: peerID, stateCtr: ccontainer.NewCContainer(initial),
+		verifiedConfig: initial.GetConfig(), lastConfigChainHash: initial.GetConfig().GetConfigChainHash(),
+		cloudState: initial.CloneVT(), persistVerifiedStateCache: persist,
+	}
+	if err := writeLocalOperation(t, seed, key); err != nil {
+		t.Fatal(err)
+	}
+	seed.close()
+
+	// Run each mount the way the tracker does.
+	mounted := make(chan *cloudSOHost, 2)
+	runs := keyed.NewKeyedRefCount(func(string) (keyed.Routine, struct{}) {
+		return func(ctx context.Context) error {
+			slot := account.sobjectRuns.take(testSharedObjectID)
+			defer slot.release()
+			if err := slot.wait(ctx); err != nil {
+				return err
+			}
+			cache, err := account.loadVerifiedSOStateCache(ctx, testSharedObjectID)
+			if err != nil {
+				return err
+			}
+			host := &cloudSOHost{
+				le: seed.le, client: client, soID: testSharedObjectID, peerID: peerID,
+				stateCtr: ccontainer.NewCContainer[*sobject.SOState](nil), persistVerifiedStateCache: persist,
+			}
+			host.hydrateVerifiedStateCache(cache)
+			mounted <- host
+			<-ctx.Done()
+			host.close()
+			return context.Canceled
+		}, struct{}{}
+	})
+	runs.SetContext(t.Context(), false)
+	refA, _, _ := runs.AddKeyRef(testSharedObjectID)
+	a := <-mounted
+
+	// Pause A's write inside its persist.
+	paused, resume := make(chan struct{}), make(chan struct{})
+	pause := func() {
+		close(paused)
+		<-resume
+	}
+	hold.Store(&pause)
+	written := make(chan error, 1)
+	go func() { written <- writeLocalOperation(t, a, key) }()
+	<-paused
+
+	// Remove the key, which cancels run A without waiting for it, and add it
+	// again, which starts run B at once.
+	refA.Release()
+	refB, _, _ := runs.AddKeyRef(testSharedObjectID)
+	t.Cleanup(refB.Release)
+
+	// Release A's persist once B loaded, or after a moment if B waits for it.
+	var b *cloudSOHost
+	select {
+	case b = <-mounted:
+	case <-time.After(200 * time.Millisecond):
+	}
+	close(resume)
+	if err := <-written; err != nil {
+		t.Fatal(err)
+	}
+	if b == nil {
+		b = <-mounted
+	}
+
+	// B loaded the write A acknowledged, and B's next write keeps it.
+	acked := len(a.stateCtr.GetValue().GetOps())
+	if got := len(b.stateCtr.GetValue().GetOps()); got != acked {
+		t.Errorf("run B loaded %d operations, want the %d run A acknowledged", got, acked)
+	}
+	if err := writeLocalOperation(t, b, key); err != nil {
+		t.Fatal(err)
+	}
+	cache, err := account.loadVerifiedSOStateCache(t.Context(), testSharedObjectID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := len(cache.GetPendingPublication().GetOperations()); got != acked+1 {
+		t.Errorf("cache holds %d pending operations, want run A's %d and B's one", got, acked)
+	}
+}
+
+// TestCloudMountReleasedAfterRestart checks a tracker restart in place after
+// a write whose persist failed after it committed. The write is unknown and
+// ends the run, the mounted handle reports itself released, a write to the
+// ended host asks the World to remount, and the next mount holds the unknown
+// write and accepts a new one. The test stands in for the tracker's run: it
+// seeds the tracker's SharedObject result, and the host's cancel ends that
+// run's context, as host.execute returning does.
+func TestCloudMountReleasedAfterRestart(t *testing.T) {
+	// Fail any request: acceptance never contacts the cloud.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Errorf("unexpected request: %s", r.URL.Path)
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	t.Cleanup(server.Close)
+
+	// Mount run A over a genesis state through MountSharedObject.
+	initial, key := newTestGenesisState(t)
+	peerID := mustPeerID(t, key)
+	client := newTestPublicationClient(server, key, peerID)
+	account := NewTestProviderAccount(t, server.URL)
+	account.objStore = newSyncTestKvStore()
+	persistErr := errors.New("commit failed after the write landed")
+	var failNext atomic.Bool
+	persist := func(ctx context.Context, cache *api.VerifiedSOStateCache, changes []*sobject.SOConfigChange) error {
+		if err := account.writeVerifiedSOStateCache(ctx, testSharedObjectID, cache, changes); err != nil {
+			return err
+		}
+		if failNext.Swap(false) {
+			return persistErr
+		}
+		return nil
+	}
+	runCtx, runCancel := context.WithCancel(t.Context())
+	t.Cleanup(runCancel)
+	a := &cloudSOHost{
+		le: logrus.New().WithField("test", t.Name()), client: client,
+		soID: testSharedObjectID, peerID: peerID, stateCtr: ccontainer.NewCContainer(initial),
+		verifiedConfig: initial.GetConfig(), lastConfigChainHash: initial.GetConfig().GetConfigChainHash(),
+		cloudState: initial.CloneVT(), persistVerifiedStateCache: persist, ctxCancel: runCancel,
+	}
+	ref := account.buildSharedObjectRef(testSharedObjectID)
+	trackerRef, tracker, _ := account.sobjects.AddKeyRef(testSharedObjectID)
+	t.Cleanup(trackerRef.Release)
+	tracker.ref.SetResult(ref, nil)
+	tracker.sobjectProm.SetResult(&SharedObject{tkr: tracker, ctx: runCtx, host: a}, nil)
+	released := make(chan struct{})
+	soA, releaseA, err := account.MountSharedObject(t.Context(), ref, func() { close(released) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(releaseA)
+	if soA.(*SharedObject).host != a {
+		t.Fatal("mount returned another host")
+	}
+
+	// A write whose persist fails after committing is unknown and ends run A.
+	failNext.Store(true)
+	if err := writeLocalOperation(t, a, key); !errors.Is(err, sobject.ErrStateWriteUnknown) {
+		t.Errorf("failed persist returned %v, want an unknown outcome", err)
+	}
+	unknownOps := len(a.stateCtr.GetValue().GetOps()) + 1
+	select {
+	case <-released:
+	case <-time.After(2 * time.Second):
+		t.Error("ended run did not report its mount released")
+	}
+
+	// The run closes A on its way out, and a write to it asks for a remount.
+	a.close()
+	if err := writeLocalOperation(t, a, key); !errors.Is(err, sobject.ErrMountReloading) {
+		t.Errorf("write to the ended host returned %v, want a remount", err)
+	}
+
+	// Run B loads the cache, which settles the unknown write as written.
+	cache, err := account.loadVerifiedSOStateCache(t.Context(), testSharedObjectID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b := &cloudSOHost{
+		le: a.le, client: client, soID: testSharedObjectID, peerID: peerID,
+		stateCtr: ccontainer.NewCContainer[*sobject.SOState](nil), persistVerifiedStateCache: persist,
+	}
+	b.hydrateVerifiedStateCache(cache)
+	if got := len(b.stateCtr.GetValue().GetOps()); got != unknownOps {
+		t.Errorf("next mount loaded %d operations, want the %d the unknown write left", got, unknownOps)
+	}
+
+	// The remount reaches run B, and B accepts the next write.
+	tracker.sobjectProm.SetResult(&SharedObject{tkr: tracker, ctx: t.Context(), host: b}, nil)
+	soB, releaseB, err := account.MountSharedObject(t.Context(), ref, func() {})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(releaseB)
+	if soB.(*SharedObject).host != b {
+		t.Fatal("remount returned the ended host")
+	}
+	if err := writeLocalOperation(t, b, key); err != nil {
+		t.Errorf("next mount refused a write: %v", err)
 	}
 }
 

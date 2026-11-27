@@ -125,6 +125,17 @@ func (a *ProviderAccount) reseedEmptySharedObject(
 	cli *SessionClient,
 	sharedObjectID string,
 ) error {
+	// End the mounted run and hold the object's run slot, so no host writes
+	// the cache while it is deleted and no run loads it until the reseed ends.
+	runSlot := a.sobjectRuns.take(sharedObjectID)
+	defer runSlot.release()
+	if runSlot != nil {
+		a.sobjects.RemoveKey(sharedObjectID)
+	}
+	if err := runSlot.wait(ctx); err != nil {
+		return err
+	}
+
 	// Drop the verified chain and recovery state the new genesis replaces.
 	if err := a.clearSharedObjectRecoveryLocalState(ctx, sharedObjectID); err != nil {
 		return err

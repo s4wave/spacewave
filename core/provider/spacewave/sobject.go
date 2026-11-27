@@ -269,6 +269,16 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 		}
 	}()
 
+	// Wait for the object's previous run to close its host, even one of a key
+	// removed and added again, so the load follows each of its writes. The
+	// slot is left after host.close below, as the deferred calls run in
+	// reverse.
+	runSlot := t.a.sobjectRuns.take(sharedObjectID)
+	defer runSlot.release()
+	if err := runSlot.wait(hostCtx); err != nil {
+		return err
+	}
+
 	// Load the verified cache. A failed read starts the host cold.
 	verifiedCache, written, err := t.a.loadVerifiedSOStateCacheFrom(hostCtx, sharedObjectID)
 	if err != nil {
@@ -421,8 +431,17 @@ func (a *ProviderAccount) MountSharedObject(ctx context.Context, ref *sobject.Sh
 		tkrRef.Release()
 		return nil, nil, err
 	}
+	if released == nil || cloudWriteBarrierOff {
+		return ws, tkrRef.Release, nil
+	}
 
-	return ws, tkrRef.Release, nil
+	// Report the handle released once its run ends, such as after a restart
+	// in place, so the caller remounts instead of writing to a closed host.
+	stop := context.AfterFunc(ws.ctx, released)
+	return ws, func() {
+		stop()
+		tkrRef.Release()
+	}, nil
 }
 
 // AccessSharedObjectHealth adds a reference to shared object health by ref.
