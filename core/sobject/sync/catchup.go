@@ -50,6 +50,130 @@ type syncReceive struct {
 	held *sobject.SOState
 }
 
+// newSyncReceive pins the request floor, offered state and original catch-up deadline.
+func newSyncReceive(head *SOSyncHead, base []byte, held *sobject.SOState) *syncReceive {
+	return &syncReceive{head: head, base: base, cursor: base, deadline: time.Now().Add(catchupTimeout), held: held}
+}
+
+// acceptResponse completes the pinned receive and prepares its acknowledgment.
+func (r *syncReceive) acceptResponse(ctx context.Context, s *SOSync, snapshot *SOSyncSnapshot) (*SOSyncMessage, bool, error) {
+	// Include validation and host persistence in the original request budget.
+	requestCtx, requestCancel := context.WithDeadline(ctx, r.deadline)
+	err := r.importSnapshot(requestCtx, s, snapshot)
+	requestCancel()
+	if err != nil {
+		return nil, false, err
+	}
+
+	// Recheck obsolescence with the stream context after the bounded import.
+	recovered := !s.responseObsolete(ctx, r.head)
+	return syncAcknowledgment(r.head.GetRevision()), recovered, nil
+}
+
+// acceptBranch starts a diverged suffix only before any branch or page arrived.
+func (r *syncReceive) acceptBranch(branch *SOSyncBranch) error {
+	// Reject unsolicited, repeated or misbound branch announcements.
+	if r == nil || branch.GetRevision() != r.head.GetRevision() || r.branch != nil ||
+		len(r.changes) != 0 || len(branch.GetCursor()) == 0 || len(branch.GetCursor()) > maxConfigHashSize {
+		return errors.New("invalid or repeated sync branch")
+	}
+
+	// Pin the branch floor as the cursor for its first history page.
+	r.branch = bytes.Clone(branch.GetCursor())
+	r.cursor = r.branch
+	return nil
+}
+
+// limitDeadline includes this receive's original budget in the exchange timer.
+func (r *syncReceive) limitDeadline(deadline time.Time) time.Time {
+	if deadline.IsZero() || r.deadline.Before(deadline) {
+		return r.deadline
+	}
+	return deadline
+}
+
+// recoveryRequired binds a recovery notification to the pinned request.
+func (r *syncReceive) recoveryRequired() *SOSyncMessage {
+	return &SOSyncMessage{Body: &SOSyncMessage_RecoveryRequired{RecoveryRequired: &SOSyncRecoveryRequired{Revision: r.head.GetRevision()}}}
+}
+
+// matchesRecovery reports whether the peer declined this pinned request.
+func (r *syncReceive) matchesRecovery(recovery *SOSyncRecoveryRequired) bool {
+	return recovery.GetRevision() == r.head.GetRevision()
+}
+
+// appendPage checks target binding, cursor continuity and aggregate budgets.
+func (r *syncReceive) appendPage(message *SOSyncMessage) error {
+	// Bind the page to the pinned head and cursor and check its entry budget.
+	// The stream session already bounds the frame by maxMessageSize.
+	page := message.GetHistoryPage()
+	if page.GetRevision() != r.head.GetRevision() || !bytes.Equal(page.GetCursor(), r.cursor) || len(page.GetChanges()) == 0 {
+		return errors.New("invalid history page")
+	}
+	if len(page.GetChanges()) > maxHistoryPageEntries {
+		return sobject.ErrConfigHistoryUnavailable
+	}
+
+	// Append each contiguous change, tracking the aggregate size.
+	for _, change := range page.GetChanges() {
+		if !bytes.Equal(change.GetPreviousHash(), r.cursor) {
+			return errors.New("noncontiguous history page")
+		}
+		r.size += change.SizeVT()
+		if r.size > sobject.MaxConfigSuffixBytes || len(r.changes) == sobject.MaxConfigSuffixEntries {
+			return sobject.ErrConfigHistoryUnavailable
+		}
+		hash, err := sobject.HashSOConfigChange(change)
+		if err != nil {
+			return err
+		}
+		r.cursor = hash
+		r.changes = append(r.changes, change)
+	}
+	return nil
+}
+
+// importSnapshot verifies the pinned response through the host's atomic import boundary.
+func (r *syncReceive) importSnapshot(ctx context.Context, s *SOSync, snapshot *SOSyncSnapshot) error {
+	// Verify the snapshot completes the requested history and digest.
+	if snapshot.GetRevision() != r.head.GetRevision() || !bytes.Equal(snapshot.GetBaseHash(), r.base) || !bytes.Equal(r.cursor, r.head.GetConfigHash()) {
+		return errors.New("snapshot does not complete requested history")
+	}
+
+	// Decline a response the local state already surpassed.
+	if s.responseObsolete(ctx, r.head) {
+		return nil
+	}
+
+	// Put back the held records and check the rebuilt state against the
+	// advertised digest, which covers its encoding.
+	state := &sobject.SOState{}
+	if err := state.UnmarshalVT(snapshot.GetSoState()); err != nil {
+		return err
+	}
+	if err := restoreRequestHeld(state, r.held, snapshot); err != nil {
+		return err
+	}
+	data, err := state.MarshalVT()
+	if err != nil {
+		return err
+	}
+	if digest := sha256.Sum256(data); !bytes.Equal(digest[:], r.head.GetStateHash()) {
+		return errors.New("snapshot differs from advertised content digest")
+	}
+
+	// Verify the snapshot matches the pinned advertisement, then import it or
+	// merge its diverged branch.
+	if state.GetConfig().GetConfigChainSeqno() != r.head.GetConfigSeqno() || !bytes.Equal(state.GetConfig().GetConfigChainHash(), r.head.GetConfigHash()) {
+		return errors.New("snapshot differs from pinned advertisement")
+	}
+	err = s.importResponse(ctx, state, r.branch, r.changes)
+	if err != nil && s.responseObsolete(ctx, r.head) {
+		return nil
+	}
+	return err
+}
+
 // syncResponse holds one bounded response while the writer drains its frames.
 type syncResponse struct {
 	// revision identifies the pinned advertisement.
@@ -241,8 +365,8 @@ func (x *syncExchange) advance(
 
 	// One timer covers both directions without extending the budget on each page.
 	deadline := x.advertisementDeadline
-	if x.receiving != nil && (deadline.IsZero() || x.receiving.deadline.Before(deadline)) {
-		deadline = x.receiving.deadline
+	if x.receiving != nil {
+		deadline = x.receiving.limitDeadline(deadline)
 	}
 	var expired <-chan time.Time
 	if !deadline.IsZero() {
@@ -352,7 +476,8 @@ func (x *syncExchange) receive(ctx context.Context, le *logrus.Entry, current *s
 		if len(head.GetConfigHash()) == 0 {
 			return sobject.ErrConfigHistoryUnavailable
 		}
-		if head.GetRevision() <= x.remoteRevision || len(head.GetConfigHash()) > maxConfigHashSize || len(head.GetStateHash()) != sha256.Size || x.receiving != nil || x.control != nil {
+		if head.GetRevision() <= x.remoteRevision || len(head.GetConfigHash()) > maxConfigHashSize ||
+			len(head.GetStateHash()) != sha256.Size || x.receiving != nil || x.control != nil {
 			return errors.New("invalid or overlapping sync head")
 		}
 		x.remoteRevision = head.GetRevision()
@@ -385,11 +510,12 @@ func (x *syncExchange) receive(ctx context.Context, le *logrus.Entry, current *s
 		if request.Held != nil {
 			held = current
 		}
-		x.receiving = &syncReceive{head: head, base: base, cursor: base, deadline: time.Now().Add(catchupTimeout), held: held}
+		x.receiving = newSyncReceive(head, base, held)
 		x.control = &SOSyncMessage{Body: &SOSyncMessage_HistoryRequest{HistoryRequest: request}}
 	case *SOSyncMessage_HistoryRequest:
 		request := body.HistoryRequest
-		if x.advertised == nil || request.GetRevision() != x.revision || x.requested || len(request.GetBaseHash()) == 0 || len(request.GetBaseHash()) > maxConfigHashSize {
+		if x.advertised == nil || request.GetRevision() != x.revision || x.requested ||
+			len(request.GetBaseHash()) == 0 || len(request.GetBaseHash()) > maxConfigHashSize {
 			return errors.New("invalid or repeated sync request")
 		}
 		x.requested = true
@@ -404,12 +530,9 @@ func (x *syncExchange) receive(ctx context.Context, le *logrus.Entry, current *s
 			x.control = &SOSyncMessage{Body: &SOSyncMessage_RecoveryRequired{RecoveryRequired: &SOSyncRecoveryRequired{Revision: x.revision}}}
 		}
 	case *SOSyncMessage_Branch:
-		branch := body.Branch
-		if x.receiving == nil || branch.GetRevision() != x.receiving.head.GetRevision() || x.receiving.branch != nil || len(x.receiving.changes) != 0 || len(branch.GetCursor()) == 0 || len(branch.GetCursor()) > maxConfigHashSize {
-			return errors.New("invalid or repeated sync branch")
+		if err := x.receiving.acceptBranch(body.Branch); err != nil {
+			return err
 		}
-		x.receiving.branch = bytes.Clone(branch.GetCursor())
-		x.receiving.cursor = x.receiving.branch
 	case *SOSyncMessage_HistoryPage:
 		if x.receiving == nil {
 			return errors.New("unsolicited history page")
@@ -419,24 +542,22 @@ func (x *syncExchange) receive(ctx context.Context, le *logrus.Entry, current *s
 				return err
 			}
 			x.terminal = err
-			x.control = &SOSyncMessage{Body: &SOSyncMessage_RecoveryRequired{RecoveryRequired: &SOSyncRecoveryRequired{Revision: x.receiving.head.GetRevision()}}}
+			x.control = x.receiving.recoveryRequired()
 		}
 	case *SOSyncMessage_Snapshot:
 		if x.receiving == nil || x.control != nil {
 			return errors.Wrap(sobject.ErrConfigHistoryUnavailable, "peer did not use requested snapshot protocol")
 		}
-		requestCtx, requestCancel := context.WithDeadline(ctx, x.receiving.deadline)
-		err := x.sync.acceptResponse(requestCtx, x.receiving, body.Snapshot)
-		requestCancel()
+		ack, recovered, err := x.receiving.acceptResponse(ctx, x.sync, body.Snapshot)
 		if err != nil {
 			return err
 		}
 
 		// Acknowledge the accepted snapshot and clear the pinned receive.
-		if !x.sync.responseObsolete(ctx, x.receiving.head) {
+		if recovered {
 			x.sync.observer.PeerRecovery(x.remoteID, false)
 		}
-		x.control = syncAcknowledgment(x.receiving.head.GetRevision())
+		x.control = ack
 		x.receiving = nil
 	case *SOSyncMessage_Ack:
 		if x.advertised == nil || body.Ack.GetRevision() != x.revision || x.response != nil {
@@ -445,7 +566,7 @@ func (x *syncExchange) receive(ctx context.Context, le *logrus.Entry, current *s
 		x.advertised = nil
 		x.advertisementDeadline = time.Time{}
 	case *SOSyncMessage_RecoveryRequired:
-		matchesRequest := x.receiving != nil && body.RecoveryRequired.GetRevision() == x.receiving.head.GetRevision()
+		matchesRequest := x.receiving != nil && x.receiving.matchesRecovery(body.RecoveryRequired)
 		matchesAdvertisement := x.advertised != nil && body.RecoveryRequired.GetRevision() == x.revision
 		if !matchesRequest && !matchesAdvertisement {
 			return errors.New("unsolicited recovery response")
@@ -588,80 +709,12 @@ func (r *syncResponse) nextMessage() (*SOSyncMessage, error) {
 	return message, nil
 }
 
-// appendPage checks target binding, cursor continuity and aggregate budgets.
-func (r *syncReceive) appendPage(message *SOSyncMessage) error {
-	// Bind the page to the pinned head and cursor and check its entry budget.
-	// The stream session already bounds the frame by maxMessageSize.
-	page := message.GetHistoryPage()
-	if page.GetRevision() != r.head.GetRevision() || !bytes.Equal(page.GetCursor(), r.cursor) || len(page.GetChanges()) == 0 {
-		return errors.New("invalid history page")
+// importResponse imports a verified response candidate or merges its diverged branch.
+func (s *SOSync) importResponse(ctx context.Context, state *sobject.SOState, branch []byte, changes []*sobject.SOConfigChange) error {
+	if branch != nil {
+		return s.soHost.MergePeerBranch(ctx, state, branch, changes, s.localObjectKey, s.validateSnapshotAccess)
 	}
-	if len(page.GetChanges()) > maxHistoryPageEntries {
-		return sobject.ErrConfigHistoryUnavailable
-	}
-
-	// Append each contiguous change, tracking the aggregate size.
-	for _, change := range page.GetChanges() {
-		if !bytes.Equal(change.GetPreviousHash(), r.cursor) {
-			return errors.New("noncontiguous history page")
-		}
-		r.size += change.SizeVT()
-		if r.size > sobject.MaxConfigSuffixBytes || len(r.changes) == sobject.MaxConfigSuffixEntries {
-			return sobject.ErrConfigHistoryUnavailable
-		}
-		hash, err := sobject.HashSOConfigChange(change)
-		if err != nil {
-			return err
-		}
-		r.cursor = hash
-		r.changes = append(r.changes, change)
-	}
-	return nil
-}
-
-// acceptResponse verifies the pinned response through the host's atomic import boundary.
-func (s *SOSync) acceptResponse(ctx context.Context, receiving *syncReceive, snapshot *SOSyncSnapshot) error {
-	// Verify the snapshot completes the requested history and digest.
-	if snapshot.GetRevision() != receiving.head.GetRevision() || !bytes.Equal(snapshot.GetBaseHash(), receiving.base) || !bytes.Equal(receiving.cursor, receiving.head.GetConfigHash()) {
-		return errors.New("snapshot does not complete requested history")
-	}
-
-	// Decline a response the local state already surpassed.
-	if s.responseObsolete(ctx, receiving.head) {
-		return nil
-	}
-
-	// Put back the held records and check the rebuilt state against the
-	// advertised digest, which covers its encoding.
-	state := &sobject.SOState{}
-	if err := state.UnmarshalVT(snapshot.GetSoState()); err != nil {
-		return err
-	}
-	if err := restoreRequestHeld(state, receiving.held, snapshot); err != nil {
-		return err
-	}
-	data, err := state.MarshalVT()
-	if err != nil {
-		return err
-	}
-	if digest := sha256.Sum256(data); !bytes.Equal(digest[:], receiving.head.GetStateHash()) {
-		return errors.New("snapshot differs from advertised content digest")
-	}
-
-	// Verify the snapshot matches the pinned advertisement, then import it or
-	// merge its diverged branch.
-	if state.GetConfig().GetConfigChainSeqno() != receiving.head.GetConfigSeqno() || !bytes.Equal(state.GetConfig().GetConfigChainHash(), receiving.head.GetConfigHash()) {
-		return errors.New("snapshot differs from pinned advertisement")
-	}
-	if receiving.branch != nil {
-		err = s.soHost.MergePeerBranch(ctx, state, receiving.branch, receiving.changes, s.localObjectKey, s.validateSnapshotAccess)
-	} else {
-		err = s.soHost.ImportPeerSnapshot(ctx, state, receiving.changes, s.localObjectPeerID, s.validateSnapshotAccess)
-	}
-	if err != nil && s.responseObsolete(ctx, receiving.head) {
-		return nil
-	}
-	return err
+	return s.soHost.ImportPeerSnapshot(ctx, state, changes, s.localObjectPeerID, s.validateSnapshotAccess)
 }
 
 // stateDigest memoizes the sync digest of the most recent state it hashed.
