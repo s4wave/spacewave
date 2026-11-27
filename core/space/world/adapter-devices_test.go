@@ -889,9 +889,9 @@ func TestInspectOrderReportsUndecodableOps(t *testing.T) {
 	// body carries the saved refusal. The known body beside a newer field
 	// is unreadable as replay reads it, reporting only the unknown field.
 	if len(unreadable) != 2 ||
-		!slices.Equal(unreadable[0].GetUnreadable().GetFields(), []uint32{99}) ||
-		!slices.Equal(unreadable[1].GetUnreadable().GetFields(), []uint32{100}) {
-		t.Fatalf("unreadable operations = %v, want field 99, then field 100 beside a known body", unreadable)
+		!slices.Equal(unreadable[0].GetUnreadable().GetFields(), []uint32{1000}) ||
+		!slices.Equal(unreadable[1].GetUnreadable().GetFields(), []uint32{1001}) {
+		t.Fatalf("unreadable operations = %v, want field 1000, then field 1001 beside a known body", unreadable)
 	}
 	if op := unreadable[0]; op.GetPeerId() != remote.id.String() || !op.SavedUnknownType() || !op.Undecodable() {
 		t.Fatalf("unreadable operation = %v, want the other device's, saved as an unknown operation type", op)
@@ -934,18 +934,19 @@ func TestInspectOrderReportsUndecodableOps(t *testing.T) {
 }
 
 // unreadableOp encodes a World operation a newer build wrote: a WorldOp whose
-// only field is a body this build does not declare, field 99.
+// only field is a body this build does not declare, field 1000.
+// Field 1000 must stay unassigned in WorldOp.
 func unreadableOp() []byte {
 	body := "a body only a newer build reads"
-	return append([]byte{0x9a, 0x06, byte(len(body))}, body...)
+	return append([]byte{0xc2, 0x3e, byte(len(body))}, body...)
 }
 
 // hiddenFieldOp encodes a World operation a newer build wrote beside a body
-// this build reads: a transaction that creates key, with WorldOp field 100,
-// which this build does not declare.
+// this build reads: a transaction that creates key, with WorldOp field 1001.
+// Field 1001 must stay unassigned in WorldOp.
 func hiddenFieldOp(t *testing.T, key string) []byte {
 	field := "a field only a newer build reads"
-	return append(createOp(t, key), append([]byte{0xa2, 0x06, byte(len(field))}, field...)...)
+	return append(createOp(t, key), append([]byte{0xca, 0x3e, byte(len(field))}, field...)...)
 }
 
 // removedOp encodes a World operation with the removed body field 3, which
