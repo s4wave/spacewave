@@ -14,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
+	"github.com/s4wave/spacewave/db/volume/restore"
 	"github.com/sirupsen/logrus"
 )
 
@@ -54,7 +55,7 @@ func (a *debugVolumeHoldersArgs) inspect(ctx context.Context, path string, out i
 	}
 	defer func() { err = stderrors.Join(err, input.Close()) }()
 	var refs []*block.BlockRef
-	if err := streamVolumeBlockRefs(ctx, input, 1, func(batch []*block.BlockRef) error {
+	if err := restore.StreamRefs(ctx, input, 1, func(batch []*block.BlockRef) error {
 		refs = append(refs, batch[0])
 		return nil
 	}); err != nil {

@@ -9,6 +9,7 @@ import (
 
 	"github.com/aperturerobotics/cli"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/volume/restore"
 )
 
 // debugVolumeExportArgs holds the offline export's input and output paths.
@@ -48,14 +49,14 @@ func (a *debugVolumeExportArgs) Run(c *cli.Context) error {
 }
 
 // export keeps the source snapshot open while streaming one block at a time.
-func (a *debugVolumeExportArgs) export(ctx context.Context, path string) (res volumeExportResult, err error) {
+func (a *debugVolumeExportArgs) export(ctx context.Context, path string) (res restore.ExportResult, err error) {
 	// Open the inputs before creating any output.
 	refs, err := os.Open(a.refs)
 	if err != nil {
 		return res, errors.Wrap(err, "open refs")
 	}
 	defer func() { err = stderrors.Join(err, errors.Wrap(refs.Close(), "close refs")) }()
-	source, closeSource, err := openS4DBBlocks(ctx, path)
+	source, closeSource, err := restore.OpenS4DBSource(ctx, path)
 	if err != nil {
 		return res, err
 	}
@@ -81,9 +82,7 @@ func (a *debugVolumeExportArgs) export(ctx context.Context, path string) (res vo
 	defer func() { err = stderrors.Join(err, closeLacks()) }()
 
 	// Export without retaining a batch of block bytes or the refs file.
-	r := volumeExport{source: source, out: a.out, lacks: lacks}
-	err = r.run(ctx, refs)
-	return r.result, err
+	return restore.Export(ctx, source, refs, a.out, lacks)
 }
 
 // newDebugVolumeExportCommand builds the offline block export command.

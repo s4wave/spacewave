@@ -10,6 +10,7 @@ import (
 	"github.com/aperturerobotics/cli"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block/packcopy"
+	"github.com/s4wave/spacewave/db/volume/restore"
 	"github.com/sirupsen/logrus"
 )
 
@@ -55,7 +56,7 @@ func (a *debugVolumeRefillArgs) Run(c *cli.Context) error {
 }
 
 // refill streams the requested refs while holding the source and target open.
-func (a *debugVolumeRefillArgs) refill(ctx context.Context, path string) (res volumeRefillResult, err error) {
+func (a *debugVolumeRefillArgs) refill(ctx context.Context, path string) (res restore.RefillResult, err error) {
 	// Open the inputs before opening the target for a possible format upgrade.
 	refs, err := os.Open(a.refs)
 	if err != nil {
@@ -68,9 +69,9 @@ func (a *debugVolumeRefillArgs) refill(ctx context.Context, path string) (res vo
 	if err != nil {
 		return res, errors.Wrap(err, "stat refill source")
 	}
-	var source packcopy.Source = dirBlocks(a.from)
+	var source packcopy.Source = restore.DirectorySource(a.from)
 	if !info.IsDir() {
-		blocks, closeSource, openErr := openS4DBBlocks(ctx, a.from)
+		blocks, closeSource, openErr := restore.OpenS4DBSource(ctx, a.from)
 		if openErr != nil {
 			return res, openErr
 		}
@@ -97,9 +98,7 @@ func (a *debugVolumeRefillArgs) refill(ctx context.Context, path string) (res vo
 	defer func() { err = stderrors.Join(err, errors.Wrap(vol.Close(), "close refill target")) }()
 
 	// Stream bounded groups of refs through the target's existing fill path.
-	r := volumeRefill{target: vol, source: source, dryRun: a.dryRun, lacks: lacks}
-	err = r.run(ctx, refs)
-	return r.result, err
+	return restore.Refill(ctx, vol, source, refs, a.dryRun, lacks)
 }
 
 // newDebugVolumeRefillCommand builds the offline volume refill command.

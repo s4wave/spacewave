@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/packcopy"
+	"github.com/s4wave/spacewave/db/volume/restore"
 )
 
 // openRefRepairPeer holds a stopped peer snapshot until the repair ends.
@@ -36,13 +37,13 @@ func openRefRepairPeer(ctx context.Context, volumePath string, opts refRepairOpt
 	}
 
 	// Serve block directories directly and keep a file's snapshot open for the walk.
-	var source packcopy.Source = dirBlocks(opts.peerPath)
+	var source packcopy.Source = restore.DirectorySource(opts.peerPath)
 	closePeer := func() error { return nil }
 	if !info.IsDir() {
 		if !info.Mode().IsRegular() {
 			return nil, nil, errors.New("peer blocks must be a directory or a regular Volume file")
 		}
-		blocks, closeSource, err := openS4DBBlocks(ctx, opts.peerPath)
+		blocks, closeSource, err := restore.OpenS4DBSource(ctx, opts.peerPath)
 		if err != nil {
 			return nil, nil, err
 		}

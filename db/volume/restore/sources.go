@@ -1,6 +1,6 @@
 //go:build !js
 
-package spacewave_cli
+package restore
 
 import (
 	"context"
@@ -39,10 +39,10 @@ func (s *s4dbBlocks) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*
 	return &block.StoredBlock{Data: data}, nil
 }
 
-// openS4DBBlocks opens a stopped source and holds one snapshot for the caller's stream.
+// OpenS4DBSource opens a stopped source and holds one snapshot for the caller's stream.
 // The caller must call closeSource to discard the snapshot before closing the file.
 // Only the engine's reader-slot bookkeeping may write to this read-only source.
-func openS4DBBlocks(ctx context.Context, path string) (_ *s4dbBlocks, closeSource func() error, err error) {
+func OpenS4DBSource(ctx context.Context, path string) (_ *s4dbBlocks, closeSource func() error, err error) {
 	// Release the engine on every failure before ownership reaches the caller.
 	source, err := s4db.Open(path, s4db.Options{ReadOnly: true})
 	if err != nil {
@@ -72,13 +72,13 @@ func openS4DBBlocks(ctx context.Context, path string) (_ *s4dbBlocks, closeSourc
 	}, nil
 }
 
-// dirBlocks is a directory of blocks named by their B58 refs.
-type dirBlocks string
+// DirectorySource is a directory of blocks named by their B58 refs.
+type DirectorySource string
 
 // GetStoredBlock reads a regular block file, or returns nil when it is missing.
 // A carrier travels between hosts, so a symlink would leave it without the bytes,
 // even when the linked file hashes correctly, and a FIFO would block the run.
-func (d dirBlocks) GetStoredBlock(_ context.Context, ref *block.BlockRef) (_ *block.StoredBlock, err error) {
+func (d DirectorySource) GetStoredBlock(_ context.Context, ref *block.BlockRef) (_ *block.StoredBlock, err error) {
 	// Judge the name itself, so a symlink or a special file is refused unopened.
 	path := filepath.Join(string(d), ref.MarshalString())
 	named, err := os.Lstat(path) // #nosec G703 -- the operator-named directory joined with a B58 ref, which holds no separator.
@@ -118,5 +118,5 @@ func (d dirBlocks) GetStoredBlock(_ context.Context, ref *block.BlockRef) (_ *bl
 // _ is a type assertion.
 var (
 	_ packcopy.Source = (*s4dbBlocks)(nil)
-	_ packcopy.Source = dirBlocks("")
+	_ packcopy.Source = DirectorySource("")
 )

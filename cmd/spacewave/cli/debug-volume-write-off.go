@@ -14,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
+	"github.com/s4wave/spacewave/db/volume/restore"
 	"github.com/sirupsen/logrus"
 )
 
@@ -153,7 +154,7 @@ func readWriteOffRefs(ctx context.Context, path string) ([]*block.BlockRef, erro
 		return nil, errors.Wrap(err, "open refs")
 	}
 	var refs []*block.BlockRef
-	err = streamVolumeBlockRefs(ctx, input, writeOffRefsBatch, func(group []*block.BlockRef) error {
+	err = restore.StreamRefs(ctx, input, writeOffRefsBatch, func(group []*block.BlockRef) error {
 		refs = append(refs, slices.Clone(group)...)
 		return nil
 	})

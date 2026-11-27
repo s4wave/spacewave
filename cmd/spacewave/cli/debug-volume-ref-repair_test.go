@@ -37,6 +37,7 @@ import (
 	"github.com/s4wave/spacewave/db/util/blockenc"
 	"github.com/s4wave/spacewave/db/volume"
 	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
+	"github.com/s4wave/spacewave/db/volume/restore"
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
@@ -1544,7 +1545,7 @@ func checkRefRepairLacks(t *testing.T, path string, scan bool, res refRepairResu
 
 	// Parse the same rows with the refill and export input reader.
 	parsed := make(map[string]bool)
-	if err := streamVolumeBlockRefs(t.Context(), bytes.NewReader(listing), 1, func(refs []*block.BlockRef) error {
+	if err := restore.StreamRefs(t.Context(), bytes.NewReader(listing), 1, func(refs []*block.BlockRef) error {
 		for _, ref := range refs {
 			parsed[ref.MarshalString()] = true
 		}
