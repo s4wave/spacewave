@@ -357,6 +357,10 @@ func measureWorldDiff(t *testing.T, ctx context.Context, w *scaledWorld) scaleCo
 // measureCalls makes scaleCalls calls and returns their average block reads
 // and allocations.
 func measureCalls(ctx context.Context, call func(ctx context.Context, i int)) scaleCost {
+	// Count allocations on one processor, as testing.AllocsPerRun does, to
+	// exclude allocations made in parallel by the testbed's background work.
+	defer runtime.GOMAXPROCS(runtime.GOMAXPROCS(1))
+
 	// Count the calls' block reads and allocations.
 	ctx, reads := block.WithReadCounter(ctx)
 	ctx, writes := block.WithWriteCounter(ctx)
