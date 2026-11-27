@@ -2,6 +2,7 @@ package world
 
 import (
 	"context"
+	"errors"
 
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
@@ -323,9 +324,10 @@ func (e *engineWorldState) HasObject(ctx context.Context, key string) (bool, err
 
 // retryWorldOp reports whether a failed World operation may replay in a fresh
 // transaction: another writer moved the head, or the storage snapshot became
-// invalid.
+// invalid. An unknown durability outcome always forbids replay, even with a
+// stale cause, because the first attempt may already be durable.
 func retryWorldOp(err error) bool {
-	return IsSuperseded(err) || kvtx.RetryInvalidSnapshot(err)
+	return !errors.Is(err, ErrDurabilityUnknown) && (IsSuperseded(err) || kvtx.RetryInvalidSnapshot(err))
 }
 
 // replayWorldOp reports whether a failed attempt of a World operation replays:
