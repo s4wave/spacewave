@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/core/space/world/cursorcodec"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
@@ -47,7 +48,7 @@ func newWorldReplay(t *testing.T) (*spaceReplay, *InnerState) {
 		bucketID: tb.BucketId,
 		so:       &bucketObject{store: &bucketStore{StoreOps: cursor.GetBucket()}},
 		pages:    block.NewPendingStore(cursor.GetBucket(), 1<<20),
-		decoded:  block.NewDecodedBlockCache(),
+		cursors:  cursorcodec.New(logrus.NewEntry(log), tb.Bus, tb.StepFactorySet, nil, true),
 	}
 	r := &spaceReplay{a: a, stage: newReplayStage(a.pages)}
 	t.Cleanup(r.close)

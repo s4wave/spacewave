@@ -6,9 +6,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/core/space/world/cursorcodec"
 	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -363,7 +363,7 @@ func (r *spaceReplay) applyInit(ctx context.Context, initOp *InitWorldOp, prev *
 // World's transform, and returns its reference.
 func (r *spaceReplay) writeRoot(ctx context.Context, transformConf *block_transform.Config, initOp *InitWorldOp) (*block.BlockRef, error) {
 	// Build the transformer of the World's transform.
-	xfrm, err := newWorldTransformer(controller.ConstructOpts{Logger: r.a.le}, r.a.opts.StepFactorySet, transformConf)
+	xfrm, err := r.a.cursors.Transformer(transformConf)
 	if err != nil {
 		return nil, err
 	}
@@ -503,7 +503,7 @@ func (r *spaceReplay) seqno(ctx context.Context, state *InnerState) (uint64, err
 func (r *spaceReplay) bind(ctx context.Context, head *bucket.ObjectRef) (*world_block.Engine, error) {
 	// Reuse the engine at head, or move it there.
 	if r.engine != nil {
-		ref := r.a.bucketRef(head)
+		ref := cursorcodec.Bind(head, r.a.bucketID)
 		if r.engine.GetRootRef().EqualsRef(ref) {
 			return r.engine, nil
 		}

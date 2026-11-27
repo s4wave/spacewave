@@ -165,7 +165,7 @@ func (a *Adapter) encodeCursor() (*block.BlockRef, []byte, error) {
 // saved cursor.
 func (a *Adapter) writeCursor(ctx context.Context, root *block.BlockRef, data []byte) error {
 	// Hold the head World beside the earlier cursor Worlds.
-	a.countStoredPages(ctx, root)
+	a.cursors.CountStoredPages(ctx, a.pages, root)
 	release, err := a.lockRoots(ctx, root)
 	if err != nil {
 		return err

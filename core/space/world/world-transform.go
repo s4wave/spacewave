@@ -4,9 +4,9 @@ import (
 	"crypto/rand"
 
 	"github.com/aperturerobotics/controllerbus/config"
-	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/util/scrub"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/core/space/world/cursorcodec"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
 	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
@@ -15,10 +15,6 @@ import (
 	"github.com/s4wave/spacewave/db/util/blockenc"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 )
-
-// errUnauthenticatedWorldTransform is returned for a World transform without
-// authenticated encryption.
-var errUnauthenticatedWorldTransform = errors.New("world transform requires authenticated encryption")
 
 // NewInitWorldOp returns a copy of base, or an empty operation, with a fresh
 // World transform when base specifies none. The author chooses the transform,
@@ -66,7 +62,7 @@ func BuildInitialInnerState(initOp *InitWorldOp) (*InnerState, error) {
 	if transformConf.GetEmpty() {
 		return nil, errors.New("world init operation names no transform")
 	}
-	if err := validateWorldWriteTransform(transformConf); err != nil {
+	if err := cursorcodec.ValidateTransform(transformConf); err != nil {
 		return nil, err
 	}
 
@@ -74,48 +70,12 @@ func BuildInitialInnerState(initOp *InitWorldOp) (*InnerState, error) {
 	return &InnerState{HeadRef: &bucket.ObjectRef{TransformConf: transformConf}}, nil
 }
 
-// newWorldTransformer builds the World block transformer. conf must specify an
-// authenticated encryption step.
-func newWorldTransformer(opts controller.ConstructOpts, sfs *block_transform.StepFactorySet, conf *block_transform.Config) (*block_transform.Transformer, error) {
-	if err := validateWorldWriteTransform(conf); err != nil {
-		return nil, err
-	}
-	return block_transform.NewTransformer(opts, sfs, conf)
-}
-
-// validateWorldWriteTransform returns errUnauthenticatedWorldTransform unless
-// conf has a valid authenticated encryption step.
-func validateWorldWriteTransform(conf *block_transform.Config) error {
-	for _, step := range conf.GetSteps() {
-		// Read each block encryption step.
-		if step.GetId() != transform_blockenc.ConfigID {
-			continue
-		}
-		encConf := &transform_blockenc.Config{}
-		if err := block_transform.UnmarshalStepConfig(step.GetConfig(), encConf); err != nil {
-			return errors.Wrap(err, "world block encryption config")
-		}
-
-		// Accept the first authenticated encryption step.
-		switch encConf.GetBlockEnc() {
-		case blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
-			blockenc.BlockEnc_BlockEnc_SECRET_BOX,
-			blockenc.BlockEnc_BlockEnc_AES_256_GCM:
-			if err := encConf.Validate(); err != nil {
-				return errors.Wrap(err, "world block encryption config")
-			}
-			return nil
-		}
-	}
-	return errUnauthenticatedWorldTransform
-}
-
 // validateTransformSuccessor checks that next is a valid World write transform
 // that reads every block prev wrote: the same steps in the same order, where
 // each step is unchanged or a gzip step became an s2 step that reads gzip.
 func validateTransformSuccessor(prev, next *block_transform.Config) error {
 	// The new transform must be one the World may write with.
-	if err := validateWorldWriteTransform(next); err != nil {
+	if err := cursorcodec.ValidateTransform(next); err != nil {
 		return err
 	}
 
