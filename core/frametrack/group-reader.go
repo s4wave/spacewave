@@ -79,9 +79,3 @@ func (r *GroupReader) relayTo(relay *Relay) {
 		}
 	}
 }
-
-// subscriptionIn resolves this group's claimed subscription in its peer's set.
-func (r *GroupReader) subscriptionIn(subscriptions map[string]viewerSubscription) (viewerSubscription, bool) {
-	sub, ok := subscriptions[r.header.GetSubscriptionId()]
-	return sub, ok
-}
