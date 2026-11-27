@@ -122,6 +122,46 @@ func TestWatchViewRerunAt(t *testing.T) {
 	}
 }
 
+// expiryCancelEngine reports a wait's deadline expiry as cancellation, as the
+// remote World engine does, because its RPC transport cannot carry the cause.
+type expiryCancelEngine struct {
+	world.Engine
+}
+
+// WaitSeqno waits on the wrapped engine and relabels its deadline expiry.
+func (e expiryCancelEngine) WaitSeqno(ctx context.Context, seqno uint64) (uint64, error) {
+	seqno, err := e.Engine.WaitSeqno(ctx, seqno)
+	if errors.Is(err, context.DeadlineExceeded) {
+		err = context.Canceled
+	}
+	return seqno, err
+}
+
+// TestWatchViewRerunAtRemoteExpiry checks that a deadline the engine reports
+// as cancellation still reruns the view instead of ending it.
+func TestWatchViewRerunAtRemoteExpiry(t *testing.T) {
+	// Watch a quiet World through an engine that relabels deadline expiry.
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	tb := world_testbed.MustDefault(t, ctx)
+	stop := errors.New("deadline reached")
+	runs := 0
+	err := world.WatchView(ctx, expiryCancelEngine{Engine: tb.Engine}, func(ctx context.Context, _ world.WorldState) error {
+		// Stop on the rerun the deadline caused.
+		runs++
+		if runs == 2 {
+			return stop
+		}
+		world.RerunAt(ctx, time.Now().Add(20*time.Millisecond))
+		return nil
+	})
+
+	// The deadline, not a cancellation error, must have rerun the view.
+	if !errors.Is(err, stop) {
+		t.Fatalf("WatchView = %v, want %v", err, stop)
+	}
+}
+
 // TestWatchViewRerunOn checks that a view reruns when a context it recorded
 // ends, also when it recorded the context in a shared set it joined.
 func TestWatchViewRerunOn(t *testing.T) {

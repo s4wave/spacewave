@@ -5,8 +5,6 @@ import (
 	"slices"
 	"sync"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 // viewReads collects the reads and next deadline of one view evaluation.
@@ -143,12 +141,14 @@ func (r *viewReads) wait(ctx context.Context, source WorldWaitSeqno, seqno uint6
 	}
 
 	// Distinguish the rerun deadline from caller cancellation and watch
-	// errors.
+	// errors. A remote engine reports the deadline's expiry as cancellation,
+	// because its transport cannot carry the cause, so the wait's context
+	// classifies it, not the error.
 	_, err := r.reads.waitChange(wait, source, seqno, r.getShared())
 	if ctx.Err() != nil {
 		return ctx.Err()
 	}
-	if errors.Is(err, context.DeadlineExceeded) && wait.Err() == context.DeadlineExceeded {
+	if err != nil && wait.Err() == context.DeadlineExceeded {
 		return nil
 	}
 	return err
