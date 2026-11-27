@@ -29,51 +29,48 @@ func ReplayWorld(
 	opTypes OpTypes,
 	snap sobject.SharedObjectStateSnapshot,
 ) (*InnerState, func(), error) {
-	a, release, err := replayOnce(ctx, le, b, sfs, so, engineID, opTypes, snap, 0)
-	if err != nil {
-		return nil, nil, err
-	}
-	state, _ := a.replay.head()
-	return state, release, nil
-}
-
-// replayOnce replays snap on a transient adapter whose pages stay in memory up
-// to maxPending bytes and go to its replay stage on so's block store past that
-// bound. The stage holds them until release. replayOnce waits for the trims the
-// adapter's installs start.
-func replayOnce(
-	ctx context.Context,
-	le *logrus.Entry,
-	b bus.Bus,
-	sfs *block_transform.StepFactorySet,
-	so sobject.SharedObject,
-	engineID string,
-	opTypes OpTypes,
-	snap sobject.SharedObjectStateSnapshot,
-	maxPending int,
-) (*Adapter, func(), error) {
-	// Replay through a transient adapter, which holds what it writes under
-	// its replay stage until release.
 	a, err := NewAdapter(le, so, AdapterOptions{
-		Bus:             b,
-		StepFactorySet:  sfs,
-		EngineID:        engineID,
-		OpTypes:         opTypes,
-		MaxPendingBytes: maxPending,
-		transient:       true,
+		Bus:            b,
+		StepFactorySet: sfs,
+		EngineID:       engineID,
+		OpTypes:        opTypes,
+		transient:      true,
 	})
 	if err != nil {
 		return nil, nil, err
 	}
+	return a.replayWorld(ctx, snap)
+}
+
+// replayWorld reconstructs snap on a transient Adapter and returns its World.
+// The caller keeps the replay stage until it finishes reading the World.
+func (a *Adapter) replayWorld(ctx context.Context, snap sobject.SharedObjectStateSnapshot) (*InnerState, func(), error) {
+	// Finish replay and close its engine before reading the resulting head.
+	release, err := a.replayOnce(ctx, snap)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Return the replayed World with the stage that holds its pages.
+	state, _ := a.replay.head()
+	return state, release, nil
+}
+
+// replayOnce steps a transient Adapter through snap and drains its background work.
+// It closes the replay engine and leaves the stage held until the caller releases it.
+func (a *Adapter) replayOnce(ctx context.Context, snap sobject.SharedObjectStateSnapshot) (func(), error) {
+	// Keep the stage held after closing the replay engine.
 	release := a.replay.stage.end
 	defer a.replay.close()
-	err = sobject.NewBodyDriver(le, so, a, nil, nil).Step(ctx, snap)
+
+	// Drain the installs even when the body driver fails.
+	err := sobject.NewBodyDriver(a.le, a.so, a, nil, nil).Step(ctx, snap)
 	a.waitBackground()
 	if err != nil {
 		release()
-		return nil, nil, err
+		return nil, err
 	}
-	return a, release, nil
+	return release, nil
 }
 
 // ErrUnresolvedOp is returned by ImportRoots when the type of an operation

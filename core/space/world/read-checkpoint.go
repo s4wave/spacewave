@@ -30,13 +30,28 @@ func OpenReadCheckpoint(
 	opTypes OpTypes,
 	snap sobject.SharedObjectStateSnapshot,
 ) (world.Engine, func(), error) {
-	// Replay the held operations onto the checkpoint's World in memory.
-	sfs := transform_all.BuildFactorySet()
-	a, releaseStage, err := replayOnce(ctx, le, b, sfs, so, engineID, opTypes, snap, defaultMaxPendingBytes)
+	a, err := NewAdapter(le, so, AdapterOptions{
+		Bus:             b,
+		StepFactorySet:  transform_all.BuildFactorySet(),
+		EngineID:        engineID,
+		OpTypes:         opTypes,
+		MaxPendingBytes: defaultMaxPendingBytes,
+		transient:       true,
+	})
 	if err != nil {
 		return nil, nil, err
 	}
-	state, _ := a.replay.head()
+	return a.openReadCheckpoint(ctx, snap)
+}
+
+// openReadCheckpoint serves snap read-only on a transient Adapter's kept pages.
+// Release closes the read engine and ends the stage holding the replayed pages.
+func (a *Adapter) openReadCheckpoint(ctx context.Context, snap sobject.SharedObjectStateSnapshot) (world.Engine, func(), error) {
+	// Replay the held operations onto the checkpoint's World in memory.
+	state, releaseStage, err := a.replayWorld(ctx, snap)
+	if err != nil {
+		return nil, nil, err
+	}
 	if state.GetHeadRef().GetEmpty() {
 		releaseStage()
 		return nil, nil, errors.New("read checkpoint holds no World")
@@ -49,7 +64,7 @@ func OpenReadCheckpoint(
 		releaseStage()
 		return nil, nil, err
 	}
-	engine, err := world_block.NewEngine(ctx, le, cursor, a.lookupOp, nil, false)
+	engine, err := world_block.NewEngine(ctx, a.le, cursor, a.lookupOp, nil, false)
 	if err != nil {
 		cursor.Release()
 		releaseStage()
@@ -60,7 +75,7 @@ func OpenReadCheckpoint(
 		cursor.Release()
 		releaseStage()
 	}
-	return &readCheckpointEngine{Engine: engine, bus: b, le: le}, release, nil
+	return &readCheckpointEngine{Engine: engine, bus: a.opts.Bus, le: a.le}, release, nil
 }
 
 // readCheckpointEngine rejects mutations through every exported World surface.
@@ -82,7 +97,7 @@ func (e *readCheckpointEngine) NewTransaction(ctx context.Context, write bool) (
 	return e.Engine.NewTransaction(ctx, false)
 }
 
-// Sync has no writes or live head to publish.
+// Sync returns without publishing because the checkpoint is read-only.
 func (e *readCheckpointEngine) Sync(context.Context) (bool, error) {
 	return false, nil
 }
@@ -132,5 +147,5 @@ func (e *readCheckpointEngine) readOnlyCursor(ctx context.Context, cursor *bucke
 	return read
 }
 
-// _ is a type assertion
+// _ asserts that readCheckpointEngine implements world.Engine.
 var _ world.Engine = (*readCheckpointEngine)(nil)
