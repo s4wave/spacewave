@@ -93,17 +93,17 @@ type edgeCursor struct {
 	err     error
 }
 
-// openCursor opens a cursor on r that starts at the first key at or past
+// openEdgeCursor opens a cursor on r that starts at the first key at or past
 // start in the walk's direction, or at the range's first key in that
 // direction when start is nil.
-func (qs *QuadStore) openCursor(ctx context.Context, r edgeRange, start []byte, reverse bool) *edgeCursor {
+func openEdgeCursor(ctx context.Context, tx kvtx.TxOps, r edgeRange, start []byte, reverse bool) *edgeCursor {
 	prefix := r.prefix()
 	if start == nil && !reverse {
 		start = prefix
 	}
 	return &edgeCursor{
 		r:       r,
-		it:      qs.tx.Iterate(ctx, prefix, true, reverse),
+		it:      tx.Iterate(ctx, prefix, true, reverse),
 		reverse: reverse,
 		seeking: true,
 		seek:    start,
@@ -168,7 +168,7 @@ func (qs *QuadStore) walk(
 	reverse bool,
 	cb func(q quadRef) (bool, error),
 ) error {
-	c := qs.openCursor(ctx, r, start, reverse)
+	c := openEdgeCursor(ctx, qs.tx, r, start, reverse)
 	defer c.close()
 	for {
 		q, ok := c.next()
@@ -197,28 +197,29 @@ func (qs *QuadStore) probeSize(ctx context.Context, r edgeRange) (refs.Size, err
 
 // edgeScan is the iterator shape of an edge range.
 type edgeScan struct {
-	qs *QuadStore
+	// tx supplies the range keys.
+	tx kvtx.TxOps
 	r  edgeRange
 }
 
 // newEdgeScan returns the shape of r.
-func (qs *QuadStore) newEdgeScan(r edgeRange) *edgeScan {
-	return &edgeScan{qs: qs, r: r}
+func newEdgeScan(tx kvtx.TxOps, r edgeRange) *edgeScan {
+	return &edgeScan{tx: tx, r: r}
 }
 
 // String describes the scan.
 func (s *edgeScan) String() string {
-	return fmt.Sprintf("NodeGraphEdges(node=%d tag=%d narrow=%v)", s.r.node, s.r.tag, s.r.narrow)
+	return s.r.String()
 }
 
 // Iterate returns a scanner over the range.
 func (s *edgeScan) Iterate(ctx context.Context) iterator.Scanner {
-	return &edgeScanner{s: s}
+	return &edgeScanner{tx: s.tx, r: s.r}
 }
 
 // Lookup returns an index over the range.
 func (s *edgeScan) Lookup(ctx context.Context) iterator.Index {
-	return &edgeIndex{s: s}
+	return &edgeIndex{r: s.r}
 }
 
 // Stats returns the estimated size of the range without reading storage: a
@@ -241,7 +242,10 @@ func (s *edgeScan) SubIterators() []iterator.Shape { return nil }
 
 // edgeScanner walks an edge range.
 type edgeScanner struct {
-	s   *edgeScan
+	// tx supplies the range keys.
+	tx kvtx.TxOps
+	// r selects the quads this scanner traverses.
+	r   edgeRange
 	c   *edgeCursor
 	cur graph.Ref
 	err error
@@ -254,7 +258,7 @@ func (it *edgeScanner) Next(ctx context.Context) bool {
 		if it.err != nil {
 			return false
 		}
-		it.c = it.s.qs.openCursor(ctx, it.s.r, nil, false)
+		it.c = openEdgeCursor(ctx, it.tx, it.r, nil, false)
 	}
 
 	// Step it, keeping its error at the end.
@@ -290,11 +294,12 @@ func (it *edgeScanner) Close() error {
 }
 
 // String describes the scanner.
-func (it *edgeScanner) String() string { return it.s.String() }
+func (it *edgeScanner) String() string { return it.r.String() }
 
 // edgeIndex checks whether a quad is in an edge range.
 type edgeIndex struct {
-	s   *edgeScan
+	// r selects the quads this index accepts.
+	r   edgeRange
 	cur graph.Ref
 }
 
@@ -308,7 +313,7 @@ func (it *edgeIndex) Contains(ctx context.Context, ref graph.Ref) (bool, error) 
 	}
 
 	// The quad must sit under the range's node and match its filter.
-	r := it.s.r
+	r := it.r
 	if r.node != 0 {
 		anchor := quad.Subject
 		if r.tag == tagIn {
@@ -341,4 +346,9 @@ func (it *edgeIndex) Err() error { return nil }
 func (it *edgeIndex) Close() error { return nil }
 
 // String describes the index.
-func (it *edgeIndex) String() string { return it.s.String() }
+func (it *edgeIndex) String() string { return it.r.String() }
+
+// String describes the range for its Cayley adapters.
+func (r edgeRange) String() string {
+	return fmt.Sprintf("NodeGraphEdges(node=%d tag=%d narrow=%v)", r.node, r.tag, r.narrow)
+}

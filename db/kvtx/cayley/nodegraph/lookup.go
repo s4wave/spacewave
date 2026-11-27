@@ -8,17 +8,19 @@ import (
 	"github.com/aperturerobotics/cayley/quad"
 	"github.com/aperturerobotics/cayley/query/shape"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // nameCache resolves each node's value once.
 type nameCache struct {
-	qs     *QuadStore
+	// nodes decodes stored node values and resolves their IDs.
+	nodes  *nodeStore
 	values map[uint64]quad.Value
 }
 
 // newNameCache returns an empty cache.
-func newNameCache(qs *QuadStore) *nameCache {
-	return &nameCache{qs: qs, values: make(map[uint64]quad.Value)}
+func newNameCache(nodes *nodeStore) *nameCache {
+	return &nameCache{nodes: nodes, values: make(map[uint64]quad.Value)}
 }
 
 // name returns the value of a node ID.
@@ -29,7 +31,7 @@ func (c *nameCache) name(ctx context.Context, id uint64) (quad.Value, error) {
 	}
 
 	// Read it from the node's meta otherwise.
-	v, err := c.qs.nameOfID(ctx, id)
+	v, err := c.nodes.nameOfID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +65,7 @@ func (c *nameCache) resolveFilter(ctx context.Context, f quad.Quad) (quadRef, bo
 		if v == nil {
 			continue
 		}
-		id, err := c.qs.lookupID(ctx, valueText(v))
+		id, err := c.nodes.lookupID(ctx, valueText(v))
 		if err != nil || id == 0 {
 			return quadRef{}, false, err
 		}
@@ -99,7 +101,7 @@ func (qs *QuadStore) bestRange(ctx context.Context, f quadRef) (edgeRange, error
 // limitPerFilter each when it is set. A filter's unset directions match any
 // value. A filter with no direction set returns every quad.
 func (qs *QuadStore) CollectFilteredQuadsBatch(ctx context.Context, filters []quad.Quad, limitPerFilter uint32) ([][]quad.Quad, error) {
-	names := newNameCache(qs)
+	names := newNameCache(&qs.nodes)
 	results := make([][]quad.Quad, len(filters))
 	for i, f := range filters {
 		ids, ok, err := names.resolveFilter(ctx, f)
@@ -224,12 +226,13 @@ func (qs *QuadStore) OptimizeShape(ctx context.Context, s shape.Shape) (shape.Sh
 	if f.s == 0 && f.o == 0 {
 		return s, false, nil
 	}
-	return qa.SimplifyFrom(rangeShape{qs: qs, r: rangeOf(f)}), true, nil
+	return qa.SimplifyFrom(rangeShape{tx: qs.tx, r: rangeOf(f)}), true, nil
 }
 
 // rangeShape is the query shape of an edge range of the store that built it.
 type rangeShape struct {
-	qs *QuadStore
+	// tx supplies the transaction whose IDs the optimizer resolved.
+	tx kvtx.TxOps
 	r  edgeRange
 }
 
@@ -237,7 +240,7 @@ type rangeShape struct {
 // store that optimized the shape, which a caching wrapper passed as qs
 // reads through, so the iterator reads that store.
 func (s rangeShape) BuildIterator(ctx context.Context, qs graph.QuadStore) iterator.Shape {
-	return s.qs.newEdgeScan(s.r)
+	return newEdgeScan(s.tx, s.r)
 }
 
 // Optimize returns the shape unchanged.

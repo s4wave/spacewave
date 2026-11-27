@@ -11,7 +11,6 @@ package kvtx_cayley_nodegraph
 
 import (
 	"context"
-	"sync"
 
 	"github.com/aperturerobotics/cayley/graph"
 	"github.com/aperturerobotics/cayley/graph/iterator"
@@ -38,24 +37,13 @@ type QuadStore struct {
 	// tx holds the graph keys, including this transaction's held writes.
 	tx kvtx.TxOps
 
-	// idMtx guards nextID and pinned.
-	idMtx sync.Mutex
-	// nextID is the next node ID to allocate, which the tree's next ID key
-	// also holds, or 0 before loadNextID.
-	nextID uint64
-	// pinned holds the nodes this transaction has seen pinned.
-	pinned map[uint64]struct{}
-
-	// undo holds the inverse of each write of the running ApplyDeltas call,
-	// in order, and undoPins holds the nodes the call marked pinned. Only
-	// the one writer touches them.
-	undo     []undoEntry
-	undoPins []uint64
+	// nodes resolves and maintains node identity in tx.
+	nodes nodeStore
 }
 
 // NewQuadStore opens the store over tx.
 func NewQuadStore(tx kvtx.TxOps) *QuadStore {
-	return &QuadStore{tx: tx}
+	return &QuadStore{tx: tx, nodes: nodeStore{tx: tx}}
 }
 
 // nodeID is a reference to a node.
@@ -93,44 +81,12 @@ func asNodeID(ref graph.Ref) (uint64, bool) {
 	return uint64(n), ok && n != 0
 }
 
-// lookupID returns the ID of a value's text, or 0 when it has none.
-func (qs *QuadStore) lookupID(ctx context.Context, text string) (uint64, error) {
-	// Read the ID map entry. A missing entry means no node.
-	data, found, err := qs.tx.Get(ctx, valueKey(text))
-	if err != nil || !found {
-		return 0, err
-	}
-
-	// Decode the stored ID.
-	id, ok := decodeID(data)
-	if !ok {
-		return 0, errors.Errorf("node graph: invalid id for value %q", text)
-	}
-	return id, nil
-}
-
-// readMeta reads a node's meta, or nil when the node does not exist.
-func (qs *QuadStore) readMeta(ctx context.Context, id uint64) (*NodeMeta, error) {
-	// Read the meta key. A missing key means no node.
-	data, found, err := qs.tx.Get(ctx, metaKey(id))
-	if err != nil || !found {
-		return nil, err
-	}
-
-	// Decode it.
-	meta := &NodeMeta{}
-	if err := meta.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrapf(err, "node graph: node %d meta", id)
-	}
-	return meta, nil
-}
-
 // ValueOf returns the reference of a value, or nil when no quad uses it.
 func (qs *QuadStore) ValueOf(ctx context.Context, v quad.Value) (graph.Ref, error) {
 	if v == nil {
 		return nil, nil
 	}
-	id, err := qs.lookupID(ctx, valueText(v))
+	id, err := qs.nodes.lookupID(ctx, valueText(v))
 	if err != nil || id == 0 {
 		return nil, err
 	}
@@ -146,16 +102,7 @@ func (qs *QuadStore) NameOf(ctx context.Context, ref graph.Ref) (quad.Value, err
 	if !ok {
 		return nil, nil
 	}
-	return qs.nameOfID(ctx, id)
-}
-
-// nameOfID returns the value of a node ID.
-func (qs *QuadStore) nameOfID(ctx context.Context, id uint64) (quad.Value, error) {
-	meta, err := qs.readMeta(ctx, id)
-	if err != nil || meta == nil {
-		return nil, err
-	}
-	return meta.GetValue().ToNative(), nil
+	return qs.nodes.nameOfID(ctx, id)
 }
 
 // Quad returns the quad of a reference.
@@ -164,7 +111,7 @@ func (qs *QuadStore) Quad(ctx context.Context, ref graph.Ref) (quad.Quad, error)
 	if !ok {
 		return quad.Quad{}, nil
 	}
-	return newNameCache(qs).quad(ctx, qr)
+	return newNameCache(&qs.nodes).quad(ctx, qr)
 }
 
 // QuadDirection returns the node of a quad in direction d.
@@ -191,13 +138,13 @@ func (qs *QuadStore) QuadIterator(ctx context.Context, d quad.Direction, ref gra
 	}
 	switch d {
 	case quad.Subject:
-		return qs.newEdgeScan(edgeRange{node: id, tag: tagOut})
+		return newEdgeScan(qs.tx, edgeRange{node: id, tag: tagOut})
 	case quad.Object:
-		return qs.newEdgeScan(edgeRange{node: id, tag: tagIn})
+		return newEdgeScan(qs.tx, edgeRange{node: id, tag: tagIn})
 	case quad.Predicate:
-		return qs.newEdgeScan(edgeRange{filter: quadRef{p: id}})
+		return newEdgeScan(qs.tx, edgeRange{filter: quadRef{p: id}})
 	case quad.Label:
-		return qs.newEdgeScan(edgeRange{filter: quadRef{l: id}})
+		return newEdgeScan(qs.tx, edgeRange{filter: quadRef{l: id}})
 	}
 	return iterator.NewNull()
 }
@@ -232,7 +179,7 @@ func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, ref
 func (qs *QuadStore) Stats(ctx context.Context, exact bool) (graph.Stats, error) {
 	// Estimate from the next node ID.
 	if !exact {
-		n, err := qs.nodeEstimate(ctx)
+		n, err := qs.nodes.nodeEstimate(ctx)
 		if err != nil {
 			return graph.Stats{}, err
 		}
@@ -264,17 +211,17 @@ func (qs *QuadStore) Stats(ctx context.Context, exact bool) (graph.Stats, error)
 
 // NewQuadWriter returns a writer that adds quads.
 func (qs *QuadStore) NewQuadWriter(ctx context.Context) (quad.WriteCloser, error) {
-	return &quadWriter{qs: qs}, nil
+	return &quadWriter{apply: qs.ApplyDeltas}, nil
 }
 
 // NodesAllIterator returns every node.
 func (qs *QuadStore) NodesAllIterator(ctx context.Context) iterator.Shape {
-	return &nodeScan{qs: qs}
+	return &nodeScan{tx: qs.tx, nodes: &qs.nodes}
 }
 
 // QuadsAllIterator returns every quad.
 func (qs *QuadStore) QuadsAllIterator(ctx context.Context) iterator.Shape {
-	return qs.newEdgeScan(edgeRange{})
+	return newEdgeScan(qs.tx, edgeRange{})
 }
 
 // Close releases nothing: the transaction belongs to the caller.
@@ -282,7 +229,8 @@ func (qs *QuadStore) Close() error { return nil }
 
 // quadWriter adds quads through ApplyDeltas.
 type quadWriter struct {
-	qs *QuadStore
+	// apply submits one batch through the graph contract.
+	apply func(context.Context, []graph.Delta, graph.IgnoreOpts) error
 }
 
 // WriteQuad adds one quad.
@@ -297,7 +245,7 @@ func (w *quadWriter) WriteQuads(ctx context.Context, buf []quad.Quad) (int, erro
 	for i, q := range buf {
 		deltas[i] = graph.Delta{Quad: q, Action: graph.Add}
 	}
-	if err := w.qs.ApplyDeltas(ctx, deltas, graph.IgnoreOpts{IgnoreDup: true}); err != nil {
+	if err := w.apply(ctx, deltas, graph.IgnoreOpts{IgnoreDup: true}); err != nil {
 		return 0, err
 	}
 	return len(buf), nil

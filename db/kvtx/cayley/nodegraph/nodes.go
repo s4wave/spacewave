@@ -11,7 +11,10 @@ import (
 
 // nodeScan is the shape of every node.
 type nodeScan struct {
-	qs *QuadStore
+	// tx supplies the node metadata keys.
+	tx kvtx.TxOps
+	// nodes estimates allocated node IDs without counting keys.
+	nodes *nodeStore
 }
 
 // String describes the scan.
@@ -19,18 +22,18 @@ func (s *nodeScan) String() string { return "NodeGraphNodes" }
 
 // Iterate returns a scanner over every node.
 func (s *nodeScan) Iterate(ctx context.Context) iterator.Scanner {
-	return &nodeScanner{qs: s.qs}
+	return &nodeScanner{tx: s.tx}
 }
 
 // Lookup returns an index over every node.
 func (s *nodeScan) Lookup(ctx context.Context) iterator.Index {
-	return &nodeIndex{qs: s.qs}
+	return &nodeIndex{tx: s.tx}
 }
 
 // Stats estimates the number of nodes from the next node ID, which the store
 // holds once it has read the last ID.
 func (s *nodeScan) Stats(ctx context.Context) (iterator.Costs, error) {
-	n, err := s.qs.nodeEstimate(ctx)
+	n, err := s.nodes.nodeEstimate(ctx)
 	return iterator.Costs{ContainsCost: 1, NextCost: 1, Size: refs.Size{Value: n}}, err
 }
 
@@ -44,7 +47,8 @@ func (s *nodeScan) SubIterators() []iterator.Shape { return nil }
 
 // nodeScanner walks the meta keys, seeking past each node's edges.
 type nodeScanner struct {
-	qs  *QuadStore
+	// tx supplies the node metadata keys.
+	tx  kvtx.TxOps
 	it  kvtx.Iterator
 	cur graph.Ref
 	err error
@@ -57,7 +61,7 @@ func (it *nodeScanner) Next(ctx context.Context) bool {
 		if it.err != nil {
 			return false
 		}
-		it.it = it.qs.tx.Iterate(ctx, nodePrefix, true, false)
+		it.it = it.tx.Iterate(ctx, nodePrefix, true, false)
 		seek = nodePrefix
 	}
 	for {
@@ -111,7 +115,8 @@ func (it *nodeScanner) String() string { return "NodeGraphNodes" }
 
 // nodeIndex checks whether a node exists.
 type nodeIndex struct {
-	qs  *QuadStore
+	// tx supplies the node metadata keys.
+	tx  kvtx.TxOps
 	cur graph.Ref
 	err error
 }
@@ -125,7 +130,7 @@ func (it *nodeIndex) Contains(ctx context.Context, ref graph.Ref) (bool, error) 
 	}
 
 	// A node exists while its meta key does.
-	found, err := it.qs.tx.Exists(ctx, metaKey(id))
+	found, err := it.tx.Exists(ctx, metaKey(id))
 	if err != nil || !found {
 		it.err = err
 		return false, err

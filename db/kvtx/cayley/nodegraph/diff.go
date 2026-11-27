@@ -31,11 +31,9 @@ func NodeKeyPrefix() []byte {
 // which tree.
 func WalkChangedQuads(ctx context.Context, before, after kvtx.TxOps, keys [][]byte, fn func(q quad.Quad, added bool) error) error {
 	// Resolve names in each tree through its own cache.
-	var trees [2]*QuadStore
 	var names [2]*nameCache
 	for i, tx := range [2]kvtx.TxOps{before, after} {
-		trees[i] = NewQuadStore(tx)
-		names[i] = newNameCache(trees[i])
+		names[i] = newNameCache(&nodeStore{tx: tx})
 	}
 
 	// Pass on the quad of each out key from the tree that holds it.

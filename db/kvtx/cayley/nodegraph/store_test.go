@@ -237,7 +237,7 @@ func (tr *testTree) id(iri string) uint64 {
 	var id uint64
 	tr.read(func(qs *QuadStore) {
 		var err error
-		if id, err = qs.lookupID(tr.ctx, quad.IRI(iri).String()); err != nil {
+		if id, err = qs.nodes.lookupID(tr.ctx, quad.IRI(iri).String()); err != nil {
 			tr.t.Fatal(err)
 		}
 	})
@@ -435,7 +435,7 @@ func TestPairedEdgeKeysAtomic(t *testing.T) {
 				t.Fatalf("tag %d: d took ID %d, at or below the abandoned ID %d", tag, d, next)
 			}
 			tr.read(func(qs *QuadStore) {
-				meta, err := qs.readMeta(tr.ctx, tr.id("c"))
+				meta, err := qs.nodes.readMeta(tr.ctx, tr.id("c"))
 				if err != nil || !meta.GetPinned() {
 					t.Fatalf("tag %d: c's meta %v, err %v: predicate not pinned after the retry", tag, meta, err)
 				}
