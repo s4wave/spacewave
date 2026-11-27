@@ -1230,7 +1230,8 @@ func (w *walker) nextChildren(ctx context.Context) (keys [][]byte, namers [][][]
 // EncodeChildren sorts, and mergeList's union merges two sorted lists. So it
 // finds the first not below keys[0] by a binary search from the
 // release's Next, then merges forward, reading only the pages that overlap
-// the keys' range.
+// the keys' range. It returns a nil map with any error, so no caller can act
+// on a partial count.
 func releasePending(ctx context.Context, rec *Records, state *LivenessState, keys [][]byte) (map[string]int64, error) {
 	// Nothing is pending without keys or a release in progress.
 	pending := make(map[string]int64)
@@ -1248,7 +1249,7 @@ func releasePending(ctx context.Context, rec *Records, state *LivenessState, key
 	for _, key := range keys {
 		n, err := cur.count(ctx, key)
 		if err != nil {
-			return pending, err
+			return nil, err
 		}
 		if n != 0 {
 			pending[string(key)] = n

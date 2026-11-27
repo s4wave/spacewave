@@ -629,6 +629,9 @@ func packChildren(head []byte, children []*block.BlockRef) []byte {
 // normalizeChildren returns the distinct, non-empty children in block key
 // order, the list EncodeChildren stores, so a count of the list's holders
 // matches the list.
+//
+// Invariant: a child list holds distinct children. A block that names a
+// child in two fields gives it one holder, and a release lists it once.
 func normalizeChildren(children []*block.BlockRef) []*block.BlockRef {
 	// Drop the empty refs and sort by block key.
 	out := make([]*block.BlockRef, 0, len(children))
@@ -1675,6 +1678,10 @@ func (r *Records) scanReleasePending(ctx context.Context, rel *Release, fn func(
 // releaseCursor walks the children of a paged release not moved yet in block
 // key order, the order of its block's child list, holding one release page
 // at a time.
+//
+// Invariant: rel and the pages the cursor reads come from rec's one
+// transaction snapshot, so the pages hold exactly rel's Children and no
+// release step moves Next under the cursor.
 type releaseCursor struct {
 	// rec are the liveness records it reads the pages from.
 	rec *Records
@@ -1765,14 +1772,18 @@ func (c *releaseCursor) has(ctx context.Context, key []byte) (bool, error) {
 }
 
 // count moves the cursor past every child not above key and returns how
-// many equal it, since a release lists a block once per edge that names it.
-// Calls pass keys in ascending order.
+// many equal it, or zero with an error. A child list holds each child once,
+// as normalizeChildren and unionChildren keep it, so the count is
+// zero or one. Calls pass keys in ascending order.
 func (c *releaseCursor) count(ctx context.Context, key []byte) (int64, error) {
 	var n int64
 	for {
 		child, err := c.skipBelow(ctx, key)
-		if err != nil || child == nil || !bytes.Equal(BlockKey(child), key) {
-			return n, err
+		if err != nil {
+			return 0, err
+		}
+		if child == nil || !bytes.Equal(BlockKey(child), key) {
+			return n, nil
 		}
 		n++
 		c.next++

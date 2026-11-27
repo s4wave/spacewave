@@ -72,6 +72,11 @@ const (
 // each entry, whether blocks held its bytes before. It is the one write path
 // that changes holders.
 //
+// Invariant: rec and blocks are views of one transaction, so the block bytes
+// Land puts and the liveness records it writes commit or discard together.
+// A Land that fails leaves neither: the caller discards the transaction, and
+// the result it returns with the error.
+//
 // A block is stored, in the liveness sense, while its child list exists. An
 // entry whose block has no child list is born: Land writes its list. A born
 // block has one holder implied by its record, which is the first holder this
