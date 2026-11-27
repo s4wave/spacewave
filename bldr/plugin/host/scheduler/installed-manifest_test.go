@@ -264,7 +264,7 @@ func TestReleasedInstallationStopsWaiting(t *testing.T) {
 	root := h.manifest(t, 1)
 	release := h.instance.addManifestSelection("peer-p", root)
 	h.run(t, h.instance)
-	_, err := h.c.pluginStatusCtr.WaitValueWithValidator(h.ctx, func(snap *plugin.PluginStatusSnapshot) (bool, error) {
+	_, err := h.c.pluginStatus.WaitValueWithValidator(h.ctx, func(snap *plugin.PluginStatusSnapshot) (bool, error) {
 		for _, st := range snap.GetExecutions() {
 			if st.GetSwap().GetAwaitingApproval() != nil {
 				return true, nil
@@ -330,9 +330,7 @@ func testReleasedInstallationKeepsCatalogWorker(t *testing.T, serveAssets bool) 
 	hosts := &pluginHostSet{pluginHosts: []plugin_host.PluginHost{&testPluginHost{id: "js"}}}
 	c := &Controller{
 		le: le, bus: tb.Bus, conf: &Config{PeerId: "root", AdmissionPluginId: "owner"},
-		pluginHostsCtr:  ccontainer.NewCContainer(hosts),
-		pluginStatusCtr: ccontainer.NewCContainer(&plugin.PluginStatusSnapshot{}),
-		pluginStatus:    make(map[string]*plugin.PluginStatus),
+		pluginHostsCtr: ccontainer.NewCContainer(hosts),
 	}
 	_, instance := c.newPluginInstance(pluginReference{pluginID: "colors"})
 	c.setPluginStatus("colors", "", plugin.PluginState_PluginState_REQUESTED)
@@ -484,7 +482,7 @@ func rootedTestManifestRef(t *testing.T, rev uint64) *manifest.ManifestRef {
 // waitSwap waits until the colors binding's published swap state satisfies ok.
 func waitSwap(t *testing.T, ctx context.Context, c *Controller, ok func(*plugin.PluginSwap) bool) {
 	t.Helper()
-	_, err := c.pluginStatusCtr.WaitValueWithValidator(ctx, func(snap *plugin.PluginStatusSnapshot) (bool, error) {
+	_, err := c.pluginStatus.WaitValueWithValidator(ctx, func(snap *plugin.PluginStatusSnapshot) (bool, error) {
 		for _, st := range snap.GetExecutions() {
 			if st.GetPluginId() == "colors" && ok(st.GetSwap()) {
 				return true, nil
@@ -638,7 +636,7 @@ func TestReleasedEmptyInstallationReselectsCatalog(t *testing.T) {
 // in the critical section that admits a worker, and returns that worker.
 func (h *installationHarness) awaitAdmitted(t *testing.T, load *pluginInstance) *pluginInstance {
 	t.Helper()
-	_, err := h.c.pluginStatusCtr.WaitValueWithValidator(h.ctx, func(*plugin.PluginStatusSnapshot) (bool, error) {
+	_, err := h.c.pluginStatus.WaitValueWithValidator(h.ctx, func(*plugin.PluginStatusSnapshot) (bool, error) {
 		return h.runningRef(load) != "", nil
 	}, nil)
 	if err != nil {
@@ -649,7 +647,7 @@ func (h *installationHarness) awaitAdmitted(t *testing.T, load *pluginInstance) 
 
 // runningRef returns the running manifest load last published.
 func (h *installationHarness) runningRef(load *pluginInstance) string {
-	for _, status := range h.c.pluginStatusCtr.GetValue().GetExecutions() {
+	for _, status := range h.c.pluginStatus.GetValue().GetExecutions() {
 		if status.GetPluginId() == load.pluginID && status.GetInstanceKey() == load.instanceKey {
 			return status.GetRunningManifestRef()
 		}
@@ -760,9 +758,7 @@ func newInstallationHarness(t *testing.T) *installationHarness {
 			vol:  tb.Volume,
 			info: &volume.VolumeInfo{VolumeId: tb.Volume.GetID()},
 		}),
-		pluginHostsCtr:  ccontainer.NewCContainer(hosts),
-		pluginStatusCtr: ccontainer.NewCContainer(&plugin.PluginStatusSnapshot{}),
-		pluginStatus:    make(map[string]*plugin.PluginStatus),
+		pluginHostsCtr: ccontainer.NewCContainer(hosts),
 	}
 	_, instance := c.newPluginInstance(pluginReference{pluginID: "colors"})
 	c.setPluginStatus("colors", "", plugin.PluginState_PluginState_REQUESTED)

@@ -11,7 +11,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
@@ -508,10 +507,8 @@ func TestHostPluginLoadsBindToSchedulerInstance(t *testing.T) {
 	}
 	defer tb.Release()
 	app := &Controller{
-		le:              le,
-		conf:            &Config{HostExportPluginIds: []string{"spacewave-core"}},
-		pluginStatusCtr: ccontainer.NewCContainer(&bldr_plugin.PluginStatusSnapshot{}),
-		pluginStatus:    make(map[string]*bldr_plugin.PluginStatus),
+		le:   le,
+		conf: &Config{HostExportPluginIds: []string{"spacewave-core"}},
 	}
 	app.pluginInstances = keyed.NewKeyedRefCountWithLogger(app.newPluginInstance, le)
 

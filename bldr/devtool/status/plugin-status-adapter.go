@@ -10,14 +10,13 @@ import (
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/util/ccontainer"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
-	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 )
 
 // AttachPluginStatus adapts PluginHost scheduler status into Bldr Devtool Status.
 func AttachPluginStatus(
 	ctx context.Context,
 	producer *BldrDevtoolStatusProducer,
-	ctrl *plugin_host_scheduler.Controller,
+	ctrl bldr_plugin.PluginScheduler,
 ) {
 	// Publish the current scheduler snapshot and watch for changes.
 	adapter := &pluginStatusAdapter{producer: producer}

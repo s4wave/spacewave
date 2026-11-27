@@ -14,9 +14,9 @@ import (
 	"github.com/aperturerobotics/controllerbus/core"
 	"github.com/aperturerobotics/controllerbus/directive"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/aperturerobotics/util/ccontainer"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
-	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 	bldr_project_controller "github.com/s4wave/spacewave/bldr/project/controller"
 	bldr_web_view_observer "github.com/s4wave/spacewave/bldr/web/view/observer"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -376,24 +376,15 @@ func TestAttachPluginStatusWatchesSchedulerContainer(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// Build a scheduler controller and grab its writable status container.
+	// Build a scheduler whose status container the test writes.
 	producer := NewBldrDevtoolStatusProducer(nil)
-	scheduler := plugin_host_scheduler.NewController(
-		logrus.NewEntry(logrus.New()),
-		nil,
-		plugin_host_scheduler.NewConfig("", "engine", "devtool", "volume", "test", false, false, false),
-	)
-	statusCtr := scheduler.GetPluginStatusCtr()
-	writableStatusCtr, ok := statusCtr.(interface {
-		SetValue(*bldr_plugin.PluginStatusSnapshot)
-	})
-	if !ok {
-		t.Fatal("expected scheduler plugin status container to be writable in test")
+	scheduler := &fakePluginScheduler{
+		status: ccontainer.NewCContainer(&bldr_plugin.PluginStatusSnapshot{}),
 	}
 
 	// Attach the status watcher and publish a running plugin snapshot.
 	AttachPluginStatus(ctx, producer, scheduler)
-	writableStatusCtr.SetValue(&bldr_plugin.PluginStatusSnapshot{
+	scheduler.status.SetValue(&bldr_plugin.PluginStatusSnapshot{
 		Plugins: []*bldr_plugin.PluginStatus{{
 			PluginId:    "notes",
 			InstanceKey: "left",
@@ -411,6 +402,21 @@ func TestAttachPluginStatusWatchesSchedulerContainer(t *testing.T) {
 	if row.State != BldrDevtoolPluginStateRunning || row.Summary != "plugin running" {
 		t.Fatalf("unexpected watched plugin row: %+v", row)
 	}
+}
+
+// fakePluginScheduler is a PluginScheduler backed by a writable container.
+type fakePluginScheduler struct {
+	status *ccontainer.CContainer[*bldr_plugin.PluginStatusSnapshot]
+}
+
+// GetInstanceKey returns the root host instance key.
+func (s *fakePluginScheduler) GetInstanceKey() string {
+	return ""
+}
+
+// GetPluginStatusCtr returns the writable status container.
+func (s *fakePluginScheduler) GetPluginStatusCtr() ccontainer.Watchable[*bldr_plugin.PluginStatusSnapshot] {
+	return s.status
 }
 
 func TestPluginStatusRowMapsSchedulerStates(t *testing.T) {

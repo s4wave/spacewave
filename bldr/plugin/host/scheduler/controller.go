@@ -86,18 +86,9 @@ type Controller struct {
 	// pluginInstances manages the list of running plugins by plugin ID.
 	// key: plugin ID
 	pluginInstances *keyed.KeyedRefCount[pluginReference, *pluginInstance]
-	// pluginStatusCtr publishes live plugin instance states.
-	pluginStatusCtr *ccontainer.CContainer[*bldr_plugin.PluginStatusSnapshot]
-	// pluginStatusMtx guards the plugin status maps below.
-	pluginStatusMtx sync.Mutex
-	// pluginStatus stores live plugin instance states by pluginInstanceKey.
-	pluginStatus map[string]*bldr_plugin.PluginStatus
-	// pluginManifestRecoveryStatus stores retained Manifest selection and
-	// eligibility facts by pluginInstanceKey.
-	pluginManifestRecoveryStatus map[string]*bldr_plugin.PluginManifestRecoveryStatus
-	// pluginExecutionStatus stores the running manifest and swap state of
-	// each logical plugin instance by pluginInstanceKey.
-	pluginExecutionStatus map[string]*bldr_plugin.PluginExecutionStatus
+	// pluginStatus holds the live plugin status rows and publishes their
+	// snapshots.
+	pluginStatus pluginStatusRows
 }
 
 // hostVol contains a snapshot of the host volume.
@@ -199,12 +190,6 @@ func NewController(
 		hostVolumeCtr:       ccontainer.NewCContainer[*hostVol](nil),
 		pluginHostsCtr:      ccontainer.NewCContainerWithEqual(nil, pluginHostSetEqual),
 		manifestCopyGateCtr: ccontainer.NewCContainer[ManifestCopyGate](nil),
-		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
-			&bldr_plugin.PluginStatusSnapshot{},
-			(*bldr_plugin.PluginStatusSnapshot).EqualVT,
-		),
-		pluginStatus:                 make(map[string]*bldr_plugin.PluginStatus),
-		pluginManifestRecoveryStatus: make(map[string]*bldr_plugin.PluginManifestRecoveryStatus),
 	}
 	c.pluginInstances = keyed.NewKeyedRefCountWithLogger(c.newPluginInstance, le.WithField("tracker", "running-plugin"))
 	c.hostClient = srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(bifrost_rpc.NewInvoker(bus, "plugin-host", true))))

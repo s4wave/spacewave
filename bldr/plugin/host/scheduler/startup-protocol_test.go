@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/pkg/errors"
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
@@ -24,10 +23,7 @@ import (
 func TestStartupProtocolFailureStopsSelection(t *testing.T) {
 	// Exercise the production selection lifecycle with a failing execution boundary.
 	le := logrus.NewEntry(logrus.New())
-	c := &Controller{le: le, conf: &Config{},
-		pluginStatusCtr: ccontainer.NewCContainer(&plugin.PluginStatusSnapshot{}),
-		pluginStatus:    make(map[string]*plugin.PluginStatus),
-	}
+	c := &Controller{le: le, conf: &Config{}}
 	_, instance := c.newPluginInstance(pluginReference{pluginID: "sample"})
 	var starts atomic.Int32
 	instance.executions = keyed.NewKeyedRefCount(func(key executionReference) (keyed.Routine, *pluginInstance) {
@@ -77,10 +73,7 @@ func TestStartupProtocolFailureStopsSelection(t *testing.T) {
 func TestStartupProtocolFailureFallsBack(t *testing.T) {
 	// Fail the newer artifact's startup and admit the older one.
 	le := logrus.NewEntry(logrus.New())
-	c := &Controller{le: le, conf: &Config{},
-		pluginStatusCtr: ccontainer.NewCContainer(&plugin.PluginStatusSnapshot{}),
-		pluginStatus:    make(map[string]*plugin.PluginStatus),
-	}
+	c := &Controller{le: le, conf: &Config{}}
 	_, instance := c.newPluginInstance(pluginReference{pluginID: "sample"})
 	instance.executions = keyed.NewKeyedRefCount(func(key executionReference) (keyed.Routine, *pluginInstance) {
 		_, worker := instance.newExecution(key)

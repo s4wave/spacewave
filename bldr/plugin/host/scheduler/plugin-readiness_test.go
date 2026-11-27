@@ -20,10 +20,7 @@ import (
 func TestPluginInstanceWaitsForInitialCapabilityRegistration(t *testing.T) {
 	// Build a controller and an instance still pending initial registration.
 	le := logrus.NewEntry(logrus.New())
-	ctrl := &Controller{
-		pluginStatusCtr: ccontainer.NewCContainer(&bldr_plugin.PluginStatusSnapshot{}),
-		pluginStatus:    make(map[string]*bldr_plugin.PluginStatus),
-	}
+	ctrl := &Controller{}
 	instance := &pluginInstance{
 		c:                ctrl,
 		le:               le,
@@ -216,10 +213,8 @@ func TestLoadPluginResolverWaitsForWorkerRpcConnection(t *testing.T) {
 	defer ctxCancel()
 	le := logrus.NewEntry(logrus.New())
 	ctrl := &Controller{
-		le:              le,
-		conf:            &Config{},
-		pluginStatusCtr: ccontainer.NewCContainer(&bldr_plugin.PluginStatusSnapshot{}),
-		pluginStatus:    make(map[string]*bldr_plugin.PluginStatus),
+		le:   le,
+		conf: &Config{},
 	}
 	ctrl.pluginInstances = keyed.NewKeyedRefCountWithLogger(ctrl.newPluginInstance, le)
 

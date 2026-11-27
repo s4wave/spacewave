@@ -67,8 +67,6 @@ func TestSelectedPluginRetainsAdmittedWorker(t *testing.T) {
 	le := logrus.NewEntry(logrus.New())
 	c := &Controller{
 		le: le, conf: &Config{},
-		pluginStatusCtr: ccontainer.NewCContainer(&plugin.PluginStatusSnapshot{}),
-		pluginStatus:    make(map[string]*plugin.PluginStatus),
 	}
 	_, instance := c.newPluginInstance(pluginReference{pluginID: "colors"})
 	c.setPluginStatus("colors", "", plugin.PluginState_PluginState_REQUESTED)
@@ -77,7 +75,7 @@ func TestSelectedPluginRetainsAdmittedWorker(t *testing.T) {
 	// logs the swap state it reached.
 	waitExecution := func(phase string, ok func(*plugin.PluginExecutionStatus) bool) {
 		t.Helper()
-		snap, err := c.pluginStatusCtr.WaitValueWithValidator(ctx, func(snap *plugin.PluginStatusSnapshot) (bool, error) {
+		snap, err := c.pluginStatus.WaitValueWithValidator(ctx, func(snap *plugin.PluginStatusSnapshot) (bool, error) {
 			for _, st := range snap.GetExecutions() {
 				if st.GetPluginId() == "colors" && ok(st) {
 					return true, nil
@@ -249,7 +247,7 @@ func TestSelectedPluginRetainsAdmittedWorker(t *testing.T) {
 	activationProbeSlow = 20 * time.Millisecond
 	defer func() { activationProbeSlow = prevSlow }()
 	waitingStatus := func(want bool) error {
-		_, err := c.pluginStatusCtr.WaitValueWithValidator(ctx, func(snap *plugin.PluginStatusSnapshot) (bool, error) {
+		_, err := c.pluginStatus.WaitValueWithValidator(ctx, func(snap *plugin.PluginStatusSnapshot) (bool, error) {
 			for _, st := range snap.GetExecutions() {
 				if st.GetPluginId() == "colors" && st.GetSwap().GetWaiting() != nil {
 					t.Logf("candidate waiting: running rev %d, swap %s", st.GetRunningManifestRev(), st.GetSwap().MarshalProtoText())
@@ -350,8 +348,6 @@ func TestFailingPluginRestartBacksOff(t *testing.T) {
 			BackoffKind: backoff.BackoffKind_BackoffKind_EXPONENTIAL,
 			Exponential: &backoff.Exponential{InitialInterval: 20, Multiplier: 2, MaxInterval: 1000},
 		}},
-		pluginStatusCtr: ccontainer.NewCContainer(&plugin.PluginStatusSnapshot{}),
-		pluginStatus:    make(map[string]*plugin.PluginStatus),
 	}
 	_, instance := c.newPluginInstance(pluginReference{pluginID: "sample"})
 	c.setPluginStatus("sample", "", plugin.PluginState_PluginState_REQUESTED)
@@ -393,7 +389,7 @@ func TestFailingPluginRestartBacksOff(t *testing.T) {
 	}
 
 	// The failed swap state carries when the routine retries.
-	snap, err := c.pluginStatusCtr.WaitValueWithValidator(t.Context(), func(snap *plugin.PluginStatusSnapshot) (bool, error) {
+	snap, err := c.pluginStatus.WaitValueWithValidator(t.Context(), func(snap *plugin.PluginStatusSnapshot) (bool, error) {
 		for _, st := range snap.GetExecutions() {
 			if st.GetSwap().GetFailed().GetRetryAt() != nil {
 				return true, nil
@@ -428,8 +424,6 @@ func TestSelectedPluginAwaitsAdmission(t *testing.T) {
 	defer rel()
 	c := &Controller{
 		le: le, bus: tb.Bus, conf: &Config{RequireAdmission: true, PeerId: "peer"},
-		pluginStatusCtr: ccontainer.NewCContainer(&plugin.PluginStatusSnapshot{}),
-		pluginStatus:    make(map[string]*plugin.PluginStatus),
 	}
 	_, instance := c.newPluginInstance(pluginReference{pluginID: "colors"})
 	c.setPluginStatus("colors", "", plugin.PluginState_PluginState_REQUESTED)
@@ -605,8 +599,6 @@ func TestSchedulerAdmissionByHost(t *testing.T) {
 	newInstance := func(conf *Config) (*Controller, *pluginInstance) {
 		c := &Controller{
 			le: le, bus: tb.Bus, conf: conf,
-			pluginStatusCtr: ccontainer.NewCContainer(&plugin.PluginStatusSnapshot{}),
-			pluginStatus:    make(map[string]*plugin.PluginStatus),
 		}
 		_, instance := c.newPluginInstance(pluginReference{pluginID: "colors"})
 		c.setPluginStatus("colors", "", plugin.PluginState_PluginState_REQUESTED)
@@ -629,7 +621,7 @@ func TestSchedulerAdmissionByHost(t *testing.T) {
 	}
 	// swapOf returns the instance's published swap state.
 	swapOf := func(c *Controller) *plugin.PluginSwap {
-		for _, st := range c.pluginStatusCtr.GetValue().GetExecutions() {
+		for _, st := range c.pluginStatus.GetValue().GetExecutions() {
 			return st.GetSwap()
 		}
 		return nil
@@ -816,7 +808,7 @@ func TestSchedulerAdmissionByHost(t *testing.T) {
 		// being checked, not that the root awaits approval.
 		waitCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
-		_, err := c.pluginStatusCtr.WaitValueWithValidator(waitCtx, func(snap *plugin.PluginStatusSnapshot) (bool, error) {
+		_, err := c.pluginStatus.WaitValueWithValidator(waitCtx, func(snap *plugin.PluginStatusSnapshot) (bool, error) {
 			for _, st := range snap.GetExecutions() {
 				w := st.GetSwap().GetCheckingApproval()
 				return w.GetCandidateManifestRev() == args.rev && w.GetPeerId() == "silent", nil
@@ -913,7 +905,7 @@ func TestSchedulerAdmissionByHost(t *testing.T) {
 		}()
 		waitCtx, cancelWait := context.WithTimeout(ctx, 5*time.Second)
 		defer cancelWait()
-		if _, err := c.pluginStatusCtr.WaitValueWithValidator(waitCtx, func(snap *plugin.PluginStatusSnapshot) (bool, error) {
+		if _, err := c.pluginStatus.WaitValueWithValidator(waitCtx, func(snap *plugin.PluginStatusSnapshot) (bool, error) {
 			for _, st := range snap.GetExecutions() {
 				return st.GetSwap().GetCheckingApproval().GetCandidateManifestRev() == first.rev, nil
 			}
@@ -954,7 +946,7 @@ func TestSchedulerAdmissionByHost(t *testing.T) {
 		// The swap leaves the earlier settled state for preparing this root.
 		waitCtx, cancelWait := context.WithTimeout(ctx, 5*time.Second)
 		defer cancelWait()
-		if _, err := c.pluginStatusCtr.WaitValueWithValidator(waitCtx, func(snap *plugin.PluginStatusSnapshot) (bool, error) {
+		if _, err := c.pluginStatus.WaitValueWithValidator(waitCtx, func(snap *plugin.PluginStatusSnapshot) (bool, error) {
 			for _, st := range snap.GetExecutions() {
 				return st.GetSwap().GetPreparing().GetCandidateManifestRev() == args.rev, nil
 			}
@@ -1121,8 +1113,6 @@ func TestReleaseHostAsksApprovalsOwner(t *testing.T) {
 		}
 		c := &Controller{
 			le: le, bus: host.Bus, conf: &Config{PeerId: "host-peer", AdmissionPluginId: ownerID},
-			pluginStatusCtr: ccontainer.NewCContainer(&plugin.PluginStatusSnapshot{}),
-			pluginStatus:    make(map[string]*plugin.PluginStatus),
 		}
 		_, instance := c.newPluginInstance(pluginReference{pluginID: "colors"})
 		c.setPluginStatus("colors", "", plugin.PluginState_PluginState_REQUESTED)
@@ -1153,7 +1143,7 @@ func TestReleaseHostAsksApprovalsOwner(t *testing.T) {
 		}
 	}
 	swapOf := func(c *Controller) *plugin.PluginSwap {
-		for _, st := range c.pluginStatusCtr.GetValue().GetExecutions() {
+		for _, st := range c.pluginStatus.GetValue().GetExecutions() {
 			return st.GetSwap()
 		}
 		return nil
@@ -1189,7 +1179,7 @@ func TestReleaseHostAsksApprovalsOwner(t *testing.T) {
 		}()
 		waitCtx, stop := context.WithTimeout(ctx, 5*time.Second)
 		defer stop()
-		if _, err := c.pluginStatusCtr.WaitValueWithValidator(waitCtx, func(snap *plugin.PluginStatusSnapshot) (bool, error) {
+		if _, err := c.pluginStatus.WaitValueWithValidator(waitCtx, func(snap *plugin.PluginStatusSnapshot) (bool, error) {
 			for _, st := range snap.GetExecutions() {
 				return st.GetSwap().GetAwaitingApproval().GetCandidateManifestRev() == args.rev, nil
 			}

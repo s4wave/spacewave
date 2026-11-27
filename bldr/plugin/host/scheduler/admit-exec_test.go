@@ -11,7 +11,6 @@ import (
 	controller_exec "github.com/aperturerobotics/controllerbus/controller/exec"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/aperturerobotics/util/ccontainer"
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_trust "github.com/s4wave/spacewave/bldr/manifest/trust"
 	plugin "github.com/s4wave/spacewave/bldr/plugin"
@@ -128,8 +127,6 @@ func TestExecControllerCannotStartAdmission(t *testing.T) {
 	// A root no one trusted or approved, loaded for the session peer.
 	c := &Controller{
 		le: le, bus: host.Bus, conf: &Config{PeerId: "host-peer", AdmissionPluginId: ownerID},
-		pluginStatusCtr: ccontainer.NewCContainer(&plugin.PluginStatusSnapshot{}),
-		pluginStatus:    make(map[string]*plugin.PluginStatus),
 	}
 	_, instance := c.newPluginInstance(pluginReference{pluginID: "colors"})
 	c.setPluginStatus("colors", "", plugin.PluginState_PluginState_REQUESTED)

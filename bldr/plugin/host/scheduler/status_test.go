@@ -8,7 +8,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus/inmem"
 	directive_controller "github.com/aperturerobotics/controllerbus/directive/controller"
-	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
@@ -112,13 +111,7 @@ func TestWaitControllerOnBusReturnsContextCancellation(t *testing.T) {
 
 func TestPluginStatusRecordsAndClearsLastError(t *testing.T) {
 	// Build a controller with an equal-compared status snapshot.
-	ctrl := &Controller{
-		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
-			&bldr_plugin.PluginStatusSnapshot{},
-			(*bldr_plugin.PluginStatusSnapshot).EqualVT,
-		),
-		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
-	}
+	ctrl := &Controller{}
 
 	// Record an error on a requested plugin.
 	ctrl.setPluginStatus("notes", "left", bldr_plugin.PluginState_PluginState_REQUESTED)
@@ -161,13 +154,7 @@ func TestPluginStatusRecordsAndClearsLastError(t *testing.T) {
 
 func TestPluginStatusRecordsTerminalWorkerFailureUntilFreshGenerationRuns(t *testing.T) {
 	// Build a controller with an equal-compared status snapshot.
-	ctrl := &Controller{
-		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
-			&bldr_plugin.PluginStatusSnapshot{},
-			(*bldr_plugin.PluginStatusSnapshot).EqualVT,
-		),
-		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
-	}
+	ctrl := &Controller{}
 
 	// Record a terminal worker failure on the requested plugin.
 	ctrl.setPluginStatus("spacewave-core", "", bldr_plugin.PluginState_PluginState_REQUESTED)
@@ -205,13 +192,7 @@ func TestPluginStatusRecordsTerminalWorkerFailureUntilFreshGenerationRuns(t *tes
 
 func TestIsPluginRunning(t *testing.T) {
 	// Build a controller with an equal-compared status snapshot.
-	ctrl := &Controller{
-		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
-			&bldr_plugin.PluginStatusSnapshot{},
-			(*bldr_plugin.PluginStatusSnapshot).EqualVT,
-		),
-		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
-	}
+	ctrl := &Controller{}
 
 	// A requested plugin does not report running.
 	ctrl.setPluginStatus("notes", "left", bldr_plugin.PluginState_PluginState_REQUESTED)
@@ -228,13 +209,7 @@ func TestIsPluginRunning(t *testing.T) {
 
 func TestWaitPluginsRunningReturnsWhenRequiredPluginsRun(t *testing.T) {
 	// Build a controller with an equal-compared status snapshot.
-	ctrl := &Controller{
-		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
-			&bldr_plugin.PluginStatusSnapshot{},
-			(*bldr_plugin.PluginStatusSnapshot).EqualVT,
-		),
-		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
-	}
+	ctrl := &Controller{}
 
 	// Mark the required plugins running and one other requested.
 	ctrl.setPluginStatusClearingError("spacewave-core", "", bldr_plugin.PluginState_PluginState_RUNNING)
@@ -251,13 +226,7 @@ func TestWaitPluginsRunningReturnsWhenRequiredPluginsRun(t *testing.T) {
 
 func TestWaitPluginsRunningReturnsRecordedStartupError(t *testing.T) {
 	// Build a controller with an equal-compared status snapshot.
-	ctrl := &Controller{
-		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
-			&bldr_plugin.PluginStatusSnapshot{},
-			(*bldr_plugin.PluginStatusSnapshot).EqualVT,
-		),
-		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
-	}
+	ctrl := &Controller{}
 
 	// Record a startup error on a requested plugin.
 	ctrl.setPluginStatus("spacewave-e2e", "", bldr_plugin.PluginState_PluginState_REQUESTED)
@@ -277,13 +246,7 @@ func TestWaitPluginsRunningReturnsRecordedStartupError(t *testing.T) {
 
 func TestPluginStatusSnapshotEqualIncludesLastError(t *testing.T) {
 	// Build a controller with an equal-compared status snapshot.
-	ctrl := &Controller{
-		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
-			&bldr_plugin.PluginStatusSnapshot{},
-			(*bldr_plugin.PluginStatusSnapshot).EqualVT,
-		),
-		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
-	}
+	ctrl := &Controller{}
 
 	// Snapshot the status before and after recording an error.
 	ctrl.setPluginStatus("notes", "", bldr_plugin.PluginState_PluginState_REQUESTED)
@@ -305,10 +268,10 @@ func TestPluginStatusUpdateToleratesUninitializedController(t *testing.T) {
 	ctrl.recordPluginStatusError("notes", "", "startup manifest refs", errors.New("skipped"))
 
 	// The recorded error is visible in the rebuilt snapshot.
-	if len(ctrl.pluginStatus) != 1 {
-		t.Fatalf("expected one plugin status, got %d", len(ctrl.pluginStatus))
+	if len(ctrl.pluginStatus.plugins) != 1 {
+		t.Fatalf("expected one plugin status, got %d", len(ctrl.pluginStatus.plugins))
 	}
-	status := ctrl.buildPluginStatusSnapshotLocked()
+	status := ctrl.pluginStatus.GetValue()
 	if len(status.Plugins) != 1 {
 		t.Fatalf("expected one plugin in snapshot, got %d", len(status.Plugins))
 	}
@@ -319,14 +282,7 @@ func TestPluginStatusUpdateToleratesUninitializedController(t *testing.T) {
 
 func TestPluginManifestRecoveryStatusReportsSelectionAndRetainedCandidates(t *testing.T) {
 	// Build a controller with recovery status tracking and test object refs.
-	ctrl := &Controller{
-		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
-			&bldr_plugin.PluginStatusSnapshot{},
-			(*bldr_plugin.PluginStatusSnapshot).EqualVT,
-		),
-		pluginStatus:                 make(map[string]*bldr_plugin.PluginStatus),
-		pluginManifestRecoveryStatus: make(map[string]*bldr_plugin.PluginManifestRecoveryStatus),
-	}
+	ctrl := &Controller{}
 	executeRef := testObjectRef(t, "execute")
 	downloadRef := testObjectRef(t, "download")
 
@@ -389,14 +345,7 @@ func TestPluginManifestRecoveryStatusReportsSelectionAndRetainedCandidates(t *te
 
 func TestPluginManifestRecoveryStatusClearsWithPluginInstance(t *testing.T) {
 	// Build a controller with recovery status tracking.
-	ctrl := &Controller{
-		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
-			&bldr_plugin.PluginStatusSnapshot{},
-			(*bldr_plugin.PluginStatusSnapshot).EqualVT,
-		),
-		pluginStatus:                 make(map[string]*bldr_plugin.PluginStatus),
-		pluginManifestRecoveryStatus: make(map[string]*bldr_plugin.PluginManifestRecoveryStatus),
-	}
+	ctrl := &Controller{}
 
 	// Record a recovery row for a running plugin instance.
 	ctrl.updatePluginStatus(
@@ -472,4 +421,75 @@ func TestResolveLoadPluginResolvesOtherInstances(t *testing.T) {
 	if resolver == nil {
 		t.Fatal("instanced directive did not resolve")
 	}
+}
+
+// TestPluginStatusWritersSkipObservation checks that a status write never
+// waits on a snapshot build and that concurrent watchers see the written
+// revisions in order, ending at the last one.
+func TestPluginStatusWritersSkipObservation(t *testing.T) {
+	// A write completes while a reader holds the snapshot build.
+	ctrl := &Controller{}
+	ctrl.setPluginStatus("notes", "", bldr_plugin.PluginState_PluginState_RUNNING)
+	ctrl.pluginStatus.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		ctrl.pluginStatus.building = true
+	})
+	wrote := make(chan struct{})
+	go func() {
+		ctrl.setRunningManifestRev("notes", 1)
+		close(wrote)
+	}()
+	select {
+	case <-wrote:
+	case <-time.After(5 * time.Second):
+		t.Fatal("status write waited on a snapshot build")
+	}
+	ctrl.pluginStatus.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		ctrl.pluginStatus.building = false
+		broadcast()
+	})
+
+	// Watchers race a writer and must never see a revision go backwards.
+	const watchers, writes = 4, 200
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	errs := make(chan error, watchers)
+	for range watchers {
+		go func() {
+			var seen uint64
+			current := ctrl.GetPluginStatusCtr().GetValue()
+			for {
+				next, err := ctrl.GetPluginStatusCtr().WaitValueChange(ctx, current, nil)
+				if err != nil {
+					errs <- err
+					return
+				}
+				current = next
+				rev := current.GetExecutions()[0].GetRunningManifestRev()
+				if rev < seen {
+					errs <- errors.Errorf("watcher saw rev %d after %d", rev, seen)
+					return
+				}
+				seen = rev
+				if rev == writes {
+					errs <- nil
+					return
+				}
+			}
+		}()
+	}
+	for i := uint64(2); i <= writes; i++ {
+		ctrl.setRunningManifestRev("notes", i)
+	}
+	for range watchers {
+		if err := <-errs; err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+// setRunningManifestRev records rev as a plugin's running manifest revision.
+func (c *Controller) setRunningManifestRev(pluginID string, rev uint64) {
+	c.updatePluginExecutionStatus(pluginID, "", func(status *bldr_plugin.PluginExecutionStatus) {
+		status.RunningManifestRev = rev
+	})
 }

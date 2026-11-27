@@ -137,8 +137,6 @@ func TestExecPluginOnExportedHost(t *testing.T) {
 				vol:  spaceTb.Volume,
 				info: &volume.VolumeInfo{VolumeId: spaceTb.Volume.GetID()},
 			}),
-			pluginStatusCtr: ccontainer.NewCContainer(&bldr_plugin.PluginStatusSnapshot{}),
-			pluginStatus:    make(map[string]*bldr_plugin.PluginStatus),
 		},
 		le:               le,
 		pluginID:         "space-viewer",

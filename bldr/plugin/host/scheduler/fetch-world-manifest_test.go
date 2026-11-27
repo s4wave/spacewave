@@ -124,7 +124,7 @@ func TestDirectFetchHandlerPreservesCurrentStateAcrossEmptyGap(t *testing.T) {
 // them.
 func assertDirectSelectionRev(t *testing.T, pi *pluginInstance, rev uint64) {
 	t.Helper()
-	row := pi.c.pluginManifestRecoveryStatus[pluginInstanceKey(pi.pluginID, pi.instanceKey)]
+	row := pi.c.pluginStatus.recovery[pluginInstanceKey(pi.pluginID, pi.instanceKey)]
 	if row.GetExecuteManifestRef() == "" || row.GetExecuteManifestRev() != rev {
 		t.Fatalf("selection row = %v, want an execute ref at rev %d", row, rev)
 	}
@@ -712,11 +712,6 @@ func TestWatchWorldManifestExecutesBootstrapManifestAndRecordsUnreadableRetained
 		bus:    tb.Bus,
 		conf:   &Config{},
 		objKey: objKey,
-		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
-			&bldr_plugin.PluginStatusSnapshot{},
-			(*bldr_plugin.PluginStatusSnapshot).EqualVT,
-		),
-		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
 	}
 	pi := &pluginInstance{
 		c:                       ctrl,
@@ -826,11 +821,6 @@ func TestWatchWorldManifestExecutesReadableLauncherWithUnavailableRetainedReleas
 		bus:    tb.Bus,
 		conf:   &Config{},
 		objKey: objKey,
-		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
-			&bldr_plugin.PluginStatusSnapshot{},
-			(*bldr_plugin.PluginStatusSnapshot).EqualVT,
-		),
-		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
 	}
 	pi := &pluginInstance{
 		c:                       ctrl,
@@ -982,11 +972,6 @@ func TestWatchWorldManifestIgnoresWrongPlatformRetainedRefAndSelectsCurrent(t *t
 		bus:    tb.Bus,
 		conf:   &Config{},
 		objKey: objKey,
-		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
-			&bldr_plugin.PluginStatusSnapshot{},
-			(*bldr_plugin.PluginStatusSnapshot).EqualVT,
-		),
-		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
 	}
 	pi := &pluginInstance{
 		c:                       ctrl,
@@ -1097,11 +1082,6 @@ func TestWatchWorldManifestQuarantinesWrongManifestIDRetainedRef(t *testing.T) {
 		bus:    tb.Bus,
 		conf:   &Config{},
 		objKey: objKey,
-		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
-			&bldr_plugin.PluginStatusSnapshot{},
-			(*bldr_plugin.PluginStatusSnapshot).EqualVT,
-		),
-		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
 	}
 	pi := &pluginInstance{
 		c:                       ctrl,
@@ -1224,11 +1204,6 @@ func TestWatchWorldManifestClearsSkippedRefStatusAfterBucketFix(t *testing.T) {
 		bus:    tb.Bus,
 		conf:   &Config{},
 		objKey: objKey,
-		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
-			&bldr_plugin.PluginStatusSnapshot{},
-			(*bldr_plugin.PluginStatusSnapshot).EqualVT,
-		),
-		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
 	}
 	pi := &pluginInstance{
 		c:                       ctrl,
@@ -1431,11 +1406,6 @@ func TestWatchWorldManifestLauncherStartsAfterPruningUnavailableRetainedReleaseR
 		bus:    tb.Bus,
 		conf:   &Config{},
 		objKey: objKey,
-		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
-			&bldr_plugin.PluginStatusSnapshot{},
-			(*bldr_plugin.PluginStatusSnapshot).EqualVT,
-		),
-		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
 	}
 	pi := &pluginInstance{
 		c:                       ctrl,
@@ -1529,11 +1499,6 @@ func TestWatchWorldManifestRecordsCompactSkippedRefStatusWhenNoCandidate(t *test
 		bus:    tb.Bus,
 		conf:   &Config{},
 		objKey: objKey,
-		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
-			&bldr_plugin.PluginStatusSnapshot{},
-			(*bldr_plugin.PluginStatusSnapshot).EqualVT,
-		),
-		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
 	}
 	pi := &pluginInstance{
 		c:                       ctrl,
@@ -1777,7 +1742,7 @@ func TestWatchWorldManifestSelectsManifestClassPairsByRevision(t *testing.T) {
 			}
 
 			// Check the plugin manifest recovery status.
-			recovery := ctrl.pluginManifestRecoveryStatus[pluginInstanceKey(manifestID, "")]
+			recovery := ctrl.pluginStatus.recovery[pluginInstanceKey(manifestID, "")]
 			if recovery == nil {
 				t.Fatal("expected retained manifest selection status")
 			}
@@ -2155,11 +2120,9 @@ func TestProcessManifestWorldStateSuppressesNoCopyBucketWhileDynamicManifestCopi
 		conf: &Config{
 			NoCopyBucketIds: []string{noCopyBucketID},
 		},
-		objKey:          objKey,
-		peerID:          peer.ID("test"),
-		worldStateCtr:   ccontainer.NewCContainer(wsv),
-		pluginStatus:    make(map[string]*bldr_plugin.PluginStatus),
-		pluginStatusCtr: ccontainer.NewCContainer(&bldr_plugin.PluginStatusSnapshot{}),
+		objKey:        objKey,
+		peerID:        peer.ID("test"),
+		worldStateCtr: ccontainer.NewCContainer(wsv),
 	}
 	host := &testPluginHost{id: platformID}
 	newInstance := func(pluginID string) *pluginInstance {
@@ -2580,8 +2543,6 @@ func TestExecPluginReadsExternalManifestViaLookupBlockFromNetwork(t *testing.T) 
 					VolumeId: tb.Volume.GetID(),
 				},
 			}),
-			pluginStatusCtr: ccontainer.NewCContainer(&bldr_plugin.PluginStatusSnapshot{}),
-			pluginStatus:    make(map[string]*bldr_plugin.PluginStatus),
 		},
 		le:               le,
 		pluginID:         "spacewave-core",
@@ -2798,13 +2759,11 @@ func TestDownloadManifestCopiesRemoteDAGAndStoresLocalWorldRef(t *testing.T) {
 	var wsv world.WorldState = ws
 	pi := &pluginInstance{
 		c: &Controller{
-			bus:             tb.Bus,
-			conf:            &Config{},
-			objKey:          objKey,
-			peerID:          peer.ID("test"),
-			worldStateCtr:   ccontainer.NewCContainer(wsv),
-			pluginStatus:    make(map[string]*bldr_plugin.PluginStatus),
-			pluginStatusCtr: ccontainer.NewCContainer(&bldr_plugin.PluginStatusSnapshot{}),
+			bus:           tb.Bus,
+			conf:          &Config{},
+			objKey:        objKey,
+			peerID:        peer.ID("test"),
+			worldStateCtr: ccontainer.NewCContainer(wsv),
 		},
 		le:       le,
 		pluginID: "spacewave-core",
@@ -2990,13 +2949,11 @@ func TestDownloadManifestRetriesIncompleteCopyBeforePublication(t *testing.T) {
 	var wsv world.WorldState = ws
 	pi := &pluginInstance{
 		c: &Controller{
-			bus:             tb.Bus,
-			conf:            &Config{},
-			objKey:          objKey,
-			peerID:          peer.ID("test"),
-			worldStateCtr:   ccontainer.NewCContainer(wsv),
-			pluginStatus:    make(map[string]*bldr_plugin.PluginStatus),
-			pluginStatusCtr: ccontainer.NewCContainer(&bldr_plugin.PluginStatusSnapshot{}),
+			bus:           tb.Bus,
+			conf:          &Config{},
+			objKey:        objKey,
+			peerID:        peer.ID("test"),
+			worldStateCtr: ccontainer.NewCContainer(wsv),
 		},
 		le:       le,
 		pluginID: "spacewave-core",
@@ -3132,13 +3089,11 @@ func TestDownloadManifestCopiesExternalVolumeDAGAndCachesSourceReads(t *testing.
 	var wsv world.WorldState = ws
 	pi := &pluginInstance{
 		c: &Controller{
-			bus:             tb.Bus,
-			conf:            &Config{},
-			objKey:          objKey,
-			peerID:          peer.ID("test"),
-			worldStateCtr:   ccontainer.NewCContainer(wsv),
-			pluginStatus:    make(map[string]*bldr_plugin.PluginStatus),
-			pluginStatusCtr: ccontainer.NewCContainer(&bldr_plugin.PluginStatusSnapshot{}),
+			bus:           tb.Bus,
+			conf:          &Config{},
+			objKey:        objKey,
+			peerID:        peer.ID("test"),
+			worldStateCtr: ccontainer.NewCContainer(wsv),
 		},
 		le:       le,
 		pluginID: "spacewave-core",
@@ -3237,11 +3192,9 @@ func TestDownloadManifestCopiesSeveralRemoteDAGsOutsideWorldAccess(t *testing.T)
 			conf: &Config{
 				FetchConcurrency: 1,
 			},
-			objKey:          objKey,
-			peerID:          peer.ID("test"),
-			worldStateCtr:   ccontainer.NewCContainer(wsv),
-			pluginStatus:    make(map[string]*bldr_plugin.PluginStatus),
-			pluginStatusCtr: ccontainer.NewCContainer(&bldr_plugin.PluginStatusSnapshot{}),
+			objKey:        objKey,
+			peerID:        peer.ID("test"),
+			worldStateCtr: ccontainer.NewCContainer(wsv),
 		},
 		le:       le,
 		pluginID: "spacewave-core",
@@ -3818,8 +3771,6 @@ func TestDownloadManifestYieldsColdStartCopyUntilStartupGroupReady(t *testing.T)
 			peerID:              peer.ID("test"),
 			worldStateCtr:       ccontainer.NewCContainer(wsv),
 			manifestCopyGateCtr: ccontainer.NewCContainer[ManifestCopyGate](gate),
-			pluginStatus:        make(map[string]*bldr_plugin.PluginStatus),
-			pluginStatusCtr:     ccontainer.NewCContainer(&bldr_plugin.PluginStatusSnapshot{}),
 		},
 		le:                      le,
 		pluginID:                "spacewave-core",
@@ -4005,13 +3956,11 @@ func TestDownloadManifestCopiesTransformedRemoteDAGAndStoresLocalWorldRef(t *tes
 	var wsv world.WorldState = ws
 	pi := &pluginInstance{
 		c: &Controller{
-			bus:             tb.Bus,
-			conf:            &Config{},
-			objKey:          objKey,
-			peerID:          peer.ID("test"),
-			worldStateCtr:   ccontainer.NewCContainer(wsv),
-			pluginStatus:    make(map[string]*bldr_plugin.PluginStatus),
-			pluginStatusCtr: ccontainer.NewCContainer(&bldr_plugin.PluginStatusSnapshot{}),
+			bus:           tb.Bus,
+			conf:          &Config{},
+			objKey:        objKey,
+			peerID:        peer.ID("test"),
+			worldStateCtr: ccontainer.NewCContainer(wsv),
 		},
 		le:       le,
 		pluginID: "spacewave-core",
@@ -4125,13 +4074,11 @@ func TestDownloadManifestRejectsMissingSnapshotMetadataBeforeStore(t *testing.T)
 	var wsv world.WorldState = ws
 	pi := &pluginInstance{
 		c: &Controller{
-			bus:             tb.Bus,
-			conf:            &Config{},
-			objKey:          objKey,
-			peerID:          peer.ID("test"),
-			worldStateCtr:   ccontainer.NewCContainer(wsv),
-			pluginStatus:    make(map[string]*bldr_plugin.PluginStatus),
-			pluginStatusCtr: ccontainer.NewCContainer(&bldr_plugin.PluginStatusSnapshot{}),
+			bus:           tb.Bus,
+			conf:          &Config{},
+			objKey:        objKey,
+			peerID:        peer.ID("test"),
+			worldStateCtr: ccontainer.NewCContainer(wsv),
 		},
 		le:       le,
 		pluginID: "spacewave-core",
