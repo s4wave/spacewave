@@ -1181,19 +1181,13 @@ func targetSpaceState(ctx context.Context, t *testing.T, store object.ObjectStor
 	return bytes.Clone(data)
 }
 
-// editTargetSpace replaces the stored state of the Space id on the target
-// with a new valid state, as an edit made on the target does, and returns it.
-func editTargetSpace(ctx context.Context, t *testing.T, store object.ObjectStore, acc *provider_local.ProviderAccount, id string) []byte {
+// editTargetSpace writes an object through the target's World engine and returns
+// the resulting stored state after the mounted writer publishes the edit.
+func editTargetSpace(ctx context.Context, t *testing.T, tb *testbed.Testbed, store object.ObjectStore, acc *provider_local.ProviderAccount, ref *sobject.SharedObjectRef) []byte {
+	// Publish the edit through the mounted writer before reading its stored state.
 	t.Helper()
-	state, _, err := sobject.BuildGenesisSOState(logrus.NewEntry(logrus.StandardLogger()), nil, id, ownerKey(ctx, t, acc), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	data, err := state.MarshalVT()
-	if err != nil {
-		t.Fatal(err)
-	}
-	return targetSpaceState(ctx, t, store, id, data)
+	writeSourceObject(ctx, t, tb, acc, ref, "target-edit")
+	return targetSpaceState(ctx, t, store, ref.GetProviderResourceRef().GetId(), nil)
 }
 
 // TestLocalTransferRetryKeepsWrittenState retries a run through both crash
@@ -1212,22 +1206,19 @@ func TestLocalTransferRetryKeepsWrittenState(t *testing.T) {
 	providerID := "local"
 	prov, provRel := setupLocalProvider(ctx, t, tb, providerID)
 	defer provRel()
-	srcAcc, srcAccountID, srcRel := createAccount(ctx, t, prov)
+	srcAcc, _, srcRel := createAccount(ctx, t, prov)
 	defer srcRel()
 	tgtAcc, tgtAccountID, tgtRel := createAccount(ctx, t, prov)
 	defer tgtRel()
 	soRef := createTestSpace(ctx, t, srcAcc, "space-a")
-	root, _ := putTestWorld(ctx, t, srcAcc, providerID, srcAccountID, soRef, []byte("space-a's leaf"))
+	writeSourceObject(ctx, t, tb, srcAcc, soRef, "source-object")
 	tgtStore, tgtStoreRel, err := buildTestObjectStore(ctx, tb, tgtAcc, providerID, tgtAccountID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tgtStoreRel()
 	le := logrus.NewEntry(logrus.StandardLogger())
-	src := &worldTestSource{
-		LocalTransferSource: provider_transfer.NewLocalTransferSource(srcAcc, tb.Bus),
-		world:               &space_world.InnerState{HeadRef: &bucket.ObjectRef{RootRef: root}},
-	}
+	src := provider_transfer.NewLocalTransferSource(srcAcc, tb.Bus)
 	tgt := &faultTarget{LocalTransferTarget: provider_transfer.NewLocalTransferTarget(tgtAcc, providerID, tgtAccountID, tb.Bus)}
 	run := func() (provider_transfer.TransferPhase, error) {
 		xfer := provider_transfer.NewTransfer(le, provider_transfer.TransferMode_TransferMode_MIRROR, src, tgt, ownerKey(ctx, t, tgtAcc), 1, 2, nil)
@@ -1256,9 +1247,19 @@ func TestLocalTransferRetryKeepsWrittenState(t *testing.T) {
 		t.Fatal("the retry wrote a Space the target held at the source's head")
 	}
 
-	// The Space is edited on the target: the next run leaves it not moved and
-	// keeps the edit.
-	edited := editTargetSpace(ctx, t, tgtStore, tgtAcc, "space-a")
+	// Keep the copied target mounted across the edit, as an active reader does.
+	targetRef := sobject.NewSharedObjectRef(providerID, tgtAccountID, "space-a", soRef.GetBlockStoreId())
+	copied, releaseCopied, err := tgtAcc.MountSharedObject(ctx, targetRef, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseCopied()
+	if _, err := copied.GetSharedObjectState(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	// Keep the existing mount while its writer publishes the target edit.
+	edited := editTargetSpace(ctx, t, tb, tgtStore, tgtAcc, targetRef)
 	if phase, err := run(); err != nil || phase != provider_transfer.TransferPhase_TransferPhase_NOT_MOVED {
 		t.Fatalf("run after the edit = %s, %v; want NOT_MOVED", phase, err)
 	}
@@ -1282,22 +1283,19 @@ func TestLocalMergeKeepsEditOfMovedSpace(t *testing.T) {
 	providerID := "local"
 	prov, provRel := setupLocalProvider(ctx, t, tb, providerID)
 	defer provRel()
-	srcAcc, srcAccountID, srcRel := createAccount(ctx, t, prov)
+	srcAcc, _, srcRel := createAccount(ctx, t, prov)
 	defer srcRel()
 	tgtAcc, tgtAccountID, tgtRel := createAccount(ctx, t, prov)
 	defer tgtRel()
 	soRef := createTestSpace(ctx, t, srcAcc, "space-a")
-	root, _ := putTestWorld(ctx, t, srcAcc, providerID, srcAccountID, soRef, []byte("space-a's leaf"))
+	writeSourceObject(ctx, t, tb, srcAcc, soRef, "source-object")
 	tgtStore, tgtStoreRel, err := buildTestObjectStore(ctx, tb, tgtAcc, providerID, tgtAccountID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tgtStoreRel()
 	le := logrus.NewEntry(logrus.StandardLogger())
-	src := &worldTestSource{
-		LocalTransferSource: provider_transfer.NewLocalTransferSource(srcAcc, tb.Bus),
-		world:               &space_world.InnerState{HeadRef: &bucket.ObjectRef{RootRef: root}},
-	}
+	src := provider_transfer.NewLocalTransferSource(srcAcc, tb.Bus)
 	tgt := &faultTarget{LocalTransferTarget: provider_transfer.NewLocalTransferTarget(tgtAcc, providerID, tgtAccountID, tb.Bus)}
 	run := func() (provider_transfer.TransferPhase, error) {
 		xfer := provider_transfer.NewTransfer(le, provider_transfer.TransferMode_TransferMode_MERGE, src, tgt, ownerKey(ctx, t, tgtAcc), 1, 2, &provider_transfer.TransferOptions{Cleanup: src})
@@ -1305,12 +1303,23 @@ func TestLocalMergeKeepsEditOfMovedSpace(t *testing.T) {
 		return xfer.GetState().GetPhase(), err
 	}
 
-	// A run writes the Space and stops. The Space is edited on the target.
+	// Stop after writing the Space and keep its copied snapshot mounted.
 	tgt.failAfter = true
 	if _, err := run(); err == nil {
 		t.Fatal("expected the run to stop after the state write")
 	}
-	edited := editTargetSpace(ctx, t, tgtStore, tgtAcc, "space-a")
+	targetRef := sobject.NewSharedObjectRef(providerID, tgtAccountID, "space-a", soRef.GetBlockStoreId())
+	copied, releaseCopied, err := tgtAcc.MountSharedObject(ctx, targetRef, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseCopied()
+	if _, err := copied.GetSharedObjectState(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	// Keep the existing mount while its writer publishes the target edit.
+	edited := editTargetSpace(ctx, t, tb, tgtStore, tgtAcc, targetRef)
 
 	// A new run leaves the Space not moved and keeps the edit and the source.
 	if phase, err := run(); err != nil || phase != provider_transfer.TransferPhase_TransferPhase_NOT_MOVED {
