@@ -1,8 +1,9 @@
-package sql
+package driver
 
 import (
 	"database/sql/driver"
 
+	"github.com/s4wave/spacewave/db/sql"
 	"github.com/s4wave/spacewave/db/tx"
 )
 
@@ -10,14 +11,15 @@ import (
 // NOTE: callers should use BeginTx to construct ConnTx.
 type ConnTx struct {
 	conn *Conn
-	tx   SqlTransaction
+	tx   sql.SqlTransaction
 }
 
 // newConnTx constructs a new ConnTx.
-func newConnTx(conn *Conn, tx SqlTransaction) *ConnTx {
+func newConnTx(conn *Conn, tx sql.SqlTransaction) *ConnTx {
 	return &ConnTx{conn: conn, tx: tx}
 }
 
+// Commit commits the active store transaction.
 func (c *ConnTx) Commit() error {
 	// Lock the connection and require its active transaction before finishing it.
 	c.conn.mtx.Lock()
@@ -35,6 +37,7 @@ func (c *ConnTx) Commit() error {
 	return err
 }
 
+// Rollback discards the active store transaction.
 func (c *ConnTx) Rollback() error {
 	// Lock the connection and require its active transaction before finishing it.
 	c.conn.mtx.Lock()

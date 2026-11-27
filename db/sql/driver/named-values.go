@@ -1,4 +1,4 @@
-package sql
+package driver
 
 import "database/sql/driver"
 

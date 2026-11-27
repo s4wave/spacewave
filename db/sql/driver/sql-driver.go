@@ -1,20 +1,22 @@
-package sql
+package driver
 
 import (
 	"context"
 	"database/sql/driver"
+
+	"github.com/s4wave/spacewave/db/sql"
 )
 
-// Driver implements sql.Driver with a common SqlStore.
+// Driver implements sql.Driver with a common sql.SqlStore.
 type Driver struct {
-	store SqlStore
+	store sql.SqlStore
 	dsn   string
 }
 
-// NewDriver constructs a new Driver from a SqlStore.
+// NewDriver constructs a new Driver from a sql.SqlStore.
 //
 // dsn is the default database name string.
-func NewDriver(store SqlStore, dsn string) *Driver {
+func NewDriver(store sql.SqlStore, dsn string) *Driver {
 	return &Driver{store: store, dsn: dsn}
 }
 

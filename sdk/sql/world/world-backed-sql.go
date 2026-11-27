@@ -10,6 +10,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	hydra_sql "github.com/s4wave/spacewave/db/sql"
+	sql_driver "github.com/s4wave/spacewave/db/sql/driver"
 	sql_mysql "github.com/s4wave/spacewave/db/sql/mysql"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
@@ -264,7 +265,7 @@ type recordingSqlOps struct {
 
 // Exec records a mutation using the context-free SQL operations contract.
 func (o *recordingSqlOps) Exec(query string, args []driver.Value) (driver.Result, error) {
-	return o.ExecContext(context.Background(), query, hydra_sql.ConvertToNamedValues(args))
+	return o.ExecContext(context.Background(), query, sql_driver.ConvertToNamedValues(args))
 }
 
 // ExecContext records a successful mutation for deterministic World replay.
@@ -284,7 +285,7 @@ func (o *recordingSqlOps) ExecContext(ctx context.Context, query string, args []
 
 // Query records a query using the context-free SQL operations contract.
 func (o *recordingSqlOps) Query(query string, args []driver.Value) (driver.Rows, error) {
-	return o.QueryContext(context.Background(), query, hydra_sql.ConvertToNamedValues(args))
+	return o.QueryContext(context.Background(), query, sql_driver.ConvertToNamedValues(args))
 }
 
 // QueryContext records a successful query for deterministic World replay.

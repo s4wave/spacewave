@@ -1,4 +1,4 @@
-package sql
+package driver
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 
 	"github.com/dolthub/vitess/go/vt/sqlparser"
+	"github.com/s4wave/spacewave/db/sql"
 )
 
 // SqlConn is the set of interfaces that Conn implements.
@@ -21,32 +22,32 @@ type SqlConn interface {
 	driver.QueryerContext
 }
 
-// Conn implements sql/driver.Conn with a SqlStore.
+// Conn implements sql/driver.Conn with a sql.SqlStore.
 //
 // The Conn can service a single query at a time. When starting a new SQL
 // transaction and/or when executing the first statement, the Conn will call
-// SqlStore.NewSqlTransaction to build a SqlTransaction handle.
+// sql.SqlStore.NewSqlTransaction to build a sql.SqlTransaction handle.
 //
 // When rolling back a sql transaction and/or resetting the conn, if the
-// transaction is non-nil, SqlTransaction.Discard is called to discard it.
+// transaction is non-nil, sql.SqlTransaction.Discard is called to discard it.
 //
 // Because there can be multiple underlying sql Conn instances as transactions
 // are built and discarded, the database name (USE) must be remembered by Conn.
 type Conn struct {
-	store SqlStore
+	store sql.SqlStore
 	dsn   string
 
 	mtx      sync.Mutex
 	released atomic.Bool
 
 	storeTxCtx context.Context
-	storeTx    SqlTransaction
+	storeTx    sql.SqlTransaction
 
 	useStmt string
 }
 
 // NewConn constructs a new Conn.
-func NewConn(store SqlStore, dsn string) *Conn {
+func NewConn(store sql.SqlStore, dsn string) *Conn {
 	return &Conn{store: store, dsn: dsn}
 }
 
@@ -140,7 +141,7 @@ func (c *Conn) ExecContext(ctx context.Context, query string, args []driver.Name
 
 	// Run the operation against the store transaction.
 	var res driver.Result
-	auto, err := c.performOpLocked(ctx, func(tx SqlTransaction, ops SqlOps) error {
+	auto, err := c.performOpLocked(ctx, func(tx sql.SqlTransaction, ops sql.SqlOps) error {
 		var err error
 		res, err = ops.ExecContext(ctx, query, args)
 		if err == nil {
@@ -177,7 +178,7 @@ func (c *Conn) QueryContext(ctx context.Context, query string, args []driver.Nam
 
 	// Run the operation against the store transaction.
 	var res driver.Rows
-	auto, err := c.performOpLocked(ctx, func(tx SqlTransaction, ops SqlOps) error {
+	auto, err := c.performOpLocked(ctx, func(tx sql.SqlTransaction, ops sql.SqlOps) error {
 		var err error
 		res, err = ops.QueryContext(ctx, query, args)
 		if err == nil {
@@ -222,8 +223,8 @@ func (c *Conn) checkSwitchDatabaseLocked(query string) {
 // On failure it discards the auto transaction. The caller must lock mtx.
 func (c *Conn) performOpLocked(
 	ctx context.Context,
-	op func(tx SqlTransaction, ops SqlOps) error,
-) (auto SqlTransaction, rerr error) {
+	op func(tx sql.SqlTransaction, ops sql.SqlOps) error,
+) (auto sql.SqlTransaction, rerr error) {
 	// Reject a released connection.
 	if c.released.Load() {
 		return nil, driver.ErrBadConn
@@ -264,7 +265,7 @@ func (c *Conn) performOpLocked(
 // endAutoTxLocked commits the auto transaction tx when ok is set and discards
 // it otherwise. It does nothing when tx is no longer the conn's transaction,
 // because whatever replaced it already discarded it. The caller must lock mtx.
-func (c *Conn) endAutoTxLocked(tx SqlTransaction, ok bool) error {
+func (c *Conn) endAutoTxLocked(tx sql.SqlTransaction, ok bool) error {
 	// Skip a transaction that was already replaced or discarded.
 	if c.storeTx != tx {
 		return nil
@@ -318,7 +319,7 @@ func (c *Conn) beginTxLocked(ctx context.Context, opts driver.TxOptions) (driver
 type autoTxRows struct {
 	driver.Rows
 	conn *Conn
-	tx   SqlTransaction
+	tx   sql.SqlTransaction
 }
 
 // ColumnTypeDatabaseTypeName returns the database type name of a column, or

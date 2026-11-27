@@ -14,7 +14,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	"github.com/s4wave/spacewave/db/bucket"
-	hydra_sql "github.com/s4wave/spacewave/db/sql"
+	sql_driver "github.com/s4wave/spacewave/db/sql/driver"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/sirupsen/logrus"
 )
@@ -350,7 +350,7 @@ func TestMysqlUpdateSingleTableWhere(t *testing.T) {
 	}
 
 	// Open the SQL database with one connection for the update test.
-	db := hydra_sql.NewSqlDb(sq, "/probe")
+	db := sql_driver.NewSqlDb(sq, "/probe")
 	defer db.Close()
 	db.SetMaxOpenConns(1)
 
@@ -386,7 +386,7 @@ func TestMysqlUpdateSingleTableWhere(t *testing.T) {
 
 	// Reopen the SQL database to check persistence of the update.
 	db.Close()
-	db = hydra_sql.NewSqlDb(sq, "/probe")
+	db = sql_driver.NewSqlDb(sq, "/probe")
 	defer db.Close()
 	db.SetMaxOpenConns(1)
 
@@ -874,7 +874,7 @@ func newMysqlTestDB(t *testing.T, ctx context.Context, dbName string) (*Mysql, *
 	}
 
 	// Open the SQL database with one connection for the calling test.
-	db := hydra_sql.NewSqlDb(sq, "/"+dbName)
+	db := sql_driver.NewSqlDb(sq, "/"+dbName)
 	db.SetMaxOpenConns(1)
 	return sq, db
 }

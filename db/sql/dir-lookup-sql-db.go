@@ -51,7 +51,7 @@ func ExLookupSqlStore(
 }
 
 // Validate validates the directive.
-// This is a cursory validation to see if the values "look correct."
+// This performs a cursory validation of the database identifier.
 func (d *lookupSqlStore) Validate() error {
 	if d.dbID == "" {
 		return ErrEmptySqlDbId

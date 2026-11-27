@@ -12,13 +12,14 @@ import (
 	"fmt"
 
 	hydra_sql "github.com/s4wave/spacewave/db/sql"
+	sql_driver "github.com/s4wave/spacewave/db/sql/driver"
 	"github.com/sirupsen/logrus"
 )
 
 // TestSqlStore_Basic performs basic tests on a SqlDB.
 func TestSqlStore_Basic(ctx context.Context, le *logrus.Entry, db hydra_sql.SqlStore, dsn string) error {
 	// Open the store as a *sql.DB.
-	sqlDB := hydra_sql.NewSqlDb(db, dsn)
+	sqlDB := sql_driver.NewSqlDb(db, dsn)
 
 	// printQuery runs a query in tx, or on the DB when tx is nil, and returns
 	// the number of rows it read.

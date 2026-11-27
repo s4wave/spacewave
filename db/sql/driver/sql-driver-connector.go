@@ -1,4 +1,4 @@
-package sql
+package driver
 
 import (
 	"context"
@@ -11,7 +11,7 @@ type DriverConnector struct {
 	dsn    string
 }
 
-// NewDriverConnector constructs a new DriverConnector from a SqlStore.
+// NewDriverConnector constructs a new DriverConnector from a Driver.
 func NewDriverConnector(driver *Driver, dsn string) *DriverConnector {
 	return &DriverConnector{driver: driver, dsn: dsn}
 }
