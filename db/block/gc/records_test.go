@@ -115,6 +115,53 @@ func TestReleasePendingCountsUnmovedChildren(t *testing.T) {
 	}
 }
 
+// TestCheckStoredCountsLiveQueued checks that the audit counts a block the
+// walk reached, at zero holders and ripe, as live and queued only when its
+// queue entry sits at the count's ripe sequence, the entry the free would
+// pop. An entry at another sequence frees nothing, so it counts nothing.
+func TestCheckStoredCountsLiveQueued(t *testing.T) {
+	ctx := context.Background()
+	ref, err := block.BuildBlockRef([]byte("live queued block"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	key := BlockKey(ref)
+	const ripe = 5
+	for _, tc := range []struct {
+		name    string
+		queueAt uint64
+		want    uint64
+	}{
+		{"at its ripe", ripe, 1},
+		{"at another ripe", ripe + 1, 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			tx, err := store_kvtx_inmem.NewStore().NewTransaction(ctx, true)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer tx.Discard()
+			rec := NewRecords(tx, []byte("l/"))
+			if err := rec.SetHolders(ctx, ref, 0, ripe); err != nil {
+				t.Fatal(err)
+			}
+			if err := rec.enqueue(ctx, tc.queueAt, key); err != nil {
+				t.Fatal(err)
+			}
+
+			var res AuditResult
+			mark := &Mark{Live: map[string]struct{}{string(key): {}}}
+			state := &LivenessState{UpCursor: ripe + 5}
+			if err := res.checkStored(ctx, rec, state, ref, mark, nil, newReleaseCursor(rec, nil), true, nil); err != nil {
+				t.Fatal(err)
+			}
+			if res.LiveQueued != tc.want {
+				t.Fatalf("LiveQueued %d, want %d", res.LiveQueued, tc.want)
+			}
+		})
+	}
+}
+
 // TestSettleWaitsForNetting checks that neither the front pop, the free nor
 // the flip runs while the free could not: a paged release in progress (the model's
 // FlipSettled, mutant rps-noflipsettled), an adoption younger than the grace
