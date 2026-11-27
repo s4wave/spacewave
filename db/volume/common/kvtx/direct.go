@@ -29,15 +29,10 @@ func (v *Volume) withDirectAtomic(ctx context.Context, fn func(p *physicalTx) er
 	return v.withDirect(ctx, false, fn)
 }
 
-// withDirectPlain runs fn as withDirectAtomic does, for the plain block
-// writes of the block.StoreOps contract, with a full commit: such a write is
-// durable when it returns unless ctx asks for write ordering.
-func (v *Volume) withDirectPlain(ctx context.Context, fn func(p *physicalTx) error) error {
-	return v.withDirect(ctx, true, fn)
-}
-
 // withDirect runs fn as withDirectAtomic describes, committing fully when
-// durable is set.
+// durable is set, as the plain block writes of the block.StoreOps contract
+// do: such a write is durable when it returns unless ctx asks for write
+// ordering.
 func (v *Volume) withDirect(ctx context.Context, durable bool, fn func(p *physicalTx) error) error {
 	// Join direct Volume operations and reject writes after storage closes.
 	v.directMu.RLock()
@@ -212,7 +207,7 @@ func (v *Volume) PrepareOwnedBlock(ctx context.Context, bucketID string, data []
 	entry, err := putEntry(data, putOpts, v.GetHashType())
 	if err == nil {
 		var found []bool
-		found, err = v.putEntries(ctx, v.withDirectAtomic, []*block.PutBatchEntry{entry})
+		found, err = v.putEntries(ctx, false, []*block.PutBatchEntry{entry})
 		if err == nil {
 			ref, existed = entry.Ref, found[0]
 			v.countPut(putOwned, len(data), existed)
@@ -232,7 +227,7 @@ func (v *Volume) PrepareOwnedBlockBatch(ctx context.Context, _ string, entries [
 
 	// Store the entries and count them.
 	v.noteUnknownRefsBatch(putOwned, entries)
-	existed, err = v.putEntries(ctx, v.withDirectAtomic, entries)
+	existed, err = v.putEntries(ctx, false, entries)
 	if err == nil {
 		v.countPutBatch(putOwned, entries, existed)
 	}
@@ -240,14 +235,10 @@ func (v *Volume) PrepareOwnedBlockBatch(ctx context.Context, _ string, entries [
 	return existed, err
 }
 
-// putEntries stores entries through direct, withDirectAtomic or
-// withDirectFill, after refusing a block without its child list and new data
+// putEntries stores entries as landSliced does, committing fully when
+// durable is set, after refusing a block without its child list and new data
 // below the disk reserve.
-func (v *Volume) putEntries(
-	ctx context.Context,
-	direct func(context.Context, func(*physicalTx) error) error,
-	entries []*block.PutBatchEntry,
-) ([]bool, error) {
+func (v *Volume) putEntries(ctx context.Context, durable bool, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Require atomic publication, refuse new data below the disk reserve and
 	// refuse a block without its child list.
 	if !v.HoldsRoots() {
@@ -262,14 +253,9 @@ func (v *Volume) putEntries(
 		return nil, err
 	}
 
-	// Store them in one transaction.
-	var existed []bool
-	err := direct(ctx, func(p *physicalTx) error {
-		var err error
-		existed, err = v.land(ctx, p, "", entries, nil)
-		return err
-	})
-	return existed, err
+	// Store them, in more than one transaction only for a background put a
+	// foreground writer waits behind.
+	return v.landSliced(ctx, durable, entries, nil, nil)
 }
 
 // putEntry returns the batch entry of a PutBlock, named the way the store

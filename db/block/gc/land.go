@@ -90,8 +90,20 @@ func Land(
 	entries []*block.PutBatchEntry,
 	moves ...BucketRoots,
 ) ([]bool, error) {
+	// Bench only: time each phase when ctx asks.
+	phases, _ := ctx.Value(landPhasesKey{}).(*LandPhases)
+	mark := time.Now()
+	lap := func(i int) {
+		if phases != nil {
+			t := time.Now()
+			phases[i] += t.Sub(mark)
+			mark = t
+		}
+	}
+
 	// Read the journal position and adoption.
 	state, err := rec.GetState(ctx)
+	lap(0)
 	if err != nil {
 		return nil, err
 	}
@@ -112,17 +124,20 @@ func Land(
 			return nil, err
 		}
 	}
+	lap(1)
 
 	// Store the entries and find the blocks they give birth to.
 	existed, err := l.putEntries(ctx, entries)
 	if err != nil {
 		return nil, err
 	}
+	lap(2)
 
 	// Count the holders the born blocks give their children.
 	if err := l.holdChildren(ctx); err != nil {
 		return nil, err
 	}
+	lap(3)
 
 	// Move the roots.
 	for i, move := range moves {
@@ -132,11 +147,13 @@ func Land(
 			}
 		}
 	}
+	lap(4)
 
 	// Append the journal record.
 	if err := l.appendJournal(ctx, state, now); err != nil {
 		return nil, err
 	}
+	lap(5)
 	return existed, nil
 }
 
@@ -625,4 +642,17 @@ func unixMilli(t time.Time) int64 {
 		return 0
 	}
 	return t.UnixMilli()
+}
+
+// LandPhases is, bench only, the time a Land spent reading its state,
+// checking roots, storing entries, holding children, moving roots and
+// appending its journal record.
+type LandPhases [6]time.Duration
+
+// landPhasesKey carries a *LandPhases in a context.
+type landPhasesKey struct{}
+
+// WithLandPhases returns ctx asking Land to add its phase times to p.
+func WithLandPhases(ctx context.Context, p *LandPhases) context.Context {
+	return context.WithValue(ctx, landPhasesKey{}, p)
 }

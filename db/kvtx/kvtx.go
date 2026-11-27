@@ -213,11 +213,16 @@ type WriterQueueStore interface {
 }
 
 // ForegroundQueueStore is a WriterQueueStore with a prioritized writer turn
-// that reports foreground writers apart. A background transaction, one opened
-// with WithBackgroundWriteContext, commits early when one waits: a waiting
-// background writer gains nothing from the hand-off, since background work
-// finishes later rather than sooner either way, while every early commit
-// costs one.
+// that reports foreground writers apart. The store cannot shorten a
+// transaction it has admitted, so the owner of a background transaction, one
+// opened with WithBackgroundWriteContext, keeps the turn short: it does its
+// work in bounded steps, checks ForegroundWaiting between them, and commits
+// at the first step boundary after a foreground writer waits, continuing in a
+// new transaction that queues behind it. A step boundary must leave the
+// store consistent if the process stops there. A waiting background writer
+// is not a reason to commit early: it gains nothing from the hand-off, since
+// background work finishes later rather than sooner either way, while every
+// early commit costs one.
 type ForegroundQueueStore interface {
 	WriterQueueStore
 	// ForegroundWaiting reports whether a foreground write transaction waits
