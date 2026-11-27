@@ -72,6 +72,7 @@ import "embed"
 //go:embed ui/label.tsx ui/list/List.tsx ui/list/ListItem.tsx ui/list/ListRow.tsx ui/list/ListState.tsx
 //go:embed ui/list/focus.ts
 //go:embed ui/list/index.ts ui/loading/LoadingCard.tsx ui/loading/LoadingInline.tsx ui/loading/LoadingScreen.tsx
+//go:embed ui/table/Table.tsx
 //go:embed ui/loading/ProgressBar.tsx ui/loading/Spinner.tsx ui/loading/index.ts ui/loading/types.ts
 //go:embed ui/loading/loading-screen-style.ts
 //go:embed ui/loading/useReducedMotion.ts ui/login-form.tsx ui/phosphor-icons.tsx ui/path/PathInput.tsx ui/path/index.ts
