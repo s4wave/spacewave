@@ -45,6 +45,7 @@ func newDebugCommand(_ func() cli_entrypoint.CliBus, upgrade *FormatUpgrade) *cl
 			newDebugVolumeRefillCommand(upgrade),
 			newDebugVolumeExportCommand(),
 			newDebugVolumeStateCommand(),
+			newDebugVolumeHoldersCommand(),
 			newDebugVolumeAuditCommand(),
 			newDebugVolumeAuditWalkCommand(),
 			newDebugVolumeAdoptCommand(upgrade),

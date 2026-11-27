@@ -6,9 +6,11 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/cli"
 	"github.com/s4wave/spacewave/db/block"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
@@ -137,5 +139,72 @@ func TestDebugVolumeCollect(t *testing.T) {
 	}
 	if head != nil {
 		t.Fatalf("the load's scratch root still holds %s", head.MarshalString())
+	}
+}
+
+// TestDebugVolumeHolders reads a stopped temporary Volume through the command and leaves its file unchanged.
+func TestDebugVolumeHolders(t *testing.T) {
+	// Store a parent whose marked child list references one child.
+	ctx := t.Context()
+	le := logrus.NewEntry(logrus.New())
+	path := filepath.Join(t.TempDir(), "holders.s4wave")
+	vol, err := volume_s4db.NewVolume(ctx, le, &volume_s4db.Config{Path: path})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := vol.Close(); err != nil {
+			t.Error(err)
+		}
+	})
+	child, err := block.BuildBlockRef([]byte("child"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	parent, err := block.BuildBlockRef([]byte("parent"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entries := []*block.PutBatchEntry{
+		{Ref: child, Data: []byte("child"), RefsKnown: true},
+		{Ref: parent, Data: []byte("parent"), Refs: []*block.BlockRef{child}, RefsKnown: true},
+	}
+	if err := vol.SetBucketRoots(ctx, "holders", entries, []block.NamedRoot{{Name: "head", Ref: parent}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := vol.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Include tab-separated notes and use the real flag parser for two levels.
+	refs := filepath.Join(t.TempDir(), "refs.tsv")
+	if err := os.WriteFile(refs, []byte(child.MarshalString()+"\tinspect this child\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	before, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var output bytes.Buffer
+	app := &cli.App{Writer: &output, Commands: []*cli.Command{newDebugVolumeHoldersCommand()}}
+	if err := app.RunContext(ctx, []string{"spacewave", "volume-holders", "--refs", refs, "--up", "2", path}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Confirm the parent's structural flags and the child relationship in its TSV row.
+	want := strings.Join([]string{"1", parent.MarshalString(), child.MarshalString(), "1", "0",
+		"true", "true", "true", "false", "false", "false", "false", ""}, "\t") + "\n"
+	if !strings.Contains(output.String(), want) {
+		t.Fatalf("parent row missing: %q", output.String())
+	}
+	if !strings.Contains(output.String(), "# level 1: 1 rows; 1 held by holders") || !strings.Contains(output.String(), "# level 2: 0 rows") {
+		t.Fatalf("holder summary missing: %q", output.String())
+	}
+	after, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(before, after) {
+		t.Fatal("holder inspection changed the stopped Volume file")
 	}
 }

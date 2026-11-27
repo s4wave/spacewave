@@ -370,6 +370,9 @@ type Store interface {
 	Update(ctx context.Context, fn func(rec *Records, blocks block.StoreOps) error) error
 	// View runs fn in one read snapshot of the liveness records.
 	View(ctx context.Context, fn func(rec *Records) error) error
+	// ViewBlocks runs fn with records and raw block reads from the same read-only snapshot.
+	// The callback must not open another transaction on this store.
+	ViewBlocks(ctx context.Context, fn func(rec *Records, blocks block.StoreOps) error) error
 }
 
 // NewCollector returns a collector of store.

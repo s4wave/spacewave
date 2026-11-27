@@ -6,6 +6,7 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
+	block_store_kvtx "github.com/s4wave/spacewave/db/block/store/kvtx"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/volume"
 )
@@ -53,6 +54,20 @@ func (s collectorStore) Update(ctx context.Context, fn func(rec *block_gc.Record
 // View runs fn in one read snapshot of the liveness records.
 func (s collectorStore) View(ctx context.Context, fn func(rec *block_gc.Records) error) error {
 	return s.v.readRecords(ctx, fn)
+}
+
+// ViewBlocks reads records and raw block existence in one physical snapshot.
+func (s collectorStore) ViewBlocks(ctx context.Context, fn func(rec *block_gc.Records, blocks block.StoreOps) error) error {
+	// Open one reader shared by the liveness and block views.
+	tx, err := s.v.kvtxStore.NewTransaction(ctx, false)
+	if err != nil {
+		return err
+	}
+	defer tx.Discard()
+	if btx, ok := tx.(BlockTx); ok {
+		return fn(OpenRecords(tx), btx.GetBlockStore())
+	}
+	return fn(OpenRecords(tx), block_store_kvtx.NewKVTxBlock(s.v.kvKey, kvtx.NewTxStore(tx), s.v.GetHashType()))
 }
 
 // BlockStored reports whether the Volume holds the bytes of ref, unmarked or
@@ -183,6 +198,19 @@ func (v *Volume) collectorPhase(p block_gc.Phase) func() {
 		return v.enterGCPhase(volume.VolumeGCPhase_VOLUME_GC_PHASE_SWEEP)
 	}
 	return func() {}
+}
+
+// InspectHolders streams the structure of refs and their parent lists from a read-only snapshot.
+// It retains at most eight parents per ref for each following level.
+func (v *Volume) InspectHolders(
+	ctx context.Context, refs []*block.BlockRef, up int,
+	visit func(int, *block.BlockRef, block_gc.HolderRow) error,
+) ([]block_gc.HolderLevel, error) {
+	// Require liveness before opening the diagnostic snapshot.
+	if !v.HoldsRoots() {
+		return nil, block.ErrAtomicCommitUnsupported
+	}
+	return v.collector.InspectHolders(ctx, refs, up, visit)
 }
 
 // _ is a type assertion

@@ -1099,47 +1099,18 @@ const (
 // at zero. It reads the count first, since most entries a scan meets are
 // held.
 func (c *Collector) frontProven(ctx context.Context, rec *Records, blocks block.StoreOps, cursor uint64, key []byte) (frontProof, uint64, error) {
-	// Require exactly a block key, then zero holders, ripe at a sequence the
-	// cursor reached.
-	if bkey, ok := nextBlockKey(key); !ok || len(bkey) != len(key) {
-		return frontHeld, 0, errBadBlockKey
-	}
-	holders, ripe, err := rec.holders(ctx, key)
-	if err != nil || holders != 0 {
-		return frontHeld, 0, err
-	}
-	if ripe > cursor {
-		return frontRipening, ripe, nil
-	}
-
-	// A listed block needs its queue or parked entry, and one the store
-	// does not list needs its bytes gone.
-	listed, err := rec.listed(ctx, key)
-	if err != nil {
-		return frontHeld, 0, err
-	}
-	if listed {
-		proven, err := rec.tx.Exists(ctx, rec.queueKey(ripe, key))
-		if err == nil && !proven {
-			proven, err = rec.tx.Exists(ctx, rec.releasedKey(ripe, key))
-		}
-		if err == nil && !proven {
-			proven, err = rec.tx.Exists(ctx, rec.parkedKey(ripe, key))
-		}
-		if err != nil || !proven {
-			return frontHeld, ripe, err
-		}
-		return frontPop, ripe, nil
-	}
-	ref, _, err := ParseBlockKey(key)
-	if err != nil {
-		return frontHeld, 0, err
-	}
-	stored, err := blocks.GetBlockExists(ctx, ref)
-	if err != nil || stored {
+	// Preserve the collector's four proof states and every error's ripe sequence.
+	cause, ripe, err := readFrontCause(ctx, rec, blocks, cursor, key)
+	switch cause {
+	case FrontPoppable:
+		return frontPop, ripe, err
+	case FrontRipening:
+		return frontRipening, ripe, err
+	case FrontDamaged:
 		return frontDamaged, ripe, err
+	default:
+		return frontHeld, ripe, err
 	}
-	return frontPop, ripe, nil
 }
 
 // flip moves an Open Volume to Sweeping when the flip's checks pass, as the

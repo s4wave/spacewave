@@ -212,6 +212,18 @@ func settleStatusFields(st *block_gc.SettleStatus, frees, graced bool) [][2]stri
 		{"Rewrite owes a recount", strconv.FormatBool(st.Rewritten)},
 		{"Unmarked run complete", strconv.FormatBool(st.RunComplete)},
 		{"Front entries", settleCount(st.Front, st.FrontMore)},
+	}...)
+	for cause, count := range st.FrontCauses {
+		if count.Count != 0 {
+			fields = append(fields, [2]string{
+				"Front " + block_gc.FrontCause(cause).String(),
+				strconv.Itoa(count.Count) + " (sample " + count.Sample.MarshalString() + ")",
+			})
+		}
+	}
+
+	// Report the remaining flip checks after the front proof.
+	fields = append(fields, [][2]string{
 		{"Recorded holes", settleCount(st.Holes, st.HolesMore)},
 		{"Ripe block queued, not parked", strconv.FormatBool(st.RipeQueued)},
 		{"Flip held by", flipHeldBy(st, frees, graced)},

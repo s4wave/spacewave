@@ -32,6 +32,8 @@ type SettleStatus struct {
 	FrontMore bool
 	// FrontSample holds the first front entries' blocks.
 	FrontSample []*block.BlockRef
+	// FrontCauses counts the front entries read by their detailed proof, with one ref per cause.
+	FrontCauses [5]FrontCauseCount
 	// Holes counts the recorded holes, up to the limit.
 	Holes int
 	// HolesMore reports that more holes are recorded than Holes.
@@ -48,10 +50,11 @@ type SettleStatus struct {
 // the holes up to limit each, with a sample of each.
 //
 // Cost: one read snapshot holding the state read, two point reads, at most
-// limit keys of each of two prefix scans, and one queue seek.
+// limit keys of each of two prefix scans, the front proof reads per front entry,
+// and one queue seek.
 func (c *Collector) SettleStatus(ctx context.Context, limit int) (SettleStatus, error) {
 	var st SettleStatus
-	err := c.store.View(ctx, func(rec *Records) error {
+	err := c.store.ViewBlocks(ctx, func(rec *Records, blocks block.StoreOps) error {
 		// Read the state and the freeable clauses.
 		state, err := rec.GetState(ctx)
 		if err != nil {
@@ -70,7 +73,7 @@ func (c *Collector) SettleStatus(ctx context.Context, limit int) (SettleStatus, 
 		}
 
 		// Count the front and the holes.
-		if st.Front, st.FrontMore, st.FrontSample, err = rec.countKeys(ctx, kindFront, limit); err != nil {
+		if err = st.readFront(ctx, rec, blocks, limit); err != nil {
 			return err
 		}
 		if st.Holes, st.HolesMore, st.HoleSample, err = rec.countKeys(ctx, kindHole, limit); err != nil {
@@ -115,4 +118,35 @@ func (r *Records) countKeys(ctx context.Context, kind byte, limit int) (int, boo
 		return true, nil
 	})
 	return n, more, sample, err
+}
+
+// readFront counts and classifies each front entry in the same bounded scan.
+func (s *SettleStatus) readFront(ctx context.Context, rec *Records, blocks block.StoreOps, limit int) error {
+	return rec.scan(ctx, rec.key(kindFront), nil, func(key []byte, _ func() ([]byte, error)) (bool, error) {
+		// Stop before reading proof records for entries beyond the limit.
+		if s.Front == limit {
+			s.FrontMore = true
+			return false, nil
+		}
+		cause, _, err := readFrontCause(ctx, rec, blocks, s.State.GetUpCursor(), key)
+		if err != nil {
+			return false, err
+		}
+
+		// Retain the first ref per cause and the existing bounded front sample.
+		ref, _, err := ParseBlockKey(key)
+		if err != nil {
+			return false, err
+		}
+		s.Front++
+		count := &s.FrontCauses[cause]
+		count.Count++
+		if count.Sample == nil {
+			count.Sample = ref
+		}
+		if len(s.FrontSample) < sampleSize {
+			s.FrontSample = append(s.FrontSample, ref)
+		}
+		return true, nil
+	})
 }

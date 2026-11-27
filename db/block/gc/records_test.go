@@ -1,12 +1,16 @@
 package block_gc
 
 import (
+	"bytes"
 	"context"
 	"strconv"
 	"testing"
 	"time"
 
 	"github.com/s4wave/spacewave/db/block"
+	block_store_kvtx "github.com/s4wave/spacewave/db/block/store/kvtx"
+	"github.com/s4wave/spacewave/db/kvtx"
+	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 )
 
@@ -372,4 +376,203 @@ func proofIn(ctx context.Context, t *testing.T, c *Collector, rec *Records) flip
 		t.Fatal(err)
 	}
 	return proof
+}
+
+// TestSettleStatusFrontCauses checks every proof branch and the collector's unchanged proof mapping.
+func TestSettleStatusFrontCauses(t *testing.T) {
+	// Seed a small store with one front entry for each proof branch.
+	ctx := t.Context()
+	data := store_kvtx_inmem.NewStore()
+	keys, err := store_kvkey.NewKVKey(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx, err := data.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tx.Discard)
+	rec := NewRecords(tx, []byte("l/"))
+	blocks := block_store_kvtx.NewKVTxBlock(keys, kvtx.NewTxStore(tx), 0)
+	cases := []struct {
+		name      string
+		holders   uint64
+		ripe      uint64
+		listed    bool
+		stored    bool
+		proofKind byte
+		cause     FrontCause
+		proof     frontProof
+	}{
+		{"held", 2, 0, true, false, 0, FrontHeldByHolders, frontHeld},
+		{"unqueued", 0, 5, true, false, 0, FrontZeroUnqueued, frontHeld},
+		{"ripening", 0, 11, true, false, 0, FrontRipening, frontRipening},
+		{"damaged", 0, 5, false, true, 0, FrontDamaged, frontDamaged},
+		{"queued", 0, 5, true, false, kindQueue, FrontPoppable, frontPop},
+		{"released", 0, 5, true, false, kindReleased, FrontPoppable, frontPop},
+		{"parked", 0, 5, true, false, kindParked, FrontPoppable, frontPop},
+		{"absent", 0, 5, false, false, 0, FrontPoppable, frontPop},
+	}
+	collector := NewCollector(diagnosticStore{data: data, keys: keys}, CollectorOptions{})
+	for _, tc := range cases {
+		// Write the count, optional list and bytes, and the proof entry.
+		ref, err := block.BuildBlockRef([]byte(tc.name), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		key := BlockKey(ref)
+		if err := rec.SetHolders(ctx, ref, tc.holders, tc.ripe); err != nil {
+			t.Fatal(err)
+		}
+		if tc.listed {
+			if err := rec.PutChildren(ctx, ref, nil); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if tc.stored {
+			if _, _, err := blocks.PutBlock(ctx, []byte(tc.name), nil); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if tc.proofKind != 0 {
+			if err := tx.Set(ctx, rec.key(tc.proofKind, queuePos(tc.ripe, key)), nil); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if err := rec.addFront(ctx, key); err != nil {
+			t.Fatal(err)
+		}
+
+		// Confirm the detailed cause maps to the same collector proof and ripe sequence.
+		cause, ripe, err := readFrontCause(ctx, rec, blocks, 10, key)
+		if err != nil || cause != tc.cause || ripe != tc.ripe {
+			t.Fatalf("%s cause = %v ripe %d: %v", tc.name, cause, ripe, err)
+		}
+		proof, ripe, err := collector.frontProven(ctx, rec, blocks, 10, key)
+		if err != nil || proof != tc.proof || ripe != tc.ripe {
+			t.Fatalf("%s proof = %v ripe %d: %v", tc.name, proof, ripe, err)
+		}
+	}
+
+	// Publish the fixture, then classify it through an actual read-only snapshot.
+	if err := rec.SetState(ctx, &LivenessState{Generation: Generation_GENERATION_OPEN, UpCursor: 10}); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	status, err := collector.SettleStatus(ctx, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status.Front != len(cases) || status.FrontMore {
+		t.Fatalf("front = %d more %v", status.Front, status.FrontMore)
+	}
+	for cause, count := range status.FrontCauses {
+		want := 1
+		if FrontCause(cause) == FrontPoppable {
+			want = 4
+		}
+		if count.Count != want || count.Sample == nil {
+			t.Fatalf("cause %v = %+v, want %d and a sample", FrontCause(cause), count, want)
+		}
+	}
+
+	// Bound the proof scan with the same limit as the front count.
+	limited, err := collector.SettleStatus(ctx, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	total := 0
+	for _, count := range limited.FrontCauses {
+		total += count.Count
+	}
+	if limited.Front != 1 || !limited.FrontMore || total != 1 {
+		t.Fatalf("limited front = %d more %v classified %d", limited.Front, limited.FrontMore, total)
+	}
+}
+
+// TestInspectHolders checks parent flags, key ordering, streaming beyond the sample and bounded upward traversal.
+func TestInspectHolders(t *testing.T) {
+	// Seed a child with ten zero, unqueued parents and a shared grandparent.
+	ctx := t.Context()
+	data := store_kvtx_inmem.NewStore()
+	keys, err := store_kvkey.NewKVKey(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx, err := data.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tx.Discard)
+	rec := NewRecords(tx, []byte("l/"))
+	blocks := block_store_kvtx.NewKVTxBlock(keys, kvtx.NewTxStore(tx), 0)
+	child, err := block.BuildBlockRef([]byte("child"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	parents := make([]*block.BlockRef, 0, 10)
+	for i := range 10 {
+		// Store each parent's bytes, verified list, count and front entry together.
+		parent, _, err := blocks.PutBlock(ctx, []byte("parent "+strconv.Itoa(i)), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, err := range []error{
+			rec.PutChildren(ctx, parent, []*block.BlockRef{child}),
+			rec.SetHolders(ctx, parent, 0, 5),
+			rec.addFront(ctx, BlockKey(parent)),
+		} {
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+		parents = append(parents, parent)
+	}
+	grandparent, err := block.BuildBlockRef([]byte("grandparent"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := rec.PutChildren(ctx, grandparent, parents); err != nil {
+		t.Fatal(err)
+	}
+	if err := rec.SetState(ctx, &LivenessState{Generation: Generation_GENERATION_OPEN, UpCursor: 10}); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	// Inspect through a read-only transaction and check each streamed parent.
+	collector := NewCollector(diagnosticStore{data: data, keys: keys}, CollectorOptions{})
+	seen := [4]int{}
+	var previous []byte
+	levels, err := collector.InspectHolders(ctx, []*block.BlockRef{child, child}, 8, func(level int, named *block.BlockRef, row HolderRow) error {
+		seen[level]++
+		if level == 1 {
+			want := HolderRow{Ref: row.Ref, Ripe: 5, Listed: true, Marked: true, Stored: true, Front: true, Cause: FrontZeroUnqueued}
+			if row != want || !named.EqualVT(child) {
+				t.Fatalf("parent row = %+v child %v", row, named)
+			}
+			key := BlockKey(row.Ref)
+			if previous != nil && bytes.Compare(previous, key) >= 0 {
+				t.Fatal("parents are not in key order")
+			}
+			previous = key
+		}
+		if level == 2 && (!row.Ref.EqualVT(grandparent) || row.Holders != 1 || !row.Listed || !row.Marked || row.Stored || row.Front) {
+			t.Fatalf("grandparent row = %+v", row)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if seen != [4]int{1, 10, 8, 0} || len(levels) != 4 || levels[1].Followed != 8 || levels[2].Followed != 1 {
+		t.Fatalf("seen %v levels %+v", seen, levels)
+	}
+	if levels[1].States[FrontZeroUnqueued] != 10 || levels[2].States[FrontHeldByHolders] != 8 {
+		t.Fatalf("states = %+v", levels)
+	}
 }
