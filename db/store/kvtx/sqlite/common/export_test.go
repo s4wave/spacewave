@@ -22,9 +22,9 @@ const (
 	TurnHold    = walTurnHold
 )
 
-// SetDiskless keeps the device out of the stores opened after it and adds
-// delay to each of their passes, standing in for a disk that copies at a
-// known speed, until the returned func restores both.
+// SetDiskless disables device flushes in stores opened after it and adds delay
+// before each checkpoint. The delay excludes SQLite's actual page-cache copy.
+// The returned function restores both settings.
 func SetDiskless(delay time.Duration) (restore func()) {
 	diskless, copyDelay = true, delay
 	return func() { diskless, copyDelay = false, 0 }
@@ -59,4 +59,14 @@ func (w *LocalWAL) SyncedWAL() *os.File {
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 	return w.synced
+}
+
+// ObserveWriteHold calls observe when t returns its writer turn, with the time
+// since this call. It excludes the wait for the turn and the later flow wait.
+func (t *Tx) ObserveWriteHold(observe func(time.Duration)) {
+	start, release := time.Now(), t.release
+	t.release = func() {
+		observe(time.Since(start))
+		release()
+	}
 }

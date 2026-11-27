@@ -285,7 +285,7 @@ func TestWALGapHold(t *testing.T) {
 // what the small writer commits while the holds run, and a reader that pins the
 // log ends the wait. The real disk may be slower than that, so this run asserts
 // the log's bound only when measuring. TestWALGapCopyRegimes asserts both
-// regimes at a known copy speed.
+// regimes using measured copy times.
 func TestWALGapLargeCommits(t *testing.T) {
 	for _, pin := range []bool{false, true} {
 		t.Run("pin "+strconv.FormatBool(pin), func(t *testing.T) {
@@ -321,9 +321,10 @@ func TestWALGapLargeCommits(t *testing.T) {
 }
 
 // TestWALGapCopyRegimes runs TestWALGapLargeCommits' writers with the device
-// out of the copy and a fixed delay added to each pass, so the copy speed is
-// the same on every host. With passes inside walFlowWaitMax the gap closes
-// and the log stays within its bound. With passes beyond it every gap pass
+// out of the copy and a fixed delay added to each pass. The actual pass also
+// copies through the page cache, so its measured duration supplies the copy
+// budget. With passes inside walFlowWaitMax the gap closes and the log stays
+// within its bound. With passes beyond it every gap pass
 // ends at its deadline and the log may grow, but no small commit waits past
 // one gap hold and one slice, and no large commit's wait passes the copy of
 // its frames or walFlowWaitMax, whichever is longer.
@@ -339,18 +340,22 @@ func TestWALGapCopyRegimes(t *testing.T) {
 				return
 			}
 
-			// A large commit waits for the copy of its frames: the pass in
-			// flight, a gap pass cut at walFlowWaitMax, and the pass after
-			// it, which outlasts walFlowWaitMax.
-			if limit := 2*delay + common.FlowWaitMax + common.TurnHold + waitSlack; r.st.FlowWaitMax > limit {
+			// Budget the actual copy of the in-flight pass and the next,
+			// with a gap deadline and one slice between. The injected delay
+			// excludes SQLite's copy, which depends on host throughput.
+			copyTime := time.Duration(r.holds.copyLongest.Load())
+			if copyTime < delay {
+				t.Fatalf("no complete checkpoint measured: longest %v, delay %v", copyTime, delay)
+			}
+			if limit := 2*copyTime + common.FlowWaitMax + common.TurnHold + waitSlack; r.st.FlowWaitMax > limit {
 				t.Errorf("a large commit waited %v in the flow, want at most %v", r.st.FlowWaitMax, limit)
 			}
 		})
 	}
 }
 
-// waitSlack is what the regime checks allow a wait past its bound for the
-// scheduler and the copy through the page cache.
+// waitSlack is what the regime checks allow past their measured work and
+// background hold budgets for scheduler delays.
 const waitSlack = 100 * time.Millisecond
 
 // largeRun is what runLargeCommits measured.
@@ -359,10 +364,20 @@ type largeRun struct {
 	// commit under ctx, returning how long it took from the wait for the
 	// writer turn to Commit's return.
 	commit func(ctx context.Context, first, rows int) time.Duration
-	// n counts large commits that took took, the longest taking longest,
-	// beside a small writer whose longest commit took small.
-	n                    int
-	took, longest, small time.Duration
+	// n counts large commits.
+	n int
+	// took is the time taken by the large writer.
+	took time.Duration
+	// longest is the large writer's longest commit.
+	longest time.Duration
+	// small is the small writer's longest commit.
+	small time.Duration
+	// largeHold is the longest foreground hold by the other writer.
+	largeHold atomic.Int64
+	// smallHold is the longest foreground hold by the small writer itself.
+	smallHold atomic.Int64
+	// holds measures checkpointer holds and actual pass durations.
+	holds *holdTimer
 	// peak is the largest log a commit left.
 	peak int64
 	// st is the store's counters after the run.
@@ -376,21 +391,35 @@ const largeCommit = 2048 * (4096 + 24)
 // the log with a reader first when pin is set, and returns the open store's
 // measurements.
 func runLargeCommits(t *testing.T, pin bool) *largeRun {
+	// Observe checkpoint holds before opening the measured store.
+	r := &largeRun{holds: timeHolds(t)}
 	ctx := context.Background()
 	path := filepath.Join(t.TempDir(), "large.db")
 	db := openRestartStore(t, path)
 	t.Cleanup(func() { _ = db.Close() })
-	r := &largeRun{}
 
 	// commit as largeRun describes.
 	value := make([]byte, 4096)
 	r.commit = func(ctx context.Context, first, rows int) time.Duration {
+		// Take the writer turn while timing the complete commit.
 		began := time.Now()
 		tx, err := db.NewTransaction(ctx, true)
 		if err != nil {
 			t.Error(err)
 			return 0
 		}
+
+		// Measure foreground work separately from checkpoint interference.
+		tx.(*common.Tx).ObserveWriteHold(func(held time.Duration) {
+			target := &r.largeHold
+			if rows == 16 {
+				target = &r.smallHold
+			}
+			for old := target.Load(); int64(held) > old && !target.CompareAndSwap(old, int64(held)); old = target.Load() {
+			}
+		})
+
+		// Write this transaction's rows before committing.
 		for j := range rows {
 			if err := tx.Set(ctx, restartKey((first+j)%restartKeys), value); err != nil {
 				t.Error(err)
@@ -455,6 +484,7 @@ func runLargeCommits(t *testing.T, pin bool) *largeRun {
 	})
 	r.peak = max(r.peak, r.st.LogPeakBytes)
 	t.Logf("%d large commits in %v, longest %v, %d waits, longest %v, total %v, small writer's longest commit %v, log peak %.1fx its bound", r.n, r.took.Round(time.Millisecond), r.longest, r.st.FlowWaits, r.st.FlowWaitMax, r.st.FlowWait, r.small, float64(r.peak)/restartBound)
+	t.Logf("timing components: longest copy %v, background hold %v, foreground large hold %v, foreground small hold %v", time.Duration(r.holds.copyLongest.Load()), time.Duration(r.holds.longest.Load()), time.Duration(r.largeHold.Load()), time.Duration(r.smallHold.Load()))
 	return r
 }
 
@@ -466,11 +496,19 @@ func (r *largeRun) checkBound(t *testing.T) {
 	}
 }
 
-// checkSmall checks that no small commit waited past one gap hold and one
-// slice of the turn.
+// checkSmall checks the background hold cap independently, then budgets a
+// small commit's own work and the one foreground transaction ahead of it.
 func (r *largeRun) checkSmall(t *testing.T) {
-	if limit := common.FlowWaitMax + common.TurnHold + waitSlack; r.small > limit {
-		t.Errorf("small writer's longest commit took %v, want at most %v", r.small, limit)
+	// Keep the background cap independent of foreground work and copy speed.
+	background := common.FlowWaitMax + common.TurnHold + waitSlack
+	if held := time.Duration(r.holds.longest.Load()); held > background {
+		t.Errorf("checkpointer held the writer for %v, want at most %v", held, background)
+	}
+
+	// A FIFO writer turn queues behind one transaction from the large writer.
+	foreground := time.Duration(r.largeHold.Load() + r.smallHold.Load())
+	if limit := background + foreground; r.small > limit {
+		t.Errorf("small writer's longest commit took %v, want at most %v (%v background and scheduler, %v foreground work)", r.small, limit, background, foreground)
 	}
 }
 
@@ -485,9 +523,16 @@ var measuring = os.Getenv("SPACEWAVE_SQLITE_MEASURE") != ""
 // of the writer turn, from the checkpointer's hook. The test reads it while
 // the checkpointer may still write it, hence the atomics.
 type holdTimer struct {
-	holds   atomic.Int32
-	taken   atomic.Int64
+	// holds counts passes that held the writer back.
+	holds atomic.Int32
+	// taken is when the checkpointer took its current writer turn.
+	taken atomic.Int64
+	// longest is the longest checkpointer hold of the writer turn.
 	longest atomic.Int64
+	// copyTaken is when the current off-turn pass began.
+	copyTaken atomic.Int64
+	// copyLongest is the longest completed off-turn pass, including its copy.
+	copyLongest atomic.Int64
 }
 
 // timeHolds sets the checkpointer's hook to a new holdTimer for the rest of
@@ -496,6 +541,10 @@ func timeHolds(t *testing.T) *holdTimer {
 	h := &holdTimer{}
 	common.SetCheckpointHook(func(step string) {
 		switch step {
+		case "copy":
+			h.copyTaken.Store(time.Now().UnixNano())
+		case "written back":
+			h.copyLongest.Store(max(h.copyLongest.Load(), time.Now().UnixNano()-h.copyTaken.Load()))
 		case "hold":
 			h.holds.Add(1)
 		case "turn":
