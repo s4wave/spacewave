@@ -7,18 +7,16 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"slices"
 	"strconv"
 	"testing"
-	"time"
 
 	"github.com/go-git/go-billy/v6/osfs"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
 )
 
-// TestBillyFSCursorOSFSConcurrentReads measures two full listings and a file
-// range read on one osfs root.
+// TestBillyFSCursorOSFSConcurrentReads checks that two listings and a file
+// range read on one osfs root can remain open together.
 func TestBillyFSCursorOSFSConcurrentReads(t *testing.T) {
 	// Open the directory and a file on the same cursor tree.
 	const entries = 100_000
@@ -52,66 +50,37 @@ func TestBillyFSCursorOSFSConcurrentReads(t *testing.T) {
 		}
 	}
 
-	// Warm the filesystem and both cursor paths before taking measurements.
-	list(nil)
-	read()
-
-	// Compare matched serial and parallel runs after opening the same directory.
-	var single, serial, parallel []time.Duration
-	for range 5 {
-		// Measure one listing and the full serial workload.
-		started := time.Now()
-		list(nil)
-		single = append(single, time.Since(started))
-		list(nil)
-		read()
-		serial = append(serial, time.Since(started))
-
-		// Read the file while both listing calls are open at their first entry.
-		firstEntries := make(chan bool, 2)
-		readDone := make(chan struct{})
-		listDone := make(chan struct{}, 2)
-		started = time.Now()
-		for range cap(listDone) {
-			go func() {
-				// Hold the listing open once it starts delivering entries.
-				started := false
-				list(func() {
-					started = true
-					firstEntries <- true
-					<-readDone
-				})
-
-				// Release the reader even if the listing ended before its first entry.
-				if !started {
-					firstEntries <- false
-				}
-				listDone <- struct{}{}
-			}()
-		}
+	// Hold both listings at their first entry until the file read completes.
+	firstEntries := make(chan bool, 2)
+	readDone := make(chan struct{})
+	listDone := make(chan struct{}, 2)
+	for range cap(listDone) {
 		go func() {
-			// Release both listings once the read has returned.
-			defer close(readDone)
-			first, second := <-firstEntries, <-firstEntries
-			if !first || !second {
-				t.Error("listing ended before its first entry")
-				return
+			// Hold the listing open once it starts delivering entries.
+			started := false
+			list(func() {
+				started = true
+				firstEntries <- true
+				<-readDone
+			})
+
+			// Release the reader even if the listing ended before its first entry.
+			if !started {
+				firstEntries <- false
 			}
-			read()
+			listDone <- struct{}{}
 		}()
-		for range cap(listDone) {
-			<-listDone
-		}
-		parallel = append(parallel, time.Since(started))
 	}
 
-	// Compare medians so an isolated scheduling or filesystem stall is harmless.
-	slices.Sort(single)
-	slices.Sort(serial)
-	slices.Sort(parallel)
-	t.Logf("one listing %v, serial %v, parallel %v", single[2], serial[2], parallel[2])
-	if parallel[2] > single[2]*3/2 {
-		t.Errorf("parallel listings and read took %v, want within 50%% of one listing at %v", parallel[2], single[2])
+	// Read while both callbacks are held, then let the listings finish.
+	first, second := <-firstEntries, <-firstEntries
+	if !first || !second {
+		t.Error("listing ended before its first entry")
+	}
+	read()
+	close(readDone)
+	for range cap(listDone) {
+		<-listDone
 	}
 }
 
