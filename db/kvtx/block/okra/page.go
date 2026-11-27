@@ -234,6 +234,12 @@ func (p *Page) FollowChild(cursor *block.Cursor, index int) *block.Cursor {
 	return cursor.FollowRef(entryChildRefID(index), ent.GetChildRef())
 }
 
+// ReleaseChild drops the child page FollowChild followed at index from
+// cursor, so its decoded page can be collected. The entry can follow it again.
+func (p *Page) ReleaseChild(cursor *block.Cursor, index int) {
+	cursor.ClearRef(entryChildRefID(index))
+}
+
 // FollowValue follows a leaf entry value.
 func (p *Page) FollowValue(cursor *block.Cursor, index int) *block.Cursor {
 	if p == nil || index < 0 || index >= len(p.GetEntries()) {

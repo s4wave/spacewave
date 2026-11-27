@@ -100,10 +100,12 @@ type holeWalk struct {
 // [low, high).
 type holeChild struct {
 	parent *block.Cursor
-	index  int
-	ref    *block.BlockRef
-	level  uint32
-	keys   uint64
+	// page is the parent's decoded page.
+	page  *Page
+	index int
+	ref   *block.BlockRef
+	level uint32
+	keys  uint64
 	// low and high bound the child's keys.
 	low, high []byte
 	// release drops the child from its parent once loaded. A dirty parent may
@@ -146,6 +148,7 @@ func (w *holeWalk) visit(page *Page, cursor *block.Cursor, pageLow, pageHigh []b
 		}
 		children = append(children, holeChild{
 			parent:  cursor,
+			page:    page,
 			index:   i,
 			ref:     ent.GetChildRef(),
 			level:   page.GetLevel() - 1,
@@ -206,10 +209,10 @@ func (w *holeWalk) work(ctx context.Context) {
 // reads as not found or unavailable.
 func (w *holeWalk) load(ctx context.Context, child *holeChild) error {
 	// Read the page, dropping it from its parent once read.
-	cursor := child.parent.FollowRef(entryChildRefID(child.index), child.ref)
+	cursor := child.page.FollowChild(child.parent, child.index)
 	page, err := loadPage(ctx, cursor)
 	if child.release {
-		child.parent.ClearRef(entryChildRefID(child.index))
+		child.page.ReleaseChild(child.parent, child.index)
 	}
 
 	// Record a missing page as a hole, or visit a read one.

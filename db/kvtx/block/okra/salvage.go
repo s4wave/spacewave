@@ -198,14 +198,14 @@ func (s *salvage) walk(ctx context.Context, page *Page, cursor *block.Cursor, pa
 				Keys:  ent.GetSize(),
 				Err:   child.err,
 			}
-			s.release(cursor, child, release)
+			s.release(page, cursor, child, release)
 			if !s.emitHole(hole) {
 				return errSalvageStop
 			}
 			continue
 		}
 		err := s.walk(ctx, child.page, child.cursor, child.low, child.high)
-		s.release(cursor, child, release)
+		s.release(page, cursor, child, release)
 		if err != nil {
 			return err
 		}
@@ -215,9 +215,9 @@ func (s *salvage) walk(ctx context.Context, page *Page, cursor *block.Cursor, pa
 
 // release drops a walked child from the walk and, with detach set, from its
 // parent cursor, so its decoded page can be collected.
-func (s *salvage) release(parent *block.Cursor, child *salvageChild, detach bool) {
+func (s *salvage) release(page *Page, parent *block.Cursor, child *salvageChild, detach bool) {
 	if detach {
-		parent.ClearRef(entryChildRefID(child.index))
+		page.ReleaseChild(parent, child.index)
 	}
 	child.page, child.cursor = nil, nil
 }
