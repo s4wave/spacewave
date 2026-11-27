@@ -451,6 +451,16 @@ func TestSpaceResourceChatSenderPropagatesThroughChildWorldResources(t *testing.
 	ctxWithPeerB := objecttype.WithSessionPeerID(ctx, peerB)
 	ctxWithPeerA := objecttype.WithSessionPeerID(ctx, peerA)
 
+	// Verify A reports its own signer to a caller from B, since a remote
+	// handle derives the sender its writes carry from this answer.
+	infoA, err := engineA.GetEngineInfo(ctxWithPeerB, &s4wave_world.GetEngineInfoRequest{})
+	if err != nil {
+		t.Fatalf("GetEngineInfo(A): %v", err)
+	}
+	if infoA.GetOperationPeerId() != peerA.String() {
+		t.Fatalf("GetEngineInfo(A) operation peer = %q, want %q", infoA.GetOperationPeerId(), peerA.String())
+	}
+
 	// Open the channel in a read transaction on A.
 	txResp, err := engineA.NewTransaction(ctxWithPeerB, &s4wave_world.NewTransactionRequest{Write: false})
 	if err != nil {

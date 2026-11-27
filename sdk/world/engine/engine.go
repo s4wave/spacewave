@@ -21,9 +21,25 @@ type SDKEngine struct {
 	service s4wave_world.SRPCEngineResourceServiceClient
 }
 
-// OperationAuthor returns no local signer for a remote SDK World handle.
-func (e *SDKEngine) OperationAuthor(context.Context) (peer.ID, string, error) {
-	return "", "", nil
+// OperationAuthor returns the remote engine's signer, which signs the
+// operations this handle's writes apply. It asks the remote engine on each
+// call, since the signer's person follows the accepted participant config.
+func (e *SDKEngine) OperationAuthor(ctx context.Context) (peer.ID, string, error) {
+	// Ask the remote engine for its signer.
+	info, err := e.GetEngineInfo(ctx)
+	if err != nil {
+		return "", "", err
+	}
+
+	// Decode the signer, or report an unsigned engine.
+	if info.GetOperationPeerId() == "" {
+		return "", "", nil
+	}
+	device, err := peer.IDB58Decode(info.GetOperationPeerId())
+	if err != nil {
+		return "", "", err
+	}
+	return device, info.GetOperationPerson(), nil
 }
 
 // NewSDKEngine creates a new SDKEngine wrapping a resource reference.

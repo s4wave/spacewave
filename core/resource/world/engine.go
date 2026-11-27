@@ -119,9 +119,20 @@ func (r *EngineResource) GetEngineInfo(ctx context.Context, req *s4wave_world.Ge
 		}
 	}
 
+	// Report the signer of the operations this Resource applies, which
+	// differs from the session peer when the engine signs as its Space device.
+	device, person, err := r.engine.OperationAuthor(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	// Return mount metadata with its accepted caller identity.
 	return &s4wave_world.GetEngineInfoResponse{
-		EngineInfo: r.engineInfo, SessionPeerId: sessionPeerID.String(), CallerParticipant: participant,
+		EngineInfo:        r.engineInfo,
+		SessionPeerId:     sessionPeerID.String(),
+		CallerParticipant: participant,
+		OperationPeerId:   device.String(),
+		OperationPerson:   person,
 	}, nil
 }
 
