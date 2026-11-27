@@ -38,6 +38,13 @@ import (
 	s4wave_terminal "github.com/s4wave/spacewave/sdk/terminal"
 )
 
+// AddReference records a nonempty typed identity in payload order.
+func (i *Inspection) AddReference(kind ReferenceKind, value string) {
+	if value != "" {
+		i.References = append(i.References, TypedReference{Kind: kind, Value: value})
+	}
+}
+
 func inspectSpaceSettings(ctx context.Context, object *ObjectDescriptor) (*Inspection, error) {
 	// Decode the SpaceSettings payload and require a readable body.
 	settings, err := world.LookupObjectBody[space_world.SpaceSettings](ctx, object.World, object.ObjectKey)
@@ -85,21 +92,25 @@ func inspectObjectLayout(ctx context.Context, object *ObjectDescriptor) (*Inspec
 	return inspectObjectLayoutPayload(layoutObject)
 }
 
-func inspectLayoutRow(row *s4wave_layout.RowDef, out *Inspection) error {
+// inspectLayoutRow emits the object keys in nested layout rows and tab sets.
+func inspectLayoutRow(row *s4wave_layout.RowDef, addReference func(ReferenceKind, string)) error {
+	// Ignore a missing row before traversing its children.
 	if row == nil {
 		return nil
 	}
+
+	// Visit nested rows and tab sets in their stored order.
 	for _, child := range row.GetChildren() {
 		if child == nil {
 			continue
 		}
 		if nested := child.GetRow(); nested != nil {
-			if err := inspectLayoutRow(nested, out); err != nil {
+			if err := inspectLayoutRow(nested, addReference); err != nil {
 				return err
 			}
 		}
 		if tabs := child.GetTabSet(); tabs != nil {
-			if err := inspectLayoutTabs(tabs.GetChildren(), out); err != nil {
+			if err := inspectLayoutTabs(tabs.GetChildren(), addReference); err != nil {
 				return err
 			}
 		}
@@ -107,7 +118,9 @@ func inspectLayoutRow(row *s4wave_layout.RowDef, out *Inspection) error {
 	return nil
 }
 
-func inspectLayoutTabs(tabs []*s4wave_layout.TabDef, out *Inspection) error {
+// inspectLayoutTabs decodes tab payloads and emits their World object keys.
+func inspectLayoutTabs(tabs []*s4wave_layout.TabDef, addReference func(ReferenceKind, string)) error {
+	// Decode each populated tab before emitting its object reference.
 	for _, tab := range tabs {
 		if tab == nil || len(tab.GetData()) == 0 {
 			continue
@@ -118,7 +131,7 @@ func inspectLayoutTabs(tabs []*s4wave_layout.TabDef, out *Inspection) error {
 		}
 		if info := payload.GetObjectInfo(); info != nil {
 			if worldInfo := info.GetWorldObjectInfo(); worldInfo != nil && worldInfo.GetObjectKey() != "" {
-				out.References = append(out.References, TypedReference{Kind: ReferenceObjectKey, Value: worldInfo.GetObjectKey()})
+				addReference(ReferenceObjectKey, worldInfo.GetObjectKey())
 			}
 		}
 	}
@@ -151,7 +164,7 @@ func inspectFlowgraph(ctx context.Context, object *ObjectDescriptor) (*Inspectio
 	// Collect the Step Target references and the placement destinations.
 	out := inspectFlowgraphTargets(graph)
 	for _, key := range flowgraphPlacementKeys(object) {
-		appendForgeObjectKey(out, key)
+		out.AddReference(ReferenceObjectKey, key)
 	}
 	return out, nil
 }
@@ -222,12 +235,12 @@ func inspectChatMessage(ctx context.Context, object *ObjectDescriptor) (*Inspect
 func inspectFlowgraphTargets(graph *s4wave_flowgraph.Flowgraph) *Inspection {
 	out := &Inspection{}
 	for _, id := range slices.Sorted(maps.Keys(graph.GetNodes())) {
-		appendForgeObjectKey(out, graph.GetNodes()[id].GetObjectKey())
+		out.AddReference(ReferenceObjectKey, graph.GetNodes()[id].GetObjectKey())
 		target := graph.GetNodes()[id].GetStep().GetTarget()
 		for _, input := range target.GetInputs() {
-			appendForgeObjectKey(out, input.GetWorldObject().GetObjectKey())
+			out.AddReference(ReferenceObjectKey, input.GetWorldObject().GetObjectKey())
 		}
-		inspectForgeValues(out, flowgraphTargetValues(target))
+		inspectForgeValues(out.AddReference, flowgraphTargetValues(target))
 	}
 	return out
 }
@@ -280,14 +293,15 @@ func flowgraphArrivalKeyFields(arrival *s4wave_flowgraph.FlowgraphArrival) []*st
 }
 
 // inspectFlowgraphRunFields collects each distinct object key of a run.
-func inspectFlowgraphRunFields(run *s4wave_flowgraph.FlowgraphRun, out *Inspection) error {
+func inspectFlowgraphRunFields(run *s4wave_flowgraph.FlowgraphRun, addReference func(ReferenceKind, string)) error {
+	// Emit each object key at its first occurrence in the run.
 	seen := make(map[string]struct{})
 	for _, field := range flowgraphRunKeyFields(run) {
 		if _, ok := seen[*field]; ok {
 			continue
 		}
 		seen[*field] = struct{}{}
-		appendForgeObjectKey(out, *field)
+		addReference(ReferenceObjectKey, *field)
 	}
 	return nil
 }
@@ -370,6 +384,7 @@ func inspectCanvasState(ctx context.Context, object *ObjectDescriptor, state *s4
 	return out, nil
 }
 
+// inspectObjectLayoutPayload collects the object keys embedded in a layout.
 func inspectObjectLayoutPayload(layoutObject *s4wave_layout_world.ObjectLayout) (*Inspection, error) {
 	// Start an ObjectLayout inspection when a layout model exists.
 	out := &Inspection{}
@@ -381,14 +396,14 @@ func inspectObjectLayoutPayload(layoutObject *s4wave_layout_world.ObjectLayout) 
 	model := layoutObject.GetLayoutModel()
 	for _, border := range model.GetBorders() {
 		if border != nil {
-			if err := inspectLayoutTabs(border.GetChildren(), out); err != nil {
+			if err := inspectLayoutTabs(border.GetChildren(), out.AddReference); err != nil {
 				return nil, err
 			}
 		}
 	}
 
 	// Inspect object references in the ObjectLayout root row.
-	if err := inspectLayoutRow(model.GetLayout(), out); err != nil {
+	if err := inspectLayoutRow(model.GetLayout(), out.AddReference); err != nil {
 		return nil, err
 	}
 	return out, nil
@@ -1022,7 +1037,7 @@ func rewriteFlowgraph(ctx context.Context, object *ObjectDescriptor, mapping *Id
 		if err != nil {
 			return nil, err
 		}
-		appendForgeObjectKey(out, mapped)
+		out.AddReference(ReferenceObjectKey, mapped)
 	}
 	return &RewriteResult{Payload: data, References: out.References, GraphReferences: mappedGraphReferences(object, mapping)}, nil
 }
@@ -1248,7 +1263,13 @@ func decodeForgePayload[T any, PT block.Ptr[T]](ctx context.Context, object *Obj
 	return payload, nil
 }
 
-func inspectForgePayload[T any, PT block.Ptr[T]](ctx context.Context, object *ObjectDescriptor, label string, inspect func(PT, *Inspection) error) (*Inspection, error) {
+// inspectForgePayload decodes a payload and collects its schema references.
+func inspectForgePayload[T any, PT block.Ptr[T]](
+	ctx context.Context,
+	object *ObjectDescriptor,
+	label string,
+	inspect func(PT, func(ReferenceKind, string)) error,
+) (*Inspection, error) {
 	// Decode the Forge payload before inspecting its references.
 	payload, err := decodeForgePayload[T, PT](ctx, object, label)
 	if err != nil {
@@ -1258,14 +1279,22 @@ func inspectForgePayload[T any, PT block.Ptr[T]](ctx context.Context, object *Ob
 	// Collect the references declared by the Forge payload inspector.
 	out := &Inspection{}
 	if inspect != nil {
-		if err := inspect(payload, out); err != nil {
+		if err := inspect(payload, out.AddReference); err != nil {
 			return nil, err
 		}
 	}
 	return out, nil
 }
 
-func rewriteForgePayload[T any, PT block.Ptr[T]](ctx context.Context, object *ObjectDescriptor, mapping *IdentityMap, label string, rewrite func(PT, *IdentityMap) error, inspect func(PT, *Inspection) error) (*RewriteResult, error) {
+// rewriteForgePayload rewrites a payload and collects its resulting schema references.
+func rewriteForgePayload[T any, PT block.Ptr[T]](
+	ctx context.Context,
+	object *ObjectDescriptor,
+	mapping *IdentityMap,
+	label string,
+	rewrite func(PT, *IdentityMap) error,
+	inspect func(PT, func(ReferenceKind, string)) error,
+) (*RewriteResult, error) {
 	// Decode the Forge payload before rewriting its references.
 	payload, err := decodeForgePayload[T, PT](ctx, object, label)
 	if err != nil {
@@ -1288,52 +1317,37 @@ func rewriteForgePayload[T any, PT block.Ptr[T]](ctx context.Context, object *Ob
 	// Inspect the rewritten Forge payload references.
 	out := &Inspection{}
 	if inspect != nil {
-		if err := inspect(payload, out); err != nil {
+		if err := inspect(payload, out.AddReference); err != nil {
 			return nil, err
 		}
 	}
 	return &RewriteResult{Payload: data, References: out.References, GraphReferences: mappedGraphReferences(object, mapping)}, nil
 }
 
-func appendForgeObjectKey(out *Inspection, value string) {
-	if value != "" {
-		out.References = append(out.References, TypedReference{Kind: ReferenceObjectKey, Value: value})
-	}
-}
-
-func appendForgeBlockStore(out *Inspection, value string) {
-	if value != "" {
-		out.References = append(out.References, TypedReference{Kind: ReferenceBlockStore, Value: value})
-	}
-}
-
-func appendForgeExternal(out *Inspection, value string) {
-	if value != "" {
-		out.References = append(out.References, TypedReference{Kind: ReferenceExternal, Value: value})
-	}
-}
-
-func inspectForgeValueSet(out *Inspection, set *forge_target.ValueSet) {
+// inspectForgeValueSet emits references in input order followed by output order.
+func inspectForgeValueSet(addReference func(ReferenceKind, string), set *forge_target.ValueSet) {
 	if set == nil {
 		return
 	}
-	inspectForgeValues(out, set.GetInputs())
-	inspectForgeValues(out, set.GetOutputs())
+	inspectForgeValues(addReference, set.GetInputs())
+	inspectForgeValues(addReference, set.GetOutputs())
 }
 
-func inspectForgeValues(out *Inspection, values []*forge_value.Value) {
+// inspectForgeValues emits the block stores and object keys embedded in values.
+func inspectForgeValues(addReference func(ReferenceKind, string), values []*forge_value.Value) {
+	// Visit each value's bucket and snapshot references in payload order.
 	for _, value := range values {
 		if value == nil {
 			continue
 		}
 		if ref := value.GetBucketRef(); ref != nil {
-			appendForgeBlockStore(out, ref.GetBucketId())
+			addReference(ReferenceBlockStore, ref.GetBucketId())
 		}
 		if snapshot := value.GetWorldObjectSnapshot(); snapshot != nil {
-			appendForgeObjectKey(out, snapshot.GetKey())
-			appendForgeObjectKey(out, snapshot.GetObjectParent())
+			addReference(ReferenceObjectKey, snapshot.GetKey())
+			addReference(ReferenceObjectKey, snapshot.GetObjectParent())
 			if root := snapshot.GetRootRef(); root != nil {
-				appendForgeBlockStore(out, root.GetBucketId())
+				addReference(ReferenceBlockStore, root.GetBucketId())
 			}
 		}
 	}
@@ -1525,46 +1539,56 @@ func rewriteGitWorktree(ctx context.Context, object *ObjectDescriptor, mapping *
 	return &RewriteResult{Payload: data, References: references, GraphReferences: mappedGraphReferences(object, mapping)}, nil
 }
 
-func inspectForgeClusterFields(payload *forge_cluster.Cluster, out *Inspection) error {
-	appendForgeExternal(out, payload.GetPeerId())
+// inspectForgeClusterFields emits the cluster peer identity.
+func inspectForgeClusterFields(payload *forge_cluster.Cluster, addReference func(ReferenceKind, string)) error {
+	addReference(ReferenceExternal, payload.GetPeerId())
 	return nil
 }
 
-func inspectForgeJobFields(*forge_job.Job, *Inspection) error {
+// inspectForgeJobFields accepts a job with no embedded migration references.
+func inspectForgeJobFields(*forge_job.Job, func(ReferenceKind, string)) error {
 	return nil
 }
 
-func inspectForgeTaskFields(payload *forge_task.Task, out *Inspection) error {
-	appendForgeExternal(out, payload.GetPeerId())
-	inspectForgeValueSet(out, payload.GetValueSet())
+// inspectForgeTaskFields emits the task peer and value references.
+func inspectForgeTaskFields(payload *forge_task.Task, addReference func(ReferenceKind, string)) error {
+	addReference(ReferenceExternal, payload.GetPeerId())
+	inspectForgeValueSet(addReference, payload.GetValueSet())
 	return nil
 }
 
-func inspectForgePassFields(payload *forge_pass.Pass, out *Inspection) error {
-	appendForgeExternal(out, payload.GetPeerId())
-	inspectForgeValueSet(out, payload.GetValueSet())
+// inspectForgePassFields emits pass and execution identities in payload order.
+func inspectForgePassFields(payload *forge_pass.Pass, addReference func(ReferenceKind, string)) error {
+	// Emit the pass peer and values before its execution references.
+	addReference(ReferenceExternal, payload.GetPeerId())
+	inspectForgeValueSet(addReference, payload.GetValueSet())
+
+	// Emit each execution's object key, peer and value references.
 	for _, execution := range payload.GetExecStates() {
 		if execution == nil {
 			continue
 		}
-		appendForgeObjectKey(out, execution.GetObjectKey())
-		appendForgeExternal(out, execution.GetPeerId())
-		inspectForgeValueSet(out, execution.GetValueSet())
+		addReference(ReferenceObjectKey, execution.GetObjectKey())
+		addReference(ReferenceExternal, execution.GetPeerId())
+		inspectForgeValueSet(addReference, execution.GetValueSet())
 	}
 	return nil
 }
 
-func inspectForgeExecutionFields(payload *forge_execution.Execution, out *Inspection) error {
-	appendForgeExternal(out, payload.GetPeerId())
-	inspectForgeValueSet(out, payload.GetValueSet())
+// inspectForgeExecutionFields emits the execution peer and value references.
+func inspectForgeExecutionFields(payload *forge_execution.Execution, addReference func(ReferenceKind, string)) error {
+	addReference(ReferenceExternal, payload.GetPeerId())
+	inspectForgeValueSet(addReference, payload.GetValueSet())
 	return nil
 }
 
-func inspectForgeWorkerFields(*forge_worker.Worker, *Inspection) error {
+// inspectForgeWorkerFields accepts a worker with no embedded migration references.
+func inspectForgeWorkerFields(*forge_worker.Worker, func(ReferenceKind, string)) error {
 	return nil
 }
 
-func inspectForgeDashboardFields(*forge_dashboard.ForgeDashboard, *Inspection) error {
+// inspectForgeDashboardFields accepts a dashboard with no embedded migration references.
+func inspectForgeDashboardFields(*forge_dashboard.ForgeDashboard, func(ReferenceKind, string)) error {
 	return nil
 }
 
