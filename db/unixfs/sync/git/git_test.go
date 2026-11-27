@@ -14,7 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// TestSyncFromGitWorkdir synchronizes an isolated Git worktree into UnixFS.
+// TestSyncFromGitWorkdir copies tracked and untracked files while excluding ignored files.
 func TestSyncFromGitWorkdir(t *testing.T) {
 	// Populate a Git fixture independently of the source checkout's metadata.
 	srcRoot := t.TempDir()
@@ -62,11 +62,30 @@ func TestSyncFromGitWorkdir(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Enumerate the synchronized root through the destination filesystem.
+	// Read every included file back through UnixFS.
+	for _, name := range []string{".gitignore", "tracked.txt", "untracked.txt"} {
+		h, err := fsHandle.Lookup(ctx, name)
+		if err != nil {
+			t.Fatalf("lookup %s: %v", name, err)
+		}
+		data, err := unixfs.ReadFile(ctx, h)
+		h.Release()
+		if err != nil || string(data) != files[name] {
+			t.Fatalf("read %s: %q, %v; want %q", name, data, err, files[name])
+		}
+	}
+
+	// Require exactly the three Git-selected files at the destination root.
+	var entries int
 	if err := fsHandle.ReaddirAll(ctx, 0, func(ent unixfs.FSCursorDirent) error {
-		le.Debugf("file: %s", ent.GetName())
+		if ent.GetIsFile() {
+			entries++
+		}
 		return nil
 	}); err != nil {
 		t.Fatal(err)
+	}
+	if entries != 3 {
+		t.Fatalf("synchronized %d root files, want 3", entries)
 	}
 }
