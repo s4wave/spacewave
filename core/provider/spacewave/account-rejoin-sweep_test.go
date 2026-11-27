@@ -7,6 +7,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/aperturerobotics/util/routine"
 	provider "github.com/s4wave/spacewave/core/provider"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/session"
@@ -243,6 +244,36 @@ func TestBuildSelfRejoinSweepStateLockedRequiresBootstrapAndTrigger(t *testing.T
 	}
 	if len(got.keypairs) != 1 || got.keypairs[0].GetPeerId() != "peer-1" {
 		t.Fatalf("unexpected keypairs snapshot: %+v", got.keypairs)
+	}
+}
+
+// TestSetSelfRejoinSweepStateKeepsRunningForEqualState checks that refreshing
+// a running sweep with an equal state leaves the running flag set.
+func TestSetSelfRejoinSweepStateKeepsRunningForEqualState(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	acc := &ProviderAccount{
+		selfRejoinSweep: routine.NewStateRoutineContainer(equalSelfRejoinSweepState),
+	}
+	started := make(chan struct{})
+	acc.selfRejoinSweep.SetStateRoutine(func(ctx context.Context, _ *selfRejoinSweepState) error {
+		close(started)
+		<-ctx.Done()
+		return ctx.Err()
+	})
+	acc.selfRejoinSweep.SetContext(ctx, false)
+
+	// Start the sweep, then refresh it with an equal state while it runs.
+	acc.setSelfRejoinSweepState(&selfRejoinSweepState{generation: 1})
+	<-started
+	acc.setSelfRejoinSweepState(&selfRejoinSweepState{generation: 1})
+
+	var running bool
+	acc.accountBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		running = acc.GetSelfRejoinSweepRunning()
+	})
+	if !running {
+		t.Fatal("expected the sweep to stay running after an equal refresh")
 	}
 }
 

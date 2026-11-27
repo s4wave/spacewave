@@ -830,7 +830,7 @@
     },
     {
       "name": "github.com/aperturerobotics/controllerbus",
-      "version": "v0.53.6-0.20261126033724-3cc27165721b",
+      "version": "v0.53.6-0.20261127175246-fc3d01fdb1ec",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/controllerbus",
@@ -957,7 +957,7 @@
     },
     {
       "name": "github.com/aperturerobotics/util",
-      "version": "v1.34.10-0.20261120060243-dd75621b3f94",
+      "version": "v1.34.10-0.20261127175558-e826986323f3",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/util",
