@@ -3,6 +3,7 @@
 package spacewave_cli
 
 import (
+	"bufio"
 	"context"
 	"maps"
 	"reflect"
@@ -112,6 +113,8 @@ type refRepairResult struct {
 	// front counts the blocks the rebuild's front holds by why the walk
 	// verified nothing for them, as measureFront describes.
 	front map[string]refRepairFront
+	// frontListed reports that the run finished writing a front listing.
+	frontListed bool
 	// roots is the number of named roots and rootListed the number of
 	// listed blocks they reach, both set only when the run asked for the
 	// front's roots, which rooted reports.
@@ -206,20 +209,23 @@ func newRefRepair(le *logrus.Entry, vol *volume_s4db.Volume, peer block.StoreOps
 // stored lists from every named root, as block_gc.ListRebuild.WalkRoots
 // describes, and splits the rest by the first root that reaches each block:
 // a block under a root is live by the lists and the typed walk stopped above
-// it, and a block under none is held only by blocks nothing reaches. Call it
-// after the walk and the rebuild's Finish.
-func (r *refRepair) measureFront(ctx context.Context, dryRun, roots bool) error {
+// it, and a block under none is held only by blocks nothing reaches.
+// When listing is set, stream each entry in front order with its report cause
+// and scan fate. Call it after the walk and the rebuild's Finish.
+func (r *refRepair) measureFront(ctx context.Context, dryRun, roots bool, listing *bufio.Writer) error {
 	// Name the rest by what this run's walk did with the blocks it reached.
 	rest := frontRest
 	if dryRun {
 		rest = frontRestDry
 	}
 	r.res.front = make(map[string]refRepairFront)
+	fields := strings.NewReplacer("\t", " ", "\n", " ", "\r", " ")
 	count := func(ref *block.BlockRef, root *block_gc.FrontRoot) error {
 		// Name the cause the walk recorded for the block, and for the rest
 		// the root that reaches it.
+		key := ref.MarshalString()
 		cause := rest
-		if why, ok := r.unread[ref.MarshalString()]; ok {
+		if why, ok := r.unread[key]; ok {
 			cause = why
 		} else if reason := r.walker.UntypedReason(ref); reason != "" {
 			cause = frontUntyped + reason
@@ -229,18 +235,28 @@ func (r *refRepair) measureFront(ctx context.Context, dryRun, roots bool) error 
 			cause += frontRootOf + root.BucketID + " " + root.Name
 		}
 
-		// Count it, keeping the first block of each cause.
+		// Count its cause and fate, keeping the first block of each cause.
 		f := r.res.front[cause]
 		if f.count == 0 {
 			f.sample = ref
 		}
 		f.count++
 		r.res.front[cause] = f
+		var fate string
 		if r.res.scan.on {
-			r.res.scan.front[r.scanFate(ref, root, roots)]++
+			fate = r.scanFate(ref, root, roots)
+			r.res.scan.front[fate]++
 		}
-		return nil
+
+		// Write the same cause and fate with tabs reserved for field breaks.
+		if listing == nil {
+			return nil
+		}
+		_, err := listing.WriteString(key + "\t" + fields.Replace(cause) + "\t" + fields.Replace(fate) + "\n")
+		return err
 	}
+
+	// Walk the front in key order, with root reach when requested.
 	if roots {
 		// Walk the stored lists once for the front and the weak blocks.
 		reach, err := r.rebuild.WalkRoots(ctx)

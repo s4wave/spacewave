@@ -571,6 +571,7 @@ func TestDebugRefRepair(t *testing.T) {
 		t.Fatal(err)
 	}
 	scanArgs.peerBlocks = t.TempDir()
+	scanArgs.frontOut = filepath.Join(t.TempDir(), "front.tsv")
 	if err := os.WriteFile(filepath.Join(scanArgs.peerBlocks, peerChild.MarshalString()), peerData, 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -634,10 +635,25 @@ func TestDebugRefRepair(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The dry scan predicts the opaque block's fate even in measuring mode.
+	// A listing path that aliases the Volume must leave its bytes intact.
 	scanBefore := sum()
+	alias := filepath.Join(filepath.Dir(scanOpts.frontOut), "volume-link")
+	if err := os.Link(path, alias); err != nil {
+		t.Fatal(err)
+	}
+	file, err := openFrontOut(path, alias)
+	if err == nil {
+		file.Close()
+		t.Fatal("opened a Volume alias for the front listing")
+	}
+	if sum() != scanBefore {
+		t.Fatal("opening the listing changed the volume")
+	}
+
+	// The dry scan predicts the opaque block's fate even in measuring mode.
 	measuringOpts := scanOpts
 	measuringOpts.scanVerify = false
+	measuringOpts.frontOut = ""
 	measured, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType, measuringOpts, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -660,6 +676,43 @@ func TestDebugRefRepair(t *testing.T) {
 		t.Fatalf("dry verification front: %v, want %v", scanDry.scan.front, measured.scan.front)
 	}
 
+	// The listing follows front order and gives the opaque block the same
+	// cause and fate as the report.
+	listing, err := os.ReadFile(scanOpts.frontOut)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, terminated := strings.CutSuffix(string(listing), "\n")
+	lines := strings.Split(body, "\n")
+	if !terminated || uint64(len(lines)) != scanDry.rebuild.Front {
+		t.Fatalf("dry front listing has %d lines, want %d newline-terminated entries", len(lines), scanDry.rebuild.Front)
+	}
+	opaqueFields := []string{opaque.MarshalString(), frontRestDry, opaqueFate}
+	var foundOpaque bool
+	for i, line := range lines {
+		// Check field boundaries before comparing the ref or its classification.
+		fields := strings.Split(line, "\t")
+		if len(fields) != 3 {
+			t.Fatalf("front listing line %q has %d fields, want 3", line, len(fields))
+		}
+		if i < len(scanDry.rebuild.FrontSample) && fields[0] != scanDry.rebuild.FrontSample[i].MarshalString() {
+			t.Fatalf("front listing ref %s at line %d is out of order", fields[0], i+1)
+		}
+		foundOpaque = foundOpaque || slices.Equal(fields, opaqueFields)
+	}
+	if !foundOpaque {
+		t.Fatalf("front listing lacks the opaque block and its report classification: %q", listing)
+	}
+
+	// The first write creates a private file.
+	info, err := os.Stat(scanOpts.frontOut)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Mode().Perm() != 0o600 {
+		t.Fatalf("front listing mode %o, want 600", info.Mode().Perm())
+	}
+
 	// The report locates the absent hash and samples the unauthenticated reads.
 	strangerRow := [2]string{
 		"Scan: hashes naming no known block, outside the list, below payload root that is not certainly a blob, field 2.1",
@@ -668,6 +721,7 @@ func TestDebugRefRepair(t *testing.T) {
 	opaqueSample := "1 (" + opaque.MarshalString() + ")"
 	messageSample := "2 (" + parent.MarshalString() + ")"
 	scanRows := [][2]string{
+		{"Front entries listed", strconv.Itoa(len(lines))},
 		strangerRow,
 		{"Scan: hashes naming no known block, outside the list", "1"},
 		{"Scan: hashes naming blocks with a stored list and no bytes, outside the list", "1 (" + evicted.MarshalString() + ")"},
@@ -695,6 +749,15 @@ func TestDebugRefRepair(t *testing.T) {
 	if scanFixed.rebuild.Front != 1 || !slices.ContainsFunc(scanFixed.rebuild.FrontSample, opaque.EqualVT) ||
 		scanFixed.scan.front[opaqueFate] != 1 {
 		t.Fatalf("verification front: %+v, fates %v", scanFixed.rebuild, scanFixed.scan.front)
+	}
+
+	// The writing run replaces the earlier listing with the remaining entry.
+	listing, err = os.ReadFile(scanOpts.frontOut)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := opaque.MarshalString() + "\t" + frontRest + "\t" + opaqueFate + "\n"; string(listing) != want {
+		t.Fatalf("verification front listing %q, want %q", listing, want)
 	}
 
 	// Verify the marked list holds every known child, including the evicted
@@ -981,7 +1044,7 @@ func runUntypedScan(t *testing.T, le *logrus.Entry, vol *volume_s4db.Volume, dry
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := repair.measureFront(ctx, dryRun, false); err != nil {
+	if err := repair.measureFront(ctx, dryRun, false, nil); err != nil {
 		t.Fatal(err)
 	}
 	return repair.res
