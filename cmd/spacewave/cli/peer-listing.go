@@ -5,16 +5,20 @@ package spacewave_cli
 import (
 	"bufio"
 	"context"
+	"sync"
 
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/packcopy"
 )
 
 // peerListing streams each verified peer ref once, in the order first served.
-// Reads are synchronous, as is the repair walk that owns the listing.
+// The repair walk reads a batch of blocks on several goroutines, so mtx
+// guards the listing.
 type peerListing struct {
 	// StoreOps supplies verified peer blocks and the read-only store operations.
 	block.StoreOps
+	// mtx guards writer and seen.
+	mtx sync.Mutex
 	// writer buffers refs until the repair publishes its listing.
 	writer *bufio.Writer
 	// seen holds only the refs this peer has served successfully.
@@ -31,6 +35,8 @@ func (p *peerListing) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (
 
 	// Record each ref only after its first successful listing write.
 	key := ref.MarshalString()
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
 	if _, exists := p.seen[key]; !exists {
 		if _, err := p.writer.WriteString(key + "\n"); err != nil {
 			return nil, err
