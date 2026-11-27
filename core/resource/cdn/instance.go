@@ -9,6 +9,7 @@ import (
 	"github.com/s4wave/spacewave/core/cdn"
 	cdn_bstore "github.com/s4wave/spacewave/core/cdn/bstore"
 	cdn_sharedobject "github.com/s4wave/spacewave/core/cdn/sharedobject"
+	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/sirupsen/logrus"
 )
 
@@ -96,9 +97,26 @@ func (c *CdnInstance) GetSpaceID() string {
 	return c.spaceID
 }
 
-// GetSharedObject returns the underlying CDN SharedObject.
-func (c *CdnInstance) GetSharedObject() *cdn_sharedobject.CdnSharedObject {
-	return c.so
+// ResolveSharedObject returns the CDN mount target and its synthesized metadata.
+func (c *CdnInstance) ResolveSharedObject() (sobject.SharedObject, *sobject.SharedObjectMeta) {
+	return c.so, c.so.GetMeta()
+}
+
+// openWorldEngine opens the current published CDN head for one operation.
+func (c *CdnInstance) openWorldEngine(ctx context.Context, le *logrus.Entry, b bus.Bus) (*cdn_sharedobject.WorldEngine, error) {
+	return cdn_sharedobject.NewWorldEngine(ctx, le, b, c.so)
+}
+
+// openSpaceBody opens a CDN Space body and the engine its caller must release.
+func (c *CdnInstance) openSpaceBody(ctx context.Context, le *logrus.Entry, b bus.Bus) (*cdn_sharedobject.CdnSpaceBody, *cdn_sharedobject.WorldEngine, error) {
+	// Open the current published head before constructing its Space body.
+	we, err := c.openWorldEngine(ctx, le, b)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Bind the body to the same SharedObject that supplied the head.
+	return cdn_sharedobject.NewCdnSpaceBody(c.so, we), we, nil
 }
 
 // GetBlockStore returns the CDN block store.

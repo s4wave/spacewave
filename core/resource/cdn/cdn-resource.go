@@ -9,7 +9,6 @@ import (
 	"github.com/pkg/errors"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	cdn_copy "github.com/s4wave/spacewave/core/cdn"
-	cdn_sharedobject "github.com/s4wave/spacewave/core/cdn/sharedobject"
 	resource_space "github.com/s4wave/spacewave/core/resource/space"
 	space_resolve "github.com/s4wave/spacewave/core/space/resolve"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
@@ -75,12 +74,10 @@ func (r *CdnResource) MountCdnSpace(
 	}
 
 	// Open the current published CDN head for this operation.
-	cdnSO := r.instance.GetSharedObject()
-	we, err := cdn_sharedobject.NewWorldEngine(ctx, r.le, r.b, cdnSO)
+	body, we, err := r.instance.openSpaceBody(ctx, r.le, r.b)
 	if err != nil {
 		return nil, errors.Wrap(err, "build cdn world engine")
 	}
-	body := cdn_sharedobject.NewCdnSpaceBody(cdnSO, we)
 	spaceResource := resource_space.NewSpaceResource(r.le, r.b, body)
 	spaceResource.SetAppPluginIDs(r.appPluginIDs)
 
@@ -124,8 +121,7 @@ func (r *CdnResource) CopyV86ImageToSpace(
 	}
 
 	// Open the current published CDN head for this operation.
-	cdnSO := r.instance.GetSharedObject()
-	srcEngine, err := cdn_sharedobject.NewWorldEngine(ctx, r.le, r.b, cdnSO)
+	srcEngine, err := r.instance.openWorldEngine(ctx, r.le, r.b)
 	if err != nil {
 		return errors.Wrap(err, "build cdn source world engine")
 	}
@@ -185,10 +181,10 @@ func copyV86ImageProgress(
 	}
 }
 
-// _ is a type assertion.
-var _ s4wave_cdn.SRPCCdnResourceServiceServer = (*CdnResource)(nil)
-
 // SetAppPluginIDs supplies application composition before the resource is published.
 func (r *CdnResource) SetAppPluginIDs(ids []string) {
 	r.appPluginIDs = slices.Clone(ids)
 }
+
+// _ is a type assertion.
+var _ s4wave_cdn.SRPCCdnResourceServiceServer = (*CdnResource)(nil)

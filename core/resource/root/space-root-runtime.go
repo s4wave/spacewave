@@ -44,8 +44,11 @@ type spaceRootRuntimeClient struct {
 }
 
 type spaceRootRuntimeRoot interface {
+	// WatchSessions opens the daemon Session stream.
 	WatchSessions(context.Context) (s4wave_root.SRPCRootResourceService_WatchSessionsClient, error)
+	// MountSessionByIdx mounts a Session on the daemon resource client.
 	MountSessionByIdx(context.Context, uint32) (*s4wave_root.MountSessionByIdxResponse, error)
+	// GetSessionMetadata reads metadata for a daemon Session.
 	GetSessionMetadata(context.Context, uint32) (*session.SessionMetadata, bool, error)
 }
 
@@ -104,8 +107,19 @@ func (s *CoreRootServer) WatchSpaceRootRuntime(
 	}
 	defer client.Close()
 
+	// Forward updates while retaining ownership of the daemon connection.
+	return client.watchSpaceRootRuntime(alias, statePath, socketPath, strm)
+}
+
+// watchSpaceRootRuntime forwards the daemon Session watch with runtime metadata.
+func (c *spaceRootRuntimeClient) watchSpaceRootRuntime(
+	alias *s4wave_root.SpaceRootAliasRecord,
+	statePath, socketPath string,
+	strm s4wave_root.SRPCRootResourceService_WatchSpaceRootRuntimeStream,
+) error {
 	// Open the daemon Session watch for the runtime stream.
-	watch, err := client.root.WatchSessions(ctx)
+	ctx := strm.Context()
+	watch, err := c.root.WatchSessions(ctx)
 	if err != nil {
 		return sendSpaceRootRuntimeError(strm, alias.GetAliasId(), statePath, socketPath, errors.Wrap(err, "watch sessions"))
 	}
@@ -124,7 +138,7 @@ func (s *CoreRootServer) WatchSpaceRootRuntime(
 		if alias.GetKind() == s4wave_root.SpaceRootKind_SpaceRootKind_S4WAVE_FILE {
 			sessions = sessionsFromSpaceRootFile(alias.GetNative().GetPath(), sessions)
 		}
-		runtimeSessions := client.buildSpaceRootRuntimeSessions(ctx, sessions)
+		runtimeSessions := c.buildSpaceRootRuntimeSessions(ctx, sessions)
 		if err := strm.Send(&s4wave_root.WatchSpaceRootRuntimeResponse{
 			Status:          s4wave_root.SpaceRootRuntimeStatus_SpaceRootRuntimeStatus_READY,
 			AliasId:         alias.GetAliasId(),
@@ -302,6 +316,7 @@ func buildSpaceRootRuntimeClient(ctx context.Context, conn net.Conn) (*spaceRoot
 	}, nil
 }
 
+// Close releases the root, resource client and connection in dependency order.
 func (c *spaceRootRuntimeClient) Close() {
 	if c.root != nil {
 		if releaser, ok := c.root.(interface{ Release() }); ok {

@@ -63,6 +63,5 @@ func (s *CoreRootServer) lookupCdnSharedObject(
 	if err != nil || inst == nil {
 		return nil, nil
 	}
-	cdnSO := inst.GetSharedObject()
-	return cdnSO, cdnSO.GetMeta()
+	return inst.ResolveSharedObject()
 }

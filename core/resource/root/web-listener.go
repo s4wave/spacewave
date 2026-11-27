@@ -111,16 +111,26 @@ func (s *CoreRootServer) WatchWebListeners(
 	_ *s4wave_root.WatchWebListenersRequest,
 	strm s4wave_root.SRPCRootResourceService_WatchWebListenersStream,
 ) error {
+	return s.webListeners.watch(strm)
+}
+
+// watch streams registry snapshots until the client stops watching.
+func (r *webListenerRegistry) watch(
+	strm s4wave_root.SRPCRootResourceService_WatchWebListenersStream,
+) error {
+	// Track the last snapshot sent to this watcher.
 	ctx := strm.Context()
 	var prev *s4wave_root.WatchWebListenersResponse
 	for {
+		// Capture the snapshot and its next wakeup under the same lock.
 		var waitCh <-chan struct{}
 		var listeners []*s4wave_root.WebListenerInfo
-		s.webListeners.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			waitCh = getWaitCh()
-			listeners = s.webListeners.listLocked()
+			listeners = r.listLocked()
 		})
 
+		// Send only snapshots that differ from the previous response.
 		resp := &s4wave_root.WatchWebListenersResponse{Listeners: listeners}
 		if prev == nil || !resp.EqualVT(prev) {
 			if err := strm.Send(resp); err != nil {
@@ -129,6 +139,7 @@ func (s *CoreRootServer) WatchWebListeners(
 			prev = resp
 		}
 
+		// Wait for a registry change or the watcher to stop.
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
