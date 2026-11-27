@@ -77,6 +77,25 @@ func (g *guestChild) exited(status unix.WaitStatus) {
 	g.schedule()
 }
 
+// running reports whether pid belongs to this child.
+func (g *guestChild) running(pid int) bool {
+	return g != nil && pid == g.pid
+}
+
+// stageExited records a successful staging exit without restarting, or applies
+// the normal restart policy after a failed staging attempt.
+func (g *guestChild) stageExited(status unix.WaitStatus) bool {
+	// A completed stage leaves no running child or restart to schedule.
+	if status.Exited() && status.ExitStatus() == 0 {
+		g.pid = 0
+		return true
+	}
+
+	// Failed staging uses the same backoff as every supervised failure.
+	g.exited(status)
+	return false
+}
+
 // schedule arms the restart timer with the next doubled delay.
 func (g *guestChild) schedule() {
 	g.wait = min(max(2*g.wait, childRetryMin), childRetryMax)

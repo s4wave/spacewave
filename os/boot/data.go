@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -288,10 +289,15 @@ func openData(ctx context.Context, le *logrus.Entry, path string, create bool) (
 // VolumeID returns the durable identity of this data binding.
 func (d *Data) VolumeID() string { return d.volume.GetID() }
 
-// Handle borrows the writable root until Close. Stop filesystem users and join
-// their servers before closing Data; Close invalidates remaining cached cursors.
-func (d *Data) Handle() *unixfs.FSHandle {
-	return d.handle
+// ensureConfigMountpoint prepares the writable root for its separate configuration binding.
+func (d *Data) ensureConfigMountpoint(ctx context.Context) error {
+	return d.handle.MkdirAllPath(ctx, "config", 0o755, time.Now())
+}
+
+// mountConsole serves the writable root until the caller unmounts and joins the
+// returned server. The caller must finish that cleanup before closing Data.
+func (d *Data) mountConsole(ctx context.Context, cancel context.CancelCauseFunc, stopping *atomic.Bool, le *logrus.Entry, path string) (*consoleMount, error) {
+	return mountConsoleFS(ctx, cancel, stopping, le, path, d.handle, false)
 }
 
 // Wait reports a controller stop requiring the caller to contain filesystem

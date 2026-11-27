@@ -108,17 +108,15 @@ func runGuestShell(
 			if pid == 0 {
 				break
 			}
-			if daemon != nil && pid == daemon.pid {
+			if daemon.running(pid) {
 				daemon.exited(status)
 				continue
 			}
-			if stager != nil && pid == stager.pid {
-				if status.Exited() && status.ExitStatus() == 0 {
-					stager.pid = 0
+			if stager.running(pid) {
+				if stager.stageExited(status) {
 					println("SPACEWAVE_OS_STAGED_REBOOT")
 					return Reboot, false, nil
 				}
-				stager.exited(status)
 				continue
 			}
 			if trial.accepting(pid) {

@@ -36,7 +36,7 @@ func TestDataVolumeReopen(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := writeImageFile(ctx, d.Handle(), "acknowledged", bytes.NewReader(content)); err != nil {
+		if err := writeImageFile(ctx, d.handle, "acknowledged", bytes.NewReader(content)); err != nil {
 			t.Fatal(err)
 		}
 		os.Exit(0)
@@ -70,15 +70,15 @@ func TestDataVolumeReopen(t *testing.T) {
 		}
 	})
 	id := d.volume.GetID()
-	if err := verifyImageFile(ctx, d.Handle(), "acknowledged", bytes.NewReader(content)); err != nil {
+	if err := verifyImageFile(ctx, d.handle, "acknowledged", bytes.NewReader(content)); err != nil {
 		t.Fatal(err)
 	}
-	if err := writeImageFile(ctx, d.Handle(), "clean", bytes.NewBufferString("clean restart")); err != nil {
+	if err := writeImageFile(ctx, d.handle, "clean", bytes.NewBufferString("clean restart")); err != nil {
 		t.Fatal(err)
 	}
 
 	// Keep a resolved child across healthy close, as FUSE can omit Forget.
-	cached, err := d.Handle().Lookup(ctx, "clean")
+	cached, err := d.handle.Lookup(ctx, "clean")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,13 +115,13 @@ func TestDataVolumeReopen(t *testing.T) {
 		t.Fatal("reopen replaced the Volume identity")
 	}
 	cancel()
-	if err := verifyImageFile(ctx, d.Handle(), "acknowledged", bytes.NewReader(content)); err != nil {
+	if err := verifyImageFile(ctx, d.handle, "acknowledged", bytes.NewReader(content)); err != nil {
 		t.Fatal(err)
 	}
-	if err := verifyImageFile(ctx, d.Handle(), "clean", bytes.NewBufferString("clean restart")); err != nil {
+	if err := verifyImageFile(ctx, d.handle, "clean", bytes.NewBufferString("clean restart")); err != nil {
 		t.Fatal(err)
 	}
-	file, err := d.Handle().Lookup(ctx, "acknowledged")
+	file, err := d.handle.Lookup(ctx, "acknowledged")
 	if err != nil {
 		t.Fatal(err)
 	}

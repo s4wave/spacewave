@@ -10,9 +10,7 @@ import (
 	"slices"
 	"sync"
 	"sync/atomic"
-	"time"
 
-	"github.com/s4wave/spacewave/db/unixfs"
 	os_image "github.com/s4wave/spacewave/os/image"
 
 	"github.com/sirupsen/logrus"
@@ -142,7 +140,7 @@ func RunConsole(ctx context.Context, requests <-chan os.Signal, system, data, co
 				retErr = errors.Join(retErr, configuration.Close())
 			}
 		}()
-		if err := d.Handle().MkdirAllPath(ctx, "config", 0o755, time.Now()); err != nil {
+		if err := d.ensureConfigMountpoint(ctx); err != nil {
 			return PowerOff, err
 		}
 	}
@@ -203,21 +201,22 @@ func RunConsole(ctx context.Context, requests <-chan os.Signal, system, data, co
 		return PowerOff, err
 	}
 
-	// Each mount carries its handle explicitly; writable roles cannot alias by mode.
-	type mountTarget struct {
+	// Mount the immutable image before its writable data and configuration roots.
+	mount, err := mountConsoleFS(runCtx, cancel, &stopping, le, rootPath, root.Handle(), true)
+	if err != nil {
+		return PowerOff, err
+	}
+	mounts = append(mounts, mount)
+	for _, target := range []struct {
 		// path is the explicit guest mountpoint for this binding.
 		path string
-		// readOnly distinguishes the frozen image from writable bindings.
-		readOnly bool
-		// handle borrows this binding's root until unmount and Serve join.
-		handle *unixfs.FSHandle
-	}
-	targets := []mountTarget{{rootPath, true, root.Handle()}, {filepath.Join(rootPath, "data"), false, d.Handle()}}
-	if configuration != nil {
-		targets = append(targets, mountTarget{filepath.Join(rootPath, "data/config"), false, configuration.Handle()})
-	}
-	for _, target := range targets {
-		mount, err := mountConsoleFS(runCtx, cancel, &stopping, le, target.path, target.handle, target.readOnly)
+		// data owns the writable root borrowed by the mount.
+		data *Data
+	}{{filepath.Join(rootPath, "data"), d}, {filepath.Join(rootPath, "data/config"), configuration}} {
+		if target.data == nil {
+			continue
+		}
+		mount, err := target.data.mountConsole(runCtx, cancel, &stopping, le, target.path)
 		if err != nil {
 			return PowerOff, err
 		}
@@ -284,14 +283,11 @@ func RunConsole(ctx context.Context, requests <-chan os.Signal, system, data, co
 	if daemonArgs != nil {
 		state, stage = filepath.Join(data, "daemon"), StageReleaseArgs(system, data)
 	}
-	ready, stopReady, err := watchReady(state)
+	ready, stopReady, err := trial.watchReady(state)
 	if err != nil {
 		return PowerOff, err
 	}
 	defer stopReady()
-	if trial != nil {
-		trial.watch(ready)
-	}
 
 	// Start only after helpers finish; from here one Wait4 authority owns children.
 	if err := context.Cause(runCtx); err != nil {

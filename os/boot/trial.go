@@ -39,7 +39,7 @@ const (
 // passes before that child exits cleanly. A nil trialRun, or one already
 // settled, blocks both channels.
 type trialRun struct {
-	// healthy closes once the trial's revision works; nil until watch.
+	// healthy closes once the trial's revision works; nil until watchReady.
 	healthy <-chan struct{}
 	// deadline runs expire once the trial has run out of time.
 	deadline *time.Timer
@@ -78,15 +78,20 @@ func (t *trialRun) expire() {
 	_ = unix.Reboot(unix.LINUX_REBOOT_CMD_RESTART)
 }
 
-// watch makes the trial healthy once ready closes, as watchReady returns it.
-func (t *trialRun) watch(ready <-chan struct{}) {
-	t.healthy = ready
-}
-
-// watchReady returns a channel that closes once the daemon whose state
-// directory is state reports ready, and a function that ends the watch. An
+// watchReady watches trial health and returns the daemon readiness event for
+// staging, and a function that ends the watch. An
 // image without a daemon, whose state is "", is ready once the console is,
 // so its channel is already closed.
+func (t *trialRun) watchReady(state string) (<-chan struct{}, func(), error) {
+	// Share the same readiness event with staging even when no trial is running.
+	ready, stop, err := watchReady(state)
+	if err == nil && t != nil {
+		t.healthy = ready
+	}
+	return ready, stop, err
+}
+
+// watchReady observes daemon readiness without requiring a trial.
 func watchReady(state string) (<-chan struct{}, func(), error) {
 	if state == "" {
 		ready := make(chan struct{})
