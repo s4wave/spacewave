@@ -4,6 +4,7 @@ package spacewave_cli
 
 import (
 	"context"
+	stderrors "errors"
 	"os"
 	"os/signal"
 	"syscall"
@@ -25,6 +26,9 @@ type debugVolumeCollectArgs struct {
 	grace string
 	// load is the writer run beside the passes.
 	load volumeLoadOpts
+	// cpuProfile is the file that receives a CPU profile of the run, empty
+	// for none.
+	cpuProfile string
 	// upgrade decides whether the open upgrades the volume's format.
 	upgrade *FormatUpgrade
 }
@@ -53,6 +57,11 @@ func (a *debugVolumeCollectArgs) BuildFlags() []cli.Flag {
 			Usage:       "run a writer beside the passes for this long, such as 10m, and print its commit latencies",
 			Destination: &a.load.window,
 		},
+		&cli.StringFlag{
+			Name:        "cpu-profile",
+			Usage:       "write a Go CPU profile of the whole run, the recount included, to this file",
+			Destination: &a.cpuProfile,
+		},
 	}, a.upgrade.BuildFlags()...)
 }
 
@@ -71,12 +80,19 @@ func (a *debugVolumeCollectArgs) Run(c *cli.Context) error {
 	}
 	path := c.Args().First()
 
+	// Profile from before the open, so the profile covers the recount.
+	stopProfile, err := startCPUProfile(a.cpuProfile)
+	if err != nil {
+		return err
+	}
+
 	// Turning frees on recounts the Volume. An interrupt or a TERM ends the
 	// run at its next commit, so a stopped run still prints its totals.
 	ctx, stop := signal.NotifyContext(c.Context, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	conf := a.upgrade.StoreConfig(&store_kvtx.Config{CollectorFrees: a.frees, CollectorGraceDur: a.grace})
 	rep, err := collectVolume(ctx, logrus.NewEntry(logrus.New()), path, conf, a.load)
+	err = stderrors.Join(err, stopProfile())
 
 	// Print the totals, including those a failed or stopped pass left.
 	writeFields(os.Stdout, rep.fields())
