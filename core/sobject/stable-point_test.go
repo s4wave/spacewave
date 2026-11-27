@@ -2,8 +2,10 @@ package sobject
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"slices"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/s4wave/spacewave/net/crypto"
@@ -145,11 +147,12 @@ func TestCarryOutcomes(t *testing.T) {
 		return &SOOperationPosition{PeerId: peer, Nonce: nonce, OpHash: []byte(peer + strconv.FormatUint(nonce, 10))}
 	}
 	prev := &SOCheckpointInner{
+		Height:  3,
 		Authors: []*SOOperationPosition{at("a", 5), at("b", 2)},
 		Outcomes: &SOCheckpointOutcomes{
 			Refused:     []*SOOperationPosition{at("a", 4)},
 			PrevAuthors: &SOCheckpointAuthors{Authors: []*SOOperationPosition{at("a", 3), at("b", 1)}},
-			Carried:     []*SOCheckpointCarried{{PeerId: "a", From: at("a", 1), Refused: []*SOOperationPosition{at("a", 2)}}},
+			Carried:     []*SOCheckpointCarried{{PeerId: "a", From: at("a", 1), Refused: []*SOOperationPosition{at("a", 2)}, Height: 2}},
 		},
 	}
 	op := func(peer string, nonce uint64, parents ...*SOOperationPosition) *SOOperationInner {
@@ -171,8 +174,8 @@ func TestCarryOutcomes(t *testing.T) {
 			t.Fatalf("%s: carried %v, want %v", name, got, want)
 		}
 	}
-	aEntry := &SOCheckpointCarried{PeerId: "a", From: at("a", 1), Refused: []*SOOperationPosition{at("a", 2), at("a", 4)}}
-	bEntry := &SOCheckpointCarried{PeerId: "b", From: at("b", 1)}
+	aEntry := &SOCheckpointCarried{PeerId: "a", From: at("a", 1), Refused: []*SOOperationPosition{at("a", 2), at("a", 4)}, Height: 2}
+	bEntry := &SOCheckpointCarried{PeerId: "b", From: at("b", 1), Height: 3}
 
 	// With no acknowledgment, a's entry grows by prev's refusal and b's
 	// starts at its previous head.
@@ -194,4 +197,110 @@ func TestCarryOutcomes(t *testing.T) {
 	// A previous checkpoint that records no span starts no entry.
 	prev.Outcomes.PrevAuthors = nil
 	want("no recorded span", carry())
+}
+
+// TestCarriedEquivocation checks that a signer carries both refused operations
+// of an author that equivocated at one nonce, in hash order, and that the
+// checkpoint holding them signs and verifies, so an equivocation cannot stop
+// checkpoints. An entry listing one refusal twice is refused.
+func TestCarriedEquivocation(t *testing.T) {
+	// The writer signed two operations at nonce 5, and the previous
+	// checkpoint refused both, listed against hash order.
+	peers := createMockPeers(t, 2)
+	keys := mustPrivKeys(t, peers)
+	owner, writer := peers[0].GetPeerID().String(), peers[1].GetPeerID().String()
+	at := func(peer string, nonce uint64, tag string) *SOOperationPosition {
+		h := sha256.Sum256([]byte(peer + tag))
+		return &SOOperationPosition{PeerId: peer, Nonce: nonce, OpHash: h[:]}
+	}
+	heads := func(positions ...*SOOperationPosition) []*SOOperationPosition {
+		slices.SortFunc(positions, func(a, b *SOOperationPosition) int { return strings.Compare(a.GetPeerId(), b.GetPeerId()) })
+		return positions
+	}
+	first, second := at(writer, 5, "first"), at(writer, 5, "second")
+	if comparePosition(first, second) < 0 {
+		first, second = second, first
+	}
+	prev := &SOCheckpointInner{
+		Height:  3,
+		Authors: heads(at(owner, 1, "owner"), at(writer, 5, "first")),
+		Outcomes: &SOCheckpointOutcomes{
+			Refused:     []*SOOperationPosition{first, second},
+			PrevAuthors: &SOCheckpointAuthors{Authors: heads(at(owner, 1, "owner"), at(writer, 4, "four"))},
+		},
+	}
+
+	// The next checkpoint carries the writer's entry with both refusals.
+	carried := carryOutcomes(prev, func([]byte) *SOOperationInner { return nil }, nil)
+	if len(carried) != 1 || len(carried[0].GetRefused()) != 2 || comparePosition(carried[0].GetRefused()[0], carried[0].GetRefused()[1]) >= 0 {
+		t.Fatalf("carried %v, want the writer's two refusals in hash order", carried)
+	}
+	configHash, prevHash := sha256.Sum256([]byte("config")), sha256.Sum256([]byte("prev"))
+	next := &SOCheckpointInner{
+		SharedObjectId:     mockSharedObjectID,
+		Height:             4,
+		PrevCheckpointHash: prevHash[:],
+		ConfigHash:         configHash[:],
+		ReplayVersion:      SOReplayVersion,
+		Authors:            prev.GetAuthors(),
+		Outcomes:           &SOCheckpointOutcomes{PrevAuthors: &SOCheckpointAuthors{Authors: prev.GetAuthors()}, Carried: carried},
+	}
+	checkpoint, err := BuildSOCheckpoint(keys[0], next)
+	if err != nil {
+		t.Fatalf("sign the checkpoint carrying an equivocation: %v", err)
+	}
+	if inner, _, err := checkpoint.Verify(mockSharedObjectID); err != nil || len(inner.GetOutcomes().GetCarried()) != 1 {
+		t.Fatalf("verify the checkpoint carrying an equivocation: %v", err)
+	}
+
+	// A refusal listed twice is malformed.
+	carried[0].Refused = append(carried[0].Refused, carried[0].GetRefused()[1])
+	if _, err := BuildSOCheckpoint(keys[0], next); err == nil {
+		t.Fatal("signed a carried entry that lists a refusal twice")
+	}
+}
+
+// TestCarriedBudget checks that carried entries that outgrow carriedBudget
+// lose the oldest whole entries first, and that the rest fit.
+func TestCarriedBudget(t *testing.T) {
+	// Thirty authors that never acknowledge, each owed two thousand
+	// refusals, about three times the budget.
+	const authors, refusals = 30, 2000
+	prev := &SOCheckpointInner{Height: 100, Outcomes: &SOCheckpointOutcomes{PrevAuthors: &SOCheckpointAuthors{}}}
+	for i := range authors {
+		peer := "p" + strconv.Itoa(10+i)
+		h := sha256.Sum256([]byte(peer))
+		pos := func(nonce uint64) *SOOperationPosition {
+			return &SOOperationPosition{PeerId: peer, Nonce: nonce, OpHash: h[:]}
+		}
+		entry := &SOCheckpointCarried{PeerId: peer, From: pos(1), Height: uint64(1 + (i*7)%authors)}
+		for n := range uint64(refusals) {
+			entry.Refused = append(entry.Refused, pos(2+n))
+		}
+		prev.Authors = append(prev.Authors, pos(3000))
+		prev.Outcomes.PrevAuthors.Authors = append(prev.Outcomes.PrevAuthors.Authors, pos(2999))
+		prev.Outcomes.Carried = append(prev.Outcomes.Carried, entry)
+	}
+
+	// The kept entries fit, are newer than every dropped one, and keep
+	// peer ID order.
+	carried := carryOutcomes(prev, func([]byte) *SOOperationInner { return nil }, nil)
+	size, oldestKept := 0, uint64(authors+1)
+	kept := make(map[string]struct{}, len(carried))
+	for j, entry := range carried {
+		size += entry.SizeVT()
+		oldestKept = min(oldestKept, entry.GetHeight())
+		kept[entry.GetPeerId()] = struct{}{}
+		if j > 0 && carried[j-1].GetPeerId() >= entry.GetPeerId() {
+			t.Fatal("trimmed entries left peer ID order")
+		}
+	}
+	if len(carried) == 0 || len(carried) == authors || size > carriedBudget {
+		t.Fatalf("kept %d of %d entries, %d bytes, want some dropped and at most %d bytes", len(carried), authors, size, carriedBudget)
+	}
+	for _, entry := range prev.GetOutcomes().GetCarried() {
+		if _, ok := kept[entry.GetPeerId()]; !ok && entry.GetHeight() >= oldestKept {
+			t.Fatalf("dropped the entry from height %d while keeping one from %d", entry.GetHeight(), oldestKept)
+		}
+	}
 }
