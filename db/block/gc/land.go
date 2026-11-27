@@ -755,12 +755,15 @@ func classifyPuts(
 			kinds[i] = putReborn
 			continue
 		}
-		counted = append(counted, rec.key(kindCount, key))
+		counted = append(counted, key)
 		countedAt = append(countedAt, i)
 	}
 
 	// Read the counts in one batch, with those of the blocks holds asks for.
-	held := holds.gather(rec, puts, keys, kinds, seen)
+	// Each counted put is not unmarked, as its run entry read above shows,
+	// so its holders are in its kindCount record, which countsBatch reads
+	// with no second run entry read.
+	held := holds.gather(puts, keys, kinds, seen)
 	counted = append(counted, held...)
 	if len(counted) != 0 {
 		values, found, err := rec.countsBatch(ctx, counted)
@@ -772,7 +775,7 @@ func classifyPuts(
 				return err
 			}
 		}
-		if err := holds.note(rec, held, values[len(countedAt):], found[len(countedAt):]); err != nil {
+		if err := holds.note(held, values[len(countedAt):], found[len(countedAt):]); err != nil {
 			return err
 		}
 	}
@@ -796,45 +799,41 @@ type zeroHolds struct {
 	zeros map[string]uint64
 }
 
-// gather returns the count record keys the Land reads for holds: of each child
-// outside the batch a born put or a refill references, each root target outside
-// the batch, and each block the batch stores again, a refilled hole among them.
-// kinds holds each put's kind, with the blocks whose counts are not read yet
-// still putBorn, which is born like every kind their counts can give. A key
-// named twice is read twice, which costs less than a map to find it. The keys
-// share one allocation, built from each child's hash with no block key of its
-// own.
-func (h *zeroHolds) gather(rec *Records, puts []*block.PutBatchEntry, keys [][]byte, kinds []putKind, seen map[string]struct{}) [][]byte {
+// gather returns the block keys whose kindCount records the Land reads for
+// holds: of each child outside the batch a born put or a refill references,
+// each root target outside the batch, and each block the batch stores again, a
+// refilled hole among them. kinds holds each put's kind, with the blocks whose
+// counts are not read yet still putBorn, which is born like every kind their
+// counts can give. A key named twice is read twice, which costs less than a map
+// to find it. The child keys share one allocation, built from each child's
+// hash with no block key of its own.
+func (h *zeroHolds) gather(puts []*block.PutBatchEntry, keys [][]byte, kinds []putKind, seen map[string]struct{}) [][]byte {
 	// Without holds, nothing.
 	if h == nil {
 		return nil
 	}
 
-	// Size one buffer for every key.
-	head := len(rec.prefix) + 1
+	// Size one buffer for every child and root key.
 	size, n := 0, len(h.roots)
-	for _, key := range h.roots {
-		size += head + len(key)
-	}
 	for i, entry := range puts {
 		if kinds[i] == putStored || kinds[i] == putRefill {
-			size, n = size+head+len(keys[i]), n+1
+			n++
 		}
 		if kinds[i] == putStored {
 			continue
 		}
 		for _, child := range entry.Refs {
-			size, n = size+head+1+len(child.GetHash().GetHash()), n+1
+			size, n = size+1+len(child.GetHash().GetHash()), n+1
 		}
 	}
 
-	// Append each key's block key after the prefix and the kind, dropping
-	// an outside block the batch stores.
+	// Build each child's block key, dropping an outside block the batch
+	// stores.
 	buf := make([]byte, 0, size)
 	held := make([][]byte, 0, n)
 	add := func(start int, outside bool) {
 		if outside {
-			if _, ok := seen[string(buf[start+head:])]; ok {
+			if _, ok := seen[string(buf[start:])]; ok {
 				buf = buf[:start]
 				return
 			}
@@ -843,9 +842,7 @@ func (h *zeroHolds) gather(rec *Records, puts []*block.PutBatchEntry, keys [][]b
 	}
 	for i, entry := range puts {
 		if kinds[i] == putStored || kinds[i] == putRefill {
-			start := len(buf)
-			buf = append(append(append(buf, rec.prefix...), kindCount), keys[i]...)
-			add(start, false)
+			held = append(held, keys[i])
 		}
 		if kinds[i] == putStored {
 			continue
@@ -855,23 +852,23 @@ func (h *zeroHolds) gather(rec *Records, puts []*block.PutBatchEntry, keys [][]b
 				continue
 			}
 			start, hash := len(buf), child.GetHash()
-			buf = append(append(buf, rec.prefix...), kindCount, byte(hash.GetHashType())) //nolint:gosec // hash types fit in a byte.
+			buf = append(buf, byte(hash.GetHashType())) //nolint:gosec // hash types fit in a byte.
 			buf = append(buf, hash.GetHash()...)
 			add(start, true)
 		}
 	}
 	for _, key := range h.roots {
-		start := len(buf)
-		buf = append(append(append(buf, rec.prefix...), kindCount), key...)
-		add(start, true)
+		if _, ok := seen[string(key)]; !ok {
+			held = append(held, key)
+		}
 	}
 	return held
 }
 
-// note records, for each count key of held read with its value and whether
-// it was found, the ripe sequence of each block it finds at zero holders.
-func (h *zeroHolds) note(rec *Records, held, values [][]byte, found []bool) error {
-	head := len(rec.prefix) + 1
+// note records, for each block key of held read with its count value and
+// whether it was found, the ripe sequence of each block it finds at zero
+// holders.
+func (h *zeroHolds) note(held, values [][]byte, found []bool) error {
 	for i, key := range held {
 		if !found[i] {
 			continue
@@ -886,7 +883,7 @@ func (h *zeroHolds) note(rec *Records, held, values [][]byte, found []bool) erro
 		if h.zeros == nil {
 			h.zeros = make(map[string]uint64)
 		}
-		h.zeros[string(key[head:])] = ripe
+		h.zeros[string(key)] = ripe
 	}
 	return nil
 }

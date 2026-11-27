@@ -95,7 +95,7 @@ func WriteOffHoles(ctx context.Context, store Store, refs []*block.BlockRef) (Wr
 // value read each. It keeps nothing, so the caller streams the holes out.
 func ScanHoles(ctx context.Context, store Store, fn func(ref *block.BlockRef, writtenOff bool) error) error {
 	return store.View(ctx, func(rec *Records) error {
-		return rec.scan(ctx, rec.key(kindHole), nil, func(key []byte, value func() ([]byte, error)) (bool, error) {
+		return rec.scanKind(ctx, kindHole, nil, func(key []byte, value func() ([]byte, error)) (bool, error) {
 			// Parse the hole's block and read whether it is written off.
 			ref, _, err := ParseBlockKey(key)
 			if err != nil {

@@ -204,26 +204,22 @@ func (n *netting) write(ctx context.Context) error {
 	}
 
 	// While Sweeping an unmarked block's holders are in its
-	// kindUnmarkedCount record, as countKind routes it, at one more read of
+	// kindUnmarkedCount record, which holdersBatch routes at one more read of
 	// its run entry. Outside Sweeping every node's holders are in its
 	// kindCount record.
-	sweeping := n.state.GetGeneration() == Generation_GENERATION_SWEEPING
-	reads := make([][]byte, len(nodes))
+	keys := make([][]byte, len(nodes))
 	for i, nd := range nodes {
-		kind := kindCount
-		if sweeping {
-			var err error
-			if kind, err = n.rec.countKind(ctx, nd.key); err != nil {
-				return err
-			}
-		}
-		reads[i] = n.rec.key(kind, nd.key)
+		keys[i] = nd.key
+	}
+	read := n.rec.countsBatch
+	if n.state.GetGeneration() == Generation_GENERATION_SWEEPING {
+		read = n.rec.holdersBatch
 	}
 	var values [][]byte
 	var found []bool
-	if len(reads) != 0 {
+	if len(keys) != 0 {
 		var err error
-		if values, found, err = n.rec.countsBatch(ctx, reads); err != nil {
+		if values, found, err = read(ctx, keys); err != nil {
 			return err
 		}
 	}

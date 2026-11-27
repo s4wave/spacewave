@@ -47,7 +47,7 @@ func (r *Records) scanAfter(ctx context.Context, kind byte, after []byte, limit 
 		from = append(bytes.Clone(after), 0)
 	}
 	var out []adoptRecord
-	err := r.scan(ctx, r.key(kind), from, func(key []byte, value func() ([]byte, error)) (bool, error) {
+	err := r.scanKind(ctx, kind, from, func(key []byte, value func() ([]byte, error)) (bool, error) {
 		if len(out) == limit {
 			return false, nil
 		}
@@ -92,7 +92,7 @@ func (r *Records) scanThrough(ctx context.Context, kind byte, after, last []byte
 		from = append(bytes.Clone(after), 0)
 	}
 	var out sortedRecords
-	err := r.scan(ctx, r.key(kind), from, func(key []byte, value func() ([]byte, error)) (bool, error) {
+	err := r.scanKind(ctx, kind, from, func(key []byte, value func() ([]byte, error)) (bool, error) {
 		if last != nil && bytes.Compare(key, last) > 0 {
 			return false, nil
 		}

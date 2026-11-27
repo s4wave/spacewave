@@ -237,7 +237,11 @@ func TestReadsAnswerEachKey(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	counts, counted, err := rec.countsBatch(ctx, rec.kindKeys(kindCount, bkeys))
+	counts, counted, err := rec.countsBatch(ctx, bkeys)
+	if err != nil {
+		t.Fatal(err)
+	}
+	holders, held, err := rec.holdersBatch(ctx, bkeys)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -250,11 +254,11 @@ func TestReadsAnswerEachKey(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if want := i != 1; ok != want || listed[i] != want || found[i] != want || countOK != want || counted[i] != want {
-			t.Errorf("key %d: listed %v, batch listed %v, found %v; counted %v, batch %v; want %v", i, ok, listed[i], found[i], countOK, counted[i], want)
+		if want := i != 1; ok != want || listed[i] != want || found[i] != want || countOK != want || counted[i] != want || held[i] != want {
+			t.Errorf("key %d: listed %v, batch listed %v, found %v; counted %v, batch %v, holders %v; want %v", i, ok, listed[i], found[i], countOK, counted[i], held[i], want)
 		}
-		if !bytes.Equal(lists[i], list) || !bytes.Equal(counts[i], count) {
-			t.Errorf("key %d: batch read %x %x, point read %x %x", i, lists[i], counts[i], list, count)
+		if !bytes.Equal(lists[i], list) || !bytes.Equal(counts[i], count) || !bytes.Equal(holders[i], count) {
+			t.Errorf("key %d: batch read %x %x %x, point read %x %x", i, lists[i], counts[i], holders[i], list, count)
 		}
 	}
 }

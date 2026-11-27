@@ -102,7 +102,7 @@ func (c *Collector) SettleStatus(ctx context.Context, limit int) (SettleStatus, 
 // them, and samples the first open holes' blocks, since those are the ones
 // a put must store again.
 func (s *SettleStatus) readHoles(ctx context.Context, rec *Records, limit int) error {
-	return rec.scan(ctx, rec.key(kindHole), nil, func(key []byte, value func() ([]byte, error)) (bool, error) {
+	return rec.scanKind(ctx, kindHole, nil, func(key []byte, value func() ([]byte, error)) (bool, error) {
 		// Stop past the limit.
 		if s.Holes == limit {
 			s.HolesMore = true
@@ -129,7 +129,7 @@ func (s *SettleStatus) readHoles(ctx context.Context, rec *Records, limit int) e
 
 // readFront counts and classifies each front entry in the same bounded scan.
 func (s *SettleStatus) readFront(ctx context.Context, rec *Records, blocks block.StoreOps, limit int) error {
-	return rec.scan(ctx, rec.key(kindFront), nil, func(key []byte, _ func() ([]byte, error)) (bool, error) {
+	return rec.scanKind(ctx, kindFront, nil, func(key []byte, _ func() ([]byte, error)) (bool, error) {
 		// Stop before reading proof records for entries beyond the limit.
 		if s.Front == limit {
 			s.FrontMore = true

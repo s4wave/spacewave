@@ -350,7 +350,7 @@ func (c *Collector) unrefRead(ctx context.Context, past func() bool, res *Collec
 			if seek != nil {
 				seek = append(bytes.Clone(seek), 0)
 			}
-			return rec.scan(ctx, rec.key(kind), seek, func(key []byte, value func() ([]byte, error)) (bool, error) {
+			return rec.scanKind(ctx, kind, seek, func(key []byte, value func() ([]byte, error)) (bool, error) {
 				// Stop at the slice's budget, or once every candidate has a
 				// holder, and read the record otherwise.
 				if read == budget || u.left == 0 {

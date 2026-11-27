@@ -789,7 +789,7 @@ func (a *adoption) hold(ctx context.Context, rec *Records, h holds) error {
 	// Add the holders to the counts, read in one batch.
 	reads := make([][]byte, len(keys))
 	for i, key := range keys {
-		reads[i] = rec.key(kindCount, []byte(key))
+		reads[i] = []byte(key)
 	}
 	counts, counted, err := rec.countsBatch(ctx, reads)
 	if err != nil {
@@ -803,7 +803,7 @@ func (a *adoption) hold(ctx context.Context, rec *Records, h holds) error {
 				return err
 			}
 		}
-		if err := rec.tx.Set(ctx, reads[i], binary.AppendUvarint(nil, n+h[key].n)); err != nil {
+		if err := rec.tx.Set(ctx, rec.key(kindCount, reads[i]), binary.AppendUvarint(nil, n+h[key].n)); err != nil {
 			return err
 		}
 		if h[key].open {

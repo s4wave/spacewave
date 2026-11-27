@@ -70,7 +70,7 @@ func (c *Collector) InspectHolders(
 		// Stream all matching lists, retaining only the first parents per target.
 		for level := 1; level <= up && len(targets) != 0; level++ {
 			counts := HolderLevel{}
-			err := rec.scan(ctx, rec.key(kindChildren), nil, func(key []byte, value func() ([]byte, error)) (bool, error) {
+			err := rec.scanKind(ctx, kindChildren, nil, func(key []byte, value func() ([]byte, error)) (bool, error) {
 				// Inspect packed child keys directly instead of allocating a decoded list.
 				packed, err := value()
 				if err != nil {

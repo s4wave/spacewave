@@ -597,7 +597,7 @@ func (w *walker) roots(ctx context.Context) error {
 	after, done := w.prog.GetAfter(), true
 	leases := make(map[string]int64)
 	err := w.view(ctx, func(rec *Records) error {
-		return rec.scan(ctx, rec.key(kindRoot), from, func(key []byte, value func() ([]byte, error)) (bool, error) {
+		return rec.scanKind(ctx, kindRoot, from, func(key []byte, value func() ([]byte, error)) (bool, error) {
 			// Stop at the bound.
 			if len(recs) == sliceRecords {
 				done = false
@@ -652,7 +652,7 @@ func (w *walker) lists(ctx context.Context) error {
 		if !more {
 			return nil
 		}
-		return rec.scan(ctx, rec.key(kindChildren), from, func(key []byte, value func() ([]byte, error)) (bool, error) {
+		return rec.scanKind(ctx, kindChildren, from, func(key []byte, value func() ([]byte, error)) (bool, error) {
 			// Stop at the bounds.
 			if read == sliceRecords || len(recs) >= walkSliceEdges {
 				done = false

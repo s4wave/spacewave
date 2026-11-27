@@ -442,7 +442,7 @@ func AuditFront(ctx context.Context, rec *Records) (missing uint64, sample []*bl
 	}
 
 	// Check each child of each marked list.
-	err = rec.scan(ctx, rec.key(kindChildren), nil, func(_ []byte, value func() ([]byte, error)) (bool, error) {
+	err = rec.scanKind(ctx, kindChildren, nil, func(_ []byte, value func() ([]byte, error)) (bool, error) {
 		// Decode a marked list.
 		v, err := value()
 		if err != nil || !listMarked(v) {

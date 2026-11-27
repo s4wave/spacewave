@@ -586,7 +586,7 @@ func (c *Collector) proveFlip(ctx context.Context, rec *Records) (flipProof, err
 			return proof, err
 		}
 	}
-	if fronted, err := rec.anyKey(ctx, rec.key(kindFront)); err != nil || fronted {
+	if fronted, err := rec.anyOfKind(ctx, kindFront); err != nil || fronted {
 		return proof, err
 	}
 	if holds, err := rec.holesHold(ctx); err != nil || holds {
@@ -626,7 +626,7 @@ func (c *Collector) clearHoles(ctx context.Context) error {
 		if err != nil || !open {
 			return err
 		}
-		holes, err := rec.anyKey(ctx, rec.key(kindHole))
+		holes, err := rec.anyOfKind(ctx, kindHole)
 		if err != nil || holes {
 			return err
 		}
@@ -824,7 +824,7 @@ func (r *Records) readKeys(ctx context.Context, p *keyPage, kind byte, from []by
 
 	// Read until the page fills.
 	read := 0
-	return r.scan(ctx, r.key(kind), seek, func(key []byte, value func() ([]byte, error)) (bool, error) {
+	return r.scanKind(ctx, kind, seek, func(key []byte, value func() ([]byte, error)) (bool, error) {
 		// Skip the completion key, and stop once the page holds n.
 		if len(key) == 0 {
 			return true, nil

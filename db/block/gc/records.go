@@ -267,8 +267,7 @@ func (r *Records) CarryFormat9Counts(ctx context.Context, after []byte, limit in
 		}
 
 		// Gather the format 9 zero records of the kind.
-		prefix := r.key(kind)
-		err := r.scan(ctx, prefix, from, func(key []byte, value func() ([]byte, error)) (bool, error) {
+		err := r.scanKind(ctx, kind, from, func(key []byte, value func() ([]byte, error)) (bool, error) {
 			// Stop at the limit, and note the position read.
 			if n == limit {
 				return false, nil
@@ -288,7 +287,7 @@ func (r *Records) CarryFormat9Counts(ctx context.Context, after []byte, limit in
 				return false, errCountMalformed
 			}
 			carries = append(carries, carry{
-				key:   append(bytes.Clone(prefix), key...),
+				key:   r.key(kind, key),
 				value: binary.BigEndian.AppendUint64([]byte{0}, ripe),
 			})
 			return true, nil
@@ -555,10 +554,21 @@ func (r *Records) childListsBatch(ctx context.Context, keys [][]byte) ([][]byte,
 
 // kindKeys returns the record key of kind for each block key in keys, in
 // order, so a batched read answers each block key at its index.
+// The keys share one allocation.
 func (r *Records) kindKeys(kind byte, keys [][]byte) [][]byte {
+	// Size one buffer for every key.
+	head, size := len(r.prefix)+1, 0
+	for _, key := range keys {
+		size += head + len(key)
+	}
+
+	// Append each key after the prefix and kind, capped to its own bytes.
+	buf := make([]byte, 0, size)
 	reads := make([][]byte, len(keys))
 	for i, key := range keys {
-		reads[i] = r.key(kind, key)
+		start := len(buf)
+		buf = append(append(append(buf, r.prefix...), kind), key...)
+		reads[i] = buf[start:len(buf):len(buf)]
 	}
 	return reads
 }
@@ -597,7 +607,7 @@ func (r *Records) DeleteChildren(ctx context.Context, ref *block.BlockRef) error
 // cursor depends on that order, so ScanChildren walks a sorted iterator rather
 // than ScanPrefix, whose order a store such as Redis leaves undefined.
 func (r *Records) ScanChildren(ctx context.Context, fn func(ref *block.BlockRef, children []*block.BlockRef) error) error {
-	return r.scan(ctx, r.key(kindChildren), nil, func(key []byte, value func() ([]byte, error)) (bool, error) {
+	return r.scanKind(ctx, kindChildren, nil, func(key []byte, value func() ([]byte, error)) (bool, error) {
 		// Decode the block and its list.
 		ref, rest, err := ParseBlockKey(key)
 		if err != nil || len(rest) != 0 {
@@ -609,6 +619,14 @@ func (r *Records) ScanChildren(ctx context.Context, fn func(ref *block.BlockRef,
 		}
 		return true, fn(ref, children)
 	})
+}
+
+// scanKind calls fn with each record of kind in key order, from the first
+// key at or after from, as scan does under the kind's prefix. A caller outside
+// Records scans liveness records only through scanKind, so no scan reaches
+// another kind's records.
+func (r *Records) scanKind(ctx context.Context, kind byte, from []byte, fn func(key []byte, value func() ([]byte, error)) (bool, error)) error {
+	return r.scan(ctx, r.key(kind), from, fn)
 }
 
 // scan calls fn with each record under prefix in key order, from the first
@@ -732,12 +750,29 @@ func (r *Records) holders(ctx context.Context, key []byte) (holders, ripe uint64
 	return decodeHolders(value)
 }
 
-// countsBatch returns, for each count record key in keys in order, its
-// value and whether it exists, in one batched read. Each key is a whole
-// kindCount or kindUnmarkedCount key, which key or zeroHolds.gather builds,
-// since the caller picks the kind per block, as countKind describes.
+// countsBatch returns, for each block key in keys in order, its kindCount
+// record and whether it exists, in one batched read. It reads the count a
+// marked block's holders are in, which is every block's outside Sweeping. A
+// caller that may read an unmarked block while Sweeping uses holdersBatch.
 func (r *Records) countsBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool, error) {
-	return kvtx.GetBatch(ctx, r.tx, keys)
+	return kvtx.GetBatch(ctx, r.tx, r.kindKeys(kindCount, keys))
+}
+
+// holdersBatch returns, for each block key in keys in order, the count
+// record its holders are in and whether it exists, in one batched read: the
+// record of the kind countKind picks, as holders reads it.
+//
+// Cost: one countKind read per key, then the batch.
+func (r *Records) holdersBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool, error) {
+	reads := r.kindKeys(kindCount, keys)
+	for i, key := range keys {
+		kind, err := r.countKind(ctx, key)
+		if err != nil {
+			return nil, nil, err
+		}
+		reads[i][len(r.prefix)] = kind
+	}
+	return kvtx.GetBatch(ctx, r.tx, reads)
 }
 
 // decodeHolders decodes a count record value as GetHolders returns it.
@@ -872,7 +907,7 @@ func (r *Records) parkState(ctx context.Context, key []byte) (ripe uint64, parke
 // suits an audit.
 func (r *Records) releasedLists(ctx context.Context) (map[string]struct{}, error) {
 	released := make(map[string]struct{})
-	err := r.scan(ctx, r.key(kindReleased), nil, func(key []byte, _ func() ([]byte, error)) (bool, error) {
+	err := r.scanKind(ctx, kindReleased, nil, func(key []byte, _ func() ([]byte, error)) (bool, error) {
 		if len(key) < 8 {
 			return false, errBadBlockKey
 		}
@@ -896,11 +931,11 @@ func (r *Records) parkedAt(ctx context.Context, key []byte, ripe uint64) (bool, 
 // deleted key at their start; its one caller reads it once as the Volume
 // opens, in a read snapshot that holds no writer.
 func (r *Records) AnyParked(ctx context.Context) (bool, error) {
-	found, err := r.anyKey(ctx, r.key(kindParked))
+	found, err := r.anyOfKind(ctx, kindParked)
 	if err != nil || found {
 		return found, err
 	}
-	return r.anyKey(ctx, r.key(kindReleased))
+	return r.anyOfKind(ctx, kindReleased)
 }
 
 // park parks the Dead block at key, queued at the queue key queued, while
@@ -1355,7 +1390,7 @@ func (r *Records) holesHold(ctx context.Context) (bool, error) {
 
 	// Stop at the first hole nobody wrote off.
 	var holds bool
-	err = r.scan(ctx, r.key(kindHole), nil, func(_ []byte, value func() ([]byte, error)) (bool, error) {
+	err = r.scanKind(ctx, kindHole, nil, func(_ []byte, value func() ([]byte, error)) (bool, error) {
 		v, err := value()
 		holds = err == nil && !bytes.Equal(v, holeWrittenOff)
 		return err == nil && !holds, err
@@ -1363,10 +1398,10 @@ func (r *Records) holesHold(ctx context.Context) (bool, error) {
 	return holds, err
 }
 
-// anyKey reports whether a key begins with prefix.
-func (r *Records) anyKey(ctx context.Context, prefix []byte) (bool, error) {
+// anyOfKind reports whether any record of kind exists.
+func (r *Records) anyOfKind(ctx context.Context, kind byte) (bool, error) {
 	var found bool
-	err := r.scan(ctx, prefix, nil, func([]byte, func() ([]byte, error)) (bool, error) {
+	err := r.scanKind(ctx, kind, nil, func([]byte, func() ([]byte, error)) (bool, error) {
 		found = true
 		return false, nil
 	})
@@ -1428,7 +1463,7 @@ func (r *Records) appendLogs(ctx context.Context, state *LivenessState, now time
 // returns false or an error. keys is valid only during the call.
 func (r *Records) scanUps(ctx context.Context, from uint64, fn func(seq uint64, keys []byte) (bool, error)) error {
 	seek := binary.BigEndian.AppendUint64(nil, from)
-	return r.scan(ctx, r.key(kindUpLog), seek, func(key []byte, value func() ([]byte, error)) (bool, error) {
+	return r.scanKind(ctx, kindUpLog, seek, func(key []byte, value func() ([]byte, error)) (bool, error) {
 		if len(key) != 8 {
 			return false, errors.New("liveness up page key is malformed")
 		}
@@ -1445,7 +1480,7 @@ func (r *Records) scanUps(ctx context.Context, from uint64, fn func(seq uint64, 
 // call.
 func (r *Records) scanDowns(ctx context.Context, from uint64, fn func(p downPage) (bool, error)) error {
 	seek := binary.BigEndian.AppendUint64(nil, from)
-	return r.scan(ctx, r.key(kindDownLog), seek, func(key []byte, value func() ([]byte, error)) (bool, error) {
+	return r.scanKind(ctx, kindDownLog, seek, func(key []byte, value func() ([]byte, error)) (bool, error) {
 		v, err := value()
 		if err != nil {
 			return false, err
@@ -1563,7 +1598,7 @@ func (r *Records) enqueue(ctx context.Context, ripe uint64, key []byte) error {
 // block key as queuePos returns, or from the start when from is nil, until
 // fn returns false or an error.
 func (r *Records) scanQueue(ctx context.Context, from []byte, fn func(ripe uint64, ref *block.BlockRef) (bool, error)) error {
-	return r.scan(ctx, r.key(kindQueue), from, func(key []byte, _ func() ([]byte, error)) (bool, error) {
+	return r.scanKind(ctx, kindQueue, from, func(key []byte, _ func() ([]byte, error)) (bool, error) {
 		if len(key) < 8 {
 			return false, errBadBlockKey
 		}

@@ -36,7 +36,7 @@ func (r *ListRebuild) WalkRoots(ctx context.Context) (*RootReach, error) {
 	err := r.store.View(ctx, func(rec *Records) error {
 		// Read the front's keys.
 		reach = &RootReach{first: make(map[string]int)}
-		err := rec.scan(ctx, rec.key(kindFront), nil, func(key []byte, _ func() ([]byte, error)) (bool, error) {
+		err := rec.scanKind(ctx, kindFront, nil, func(key []byte, _ func() ([]byte, error)) (bool, error) {
 			reach.front = append(reach.front, bytes.Clone(key))
 			return true, nil
 		})

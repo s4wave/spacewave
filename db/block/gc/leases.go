@@ -132,7 +132,7 @@ func (r *Records) rootExpiry(ctx context.Context, entry *RootEntry, leases map[s
 // and one per fill window of the last grace period.
 func (r *Records) LapsedLeases(ctx context.Context, from string, now int64, limit int) ([]LapsedLease, error) {
 	var out []LapsedLease
-	err := r.scan(ctx, r.key(kindLease), []byte(from), func(key []byte, value func() ([]byte, error)) (bool, error) {
+	err := r.scanKind(ctx, kindLease, []byte(from), func(key []byte, value func() ([]byte, error)) (bool, error) {
 		// Skip a live lease.
 		v, err := value()
 		if err != nil {
@@ -256,7 +256,7 @@ func (r *Records) CarryFormat10Leases(ctx context.Context, limit int) (bool, err
 	// Scan up to limit of them, with the largest expiry they hold.
 	var run []old
 	var expires int64
-	err := r.scan(ctx, r.key(format10Lease), nil, func(key []byte, _ func() ([]byte, error)) (bool, error) {
+	err := r.scanKind(ctx, format10Lease, nil, func(key []byte, _ func() ([]byte, error)) (bool, error) {
 		// Read the expiry and the root's bucket and name.
 		if len(key) < 8 {
 			return false, errors.New("format 10 lease record is malformed")

@@ -369,7 +369,7 @@ func (r *ListRebuild) EachFront(ctx context.Context, visit func(ref *block.Block
 		var keys [][]byte
 		err := r.store.View(ctx, func(rec *Records) error {
 			next, keys = nil, keys[:0]
-			return rec.scan(ctx, rec.key(kindFront), from, func(key []byte, _ func() ([]byte, error)) (bool, error) {
+			return rec.scanKind(ctx, kindFront, from, func(key []byte, _ func() ([]byte, error)) (bool, error) {
 				if len(keys) == sliceRecords {
 					next = bytes.Clone(key)
 					return false, nil
