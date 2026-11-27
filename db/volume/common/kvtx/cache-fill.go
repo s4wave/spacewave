@@ -13,12 +13,13 @@ import (
 	"github.com/s4wave/spacewave/db/volume"
 )
 
-// maxFillBatch bounds the cache fills one transaction writes, so a commit
+// MaxFillBatch bounds the cache fills one transaction writes, so a commit
 // queued behind a fill batch waits for a bounded write.
-const maxFillBatch = 128
+const MaxFillBatch = 128
 
-// maxFillBatchBytes bounds the block bytes one fill transaction writes.
-const maxFillBatchBytes = 8 << 20
+// MaxFillBatchBytes bounds the block bytes one fill transaction writes,
+// except for a larger block, which is written alone.
+const MaxFillBatchBytes = 8 << 20
 
 // cacheFill is one queued cache fill and its result.
 type cacheFill struct {
@@ -91,8 +92,8 @@ func (v *Volume) drainCacheFills(ctx context.Context) {
 			return
 		}
 		n, size := 0, 0
-		for n < len(q.pending) && n < maxFillBatch {
-			if n != 0 && size+len(q.pending[n].data) > maxFillBatchBytes {
+		for n < len(q.pending) && n < MaxFillBatch {
+			if n != 0 && size+len(q.pending[n].data) > MaxFillBatchBytes {
 				break
 			}
 			size += len(q.pending[n].data)
@@ -190,6 +191,19 @@ func (v *Volume) prepareCacheFills(ctx context.Context, owner string, fills []*c
 	}
 	v.countRefused(putFill, err)
 	return err
+}
+
+// FillFates reports the cache fill outcomes from one liveness snapshot.
+// It names entries with empty refs from their bytes and writes nothing to the Volume.
+func (v *Volume) FillFates(ctx context.Context, entries []*block.PutBatchEntry) ([]block_gc.FillFate, error) {
+	// Use the same record classification as the writer in a read transaction.
+	var fates []block_gc.FillFate
+	err := v.readRecords(ctx, func(rec *block_gc.Records) error {
+		var err error
+		fates, err = block_gc.FillFates(ctx, rec, v.Store, entries)
+		return err
+	})
+	return fates, err
 }
 
 // prepareFillBatch writes a batch of cache fills that owner's bucket read, such

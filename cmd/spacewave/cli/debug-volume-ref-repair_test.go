@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/binary"
 	"os"
 	"path/filepath"
 	"slices"
@@ -14,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/util/prng"
 	"github.com/pkg/errors"
 	space_world "github.com/s4wave/spacewave/core/space/world"
@@ -678,5 +680,295 @@ func unmarkLists(t *testing.T, vol *volume_s4db.Volume) {
 	}
 	if err := tx.Commit(t.Context()); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// TestDebugVolumeRefill restores verified bytes while keeping the target's child list intact.
+func TestDebugVolumeRefill(t *testing.T) {
+	// Give the target a parked block with bytes and four listed blocks without bytes.
+	ctx := t.Context()
+	dir := t.TempDir()
+	target := filepath.Join(dir, "target.s4db")
+	from := filepath.Join(dir, "source.s4db")
+	input := filepath.Join(dir, "refs.tsv")
+	lacks := filepath.Join(dir, "lacks.tsv")
+	data := [][]byte{
+		[]byte("restore me"), []byte("check my hash"), []byte("missing from source"),
+		[]byte("unlisted"), []byte("already stored"), bytes.Repeat([]byte{1}, volume_kvtx.MaxFillBatchBytes+1),
+	}
+	refs := make([]*block.BlockRef, len(data))
+	for i, dat := range data {
+		ref, err := block.BuildBlockRef(dat, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		refs[i] = ref
+	}
+	list := makeVolumeRefillTarget(t, target, refs, data)
+
+	// Give the older raw source good bytes for an ordinary and an oversized
+	// parked fill, a corrupt copy, and good bytes for an unlisted ref.
+	makeVolumeRefillSource(t, from, refs, data)
+	fromSum := sumVolumeRefillFile(t, from)
+	targetSum := sumVolumeRefillFile(t, target)
+	lines := []string{"", refs[0].MarshalString() + "\tfront entry\textra", refs[3].MarshalString(),
+		" \t ", refs[1].MarshalString(), refs[2].MarshalString(), refs[4].MarshalString(), refs[5].MarshalString()}
+	if err := os.WriteFile(input, []byte(strings.Join(lines, "\n")), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	// Exercise the registered help and preview, then compare the target file byte for byte.
+	help, err := runVolumeRefillCLI(t, "--help")
+	if err != nil || !strings.Contains(help, "--upgrade-format") || !strings.Contains(help, "--lacks-out") {
+		t.Fatalf("refill help: %v\n%s", err, help)
+	}
+	args := []string{"--from", from, "--refs", input, "--lacks-out", lacks, target}
+	dry, err := runVolumeRefillCLI(t, append([]string{"--dry-run"}, args...)...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	checkVolumeRefillReport(t, dry, []string{"Refs read", "Would skip (already stored)", "Would lack from source",
+		"Would reject (hash mismatch)", "Would restore", "Would restore under a hold, parked",
+		"Would drop", "Bytes that would be restored"}, len(data[0])+len(data[5]))
+	if got := sumVolumeRefillFile(t, target); got != targetSum {
+		t.Fatal("dry run changed the target file")
+	}
+
+	// Report a malformed ref by its physical line number, including skipped blanks.
+	badRefs := filepath.Join(dir, "bad-refs.tsv")
+	if err := os.WriteFile(badRefs, []byte("\nnot-a-ref\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_, err = runVolumeRefillCLI(t, "--dry-run", "--from", from, "--refs", badRefs, target)
+	if err == nil || !strings.Contains(err.Error(), "refs line 2 has an invalid B58 block ref") {
+		t.Fatalf("parse malformed refs file: %v", err)
+	}
+
+	// Reuse the dry run's output path and check the real run's counts.
+	if err := os.Chmod(lacks, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	real, err := runVolumeRefillCLI(t, args...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	checkVolumeRefillReport(t, real, []string{"Refs read", "Already stored", "Source lacks", "Hash mismatch",
+		"Restored", "Restored under a hold, parked", "Dropped", "Bytes restored"}, len(data[0])+len(data[5]))
+	if got := sumVolumeRefillFile(t, from); got != fromSum {
+		t.Fatal("refill changed the source file")
+	}
+
+	// Read the exception file as a caller would, in input order and with private permissions.
+	out, err := os.ReadFile(lacks)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := refs[3].MarshalString() + "\trecords do not accept a copied fill\n" +
+		refs[1].MarshalString() + "\thash mismatch\n" +
+		refs[2].MarshalString() + "\tsource lacks block\n"
+	if string(out) != want {
+		t.Fatalf("lacks output %q, want %q", out, want)
+	}
+	info, err := os.Stat(lacks)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if mode := info.Mode().Perm(); mode != 0o600 {
+		t.Fatalf("lacks mode %o, want 600", mode)
+	}
+
+	// Check physical presence, restored bytes and the original serialized child list.
+	vol, err := openStoppedVolume(ctx, logrus.NewEntry(logrus.New()), target, volumeReadOnly)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer vol.Close()
+	found, err := vol.Store.GetBlockExistsBatch(ctx, refs)
+	if err != nil || !slices.Equal(found, []bool{true, false, false, false, true, true}) {
+		t.Fatalf("stored blocks %v: %v", found, err)
+	}
+	if visible, err := vol.GetBlockExists(ctx, refs[4]); err != nil || visible {
+		t.Fatalf("the skipped block should stay parked: visible=%t, err=%v", visible, err)
+	}
+	got, foundBlock, err := vol.GetBlock(ctx, refs[0])
+	if err != nil || !foundBlock || !bytes.Equal(got, data[0]) {
+		t.Fatalf("restored block found=%t, size=%d: %v", foundBlock, len(got), err)
+	}
+	if got := readVolumeRefillList(t, vol, refs[0]); !bytes.Equal(got, list) {
+		t.Fatal("refill changed the original child list")
+	}
+
+	// Read back the oversized parked fill and the sole root its hold created.
+	got, foundBlock, err = vol.GetBlock(ctx, refs[5])
+	if err != nil || !foundBlock || !bytes.Equal(got, data[5]) {
+		t.Fatalf("parked fill found=%t, size=%d: %v", foundBlock, len(got), err)
+	}
+	var roots []block.NamedRoot
+	err = vol.ListRoots(ctx, "fill:volume-refill/", func(root block.NamedRoot) error {
+		roots = append(roots, root)
+		return nil
+	})
+	if err != nil || len(roots) != 1 || !roots[0].Ref.EqualVT(refs[5]) || roots[0].Lease == "" {
+		t.Fatalf("parked fill roots: %+v, %v", roots, err)
+	}
+}
+
+// makeVolumeRefillTarget leaves child lists intact while preparing ordinary and parked fills.
+func makeVolumeRefillTarget(t *testing.T, path string, refs []*block.BlockRef, data [][]byte) []byte {
+	// Set up a stopped target using the physical store and recorded child lists.
+	t.Helper()
+	ctx := t.Context()
+	vol, err := volume_s4db.NewVolume(ctx, logrus.NewEntry(logrus.New()), &volume_s4db.Config{Path: path})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer vol.Close()
+	for _, i := range []int{0, 1, 2, 4} {
+		if ref, _, err := vol.Store.PutBlock(ctx, data[i], nil); err != nil || !ref.EqualVT(refs[i]) {
+			t.Fatalf("store target fixture block %d: %v", i, err)
+		}
+	}
+
+	// Record a nonempty list for the block the command will restore.
+	writeRecords(t, vol, func(rec *block_gc.Records) error {
+		if err := rec.SetState(ctx, &block_gc.LivenessState{Generation: block_gc.Generation_GENERATION_OPEN}); err != nil {
+			return err
+		}
+		if err := rec.PutChildren(ctx, refs[0], []*block.BlockRef{refs[2]}); err != nil {
+			return err
+		}
+		for _, i := range []int{1, 2, 4, 5} {
+			if err := rec.PutChildren(ctx, refs[i], nil); err != nil {
+				return err
+			}
+		}
+		for _, ref := range refs[4:] {
+			if err := rec.SetHolders(ctx, ref, 0, 1); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+
+	// Park both leaves as an Open generation does. Only the first has bytes.
+	for _, ref := range refs[4:] {
+		key := block_gc.BlockKey(ref)
+		parked := binary.BigEndian.AppendUint64([]byte{2, 'X'}, 1)
+		if err := putKey(ctx, vol, append(parked, key...), nil); err != nil {
+			t.Fatal(err)
+		}
+		if err := putKey(ctx, vol, append([]byte{2, 'I'}, key...), nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Lose only the bytes, just as a volume whose child lists outlive the blocks does.
+	for _, ref := range refs[:3] {
+		if err := vol.Store.RmBlock(ctx, ref); err != nil {
+			t.Fatal(err)
+		}
+	}
+	list := readVolumeRefillList(t, vol, refs[0])
+	if err := vol.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return list
+}
+
+// makeVolumeRefillSource writes raw block keys in a file with an older volume format.
+func makeVolumeRefillSource(t *testing.T, path string, refs []*block.BlockRef, data [][]byte) {
+	// Open only the s4db engine so the fixture can put bytes under any key.
+	t.Helper()
+	ctx := t.Context()
+	db, err := s4db.Open(path, s4db.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := db.Close(); err != nil {
+			t.Error(err)
+		}
+	}()
+	tx, err := db.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+
+	// Write the selected bytes and format in one commit, then stop the source.
+	keys := kvkey.NewDefaultKVKey()
+	for _, i := range []int{0, 1, 3, 5} {
+		key, err := refs[i].MarshalKey()
+		if err != nil {
+			t.Fatal(err)
+		}
+		dat := data[i]
+		if i == 1 {
+			dat = []byte("corrupt copy")
+		}
+		if err := tx.Set(ctx, keys.GetBlockKey(key), dat); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := tx.Set(ctx, keys.GetFormatVersionKey(), kvkey.MarshalFormatVersion(kvkey.FormatVersion-1)); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// readVolumeRefillList returns the serialized child list from the target fixture.
+func readVolumeRefillList(t *testing.T, vol *volume_s4db.Volume, ref *block.BlockRef) []byte {
+	// Read the child list's physical record, including its encoding marker.
+	t.Helper()
+	ctx := t.Context()
+	tx, err := vol.GetKvtxStore().NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+	value, found, err := tx.Get(ctx, append([]byte{2, 'c'}, block_gc.BlockKey(ref)...))
+	if err != nil || !found {
+		t.Fatalf("read child list: found=%t, err=%v", found, err)
+	}
+	return value
+}
+
+// sumVolumeRefillFile returns the fixture file's checksum.
+func sumVolumeRefillFile(t *testing.T, path string) [sha256.Size]byte {
+	// Include every byte the engine changes on open or close.
+	t.Helper()
+	dat, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return sha256.Sum256(dat)
+}
+
+// runVolumeRefillCLI invokes the real debug command tree and captures its report.
+func runVolumeRefillCLI(t *testing.T, args ...string) (string, error) {
+	// Use a fresh command tree for each flag parse.
+	t.Helper()
+	var out bytes.Buffer
+	app := &cli.App{Writer: &out, Commands: []*cli.Command{newDebugCommand(nil, &FormatUpgrade{})}}
+	err := app.RunContext(t.Context(), append([]string{"spacewave", "debug", "volume-refill"}, args...))
+	return out.String(), err
+}
+
+// checkVolumeRefillReport checks every row and its count, independently of padding.
+func checkVolumeRefillReport(t *testing.T, report string, labels []string, size int) {
+	// Decode the sibling command report's label and value columns.
+	t.Helper()
+	counts := []string{"6", "1", "1", "1", "1", "1", "1", strconv.Itoa(size)}
+	lines := strings.Split(strings.TrimSpace(report), "\n")
+	if len(lines) != len(labels) {
+		t.Fatalf("refill report has %d rows, want %d:\n%s", len(lines), len(labels), report)
+	}
+	for i, line := range lines {
+		label, count, found := strings.Cut(line, ":")
+		if !found || label != labels[i] || strings.TrimSpace(count) != counts[i] {
+			t.Fatalf("refill row %q, want %s = %s", line, labels[i], counts[i])
+		}
 	}
 }

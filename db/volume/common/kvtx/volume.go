@@ -812,6 +812,13 @@ func (v *Volume) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef
 	return v.reader().GetBlockExistsBatch(ctx, refs)
 }
 
+// HasBlockBytesBatch reports which refs have bytes in the embedded store.
+// Offline repair can use it to see parked bytes. Serving reads use
+// GetBlockExistsBatch, which hides blocks the collector marks absent.
+func (v *Volume) HasBlockBytesBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	return v.Store.GetBlockExistsBatch(ctx, refs)
+}
+
 // GetStoredBlock reads a block with its refs from the embedded store.
 func (v *Volume) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	return v.reader().GetStoredBlock(ctx, ref)
