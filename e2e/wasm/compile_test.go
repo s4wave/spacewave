@@ -6,16 +6,18 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/s4wave/spacewave/testbed/reporoot"
 )
 
-// TestCompileTestScripts validates the esbuild compilation pipeline produces
-// ESM modules from TS fixtures.
+// TestCompileTestScripts checks that the bundler emits ESM from TypeScript fixtures.
 func TestCompileTestScripts(t *testing.T) {
-	// Compile the package fixtures into a temp directory.
+	// Compile the package fixtures with source aliases from the module root.
+	root := reporoot.Must(t)
 	outDir := filepath.Join(t.TempDir(), "e2e")
-	scripts, err := CompileTestScripts(".", outDir)
+	scripts, err := CompileTestScriptsFor(".", outDir, root, filepath.Join(root, "vendor"))
 	if err != nil {
-		t.Fatalf("CompileTestScripts: %v", err)
+		t.Fatalf("CompileTestScriptsFor: %v", err)
 	}
 
 	// Require the fixture script URL.
@@ -46,6 +48,7 @@ func TestCompileTestScripts(t *testing.T) {
 	t.Logf("compiled %d scripts, fixture is %d bytes", len(scripts), len(js))
 }
 
+// scriptKeys returns the names of the compiled fixture scripts.
 func scriptKeys(m CompiledScripts) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {

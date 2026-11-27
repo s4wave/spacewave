@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/aperturerobotics/util/gitroot"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/testbed/reporoot"
 )
 
 // TestE2ECloudAuthConfigEndpoint checks local discovery without a cloud service.
@@ -67,10 +67,7 @@ func TestStableE2ECloudAuthConfigAddr(t *testing.T) {
 // TestApplyE2ECloudAuthConfigEndpoint checks both discovery and restart signaling.
 func TestApplyE2ECloudAuthConfigEndpoint(t *testing.T) {
 	// Load the production manifest so new provider paths cannot escape the fixture.
-	repoRoot, err := gitroot.FindRepoRoot()
-	if err != nil {
-		t.Fatalf("repo root: %v", err)
-	}
+	repoRoot := reporoot.Must(t)
 	projectConfig, err := loadProjectConfig(repoRoot)
 	if err != nil {
 		t.Fatalf("load project config: %v", err)
