@@ -1,6 +1,7 @@
 package block_store_s3
 
 import (
+	"bytes"
 	"maps"
 	"slices"
 	"strconv"
@@ -8,6 +9,8 @@ import (
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/packfile"
+	"github.com/s4wave/spacewave/net/hash"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -61,6 +64,71 @@ func TestPackStoreCompacts(t *testing.T) {
 	// Read every block back through a stale reader and a fresh store.
 	for _, store := range []*PackStore{reader, newTestPackStore(t, client)} {
 		checkBlocks(t, store, "block", refs)
+	}
+
+	// A duplicate with unknown refs cannot erase a recorded list in either
+	// input order, and the merged pack still holds exactly one copy.
+	for _, knownFirst := range []bool{true, false} {
+		t.Run("duplicate-refs/known-first="+strconv.FormatBool(knownFirst), func(t *testing.T) {
+			// Write two one-block packs with identical bytes and different refs sources.
+			ctx := t.Context()
+			_, client := newFakeBucket(t, nil)
+			store := newTestPackStore(t, client)
+			data := []byte("parent")
+			ref, err := block.BuildBlockRef(data, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			child, err := block.BuildBlockRef([]byte("child"), nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var inputs []*packfile.PackfileEntry
+			for _, known := range []bool{knownFirst, !knownFirst} {
+				stored := &block.StoredBlock{Data: data, RefsSource: block.AssertedIf(known)}
+				if known {
+					stored.Refs = []*block.BlockRef{child}
+				}
+				entry, err := store.writePack(ctx, func() (*hash.Hash, *block.StoredBlock, error) {
+					if stored == nil {
+						return nil, nil, nil
+					}
+					next := stored
+					stored = nil
+					return ref.GetHash(), next, nil
+				})
+				if err != nil {
+					t.Fatal(err)
+				}
+				inputs = append(inputs, entry)
+			}
+
+			// Merge the packs and read the surviving copy through a fresh store.
+			if err := store.merge(ctx, inputs); err != nil {
+				t.Fatal(err)
+			}
+			fresh := newTestPackStore(t, client)
+			stored, err := fresh.GetStoredBlock(ctx, ref)
+			if err != nil || stored == nil || !bytes.Equal(stored.Data, data) ||
+				stored.RefsSource != block.RefsListed || len(stored.Refs) != 1 || !stored.Refs[0].EqualsRef(child) {
+				t.Fatalf("merged block = %v, %v; want its bytes and listed child", stored, err)
+			}
+
+			// Count the actual surviving blocks, catching both loss and invention.
+			var count int
+			if err := fresh.ScanBlocks(ctx, func(got *block.BlockRef, _ *block.StoredBlock) error {
+				if !got.EqualsRef(ref) {
+					t.Fatalf("merged pack invented block %s", got.MarshalString())
+				}
+				count++
+				return nil
+			}); err != nil {
+				t.Fatal(err)
+			}
+			if count != 1 {
+				t.Fatalf("merged packs hold %d blocks; want 1", count)
+			}
+		})
 	}
 }
 

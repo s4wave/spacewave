@@ -9,7 +9,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/packfile"
 )
@@ -74,23 +73,21 @@ func (s *PackStore) mergeTail(ctx context.Context, batch []*block.PutBatchEntry)
 		return false, nil
 	}
 
-	// Add the batch's blocks. A batch block that knows its refs replaces the
-	// tail's copy, as a newer packfile would shadow it without a merge; one
-	// that does not keeps the tail's copy and the refs it holds.
+	// Add the batch's blocks without discarding a stronger refs source.
+	batchValues := make(map[string]*block.StoredBlock, len(batch))
+	keys := make(map[string]struct{}, len(values)+len(batch))
+	for key := range values {
+		keys[key] = struct{}{}
+	}
 	for _, entry := range batch {
 		key := string(packfile.BlockKey(entry.Ref.GetHash()))
-		if _, ok := values[key]; ok && !entry.RefsKnown {
-			continue
-		}
-		value, err := block.EncodeBlockObject(entry.Data, entry.Refs, entry.RefsKnown)
-		if err != nil {
-			return false, errors.Wrap(err, "encode block")
-		}
-		values[key] = value
+		candidate := &block.StoredBlock{Data: entry.Data, Refs: entry.Refs, RefsSource: block.ListedIf(entry.RefsKnown)}
+		batchValues[key] = preferBlock(batchValues[key], candidate)
+		keys[key] = struct{}{}
 	}
 
 	// Write the merged packfile and list it before the tail goes.
-	merged, err := s.writeValues(ctx, slices.Sorted(maps.Keys(values)), values)
+	merged, err := s.writeValues(ctx, slices.Sorted(maps.Keys(keys)), []map[string][]byte{values}, batchValues)
 	if err != nil {
 		if ctx.Err() != nil {
 			return false, ctx.Err()

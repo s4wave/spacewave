@@ -66,6 +66,16 @@ func TestPackStoreMergesTail(t *testing.T) {
 		t.Fatalf("stored parent = %v; want the refs of its second write", stored)
 	}
 
+	// An unknown batch copy cannot erase the tail's recorded refs.
+	if _, _, err := store.PutBlock(ctx, parent, nil); err != nil {
+		t.Fatal(err)
+	}
+	stored, err = newTestPackStore(t, client).GetStoredBlock(ctx, parentRef)
+	if err != nil || stored == nil || stored.RefsSource != block.RefsListed ||
+		len(stored.Refs) != 1 || !stored.Refs[0].EqualsRef(refs[0]) {
+		t.Fatalf("stored parent = %v, %v; want the tail's listed refs", stored, err)
+	}
+
 	// A block that fills the tail past the merge size merges once, and the next
 	// short batch starts a new packfile.
 	if _, _, err := store.PutBlock(ctx, bytes.Repeat([]byte{'x'}, 5<<10), nil); err != nil {

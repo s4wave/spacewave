@@ -150,6 +150,8 @@ func (s *PackStore) knowsAll(entries []*packfile.PackfileEntry) bool {
 // Invariant: the merged packfile holds exactly the blocks its inputs hold, so
 // the layout changes where a block sits and never whether it is kept; it is
 // listed before the inputs' entries and then their packfiles are deleted.
+// Copies of one key have identical block bytes; keep the copy with the strongest
+// refs source, so a later copy cannot discard refs an earlier one recorded.
 func (s *PackStore) merge(ctx context.Context, inputs []*packfile.PackfileEntry) error {
 	// Read the inputs concurrently.
 	packs := make([]map[string][]byte, len(inputs))
@@ -166,12 +168,14 @@ func (s *PackStore) merge(ctx context.Context, inputs []*packfile.PackfileEntry)
 		return err
 	}
 
-	// Write their blocks as one packfile in key order.
-	values := make(map[string][]byte)
+	// Write the union of their keys, choosing each copy while it is decoded.
+	keys := make(map[string]struct{})
 	for _, pack := range packs {
-		maps.Copy(values, pack)
+		for key := range pack {
+			keys[key] = struct{}{}
+		}
 	}
-	merged, err := s.writeValues(ctx, slices.Sorted(maps.Keys(values)), values)
+	merged, err := s.writeValues(ctx, slices.Sorted(maps.Keys(keys)), packs, nil)
 	if err != nil {
 		return errors.Wrap(err, "write merged packfile")
 	}
@@ -187,9 +191,11 @@ func (s *PackStore) merge(ctx context.Context, inputs []*packfile.PackfileEntry)
 	return s.replace(ctx, merged, ids)
 }
 
-// writeValues writes the block values of keys, in order, as one packfile.
+// writeValues writes the block values of keys, in order, as one packfile. For
+// duplicate keys it keeps the strongest refs source, preferring later copies
+// on a tie, with the decoded batch last. Each encoded candidate is decoded once.
 // Returns nil when keys is empty.
-func (s *PackStore) writeValues(ctx context.Context, keys []string, values map[string][]byte) (*packfile.PackfileEntry, error) {
+func (s *PackStore) writeValues(ctx context.Context, keys []string, values []map[string][]byte, batch map[string]*block.StoredBlock) (*packfile.PackfileEntry, error) {
 	i := 0
 	return s.writePack(ctx, func() (*hash.Hash, *block.StoredBlock, error) {
 		// Take the next key, or end the packfile after the last.
@@ -199,13 +205,41 @@ func (s *PackStore) writeValues(ctx context.Context, keys []string, values map[s
 		key := keys[i]
 		i++
 
-		// Decode its stored block.
-		ref, stored, err := packfile.DecodeBlockValue([]byte(key), values[key])
+		// Decode each copy once and keep its most informative refs source.
+		h, err := packfile.ParseBlockKey([]byte(key))
 		if err != nil {
 			return nil, nil, err
 		}
-		return ref.GetHash(), stored, nil
+		var stored *block.StoredBlock
+		for _, pack := range values {
+			value, ok := pack[key]
+			if !ok {
+				continue
+			}
+			candidate, err := block.DecodeBlockObject(value)
+			if err != nil {
+				return nil, nil, &block.CorruptError{Ref: block.NewBlockRef(h)}
+			}
+			stored = preferBlock(stored, candidate)
+		}
+
+		// Prefer the batch on equal sources and verify the chosen bytes once.
+		stored = preferBlock(stored, batch[key])
+		if err := block.VerifyRead(block.NewBlockRef(h), stored.Data, ""); err != nil {
+			return nil, nil, err
+		}
+		return h, stored, nil
 	})
+}
+
+// preferBlock keeps the copy with asserted refs over listed refs over unknown
+// refs, choosing the candidate on a tie. Pack reads and pack batches only list
+// refs, and writing a pack never persists an assertion.
+func preferBlock(current, candidate *block.StoredBlock) *block.StoredBlock {
+	if candidate == nil || current != nil && current.RefsSource > candidate.RefsSource {
+		return current
+	}
+	return candidate
 }
 
 // replace publishes output, which may be nil, then deletes the entries of

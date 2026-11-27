@@ -362,7 +362,7 @@ func (s *PackStore) rewritePack(ctx context.Context, j *packJudgment) error {
 		if err != nil {
 			return err
 		}
-		output, err = s.writeValues(ctx, keys, values)
+		output, err = s.writeValues(ctx, keys, []map[string][]byte{values}, nil)
 		if err != nil {
 			return errors.Wrap(err, "write reclaimed packfile")
 		}
