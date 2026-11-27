@@ -1,6 +1,6 @@
 //go:build !js && !linux
 
-package checkoutroot
+package watch
 
 import (
 	"context"

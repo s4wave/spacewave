@@ -10,6 +10,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/core/checkoutroot/watch"
 	"github.com/s4wave/spacewave/core/transport"
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
 	unixfs_rpc "github.com/s4wave/spacewave/db/unixfs/rpc"
@@ -32,7 +33,7 @@ type Server struct {
 	// root supplies independent cursors that share the same filesystem.
 	root *unixfs_billy.BillyFSCursor
 	// watcher routes host changes to the open cursors of this root.
-	watcher *DirectoryWatcher
+	watcher *watch.DirectoryWatcher
 	// upload publishes files when the node allows writes.
 	upload unixfs_rpc_server.FileUpload
 }
@@ -51,7 +52,7 @@ func serve(
 	// Keep the root available when native directory refresh is unavailable.
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	watcher := NewDirectoryWatcher(le, folder)
+	watcher := watch.NewDirectoryWatcher(le, folder)
 	defer watcher.Close()
 
 	// Offer the checkout root to the Device's Session transport.

@@ -1,6 +1,6 @@
 //go:build !js
 
-package checkoutroot
+package watch
 
 import (
 	"bytes"
