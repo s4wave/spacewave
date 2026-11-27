@@ -12,7 +12,7 @@ import (
 // and one opened through a controller hold one head.
 func NewBucketStore(v volume.Volume, conf *bucket.Config) bucket.Bucket {
 	return &bucketHandle{
-		t:          &bucketHandleTracker{bucketID: conf.GetId()},
+		bucketID:   conf.GetId(),
 		v:          v,
 		bucketConf: conf,
 	}

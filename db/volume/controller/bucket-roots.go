@@ -26,12 +26,12 @@ func (b *bucketHandle) HoldsRoots() bool {
 // GetRoot returns the block the bucket's root name holds, or nil. A bucket
 // whose volume holds no roots reports none.
 func (b *bucketHandle) GetRoot(ctx context.Context, name string) (*block.BlockRef, error) {
-	return b.v.GetBucketRoot(ctx, b.t.bucketID, name)
+	return b.v.GetBucketRoot(ctx, b.bucketID, name)
 }
 
 // ListRoots lists the bucket's roots whose name starts with prefix.
 func (b *bucketHandle) ListRoots(ctx context.Context, prefix string, fn func(block.NamedRoot) error) error {
-	return b.v.ListBucketRoots(ctx, b.t.bucketID, prefix, fn)
+	return b.v.ListBucketRoots(ctx, b.bucketID, prefix, fn)
 }
 
 // SetRoots writes entries owned by this bucket and moves its named roots in one
@@ -41,7 +41,7 @@ func (b *bucketHandle) SetRoots(ctx context.Context, entries []*block.PutBatchEn
 	if b.readOps != nil {
 		return tx.ErrNotWrite
 	}
-	return b.v.SetBucketRoots(ctx, b.t.bucketID, entries, roots)
+	return b.v.SetBucketRoots(ctx, b.bucketID, entries, roots)
 }
 
 // PinRoot retains a reader's root until the returned release function is

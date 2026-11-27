@@ -8,14 +8,26 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/s4wave/spacewave/db/bucket"
+	"github.com/s4wave/spacewave/db/volume"
+	"github.com/sirupsen/logrus"
 )
 
 // applyBucketConfigResolver resolves ApplyBucketConfig directives.
 type applyBucketConfigResolver struct {
-	c   *Controller
+	// le logs applied bucket configuration updates.
+	le *logrus.Entry
+	// refresh updates active bucket handles after a configuration change.
+	refresh func(string, *bucket.Config) *bucketHandle
+	// waitVolume waits for the controlled volume.
+	waitVolume func(context.Context) (volume.Volume, error)
+	// aliases contains the configured volume aliases.
+	aliases []string
+	// dir is the directive being resolved.
 	dir bucket.ApplyBucketConfig
 
-	mtx     sync.Mutex
+	// mtx serializes attempts to apply the directive.
+	mtx sync.Mutex
+	// applied records whether this directive has completed its attempt.
 	applied bool
 }
 
@@ -26,13 +38,13 @@ type applyBucketConfigResolver struct {
 // Values will be maintained from the previous call.
 func (o *applyBucketConfigResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
 	// Wait for the controlled volume before applying its bucket configuration.
-	vol, err := o.c.GetVolume(ctx)
+	vol, err := o.waitVolume(ctx)
 	if err != nil {
 		return err
 	}
 
 	// Require the bucket configuration directive to match this volume.
-	if !bucket.CheckApplyBucketConfigMatchesVolume(o.dir, vol.GetID(), o.c.config.GetVolumeIdAlias()) {
+	if !bucket.CheckApplyBucketConfigMatchesVolume(o.dir, vol.GetID(), o.aliases) {
 		return nil
 	}
 
@@ -83,13 +95,13 @@ func (o *applyBucketConfigResolver) Resolve(ctx context.Context, handler directi
 	volID := vol.GetID()
 	o.applied = true
 	if updated {
-		o.c.le.
+		o.le.
 			WithField("bucket-id", o.dir.ApplyBucketConfigBucketConf().GetId()).
 			WithField("volume-id", volID).
 			WithField("prev-bucket-rev", prev.GetRev()).
 			WithField("bucket-rev", curr.GetRev()).
 			Debug("updated bucket config")
-		_ = o.c.restartBucketHandle(curr.GetId(), curr)
+		_ = o.refresh(curr.GetId(), curr)
 	}
 	handler.AddValue(&bucket.ApplyBucketConfigResult{
 		VolumeId:      volID,
@@ -116,7 +128,13 @@ func (c *Controller) resolveApplyBucketConf(
 	}
 
 	// Return the resolver.
-	return &applyBucketConfigResolver{c: c, dir: dir}, nil
+	return &applyBucketConfigResolver{
+		waitVolume: c.GetVolume,
+		aliases:    c.config.GetVolumeIdAlias(),
+		dir:        dir,
+		le:         c.le,
+		refresh:    c.restartBucketHandle,
+	}, nil
 }
 
 // _ asserts the resolver contract.

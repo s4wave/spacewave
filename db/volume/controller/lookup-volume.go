@@ -9,7 +9,11 @@ import (
 
 // lookupVolumeResolver resolves LookupVolume directives.
 type lookupVolumeResolver struct {
-	c   *Controller
+	// waitVolume waits for the controlled volume.
+	waitVolume func(context.Context) (volume.Volume, error)
+	// aliases contains the configured volume aliases.
+	aliases []string
+	// dir is the directive being resolved.
 	dir volume.LookupVolume
 }
 
@@ -20,13 +24,13 @@ type lookupVolumeResolver struct {
 // Values will be maintained from the previous call.
 func (o *lookupVolumeResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
 	// Wait for the controlled volume to become available.
-	vol, err := o.c.GetVolume(ctx)
+	vol, err := o.waitVolume(ctx)
 	if err != nil {
 		return err
 	}
 
 	// Require the lookup directive to match the volume or an alias.
-	if !volume.CheckLookupMatchesVolume(o.dir, vol, o.c.config.GetVolumeIdAlias()) {
+	if !volume.CheckLookupMatchesVolume(o.dir, vol, o.aliases) {
 		return nil
 	}
 
@@ -49,7 +53,11 @@ func (c *Controller) resolveLookupVolume(
 	}
 
 	// Return the resolver.
-	return &lookupVolumeResolver{c: c, dir: dir}, nil
+	return &lookupVolumeResolver{
+		waitVolume: c.GetVolume,
+		aliases:    c.config.GetVolumeIdAlias(),
+		dir:        dir,
+	}, nil
 }
 
 // _ is a type assertion

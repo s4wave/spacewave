@@ -11,22 +11,22 @@ import (
 type objectStoreHandle struct {
 	// nexec is the total number of references + executing calls.
 	// atomic integers.
-	nexec    int32
-	c        *Controller
-	v        volume.Volume
-	storeID  string
+	nexec int32
+	// v is the volume providing the object store.
+	v volume.Volume
+	// storeID identifies the accessed object store.
+	storeID string
+	// objStore is the accessed object store.
 	objStore object.ObjectStore
 }
 
 // newObjectStoreHandle builds a new object store handle.
 func newObjectStoreHandle(
-	c *Controller,
 	v volume.Volume,
 	objStore object.ObjectStore,
 	storeID string,
 ) *objectStoreHandle {
 	return &objectStoreHandle{
-		c:        c,
 		v:        v,
 		storeID:  storeID,
 		objStore: objStore,

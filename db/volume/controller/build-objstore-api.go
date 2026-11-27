@@ -9,7 +9,11 @@ import (
 
 // buildObjectStoreAPIResolver resolves BuildObjectStoreAPI directives.
 type buildObjectStoreAPIResolver struct {
-	c   *Controller
+	// waitVolume waits for the controlled volume.
+	waitVolume func(context.Context) (volume.Volume, error)
+	// aliases contains the configured volume aliases.
+	aliases []string
+	// dir is the directive being resolved.
 	dir volume.BuildObjectStoreAPI
 }
 
@@ -23,7 +27,7 @@ func (o *buildObjectStoreAPIResolver) Resolve(
 	handler directive.ResolverHandler,
 ) error {
 	// Wait for the volume before resolving an object store handle.
-	vol, err := o.c.GetVolume(ctx)
+	vol, err := o.waitVolume(ctx)
 	if err != nil {
 		return err
 	}
@@ -31,7 +35,7 @@ func (o *buildObjectStoreAPIResolver) Resolve(
 	// Require the object store request to target this volume or an alias.
 	volID := vol.GetID()
 	targetVolID := o.dir.BuildObjectStoreAPIVolumeID()
-	if !volume.CheckIDMatchesAliases(targetVolID, volID, o.c.config.GetVolumeIdAlias()) {
+	if !volume.CheckIDMatchesAliases(targetVolID, volID, o.aliases) {
 		return nil
 	}
 
@@ -43,7 +47,7 @@ func (o *buildObjectStoreAPIResolver) Resolve(
 			return nil, rel, err
 		}
 
-		return newObjectStoreHandle(o.c, vol, objStore, storeID), rel, nil
+		return newObjectStoreHandle(vol, objStore, storeID), rel, nil
 	})
 	return resolve.Resolve(ctx, handler)
 }
@@ -63,7 +67,11 @@ func (c *Controller) resolveBuildObjectStoreAPI(
 	}
 
 	// Return the resolver.
-	return &buildObjectStoreAPIResolver{c: c, dir: dir}, nil
+	return &buildObjectStoreAPIResolver{
+		waitVolume: c.GetVolume,
+		aliases:    c.config.GetVolumeIdAlias(),
+		dir:        dir,
+	}, nil
 }
 
 // _ is a type assertion

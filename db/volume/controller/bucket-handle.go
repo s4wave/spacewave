@@ -5,8 +5,6 @@ import (
 	"errors"
 	"slices"
 
-	"github.com/aperturerobotics/util/ccontainer"
-	"github.com/aperturerobotics/util/keyed"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	trace "github.com/s4wave/spacewave/db/traceutil"
@@ -14,20 +12,10 @@ import (
 	"github.com/s4wave/spacewave/net/hash"
 )
 
-// bucketHandleTracker implements Bucket with a volume handle.
-type bucketHandleTracker struct {
-	// c resolves the volume and bucket configuration.
-	c *Controller
-	// bucketID identifies the tracked bucket.
-	bucketID string
-	// handleCtr publishes the current bucket handle or resolution error.
-	handleCtr *ccontainer.CContainer[*bucketHandle]
-}
-
 // bucketHandle contains state resolved by the bucket handle tracker.
 type bucketHandle struct {
-	// t tracks this bucket's configuration and lifetime.
-	t *bucketHandleTracker
+	// bucketID identifies the bucket independently of its resolution routine.
+	bucketID string
 	// err records a failure resolving the bucket.
 	err error
 	// v provides the backing volume.
@@ -49,91 +37,22 @@ func (b *bucketHandle) clone() *bucketHandle {
 	return &x
 }
 
-// newBucketHandleTracker builds a new bucket handle tracker.
-func (c *Controller) newBucketHandleTracker(
-	bucketID string,
-) (keyed.Routine, *bucketHandleTracker) {
-	h := &bucketHandleTracker{
-		c:         c,
-		bucketID:  bucketID,
-		handleCtr: ccontainer.NewCContainer[*bucketHandle](nil),
-	}
-	return h.execute, h
-}
-
-// execute executes the bucket handle management routine.
-func (b *bucketHandleTracker) execute(ctx context.Context) (exErr error) {
-	// Clear stale resolution and publish any new failure when this attempt ends.
-	b.handleCtr.SetValue(nil)
-	defer func() {
-		if exErr != nil {
-			if exErr == context.Canceled {
-				b.handleCtr.SetValue(nil)
-			} else {
-				b.handleCtr.SetValue(&bucketHandle{t: b, err: exErr})
-			}
-		}
-	}()
-
-	// Resolve the backing volume and its current bucket configuration.
-	vol, err := b.c.GetVolume(ctx)
-	if err != nil {
-		return err
+// withConfig retains the handle when its configuration matches, or copies it with conf.
+func (b *bucketHandle) withConfig(conf *bucket.Config) *bucketHandle {
+	// Keep an unresolved handle or an unchanged configuration as it is.
+	if b == nil || b.bucketConf.EqualVT(conf) {
+		return b
 	}
 
-	// Load the bucket configuration before constructing its handle.
-	bc, err := vol.GetBucketConfig(ctx, b.bucketID)
-	if err != nil {
-		return err
-	}
-
-	// Publish the handle, which retains the resolved configuration
-	// independently of later updates.
-	b.handleCtr.SetValue(&bucketHandle{
-		t:          b,
-		v:          vol,
-		bucketConf: bc,
-	})
-	return nil
-}
-
-// updateBucketConfig overrides the bucket config in the current handle.
-//
-// A nil configuration clears the handle and restarts resolution.
-// An existing handle receives the configuration. Otherwise resolution restarts.
-func (b *bucketHandleTracker) updateBucketConfig(conf *bucket.Config) *bucketHandle {
-	// Restart resolution when the caller invalidates the configuration.
-	if conf == nil {
-		b.handleCtr.SetValue(nil)
-		b.restart()
-		return nil
-	}
-
-	// Update a resolved handle without mutating its previous snapshot.
-	conf = conf.CloneVT()
-	handle := b.handleCtr.SwapValue(func(val *bucketHandle) *bucketHandle {
-		if val == nil || val.bucketConf.EqualVT(conf) {
-			return val
-		}
-		val = val.clone()
-		val.bucketConf = conf
-		return val
-	})
-	if handle != nil {
-		return handle
-	}
-	b.restart()
-	return nil
-}
-
-// restart restarts the routine.
-func (b *bucketHandleTracker) restart() {
-	_, _ = b.c.bucketHandles.RestartRoutine(b.bucketID)
+	// Replace the configuration without changing an earlier handle snapshot.
+	handle := b.clone()
+	handle.bucketConf = conf
+	return handle
 }
 
 // GetID returns the bucket ID.
 func (b *bucketHandle) GetID() string {
-	return b.t.bucketID
+	return b.bucketID
 }
 
 // GetVolumeId returns the volume ID.

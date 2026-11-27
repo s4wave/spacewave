@@ -26,8 +26,8 @@ func TestApplyBucketConfigPublishesStorageError(t *testing.T) {
 
 	// Resolve the bucket configuration request against the failing volume.
 	resolver := &applyBucketConfigResolver{
-		c:   ctrl,
-		dir: bucket.NewApplyBucketConfigToVolume(&bucket.Config{Id: "space", Rev: 1}, "volume"),
+		waitVolume: ctrl.GetVolume,
+		dir:        bucket.NewApplyBucketConfigToVolume(&bucket.Config{Id: "space", Rev: 1}, "volume"),
 	}
 	handler := &bucketConfigResultHandler{}
 	if err := resolver.Resolve(ctx, handler); err != nil {

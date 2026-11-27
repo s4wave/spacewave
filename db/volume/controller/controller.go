@@ -110,6 +110,22 @@ func NewController(
 	return ctrl
 }
 
+// newBucketHandleTracker builds a bucket resolution routine for the registry.
+func (c *Controller) newBucketHandleTracker(bucketID string) (keyed.Routine, *bucketHandleTracker) {
+	// Bind only the readiness and restart operations the tracker needs.
+	h := &bucketHandleTracker{
+		waitVolume: c.GetVolume,
+		restart: func() {
+			_, _ = c.bucketHandles.RestartRoutine(bucketID)
+		},
+		bucketID:  bucketID,
+		handleCtr: ccontainer.NewCContainer[*bucketHandle](nil),
+	}
+
+	// Give the registry the routine and the tracker it publishes through.
+	return h.execute, h
+}
+
 // Execute executes the controller goroutine.
 func (c *Controller) Execute(ctx context.Context) error {
 	// Keep volume activity within the controller execution lifetime.

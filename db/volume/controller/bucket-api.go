@@ -17,16 +17,10 @@ func (c *Controller) BuildBucketAPI(
 	ref, ht, _ := c.bucketHandles.AddKeyRef(bucketID)
 
 	// Wait for the bucket tracker to publish its handle.
-	h, err := ht.handleCtr.WaitValue(ctx, nil)
+	h, err := ht.wait(ctx)
 	if err != nil {
 		ref.Release()
 		return nil, nil, err
-	}
-
-	// Release the tracker reference when bucket construction failed.
-	if h.err != nil {
-		ref.Release()
-		return nil, nil, h.err
 	}
 
 	return h, ref.Release, nil

@@ -4,13 +4,20 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/util/keyed"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/volume"
 )
 
 // buildBucketAPIResolver resolves BuildBucketAPI directives.
 type buildBucketAPIResolver struct {
-	c   *Controller
+	// buckets retains active bucket resolution routines.
+	buckets *keyed.KeyedRefCount[string, *bucketHandleTracker]
+	// waitVolume waits for the controlled volume.
+	waitVolume func(context.Context) (volume.Volume, error)
+	// aliases contains the configured volume aliases.
+	aliases []string
+	// dir is the directive being resolved.
 	dir bucket.BuildBucketAPI
 }
 
@@ -26,35 +33,26 @@ func (o *buildBucketAPIResolver) Resolve(
 	// Remove any old values the resolver pushed.
 	handler.ClearValues()
 
-	// make sure the volume ID matches
-	vol, err := o.c.GetVolume(ctx)
+	// Wait for the volume before matching the requested bucket API.
+	vol, err := o.waitVolume(ctx)
 	if err != nil {
 		return err
 	}
+
+	// Require an explicit target matching the volume or its aliases.
 	volID := vol.GetID()
 	targetVolumeID := o.dir.BuildBucketAPIStoreID()
-	if targetVolumeID == "" || !volume.CheckIDMatchesAliases(targetVolumeID, volID, o.c.config.GetVolumeIdAlias()) {
+	if targetVolumeID == "" || !volume.CheckIDMatchesAliases(targetVolumeID, volID, o.aliases) {
 		return nil
 	}
 
 	// Add a reference to the bucket.
 	bucketID := o.dir.BuildBucketAPIBucketID()
-	ref, ht, _ := o.c.bucketHandles.AddKeyRef(bucketID)
+	ref, ht, _ := o.buckets.AddKeyRef(bucketID)
 	defer ref.Release()
 
-	// Wait for the bucket API to be built.
-	var handle *bucketHandle
-	for {
-		handle, err = ht.handleCtr.WaitValueChange(ctx, handle, nil)
-		if err != nil {
-			return err
-		}
-
-		handler.ClearValues()
-		if handle != nil {
-			_, _ = handler.AddValue(handle)
-		}
-	}
+	// Publish each bucket resolution while the directive retains its tracker.
+	return ht.publish(ctx, handler)
 }
 
 // resolveBuildBucketAPI returns a resolver for building a bucket API handle.
@@ -66,6 +64,7 @@ func (c *Controller) resolveBuildBucketAPI(
 	// Check if the controller can immediately reject this directive.
 	if vb := c.volume.GetValue(); vb != nil {
 		vol := vb.vol
+		// Require an explicit target matching the volume or its aliases.
 		volID := vol.GetID()
 		targetVolumeID := dir.BuildBucketAPIStoreID()
 		if targetVolumeID == "" || !volume.CheckIDMatchesAliases(targetVolumeID, volID, c.config.GetVolumeIdAlias()) {
@@ -74,7 +73,12 @@ func (c *Controller) resolveBuildBucketAPI(
 	}
 
 	// Return the resolver.
-	return &buildBucketAPIResolver{c: c, dir: dir}, nil
+	return &buildBucketAPIResolver{
+		waitVolume: c.GetVolume,
+		aliases:    c.config.GetVolumeIdAlias(),
+		dir:        dir,
+		buckets:    c.bucketHandles,
+	}, nil
 }
 
 // _ is a type assertion
