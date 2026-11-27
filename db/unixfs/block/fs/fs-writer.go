@@ -48,7 +48,7 @@ func (f *FSWriter) Mknod(ctx context.Context, paths [][]string, nodeType unixfs.
 	if len(paths) == 0 {
 		return nil
 	}
-	return f.applyOp(ctx, func(ft *unixfs_block.FSTree, wr *unixfs_block.FSWriter) error {
+	return f.fs.applyOp(ctx, func(wr *unixfs_block.FSWriter) error {
 		return wr.Mknod(ctx, paths, nodeType, permissions, ts)
 	})
 }
@@ -56,7 +56,7 @@ func (f *FSWriter) Mknod(ctx context.Context, paths [][]string, nodeType unixfs.
 // Symlink creates a symbolic link from a location to a path.
 // An error may be returned if one or more parent directories don't exist.
 func (f *FSWriter) Symlink(ctx context.Context, path []string, target []string, targetIsAbsolute bool, ts time.Time) error {
-	return f.applyOp(ctx, func(ft *unixfs_block.FSTree, wr *unixfs_block.FSWriter) error {
+	return f.fs.applyOp(ctx, func(wr *unixfs_block.FSWriter) error {
 		return wr.Symlink(ctx, path, target, targetIsAbsolute, ts)
 	})
 }
@@ -67,7 +67,7 @@ func (f *FSWriter) SetPermissions(ctx context.Context, paths [][]string, fm fs.F
 	if len(paths) == 0 {
 		return nil
 	}
-	return f.applyOp(ctx, func(ft *unixfs_block.FSTree, wr *unixfs_block.FSWriter) error {
+	return f.fs.applyOp(ctx, func(wr *unixfs_block.FSWriter) error {
 		return wr.SetPermissions(ctx, paths, fm, ts)
 	})
 }
@@ -77,14 +77,14 @@ func (f *FSWriter) SetModTimestamp(ctx context.Context, paths [][]string, mtime 
 	if len(paths) == 0 {
 		return nil
 	}
-	return f.applyOp(ctx, func(ft *unixfs_block.FSTree, wr *unixfs_block.FSWriter) error {
+	return f.fs.applyOp(ctx, func(wr *unixfs_block.FSWriter) error {
 		return wr.SetModTimestamp(ctx, paths, mtime)
 	})
 }
 
 // WriteAt writes data to an offset in an inode (usually a file).
 func (f *FSWriter) WriteAt(ctx context.Context, path []string, offset int64, data []byte, ts time.Time) error {
-	return f.applyOp(ctx, func(ft *unixfs_block.FSTree, wr *unixfs_block.FSWriter) error {
+	return f.fs.applyOp(ctx, func(wr *unixfs_block.FSWriter) error {
 		return wr.WriteAt(ctx, path, offset, data, ts)
 	})
 }
@@ -92,7 +92,7 @@ func (f *FSWriter) WriteAt(ctx context.Context, path []string, offset int64, dat
 // Copy recursively copies a source path to a destination, overwriting destination.
 // Performs the move in a single operation.
 func (f *FSWriter) Copy(ctx context.Context, srcPath, tgtPath []string, ts time.Time) error {
-	return f.applyOp(ctx, func(ft *unixfs_block.FSTree, wr *unixfs_block.FSWriter) error {
+	return f.fs.applyOp(ctx, func(wr *unixfs_block.FSWriter) error {
 		return wr.Copy(ctx, srcPath, tgtPath, ts)
 	})
 }
@@ -100,7 +100,7 @@ func (f *FSWriter) Copy(ctx context.Context, srcPath, tgtPath []string, ts time.
 // Truncate shrinks or extends a file to the specified size.
 // The extended part will be a sparse range (hole) reading as zeros.
 func (f *FSWriter) Truncate(ctx context.Context, path []string, nsize int64, ts time.Time) error {
-	return f.applyOp(ctx, func(ft *unixfs_block.FSTree, wr *unixfs_block.FSWriter) error {
+	return f.fs.applyOp(ctx, func(wr *unixfs_block.FSWriter) error {
 		return wr.Truncate(ctx, path, nsize, ts)
 	})
 }
@@ -108,7 +108,7 @@ func (f *FSWriter) Truncate(ctx context.Context, path []string, nsize int64, ts 
 // Rename recursively moves a source path to a destination, overwriting destination.
 // Performs the move in a single operation.
 func (f *FSWriter) Rename(ctx context.Context, srcPath, tgtPath []string, ts time.Time) error {
-	return f.applyOp(ctx, func(ft *unixfs_block.FSTree, wr *unixfs_block.FSWriter) error {
+	return f.fs.applyOp(ctx, func(wr *unixfs_block.FSWriter) error {
 		return wr.Rename(ctx, srcPath, tgtPath, ts)
 	})
 }
@@ -117,53 +117,24 @@ func (f *FSWriter) Rename(ctx context.Context, srcPath, tgtPath []string, ts tim
 // Parents must be directories.
 // Non-existent paths may not return an error.
 func (f *FSWriter) Remove(ctx context.Context, paths [][]string, ts time.Time) error {
-	return f.applyOp(ctx, func(ft *unixfs_block.FSTree, wr *unixfs_block.FSWriter) error {
+	return f.fs.applyOp(ctx, func(wr *unixfs_block.FSWriter) error {
 		return wr.Remove(ctx, paths, ts)
 	})
 }
 
 // MknodWithContent creates a file and writes its content atomically.
-func (f *FSWriter) MknodWithContent(ctx context.Context, path []string, nodeType unixfs.FSCursorNodeType, dataLen int64, rdr io.Reader, permissions fs.FileMode, ts time.Time) error {
-	return f.applyOp(ctx, func(ft *unixfs_block.FSTree, wr *unixfs_block.FSWriter) error {
+func (f *FSWriter) MknodWithContent(
+	ctx context.Context,
+	path []string,
+	nodeType unixfs.FSCursorNodeType,
+	dataLen int64,
+	rdr io.Reader,
+	permissions fs.FileMode,
+	ts time.Time,
+) error {
+	return f.fs.applyOp(ctx, func(wr *unixfs_block.FSWriter) error {
 		return wr.MknodWithContent(ctx, path, nodeType, dataLen, rdr, permissions, ts)
 	})
-}
-
-// applyOp applies an operation to the store.
-func (f *FSWriter) applyOp(
-	ctx context.Context,
-	cb func(ft *unixfs_block.FSTree, wr *unixfs_block.FSWriter) error,
-) error {
-	// Hold the filesystem lock for the writer operation and root update.
-	rel, err := f.fs.rmtx.Lock(ctx, true)
-	if err != nil {
-		return err
-	}
-	defer rel()
-
-	// build root tx
-	fsTree, bcs, btx, err := f.fs.buildRootTxLocked()
-	if err == nil {
-		wr := unixfs_block.NewFSWriter(fsTree)
-		err = cb(fsTree, wr)
-	}
-	if err != nil {
-		return err
-	}
-
-	// write block transaction
-	oldRoot := bcs.GetRef()
-	nroot, _, err := btx.Write(ctx, true)
-	if err != nil {
-		return err
-	}
-	if !nroot.EqualsRef(oldRoot) {
-		if err := f.fs.updateRootRefLocked(nroot); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 // _ is a type assertion

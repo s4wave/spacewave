@@ -2,12 +2,18 @@ package unixfs_block
 
 import (
 	"context"
+	"io"
 	"io/fs"
+	"math"
 	"slices"
+	"time"
 
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/blob"
 	"github.com/s4wave/spacewave/db/block/file"
+	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 )
 
@@ -49,24 +55,113 @@ func newTxFSTree(ctx context.Context, bcs *block.Cursor, node *FSNode) *FSTree {
 	}
 }
 
-// GetCursor returns the cursor at Node.
-func (f *FSTree) GetCursor() *block.Cursor {
-	return f.bcs
-}
-
 // GetCursorRef returns the reference to the node.
 func (f *FSTree) GetCursorRef() *block.BlockRef {
 	return f.bcs.GetRef()
 }
 
-// GetFSNode returns the node object at f.
-func (f *FSTree) GetFSNode() *FSNode {
-	return f.node
+// GetNodeType returns the inode type.
+func (f *FSTree) GetNodeType() NodeType {
+	return f.node.GetNodeType()
+}
+
+// FileSize returns the file content size, or zero for an inode without a file.
+func (f *FSTree) FileSize() uint64 {
+	return f.node.GetFile().GetTotalSize()
+}
+
+// Size returns the file size or the length of a symbolic link's target path.
+func (f *FSTree) Size() uint64 {
+	if f.node.GetNodeType().GetIsSymlink() {
+		tp := f.node.GetSymlink().GetTargetPath()
+		return uint64(len(unixfs.JoinPath(tp.GetNodes(), tp.GetAbsolute())))
+	}
+	return f.FileSize()
+}
+
+// ModTime returns the inode modification time.
+func (f *FSTree) ModTime() time.Time {
+	return f.node.GetModTime().AsTime()
+}
+
+// Snapshot clones the inode for comparisons after the tree's transaction ends.
+func (f *FSTree) Snapshot() *FSNode {
+	return f.node.CloneVT()
+}
+
+// DirectoryEntries yields directory entries in name order with their indices.
+// Callers must not change the directory while enumerating it.
+func (f *FSTree) DirectoryEntries(yield func(int, *Dirent) bool) {
+	for i, ent := range f.node.GetDirectoryEntry() {
+		if !yield(i, ent) {
+			return
+		}
+	}
+}
+
+// Readlink returns the symbolic link target or ErrNotSymlink for another type.
+func (f *FSTree) Readlink() ([]string, bool, error) {
+	if f.node.GetNodeType() != NodeType_NodeType_SYMLINK {
+		return nil, false, unixfs_errors.ErrNotSymlink
+	}
+	tp := f.node.GetSymlink().GetTargetPath()
+	return tp.GetNodes(), tp.GetAbsolute(), nil
+}
+
+// GetXattrs converts the inode's extended attributes to filesystem records.
+func (f *FSTree) GetXattrs() []unixfs.FSXattr {
+	// Keep an empty attribute list nil, as cursor attribute reads require.
+	xattrs := f.node.GetXattrs()
+	if len(xattrs) == 0 {
+		return nil
+	}
+
+	// Copy attribute records while retaining their existing value slices.
+	result := make([]unixfs.FSXattr, len(xattrs))
+	for i, xa := range xattrs {
+		result[i] = unixfs.FSXattr{Name: xa.GetName(), Value: xa.GetValue()}
+	}
+	return result
+}
+
+// GetXattrValue returns the named extended attribute, or nil when absent.
+func (f *FSTree) GetXattrValue(name string) []byte {
+	return f.node.GetXattrValue(name)
+}
+
+// ImportXattrs adds attributes to a newly created inode already marked dirty.
+func (f *FSTree) ImportXattrs(xattrs []*FSXattr) {
+	for _, xa := range xattrs {
+		f.node.SetXattr(xa.GetName(), xa.GetValue())
+	}
+}
+
+// InitFileWithReader builds the inode's file content from a reader.
+// The caller must have created and marked the inode dirty before calling.
+func (f *FSTree) InitFileWithReader(ctx context.Context, rdr io.Reader, opts *blob.BuildBlobOpts) error {
+	var err error
+	f.node.File, err = file.BuildFileWithReader(ctx, f.bcs.FollowSubBlock(4), rdr, opts)
+	return err
+}
+
+// InitFileWithBytes builds the inode's file content from bytes.
+// The caller must have created and marked the inode dirty before calling.
+func (f *FSTree) InitFileWithBytes(ctx context.Context, data []byte) error {
+	var err error
+	f.node.File, err = file.BuildFileWithBytes(ctx, f.bcs.FollowSubBlock(4), data, nil)
+	return err
+}
+
+// copyTo attaches a detached copy of this inode to the destination directory.
+func (f *FSTree) copyTo(dest *FSTree, name string) error {
+	nodeType := f.node.GetNodeType()
+	bcs := f.bcs.DetachRecursive(true, true, true)
+	return dest.SetDirent(name, nodeType, bcs)
 }
 
 // GetPermissions returns the permissions bits of the file mode.
 func (f *FSTree) GetPermissions() (fs.FileMode, error) {
-	return fs.FileMode(f.GetFSNode().GetPermissions()) & fs.ModePerm, nil
+	return fs.FileMode(f.node.GetPermissions()) & fs.ModePerm, nil
 }
 
 // SetPermissions sets the permissions bits of the file mode.
@@ -392,7 +487,7 @@ func (f *FSTree) Remove(
 	ts *timestamppb.Timestamp,
 ) (bool, error) {
 	// Require a directory before removing its entries.
-	if f.GetFSNode().GetNodeType() != NodeType_NodeType_DIRECTORY {
+	if f.node.GetNodeType() != NodeType_NodeType_DIRECTORY {
 		return false, unixfs_errors.ErrNotDirectory
 	}
 	dslice := NewDirentSlice(&f.node.DirectoryEntry, f.bcs)
@@ -446,4 +541,230 @@ func (f *FSTree) SetDirent(name string, nodeType NodeType, bcs *block.Cursor) er
 	direntCs.SetRef(2, bcs)
 	direntCs.MarkDirty()
 	return nil
+}
+
+// WriteAt writes a byte range in this file and publishes its modification time.
+func (f *FSTree) WriteAt(ctx context.Context, blobOpts *blob.BuildBlobOpts, offset int64, writeLen int64, dataRdr io.Reader, ts *timestamppb.Timestamp) error {
+	// Open the destination file handle for the write.
+	fh, err := f.BuildFileHandle(ctx)
+	if err != nil {
+		return err
+	}
+	defer fh.Close()
+
+	// Write the supplied bytes into the destination file range.
+	writer := file.NewWriter(fh, nil, blobOpts)
+	err = writer.WriteFrom(uint64(offset), writeLen, dataRdr) //nolint:gosec
+	if err != nil {
+		return err
+	}
+
+	// Set a placeholder timestamp if ts is nil.
+	ts = FillPlaceholderTimestamp(ts)
+	f.node.ModTime = ts
+
+	// Publish the changed file node to the block cursor.
+	f.bcs.SetBlock(f.node, true)
+	return nil
+}
+
+// WriteBlob writes a referenced blob into this file, merging sequential writes when allowed.
+func (f *FSTree) WriteBlob(ctx context.Context, offset uint64, blobRef *block.BlockRef, fullValidate bool, forceUseBlob bool, ts *timestamppb.Timestamp) error {
+	// Load the referenced blob in a detached transaction.
+	blobCs := f.bcs.DetachTransaction()
+	blobCs.SetRefAtCursor(blobRef, true)
+	blk, err := blobCs.Unmarshal(ctx, blob.NewBlobBlock)
+	if err != nil {
+		return err
+	}
+	bl, ok := blk.(*blob.Blob)
+	if !ok {
+		return block.ErrUnexpectedType
+	}
+
+	// Require blob contents before writing a file range.
+	totalSize := bl.GetTotalSize()
+	if totalSize == 0 {
+		return unixfs_errors.ErrEmptyBlob
+	}
+
+	// Open the destination file handle for the blob write.
+	fh, err := f.BuildFileHandle(ctx)
+	if err != nil {
+		return err
+	}
+	defer fh.Close()
+
+	// Prepare the file writer for merging or referencing the blob.
+	writer := file.NewWriter(fh, nil, nil)
+
+	// optimization: sequential writes: if the blob starts at the end of
+	// the current file, use the WriteBytes call instead to re-chunk the
+	// data and merge it into the previous Range in the file.
+	if !forceUseBlob && f.FileSize() == offset {
+		br, err := blob.NewReader(ctx, blobCs)
+		if err != nil {
+			return err
+		}
+		err = writer.WriteFrom(offset, int64(totalSize), br) //nolint:gosec
+		_ = br.Close()
+		return err
+	}
+
+	// Validate the full blob if necessary.
+	if fullValidate {
+		if err := bl.ValidateFull(ctx, blobCs); err != nil {
+			return err
+		}
+	}
+
+	// otherwise, append the blob to the file & sort (slower)
+	err = writer.WriteBlob(offset, totalSize, blobRef)
+	if err != nil {
+		return err
+	}
+
+	// update timestamp
+	// Set a placeholder timestamp if ts is nil.
+	ts = FillPlaceholderTimestamp(ts)
+	f.node.ModTime = ts
+
+	// Publish the changed file node to the block cursor.
+	f.bcs.SetBlock(f.node, true)
+	return nil
+}
+
+// TruncateFile resizes this file and publishes its modification time.
+func (f *FSTree) TruncateFile(ctx context.Context, nsize int64, ts *timestamppb.Timestamp) error {
+	// Open the file handle for the size change.
+	fh, err := f.BuildFileHandle(ctx)
+	if err != nil {
+		return err
+	}
+	defer fh.Close()
+
+	// Keep a file with the requested size unchanged.
+	if fh.Size() == uint64(nsize) { //nolint:gosec
+		// no-op
+		return nil
+	}
+
+	// Resize the file through its block-backed writer.
+	writer := file.NewWriter(fh, nil, nil)
+	err = writer.Truncate(uint64(nsize)) //nolint:gosec
+	if err != nil {
+		return err
+	}
+
+	// update timestamp
+	f.node.ModTime = ts
+
+	// Publish the resized file node to the block cursor.
+	f.bcs.SetBlock(f.node, true)
+	return nil
+}
+
+// MknodWithContent creates a file at the given path and writes blob content to it.
+// MknodWithContent is atomic: the file is fully formed after the call.
+// path must include the file name as the last element.
+// blobRef is the reference to a pre-built blob containing the file data.
+func (f *FSTree) MknodWithContent(
+	ctx context.Context,
+	path []string,
+	nodeType NodeType,
+	permissions fs.FileMode,
+	ts *timestamppb.Timestamp,
+	blobRef *block.BlockRef,
+) error {
+	// Require a destination path before creating a file with content.
+	if len(path) == 0 {
+		return unixfs_errors.ErrEmptyPath
+	}
+
+	// Fill the creation timestamp for the new file node.
+	ts = FillPlaceholderTimestamp(ts)
+
+	// Step 1: navigate to the parent directory.
+	parentPath := path[:len(path)-1]
+	parentNode, _, err := LookupFSTreePath(f, parentPath)
+	if err != nil {
+		return err
+	}
+
+	// Step 2: create the file entry.
+	fileName := path[len(path)-1]
+	childFtree, err := parentNode.Mknod(fileName, nodeType, nil, permissions, ts)
+	if err != nil {
+		return err
+	}
+
+	// Step 3: write pre-built blob content into the file.
+	// forceUseBlob=true: reference the blob directly, don't re-read and re-chunk.
+	// fullValidate=false: the caller built the blob, so no need to validate
+	// again.
+	if !blobRef.GetEmpty() {
+		return WriteBlob(ctx, f, path, 0, blobRef, false, true, ts)
+	}
+
+	// Empty blob: only mark the file node dirty.
+	childFtree.bcs.MarkDirty()
+	return nil
+}
+
+// BuildContent builds and flushes a detached blob for atomic file creation.
+func (f *FSTree) BuildContent(ctx context.Context, dataLen int64, rdr io.Reader) (*block.BlockRef, error) {
+	// Build blob in a detached transaction.
+	blobCs := f.bcs.DetachTransaction()
+	blobCs.SetRefAtCursor(nil, true)
+	_, err := blob.BuildBlob(ctx, dataLen, rdr, blobCs, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Write the detached transaction to flush blocks and compute the blob ref.
+	// Without the write, GetRef() returns nil because the block has not
+	// been hashed.
+	blobRef, _, err := blobCs.GetTransaction().Write(ctx, true)
+	if err != nil {
+		return nil, err
+	}
+	if blobRef == nil {
+		blobRef = &block.BlockRef{}
+	}
+
+	return blobRef, nil
+}
+
+// MatchesFileInfo compares a file's size, modification time and permissions.
+func (f *FSTree) MatchesFileInfo(info fs.FileInfo) bool {
+	return f.FileSize() == uint64(info.Size()) && //nolint:gosec // a file size is not negative.
+		f.ModTime().Equal(info.ModTime()) &&
+		fs.FileMode(f.node.GetPermissions()) == info.Mode().Perm()
+}
+
+// OpenVersion opens an inode reference in a detached transaction.
+func (f *FSTree) OpenVersion(ctx context.Context, ref *block.BlockRef) (*FSTree, error) {
+	bcs := f.bcs.DetachTransaction()
+	bcs.SetRefAtCursor(ref, true)
+	return NewFSTree(ctx, bcs, NodeType_NodeType_UNKNOWN)
+}
+
+// OpenBlob opens detached content whose size fits the signed reader interface.
+// The caller must close the returned reader.
+func (f *FSTree) OpenBlob(ctx context.Context, ref *block.BlockRef) (int64, io.ReadCloser, error) {
+	// Load the incoming blob independently of the filesystem transaction.
+	bcs := f.bcs.DetachTransaction()
+	bcs.SetRefAtCursor(ref, true)
+	bl, err := blob.UnmarshalBlob(ctx, bcs)
+	if err != nil {
+		return 0, nil, err
+	}
+	if bl.GetTotalSize() > math.MaxInt64 {
+		return 0, nil, errors.New("source blob size exceeds int64")
+	}
+
+	// Open a reader after validating the declared length.
+	size := int64(bl.GetTotalSize()) //nolint:gosec
+	rdr, err := blob.NewReader(ctx, bcs)
+	return size, rdr, err
 }

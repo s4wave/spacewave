@@ -141,9 +141,8 @@ func (o *FsMknodWithContentOp) ApplyWorldObjectOp(
 				return err
 			}
 
-			return unixfs_block.MknodWithContent(
+			return ftree.MknodWithContent(
 				ctx,
-				ftree,
 				o.GetPath().GetNodes(),
 				o.GetNodeType(),
 				fs.FileMode(o.GetPermissions()),

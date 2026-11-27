@@ -1222,7 +1222,7 @@ func (f *flowgraphFixture) bootSet(taskKey string) *block.BlockRef {
 				return err
 			}
 			files++
-			f.t.Logf("boot set %s: %s %d bytes", taskKey, dirent.GetName(), ent.GetFSNode().GetFile().GetTotalSize())
+			f.t.Logf("boot set %s: %s %d bytes", taskKey, dirent.GetName(), ent.FileSize())
 		}
 		return nil
 	})

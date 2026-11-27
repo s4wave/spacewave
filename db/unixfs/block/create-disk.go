@@ -47,13 +47,10 @@ func readDiskXattrsToFSTree(fsTree *FSTree, diskBasePath string, relPath string)
 	if err != nil {
 		return err
 	}
-	node := fsTree.GetFSNode()
-	for _, xa := range xattrs {
-		node.SetXattr(xa.GetName(), xa.GetValue())
-	}
+	fsTree.ImportXattrs(xattrs)
 
 	// Recurse into directory children.
-	for _, dirent := range node.GetDirectoryEntry() {
+	for _, dirent := range fsTree.DirectoryEntries {
 		childName := dirent.GetName()
 		child, _, err := fsTree.LookupFollowDirent(childName)
 		if err != nil {

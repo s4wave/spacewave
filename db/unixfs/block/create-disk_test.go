@@ -90,7 +90,7 @@ func TestCreateFromDiskPreservesXattrs(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		fileNode := fileTree.GetFSNode()
+		fileNode := fileTree
 		val := fileNode.GetXattrValue(testXattrName)
 		if val == nil {
 			t.Fatalf("expected xattr %s on test.txt, got none", testXattrName)
@@ -104,7 +104,7 @@ func TestCreateFromDiskPreservesXattrs(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		subNode := subTree.GetFSNode()
+		subNode := subTree
 		val = subNode.GetXattrValue(dirXattrName)
 		if val == nil {
 			t.Fatalf("expected xattr %s on sub/, got none", dirXattrName)
@@ -118,7 +118,7 @@ func TestCreateFromDiskPreservesXattrs(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		nestedNode := nestedTree.GetFSNode()
+		nestedNode := nestedTree
 		val = nestedNode.GetXattrValue(nestedXattrName)
 		if val == nil {
 			t.Fatalf("expected xattr %s on sub/nested.txt, got none", nestedXattrName)
@@ -184,7 +184,7 @@ func TestCreateFromDiskFiltersTransientXattrs(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		node := fileTree.GetFSNode()
+		node := fileTree
 
 		// Real xattr should be present.
 		val := node.GetXattrValue(realName)

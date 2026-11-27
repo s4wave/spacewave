@@ -75,7 +75,7 @@ func TestBasicDirectory(t *testing.T) {
 	}
 
 	// sanity check
-	if ftree.GetFSNode().GetModTime().SizeVT() == 0 {
+	if ftree.Snapshot().GetModTime().SizeVT() == 0 {
 		t.Fatal("modification time was zero after making fstree")
 	}
 
@@ -352,7 +352,7 @@ func TestSymlinkReplacesExistingEntry(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if got := link.GetFSNode().GetSymlink().GetTargetPath().GetNodes(); len(got) != 1 || got[0] != "second" {
+	if got, _, err := link.Readlink(); err != nil || len(got) != 1 || got[0] != "second" {
 		t.Fatalf("symlink target = %v", got)
 	}
 }

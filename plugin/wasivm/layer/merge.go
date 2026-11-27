@@ -51,7 +51,7 @@ func MergeLayers(
 // mergeDir lays the entries of directory src onto directory dst, the
 // directory at path dir.
 func mergeDir(dst, src *unixfs_block.FSTree, dir string, collide func(path string)) error {
-	for _, ent := range src.GetFSNode().GetDirectoryEntry() {
+	for _, ent := range src.DirectoryEntries {
 		name := ent.GetName()
 		path := dir + "/" + name
 

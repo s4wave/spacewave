@@ -8,7 +8,6 @@ import (
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
-	"github.com/s4wave/spacewave/db/block/file"
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 )
 
@@ -119,27 +118,7 @@ func WriteAt(
 		return err
 	}
 
-	// Open the destination file handle for the write.
-	fh, err := node.BuildFileHandle(ctx)
-	if err != nil {
-		return err
-	}
-	defer fh.Close()
-
-	// Write the supplied bytes into the destination file range.
-	writer := file.NewWriter(fh, nil, blobOpts)
-	err = writer.WriteFrom(uint64(offset), writeLen, dataRdr) //nolint:gosec
-	if err != nil {
-		return err
-	}
-
-	// Set a placeholder timestamp if ts is nil.
-	ts = FillPlaceholderTimestamp(ts)
-	node.node.ModTime = ts
-
-	// Publish the changed file node to the block cursor.
-	node.bcs.SetBlock(node.node, true)
-	return nil
+	return node.WriteAt(ctx, blobOpts, offset, writeLen, dataRdr, ts)
 }
 
 // WriteBlob fetches and validates a blob, and then writes it to a offset in a file.
@@ -168,69 +147,7 @@ func WriteBlob(
 		return err
 	}
 
-	// Load the referenced blob in a detached transaction.
-	blobCs := node.GetCursor().DetachTransaction()
-	blobCs.SetRefAtCursor(blobRef, true)
-	blk, err := blobCs.Unmarshal(ctx, blob.NewBlobBlock)
-	if err != nil {
-		return err
-	}
-	bl, ok := blk.(*blob.Blob)
-	if !ok {
-		return block.ErrUnexpectedType
-	}
-
-	// Require blob contents before writing a file range.
-	totalSize := bl.GetTotalSize()
-	if totalSize == 0 {
-		return unixfs_errors.ErrEmptyBlob
-	}
-
-	// Open the destination file handle for the blob write.
-	fnode := node.GetFSNode().GetFile()
-	fh, err := node.BuildFileHandle(ctx)
-	if err != nil {
-		return err
-	}
-	defer fh.Close()
-
-	// Prepare the file writer for merging or referencing the blob.
-	writer := file.NewWriter(fh, nil, nil)
-
-	// optimization: sequential writes: if the blob starts at the end of
-	// the current file, use the WriteBytes call instead to re-chunk the
-	// data and merge it into the previous Range in the file.
-	if !forceUseBlob && fnode.GetTotalSize() == uint64(offset) {
-		br, err := blob.NewReader(ctx, blobCs)
-		if err != nil {
-			return err
-		}
-		err = writer.WriteFrom(uint64(offset), int64(totalSize), br) //nolint:gosec
-		_ = br.Close()
-		return err
-	}
-
-	// Validate the full blob if necessary.
-	if fullValidate {
-		if err := bl.ValidateFull(ctx, blobCs); err != nil {
-			return err
-		}
-	}
-
-	// otherwise, append the blob to the file & sort (slower)
-	err = writer.WriteBlob(uint64(offset), totalSize, blobRef)
-	if err != nil {
-		return err
-	}
-
-	// update timestamp
-	// Set a placeholder timestamp if ts is nil.
-	ts = FillPlaceholderTimestamp(ts)
-	node.node.ModTime = ts
-
-	// Publish the changed file node to the block cursor.
-	node.bcs.SetBlock(node.node, true)
-	return nil
+	return node.WriteBlob(ctx, uint64(offset), blobRef, fullValidate, forceUseBlob, ts)
 }
 
 // CopyOrRename copies or moves an inode from a source path to a destination path.
@@ -271,14 +188,8 @@ func CopyOrRename(root *FSTree, srcPath, destPath []string, isMove bool, ts *tim
 		return err
 	}
 
-	// Read the source inode type for the destination entry.
-	srcNodeType := srcNode.GetFSNode().GetNodeType()
-
-	// if moving, set the destination cursor to the src cursor & remove src
-	nbcs := srcNode.bcs.DetachRecursive(true, true, true)
-
-	// Attach the source inode cursor to the destination directory.
-	if err := destParentNode.SetDirent(destName, srcNodeType, nbcs); err != nil {
+	// Attach a detached copy of the source inode to the destination directory.
+	if err := srcNode.copyTo(destParentNode, destName); err != nil {
 		return err
 	}
 
@@ -316,32 +227,7 @@ func TruncateFile(
 		return err
 	}
 
-	// Open the file handle for the size change.
-	fh, err := node.BuildFileHandle(ctx)
-	if err != nil {
-		return err
-	}
-	defer fh.Close()
-
-	// Keep a file with the requested size unchanged.
-	if fh.Size() == uint64(nsize) { //nolint:gosec
-		// no-op
-		return nil
-	}
-
-	// Resize the file through its block-backed writer.
-	writer := file.NewWriter(fh, nil, nil)
-	err = writer.Truncate(uint64(nsize)) //nolint:gosec
-	if err != nil {
-		return err
-	}
-
-	// update timestamp
-	node.node.ModTime = ts
-
-	// Publish the resized file node to the block cursor.
-	node.bcs.SetBlock(node.node, true)
-	return nil
+	return node.TruncateFile(ctx, nsize, ts)
 }
 
 // Remove removes inodes at one or more paths and reports whether any were
@@ -359,7 +245,7 @@ func Remove(root *FSTree, paths [][]string, ts *timestamp.Timestamp) (bool, erro
 			return false, err
 		}
 
-		nodeType := node.GetFSNode().GetNodeType()
+		nodeType := node.GetNodeType()
 		if nodeType != NodeType_NodeType_DIRECTORY {
 			return any, unixfs_errors.ErrNotDirectory
 		}
@@ -371,58 +257,9 @@ func Remove(root *FSTree, paths [][]string, ts *timestamp.Timestamp) (bool, erro
 		}
 		if iany {
 			any = true
-			node.node.ModTime = ts
 		}
 	}
 	return any, nil
-}
-
-// MknodWithContent creates a file at the given path and writes blob content to it.
-// MknodWithContent is atomic: the file is fully formed after the call.
-// path must include the file name as the last element.
-// blobRef is the reference to a pre-built blob containing the file data.
-func MknodWithContent(
-	ctx context.Context,
-	root *FSTree,
-	path []string,
-	nodeType NodeType,
-	permissions fs.FileMode,
-	ts *timestamp.Timestamp,
-	blobRef *block.BlockRef,
-) error {
-	// Require a destination path before creating a file with content.
-	if len(path) == 0 {
-		return unixfs_errors.ErrEmptyPath
-	}
-
-	// Fill the creation timestamp for the new file node.
-	ts = FillPlaceholderTimestamp(ts)
-
-	// Step 1: navigate to the parent directory.
-	parentPath := path[:len(path)-1]
-	parentNode, _, err := LookupFSTreePath(root, parentPath)
-	if err != nil {
-		return err
-	}
-
-	// Step 2: create the file entry.
-	fileName := path[len(path)-1]
-	childFtree, err := parentNode.Mknod(fileName, nodeType, nil, permissions, ts)
-	if err != nil {
-		return err
-	}
-
-	// Step 3: write pre-built blob content into the file.
-	// forceUseBlob=true: reference the blob directly, don't re-read and re-chunk.
-	// fullValidate=false: the caller built the blob, so no need to validate
-	// again.
-	if !blobRef.GetEmpty() {
-		return WriteBlob(ctx, root, path, 0, blobRef, false, true, ts)
-	}
-
-	// Empty blob: only mark the file node dirty.
-	childFtree.bcs.MarkDirty()
-	return nil
 }
 
 // LookupFSTreePath repeatedly calls LookupFollowDirent to traverse to a path.

@@ -267,7 +267,7 @@ func (s *folderSync) applyDir(rel []string) (bool, error) {
 		}
 
 		// Take its files' nodes and its subdirectories' names.
-		for i, d := range dir.GetFSNode().GetDirectoryEntry() {
+		for i, d := range dir.DirectoryEntries {
 			switch {
 			case d.GetIsDirectory():
 				subdirs = append(subdirs, d.GetName())
@@ -276,7 +276,7 @@ func (s *folderSync) applyDir(rel []string) (bool, error) {
 				if err != nil {
 					return err
 				}
-				files = append(files, remoteFile{name: d.GetName(), ref: d.GetNodeRef().Clone(), node: child.GetFSNode().CloneVT()})
+				files = append(files, remoteFile{name: d.GetName(), ref: d.GetNodeRef().Clone(), node: child.Snapshot()})
 			}
 		}
 		return nil
@@ -867,9 +867,7 @@ func (s *folderSync) driveDigest(ref *block.BlockRef, path string, info fs.FileI
 	var digest []byte
 	err := s.view(func(root *unixfs_block.FSTree) error {
 		// Open the version ref, then compare and hash the disk's bytes.
-		cs := root.GetCursor().DetachTransaction()
-		cs.SetRefAtCursor(ref, true)
-		tree, err := unixfs_block.NewFSTree(s.ctx, cs, unixfs_block.NodeType_NodeType_UNKNOWN)
+		tree, err := root.OpenVersion(s.ctx, ref)
 		if err != nil {
 			return nil
 		}
@@ -886,7 +884,7 @@ func (s *folderSync) driveDigest(ref *block.BlockRef, path string, info fs.FileI
 // at path, with stat info, feeding sum, if set, the file's bytes it read.
 func sameContent(ctx context.Context, tree *unixfs_block.FSTree, path string, info fs.FileInfo, sum io.Writer) (bool, error) {
 	// Compare the sizes, then open both files.
-	if tree.GetFSNode().GetFile().GetTotalSize() != uint64(info.Size()) { //nolint:gosec // a file size is not negative.
+	if tree.FileSize() != uint64(info.Size()) { //nolint:gosec // a file size is not negative.
 		return false, nil
 	}
 	h, err := tree.BuildFileHandle(ctx)

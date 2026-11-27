@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	gohash "hash"
 	"io/fs"
+	"iter"
 	"os"
 	"path/filepath"
 	"slices"
@@ -708,10 +709,14 @@ func (s *folderSync) markWalked(parent []string, all bool) {
 // compared, so a remote change committed since is never replaced unseen.
 func planDir(dir *unixfs_block.FSTree, infos []fs.FileInfo, known map[string]*block_store_filesegment.FolderVersion) ([]entryAction, []goneEntry, error) {
 	// Walk both name-ordered listings together.
-	var ents []*unixfs_block.Dirent
-	if dir != nil {
-		ents = dir.GetFSNode().GetDirectoryEntry()
+	entries := func(yield func(int, *unixfs_block.Dirent) bool) {
+		if dir != nil {
+			dir.DirectoryEntries(yield)
+		}
 	}
+	nextEntry, stop := iter.Pull2(entries)
+	defer stop()
+	didx, entry, hasEntry := nextEntry()
 	var acts []entryAction
 	var gone []goneEntry
 	addGone := func(d *unixfs_block.Dirent) {
@@ -719,19 +724,18 @@ func planDir(dir *unixfs_block.FSTree, infos []fs.FileInfo, known map[string]*bl
 			gone = append(gone, g)
 		}
 	}
-	next := 0
 	for _, info := range infos {
 		// Drop the Drive entries before this one, then find its own.
 		name := info.Name()
-		for next < len(ents) && ents[next].GetName() < name {
-			addGone(ents[next])
-			next++
+		for hasEntry && entry.GetName() < name {
+			addGone(entry)
+			didx, entry, hasEntry = nextEntry()
 		}
 		var dirent *unixfs_block.Dirent
-		didx := next
-		if next < len(ents) && ents[next].GetName() == name {
-			dirent = ents[next]
-			next++
+		matchedIndex := didx
+		if hasEntry && entry.GetName() == name {
+			dirent = entry
+			didx, entry, hasEntry = nextEntry()
 		}
 
 		// Decide what to do with the entry.
@@ -748,11 +752,11 @@ func planDir(dir *unixfs_block.FSTree, infos []fs.FileInfo, known map[string]*bl
 			acts = append(acts, a)
 		case info.Mode().IsRegular():
 			if dirent.GetIsFile() {
-				child, _, err := dir.FollowDirent(didx)
+				child, _, err := dir.FollowDirent(matchedIndex)
 				if err != nil {
 					return nil, nil, err
 				}
-				if fileMatches(child.GetFSNode(), info) {
+				if child.MatchesFileInfo(info) {
 					continue
 				}
 			}
@@ -767,8 +771,9 @@ func planDir(dir *unixfs_block.FSTree, infos []fs.FileInfo, known map[string]*bl
 	}
 
 	// Drop the Drive entries after the last one.
-	for _, d := range ents[next:] {
-		addGone(d)
+	for hasEntry {
+		addGone(entry)
+		_, entry, hasEntry = nextEntry()
 	}
 	return acts, gone, nil
 }
@@ -858,7 +863,7 @@ func (s *folderSync) ownTree(parent []string, name string) (bool, error) {
 		}
 		var walk func(dir *unixfs_block.FSTree, rel []string) error
 		walk = func(dir *unixfs_block.FSTree, rel []string) error {
-			for i, d := range dir.GetFSNode().GetDirectoryEntry() {
+			for i, d := range dir.DirectoryEntries {
 				childRel := append(slices.Clone(rel), d.GetName())
 				switch {
 				case d.GetIsDirectory():

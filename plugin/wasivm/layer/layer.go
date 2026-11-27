@@ -14,7 +14,6 @@ import (
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/block/file"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
@@ -116,8 +115,7 @@ func applyEntry(ctx context.Context, root *unixfs_block.FSTree, ent *Entry) erro
 	if err != nil {
 		return err
 	}
-	node.GetFSNode().File, err = file.BuildFileWithBytes(ctx, node.GetCursor().FollowSubBlock(4), ent.Data, nil)
-	return err
+	return node.InitFileWithBytes(ctx, ent.Data)
 }
 
 // mkdirAll returns the directory at dir, creating missing directories with
@@ -129,7 +127,7 @@ func mkdirAll(root *unixfs_block.FSTree, dir string) (*unixfs_block.FSTree, erro
 		if err != nil && !errors.Is(err, unixfs_errors.ErrExist) {
 			return nil, err
 		}
-		if next.GetFSNode().GetNodeType() != dirType {
+		if next.GetNodeType() != dirType {
 			return nil, errors.Errorf("%s: not a directory", name)
 		}
 		cur = next

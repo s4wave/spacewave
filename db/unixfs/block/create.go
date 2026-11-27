@@ -8,7 +8,6 @@ import (
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
-	"github.com/s4wave/spacewave/db/block/file"
 )
 
 // CreateFromFS creates a unixfs_block FSNode from the iofs.
@@ -108,13 +107,7 @@ func CopyFSToFSTree(
 		if err != nil {
 			return err
 		}
-		destFileBcs := destNode.bcs.FollowSubBlock(4)
-		destNode.node.File, err = file.BuildFileWithReader(
-			ctx,
-			destFileBcs,
-			srcFile,
-			buildBlobOpts,
-		)
+		err = destNode.InitFileWithReader(ctx, srcFile, buildBlobOpts)
 		_ = srcFile.Close()
 		if err != nil {
 			return err

@@ -63,25 +63,25 @@ func (f *FSCursorOps) GetName() string {
 // GetNodeType returns the node type of the inode.
 func (f *FSCursorOps) GetNodeType() unixfs_block.NodeType {
 	// note: changing the node type releases the ops object
-	return f.fsTree.GetFSNode().GetNodeType()
+	return f.fsTree.GetNodeType()
 }
 
 // GetIsDirectory returns if the cursor points to a directory.
 func (f *FSCursorOps) GetIsDirectory() bool {
 	// note: changing the node type releases the ops object
-	return f.fsTree.GetFSNode().GetNodeType().GetIsDirectory()
+	return f.fsTree.GetNodeType().GetIsDirectory()
 }
 
 // GetIsFile returns if the cursor points to a file.
 func (f *FSCursorOps) GetIsFile() bool {
 	// note: changing the node type releases the ops object
-	return f.fsTree.GetFSNode().GetNodeType().GetIsFile()
+	return f.fsTree.GetNodeType().GetIsFile()
 }
 
 // GetIsSymlink returns if the cursor points to a symlink.
 func (f *FSCursorOps) GetIsSymlink() bool {
 	// note: changing the node type releases the ops object
-	return f.fsTree.GetFSNode().GetNodeType().GetIsSymlink()
+	return f.fsTree.GetNodeType().GetIsSymlink()
 }
 
 // GetSize returns the size of the inode (in bytes).
@@ -91,12 +91,7 @@ func (f *FSCursorOps) GetSize(ctx context.Context) (uint64, error) {
 	if f.CheckReleased() {
 		return 0, unixfs_errors.ErrReleased
 	}
-	node := f.fsTree.GetFSNode()
-	if node.GetNodeType().GetIsSymlink() {
-		tp := node.GetSymlink().GetTargetPath()
-		return uint64(len(unixfs.JoinPath(tp.GetNodes(), tp.GetAbsolute()))), nil
-	}
-	return node.GetFile().GetTotalSize(), nil
+	return f.fsTree.Size(), nil
 }
 
 // GetModTimestamp returns the modification timestamp.
@@ -104,7 +99,7 @@ func (f *FSCursorOps) GetModTimestamp(ctx context.Context) (time.Time, error) {
 	if f.CheckReleased() {
 		return time.Time{}, unixfs_errors.ErrReleased
 	}
-	return f.fsTree.GetFSNode().GetModTime().AsTime(), nil
+	return f.fsTree.ModTime(), nil
 }
 
 // SetModTimestamp updates the modification timestamp of the node.
@@ -365,7 +360,15 @@ func (f *FSCursorOps) Mknod(
 }
 
 // MknodWithContent creates a file entry and writes content atomically.
-func (f *FSCursorOps) MknodWithContent(ctx context.Context, name string, nodeType unixfs.FSCursorNodeType, dataLen int64, rdr io.Reader, permissions fs.FileMode, ts time.Time) error {
+func (f *FSCursorOps) MknodWithContent(
+	ctx context.Context,
+	name string,
+	nodeType unixfs.FSCursorNodeType,
+	dataLen int64,
+	rdr io.Reader,
+	permissions fs.FileMode,
+	ts time.Time,
+) error {
 	// Require a live directory cursor before creating a file with content.
 	if f.CheckReleased() {
 		return unixfs_errors.ErrReleased
@@ -441,14 +444,7 @@ func (f *FSCursorOps) Readlink(ctx context.Context, name string) ([]string, bool
 		ftree = nftree
 	}
 
-	// verify that ftree is a symlink
-	if ftree.GetFSNode().GetNodeType() != unixfs_block.NodeType_NodeType_SYMLINK {
-		return nil, false, unixfs_errors.ErrNotSymlink
-	}
-
-	// return symlink value
-	tgtPath := ftree.GetFSNode().GetSymlink().GetTargetPath()
-	return tgtPath.GetNodes(), tgtPath.GetAbsolute(), nil
+	return ftree.Readlink()
 }
 
 // CopyTo copies a dirent inode to another inode with an optimized operation.

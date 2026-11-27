@@ -5,7 +5,6 @@ import (
 	"context"
 	"io"
 	"io/fs"
-	"math"
 	"slices"
 	"strings"
 	"time"
@@ -828,17 +827,8 @@ func (b *BatchFSWriter) syncExistingFile(
 		srcSize = int64(len(e.data))
 		srcRdr = io.NopCloser(bytes.NewReader(e.data))
 	case !e.blobRef.GetEmpty():
-		blobCs := node.GetCursor().DetachTransaction()
-		blobCs.SetRefAtCursor(e.blobRef, true)
-		srcBlob, err := blob.UnmarshalBlob(ctx, blobCs)
-		if err != nil {
-			return err
-		}
-		if srcBlob.GetTotalSize() > math.MaxInt64 {
-			return errors.New("source blob size exceeds int64")
-		}
-		srcSize = int64(srcBlob.GetTotalSize()) //nolint:gosec
-		srcRdr, err = blob.NewReader(ctx, blobCs)
+		var err error
+		srcSize, srcRdr, err = node.OpenBlob(ctx, e.blobRef)
 		if err != nil {
 			return err
 		}

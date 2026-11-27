@@ -254,5 +254,42 @@ func (f *FS) buildRootTxLocked() (*unixfs_block.FSTree, *block.Cursor, *block.Tr
 	return root, bcs, btx, err
 }
 
+// applyOp edits and publishes the root under the filesystem writer lock.
+func (f *FS) applyOp(
+	ctx context.Context,
+	cb func(wr *unixfs_block.FSWriter) error,
+) error {
+	// Hold the filesystem lock for the writer operation and root update.
+	rel, err := f.rmtx.Lock(ctx, true)
+	if err != nil {
+		return err
+	}
+	defer rel()
+
+	// Open a root transaction and apply the writer operation.
+	fsTree, bcs, btx, err := f.buildRootTxLocked()
+	if err == nil {
+		wr := unixfs_block.NewFSWriter(fsTree)
+		err = cb(wr)
+	}
+	if err != nil {
+		return err
+	}
+
+	// Flush the edited blocks before publishing a changed root reference.
+	oldRoot := bcs.GetRef()
+	nroot, _, err := btx.Write(ctx, true)
+	if err != nil {
+		return err
+	}
+	if !nroot.EqualsRef(oldRoot) {
+		if err := f.updateRootRefLocked(nroot); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // _ is a type assertion
 var _ unixfs.FSCursor = (*FS)(nil)

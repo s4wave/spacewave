@@ -7,8 +7,6 @@ import (
 	"io/fs"
 	"time"
 
-	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/block/blob"
 	"github.com/s4wave/spacewave/db/unixfs"
 )
 
@@ -98,31 +96,26 @@ func (f *FSWriter) Remove(ctx context.Context, paths [][]string, ts time.Time) e
 
 // MknodWithContent creates a file and writes content atomically.
 // Builds the blob inline and writes it to the new file entry.
-func (f *FSWriter) MknodWithContent(ctx context.Context, path []string, nodeType unixfs.FSCursorNodeType, dataLen int64, rdr io.Reader, permissions fs.FileMode, ts time.Time) error {
+func (f *FSWriter) MknodWithContent(
+	ctx context.Context,
+	path []string,
+	nodeType unixfs.FSCursorNodeType,
+	dataLen int64,
+	rdr io.Reader,
+	permissions fs.FileMode,
+	ts time.Time,
+) error {
 	// Convert the file type and timestamp for block-backed inode creation.
 	nt := FSCursorNodeTypeToNodeType(nodeType)
 	tts := ToTimestamp(ts, true)
 
-	// Build blob in a detached transaction.
-	blobCs := f.fsTree.GetCursor().DetachTransaction()
-	blobCs.SetRefAtCursor(nil, true)
-	_, err := blob.BuildBlob(ctx, dataLen, rdr, blobCs, nil)
+	// Build and flush the detached blob before attaching it to the new file.
+	blobRef, err := f.fsTree.BuildContent(ctx, dataLen, rdr)
 	if err != nil {
 		return err
 	}
 
-	// Write the detached transaction to flush blocks and compute the blob ref.
-	// Without the write, GetRef() returns nil because the block has not
-	// been hashed.
-	blobRef, _, err := blobCs.GetTransaction().Write(ctx, true)
-	if err != nil {
-		return err
-	}
-	if blobRef == nil {
-		blobRef = &block.BlockRef{}
-	}
-
-	return MknodWithContent(ctx, f.fsTree, path, nt, permissions, tts, blobRef)
+	return f.fsTree.MknodWithContent(ctx, path, nt, permissions, tts, blobRef)
 }
 
 // _ is a type assertion
