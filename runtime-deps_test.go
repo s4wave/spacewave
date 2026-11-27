@@ -46,6 +46,8 @@ var runtimeModules = []string{
 	"github.com/aperturerobotics/fastjson",
 	"github.com/aperturerobotics/json-iterator-lite",
 	"github.com/aperturerobotics/protobuf-go-lite",
+	// Cloud's generated API messages are shared with the local cloud client.
+	"github.com/aperturerobotics/spacewave-cloud",
 	"github.com/aperturerobotics/starpc",
 	"github.com/aperturerobotics/util",
 	"github.com/google/uuid",
