@@ -145,9 +145,10 @@ func TestPinnedOperationReplay(t *testing.T) {
 	}
 
 	// Build a bridge operation pinned to the missing executable hash.
-	missing := newBridgeOperation(le, tb.Bus, &registry.WorldOpRegistration{PluginId: "test-plugin"}, id, tb.EngineID, pluginLoadDeadline)
-	missing.manifestRoot = missingHash.MarshalString()
-	missing.handlerID = "colors/like"
+	reg := &registry.WorldOpRegistration{PluginId: "test-plugin", OperationTypeId: "colors/like"}
+	missing := newBridgeOperation(le, tb.Bus, reg, id, tb.EngineID, pluginLoadDeadline, bridgeOperationTarget{
+		manifestRoot: missingHash.MarshalString(),
+	})
 
 	// An executable that never loads is not proven missing: the apply may pass later.
 	_, err = missing.ApplyWorldOp(ctx, le, read, tb.Volume.GetPeerID())
@@ -158,12 +159,13 @@ func TestPinnedOperationReplay(t *testing.T) {
 
 	// A proven missing build is final for this device and reports the
 	// pinned root.
-	foreign := newBridgeOperation(le, tb.Bus, &registry.WorldOpRegistration{PluginId: "test-plugin"}, id, tb.EngineID, pluginLoadDeadline)
-	foreign.manifestRoot = foreignHash.MarshalString()
-	foreign.handlerID = "colors/like"
+	foreignRoot := foreignHash.MarshalString()
+	foreign := newBridgeOperation(le, tb.Bus, reg, id, tb.EngineID, pluginLoadDeadline, bridgeOperationTarget{
+		manifestRoot: foreignRoot,
+	})
 	_, err = foreign.ApplyWorldOp(ctx, le, read, tb.Volume.GetPeerID())
 	var executableMissing *world.PluginExecutableMissingError
-	if !errors.As(err, &executableMissing) || executableMissing.ManifestRoot != foreign.manifestRoot {
+	if !errors.As(err, &executableMissing) || executableMissing.ManifestRoot != foreignRoot {
 		t.Fatalf("foreign executable error = %v, expected PluginExecutableMissingError", err)
 	}
 	var rejection *world.OperationRejection
@@ -173,9 +175,9 @@ func TestPinnedOperationReplay(t *testing.T) {
 
 	// A connect error that arrives at the operation's deadline is a wait that
 	// replay retries, not a failure it records on this replica.
-	hang := newBridgeOperation(le, tb.Bus, &registry.WorldOpRegistration{PluginId: "test-plugin"}, id, tb.EngineID, pluginLoadDeadline)
-	hang.manifestRoot = hangHash.MarshalString()
-	hang.handlerID = "colors/like"
+	hang := newBridgeOperation(le, tb.Bus, reg, id, tb.EngineID, pluginLoadDeadline, bridgeOperationTarget{
+		manifestRoot: hangHash.MarshalString(),
+	})
 	opCtx, opCancel := context.WithTimeout(ctx, 200*time.Millisecond)
 	defer opCancel()
 	_, err = hang.ApplyWorldOp(opCtx, le, read, tb.Volume.GetPeerID())
@@ -209,9 +211,9 @@ func TestPinnedOperationReplay(t *testing.T) {
 	// A handler that fails its call long before the deadline gave no verdict,
 	// so replay waits at it as at an unreachable plugin: the error is the type
 	// replay counts as a gap, marked sent, and never a stored rejection.
-	crash := newBridgeOperation(le, tb.Bus, &registry.WorldOpRegistration{PluginId: "test-plugin"}, id, tb.EngineID, pluginLoadDeadline)
-	crash.manifestRoot = crashHash.MarshalString()
-	crash.handlerID = "colors/like"
+	crash := newBridgeOperation(le, tb.Bus, reg, id, tb.EngineID, pluginLoadDeadline, bridgeOperationTarget{
+		manifestRoot: crashHash.MarshalString(),
+	})
 	liveCtx, liveCancel := context.WithTimeout(ctx, 10*time.Second)
 	defer liveCancel()
 	_, err = crash.ApplyWorldOp(liveCtx, le, read, tb.Volume.GetPeerID())
@@ -220,9 +222,9 @@ func TestPinnedOperationReplay(t *testing.T) {
 	}
 
 	// So is an attach the worker refuses, before the handler was asked.
-	attach := newBridgeOperation(le, tb.Bus, &registry.WorldOpRegistration{PluginId: "test-plugin"}, id, tb.EngineID, pluginLoadDeadline)
-	attach.manifestRoot = attachHash.MarshalString()
-	attach.handlerID = "colors/like"
+	attach := newBridgeOperation(le, tb.Bus, reg, id, tb.EngineID, pluginLoadDeadline, bridgeOperationTarget{
+		manifestRoot: attachHash.MarshalString(),
+	})
 	_, err = attach.ApplyWorldOp(liveCtx, le, read, tb.Volume.GetPeerID())
 	if !errors.As(err, &unavailable) || unavailable.Sent || errors.As(err, &rejection) || liveCtx.Err() != nil {
 		t.Fatalf("attach failure = %v, expected an unsent PluginUnavailableError", err)

@@ -172,24 +172,33 @@ func (r *WorldOpRegistryResource) WatchWorldOps(
 func (r *WorldOpRegistryResource) LookupRegistrationByOpType(
 	opTypeID, instanceKey string,
 ) *s4wave_worldop_registry.WorldOpRegistration {
-	reg, _ := r.lookupPluginInstance(opTypeID, instanceKey)
+	var reg *s4wave_worldop_registry.WorldOpRegistration
+	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		reg, _ = r.lookupPluginInstanceLocked(opTypeID, instanceKey)
+	})
 	return reg
 }
 
-// lookupPluginInstance finds a registration by operation type ID with the
-// key of the plugin instance that serves it, empty for a global registration.
-func (r *WorldOpRegistryResource) lookupPluginInstance(
+// WatchRegistration returns a clone of the selected registration, its serving
+// instance key (empty for a global registration), and a channel closed by the
+// next registry change. The channel is available even when no handler exists,
+// and a wakeup can leave the selection unchanged.
+func (r *WorldOpRegistryResource) WatchRegistration(
 	opTypeID, instanceKey string,
-) (*s4wave_worldop_registry.WorldOpRegistration, string) {
+) (*s4wave_worldop_registry.WorldOpRegistration, string, <-chan struct{}) {
+	// Capture the selection and its notification under the same lock.
 	var reg *s4wave_worldop_registry.WorldOpRegistration
 	var pluginInstanceKey string
-	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+	var waitCh <-chan struct{}
+	r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 		reg, pluginInstanceKey = r.lookupPluginInstanceLocked(opTypeID, instanceKey)
+		waitCh = getWaitCh()
 	})
-	return reg, pluginInstanceKey
+	return reg, pluginInstanceKey, waitCh
 }
 
-// lookupPluginInstanceLocked is lookupPluginInstance with the bcast lock held.
+// lookupPluginInstanceLocked returns a clone of the selected registration and
+// the instance that serves it. The caller holds the registry broadcast lock.
 func (r *WorldOpRegistryResource) lookupPluginInstanceLocked(
 	opTypeID, instanceKey string,
 ) (*s4wave_worldop_registry.WorldOpRegistration, string) {

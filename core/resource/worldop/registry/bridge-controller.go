@@ -119,10 +119,9 @@ func (c *WorldOpRegistryBridgeController) HandleDirective(ctx context.Context, d
 	if pinned {
 		reg := &s4wave_worldop_registry.WorldOpRegistration{PluginId: pluginID, OperationTypeId: handlerID}
 		lookupOp := func(ctx context.Context, operationTypeID string) (world.Operation, error) {
-			op := newBridgeOperation(c.le, c.b, reg, operationTypeID, engineID, c.loadDeadline)
-			op.manifestRoot = manifestRoot
-			op.handlerID = handlerID
-			return op, nil
+			return newBridgeOperation(c.le, c.b, reg, operationTypeID, engineID, c.loadDeadline, bridgeOperationTarget{
+				manifestRoot: manifestRoot,
+			}), nil
 		}
 		return directive.R(world.NewLookupWorldOpResolver(lookupOp), nil)
 	}
@@ -146,13 +145,7 @@ func (c *WorldOpRegistryBridgeController) watchRegistration(
 	var instanceKey string
 	for {
 		// Read the registration and the channel that signals its change.
-		var reg *s4wave_worldop_registry.WorldOpRegistration
-		var nextInstanceKey string
-		var waitCh <-chan struct{}
-		c.registry.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			reg, nextInstanceKey = c.registry.lookupPluginInstanceLocked(opTypeID, engineID)
-			waitCh = getWaitCh()
-		})
+		reg, nextInstanceKey, waitCh := c.registry.WatchRegistration(opTypeID, engineID)
 
 		// Replace the value when the registration or its instance changed.
 		if reg.GetRegistrationId() != regID || nextInstanceKey != instanceKey {
@@ -167,6 +160,7 @@ func (c *WorldOpRegistryBridgeController) watchRegistration(
 		}
 		handler.MarkIdle(true)
 
+		// Wait for a registry change or directive cancellation.
 		select {
 		case <-ctx.Done():
 			return context.Cause(ctx)
@@ -185,9 +179,9 @@ func newRegisteredLookupOp(
 	loadDeadline time.Duration,
 ) world.LookupWorldOpValue {
 	return func(ctx context.Context, operationTypeID string) (world.Operation, error) {
-		op := newBridgeOperation(le, b, reg, operationTypeID, engineID, loadDeadline)
-		op.instanceKey = instanceKey
-		return op, nil
+		return newBridgeOperation(le, b, reg, operationTypeID, engineID, loadDeadline, bridgeOperationTarget{
+			instanceKey: instanceKey,
+		}), nil
 	}
 }
 
@@ -218,7 +212,15 @@ type bridgeOperation struct {
 	prepared *s4wave_plugin.PluginResources
 }
 
-// newBridgeOperation creates a new bridgeOperation.
+// bridgeOperationTarget selects the executable that serves an operation.
+type bridgeOperationTarget struct {
+	// manifestRoot pins the executable when set.
+	manifestRoot string
+	// instanceKey selects the registered instance when manifestRoot is empty.
+	instanceKey string
+}
+
+// newBridgeOperation binds an operation to its plugin handler and executable.
 func newBridgeOperation(
 	le *logrus.Entry,
 	b bus.Bus,
@@ -226,14 +228,24 @@ func newBridgeOperation(
 	opTypeID string,
 	engineID string,
 	loadDeadline time.Duration,
+	target bridgeOperationTarget,
 ) *bridgeOperation {
+	// Pinned lookups carry the plugin-local handler name in the registration.
+	handlerID := opTypeID
+	if target.manifestRoot != "" {
+		handlerID = reg.GetOperationTypeId()
+	}
+
+	// Bind the operation to the selected executable or registered instance.
 	return &bridgeOperation{
 		le:           le,
 		b:            b,
 		reg:          reg,
 		engineID:     engineID,
 		opTypeID:     opTypeID,
-		handlerID:    opTypeID,
+		handlerID:    handlerID,
+		instanceKey:  target.instanceKey,
+		manifestRoot: target.manifestRoot,
 		loadDeadline: loadDeadline,
 	}
 }
