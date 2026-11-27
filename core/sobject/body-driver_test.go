@@ -442,6 +442,7 @@ func TestBodyDriverCheckpoints(t *testing.T) {
 	if n := len(g.ctr.GetValue().GetOps()); n != 1 {
 		t.Fatalf("the checkpoint left %d operations; want the later one", n)
 	}
+	first := mustPrevAuthors(t, g.ctr.GetValue(), nil)
 
 	// The next step installs it: the body reached its state, so it keeps the
 	// later operation and applies nothing again.
@@ -478,6 +479,23 @@ func TestBodyDriverCheckpoints(t *testing.T) {
 	if n := len(g.ctr.GetValue().GetOps()); n != 0 {
 		t.Fatalf("the deadline checkpoint left %d operations", n)
 	}
+	mustPrevAuthors(t, g.ctr.GetValue(), first)
+}
+
+// mustPrevAuthors checks that state's checkpoint records prev, the Authors of
+// the checkpoint before it, as its PrevAuthors, present even when empty, and
+// returns its own Authors.
+func mustPrevAuthors(t *testing.T, state *SOState, prev []*SOOperationPosition) []*SOOperationPosition {
+	t.Helper()
+	inner, err := state.GetCheckpointInner()
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := inner.GetOutcomes().GetPrevAuthors()
+	if got == nil || !(&SOCheckpointAuthors{Authors: prev}).EqualVT(got) {
+		t.Fatalf("height %d prev authors %v, want %v", inner.GetHeight(), got, prev)
+	}
+	return inner.GetAuthors()
 }
 
 // mustHeight returns the height of state's checkpoint.

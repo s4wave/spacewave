@@ -306,11 +306,10 @@ func (s *SOState) signStableCheckpoint(
 	stateDataEnc []byte,
 	outcomes *SOCheckpointOutcomes,
 ) (*SOCheckpoint, error) {
-	inner, err := s.stableCheckpointInner(sharedObjectID, set, prefix, stateDataEnc)
+	inner, err := s.stableCheckpointInner(sharedObjectID, set, prefix, stateDataEnc, outcomes)
 	if err != nil {
 		return nil, err
 	}
-	inner.Outcomes = outcomes
 	return BuildSOCheckpoint(privKey, inner)
 }
 
@@ -330,8 +329,16 @@ func (s *SOOperationSet) outcomes(refused [][]byte) (*SOCheckpointOutcomes, erro
 
 // stableCheckpointInner returns the body of the checkpoint after the held one
 // that covers prefix, a prefix of set, the verified operations s holds, with
-// the state data stateDataEnc. A group decides it unsigned.
-func (s *SOState) stableCheckpointInner(sharedObjectID string, set *SOOperationSet, prefix [][]byte, stateDataEnc []byte) (*SOCheckpointInner, error) {
+// the state data stateDataEnc. A group decides it unsigned. outcomes, nil when
+// the signer records none, gains the held checkpoint's Authors as its
+// PrevAuthors.
+func (s *SOState) stableCheckpointInner(
+	sharedObjectID string,
+	set *SOOperationSet,
+	prefix [][]byte,
+	stateDataEnc []byte,
+	outcomes *SOCheckpointOutcomes,
+) (*SOCheckpointInner, error) {
 	// Cover only held operations.
 	for _, h := range prefix {
 		if set.Get(h) == nil {
@@ -348,6 +355,15 @@ func (s *SOState) stableCheckpointInner(sharedObjectID string, set *SOOperationS
 	if prevInner == nil {
 		return nil, errors.New("state has no checkpoint to follow")
 	}
+
+	// Record where the newly covered operations start.
+	if outcomes != nil {
+		prevAuthors := make([]*SOOperationPosition, len(prevInner.GetAuthors()))
+		for i, author := range prevInner.GetAuthors() {
+			prevAuthors[i] = author.CloneVT()
+		}
+		outcomes.PrevAuthors = &SOCheckpointAuthors{Authors: prevAuthors}
+	}
 	return &SOCheckpointInner{
 		SharedObjectId:     sharedObjectID,
 		Height:             prevInner.GetHeight() + 1,
@@ -358,6 +374,7 @@ func (s *SOState) stableCheckpointInner(sharedObjectID string, set *SOOperationS
 		KeyEpoch:           s.CurrentKeyEpoch().GetEpoch(),
 		Authors:            set.cover(prefix),
 		Sequence:           sequenceHeadOrNil(set.SequenceHead(prefix)),
+		Outcomes:           outcomes,
 	}, nil
 }
 

@@ -40,7 +40,8 @@ const (
 // covers, so any other operation it newly covers on H's chain applied. A
 // refusal names its operation by hash, so it decides that operation at any
 // install. Applied needs the previous checkpoint's head, which says where
-// "newly covers" starts.
+// "newly covers" starts: the checkpoint records it as PrevAuthors, and one
+// signed before that field leaves it to the checkpoint installed before.
 type checkpointCover struct {
 	// height is the installed checkpoint's height.
 	height uint64
@@ -90,16 +91,51 @@ func nextCover(
 		c.refused[string(refused.GetOpHash())] = struct{}{}
 	}
 
-	// Prove applied operations only above the previous checkpoint's head,
-	// known when this checkpoint follows the one installed before it.
-	if !follows {
+	// Prove applied operations only above the previous checkpoint's head:
+	// the PrevAuthors it records, or, on a checkpoint signed before that
+	// field, the head of the one installed directly before it.
+	from, known := prevHead(prev, follows, outcomes.GetPrevAuthors(), peerID)
+	if !known {
 		return c
 	}
-	c.from = prev.head.GetNonce()
+	c.from = from
 	if c.head != nil {
 		c.chain = heldChain(held, peerID, c.head.GetOpHash(), c.from)
 	}
 	return c
+}
+
+// prevHead returns the nonce of peerID's last operation the previous
+// checkpoint covered, zero when it covered none, and whether that is known.
+// prevAuthors, nil on a checkpoint signed before the field existed, names it
+// at any install unless checkpointStandaloneOutcomeEnv is off. Otherwise it is
+// known only when the checkpoint follows prev, the one installed before it.
+// When both name it they must agree: a checkpoint that follows prev yet
+// records another previous head is on a forked chain, so neither is trusted.
+func prevHead(prev *checkpointCover, follows bool, prevAuthors *sobject.SOCheckpointAuthors, peerID string) (uint64, bool) {
+	// Without recorded previous heads, only the installed one names it.
+	if prevAuthors == nil || checkpointStandaloneOutcomeOff() {
+		if !follows {
+			return 0, false
+		}
+		return prev.head.GetNonce(), true
+	}
+
+	// Find peerID's entry, absent when the previous checkpoint covered none
+	// of its operations.
+	var recorded *sobject.SOOperationPosition
+	for _, author := range prevAuthors.GetAuthors() {
+		if author.GetPeerId() == peerID {
+			recorded = author
+			break
+		}
+	}
+
+	// Distrust recorded heads that disagree with the installed one.
+	if follows && !recorded.EqualVT(prev.head) {
+		return 0, false
+	}
+	return recorded.GetNonce(), true
 }
 
 // heldChain returns the hashes of peerID's operations held that the chain
@@ -130,7 +166,7 @@ const checkpointTipOutcomeEnv = "SPACEWAVE_WORLD_CHECKPOINT_TIP_OUTCOME"
 
 // checkpointStandaloneOutcomeEnv, set to "off", restores the rule that a
 // checkpoint decides nothing unless it directly follows the one installed
-// before it, as at the first install after a mount.
+// before it, as at the first install after a mount, and ignores PrevAuthors.
 const checkpointStandaloneOutcomeEnv = "SPACEWAVE_WORLD_CHECKPOINT_STANDALONE_OUTCOME"
 
 // checkpointStandaloneOutcomeOff reports whether checkpointStandaloneOutcomeEnv

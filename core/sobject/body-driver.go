@@ -459,7 +459,7 @@ func (d *BodyDriver) ProposeCheckpoint(ctx context.Context, state *SOState) (*SO
 	if err != nil {
 		return nil, err
 	}
-	return state.stableCheckpointInner(soID, set, prefix, dataEnc)
+	return state.stableCheckpointInner(soID, set, prefix, dataEnc, nil)
 }
 
 // JudgeCheckpoint reports whether inner is the checkpoint after the one state
@@ -487,7 +487,7 @@ func (d *BodyDriver) JudgeCheckpoint(ctx context.Context, state *SOState, inner 
 
 	// Compare the body this voter would build around the same state data.
 	soID := d.so.GetSharedObjectID()
-	expected, err := state.stableCheckpointInner(soID, set, prefix, inner.GetStateData())
+	expected, err := state.stableCheckpointInner(soID, set, prefix, inner.GetStateData(), nil)
 	if err != nil || !expected.EqualVT(inner) {
 		return false, err == nil, nil
 	}

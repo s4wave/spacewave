@@ -155,6 +155,9 @@ func (i *SOCheckpointInner) Validate() error {
 	if err := validateSequenceHead("checkpoint sequence", i.GetSequence()); err != nil {
 		return err
 	}
+	if err := validateAuthorHeads("outcomes prev_authors", i.GetOutcomes().GetPrevAuthors().GetAuthors()); err != nil {
+		return err
+	}
 	return validateAuthorHeads("authors", i.GetAuthors())
 }
 
