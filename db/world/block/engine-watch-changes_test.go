@@ -999,11 +999,9 @@ func BenchmarkChangeFeedCommit(b *testing.B) {
 	e := newVolumeFixture(b, WithReaderPinDelay(defaultReaderPinDelay)).engine
 	var watchers sync.WaitGroup
 	for range 3000 {
-		watchers.Add(1)
-		go func() {
-			defer watchers.Done()
+		watchers.Go(func() {
 			_ = e.WatchChanges(ctx, 0, nil, func(uint64, *world.ChangeSet) error { return nil })
-		}()
+		})
 	}
 	defer func() { cancel(); watchers.Wait() }()
 

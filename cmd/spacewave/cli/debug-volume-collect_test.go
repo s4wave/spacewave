@@ -265,7 +265,7 @@ func TestDebugVolumeWriteOff(t *testing.T) {
 			t.Fatal(err)
 		}
 		listed("written-off")
-		for _, line := range strings.Split(strings.TrimSpace(report), "\n") {
+		for line := range strings.SplitSeq(strings.TrimSpace(report), "\n") {
 			label, value, _ := strings.Cut(line, ":")
 			if count, ok := want[label]; ok && strings.TrimSpace(value) != count {
 				t.Fatalf("write-off row %q, want %s:\n%s", line, count, report)

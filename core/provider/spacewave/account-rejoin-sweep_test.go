@@ -250,8 +250,7 @@ func TestBuildSelfRejoinSweepStateLockedRequiresBootstrapAndTrigger(t *testing.T
 // TestSetSelfRejoinSweepStateKeepsRunningForEqualState checks that refreshing
 // a running sweep with an equal state leaves the running flag set.
 func TestSetSelfRejoinSweepStateKeepsRunningForEqualState(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	acc := &ProviderAccount{
 		selfRejoinSweep: routine.NewStateRoutineContainer(equalSelfRejoinSweepState),
 	}
