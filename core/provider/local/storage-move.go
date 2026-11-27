@@ -311,7 +311,7 @@ func waitUploaded(
 		if status.Pending == 0 || !status.Oldest.Before(since) {
 			return errMoved
 		}
-		if status.Pending == prev.Pending && status.PendingBytes == prev.PendingBytes && status.Err == prev.Err {
+		if status.Pending == prev.Pending && status.PendingBytes == prev.PendingBytes && status.Err == prev.Err && status.Held == prev.Held {
 			return nil
 		}
 		prev = status

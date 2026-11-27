@@ -216,7 +216,7 @@ func (s *syncController) setPublication(h *cloudSOHost, pending *api.PendingSOPu
 
 // flushCheckpoint runs under flushMtx. Snapshotting publications before blocks
 // prevents a concurrent edit from publishing state whose blocks missed this
-// flush. A flush that held back a corrupt dirty block returns a *heldError
+// flush. A flush that held back a corrupt dirty block returns a *block.HeldError
 // and, like any other flush failure, publishes nothing.
 func (s *syncController) flushCheckpoint(ctx context.Context, orderBlocks bool) (retErr error) {
 	// Record sync errors in telemetry for the resource.

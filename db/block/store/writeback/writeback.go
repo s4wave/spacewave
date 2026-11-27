@@ -77,6 +77,21 @@ type Store struct {
 	bcast broadcast.Broadcast
 	// status projects the committed markers and the upload policy.
 	status Status
+	// held is the queue entries the upload read corrupt, keyed by queue key,
+	// guarded by bcast. The map is replaced, never changed; status.Held is
+	// derived from it by setHeldLocked alone.
+	held map[string]heldEntry
+	// marks counts the marking transactions projected into status, guarded
+	// by bcast, so an upload waiting while every entry is held reads the
+	// queue again after a write, including a write of a held block.
+	marks uint64
+	// heldGen counts the rechecks that put held entries back, guarded by
+	// bcast, so a waiting upload reads the queue again after one.
+	heldGen uint64
+	// heldArmed reports that the recheck timer runs, and heldDelay is its
+	// last delay; both guarded by bcast.
+	heldArmed bool
+	heldDelay time.Duration
 	// gen counts enablement changes, guarded by bcast. A transaction that
 	// marked blocks projects them into status only if no change followed it.
 	gen uint64
@@ -397,6 +412,7 @@ func (s *Store) SetEnabled(ctx context.Context, enabled bool) error {
 			s.status.EvictableBytes = 0
 			s.status.Oldest = time.Time{}
 			s.status.Err, s.status.Target = nil, ""
+			s.setHeldLocked(nil)
 		}
 		broadcast()
 	})
@@ -488,7 +504,9 @@ func (s *Store) GetUploadReads() int {
 }
 
 // UploadedBefore reports whether the remote holds every block written before
-// at. It reads the queue's first entry from the committed markers rather than
+// at. A block the upload holds back as corrupt keeps its queue entry, so it
+// keeps this false for every time after its write until it is repaired:
+// nothing that relies on this publishes past a held block. It reads the queue's first entry from the committed markers rather than
 // the status, which follows a commit, so a head read at at can be named durable
 // the moment this returns true. A disabled store uploads nothing and reports
 // false.
@@ -635,6 +653,7 @@ func (s *Store) applyQueued(gen uint64, delta queueDelta) {
 		}
 		s.status.Pending += delta.added
 		s.status.PendingBytes += delta.addedBytes
+		s.marks++
 		broadcast()
 	})
 }

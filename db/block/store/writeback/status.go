@@ -1,6 +1,10 @@
 package block_store_writeback
 
-import "time"
+import (
+	"time"
+
+	"github.com/s4wave/spacewave/db/block"
+)
 
 // Status is the upload state of a Store.
 type Status struct {
@@ -15,6 +19,11 @@ type Status struct {
 	Oldest time.Time
 	// Err is the last upload failure, cleared by the next successful batch.
 	Err error
+	// Held is the held state while the upload keeps queued blocks back because
+	// their local bytes fail their hash, nil while none is held. The held
+	// blocks keep their markers and local values, and the rest of the queue
+	// uploads.
+	Held *block.HeldError
 	// Target is the remote every block stored before it was chosen is queued
 	// for, empty until a backfill completes.
 	Target string
@@ -50,4 +59,16 @@ type Status struct {
 // blocks awaiting upload and the uploaded blocks not yet evicted.
 func (s Status) ResidentBytes() int64 {
 	return s.PendingBytes + s.EvictableBytes
+}
+
+// Failure returns what the person is told is wrong with the upload: the last
+// failure, or else the held state, nil while neither applies.
+func (s Status) Failure() error {
+	if s.Err != nil {
+		return s.Err
+	}
+	if s.Held != nil {
+		return s.Held
+	}
+	return nil
 }

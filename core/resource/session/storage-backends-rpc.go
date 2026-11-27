@@ -273,8 +273,8 @@ func (r *SessionResource) WatchSpaceStorage(
 			PendingBlocks:      int64(status.Pending),
 			PendingBytes:       status.PendingBytes,
 		}
-		if status.Err != nil {
-			resp.UploadError = status.Err.Error()
+		if err := status.Failure(); err != nil {
+			resp.UploadError = err.Error()
 		}
 
 		// Send the response when it differs from the previous one.
@@ -309,8 +309,8 @@ func (r *SessionResource) MoveSpaceStorage(
 				PendingBlocks: int64(progress.Upload.Pending),
 				PendingBytes:  progress.Upload.PendingBytes,
 			}
-			if progress.Upload.Err != nil {
-				resp.UploadError = progress.Upload.Err.Error()
+			if err := progress.Upload.Failure(); err != nil {
+				resp.UploadError = err.Error()
 			}
 			return strm.Send(resp)
 		},

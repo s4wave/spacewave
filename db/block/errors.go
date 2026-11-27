@@ -3,6 +3,7 @@ package block
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/s4wave/spacewave/net/hash"
 )
@@ -104,6 +105,28 @@ func (e *CorruptError) Error() string {
 
 // Unwrap returns ErrBlockCorrupt.
 func (e *CorruptError) Unwrap() error {
+	return ErrBlockCorrupt
+}
+
+// HeldError is the held state of an upload that keeps dirty blocks back
+// because their local bytes fail their hash. Nothing that reaches a held block
+// is published until it is repaired or removed. It matches ErrBlockCorrupt
+// with errors.Is.
+type HeldError struct {
+	// Count is the number of damaged blocks held back.
+	Count int
+	// Since is when the store first held a block back.
+	Since time.Time
+}
+
+// Error names the held state the person sees.
+func (e *HeldError) Error() string {
+	return fmt.Sprintf("sync held: %d damaged blocks on this device, nothing published since %s",
+		e.Count, e.Since.Format(time.RFC3339))
+}
+
+// Unwrap returns ErrBlockCorrupt.
+func (e *HeldError) Unwrap() error {
 	return ErrBlockCorrupt
 }
 

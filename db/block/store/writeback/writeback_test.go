@@ -1059,3 +1059,104 @@ func (shortLocator) LocateBlocks(context.Context, []*block.BlockRef) ([]bool, er
 
 // KeepsBlocks says the remote keeps what it holds.
 func (shortLocator) KeepsBlocks() bool { return true }
+
+// corruptLocal reads the block named by bad as corrupt, as a local store does
+// when its bytes no longer hash to their ref.
+type corruptLocal struct {
+	block.StoreOps
+	bad atomic.Pointer[hash.Hash]
+}
+
+// GetStoredBlock fails the bad block with the corrupt class.
+func (c *corruptLocal) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	if bad := c.bad.Load(); bad != nil && ref.GetHash().EqualVT(bad) {
+		return nil, &block.CorruptError{Ref: ref}
+	}
+	return c.StoreOps.GetStoredBlock(ctx, ref)
+}
+
+// TestUploadHoldsCorruptBlock checks that a block whose local bytes fail their
+// hash is left out of its batch while the rest of the batch uploads, keeps its
+// marker and local copy, keeps UploadedBefore false and shows as held; and
+// that a write of the block after a repair uploads it and ends the hold.
+func TestUploadHoldsCorruptBlock(t *testing.T) {
+	// Queue three blocks and read the middle one as corrupt.
+	ctx := t.Context()
+	env := newTestEnv(t)
+	s := env.newStore(t, true)
+	var refs []*block.BlockRef
+	for _, body := range []string{"first", "damaged", "last"} {
+		ref, _, err := s.PutBlock(ctx, []byte(body), leafOpts)
+		if err != nil {
+			t.Fatal(err)
+		}
+		refs = append(refs, ref)
+	}
+	local := &corruptLocal{StoreOps: s.local}
+	local.bad.Store(refs[1].GetHash())
+	s.local = local
+	written := time.Now()
+
+	// Upload until only the held block is pending.
+	remote := &recordingStore{StoreOps: newInmemBlockStore()}
+	upCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	done := make(chan error, 1)
+	go func() { done <- s.Upload(upCtx, remote) }()
+	waitCorruptStatus(t, upCtx, s, func(st Status) bool { return st.Pending == 1 && st.Held != nil })
+
+	// The pushed batches lack the held block and hold the rest.
+	var got []string
+	for _, entry := range remote.got {
+		if entry.Ref.GetHash().EqualVT(refs[1].GetHash()) {
+			t.Fatal("upload sent the corrupt block")
+		}
+		got = append(got, entry.Ref.MarshalString())
+	}
+	if len(got) != 2 {
+		t.Fatalf("uploaded %d blocks, want the 2 intact ones", len(got))
+	}
+
+	// The held block keeps its marker and local copy, and the status says so.
+	status, _ := s.GetStatus()
+	if status.Held.Count != 1 || !errors.Is(status.Failure(), block.ErrBlockCorrupt) || status.Err != nil {
+		t.Fatalf("held = %+v, failure = %v, err = %v", status.Held, status.Failure(), status.Err)
+	}
+	if !env.isMarked(t, refs[1]) {
+		t.Fatal("held block lost its marker")
+	}
+	if found, err := s.local.GetBlockExists(ctx, refs[1]); err != nil || !found {
+		t.Fatalf("held block local copy: found = %v, err = %v", found, err)
+	}
+	if uploaded, err := s.UploadedBefore(ctx, written.Add(time.Second)); err != nil || uploaded {
+		t.Fatalf("uploaded before = %v, %v; want false while held", uploaded, err)
+	}
+
+	// Repair the block and write it again: it uploads and the hold ends.
+	local.bad.Store(nil)
+	if _, _, err := s.PutBlock(ctx, []byte("damaged"), leafOpts); err != nil {
+		t.Fatal(err)
+	}
+	waitCorruptStatus(t, upCtx, s, func(st Status) bool { return st.Pending == 0 && st.Held == nil })
+	if found, err := remote.GetBlockExists(ctx, refs[1]); err != nil || !found {
+		t.Fatalf("remote after repair: found = %v, err = %v", found, err)
+	}
+	cancel()
+	<-done
+}
+
+// waitStatus waits until ok accepts the Store's status, failing on ctx's end.
+func waitCorruptStatus(t *testing.T, ctx context.Context, s *Store, ok func(Status) bool) {
+	t.Helper()
+	for {
+		status, changed := s.GetStatus()
+		if ok(status) {
+			return
+		}
+		select {
+		case <-ctx.Done():
+			t.Fatalf("status never reached the wanted state: %+v", status)
+		case <-changed:
+		}
+	}
+}

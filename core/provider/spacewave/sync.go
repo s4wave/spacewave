@@ -3,7 +3,6 @@ package provider_spacewave
 import (
 	"context"
 	"encoding/binary"
-	"fmt"
 	"maps"
 	"slices"
 	"strings"
@@ -118,29 +117,6 @@ type syncController struct {
 	writes uint64
 	// corruptRecheck makes the next flush read the known corrupt blocks again.
 	corruptRecheck atomic.Bool
-}
-
-// heldError is the result of a flush that uploaded every dirty block it could
-// verify and held back count whose local bytes fail their hash. It published
-// nothing: a checkpoint is published only when every block it reaches is on
-// the remote. It matches block.ErrBlockCorrupt, so a caller that needs every
-// block on the remote fails as on any other corrupt read.
-type heldError struct {
-	// count is the number of corrupt dirty blocks held back.
-	count int
-	// since is when the store first held a block back.
-	since time.Time
-}
-
-// Error names the held state the person sees.
-func (e *heldError) Error() string {
-	return fmt.Sprintf("sync held: %d damaged blocks on this device, nothing published since %s",
-		e.count, e.since.Format(time.RFC3339))
-}
-
-// Is matches block.ErrBlockCorrupt.
-func (e *heldError) Is(target error) bool {
-	return target == block.ErrBlockCorrupt
 }
 
 // Init reads persisted queue accounting and runs the initial pull. Access-gated pull
@@ -363,7 +339,7 @@ func (s *syncController) Execute(ctx context.Context) error {
 		// flushes one interval after it arrives, or for the slow delay to
 		// read the held blocks again. Nothing else wakes it, so a held store
 		// does no work while idle.
-		var held *heldError
+		var held *block.HeldError
 		if errors.As(err, &held) {
 			bo.Reset()
 			retryAt = time.Time{}
@@ -545,7 +521,7 @@ func (s *syncController) waitDirtySyncGate(ctx context.Context) error {
 }
 
 // FlushNow serializes an immediate flush request. A flush that held back a
-// dirty block whose local bytes fail its hash returns a *heldError and
+// dirty block whose local bytes fail its hash returns a *block.HeldError and
 // publishes nothing; the block keeps its marker and its local copy.
 func (s *syncController) FlushNow(ctx context.Context) error {
 	s.flushMtx.Lock()
@@ -554,7 +530,7 @@ func (s *syncController) FlushNow(ctx context.Context) error {
 }
 
 // FlushNowUnordered flushes dirty blocks without refgraph locality ordering.
-// Like FlushNow, it fails with a *heldError while a corrupt block is held.
+// Like FlushNow, it fails with a *block.HeldError while a corrupt block is held.
 func (s *syncController) FlushNowUnordered(ctx context.Context) error {
 	s.flushMtx.Lock()
 	defer s.flushMtx.Unlock()
@@ -1133,10 +1109,10 @@ func withoutMarks(known map[string]struct{}, marks []block_store_writeback.Mark)
 // held returns the held state of a flush that held count blocks back. It
 // takes the count from the flush, not from corruptKnown, so a write that
 // clears a known entry meanwhile cannot turn a held flush into a success.
-func (s *syncController) held(count int) *heldError {
+func (s *syncController) held(count int) *block.HeldError {
 	var since time.Time
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { since = s.heldSince })
-	return &heldError{count: count, since: since}
+	return &block.HeldError{Count: count, Since: since}
 }
 
 // hasKey reports whether set holds key.

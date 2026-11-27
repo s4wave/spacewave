@@ -1842,7 +1842,7 @@ func TestSyncControllerHeldWaitIgnoresFlushBroadcast(t *testing.T) {
 	}
 	s.upper = &corruptUpperStore{StoreOps: s.upper, bad: ref.GetHash()}
 	writes, _ := s.writeSnapshot()
-	var held *heldError
+	var held *block.HeldError
 	if err := s.FlushNow(t.Context()); !errors.As(err, &held) {
 		t.Fatalf("flush = %v; want held", err)
 	}

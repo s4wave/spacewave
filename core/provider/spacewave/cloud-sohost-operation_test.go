@@ -223,8 +223,8 @@ func TestCloudPublicationHoldsPastCorruptBlock(t *testing.T) {
 	// The flush uploads the intact block, holds the corrupt one and
 	// publishes nothing.
 	err = syncer.FlushNow(t.Context())
-	var held *heldError
-	if !errors.As(err, &held) || held.count != 1 || !errors.Is(err, block.ErrBlockCorrupt) {
+	var held *block.HeldError
+	if !errors.As(err, &held) || held.Count != 1 || !errors.Is(err, block.ErrBlockCorrupt) {
 		t.Fatalf("flush = %v; want held with 1 block", err)
 	}
 	if uploads.Load() == 0 || checkpoints.Load() != 0 || host.pending == nil {

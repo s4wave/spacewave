@@ -1,0 +1,56 @@
+[
+  {
+    "name": "The head reads known corrupt blocks again",
+    "replace": [
+      [
+        "Eligible == {b \\in Blocks : state[b] \\in {\"queued\", \"retry\"}}",
+        "Eligible == {b \\in Blocks : state[b] \\in {\"queued\", \"retry\", \"corrupt\"}}"
+      ]
+    ],
+    "expect": "NoSpin"
+  },
+  {
+    "name": "A corrupt read stops the queue",
+    "replace": [
+      [
+        "Eligible == {b \\in Blocks : state[b] \\in {\"queued\", \"retry\"}}",
+        "Eligible == IF Known # {} THEN {} ELSE {b \\in Blocks : state[b] \\in {\"queued\", \"retry\"}}"
+      ]
+    ],
+    "expect": "HealthyDrains"
+  },
+  {
+    "name": "Upload sends bytes it did not verify",
+    "replace": [
+      [
+        "             /\\ IF good[b]\n",
+        "             /\\ IF TRUE\n"
+      ],
+      [
+        "                THEN /\\ remote' = [remote EXCEPT ![b] = \"good\"]",
+        "                THEN /\\ remote' = [remote EXCEPT ![b] = IF good[b] THEN \"good\" ELSE \"bad\"]"
+      ]
+    ],
+    "expect": "NoWrongBytes"
+  },
+  {
+    "name": "A corrupt read drops the marker",
+    "replace": [
+      [
+        "                ELSE /\\ state' = [state EXCEPT ![b] = \"corrupt\"]",
+        "                ELSE /\\ state' = [state EXCEPT ![b] = \"done\"]"
+      ]
+    ],
+    "expect": "CountShown"
+  },
+  {
+    "name": "Upload reads only the oldest eligible block",
+    "replace": [
+      [
+        "Upload(b) == /\\ b \\in Eligible\n",
+        "Upload(b) == /\\ b \\in Eligible /\\ \\A x \\in Eligible : b <= x\n"
+      ]
+    ],
+    "expect": "HealthyDrains"
+  }
+]

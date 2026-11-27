@@ -175,6 +175,9 @@ type pendingBlock struct {
 	// dropped is set when the local store no longer held the block, so the
 	// batch did not upload it.
 	dropped bool
+	// corrupt is set when the local bytes failed their hash, so the batch
+	// did not upload it and it keeps its marker.
+	corrupt bool
 }
 
 // uploadRound is the batches to upload together: spans of entries, each the
@@ -202,10 +205,13 @@ type queueHead struct {
 	// closed.
 	fullAt time.Time
 	// policy, oldest and pendingBytes are the status the read was chosen
-	// against.
+	// against, and marks the marking count it saw.
 	policy       Policy
 	oldest       time.Time
 	pendingBytes int64
+	marks        uint64
+	// heldGen is the recheck count of the held set the read skipped.
+	heldGen uint64
 }
 
 // nextRound waits until a round of batches is worth uploading and returns it,
@@ -249,18 +255,20 @@ func (s *Store) scanHead(ctx context.Context, limits block.BatchLimits, prev *qu
 	var policy Policy
 	var oldest time.Time
 	var pendingBytes int64
+	var marks uint64
 	var floor []byte
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		policy, oldest, pendingBytes = s.status.Policy, s.status.Oldest, s.status.PendingBytes
+		policy, oldest, pendingBytes, marks = s.status.Policy, s.status.Oldest, s.status.PendingBytes, s.marks
 		floor = s.floor
 	})
 	settled := time.Now().Add(-policy.Settle)
+	held := s.heldSnapshot()
 
 	// Read the queue in write order into batches.
 	var head *queueHead
 	err := kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
 		// Start a head and track the open batch.
-		head = &queueHead{policy: policy, oldest: oldest, pendingBytes: pendingBytes}
+		head = &queueHead{policy: policy, oldest: oldest, pendingBytes: pendingBytes, marks: marks, heldGen: held.gen}
 		var known []pendingBlock
 		if prev != nil {
 			known = prev.entries
@@ -280,12 +288,18 @@ func (s *Store) scanHead(ctx context.Context, limits block.BatchLimits, prev *qu
 			var entry pendingBlock
 			if len(known) != 0 && bytes.Equal(known[0].queueKey, item.key) && bytes.Equal(known[0].value, item.value) {
 				entry, known = known[0], known[1:]
-				entry.dropped = false
+				entry.dropped, entry.corrupt = false, false
 			} else {
 				var err error
 				if entry, err = item.pending(); err != nil {
 					return err
 				}
+			}
+
+			// Skip a held entry: it neither blocks the entries behind it nor
+			// holds the linger at its write time.
+			if !held.eligible(item.key, item.value) {
+				return nil
 			}
 
 			// Close the open batch when the entry does not fit it.
@@ -375,8 +389,9 @@ func (h *queueHead) plan(now time.Time, linger time.Duration) (uploadRound, time
 }
 
 // waitFill waits for readyAt, or until a change could make a read of the queue
-// choose a batch: a policy change, a new queue head, or enough queued bytes to
-// close the first batch. A mark that changes none of them wakes it and goes back
+// choose a batch: a policy change, a new queue head, enough queued bytes to
+// close the first batch, a recheck of the held entries, or a new mark while
+// every queued entry is held. A mark that changes none of them wakes it and goes back
 // to sleep without reading markers. A zero readyAt waits for a change alone.
 func (s *Store) waitFill(ctx context.Context, head *queueHead, limits block.BatchLimits, readyAt time.Time) error {
 	for {
@@ -390,7 +405,9 @@ func (s *Store) waitFill(ctx context.Context, head *queueHead, limits block.Batc
 				st.Policy != head.policy ||
 				!st.Oldest.Equal(head.oldest) ||
 				!head.policy.overLimit(head.pendingBytes) && st.Policy.overLimit(st.PendingBytes) ||
-				len(head.ends) == 0 && (st.PendingBytes >= limits.Bytes || st.Pending >= limits.Blocks)
+				len(head.ends) == 0 && (st.PendingBytes >= limits.Bytes || st.Pending >= limits.Blocks) ||
+				s.heldGen != head.heldGen ||
+				len(head.entries) == 0 && s.marks != head.marks
 		})
 		if again {
 			return nil
@@ -420,7 +437,8 @@ func (s *Store) waitFill(ctx context.Context, head *queueHead, limits block.Batc
 
 // uploadRound writes the round's batches to remote, at most workers at once.
 // Each batch clears its markers as soon as the remote holds its blocks, so a
-// failed batch repeats alone: the remote keeps a repeated block as another
+// failed batch repeats alone. A block whose local bytes fail their hash is
+// left out of its batch and held, without failing the rest: the remote keeps a repeated block as another
 // copy, and a bucket of packfiles as another pack.
 func (s *Store) uploadRound(ctx context.Context, remote block.StoreOps, round uploadRound, workers int) error {
 	eg, egCtx := errgroup.WithContext(ctx)
@@ -428,14 +446,23 @@ func (s *Store) uploadRound(ctx context.Context, remote block.StoreOps, round up
 	for _, span := range round.spans {
 		batch := round.entries[span[0]:span[1]]
 		eg.Go(func() error {
+			// Upload the batch before clearing any of its queued markers.
 			if err := s.uploadChunk(egCtx, remote, batch); err != nil {
 				return err
 			}
-			// Clear under the caller's context, so a sibling's failure does
-			// not leave an uploaded batch queued.
-			if err := s.clear(ctx, batch); err != nil {
-				return err
+
+			// Clear the uploaded and dropped entries under the caller's
+			// context, so a sibling's failure does not leave an uploaded
+			// batch queued. A corrupt entry keeps its marker.
+			done := slices.DeleteFunc(slices.Clone(batch), func(p pendingBlock) bool { return p.corrupt })
+			if len(done) != 0 {
+				if err := s.clear(ctx, done); err != nil {
+					return err
+				}
 			}
+
+			// Hold the corrupt entries and release the ones that uploaded.
+			s.recordHeld(batch)
 			s.SetError(nil)
 			return nil
 		})
@@ -529,6 +556,7 @@ func (s *Store) ClearLocated(ctx context.Context, remote block.StoreOps, hashes 
 		if err := s.clear(ctx, held); err != nil {
 			return err
 		}
+		s.recordHeld(held)
 	}
 	return nil
 }
@@ -583,8 +611,9 @@ func (s *Store) queuedBlocks(ctx context.Context, hashes []*hash.Hash) ([]pendin
 // uploadChunk writes the batch's blocks with their refs to remote. A block the
 // remote already holds is neither read nor written, and clears as uploaded. A
 // block the local store no longer holds is marked dropped without upload. A
-// block it holds without its refs fails the batch, since the remote would keep
-// it as a leaf.
+// block whose local bytes fail their hash is marked corrupt and left out, and
+// the rest of the batch uploads. A block it holds without its refs fails the
+// batch, since the remote would keep it as a leaf.
 func (s *Store) uploadChunk(ctx context.Context, remote block.StoreOps, batch []pendingBlock) error {
 	// Leave out the blocks the remote holds.
 	located := s.locatedBlocks(ctx, remote, batch)
@@ -616,12 +645,18 @@ func (s *Store) uploadChunk(ctx context.Context, remote block.StoreOps, batch []
 }
 
 // readPending reads the pending block with its refs from the local store. It
-// marks a block the store no longer holds dropped and returns nil. A block
+// marks a block the store no longer holds dropped, and one whose bytes fail
+// their hash corrupt, and returns nil for either. A block
 // held without its refs uploads with its refs unknown, which the remote
 // keeps as unknown rather than as a leaf.
 func (s *Store) readPending(ctx context.Context, pending *pendingBlock) (*block.PutBatchEntry, error) {
-	// Read the block, marking it dropped when gone.
+	// Read the block, marking it corrupt when its bytes fail their hash and
+	// dropped when gone.
 	stored, err := s.local.GetStoredBlock(ctx, pending.ref)
+	if errors.Is(err, block.ErrBlockCorrupt) {
+		pending.corrupt = true
+		return nil, nil
+	}
 	if err != nil {
 		return nil, errors.Wrap(err, "read pending block")
 	}
