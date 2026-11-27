@@ -104,7 +104,6 @@ var runtimeModules = []string{
 	"github.com/aperturerobotics/bbolt",
 	"github.com/aperturerobotics/cayley",
 	"github.com/aperturerobotics/fsnotify",
-	"github.com/aperturerobotics/go-brotli-decoder",
 	"github.com/aperturerobotics/go-kvfile",
 	"github.com/dustin/go-humanize",
 	"github.com/go-git/go-billy/v6",
