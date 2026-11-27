@@ -1,4 +1,4 @@
-package cli
+package pipe
 
 import (
 	"context"
@@ -137,9 +137,6 @@ func (c *pipeAcceptController) Close() error {
 	return nil
 }
 
-// _ is a type assertion
-var _ controller.Controller = (*pipeAcceptController)(nil)
-
 // pipeStreamResolver resolves HandleMountedStream directives.
 type pipeStreamResolver struct {
 	streamCh chan<- link.MountedStream
@@ -155,9 +152,6 @@ func (r *pipeStreamResolver) Resolve(
 	}))
 	return nil
 }
-
-// _ is a type assertion
-var _ directive.Resolver = (*pipeStreamResolver)(nil)
 
 // pipeStreamHandler handles incoming mounted streams.
 type pipeStreamHandler struct {
@@ -180,3 +174,9 @@ func (h *pipeStreamHandler) HandleMountedStream(
 
 // _ is a type assertion
 var _ link.MountedStreamHandler = (*pipeStreamHandler)(nil)
+
+// _ is a type assertion
+var _ controller.Controller = (*pipeAcceptController)(nil)
+
+// _ is a type assertion
+var _ directive.Resolver = (*pipeStreamResolver)(nil)

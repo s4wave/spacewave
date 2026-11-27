@@ -7,7 +7,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 	unixfs_http "github.com/s4wave/spacewave/db/unixfs/http"
-	bifrost_http "github.com/s4wave/spacewave/net/http"
+	"github.com/s4wave/spacewave/net/http/assets"
 	"github.com/sirupsen/logrus"
 )
 
@@ -98,5 +98,5 @@ func (s *Server) ServeWebModuleHTTP(pkgPath string, rw http.ResponseWriter, req 
 
 	// Serve the requested package asset from its UnixFS filesystem.
 	req.URL.Path = "/" + webPkgPath
-	bifrost_http.NewEncodedAssetFileServer(fs).ServeHTTP(rw, req)
+	assets.NewEncodedAssetFileServer(fs).ServeHTTP(rw, req)
 }

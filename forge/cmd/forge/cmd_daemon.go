@@ -14,8 +14,8 @@ import (
 	"github.com/pkg/errors"
 	hcli "github.com/s4wave/spacewave/db/cli"
 	fcli "github.com/s4wave/spacewave/forge/cli"
-	"github.com/s4wave/spacewave/forge/daemon"
-	bcli "github.com/s4wave/spacewave/net/cli"
+	forge_daemon "github.com/s4wave/spacewave/forge/daemon"
+	"github.com/s4wave/spacewave/net/cli/daemon"
 	daemon_prof "github.com/s4wave/spacewave/net/daemon/prof"
 	"github.com/s4wave/spacewave/net/keypem/keyfile"
 	floodsub_controller "github.com/s4wave/spacewave/net/pubsub/floodsub/controller"
@@ -27,7 +27,7 @@ type daemonArgs struct {
 	// hydra holds the Hydra daemon flags.
 	hydra hcli.DaemonArgs
 	// bifrost holds the Bifrost daemon flags.
-	bifrost bcli.DaemonArgs
+	bifrost daemon.DaemonArgs
 	// forge holds the common Forge daemon flags.
 	forge fcli.DaemonArgs
 	// WriteConfig requests writing the merged configuration.
@@ -113,7 +113,7 @@ func (a *daemonArgs) Run(_ *cli.Context) error {
 	}
 
 	// Construct the daemon around the peer key.
-	d, err := daemon.NewDaemon(ctx, peerPriv, daemon.ConstructOpts{
+	d, err := forge_daemon.NewDaemon(ctx, peerPriv, forge_daemon.ConstructOpts{
 		LogEntry: le,
 	})
 	if err != nil {

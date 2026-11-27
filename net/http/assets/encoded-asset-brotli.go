@@ -1,6 +1,6 @@
 //go:build !js
 
-package bifrost_http
+package assets
 
 import (
 	"io"

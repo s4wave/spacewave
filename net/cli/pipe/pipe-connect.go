@@ -1,4 +1,4 @@
-package cli
+package pipe
 
 import (
 	"context"

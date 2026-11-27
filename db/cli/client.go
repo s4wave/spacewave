@@ -14,7 +14,7 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 	api "github.com/s4wave/spacewave/db/daemon/api"
 	"github.com/s4wave/spacewave/db/volume"
-	bifrost_cli "github.com/s4wave/spacewave/net/cli"
+	"github.com/s4wave/spacewave/net/cli/client"
 	bifrost_api "github.com/s4wave/spacewave/net/daemon/api"
 	"github.com/sirupsen/logrus"
 )
@@ -41,7 +41,7 @@ type ClientArgs struct {
 	// cbusArgs binds the ControllerBus commands.
 	cbusArgs cbus_cli.ClientArgs
 	// bifrostArgs binds the Bifrost commands.
-	bifrostArgs bifrost_cli.ClientArgs
+	bifrostArgs client.ClientArgs
 
 	// le is the logger entry.
 	le *logrus.Entry

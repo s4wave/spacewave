@@ -12,7 +12,7 @@ import (
 	hydra_cli "github.com/s4wave/spacewave/db/cli"
 	hydra_api "github.com/s4wave/spacewave/db/daemon/api"
 	api "github.com/s4wave/spacewave/forge/daemon/api"
-	bifrost_cli "github.com/s4wave/spacewave/net/cli"
+	"github.com/s4wave/spacewave/net/cli/client"
 	bifrost_api "github.com/s4wave/spacewave/net/daemon/api"
 )
 
@@ -21,7 +21,7 @@ type ClientArgs struct {
 	// cbusArgs binds the ControllerBus commands.
 	cbusArgs cbus_cli.ClientArgs
 	// bifrostArgs binds the Bifrost commands.
-	bifrostArgs bifrost_cli.ClientArgs
+	bifrostArgs client.ClientArgs
 	// hydraArgs binds the Hydra commands.
 	hydraArgs hydra_cli.ClientArgs
 	// client is the shared RPC client, opened on first use.

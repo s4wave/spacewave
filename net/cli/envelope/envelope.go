@@ -1,4 +1,4 @@
-package cli
+package envelope
 
 import (
 	"crypto/rand"

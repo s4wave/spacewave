@@ -13,7 +13,7 @@ import (
 	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
 	hydra_cli "github.com/s4wave/spacewave/db/cli"
 	hydra_cliutil "github.com/s4wave/spacewave/db/cli/util"
-	bifrost_cli "github.com/s4wave/spacewave/net/cli"
+	"github.com/s4wave/spacewave/net/cli/client"
 	bifrost_cliutil "github.com/s4wave/spacewave/net/cli/util"
 	"github.com/s4wave/spacewave/sdk/cli/runner"
 )
@@ -111,7 +111,7 @@ func nativeRunnerClientFlags(sessionIdx *uint) []cli.Flag {
 // newBifrostCommand embeds the bifrost CLI command set.
 func newBifrostCommand() *cli.Command {
 	// Compose the Bifrost client and utility commands with their own context binding.
-	var clientArgs bifrost_cli.ClientArgs
+	var clientArgs client.ClientArgs
 	var utilArgs bifrost_cliutil.UtilArgs
 	cmd := clientArgs.BuildCommand()
 	cmd.Subcommands = append([]*cli.Command{utilArgs.BuildCommand()}, cmd.Subcommands...)

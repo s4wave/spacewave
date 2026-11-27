@@ -11,9 +11,9 @@ import (
 	configset_json "github.com/aperturerobotics/controllerbus/controller/configset/json"
 	"github.com/pkg/errors"
 	hcli "github.com/s4wave/spacewave/db/cli"
-	"github.com/s4wave/spacewave/db/daemon"
+	hydra_daemon "github.com/s4wave/spacewave/db/daemon"
 	"github.com/s4wave/spacewave/db/daemon/prof"
-	bcli "github.com/s4wave/spacewave/net/cli"
+	"github.com/s4wave/spacewave/net/cli/daemon"
 	"github.com/s4wave/spacewave/net/keypem/keyfile"
 	floodsub_controller "github.com/s4wave/spacewave/net/pubsub/floodsub/controller"
 	"github.com/sirupsen/logrus"
@@ -24,7 +24,7 @@ type daemonArgs struct {
 	// hydra configures the storage controllers.
 	hydra hcli.DaemonArgs
 	// bifrost configures the network controllers.
-	bifrost bcli.DaemonArgs
+	bifrost daemon.DaemonArgs
 	// WriteConfig writes the merged configuration at startup.
 	WriteConfig bool
 	// ConfigPath is the daemon configuration file.
@@ -104,7 +104,7 @@ func (a *daemonArgs) Run(_ *cli.Context) error {
 	}
 
 	// Construct the Hydra daemon with its node identity.
-	d, err := daemon.NewDaemon(ctx, peerPriv, daemon.ConstructOpts{
+	d, err := hydra_daemon.NewDaemon(ctx, peerPriv, hydra_daemon.ConstructOpts{
 		LogEntry: le,
 	})
 	if err != nil {

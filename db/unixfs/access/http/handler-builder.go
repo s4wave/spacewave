@@ -15,6 +15,7 @@ import (
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	"github.com/s4wave/spacewave/db/util/billyhttp"
 	bifrost_http "github.com/s4wave/spacewave/net/http"
+	"github.com/s4wave/spacewave/net/http/assets"
 )
 
 // NewHTTPHandlerBuilder constructs a HTTPHandlerBuilder function.
@@ -68,5 +69,5 @@ func NewFileSystem(
 
 // NewFileServer builds a new http.FileServer which has extended content-type support.
 func NewFileServer(hfs http.FileSystem) http.Handler {
-	return bifrost_http.NewEncodedAssetFileServer(hfs)
+	return assets.NewEncodedAssetFileServer(hfs)
 }

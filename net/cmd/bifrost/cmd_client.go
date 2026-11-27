@@ -2,13 +2,13 @@ package main
 
 import (
 	"github.com/aperturerobotics/cli"
-	bcli "github.com/s4wave/spacewave/net/cli"
+	"github.com/s4wave/spacewave/net/cli/client"
 )
 
 // buildClientCommand constructs the client commands and their shared connection flags.
 func buildClientCommand() *cli.Command {
 	// Assemble client commands and connect the controller bus client.
-	var cliArgs bcli.ClientArgs
+	var cliArgs client.ClientArgs
 	clientCommands := (&cliArgs).BuildCommands()
 	clientFlags := (&cliArgs).BuildFlags()
 	cbusCmd := cliArgs.BuildControllerBusCommand()

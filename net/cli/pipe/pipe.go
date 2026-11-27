@@ -1,4 +1,4 @@
-package cli
+package pipe
 
 import (
 	"context"
@@ -28,10 +28,10 @@ const DefaultPipeProtocolID = "/pipe/stream"
 // PipeArgs contains the arguments for the pipe command.
 type PipeArgs struct {
 	// ListenAddr is the address to listen on (server mode).
-	// Example: ":5112"
+	// Example: ":5112".
 	ListenAddr string
 	// ConnectAddr is the address to connect to (client mode).
-	// Format: "peer-id@host:port"
+	// Format: "peer-id@host:port".
 	ConnectAddr string
 	// ProtocolID is the stream protocol ID.
 	ProtocolID string

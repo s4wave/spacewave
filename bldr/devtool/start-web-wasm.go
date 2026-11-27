@@ -31,7 +31,7 @@ import (
 	entrypoint_browser_bundle "github.com/s4wave/spacewave/bldr/web/entrypoint/browser/bundle"
 	web_plugin_compiler "github.com/s4wave/spacewave/bldr/web/plugin/compiler"
 	volume_rpc_server "github.com/s4wave/spacewave/db/volume/rpc/server"
-	bifrost_http "github.com/s4wave/spacewave/net/http"
+	"github.com/s4wave/spacewave/net/http/assets"
 	link_holdopen_controller "github.com/s4wave/spacewave/net/link/hold-open"
 	"github.com/s4wave/spacewave/net/protocol"
 	stream_srpc_server "github.com/s4wave/spacewave/net/stream/srpc/server"
@@ -442,7 +442,7 @@ func (d *DevtoolBus) executeWebWasm(
 
 	// Build the HTTP handler serving the entrypoint assets.
 	entryFs := http.Dir(entrypointDir)
-	entrySrv := bifrost_http.NewEncodedAssetFileServer(entryFs)
+	entrySrv := assets.NewEncodedAssetFileServer(entryFs)
 
 	// Serve each request from the entrypoint assets or a devtool endpoint.
 	serveFn := func(rw http.ResponseWriter, req *http.Request) {

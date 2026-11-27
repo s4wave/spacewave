@@ -16,8 +16,8 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/pkg/errors"
-	bcli "github.com/s4wave/spacewave/net/cli"
-	"github.com/s4wave/spacewave/net/daemon"
+	"github.com/s4wave/spacewave/net/cli/daemon"
+	bifrost_daemon "github.com/s4wave/spacewave/net/daemon"
 	bifrost_api "github.com/s4wave/spacewave/net/daemon/api"
 	api_controller "github.com/s4wave/spacewave/net/daemon/api/controller"
 	daemon_prof "github.com/s4wave/spacewave/net/daemon/prof"
@@ -26,7 +26,7 @@ import (
 )
 
 var daemonFlags struct {
-	bcli.DaemonArgs
+	daemon.DaemonArgs
 
 	// WriteConfig writes the config file on startup when set.
 	WriteConfig bool
@@ -103,7 +103,7 @@ func runDaemon(c *cli.Context) error {
 	}
 
 	// Construct the daemon with the node private key and logger.
-	d, err := daemon.NewDaemon(ctx, peerPriv, daemon.ConstructOpts{
+	d, err := bifrost_daemon.NewDaemon(ctx, peerPriv, bifrost_daemon.ConstructOpts{
 		LogEntry: le,
 	})
 	if err != nil {

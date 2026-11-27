@@ -1,4 +1,4 @@
-package cli
+package daemon
 
 import (
 	"strings"
@@ -26,13 +26,13 @@ type DaemonArgs struct {
 	Pubsub string
 
 	// EstablishPeers is a list of peers to establish.
-	// peer-id comma separated
+	// Values are comma-separated peer IDs.
 	EstablishPeers cli.StringSlice
 	// UDPPeers is a static peer list.
-	// peer-id@address
+	// Values use peer-id@address.
 	UDPPeers cli.StringSlice
 	// WebsocketPeers is a static peer list.
-	// peer-id@address
+	// Values use peer-id@address.
 	WebsocketPeers cli.StringSlice
 }
 

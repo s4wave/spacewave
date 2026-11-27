@@ -1,4 +1,4 @@
-package bifrost_http
+package assets
 
 import "net/http"
 

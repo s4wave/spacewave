@@ -1,3 +1,4 @@
+// Package bifrost_http resolves and composes HTTP handlers through ControllerBus.
 package bifrost_http
 
 import (
