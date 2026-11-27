@@ -184,6 +184,7 @@ func newChannelInfo(channel *ChatChannel) *spacewave_chat_rpc.GetChannelInfoResp
 		CreatedAt:           channel.GetCreatedAt().CloneVT(),
 		CreatorPeerId:       channel.GetCreatorPeerId(),
 		EncryptionAlgorithm: channel.GetEncryptionAlgorithm(),
+		CreatorAuthor:       channel.GetCreatorAuthor(),
 	}
 }
 

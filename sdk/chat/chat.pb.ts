@@ -60,6 +60,11 @@ export interface ChatChannel {
    * Presence distinguishes an initialized empty index from legacy channel state.
    */
   threadIndexedMessageCount?: bigint
+  /**
+   * CreatorAuthor is the agent or tool that created the channel for the
+   * creator peer, as in ChatMessage.author. Empty when the person created it.
+   */
+  creatorAuthor?: string
 }
 
 export const ChatChannel: MessageType<ChatChannel> =
@@ -75,6 +80,7 @@ export const ChatChannel: MessageType<ChatChannel> =
       [7, 'encryption_algorithm', 9],
       [8, 'thread_head_key', 9],
       [9, 'thread_indexed_message_count', 4, 4],
+      [10, 'creator_author', 9],
     ],
   )
 
@@ -268,6 +274,12 @@ export interface CreateChatChannelOp {
    * InitialState is appended atomically in order with the channel creation timestamp.
    */
   initialState?: ChatStateChange[]
+  /**
+   * Author names the agent or tool creating the channel for the signer, as in
+   * SendMessageRequest.author. The initial state events carry it too. Empty
+   * when the person creates it. Validated as a DNS label.
+   */
+  author?: string
 }
 
 export const CreateChatChannelOp: MessageType<CreateChatChannelOp> =
@@ -280,6 +292,7 @@ export const CreateChatChannelOp: MessageType<CreateChatChannelOp> =
       [4, 'timestamp', 11, 0, Timestamp.codec],
       [5, 'encryption_algorithm', 9],
       [6, 'initial_state', 11, 1, ChatStateChange.codec],
+      [7, 'author', 9],
     ],
   )
 

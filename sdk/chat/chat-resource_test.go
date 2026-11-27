@@ -528,18 +528,31 @@ func TestChatResourceReportsChannelCreator(t *testing.T) {
 	// Initialize a real World so the operation writes through engine-backed state.
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	sender := wtb.Volume.GetPeerID()
+	ctx = world.WithOperationPerson(ctx, sender.String())
 
-	// Apply channel creation with the testbed peer as the authenticated sender.
+	// An author that is not a DNS label cannot create the channel.
 	_, _, err = ws.ApplyWorldOp(ctx, &CreateChatChannelOp{
 		ObjectKey: GeneralChannelKey,
-		Name:      "General",
 		Timestamp: timestamppb.Now(),
+		Author:    "agent.one",
+	}, sender)
+	if err == nil {
+		t.Fatal("accepted a creator author that is not a DNS label")
+	}
+
+	// Apply channel creation by an author acting for the authenticated sender.
+	_, _, err = ws.ApplyWorldOp(ctx, &CreateChatChannelOp{
+		ObjectKey:    GeneralChannelKey,
+		Name:         "General",
+		Timestamp:    timestamppb.Now(),
+		Author:       "agent-one",
+		InitialState: []*ChatStateChange{{Type: "m.room.create", ContentJson: `{}`}},
 	}, sender)
 	if err != nil {
 		t.Fatalf("ApplyWorldOp: %v", err)
 	}
 
-	// Verify the resource projects the persisted creator identity.
+	// Verify the resource projects the persisted creator identity and author.
 	resource := newChatResource(t, ws, wtb.Engine, GeneralChannelKey, "peer-local")
 	info, err := resource.GetChannelInfo(ctx, &spacewave_chat_rpc.GetChannelInfoRequest{})
 	if err != nil {
@@ -547,6 +560,18 @@ func TestChatResourceReportsChannelCreator(t *testing.T) {
 	}
 	if info.GetCreatorPeerId() != sender.String() {
 		t.Fatalf("channel creator peer ID = %q, want %q", info.GetCreatorPeerId(), sender.String())
+	}
+	if info.GetCreatorAuthor() != "agent-one" {
+		t.Fatalf("channel creator author = %q, want agent-one", info.GetCreatorAuthor())
+	}
+
+	// Verify the initial state carries the creator author.
+	history, err := resource.ListMessages(ctx, &spacewave_chat_rpc.ListMessagesRequest{})
+	if err != nil {
+		t.Fatalf("ListMessages: %v", err)
+	}
+	if len(history.GetMessages()) != 1 || history.GetMessages()[0].GetAuthor() != "agent-one" {
+		t.Fatalf("initial state = %v, want one event by agent-one", history.GetMessages())
 	}
 }
 

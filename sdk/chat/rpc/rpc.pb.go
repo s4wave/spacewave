@@ -202,6 +202,9 @@ type GetChannelInfoResponse struct {
 	// allows plaintext. Otherwise message bodies require this algorithm. State
 	// and annotations remain public.
 	EncryptionAlgorithm string `protobuf:"bytes,6,opt,name=encryption_algorithm,json=encryptionAlgorithm,proto3" json:"encryptionAlgorithm,omitempty"`
+	// CreatorAuthor is the agent or tool that created the channel for the
+	// creator peer. Empty when the person created it.
+	CreatorAuthor string `protobuf:"bytes,7,opt,name=creator_author,json=creatorAuthor,proto3" json:"creatorAuthor,omitempty"`
 }
 
 func (x *GetChannelInfoResponse) Reset() {
@@ -248,6 +251,13 @@ func (x *GetChannelInfoResponse) GetCreatorPeerId() string {
 func (x *GetChannelInfoResponse) GetEncryptionAlgorithm() string {
 	if x != nil {
 		return x.EncryptionAlgorithm
+	}
+	return ""
+}
+
+func (x *GetChannelInfoResponse) GetCreatorAuthor() string {
+	if x != nil {
+		return x.CreatorAuthor
 	}
 	return ""
 }
@@ -916,6 +926,7 @@ func (m *GetChannelInfoResponse) CloneVT() *GetChannelInfoResponse {
 	r.MessageCount = m.MessageCount
 	r.CreatorPeerId = m.CreatorPeerId
 	r.EncryptionAlgorithm = m.EncryptionAlgorithm
+	r.CreatorAuthor = m.CreatorAuthor
 	r.CreatedAt = protobuf_go_lite.CloneVTValue(m.CreatedAt)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -1377,6 +1388,9 @@ func (this *GetChannelInfoResponse) EqualVT(that *GetChannelInfoResponse) bool {
 		return false
 	}
 	if this.EncryptionAlgorithm != that.EncryptionAlgorithm {
+		return false
+	}
+	if this.CreatorAuthor != that.CreatorAuthor {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2124,6 +2138,11 @@ func (x *GetChannelInfoResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("encryptionAlgorithm")
 		s.WriteString(x.EncryptionAlgorithm)
 	}
+	if x.CreatorAuthor != "" || s.HasField("creatorAuthor") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("creatorAuthor")
+		s.WriteString(x.CreatorAuthor)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2163,6 +2182,9 @@ func (x *GetChannelInfoResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "encryption_algorithm", "encryptionAlgorithm":
 			s.AddField("encryption_algorithm")
 			x.EncryptionAlgorithm = s.ReadString()
+		case "creator_author", "creatorAuthor":
+			s.AddField("creator_author")
+			x.CreatorAuthor = s.ReadString()
 		}
 	})
 }
@@ -3538,6 +3560,11 @@ func (m *GetChannelInfoResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.CreatorAuthor) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.CreatorAuthor)
+		i--
+		dAtA[i] = 0x3a
+	}
 	if len(m.EncryptionAlgorithm) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.EncryptionAlgorithm)
 		i--
@@ -4525,6 +4552,7 @@ func (m *GetChannelInfoResponse) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.CreatorPeerId)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.EncryptionAlgorithm)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.CreatorAuthor)
 	n += len(m.unknownFields)
 	return n
 }
@@ -4926,6 +4954,10 @@ func (x *GetChannelInfoResponse) MarshalProtoText() string {
 	if x.EncryptionAlgorithm != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "encryption_algorithm")
 		protobuf_go_lite.TextWriteString(&sb, x.EncryptionAlgorithm)
+	}
+	if x.CreatorAuthor != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "creator_author")
+		protobuf_go_lite.TextWriteString(&sb, x.CreatorAuthor)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -5724,6 +5756,16 @@ func (m *GetChannelInfoResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.EncryptionAlgorithm = v
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CreatorAuthor", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.CreatorAuthor = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

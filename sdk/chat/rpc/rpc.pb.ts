@@ -166,6 +166,11 @@ export interface GetChannelInfoResponse {
    * and annotations remain public.
    */
   encryptionAlgorithm?: string
+  /**
+   * CreatorAuthor is the agent or tool that created the channel for the
+   * creator peer. Empty when the person created it.
+   */
+  creatorAuthor?: string
 }
 
 export const GetChannelInfoResponse: MessageType<GetChannelInfoResponse> =
@@ -178,6 +183,7 @@ export const GetChannelInfoResponse: MessageType<GetChannelInfoResponse> =
       [4, 'created_at', 11, 0, Timestamp.codec],
       [5, 'creator_peer_id', 9],
       [6, 'encryption_algorithm', 9],
+      [7, 'creator_author', 9],
     ],
   )
 

@@ -44,6 +44,9 @@ type ChatChannel struct {
 	// ThreadIndexedMessageCount is the history prefix represented by the thread index.
 	// Presence distinguishes an initialized empty index from legacy channel state.
 	ThreadIndexedMessageCount *uint64 `protobuf:"varint,9,opt,name=thread_indexed_message_count,json=threadIndexedMessageCount,proto3,oneof" json:"threadIndexedMessageCount,omitempty"`
+	// CreatorAuthor is the agent or tool that created the channel for the
+	// creator peer, as in ChatMessage.author. Empty when the person created it.
+	CreatorAuthor string `protobuf:"bytes,10,opt,name=creator_author,json=creatorAuthor,proto3" json:"creatorAuthor,omitempty"`
 }
 
 func (x *ChatChannel) Reset() {
@@ -113,6 +116,13 @@ func (x *ChatChannel) GetThreadIndexedMessageCount() uint64 {
 		return *x.ThreadIndexedMessageCount
 	}
 	return 0
+}
+
+func (x *ChatChannel) GetCreatorAuthor() string {
+	if x != nil {
+		return x.CreatorAuthor
+	}
+	return ""
 }
 
 // ChatMessage is a chat message world object linked to a channel.
@@ -352,6 +362,10 @@ type CreateChatChannelOp struct {
 	EncryptionAlgorithm string `protobuf:"bytes,5,opt,name=encryption_algorithm,json=encryptionAlgorithm,proto3" json:"encryptionAlgorithm,omitempty"`
 	// InitialState is appended atomically in order with the channel creation timestamp.
 	InitialState []*content.ChatStateChange `protobuf:"bytes,6,rep,name=initial_state,json=initialState,proto3" json:"initialState,omitempty"`
+	// Author names the agent or tool creating the channel for the signer, as in
+	// SendMessageRequest.author. The initial state events carry it too. Empty
+	// when the person creates it. Validated as a DNS label.
+	Author string `protobuf:"bytes,7,opt,name=author,proto3" json:"author,omitempty"`
 }
 
 func (x *CreateChatChannelOp) Reset() {
@@ -400,6 +414,13 @@ func (x *CreateChatChannelOp) GetInitialState() []*content.ChatStateChange {
 		return x.InitialState
 	}
 	return nil
+}
+
+func (x *CreateChatChannelOp) GetAuthor() string {
+	if x != nil {
+		return x.Author
+	}
+	return ""
 }
 
 // SendChatMessageOp appends a message against the accepted World history.
@@ -574,6 +595,7 @@ func (m *ChatChannel) CloneVT() *ChatChannel {
 	r.CreatorPeerId = m.CreatorPeerId
 	r.EncryptionAlgorithm = m.EncryptionAlgorithm
 	r.ThreadHeadKey = m.ThreadHeadKey
+	r.CreatorAuthor = m.CreatorAuthor
 	r.CreatedAt = protobuf_go_lite.CloneVTValue(m.CreatedAt)
 	r.ReadPositions = protobuf_go_lite.CloneVTMap(m.ReadPositions)
 	r.ThreadIndexedMessageCount = protobuf_go_lite.ClonePtr(m.ThreadIndexedMessageCount)
@@ -675,6 +697,7 @@ func (m *CreateChatChannelOp) CloneVT() *CreateChatChannelOp {
 	r.Name = m.Name
 	r.Topic = m.Topic
 	r.EncryptionAlgorithm = m.EncryptionAlgorithm
+	r.Author = m.Author
 	r.Timestamp = protobuf_go_lite.CloneVTValue(m.Timestamp)
 	r.InitialState = protobuf_go_lite.CloneVTSlice(m.InitialState)
 	if len(m.unknownFields) > 0 {
@@ -774,6 +797,9 @@ func (this *ChatChannel) EqualVT(that *ChatChannel) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualPtr(this.ThreadIndexedMessageCount, that.ThreadIndexedMessageCount) {
+		return false
+	}
+	if this.CreatorAuthor != that.CreatorAuthor {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -934,6 +960,9 @@ func (this *CreateChatChannelOp) EqualVT(that *CreateChatChannelOp) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.InitialState, that.InitialState, func() *content.ChatStateChange { return &content.ChatStateChange{} }) {
+		return false
+	}
+	if this.Author != that.Author {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1146,6 +1175,11 @@ func (x *ChatChannel) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("threadIndexedMessageCount")
 		s.WriteUint64(*x.ThreadIndexedMessageCount)
 	}
+	if x.CreatorAuthor != "" || s.HasField("creatorAuthor") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("creatorAuthor")
+		s.WriteString(x.CreatorAuthor)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1208,6 +1242,9 @@ func (x *ChatChannel) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			t := s.ReadUint64()
 			x.ThreadIndexedMessageCount = &t
+		case "creator_author", "creatorAuthor":
+			s.AddField("creator_author")
+			x.CreatorAuthor = s.ReadString()
 		}
 	})
 }
@@ -1569,6 +1606,11 @@ func (x *CreateChatChannelOp) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if x.Author != "" || s.HasField("author") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("author")
+		s.WriteString(x.Author)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1623,6 +1665,9 @@ func (x *CreateChatChannelOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.InitialState = append(x.InitialState, v)
 			})
+		case "author":
+			s.AddField("author")
+			x.Author = s.ReadString()
 		}
 	})
 }
@@ -1871,6 +1916,11 @@ func (m *ChatChannel) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.CreatorAuthor) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.CreatorAuthor)
+		i--
+		dAtA[i] = 0x52
 	}
 	if m.ThreadIndexedMessageCount != nil {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(*m.ThreadIndexedMessageCount))
@@ -2214,6 +2264,11 @@ func (m *CreateChatChannelOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.Author) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Author)
+		i--
+		dAtA[i] = 0x3a
+	}
 	if len(m.InitialState) > 0 {
 		for iNdEx := len(m.InitialState) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.InitialState[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -2457,6 +2512,7 @@ func (m *ChatChannel) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.EncryptionAlgorithm)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ThreadHeadKey)
 	n += protobuf_go_lite.SizeVarintPtr(1, m.ThreadIndexedMessageCount)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.CreatorAuthor)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2550,6 +2606,7 @@ func (m *CreateChatChannelOp) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Author)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2674,6 +2731,10 @@ func (x *ChatChannel) MarshalProtoText() string {
 	if x.ThreadIndexedMessageCount != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "thread_indexed_message_count")
 		protobuf_go_lite.TextWriteUint(&sb, *x.ThreadIndexedMessageCount)
+	}
+	if x.CreatorAuthor != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "creator_author")
+		protobuf_go_lite.TextWriteString(&sb, x.CreatorAuthor)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -2836,6 +2897,10 @@ func (x *CreateChatChannelOp) MarshalProtoText() string {
 			}
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.Author != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "author")
+		protobuf_go_lite.TextWriteString(&sb, x.Author)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -3069,6 +3134,16 @@ func (m *ChatChannel) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ThreadIndexedMessageCount = &v
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CreatorAuthor", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.CreatorAuthor = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -3559,6 +3634,16 @@ func (m *CreateChatChannelOp) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Author", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Author = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -16,10 +16,14 @@ func (o *CreateChatChannelOp) AuthenticatedOperation() {}
 
 // Validate performs cursory checks on the op.
 func (o *CreateChatChannelOp) Validate() error {
+	// Require a key, a timestamp, a DNS-label author and valid initial state.
 	if len(o.GetObjectKey()) == 0 {
 		return world.ErrEmptyObjectKey
 	}
 	if err := o.GetTimestamp().Validate(false); err != nil {
+		return err
+	}
+	if err := validateAuthor(o.GetAuthor()); err != nil {
 		return err
 	}
 	for _, state := range o.GetInitialState() {
@@ -58,6 +62,7 @@ func (o *CreateChatChannelOp) ApplyWorldOp(
 		Topic:                     o.GetTopic(),
 		CreatedAt:                 o.GetTimestamp(),
 		CreatorPeerId:             sender.String(),
+		CreatorAuthor:             o.GetAuthor(),
 		EncryptionAlgorithm:       o.GetEncryptionAlgorithm(),
 		ThreadIndexedMessageCount: new(uint64),
 	}
@@ -83,6 +88,7 @@ func (o *CreateChatChannelOp) ApplyWorldOp(
 	for _, state := range o.GetInitialState() {
 		request := &spacewave_chat_rpc.SendMessageRequest{
 			Content: &ChatMessageContent{Content: &ChatMessageContent_StateChange{StateChange: state}},
+			Author:  o.GetAuthor(),
 		}
 		if _, err := author.appendMessage(ctx, ws, request, o.GetTimestamp()); err != nil {
 			return false, err

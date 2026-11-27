@@ -99,6 +99,9 @@ message GetChannelInfoResponse {
   // allows plaintext. Otherwise message bodies require this algorithm. State
   // and annotations remain public.
   string encryption_algorithm = 6;
+  // CreatorAuthor is the agent or tool that created the channel for the
+  // creator peer. Empty when the person created it.
+  string creator_author = 7;
 }
 
 // WatchChannelInfoRequest is a request to stream channel info.

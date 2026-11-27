@@ -36,6 +36,9 @@ message ChatChannel {
   // ThreadIndexedMessageCount is the history prefix represented by the thread index.
   // Presence distinguishes an initialized empty index from legacy channel state.
   optional uint64 thread_indexed_message_count = 9;
+  // CreatorAuthor is the agent or tool that created the channel for the
+  // creator peer, as in ChatMessage.author. Empty when the person created it.
+  string creator_author = 10;
 }
 
 // ChatMessage is a chat message world object linked to a channel.
@@ -123,6 +126,10 @@ message CreateChatChannelOp {
   string encryption_algorithm = 5;
   // InitialState is appended atomically in order with the channel creation timestamp.
   repeated ChatStateChange initial_state = 6;
+  // Author names the agent or tool creating the channel for the signer, as in
+  // SendMessageRequest.author. The initial state events carry it too. Empty
+  // when the person creates it. Validated as a DNS label.
+  string author = 7;
 }
 
 // SendChatMessageOp appends a message against the accepted World history.
