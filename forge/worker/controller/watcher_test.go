@@ -11,8 +11,10 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/byteslice"
+	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/world"
-	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
+	world_block "github.com/s4wave/spacewave/db/world/block"
+	world_mock "github.com/s4wave/spacewave/db/world/mock"
 	forge_worker "github.com/s4wave/spacewave/forge/worker"
 	"github.com/s4wave/spacewave/identity"
 	identity_world "github.com/s4wave/spacewave/identity/world"
@@ -52,11 +54,35 @@ func TestWorkerIgnoresUnrelatedWrites(t *testing.T) {
 	// A Worker with one keypair that 50 objects are linked to.
 	const nObjects, nWrites = 50, 100
 	ctx := t.Context()
-	tb, err := world_testbed.Default(ctx)
+	tb, err := testbed.NewTestbed(ctx, logrus.NewEntry(logrus.New()))
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(tb.Release)
+
+	// Use caller-owned publication so every commit carries its exact summary.
+	// An Authority may publish before admission confirms the summary, requiring
+	// an Unknown invalidation that correctly reruns every handler.
+	base, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(base.Release)
+	btx, bcs := base.BuildTransaction(nil)
+	bcs.SetBlock(world_block.NewWorld(world_block.NewestWorldFormat, false), true)
+	root, _, err := btx.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	base.SetRootRef(root)
+	engine, err := world_block.NewEngine(ctx, tb.Logger, base, world_mock.LookupMockOp, nil, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = engine.Close() })
+	ws := world.NewEngineWorldState(engine, true)
+
+	// Create the Worker and its initial assignments.
 	workerPeer, err := peer.NewPeer(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -65,19 +91,19 @@ func TestWorkerIgnoresUnrelatedWrites(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := forge_worker.CreateWorker(ctx, tb.WorldState, "worker/1", "worker", []*identity.Keypair{kp}, tb.Volume.GetPeerID()); err != nil {
+	if _, _, err := forge_worker.CreateWorker(ctx, ws, "worker/1", "worker", []*identity.Keypair{kp}, tb.Volume.GetPeerID()); err != nil {
 		t.Fatal(err)
 	}
 	kpKey := identity_world.NewKeypairKey(workerPeer.GetPeerID().String())
 	link := func(key string) {
 		body := []byte(key)
-		if _, _, err := world.AccessWorldObject(ctx, tb.WorldState, key, true, func(bcs *block.Cursor) error {
+		if _, _, err := world.AccessWorldObject(ctx, ws, key, true, func(bcs *block.Cursor) error {
 			bcs.SetBlock(byteslice.NewByteSlice(&body), true)
 			return nil
 		}); err != nil {
 			t.Fatal(err)
 		}
-		if err := tb.WorldState.SetGraphQuad(ctx, identity_world.NewObjectToKeypairQuad(key, kpKey)); err != nil {
+		if err := ws.SetGraphQuad(ctx, identity_world.NewObjectToKeypairQuad(key, kpKey)); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -94,7 +120,7 @@ func TestWorkerIgnoresUnrelatedWrites(t *testing.T) {
 		alloc := ms.TotalAlloc
 		for i := range nWrites {
 			body := []byte(fmt.Sprintf("v%d", i))
-			if _, _, err := world.AccessWorldObject(ctx, tb.WorldState, key, true, func(bcs *block.Cursor) error {
+			if _, _, err := world.AccessWorldObject(ctx, ws, key, true, func(bcs *block.Cursor) error {
 				bcs.SetBlock(byteslice.NewByteSlice(&body), true)
 				return nil
 			}); err != nil {
@@ -112,8 +138,9 @@ func TestWorkerIgnoresUnrelatedWrites(t *testing.T) {
 	log.SetLevel(logrus.DebugLevel)
 	log.SetOutput(io.Discard)
 	log.AddHook(runs)
-	c := NewController(logrus.NewEntry(log), tb.Bus, NewConfig(tb.EngineID, "worker/1", workerPeer.GetPeerID(), false))
-	go func() { _ = c.Execute(ctx) }()
+	c := NewController(logrus.NewEntry(log), tb.Bus, NewConfig("test-worker", "worker/1", workerPeer.GetPeerID(), false))
+	// Exercise the controller's watch and handler without starting object jobs.
+	go func() { _ = c.objLoop.Execute(ctx, ws) }()
 	for runs.n.Load() == 0 {
 		time.Sleep(10 * time.Millisecond)
 	}
