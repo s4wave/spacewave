@@ -221,7 +221,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 	// Create the build owner and loop until the context ends.
 	var startupValidated bool
-	buildOwner := newManifestBuildOwner(c, builderConfig)
+	buildOwner := newManifestBuildOwner(c.resultPromise, builderConfig)
 
 	// Watch sources across builds, so edits made during a build are kept.
 	var sourceWatcher *SourceWatcher
@@ -293,7 +293,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			})
 			args := buildOwner.buildArgs()
 			// The restart callback binds every nested manifest tracker to this attempt.
-			builderHost := newBuildManifestHost(c, builderConfig, attempt.restart)
+			builderHost := newBuildManifestHost(c.subManifestBuilderTrackers, attempt.restart)
 			for _, prevSubManifestTracker := range c.subManifestBuilderTrackers.GetKeysWithData() {
 				tkr := prevSubManifestTracker.Data
 				tkr.build.prepareParentAttempt(attempt.restart)
@@ -320,7 +320,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 				attempt.release()
 				return context.Canceled
 			}
-			if attempt.ctx.Err() != nil {
+			if attempt.canceled() {
 				if attempt.wasRestarted() {
 					attempt.release()
 					continue
@@ -368,8 +368,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 			attempt.release()
 			continue
 		}
-		if err := buildOwner.publishResult(attempt.ctx, le, resultPromise, result, err, cacheHit, fullRebuild, hotRebuild); err != nil {
-			if attempt.wasRestarted() || attempt.ctx.Err() != nil {
+		if err := c.publishBuildResult(attempt.ctx, le, buildOwner, resultPromise, result, err, cacheHit, fullRebuild, hotRebuild); err != nil {
+			if attempt.wasRestarted() || attempt.canceled() {
 				attempt.release()
 				continue
 			}
@@ -377,8 +377,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 			return err
 		}
 
-		// publishResult preserves prevResult after a successful build.
-		inputFiles := buildOwner.prevResult.GetInputManifest().GetFiles()
+		// recordResult keeps the previous result after a failed build.
+		inputFiles := buildOwner.inputFiles()
 		if err == nil {
 			le.Debugf("input manifest returned with %d files", len(inputFiles))
 		}
@@ -434,7 +434,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 			// wait for sub-manifests to change or ctx to cancel
 			select {
-			case <-attempt.ctx.Done():
+			case <-attempt.done():
 				attempt.release()
 				continue
 			case <-ctx.Done():
@@ -469,7 +469,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			attempt.release()
 			return context.Canceled
 		}
-		if attempt.ctx.Err() != nil {
+		if attempt.canceled() {
 			attempt.release()
 			le.Info("re-building after sub-manifest changed")
 			continue
@@ -515,6 +515,68 @@ func (c *Controller) storeManifestBuildResult(
 	return nil
 }
 
+// publishBuildResult validates and stores the build result, resolves the
+// attempt's result promise, records the result on the owner and updates the
+// lifecycle status.
+func (c *Controller) publishBuildResult(
+	ctx context.Context,
+	le *logrus.Entry,
+	owner *manifestBuildOwner,
+	resultPromise *promise.Promise[*bldr_manifest_builder.BuilderResult],
+	result *bldr_manifest_builder.BuilderResult,
+	err error,
+	cacheHit bool,
+	fullRebuild bool,
+	hotRebuild bool,
+) error {
+	// Snapshot the rebuild reason recorded for this build.
+	rebuildReason := owner.rebuildReasonSnapshot()
+
+	// On success, validate and store the result, then resolve the promise. A
+	// store that a newer change cancels resolves nothing: the next attempt
+	// builds the newest input and resolves its own promise.
+	if err == nil {
+		if result != nil {
+			if err := result.Validate(); err != nil {
+				le.WithError(err).Debug("skipping world-backed manifest build result")
+			} else if err := c.storeManifestBuildResult(ctx, le, result); err != nil {
+				if ctx.Err() != nil {
+					return context.Canceled
+				}
+				resultPromise.SetResult(nil, err)
+				owner.recordResult(nil, err)
+				return err
+			}
+		}
+		resultPromise.SetResult(result, nil)
+		owner.recordResult(result, nil)
+
+		// Report the completed build in the lifecycle status.
+		c.setLifecycleStatus(ManifestBuilderLifecycleStatus{
+			State:                   ManifestBuilderLifecycleStateDone,
+			CacheHit:                cacheHit,
+			FullRebuild:             fullRebuild,
+			HotRebuild:              hotRebuild,
+			DependencyRebuildReason: rebuildReason,
+			Summary:                 "build complete",
+		})
+		return nil
+	}
+
+	// On failure, resolve the promise with the error and report it.
+	resultPromise.SetResult(nil, err)
+	owner.recordResult(nil, err)
+	c.setLifecycleStatus(ManifestBuilderLifecycleStatus{
+		State:                   ManifestBuilderLifecycleStateError,
+		FullRebuild:             fullRebuild,
+		HotRebuild:              hotRebuild,
+		DependencyRebuildReason: rebuildReason,
+		Summary:                 "build failed",
+		Error:                   err.Error(),
+	})
+	return nil
+}
+
 // HandleDirective asks if the handler can resolve the directive.
 // If it can, it returns a resolver. If not, returns nil.
 // Any unexpected errors are returned for logging.
@@ -532,9 +594,7 @@ func (c *Controller) Close() error {
 	return nil
 }
 
-// _ is a type assertion
-var _ controller.Controller = (*Controller)(nil)
-
+// setLifecycleStatus stores the lifecycle status and forwards it to the sink.
 func (c *Controller) setLifecycleStatus(status ManifestBuilderLifecycleStatus) {
 	// Store the status and forward it to the sink.
 	c.mtx.Lock()
@@ -567,3 +627,6 @@ func changedFilesSummary(count int) string {
 		return "filesystem change: multiple changed files"
 	}
 }
+
+// _ is a type assertion
+var _ controller.Controller = (*Controller)(nil)

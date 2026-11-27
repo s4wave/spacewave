@@ -8,7 +8,6 @@ import (
 
 	"github.com/aperturerobotics/util/promise"
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
-	"github.com/sirupsen/logrus"
 )
 
 // manifestBuildOwner owns the manifest build lifecycle: it serializes
@@ -29,7 +28,6 @@ import (
 // A promise therefore resolves only with a finished build, never with the
 // cancellation of one, and followers move to the replacement promise.
 type manifestBuildOwner struct {
-	c             *Controller
 	builderConfig *bldr_manifest_builder.BuilderConfig
 	resultPromise *promise.PromiseContainer[*bldr_manifest_builder.BuilderResult]
 
@@ -51,16 +49,15 @@ type manifestBuildAttempt struct {
 	restarted bool
 }
 
-// newManifestBuildOwner constructs a manifest build owner for the
-// controller.
+// newManifestBuildOwner constructs a manifest build owner that installs each
+// attempt's promise in resultPromise.
 func newManifestBuildOwner(
-	c *Controller,
+	resultPromise *promise.PromiseContainer[*bldr_manifest_builder.BuilderResult],
 	builderConfig *bldr_manifest_builder.BuilderConfig,
 ) *manifestBuildOwner {
 	return &manifestBuildOwner{
-		c:             c,
 		builderConfig: builderConfig,
-		resultPromise: c.resultPromise,
+		resultPromise: resultPromise,
 	}
 }
 
@@ -143,65 +140,19 @@ func (o *manifestBuildOwner) setRebuildReason(reason string) {
 	o.mtx.Unlock()
 }
 
-// publishResult validates and stores the build result, resolves the
-// result promise, and updates the lifecycle status.
-func (o *manifestBuildOwner) publishResult(
-	ctx context.Context,
-	le *logrus.Entry,
-	resultPromise *promise.Promise[*bldr_manifest_builder.BuilderResult],
-	result *bldr_manifest_builder.BuilderResult,
-	err error,
-	cacheHit bool,
-	fullRebuild bool,
-	hotRebuild bool,
-) error {
-	// Snapshot the rebuild reason recorded for this build.
-	rebuildReason := o.rebuildReasonSnapshot()
-
-	// On success, validate and store the result, then resolve the promise. A
-	// store that a newer change cancels resolves nothing: the next attempt
-	// builds the newest input and resolves its own promise.
+// recordResult records a finished build as the previous result. A failed
+// build keeps the previous result, so its inputs stay watched.
+func (o *manifestBuildOwner) recordResult(result *bldr_manifest_builder.BuilderResult, err error) {
 	if err == nil {
-		if result != nil {
-			if err := result.Validate(); err != nil {
-				le.WithError(err).Debug("skipping world-backed manifest build result")
-			} else if err := o.c.storeManifestBuildResult(ctx, le, result); err != nil {
-				if ctx.Err() != nil {
-					return context.Canceled
-				}
-				resultPromise.SetResult(nil, err)
-				o.prevErr = err
-				return err
-			}
-		}
-		resultPromise.SetResult(result, nil)
 		o.prevResult = result
-		o.prevErr = nil
-
-		// Report the completed build in the lifecycle status.
-		o.c.setLifecycleStatus(ManifestBuilderLifecycleStatus{
-			State:                   ManifestBuilderLifecycleStateDone,
-			CacheHit:                cacheHit,
-			FullRebuild:             fullRebuild,
-			HotRebuild:              hotRebuild,
-			DependencyRebuildReason: rebuildReason,
-			Summary:                 "build complete",
-		})
-		return nil
 	}
-
-	// On failure, resolve the promise with the error and report it.
-	resultPromise.SetResult(nil, err)
 	o.prevErr = err
-	o.c.setLifecycleStatus(ManifestBuilderLifecycleStatus{
-		State:                   ManifestBuilderLifecycleStateError,
-		FullRebuild:             fullRebuild,
-		HotRebuild:              hotRebuild,
-		DependencyRebuildReason: rebuildReason,
-		Summary:                 "build failed",
-		Error:                   err.Error(),
-	})
-	return nil
+}
+
+// inputFiles returns the input files of the previous result, which a
+// watching controller watches for changes.
+func (o *manifestBuildOwner) inputFiles() []*bldr_manifest_builder.InputManifest_File {
+	return o.prevResult.GetInputManifest().GetFiles()
 }
 
 // restart cancels the attempt so its loop begins a new pass, recording
@@ -221,6 +172,17 @@ func (a *manifestBuildAttempt) restart(reason string) {
 	if cancel != nil {
 		cancel()
 	}
+}
+
+// canceled reports whether the attempt ended: restarted, released or
+// canceled with its parent context.
+func (a *manifestBuildAttempt) canceled() bool {
+	return a.ctx.Err() != nil
+}
+
+// done returns a channel that closes when the attempt ends.
+func (a *manifestBuildAttempt) done() <-chan struct{} {
+	return a.ctx.Done()
 }
 
 // wasRestarted reports whether this attempt was restarted.

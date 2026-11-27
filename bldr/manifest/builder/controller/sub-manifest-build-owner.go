@@ -11,12 +11,13 @@ import (
 	"github.com/pkg/errors"
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
+	"github.com/sirupsen/logrus"
 )
 
 // subManifestBuildOwner owns one sub-manifest's build lifecycle: config
 // state, result promise, and restart signaling.
 type subManifestBuildOwner struct {
-	tracker        *subManifestBuilderTracker
+	subManifestID  string
 	builderRoutine *routine.StateRoutineContainer[*bldr_project.ManifestConfig]
 	resultPc       *promise.PromiseContainer[*bldr_manifest_builder.BuilderResult]
 
@@ -27,15 +28,19 @@ type subManifestBuildOwner struct {
 	observed  bool
 }
 
-// newSubManifestBuildOwner constructs a sub-manifest build owner bound to
-// the shared tracker.
-func newSubManifestBuildOwner(tracker *subManifestBuilderTracker) *subManifestBuildOwner {
+// newSubManifestBuildOwner constructs the build owner for subManifestID,
+// running buildRoutine with each new manifest config.
+func newSubManifestBuildOwner(
+	le *logrus.Entry,
+	subManifestID string,
+	buildRoutine routine.StateRoutine[*bldr_project.ManifestConfig],
+) *subManifestBuildOwner {
 	owner := &subManifestBuildOwner{
-		tracker:  tracker,
-		resultPc: promise.NewPromiseContainer[*bldr_manifest_builder.BuilderResult](),
+		subManifestID: subManifestID,
+		resultPc:      promise.NewPromiseContainer[*bldr_manifest_builder.BuilderResult](),
 	}
-	owner.builderRoutine = routine.NewStateRoutineContainerWithLoggerVT[*bldr_project.ManifestConfig](tracker.c.le)
-	owner.builderRoutine.SetStateRoutine(tracker.executeBuilderRoutine)
+	owner.builderRoutine = routine.NewStateRoutineContainerWithLoggerVT[*bldr_project.ManifestConfig](le)
+	owner.builderRoutine.SetStateRoutine(buildRoutine)
 	return owner
 }
 
@@ -102,7 +107,7 @@ func (o *subManifestBuildOwner) setResult(val *bldr_manifest_builder.BuilderResu
 	// Restart the parent build when an observed result changes.
 	if o.observed && (o.result != nil || o.resultErr != nil) {
 		if o.restartFn != nil {
-			o.restartFn("sub-manifest changed: " + o.tracker.subManifestID)
+			o.restartFn("sub-manifest changed: " + o.subManifestID)
 			o.restartFn = nil
 		}
 		o.observed = false

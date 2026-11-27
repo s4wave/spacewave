@@ -32,7 +32,7 @@ func (c *Controller) newSubManifestBuilderTracker(subManifestID string) (keyed.R
 		c:             c,
 		subManifestID: subManifestID,
 	}
-	tr.build = newSubManifestBuildOwner(tr)
+	tr.build = newSubManifestBuildOwner(c.le, subManifestID, tr.executeBuilderRoutine)
 	return tr.execute, tr
 }
 
@@ -46,7 +46,10 @@ func (t *subManifestBuilderTracker) execute(ctx context.Context) error {
 // setManifestConfig updates the manifest config and clears the result if needed.
 // Returns an error if ManifestConfig != current, current was set, and a result
 // was already returned.
-func (t *subManifestBuilderTracker) setManifestConfig(manifestConf *bldr_project.ManifestConfig, restartFn func(string)) (*promise.PromiseContainer[*bldr_manifest_builder.BuilderResult], error) {
+func (t *subManifestBuilderTracker) setManifestConfig(
+	manifestConf *bldr_project.ManifestConfig,
+	restartFn func(string),
+) (*promise.PromiseContainer[*bldr_manifest_builder.BuilderResult], error) {
 	return t.build.setManifestConfig(manifestConf, restartFn)
 }
 

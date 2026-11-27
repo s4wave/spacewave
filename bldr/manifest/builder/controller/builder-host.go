@@ -5,6 +5,7 @@ package bldr_manifest_builder_controller
 import (
 	"context"
 
+	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/promise"
 	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
@@ -14,14 +15,14 @@ import (
 
 // buildManifestHost is passed to a BuildManifest request to allow requesting additional resources. implements the BuildManifestHost interface.
 type buildManifestHost struct {
-	c             *Controller
-	builderConfig *bldr_manifest_builder.BuilderConfig
-	restartFn     func(string)
+	trackers  *keyed.Keyed[string, *subManifestBuilderTracker]
+	restartFn func(string)
 }
 
-// newBuildManifestHost builds a new buildManifestHost.
-func newBuildManifestHost(c *Controller, builderConfig *bldr_manifest_builder.BuilderConfig, restartFn func(string)) *buildManifestHost {
-	return &buildManifestHost{c: c, builderConfig: builderConfig, restartFn: restartFn}
+// newBuildManifestHost builds a buildManifestHost that adds sub-manifest
+// builds to trackers and binds them to restartFn.
+func newBuildManifestHost(trackers *keyed.Keyed[string, *subManifestBuilderTracker], restartFn func(string)) *buildManifestHost {
+	return &buildManifestHost{trackers: trackers, restartFn: restartFn}
 }
 
 // BuildSubManifest builds a sub-manifest and returns a compilation promise.
@@ -55,7 +56,7 @@ func (h *buildManifestHost) BuildSubManifest(
 	}
 
 	// add a reference to the manifest builder for this id
-	builderTracker, _ := h.c.subManifestBuilderTrackers.SetKey(subManifestID, true)
+	builderTracker, _ := h.trackers.SetKey(subManifestID, true)
 
 	// update the config and get the result promise container, mark the tracker as observed
 	return builderTracker.setManifestConfig(subManifestConfig, h.restartFn)

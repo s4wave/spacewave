@@ -1048,11 +1048,11 @@ func TestPublishResultCanceledStoreLeavesPromisePending(t *testing.T) {
 		true,
 		nil,
 	))
-	owner := newManifestBuildOwner(ctrl, ctrl.GetConfig().GetBuilderConfig())
+	owner := newManifestBuildOwner(ctrl.resultPromise, ctrl.GetConfig().GetBuilderConfig())
 	resultPromise := owner.nextResultPromise()
 	attempt := owner.beginAttempt(ctx)
 	attempt.restart("sub-manifest changed: child")
-	err = owner.publishResult(attempt.ctx, tb.GetLogger(), resultPromise, result, nil, false, false, true)
+	err = ctrl.publishBuildResult(attempt.ctx, tb.GetLogger(), owner, resultPromise, result, nil, false, false, true)
 	if err != context.Canceled {
 		t.Fatalf("publish under a canceled attempt = %v, want context.Canceled", err)
 	}
