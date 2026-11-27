@@ -113,8 +113,8 @@ func (r flatPages) rootPage(ctx context.Context) (*flatPage, flatPos, error) {
 }
 
 // childAt returns the position of the entry's child page.
-func (r flatPages) childAt(_ *flatPage, pos flatPos, index int) flatPos {
-	return pos.child(index)
+func (r flatPages) childAt(page *flatPage, pos flatPos, index int) flatPos {
+	return pos.at(page).child(index)
 }
 
 // loadAt loads the page at a position.
@@ -146,13 +146,13 @@ func (r flatPages) aheadValue(ctx context.Context, b *block.BatchLoad, page *fla
 }
 
 // entryValue returns an owned copy of the entry's value.
-func (r flatPages) entryValue(ctx context.Context, _ *flatPage, pos flatPos, index int) ([]byte, error) {
-	return readEntryValue(ctx, pos, index)
+func (r flatPages) entryValue(ctx context.Context, page *flatPage, pos flatPos, index int) ([]byte, error) {
+	return readEntryValue(ctx, pos.at(page), index)
 }
 
 // valueCursor materializes a private cursor at the entry's value.
-func (r flatPages) valueCursor(ctx context.Context, _ *flatPage, pos flatPos, index int) (*block.Cursor, error) {
-	return pos.valueCursor(ctx, index)
+func (r flatPages) valueCursor(ctx context.Context, page *flatPage, pos flatPos, index int) (*block.Cursor, error) {
+	return pos.at(page).valueCursor(ctx, index)
 }
 
 // loadFlatPage returns the validated flat page stored at cursor. A reader

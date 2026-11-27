@@ -19,6 +19,14 @@ type flatPos struct {
 	page *flatPage
 }
 
+// at returns the position with page, the page loaded through it. A walk keeps
+// the position childAt returned, which names a stored block by its cursor
+// alone until a load, so each step that reads the page pins it first.
+func (pos flatPos) at(page *flatPage) flatPos {
+	pos.page = page
+	return pos
+}
+
 // load returns the position's page, loading the block's root page when the
 // position names a block not yet loaded.
 func (pos flatPos) load(ctx context.Context) (flatPos, error) {

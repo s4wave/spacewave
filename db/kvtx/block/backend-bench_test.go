@@ -739,6 +739,7 @@ func benchKVImpls() []KVImplType {
 		KVImplType_KV_IMPL_TYPE_IAVL,
 		KVImplType_KV_IMPL_TYPE_OKRA,
 		KVImplType_KV_IMPL_TYPE_OKRA_INLINE,
+		KVImplType_KV_IMPL_TYPE_OKRA_MULTI_LEVEL,
 	}
 }
 
@@ -951,7 +952,7 @@ func measureBenchKVRoot(tb testing.TB, ctx context.Context, tree *benchKVTree) b
 	switch tree.impl {
 	case KVImplType_KV_IMPL_TYPE_IAVL:
 		metrics.height = root.GetIavlRoot().GetHeight()
-	case KVImplType_KV_IMPL_TYPE_OKRA, KVImplType_KV_IMPL_TYPE_OKRA_INLINE:
+	case KVImplType_KV_IMPL_TYPE_OKRA, KVImplType_KV_IMPL_TYPE_OKRA_INLINE, KVImplType_KV_IMPL_TYPE_OKRA_MULTI_LEVEL:
 		metrics.height = root.GetOkraRoot().GetHeight()
 	}
 
