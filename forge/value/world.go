@@ -52,17 +52,6 @@ func (s *WorldObjectSnapshot) IsNil() bool {
 	return s == nil
 }
 
-// GetEmpty checks if the WorldObjectSnapshot is empty.
-func (s *WorldObjectSnapshot) GetEmpty() bool {
-	return s.GetKey() == "" || s.GetRev() == 0
-}
-
-// ToBucketRef converts the snapshot into a ObjectRef.
-// Returns nil if the block ref or bucket ref was empty.
-func (s *WorldObjectSnapshot) ToBucketRef() (*bucket.ObjectRef, error) {
-	return s.GetRootRef(), nil
-}
-
 // ApplySubBlock applies a sub-block change with a field id.
 func (s *WorldObjectSnapshot) ApplySubBlock(id uint32, next block.SubBlock) error {
 	switch id {

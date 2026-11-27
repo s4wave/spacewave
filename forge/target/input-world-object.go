@@ -8,27 +8,27 @@ import (
 	forge_value "github.com/s4wave/spacewave/forge/value"
 )
 
-// Validate validates the input world object.
-func (i *InputWorldObject) Validate() error {
+// validate validates the input world object.
+func (i *InputWorldObject) validate() error {
 	if i.GetObjectKey() == "" {
 		return world.ErrEmptyObjectKey
 	}
 	return nil
 }
 
-// ResolveValue resolves the InputWorldObject to a InputValueWorldObject.
+// resolveValue resolves the InputWorldObject to a inputValueWorldObject.
 //
 // note: if object_rev < input.object_rev, returns nil, nil, nil
 // inpWorld and inpPrevValue can be nil
 // may return nil, nil, nil if no value
-func (i *InputWorldObject) ResolveValue(
+func (i *InputWorldObject) resolveValue(
 	ctx context.Context,
 	b bus.Bus,
 	inpName string,
 	inpWorld InputValueWorld,
-) (InputValueWorldObject, func(), error) {
+) (inputValueWorldObject, func(), error) {
 	// asserts objKey !=  ""
-	err := i.Validate()
+	err := i.validate()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -36,7 +36,7 @@ func (i *InputWorldObject) ResolveValue(
 	// Resolve the input World object to a snapshot value or an empty value.
 	var inpObjs world.ObjectState
 	var inpObjsExists bool
-	var inpObjsValue InputValueInline
+	var inpObjsValue inputValueInline
 	objKey := i.GetObjectKey()
 	if inpWorld != nil && !inpWorld.IsEmpty() {
 		ws := inpWorld.GetWorldState()
@@ -76,7 +76,7 @@ func (i *InputWorldObject) ResolveValue(
 		}
 	}
 
-	return NewInputValueWorldObject(inpObjsValue, inpWorld, inpObjs, nil), func() {
+	return newInputValueWorldObject(inpObjsValue, inpWorld, inpObjs, nil), func() {
 		world.ReleaseObjectState(inpObjs)
 	}, nil
 }

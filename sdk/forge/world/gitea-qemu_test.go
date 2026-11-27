@@ -417,7 +417,7 @@ func (f *qemuGitea) output(task, name string) []byte {
 	if err != nil || value == nil {
 		f.t.Fatalf("output %s: %v", name, err)
 	}
-	handle := forge_target.ExecControllerHandleWithAccess("gitea-proof", f.sender, f.tb.Engine, f.tb.WorldState.AccessWorldState, nil)
+	handle := forge_target.ExecControllerHandleWithAccess("gitea-proof", f.sender, f.tb.WorldState.AccessWorldState, nil)
 	data, err := forge_target.LoadBlobValueToBytes(f.ctx, handle, value)
 	if err != nil {
 		f.t.Fatal(err)

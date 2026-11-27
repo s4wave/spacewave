@@ -100,7 +100,7 @@ exec:
 	}
 
 	// Require each set output to hold the checked path.
-	handle := forge_target.ExecControllerHandleWithAccess("presence-test", "", tb.Engine, tb.WorldState.AccessWorldState, nil)
+	handle := forge_target.ExecControllerHandleWithAccess("presence-test", "", tb.WorldState.AccessWorldState, nil)
 	for _, output := range outputs {
 		if output.GetValueType() != forge_value.ValueType_ValueType_BLOCK_REF {
 			t.Fatalf("output %s type = %s", output.GetName(), output.GetValueType())

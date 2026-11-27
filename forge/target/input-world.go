@@ -7,8 +7,8 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 )
 
-// Validate validates the input world object.
-func (i *InputWorld) Validate() error {
+// validate requires a World engine identity before resolving an input.
+func (i *InputWorld) validate() error {
 	if i.GetEngineId() == "" {
 		return world.ErrEmptyEngineID
 	}

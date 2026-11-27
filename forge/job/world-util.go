@@ -20,11 +20,6 @@ import (
 
 const jobGraphPathLimit uint32 = 1_000_000
 
-// LookupJob looks up a Job in the world.
-func LookupJob(ctx context.Context, ws world.WorldState, objKey string) (*Job, world.ObjectState, error) {
-	return world.LookupObject[Job](ctx, ws, objKey)
-}
-
 // LookupJobBody looks up a Job body in the world.
 func LookupJobBody(ctx context.Context, ws world.WorldState, objKey string) (*Job, error) {
 	return world.LookupObjectBody[Job](ctx, ws, objKey)
@@ -35,8 +30,8 @@ func CheckJobType(ctx context.Context, ws world.WorldState, objKey string) error
 	return world_types.CheckObjectType(ctx, ws, objKey, JobTypeID)
 }
 
-// CheckJobHasTask checks if the job is linked to a task.
-func CheckJobHasTask(ctx context.Context, w world.WorldState, jobKey, taskKey string) (bool, error) {
+// checkJobHasTask checks if the job is linked to a task.
+func checkJobHasTask(ctx context.Context, w world.WorldState, jobKey, taskKey string) (bool, error) {
 	gq, err := w.LookupGraphQuads(ctx, world.NewGraphQuad(
 		world.KeyToGraphValue(jobKey).String(),
 		PredJobToTask.String(),
@@ -51,7 +46,7 @@ func CheckJobHasTask(ctx context.Context, w world.WorldState, jobKey, taskKey st
 
 // EnsureJobHasTask checks if the job has the task and returns an error otherwise.
 func EnsureJobHasTask(ctx context.Context, w world.WorldState, jobKey, taskKey string) error {
-	hasTask, err := CheckJobHasTask(ctx, w, jobKey, taskKey)
+	hasTask, err := checkJobHasTask(ctx, w, jobKey, taskKey)
 	if err == nil && !hasTask {
 		err = world.NewOpRefusedError(errors.Errorf("job %s does not have task %s", jobKey, taskKey))
 	}

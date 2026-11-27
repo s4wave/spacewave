@@ -83,7 +83,7 @@ func newOutputsController(t *testing.T, write func(dir string) error) (*Controll
 	}
 	t.Cleanup(stage.Release)
 	handle := &outputsHandle{ExecControllerHandle: forge_target.ExecControllerHandleWithAccess(
-		"test-exec", "", tb.Engine, stage.AccessWorldState, nil,
+		"test-exec", "", stage.AccessWorldState, nil,
 	)}
 
 	// Run a container that exits zero after write fills its output directory.

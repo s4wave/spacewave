@@ -10,13 +10,13 @@ type ivInline struct {
 	inputType InputType
 }
 
-// NewInputValueInline constructs a new InputValueInline from a Value.
-func NewInputValueInline(v *forge_value.Value) InputValueInline {
+// NewInputValueInline constructs a new inputValueInline from a Value.
+func NewInputValueInline(v *forge_value.Value) inputValueInline {
 	return &ivInline{v: v, inputType: InputType_InputType_VALUE}
 }
 
-// NewInputValueTaskOutput constructs a resolved Task output value.
-func NewInputValueTaskOutput(v *forge_value.Value) InputValueInline {
+// newInputValueTaskOutput constructs a resolved Task output value.
+func newInputValueTaskOutput(v *forge_value.Value) inputValueInline {
 	return &ivInline{v: v, inputType: InputType_InputType_TASK_OUTPUT}
 }
 
@@ -41,4 +41,4 @@ func (i *ivInline) GetValue() *forge_value.Value {
 }
 
 // _ is a type assertion
-var _ InputValueInline = (*ivInline)(nil)
+var _ inputValueInline = (*ivInline)(nil)

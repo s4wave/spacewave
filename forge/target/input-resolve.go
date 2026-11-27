@@ -20,7 +20,7 @@ func (t *Target) ResolveInputs(
 	b bus.Bus,
 	defWorld InputValueWorld,
 	inputVals forge_value.ValueMap,
-	resolveTaskOutput TaskOutputResolver,
+	resolveTaskOutput taskOutputResolver,
 ) (im InputMap, unresolved []*Input, relAll func(), err error) {
 	// Reserve the resolved input map for the Target inputs.
 	im = make(InputMap, len(t.GetInputs()))
@@ -62,7 +62,7 @@ func (t *Target) ResolveInputs(
 			if _, ok := resolved[inpName]; ok {
 				continue
 			}
-			inpVal, inpValRel, err := inp.ResolveValue(ctx, b, im, defWorld, resolveTaskOutput)
+			inpVal, inpValRel, err := inp.resolveValue(ctx, b, im, defWorld, resolveTaskOutput)
 			if err != nil {
 				if relAll != nil {
 					relAll()
@@ -102,16 +102,16 @@ func (t *Target) ResolveInputs(
 	return im, unresolved, relAll, nil
 }
 
-// ResolveValue resolves one input against the inputs resolved so far, with an
+// resolveValue resolves one input against the inputs resolved so far, with an
 // optional resource release function. Unavailable inputs return nil without
 // error. ResolveTaskOutput supplies the Task package's completed-output reader.
-func (i *Input) ResolveValue(
+func (i *Input) resolveValue(
 	ctx context.Context,
 	b bus.Bus,
 	im InputMap,
 	defWorld InputValueWorld,
-	resolveTaskOutput TaskOutputResolver,
-) (InputValue, func(), error) {
+	resolveTaskOutput taskOutputResolver,
+) (inputValue, func(), error) {
 	switch i.GetInputType() {
 	case InputType_InputType_ALIAS:
 		return im[i.GetName()], nil, nil
@@ -120,7 +120,7 @@ func (i *Input) ResolveValue(
 	case InputType_InputType_WORLD:
 		return i.GetWorld().ResolveValue(ctx, b)
 	case InputType_InputType_TASK_OUTPUT:
-		value, err := i.GetTaskOutput().ResolveValue(ctx, i.GetName(), defWorld, resolveTaskOutput)
+		value, err := i.GetTaskOutput().resolveValue(ctx, i.GetName(), defWorld, resolveTaskOutput)
 		return value, nil, err
 	case InputType_InputType_WORLD_OBJECT:
 		// Select the explicit World input or the default Forge Job World.
@@ -134,7 +134,7 @@ func (i *Input) ResolveValue(
 		}
 
 		// Resolve the object against the selected World input.
-		return inpWo.ResolveValue(ctx, b, i.GetName(), worldInp)
+		return inpWo.resolveValue(ctx, b, i.GetName(), worldInp)
 	case InputType_InputType_UNKNOWN:
 		return nil, nil, nil
 	}

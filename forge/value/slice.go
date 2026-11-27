@@ -79,7 +79,7 @@ func (v ValueSlice) Validate(allowEmptyName, checkDupe, checkSort bool) error {
 			m[name] = i
 		}
 	}
-	if checkSort && !v.IsSorted() {
+	if checkSort && !block.IsNamedSubBlocksSorted(v) {
 		return errors.New("values: must be sorted by name")
 	}
 	return nil
@@ -109,11 +109,6 @@ func (v ValueSlice) BuildValueMap(checkDupe, cloneObjs bool) (ValueMap, error) {
 // SortByName sorts the value slice by name.
 func (v ValueSlice) SortByName() {
 	block.SortNamedSubBlocks(v)
-}
-
-// IsSorted checks if the value slice is sorted.
-func (v ValueSlice) IsSorted() bool {
-	return block.IsNamedSubBlocksSorted(v)
 }
 
 // Merge applies a second set of values while overwriting existing values.
@@ -151,7 +146,7 @@ func (v ValueSlice) Equals(ot ValueSlice) bool {
 	if len(v) != len(ot) {
 		return false
 	}
-	if !v.IsSorted() || !ot.IsSorted() {
+	if !block.IsNamedSubBlocksSorted(v) || !block.IsNamedSubBlocksSorted(ot) {
 		added, removed, changed := v.Compare(ot)
 		return len(added)+len(removed)+len(changed) == 0
 	}

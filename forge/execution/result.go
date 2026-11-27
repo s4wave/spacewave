@@ -6,43 +6,8 @@ import (
 	forge_value "github.com/s4wave/spacewave/forge/value"
 )
 
-// FilterExecutionOutputs returns only valid outputs for completed executions.
-// if allowFailed, skips any failed or invalid executions.
-func FilterExecutionOutputs(execs []*Execution, allowFailed bool, minComplete int) ([]*Execution, [][]*forge_value.Value, error) {
-	// Collect complete executions and their validated output values.
-	valid := make([]*Execution, 0, len(execs))
-	validOutputs := make([][]*forge_value.Value, 0, cap(valid))
-	for i, exec := range execs {
-		if err := exec.Validate(); err != nil {
-			if allowFailed {
-				continue
-			}
-			return nil, nil, errors.Wrapf(err, "executions[%d]", i)
-		}
-		if exec.GetExecutionState() != State_ExecutionState_COMPLETE {
-			continue
-		}
-		valid = append(valid, exec)
-		validOutputs = append(validOutputs, exec.GetValueSet().GetOutputs())
-	}
-
-	// Require enough complete executions to produce a result.
-	if minComplete != 0 && len(valid) < minComplete {
-		return nil, nil, errors.Errorf(
-			"%d complete executions required: found %d",
-			minComplete,
-			len(valid),
-		)
-	}
-	if len(valid) == 0 {
-		return nil, nil, errors.New("no valid and complete executions")
-	}
-	return valid, validOutputs, nil
-}
-
 // ComputeExecutionOutputs computes the outputs shared by a set of executions.
-// Every execution's outputs must be valid and equal. Filter failed executions
-// with FilterExecutionOutputs first. Returns nil for an empty set.
+// Every execution's outputs must be valid and equal. Returns nil for an empty set.
 func ComputeExecutionOutputs(
 	outputs []*forge_target.Output,
 	execOutputVals []forge_value.ValueSlice,

@@ -3,8 +3,6 @@ package forge_target
 import "errors"
 
 var (
-	// ErrTargetWorldUnset is returned if no target world was set.
-	ErrTargetWorldUnset = errors.New("no target world configured")
 	// ErrUnknownInputType is returned if the input type is unknown.
 	ErrUnknownInputType = errors.New("unknown input type")
 	// ErrUnknownOutputType is returned if the output type is unknown.

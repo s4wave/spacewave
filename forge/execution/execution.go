@@ -186,7 +186,7 @@ func (e *Execution) Validate() error {
 		return err
 	}
 	if claim := e.GetClaim(); claim != nil {
-		if err := claim.Validate(); err != nil {
+		if err := claim.validate(); err != nil {
 			return errors.Wrap(err, "claim")
 		}
 	}

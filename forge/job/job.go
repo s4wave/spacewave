@@ -61,7 +61,7 @@ func (e *Job) Validate() error {
 	}
 
 	// Validate the Job state and timestamp.
-	if err := e.GetJobState().Validate(false); err != nil {
+	if err := e.GetJobState().validate(false); err != nil {
 		return err
 	}
 	if err := e.GetTimestamp().Validate(false); err != nil {

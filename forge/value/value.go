@@ -41,17 +41,6 @@ func NewValueWithWorldObjectSnapshot(name string, snapshot *WorldObjectSnapshot)
 	}
 }
 
-// Validate checks the value type is in range.
-func (v ValueType) Validate() error {
-	switch v {
-	case ValueType_ValueType_BLOCK_REF:
-	case ValueType_ValueType_BUCKET_REF:
-	default:
-		return errors.Wrap(ErrUnknownValueType, v.String())
-	}
-	return nil
-}
-
 // Validate validates the value with cursory checks.
 func (v *Value) Validate(allowEmptyName bool) error {
 	// Require a value name and a recognized type for nonempty values.
@@ -114,7 +103,8 @@ func (v *Value) IsEmpty() bool {
 	case ValueType_ValueType_BUCKET_REF:
 		return v.GetBucketRef().GetEmpty()
 	case ValueType_ValueType_WORLD_OBJECT_SNAPSHOT:
-		return v.GetWorldObjectSnapshot().GetEmpty()
+		snapshot := v.GetWorldObjectSnapshot()
+		return snapshot.GetKey() == "" || snapshot.GetRev() == 0
 	default:
 		return true
 	}
@@ -158,7 +148,7 @@ func (v *Value) ToBucketRef() (*bucket.ObjectRef, error) {
 		}
 		return &bucket.ObjectRef{RootRef: v.GetBlockRef()}, nil
 	case ValueType_ValueType_WORLD_OBJECT_SNAPSHOT:
-		return v.GetWorldObjectSnapshot().ToBucketRef()
+		return v.GetWorldObjectSnapshot().GetRootRef(), nil
 	default:
 		return nil, errors.Wrap(ErrUnknownValueType, vt.String())
 	}

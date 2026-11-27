@@ -45,7 +45,6 @@ func TestApplyOpCheckExistsErrors(t *testing.T) {
 	handle := forge_target.ExecControllerHandleWithAccess(
 		"check-exists-test",
 		tb.Volume.GetPeerID(),
-		tb.Engine,
 		stage.AccessWorldState,
 		timestamp.Now(),
 	)

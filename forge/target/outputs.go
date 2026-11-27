@@ -5,10 +5,10 @@ import (
 	forge_value "github.com/s4wave/spacewave/forge/value"
 )
 
-// ComputeOutput computes the output value for a Execution output value.
+// computeOutput computes the output value for a Execution output value.
 //
 // returns an empty value (Type=0) for any unset outputs.
-func ComputeOutput(output *Output, execValues []*forge_value.Value) (*forge_value.Value, error) {
+func computeOutput(output *Output, execValues []*forge_value.Value) (*forge_value.Value, error) {
 	// Select the inline or execution value for the requested output.
 	outpType := output.GetOutputType()
 	var outpVal *forge_value.Value
@@ -46,7 +46,7 @@ func ComputeOutputs(outputs []*Output, execValues []*forge_value.Value) (forge_v
 	var err error
 	outpVals := make(forge_value.ValueSlice, len(outputs))
 	for i, outp := range outputs {
-		outpVals[i], err = ComputeOutput(outp, execValues)
+		outpVals[i], err = computeOutput(outp, execValues)
 		if err != nil {
 			return nil, errors.Wrap(err, outp.GetName())
 		}

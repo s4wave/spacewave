@@ -96,7 +96,7 @@ func CreatePassWithTarget(
 	if err := ps.Validate(true); err != nil {
 		return nil, nil, err
 	}
-	peerID, err := ps.ParsePeerID()
+	peerID, err := ps.parsePeerID()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -147,10 +147,10 @@ func (e *Pass) Validate(allowEmptyRefs bool) error {
 			return errors.Wrap(err, "placement")
 		}
 	}
-	if err := e.GetPassState().Validate(false); err != nil {
+	if err := e.GetPassState().validate(false); err != nil {
 		return err
 	}
-	if _, err := e.ParsePeerID(); err != nil {
+	if _, err := e.parsePeerID(); err != nil {
 		return err
 	}
 	if err := e.GetTimestamp().Validate(false); err != nil {
@@ -243,9 +243,9 @@ func (e *Pass) FollowTargetRef(ctx context.Context, bcs *block.Cursor) (*forge_t
 	return tgt, tgtCs, nil
 }
 
-// ParsePeerID parses the peer ID field.
+// parsePeerID parses the peer ID field.
 // Returns empty if not set.
-func (e *Pass) ParsePeerID() (peer.ID, error) {
+func (e *Pass) parsePeerID() (peer.ID, error) {
 	return confparse.ParsePeerID(e.GetPeerId())
 }
 
@@ -277,7 +277,7 @@ func (e *Pass) GetSubBlocks() map[uint32]block.SubBlock {
 	m := make(map[uint32]block.SubBlock)
 	m[4] = e.GetValueSet()
 	m[5] = e.GetResult()
-	m[8] = NewExecStateSubBlockSet(&e.ExecStates, nil)
+	m[8] = newExecStateSubBlockSet(&e.ExecStates, nil)
 	return m
 }
 
@@ -290,7 +290,7 @@ func (e *Pass) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 	case 5:
 		return forge_value.NewResultSubBlockCtor(&e.Result)
 	case 8:
-		return NewExecStateSubBlockSetCtor(&e.ExecStates)
+		return newExecStateSubBlockSetCtor(&e.ExecStates)
 	}
 	return nil
 }
@@ -325,9 +325,11 @@ func (e *Pass) GetBlockRefCtor(id uint32) block.Ctor {
 	return nil
 }
 
-// ComputeOutputsWithStates computes the pass outputs with exec states.
-func ComputeOutputsWithStates(outputs []*forge_target.Output, execStates []*ExecState, replicas int) (forge_value.ValueSlice, error) {
-	// promote the first successful exec state value set to the pass
+// ComputeOutputs validates replica completion and computes unanimous declared outputs.
+// replicas is the threshold of the Pass or the Task accepting its result.
+func (e *Pass) ComputeOutputs(outputs []*forge_target.Output, replicas int) (forge_value.ValueSlice, error) {
+	// Require enough execution snapshots for the accepting replica threshold.
+	execStates := e.GetExecStates()
 	if len(execStates) == 0 {
 		return nil, errors.New("exec_states cannot be empty")
 	}
@@ -367,7 +369,7 @@ func (e *Pass) ApplyExecStates(
 			return errors.Errorf("executions[%d]: placement does not match pass", i)
 		}
 		objKey := execObjKeys[i]
-		states[i] = NewExecState(objKey, obj)
+		states[i] = newExecState(objKey, obj)
 		if err := states[i].Validate(); err != nil {
 			return errors.Wrapf(err, "executions[%d]", i)
 		}

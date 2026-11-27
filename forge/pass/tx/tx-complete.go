@@ -99,7 +99,7 @@ func (t *TxComplete) ExecuteTx(
 			return err
 		}
 		outputs := tgt.GetOutputs()
-		outpVals, err := forge_pass.ComputeOutputsWithStates(outputs, root.GetExecStates(), int(root.GetReplicas()))
+		outpVals, err := root.ComputeOutputs(outputs, int(root.GetReplicas()))
 		if err != nil {
 			return err
 		}

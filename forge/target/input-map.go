@@ -9,17 +9,7 @@ import (
 
 // InputMap is the set of provided input values.
 // The key must match the input Name field.
-type InputMap map[string]InputValue
-
-// Validate checks all values in the map.
-func (m InputMap) Validate() error {
-	for k, val := range m {
-		if err := val.Validate(); err != nil {
-			return errors.Wrap(err, k)
-		}
-	}
-	return nil
-}
+type InputMap map[string]inputValue
 
 // ObjectRef resolves the named input to the object its value refers to. It
 // refuses an input that is missing, empty or refers to an empty root, since a
@@ -53,7 +43,7 @@ func (m InputMap) ObjectRef(name string) (*bucket.ObjectRef, error) {
 func (m InputMap) BuildValueSet() *ValueSet {
 	values := make([]*forge_value.Value, 0, len(m))
 	for name, inputValue := range m {
-		valInline, valInlineOk := inputValue.(InputValueInline)
+		valInline, valInlineOk := inputValue.(inputValueInline)
 		if !valInlineOk {
 			continue
 		}

@@ -14,8 +14,8 @@ import (
 	forge_value "github.com/s4wave/spacewave/forge/value"
 )
 
-// AccessObject creates a block cursor at a object value.
-func AccessObject(
+// accessObject creates a block cursor at a object value.
+func accessObject(
 	ctx context.Context,
 	handle ExecControllerHandle,
 	ref *bucket.ObjectRef,
@@ -45,7 +45,7 @@ func AccessValue(
 	}
 
 	// Access the value object and retain the cloned value if its reference is unchanged.
-	nobj, err := AccessObject(ctx, handle, bref, cb)
+	nobj, err := accessObject(ctx, handle, bref, cb)
 	if err != nil {
 		return nil, err
 	}
@@ -61,8 +61,8 @@ func AccessValue(
 	}
 }
 
-// StoreBlobValue stores the given data as a Blob and returns a BlockRef value.
-func StoreBlobValue(
+// storeBlobValue stores the given data as a Blob and returns a BlockRef value.
+func storeBlobValue(
 	ctx context.Context,
 	handle ExecControllerHandle,
 	dataLen int64,
@@ -86,7 +86,7 @@ func StoreBlobValueFromBytes(
 	handle ExecControllerHandle,
 	data []byte,
 ) (*forge_value.Value, error) {
-	return StoreBlobValue(ctx, handle, int64(len(data)), bytes.NewReader(data))
+	return storeBlobValue(ctx, handle, int64(len(data)), bytes.NewReader(data))
 }
 
 // LoadBlobValueToBytes loads the blob value to a byte slice.

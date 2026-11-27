@@ -1043,7 +1043,7 @@ func (f *flowgraphFixture) taskTree(taskKey, name string) *block.BlockRef {
 
 // accessHandle returns a handle reading the World's storage as a Step does.
 func (f *flowgraphFixture) accessHandle() forge_target.ExecControllerHandle {
-	return forge_target.ExecControllerHandleWithAccess("skiffos-proof", f.sender, f.tb.Engine, f.tb.WorldState.AccessWorldState, nil)
+	return forge_target.ExecControllerHandleWithAccess("skiffos-proof", f.sender, f.tb.WorldState.AccessWorldState, nil)
 }
 
 // openTree calls fn with the UnixFS tree at root as a read-only billy
@@ -1204,7 +1204,7 @@ func (f *flowgraphFixture) bootSet(taskKey string) *block.BlockRef {
 		f.t.Fatalf("output images=%v err=%v", value, err)
 	}
 	root := value.GetBlockRef()
-	handle := forge_target.ExecControllerHandleWithAccess("skiffos-proof", f.sender, f.tb.Engine, f.tb.WorldState.AccessWorldState, nil)
+	handle := forge_target.ExecControllerHandleWithAccess("skiffos-proof", f.sender, f.tb.WorldState.AccessWorldState, nil)
 	var files int
 	err = handle.AccessStorage(f.ctx, &bucket.ObjectRef{RootRef: root}, func(cs *bucket_lookup.Cursor) error {
 		_, bcs := cs.BuildTransaction(nil)

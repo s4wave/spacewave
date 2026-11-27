@@ -9,8 +9,8 @@ func WithExecCancelSignal(ctx context.Context, signal <-chan struct{}) context.C
 	return context.WithValue(ctx, execCancelSignalKey{}, signal)
 }
 
-// ExecCancelSignal returns the durable execution cancellation signal.
-func ExecCancelSignal(ctx context.Context) <-chan struct{} {
+// execCancelSignal returns the durable execution cancellation signal.
+func execCancelSignal(ctx context.Context) <-chan struct{} {
 	signal, _ := ctx.Value(execCancelSignalKey{}).(<-chan struct{})
 	return signal
 }

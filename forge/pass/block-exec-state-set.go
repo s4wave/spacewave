@@ -10,23 +10,23 @@ type execStateSlice struct {
 	v *[]*ExecState
 }
 
-// NewExecStateSubBlockSet builds a new value set container.
+// newExecStateSubBlockSet builds a new value set container.
 //
 // bcs should be located at the sub-block
-func NewExecStateSubBlockSet(v *[]*ExecState, bcs *block.Cursor) *sbset.NamedSubBlockSet {
+func newExecStateSubBlockSet(v *[]*ExecState, bcs *block.Cursor) *sbset.NamedSubBlockSet {
 	if v == nil {
 		return nil
 	}
 	return sbset.NewNamedSubBlockSet(&execStateSlice{v: v}, bcs)
 }
 
-// NewExecStateSubBlockSetCtor returns the sub-block constructor.
-func NewExecStateSubBlockSetCtor(v *[]*ExecState) block.SubBlockCtor {
+// newExecStateSubBlockSetCtor returns the sub-block constructor.
+func newExecStateSubBlockSetCtor(v *[]*ExecState) block.SubBlockCtor {
 	if v == nil {
 		return nil
 	}
 	return func(create bool) block.SubBlock {
-		return NewExecStateSubBlockSet(v, nil)
+		return newExecStateSubBlockSet(v, nil)
 	}
 }
 

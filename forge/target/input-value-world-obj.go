@@ -7,8 +7,8 @@ import (
 
 // ivWorldObject is a input value for a world object.
 type ivWorldObject struct {
-	// InputValueInline retains the resolved inline object value.
-	InputValueInline
+	// inputValueInline retains the resolved inline object value.
+	inputValueInline
 	// InputValueWorld retains the object World and its selected engine identity.
 	InputValueWorld
 	// objs retains the resolved object state.
@@ -17,16 +17,16 @@ type ivWorldObject struct {
 	err error
 }
 
-// NewInputValueWorldObject constructs a new InputValueWorldObject from its
+// newInputValueWorldObject constructs a new inputValueWorldObject from its
 // component values. Nil inline and world components are replaced with empty
 // ones. objs carries the resolved object state and err carries any resolution
 // error. Validate reports err until it is cleared.
-func NewInputValueWorldObject(
-	inline InputValueInline,
+func newInputValueWorldObject(
+	inline inputValueInline,
 	wrld InputValueWorld,
 	objs world.ObjectState,
 	err error,
-) InputValueWorldObject {
+) inputValueWorldObject {
 	// Replace missing components with honest empty input values.
 	if inline == nil {
 		inline = NewInputValueInline(nil)
@@ -34,7 +34,7 @@ func NewInputValueWorldObject(
 	if wrld == nil {
 		wrld = NewInputValueWorld("", nil, nil)
 	}
-	return &ivWorldObject{InputValueInline: inline, InputValueWorld: wrld, objs: objs, err: err}
+	return &ivWorldObject{inputValueInline: inline, InputValueWorld: wrld, objs: objs, err: err}
 }
 
 // GetInputType returns the input type of this value.
@@ -48,8 +48,8 @@ func (i *ivWorldObject) Validate() error {
 	if i.err != nil {
 		return i.err
 	}
-	if i.InputValueInline != nil && !i.InputValueInline.IsEmpty() {
-		if err := i.InputValueInline.Validate(); err != nil {
+	if i.inputValueInline != nil && !i.inputValueInline.IsEmpty() {
+		if err := i.inputValueInline.Validate(); err != nil {
 			return err
 		}
 	}
@@ -67,10 +67,5 @@ func (i *ivWorldObject) IsEmpty() bool {
 	return i.objs == nil
 }
 
-// GetWorldObject returns the world object state handle.
-func (i *ivWorldObject) GetWorldObject() world.ObjectState {
-	return i.objs
-}
-
 // _ is a type assertion
-var _ InputValueWorldObject = (*ivWorldObject)(nil)
+var _ inputValueWorldObject = (*ivWorldObject)(nil)

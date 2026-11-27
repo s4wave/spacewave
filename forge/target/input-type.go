@@ -2,8 +2,8 @@ package forge_target
 
 import "github.com/pkg/errors"
 
-// Validate validates the input type.
-func (t InputType) Validate(allowUnknown bool) error {
+// validate validates the input type.
+func (t InputType) validate(allowUnknown bool) error {
 	// Accept UNKNOWN only when the caller permits an empty input type.
 	if t == InputType_InputType_UNKNOWN && allowUnknown {
 		return nil

@@ -18,8 +18,6 @@ type accessHandle struct {
 	uniqueID string
 	// peerID identifies the caller of storage access.
 	peerID peer.ID
-	// targetWorld is the borrowed World engine, when configured.
-	targetWorld world.Engine
 	// accessFunc provides storage access within the caller's lifetime.
 	accessFunc world.AccessWorldStateFunc
 	// ts is the immutable timestamp supplied by the caller or constructor.
@@ -32,7 +30,6 @@ type accessHandle struct {
 func ExecControllerHandleWithAccess(
 	uniqueID string,
 	peerID peer.ID,
-	targetWorld world.Engine,
 	accessFunc world.AccessWorldStateFunc,
 	ts *timestamp.Timestamp,
 ) ExecControllerHandle {
@@ -40,11 +37,10 @@ func ExecControllerHandleWithAccess(
 		ts = timestamp.Now()
 	}
 	return &accessHandle{
-		uniqueID:    uniqueID,
-		peerID:      peerID,
-		targetWorld: targetWorld,
-		accessFunc:  accessFunc,
-		ts:          ts,
+		uniqueID:   uniqueID,
+		peerID:     peerID,
+		accessFunc: accessFunc,
+		ts:         ts,
 	}
 }
 
@@ -71,15 +67,6 @@ func (a *accessHandle) GetPeerId() peer.ID {
 // GetTimestamp returns the timestamp.
 func (a *accessHandle) GetTimestamp() *timestamp.Timestamp {
 	return a.ts
-}
-
-// GetTargetWorld returns a handle to the target world engine.
-// Returns nil, ErrTargetWorldUnset if this was not configured.
-func (a *accessHandle) GetTargetWorld() (world.Engine, error) {
-	if a.targetWorld == nil {
-		return nil, ErrTargetWorldUnset
-	}
-	return a.targetWorld, nil
 }
 
 // AccessStorage builds a bucket lookup cursor located at the given ref.

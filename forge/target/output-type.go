@@ -2,8 +2,8 @@ package forge_target
 
 import "github.com/pkg/errors"
 
-// Validate validates the output type.
-func (t OutputType) Validate(allowUnknown bool) error {
+// validate validates the output type.
+func (t OutputType) validate(allowUnknown bool) error {
 	if t == OutputType_OutputType_UNKNOWN && allowUnknown {
 		return nil
 	}

@@ -3,34 +3,7 @@ package forge_execution
 import (
 	"github.com/s4wave/spacewave/db/block"
 	forge_target "github.com/s4wave/spacewave/forge/target"
-	"github.com/s4wave/spacewave/net/peer"
 )
-
-// NewSpec constructs a execution specification with parameters.
-//
-// peerID can be empty.
-func NewSpec(
-	peerID peer.ID,
-	targetRef *block.BlockRef,
-	valueSet *forge_target.ValueSet,
-) *Spec {
-	return &Spec{
-		PeerId:    peerID.String(),
-		ValueSet:  valueSet,
-		TargetRef: targetRef,
-	}
-}
-
-// AssignTarget assigns a target to the spec with a block cursor.
-// if tgt is nil clears the field
-func (s *Spec) AssignTarget(bcs *block.Cursor, tgt *forge_target.Target) {
-	s.TargetRef = nil
-	bcs.ClearRef(3)
-	if tgt != nil {
-		tbcs := bcs.FollowRef(3, nil)
-		tbcs.SetBlock(tgt, true)
-	}
-}
 
 // ApplyBlockRef applies a ref change with a field id.
 func (s *Spec) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {

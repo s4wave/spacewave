@@ -5,7 +5,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/world"
-	world_parent "github.com/s4wave/spacewave/db/world/parent"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	forge_pass "github.com/s4wave/spacewave/forge/pass"
 	forge_target "github.com/s4wave/spacewave/forge/target"
@@ -105,32 +104,9 @@ func LookupTaskPass(
 	return pass, tgt, passKey, nil
 }
 
-// CheckTaskHasPass checks if the Task is linked to a Pass.
-func CheckTaskHasPass(ctx context.Context, w world.WorldState, taskKey, passKey string) (bool, error) {
-	gq, err := w.LookupGraphQuads(ctx, world.NewGraphQuad(
-		world.KeyToGraphValue(taskKey).String(),
-		PredTaskToPass.String(),
-		world.KeyToGraphValue(passKey).String(),
-		"",
-	), 1)
-	if err != nil {
-		return false, err
-	}
-	return len(gq) != 0, nil
-}
-
-// EnsureTaskHasPass checks if the Task has the Pass and returns an error otherwise.
-func EnsureTaskHasPass(ctx context.Context, w world.WorldState, taskKey, passKey string) error {
-	hasPass, err := CheckTaskHasPass(ctx, w, taskKey, passKey)
-	if err == nil && !hasPass {
-		err = errors.Errorf("task %s does not have pass %s", taskKey, passKey)
-	}
-	return err
-}
-
-// ListTaskTargets lists all Target object keys that are linked to by the Tasks.
+// listTaskTargets lists all Target object keys that are linked to by the Tasks.
 // Only 1 target is expected to be linked to each Task at any given time.
-func ListTaskTargets(ctx context.Context, w world.WorldState, taskKeys ...string) ([]string, error) {
+func listTaskTargets(ctx context.Context, w world.WorldState, taskKeys ...string) ([]string, error) {
 	return world.CollectGraphPathStepWithKeys(
 		ctx,
 		w,
@@ -141,15 +117,15 @@ func ListTaskTargets(ctx context.Context, w world.WorldState, taskKeys ...string
 	)
 }
 
-// CollectTaskTargets collects all active Target linked to by the Tasks.
+// collectTaskTargets collects all active Target linked to by the Tasks.
 // If any of the linked states are invalid, returns an error.
-func CollectTaskTargets(
+func collectTaskTargets(
 	ctx context.Context,
 	ws world.WorldState,
 	taskKeys ...string,
 ) ([]*forge_target.Target, []string, error) {
 	// Collect the Target object keys linked to the requested Tasks.
-	kpObjectKeys, err := ListTaskTargets(ctx, ws, taskKeys...)
+	kpObjectKeys, err := listTaskTargets(ctx, ws, taskKeys...)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -177,7 +153,7 @@ func LookupTaskTarget(
 	ws world.WorldState,
 	taskKey string,
 ) (*forge_target.Target, string, error) {
-	tgts, tgtKeys, err := CollectTaskTargets(ctx, ws, taskKey)
+	tgts, tgtKeys, err := collectTaskTargets(ctx, ws, taskKey)
 	if err != nil || len(tgts) == 0 {
 		return nil, "", err
 	}
@@ -191,7 +167,7 @@ func LookupTaskTarget(
 }
 
 // FindPassWithNonce searches for the Pass with the given nonce in a set.
-// returns nil, -1 if not found
+// Returns nil, -1 if not found.
 func FindPassWithNonce(passNonce uint64, passes []*forge_pass.Pass) (*forge_pass.Pass, int) {
 	for i, pass := range passes {
 		if pass.GetPassNonce() == passNonce {
@@ -201,57 +177,10 @@ func FindPassWithNonce(passNonce uint64, passes []*forge_pass.Pass) (*forge_pass
 	return nil, -1
 }
 
-// ListTaskSubtasks lists all subtask object keys for a parent Task.
-func ListTaskSubtasks(ctx context.Context, w world.WorldState, taskKeys ...string) ([]string, error) {
-	return world.CollectGraphPathStepWithKeys(
-		ctx,
-		w,
-		taskKeys,
-		world.GraphPathDirectionOut,
-		PredTaskToSubtask.String(),
-		taskGraphPathLimit,
-	)
-}
-
-// CollectTaskSubtasks collects all subtask objects for a parent Task.
-// If any of the linked tasks are invalid, returns an error.
-func CollectTaskSubtasks(
-	ctx context.Context,
-	ws world.WorldState,
-	taskKeys ...string,
-) ([]*Task, []string, error) {
-	// Collect the child Task keys linked to the requested parent Tasks.
-	objKeys, err := ListTaskSubtasks(ctx, ws, taskKeys...)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// Load the child Task bodies from the World.
-	tasks := make([]*Task, len(objKeys))
-	for i, objKey := range objKeys {
-		tasks[i], err = LookupTaskBody(ctx, ws, objKey)
-		if err != nil {
-			return nil, nil, errors.Wrapf(err, "subtasks[%s]", objKey)
-		}
-	}
-
-	return tasks, objKeys, nil
-}
-
-// LinkTaskSubtask creates the graph links between parent and child Tasks.
-// Sets both forge/task-subtask (parent->child) and hydra/world/parent (child->parent).
-func LinkTaskSubtask(ctx context.Context, ws world.WorldState, parentTaskKey, childTaskKey string) error {
-	err := world_parent.SetObjectParent(ctx, ws, childTaskKey, parentTaskKey, false)
-	if err != nil {
-		return err
-	}
-	return ws.SetGraphQuad(ctx, NewTaskToSubtaskQuad(parentTaskKey, childTaskKey))
-}
-
 // LinkTaskCached creates a graph link from a Task to a previous Task whose
 // result is inherited.
 func LinkTaskCached(ctx context.Context, ws world.WorldState, taskKey, cachedTaskKey string) error {
-	return ws.SetGraphQuad(ctx, NewTaskToCachedQuad(taskKey, cachedTaskKey))
+	return ws.SetGraphQuad(ctx, newTaskToCachedQuad(taskKey, cachedTaskKey))
 }
 
 // LookupTaskCached looks up the cached task linked to a given task.

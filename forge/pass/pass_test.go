@@ -25,7 +25,7 @@ func TestComputeOutputsWithStatesPromotesUnanimousFailedOutputs(t *testing.T) {
 		failedExecState("exec-a", value),
 		failedExecState("exec-b", value),
 	}
-	promoted, err := ComputeOutputsWithStates(outputs, states, 2)
+	promoted, err := (&Pass{ExecStates: states}).ComputeOutputs(outputs, 2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +49,7 @@ func TestComputeOutputsWithStatesRejectsDivergentFailedOutputs(t *testing.T) {
 			"continuation", &forge_value.WorldObjectSnapshot{Key: "session-b"},
 		)),
 	}
-	if _, err := ComputeOutputsWithStates(outputs, states, 2); err == nil {
+	if _, err := (&Pass{ExecStates: states}).ComputeOutputs(outputs, 2); err == nil {
 		t.Fatal("divergent failed outputs were promoted")
 	}
 }

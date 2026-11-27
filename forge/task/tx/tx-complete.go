@@ -182,9 +182,8 @@ func validateTaskCompletion(
 	if len(outputs) == 0 {
 		return nil, nil
 	}
-	passOutputs, err := forge_pass.ComputeOutputsWithStates(
+	passOutputs, err := tpass.ComputeOutputs(
 		outputs,
-		tpass.GetExecStates(),
 		int(root.GetReplicas()),
 	)
 	if err != nil {

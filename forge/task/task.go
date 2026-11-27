@@ -42,8 +42,8 @@ func UnmarshalTask(ctx context.Context, bcs *block.Cursor) (*Task, error) {
 	return block.UnmarshalBlock[Task](ctx, bcs)
 }
 
-// NewTaskToTargetQuad creates a quad linking a Task to a Target.
-func NewTaskToTargetQuad(taskObjKey, targetObjKey string) world.GraphQuad {
+// newTaskToTargetQuad creates a quad linking a Task to a Target.
+func newTaskToTargetQuad(taskObjKey, targetObjKey string) world.GraphQuad {
 	return world.NewGraphQuadWithKeys(
 		taskObjKey,
 		PredTaskToTarget.String(),
@@ -66,19 +66,9 @@ func NewTaskToPassQuad(taskObjKey, passObjKey string, passNonce uint64) world.Gr
 	)
 }
 
-// NewTaskToSubtaskQuad creates a quad linking a parent Task to a child Task.
-func NewTaskToSubtaskQuad(parentTaskKey, childTaskKey string) world.GraphQuad {
-	return world.NewGraphQuadWithKeys(
-		parentTaskKey,
-		PredTaskToSubtask.String(),
-		childTaskKey,
-		"",
-	)
-}
-
-// NewTaskToCachedQuad creates a quad linking a Task to a previous Task whose
+// newTaskToCachedQuad creates a quad linking a Task to a previous Task whose
 // result is inherited/cached.
-func NewTaskToCachedQuad(taskKey, cachedTaskKey string) world.GraphQuad {
+func newTaskToCachedQuad(taskKey, cachedTaskKey string) world.GraphQuad {
 	return world.NewGraphQuadWithKeys(
 		taskKey,
 		PredTaskToCached.String(),
@@ -173,7 +163,7 @@ func CreateTaskWithTarget(
 	}
 
 	// link to the target
-	err = ws.SetGraphQuad(ctx, NewTaskToTargetQuad(objKey, tgtObjKey))
+	err = ws.SetGraphQuad(ctx, newTaskToTargetQuad(objKey, tgtObjKey))
 	if err != nil {
 		world.ReleaseObjectState(objState)
 		return nil, nil, err
@@ -210,7 +200,7 @@ func (e *Task) Validate() error {
 			return errors.Wrap(err, "placement")
 		}
 	}
-	if err := e.GetTaskState().Validate(false); err != nil {
+	if err := e.GetTaskState().validate(false); err != nil {
 		return err
 	}
 	if err := e.GetTimestamp().Validate(false); err != nil {

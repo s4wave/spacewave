@@ -138,9 +138,8 @@ func (t *TxUpdateExecStates) ExecuteTx(
 			if err != nil {
 				return err
 			}
-			outputs, outputErr := forge_pass.ComputeOutputsWithStates(
+			outputs, outputErr := root.ComputeOutputs(
 				tgt.GetOutputs(),
-				execStates,
 				int(root.GetReplicas()),
 			)
 			if outputErr == nil {

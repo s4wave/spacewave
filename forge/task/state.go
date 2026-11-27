@@ -10,8 +10,8 @@ import (
 // ErrUnknownState is returned if the state was unknown/unhandled.
 var ErrUnknownState = errors.New("unexpected or unhandled state")
 
-// Validate checks the execution state is within known values.
-func (s State) Validate(allowUnknown bool) error {
+// validate checks the execution state is within known values.
+func (s State) validate(allowUnknown bool) error {
 	if s == State_TaskState_UNKNOWN {
 		if allowUnknown {
 			return nil
