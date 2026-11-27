@@ -311,29 +311,61 @@ func (a *ProviderAccount) runP2PSpace(ctx context.Context, st *transport.Session
 	state.addStore(bucketID, store)
 	defer state.removeStore(bucketID, store)
 
-	// The Session facade supplies its own identity and participant validation.
+	// Retain the Space's tracker and report each peer's health on it.
 	ref := sobject.NewSharedObjectRef(a.p.GetProviderInfo().GetProviderId(), a.accountID, key.id, key.blockStoreID)
-	so, relSO, err := sobject.ExMountSharedObject(ctx, childBus, ref, false, nil)
-	if err != nil {
+	if err := ref.Validate(); err != nil {
 		return err
 	}
-	defer relSO.Release()
-	swSO, ok := so.(*sessionSharedObject)
-	if !ok {
-		return errors.New("unexpected session shared object type")
-	}
+	tkrRef, tkr, _ := a.sobjects.AddKeyRef(key.id)
+	defer tkrRef.Release()
+	tkr.ref.SetResult(ref, nil)
+	health := sobject_sync.HealthObserver(func(fn func(*sobject.SharedObjectHealth) *sobject.SharedObjectHealth) {
+		tkr.healthCtr.SwapValue(fn)
+	})
 
-	// Synchronize signed state, reporting each peer's health on the Space.
+	// Synchronize against each run's peer host, which needs no mount.
+	var prev *sobjectPeerHost
+	for {
+		peerHost, err := tkr.peerHostCtr.WaitValueWithValidator(ctx, func(next *sobjectPeerHost) (bool, error) {
+			return next != nil && next != prev, nil
+		}, nil)
+		if err != nil {
+			return err
+		}
+		prev = peerHost
+		err = a.syncPeerHost(ctx, st, childBus, key.id, peerHost, health)
+		if ctx.Err() != nil {
+			return context.Canceled
+		}
+		if peerHost.ctx.Err() == nil {
+			return err
+		}
+	}
+}
+
+// syncPeerHost runs signed state synchronization for one Space against one
+// tracker run's peer host, until that run or ctx ends.
+func (a *ProviderAccount) syncPeerHost(
+	ctx context.Context,
+	st *transport.SessionTransport,
+	childBus bus.Bus,
+	soID string,
+	peerHost *sobjectPeerHost,
+	health sobject_sync.HealthObserver,
+) error {
+	// Bound the synchronization by the run that published the peer host.
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	defer context.AfterFunc(peerHost.ctx, cancel)()
+
+	// Admit an inbound snapshot only if this participant can read it.
 	validateSnapshotAccess := func(ctx context.Context, state *sobject.SOState) error {
-		snapshot := sobject.NewSOStateParticipantHandle(a.le, a.p.sfs, key.id, state, swSO.privKey, swSO.localPid)
+		snapshot := sobject.NewSOStateParticipantHandle(a.le, a.p.sfs, soID, state, peerHost.privKey, peerHost.peerID)
 		_, err := snapshot.GetCheckpoint(ctx)
 		return err
 	}
-	health := sobject_sync.HealthObserver(func(fn func(*sobject.SharedObjectHealth) *sobject.SharedObjectHealth) {
-		swSO.tkr.healthCtr.SwapValue(fn)
-	})
 	syncer := sobject_sync.NewSOSync(
-		a.le, childBus, st, key.id, swSO.localPid, swSO.privKey, swSO.GetSOHost(),
+		a.le, childBus, st, soID, peerHost.peerID, peerHost.privKey, peerHost.host,
 		health, validateSnapshotAccess,
 	)
 	return syncer.Execute(ctx)

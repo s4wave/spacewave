@@ -161,6 +161,27 @@ type sobjectTracker struct {
 	sobjectProm *promise.PromiseContainer[*SharedObject]
 	// healthCtr contains the current shared object health snapshot.
 	healthCtr *ccontainer.CContainer[*sobject.SharedObjectHealth]
+	// peerHostCtr holds the current run's peer host, or nil between runs.
+	peerHostCtr *ccontainer.CContainer[*sobjectPeerHost]
+}
+
+// sobjectPeerHost is one tracker run's verified peer exchange contract. The
+// run publishes it once its host receives events, before the mount is ready,
+// so direct sync waits for no mount. Every import through host takes the
+// cloud host's peer-import lock: it resolves initial authority, verifies,
+// persists the verified cache and history, and only then publishes the state
+// to watchers. A closed host refuses the import, and the run closes its host
+// before the next run loads the cache, so a holder of an ended peer host
+// writes nothing. SOPeerHost.tla models the contract.
+type sobjectPeerHost struct {
+	// ctx ends with the run that published the peer host.
+	ctx context.Context
+	// host is the run's state host.
+	host *sobject.SOHost
+	// privKey signs as the run's Session participant.
+	privKey crypto.PrivKey
+	// peerID is the participant peer ID of privKey.
+	peerID peer.ID
 }
 
 // buildSharedObjectTracker builds a new sobjectTracker for a sobject id.
@@ -175,6 +196,7 @@ func (a *ProviderAccount) buildSharedObjectTracker(sobjectID string) (keyed.Rout
 				sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT,
 			),
 		),
+		peerHostCtr: ccontainer.NewCContainer[*sobjectPeerHost](nil),
 	}
 	return tracker.executeSharedObjectTracker, tracker
 }
@@ -342,7 +364,19 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 	so.body = sobject.NewBodyHost(le, so, so.showReplay, host.newBodyCheckpointer(sessionPriv, t.a.sfs))
 	so.body.SetContext(hostCtx)
 	defer t.sobjectProm.SetPromise(nil)
-	err = host.execute(hostCtx, func(ctx context.Context) error {
+
+	// Withdraw the peer host before closing the host, and publish it once the
+	// host receives events.
+	defer t.peerHostCtr.SetValue(nil)
+	started := func(ctx context.Context) {
+		t.peerHostCtr.SetValue(&sobjectPeerHost{
+			ctx:     ctx,
+			host:    host.GetSOHost(),
+			privKey: sessionPriv,
+			peerID:  sessionPeerID,
+		})
+	}
+	err = host.execute(hostCtx, started, func(ctx context.Context) error {
 		// Restore this peer's membership, then publish the Space.
 		if err := t.tryRecoverMissingSharedObjectPeer(ctx, sobjectRef, so, sessionCli); err != nil {
 			return err

@@ -207,13 +207,28 @@ func TestColdMountBudget(t *testing.T) {
 			nil,
 		)
 
-		// Execute, delivering a notification once the mount publishes.
+		// Execute, delivering a notification once the mount publishes. The
+		// peer host starts with the subscription, before the initial state,
+		// and lives as long as the run.
 		execCtx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		errCh := make(chan error, 1)
 		ready := make(chan struct{})
+		var runCtx context.Context
+		started := func(ctx context.Context) {
+			if notify() == nil {
+				t.Error("peer host started before notification subscription")
+			}
+			if host.stateCtr.GetValue() != nil {
+				t.Error("peer host started after initial state")
+			}
+			runCtx = ctx
+		}
 		go func() {
-			errCh <- host.execute(execCtx, func(context.Context) error {
+			errCh <- host.execute(execCtx, started, func(context.Context) error {
+				if runCtx == nil {
+					return errors.New("mount published before its peer host started")
+				}
 				// The mount publishes only with a state and a subscription.
 				if host.stateCtr.GetValue() == nil {
 					return errors.New("mount published before initial state")
@@ -270,6 +285,9 @@ func TestColdMountBudget(t *testing.T) {
 		cancel()
 		if err := <-errCh; !errors.Is(err, context.Canceled) {
 			t.Fatalf("Execute() = %v, want context canceled", err)
+		}
+		if runCtx.Err() == nil {
+			t.Fatal("peer host outlived its run")
 		}
 
 		// Only the cold seed was fetched.

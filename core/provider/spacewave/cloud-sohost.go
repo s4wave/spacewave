@@ -293,12 +293,14 @@ func (h *cloudSOHost) withWriteLock(ctx context.Context, fn func() error) error 
 
 // Execute runs the cloudSOHost lifecycle.
 func (h *cloudSOHost) Execute(ctx context.Context) error {
-	return h.execute(ctx, nil)
+	return h.execute(ctx, nil, nil)
 }
 
 // execute subscribes before seeding state and publishes readiness only after
 // the caller's initial enrollment has completed under that same subscription.
-func (h *cloudSOHost) execute(ctx context.Context, ready func(context.Context) error) error {
+// started, when set, runs once the host receives events and before it seeds
+// state, with the context that ends with the host's run.
+func (h *cloudSOHost) execute(ctx context.Context, started func(context.Context), ready func(context.Context) error) error {
 	// Keep the host and its notification callback inside one cancellation lifetime.
 	ctx, cancel := context.WithCancel(ctx)
 	h.ctxCancel = cancel
@@ -319,6 +321,9 @@ func (h *cloudSOHost) execute(ctx context.Context, ready func(context.Context) e
 	defer h.snapDeriver.ClearContext()
 	h.configChangedRoutine.SetContext(ctx)
 	defer h.configChangedRoutine.ClearContext()
+	if started != nil {
+		started(ctx)
+	}
 
 	// Reuse the rejoin seed or fetch the first observable state. Cache hydration
 	// queues its own background catch-up before these routines start.

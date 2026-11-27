@@ -1,0 +1,50 @@
+[
+  {
+    "name": "an unverified peer state is accepted",
+    "replace": [["accept == valid /\\ persisted", "accept == persisted"]],
+    "expect": "Verified",
+    "config": "SOPeerHost.cfg"
+  },
+  {
+    "name": "a verified state is published before its persist succeeds",
+    "replace": [["show == accept", "show == valid"]],
+    "expect": "DurableBeforeVisible",
+    "config": "SOPeerHost.cfg"
+  },
+  {
+    "name": "an import does not wait for initial authority",
+    "replace": [["  /\\ authority[s]\n  /\\ durable[s] < MaxVer", "  /\\ durable[s] < MaxVer"]],
+    "expect": "AuthorityFirst",
+    "config": "SOPeerHost.cfg"
+  },
+  {
+    "name": "the peer-import lock admits a closed host",
+    "replace": [["/\\ r # 0 /\\ r \\in open[s]", "/\\ r # 0"]],
+    "expect": "EndedRunSilent",
+    "config": "SOPeerHost.cfg"
+  },
+  {
+    "name": "the next run loads the cache before the old host closes",
+    "replace": [["  /\\ open[s] = {}\n", ""]],
+    "expect": "EndedRunSilent",
+    "config": "SOPeerHost.cfg"
+  },
+  {
+    "name": "a worker waits for its own Space's mount",
+    "replace": [["Acquire(s) ==\n  /\\ worker[s] = 0", "Acquire(s) ==\n  /\\ phase[s] = \"ready\"\n  /\\ worker[s] = 0"]],
+    "expect": "Independent",
+    "config": "SOPeerHost.cfg"
+  },
+  {
+    "name": "a worker waits for every Space's mount",
+    "replace": [["Acquire(s) ==\n  /\\ worker[s] = 0", "Acquire(s) ==\n  /\\ \\A t \\in Spaces: phase[t] = \"ready\"\n  /\\ worker[s] = 0"]],
+    "expect": "Independent",
+    "config": "SOPeerHost.cfg"
+  },
+  {
+    "name": "an ended run keeps its peer host published",
+    "replace": [["/\\ published' = [published EXCEPT ![s] = 0]", "/\\ published' = published"]],
+    "expect": "PublishedLive",
+    "config": "SOPeerHost.cfg"
+  }
+]
