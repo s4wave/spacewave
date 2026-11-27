@@ -234,7 +234,7 @@ func (rf *regenFixture) checkBuilt(t *testing.T, r *Regenerator, s regenState) {
 	ctx := t.Context()
 	rf.reload(t, WorldFormat_WORLD_FORMAT_CAYLEY_KV)
 	head := rf.worldRoot(t)
-	_, hw, err := r.readWorld(ctx, r.a.store, head)
+	_, hw, err := r.a.readStoredWorld(ctx, head)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -254,7 +254,7 @@ func (rf *regenFixture) checkBuilt(t *testing.T, r *Regenerator, s regenState) {
 			t.Fatalf("kv World with a %v object tree loads", impl)
 		}
 	}
-	_, bw, err := r.readWorld(ctx, r.a.store, s.built)
+	_, bw, err := r.a.readStoredWorld(ctx, s.built)
 	if err == nil {
 		err = bw.checkTreeImpls()
 	}
@@ -283,7 +283,7 @@ func (rf *regenFixture) checkBuilt(t *testing.T, r *Regenerator, s regenState) {
 	if puts != 1 {
 		t.Fatalf("graft wrote %d blocks, want the World block alone", puts)
 	}
-	_, gw, err := r.readWorld(ctx, r.a.store, g.ref)
+	_, gw, err := r.a.readStoredWorld(ctx, g.ref)
 	if err == nil {
 		err = gw.checkTreeImpls()
 	}

@@ -124,11 +124,7 @@ func (e *EngineTx) IterateObjects(ctx context.Context, prefix string, reversed b
 	// attempt, so a retry never reuses one the previous attempt closed.
 	run := func(fn func(world.ObjectIterator) error) error {
 		return e.performOp(ctx, func(tx *Tx) error {
-			return tx.lockedLive(ctx, func() error {
-				iter := tx.state.IterateObjects(ctx, prefix, reversed)
-				defer iter.Close()
-				return fn(iter)
-			})
+			return tx.visitObjects(ctx, prefix, reversed, fn)
 		})
 	}
 	return &lockedObjectIterator{run: run, reopens: true}

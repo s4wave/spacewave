@@ -2,6 +2,7 @@ package world_block
 
 import (
 	"context"
+	"slices"
 
 	"github.com/aperturerobotics/util/csync"
 	"github.com/s4wave/spacewave/db/block"
@@ -139,6 +140,74 @@ func (t *Tx) PrepareCommit(ctx context.Context) error {
 	return t.locked(ctx, true, func() error {
 		return t.state.PrepareCommit(ctx)
 	})
+}
+
+// commitChanges captures the ChangeSet before committing rebuilds the state
+// onto its written root. The engine owns the write transaction exclusively.
+func (t *Tx) commitChanges(ctx context.Context) (*block.BlockRef, *world.ChangeSet, error) {
+	// Capture changes before entering the commit's trace scope.
+	changes := t.state.takeChanges()
+
+	// Seal the transaction's blocks under its new root.
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine-tx/commit-block-transaction/write-tx-commit")
+	nroot, err := t.CommitBlockTransaction(taskCtx)
+	subtask.End()
+	return nroot, changes, err
+}
+
+// takeCandidate borrows the written root's reachable blocks and recorded payload
+// roots, then reads its sequence number and decoded root. A failed read returns
+// the batch to the buffer. The engine owns the write transaction exclusively.
+func (t *Tx) takeCandidate(ctx context.Context, root *block.BlockRef, recorded []*block.BlockRef) (*block.PendingBatch, uint64, *World, error) {
+	// Borrow the reachable blocks before reading the candidate metadata.
+	batch, err := t.state.takeReachable(ctx, slices.Concat([]*block.BlockRef{root}, recorded)...)
+	if err != nil {
+		return nil, 0, nil, err
+	}
+	seqno, err := t.state.GetSeqno(ctx)
+	var rootBlock *World
+	if err == nil {
+		rootBlock, err = t.state.GetRoot(ctx)
+	}
+	if err != nil {
+		batch.Complete(err)
+		return nil, 0, nil, err
+	}
+	return batch, seqno, rootBlock, nil
+}
+
+// matchesRoot tests the transaction's current root without taking its lock.
+// The caller owns the transaction or holds the Engine publication lock.
+func (t *Tx) matchesRoot(ref *block.BlockRef) bool {
+	return t.state.GetRootRef().EqualsRef(ref)
+}
+
+// readRootAt reads the immutable head block only when the transaction matches
+// ref. The caller holds the Engine publication lock; the state guards its cursor.
+func (t *Tx) readRootAt(ctx context.Context, ref *block.BlockRef) (*World, error) {
+	if !t.matchesRoot(ref) {
+		return nil, nil
+	}
+	return t.state.GetRoot(ctx)
+}
+
+// readSeqno reads the state's guarded sequence number without the transaction
+// lock. The caller owns the transaction before sharing it.
+func (t *Tx) readSeqno(ctx context.Context) (uint64, error) {
+	return t.state.GetSeqno(ctx)
+}
+
+// setChangelogDisabled changes the history setting under the transaction lock.
+func (t *Tx) setChangelogDisabled(ctx context.Context, disable bool) (bool, error) {
+	return lockedValue(ctx, t, true, func() (bool, error) {
+		return t.state.SetChangelogDisabled(ctx, disable)
+	})
+}
+
+// end records the error that operations report after the retirement drains the
+// transaction. Like the state's atomic marking, it must not wait for its users.
+func (t *Tx) end(err error) {
+	t.state.end(err)
 }
 
 // CommitBlockTransaction implements Commit but additionally returns the updated BlockRef.

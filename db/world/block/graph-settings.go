@@ -142,8 +142,14 @@ func (e *EngineTx) StepGraphSettings(ctx context.Context, target *GraphSettings,
 	if e.writeTx == nil {
 		return false, false, tx.ErrNotWrite
 	}
-	err = e.writeTx.locked(ctx, true, func() error {
-		done, changed, err = e.writeTx.state.StepGraphSettings(ctx, target, max)
+	return e.writeTx.StepGraphSettings(ctx, target, max)
+}
+
+// StepGraphSettings advances the graph settings under the transaction's write
+// lock. The caller commits the transaction when changed is set.
+func (t *Tx) StepGraphSettings(ctx context.Context, target *GraphSettings, max int) (done, changed bool, err error) {
+	err = t.locked(ctx, true, func() error {
+		done, changed, err = t.state.StepGraphSettings(ctx, target, max)
 		return err
 	})
 	return done, changed, err

@@ -126,7 +126,7 @@ func buildNodeGraphRoot(
 	}
 	defer sorter.Close()
 	builder := kvtx_cayley_nodegraph.NewBuilder(sorter)
-	pace := &regenPacer{yield: yield, slice: regenSliceKeys}
+	pace := newRegenPacer(regenSliceKeys, yield)
 	if err := addKvGraph(ctx, bucketCursor, store, root, w.GetGraphSettings(), sorter, builder, int64(cfg.Budget), floor, pace); err != nil {
 		return nil, err
 	}
@@ -164,6 +164,11 @@ type regenPacer struct {
 	slice int
 	// n counts the steps of the current slice.
 	n int
+}
+
+// newRegenPacer configures a slice's yield before counting any steps.
+func newRegenPacer(slice int, yield func(context.Context) error) *regenPacer {
+	return &regenPacer{slice: slice, yield: yield}
 }
 
 // step counts a step and yields at the end of each slice.

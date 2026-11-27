@@ -334,7 +334,7 @@ func (e *Engine) watchedHeadLocked(seqno uint64) *watchedHead {
 // recordInitialHead records the head the Engine opens at. NewEngine calls it
 // before the Engine is shared.
 func (e *Engine) recordInitialHead(ctx context.Context) error {
-	seqno, err := e.head.readTx.state.GetSeqno(ctx)
+	seqno, err := e.head.readTx.readSeqno(ctx)
 	if err != nil {
 		return err
 	}

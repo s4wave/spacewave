@@ -4,7 +4,6 @@ import (
 	"context"
 	stderrors "errors"
 	"os"
-	"slices"
 	"sync/atomic"
 	"time"
 
@@ -255,14 +254,8 @@ const ProvisionalNoopGuardEnv = "SPACEWAVE_WORLD_PROVISIONAL_NOOP_GUARD"
 // ChangeSet, and a cleanup func for the pending ChangeSet registration when an
 // Authority is present. A transaction that changed nothing needs no Admission.
 func (e *EngineTx) admit(ctx context.Context, turn world.Turn) (*bucket.ObjectRef, world.Admission, *World, *world.ChangeSet, func(), error) {
-	// Capture the transaction's ChangeSet before CommitBlockTransaction
-	// rebuilds the block state onto the written root.
-	changes := e.writeTx.state.takeChanges()
-
-	// Seal the transaction's blocks under its new root.
-	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine-tx/commit-block-transaction/write-tx-commit")
-	nroot, err := e.writeTx.CommitBlockTransaction(taskCtx)
-	subtask.End()
+	// Capture changes and seal the transaction's blocks under its new root.
+	nroot, changes, err := e.writeTx.commitChanges(ctx)
 	if isCoordinatedWriteSnapshotError(err) {
 		err = errors.Wrap(world.ErrSuperseded, "commit world blocks")
 	}
@@ -293,18 +286,8 @@ func (e *EngineTx) admit(ctx context.Context, turn world.Turn) (*bucket.ObjectRe
 	// Borrow the blocks the new root and the recorded payload roots reach
 	// from the write buffer, children before parents, and read the seqno and
 	// root the head's readers need.
-	state := e.writeTx.state
-	batch, err := state.takeReachable(ctx, slices.Concat([]*block.BlockRef{nroot}, e.recordedRoots)...)
+	batch, seqno, rootBlock, err := e.writeTx.takeCandidate(ctx, nroot, e.recordedRoots)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
-	}
-	seqno, err := state.GetSeqno(ctx)
-	var rootBlock *World
-	if err == nil {
-		rootBlock, err = state.GetRoot(ctx)
-	}
-	if err != nil {
-		batch.Complete(err)
 		return nil, nil, nil, nil, nil, err
 	}
 

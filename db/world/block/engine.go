@@ -1297,9 +1297,7 @@ func (e *Engine) SetChangelogDisabled(ctx context.Context, disable bool) error {
 	}
 
 	// Apply the setting and commit only a change.
-	changed, err := lockedValue(ctx, engTx.writeTx, true, func() (bool, error) {
-		return engTx.writeTx.state.SetChangelogDisabled(ctx, disable)
-	})
+	changed, err := engTx.writeTx.setChangelogDisabled(ctx, disable)
 	if err != nil || !changed {
 		return err
 	}
@@ -1506,7 +1504,7 @@ func (e *Engine) initializeHeadReadTx(ctx context.Context) error {
 
 	// Keep the initialized transaction when it already matches the head.
 	if e.head.readTx != nil &&
-		e.head.readTx.state.GetRootRef().EqualsRef(e.head.root.GetRef().GetRootRef()) {
+		e.head.readTx.matchesRoot(e.head.root.GetRef().GetRootRef()) {
 		return nil
 	}
 
@@ -1568,11 +1566,10 @@ func (e *Engine) buildReadWorldState(ctx context.Context) (*WorldState, error) {
 // when the head has no read transaction at its root. The block is immutable.
 // Callers clone it before use. The caller must hold bcast.
 func (e *Engine) headRootBlockLocked(ctx context.Context) (*World, error) {
-	if e.head == nil || e.head.readTx == nil ||
-		!e.head.readTx.state.GetRootRef().EqualsRef(e.head.root.GetRef().GetRootRef()) {
+	if e.head == nil || e.head.readTx == nil {
 		return nil, nil
 	}
-	return e.head.readTx.state.GetRoot(ctx)
+	return e.head.readTx.readRootAt(ctx, e.head.root.GetRef().GetRootRef())
 }
 
 // buildWorldStateForRoot builds state using the engine's stores and lookup

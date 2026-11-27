@@ -90,16 +90,7 @@ func WalkPages(
 		// Take the next page not seen yet, and ask whether to enter it.
 		n := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]
-		if n.page.Ref.GetEmpty() {
-			continue
-		}
-		h := n.page.Ref.GetHash()
-		key := string(rune(h.GetHashType())) + string(h.GetHash())
-		if _, ok := seen[key]; ok {
-			continue
-		}
-		seen[key] = struct{}{}
-		enter, err := visit(n.page)
+		enter, err := n.enter(seen, visit)
 		if err != nil {
 			return err
 		}
@@ -130,6 +121,22 @@ type pageNode struct {
 	// values constructs the values of the tree the page belongs to, nil when
 	// the page is not a tree node or the values are untyped.
 	values block.Ctor
+}
+
+// enter skips empty or previously seen pages and asks visit whether to walk
+// below a newly seen page, recording it before the callback runs.
+func (n pageNode) enter(seen map[string]struct{}, visit func(Page) (bool, error)) (bool, error) {
+	// Identify and record the first visit to a nonempty page.
+	if n.page.Ref.GetEmpty() {
+		return false, nil
+	}
+	h := n.page.Ref.GetHash()
+	key := string(rune(h.GetHashType())) + string(h.GetHash())
+	if _, ok := seen[key]; ok {
+		return false, nil
+	}
+	seen[key] = struct{}{}
+	return visit(n.page)
 }
 
 // children reads the page and returns its children.

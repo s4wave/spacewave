@@ -36,11 +36,11 @@ type engineRetirement struct {
 func (r engineRetirement) end(err error) {
 	for _, t := range []*Tx{r.readTx, r.writeTx} {
 		if t != nil {
-			t.state.end(err)
+			t.end(err)
 		}
 	}
 	if r.head != nil && r.head.readTx != nil {
-		r.head.readTx.state.end(err)
+		r.head.readTx.end(err)
 	}
 }
 

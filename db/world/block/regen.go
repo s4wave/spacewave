@@ -156,17 +156,14 @@ func (r *Regenerator) read(ctx context.Context) (regenState, error) {
 	}
 
 	// Read its format.
-	_, w, err := r.readWorld(ctx, nil, s.head.Root)
+	_, w, err := r.a.readWorld(ctx, nil, s.head.Root)
 	if err != nil {
 		return s, err
 	}
 	s.format = w.GetFormat()
 
 	// Read the regeneration's roots.
-	if s.base, err = r.a.store.GetRoot(ctx, r.baseName); err != nil {
-		return s, err
-	}
-	if s.built, err = r.a.store.GetRoot(ctx, r.builtName); err != nil {
+	if s.base, s.built, err = r.a.readRegenRoots(ctx, r.baseName, r.builtName); err != nil {
 		return s, err
 	}
 
@@ -301,17 +298,7 @@ func (r *Regenerator) Release(ctx context.Context) error {
 
 // release frees both regeneration roots.
 func (r *Regenerator) release(ctx context.Context, s regenState) error {
-	// Free each name that holds a root.
-	var roots []block.NamedRoot
-	for _, root := range []block.NamedRoot{{Name: r.baseName, Previous: s.base}, {Name: r.builtName, Previous: s.built}} {
-		if !root.Previous.GetEmpty() {
-			roots = append(roots, root)
-		}
-	}
-	if len(roots) == 0 {
-		return nil
-	}
-	return r.a.store.SetRoots(ctx, nil, roots)
+	return r.a.releaseRegenRoots(ctx, r.baseName, r.builtName, s.base, s.built)
 }
 
 // regenBackground marks ctx for the regeneration's work off the writer turn:
@@ -325,24 +312,14 @@ func regenBackground(ctx context.Context) context.Context {
 // pin holds the head as the base the build reads. The head was read just now,
 // so the collector's grace keeps it until the root holds it.
 func (r *Regenerator) pin(ctx context.Context, s regenState) error {
-	return r.a.store.SetRoots(ctx, nil, []block.NamedRoot{{Name: r.baseName, Ref: s.head.Root}})
+	return r.a.pinRegenBase(ctx, r.baseName, s.head.Root)
 }
 
 // build writes the new-format World of base under a stage and holds it as
 // built, yielding to this process's writers between slices: a commit then
 // runs without the build beside it on the CPU, the store and the caches.
 func (r *Regenerator) build(ctx context.Context, s regenState) error {
-	// Write the build under a stage, held until the root holds it.
-	store, release, err := block.OpenStage(ctx, r.a.store)
-	if err != nil {
-		return err
-	}
-	defer release()
-	built, err := buildNodeGraphRoot(ctx, r.a.root, store, s.base, r.cfg, r.a.YieldToWriters)
-	if err != nil {
-		return err
-	}
-	return r.a.store.SetRoots(ctx, nil, []block.NamedRoot{{Name: r.builtName, Ref: built}})
+	return r.a.buildRegenRoot(ctx, r.builtName, s.base, r.cfg)
 }
 
 // catchUp runs a round off the writer turn in way, as background work, then
@@ -355,7 +332,7 @@ func (r *Regenerator) catchUp(ctx context.Context, s regenState, way regenWay) e
 	}
 
 	// Hold the head while the round reads it.
-	release, err := block.PinRoot(ctx, r.a.store, s.head.Root)
+	release, err := r.a.pinRegenHead(ctx, s.head.Root)
 	if err != nil {
 		return err
 	}
@@ -420,30 +397,33 @@ func (r *Regenerator) advance(ctx context.Context, s regenState, way regenWay, l
 	}
 
 	// Write the catch-up under a stage, held until the roots hold it.
-	store, release, err := block.OpenStage(ctx, r.a.store)
-	if err != nil {
-		return nil, 0, err
-	}
-	defer release()
-	pace := &regenPacer{slice: 1}
-	if !install {
-		pace.yield = r.a.YieldToWriters
-	}
-	next, changes, err := r.applyDiff(ctx, store, trail.Previous, lead.Previous, s.head.Root, limit, pace)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	// Move the roots.
-	lead.Ref, trail.Ref = s.head.Root, next
-	roots := []block.NamedRoot{lead, trail}
-	if install {
-		roots = append(roots, block.NamedRoot{Name: r.a.name, Ref: next, Previous: s.head.Root})
-		if way == regenBack {
-			roots[1].Ref = nil
+	var next *block.BlockRef
+	var changes int
+	err := r.a.stageRegenRoots(ctx, func(store block.StoreOps) ([]block.NamedRoot, error) {
+		// Apply the bounded diff, yielding only outside the writer turn.
+		yield := r.a.YieldToWriters
+		if install {
+			yield = nil
 		}
-	}
-	if err := r.a.store.SetRoots(ctx, nil, roots); err != nil {
+		pace := newRegenPacer(1, yield)
+		var err error
+		next, changes, err = r.applyDiff(ctx, store, trail.Previous, lead.Previous, s.head.Root, limit, pace)
+		if err != nil {
+			return nil, err
+		}
+
+		// Move the roots.
+		lead.Ref, trail.Ref = s.head.Root, next
+		roots := []block.NamedRoot{lead, trail}
+		if install {
+			roots = append(roots, block.NamedRoot{Name: r.a.name, Ref: next, Previous: s.head.Root})
+			if way == regenBack {
+				roots[1].Ref = nil
+			}
+		}
+		return roots, nil
+	})
+	if err != nil {
 		return nil, 0, err
 	}
 	return next, changes, nil
@@ -473,7 +453,7 @@ func (r *Regenerator) applyDiff(ctx context.Context, store block.StoreOps, targe
 	var format WorldFormat
 	for i, ref := range []*block.BlockRef{from, to} {
 		var w *World
-		if cursors[i], w, err = r.readWorld(ctx, store, ref); err != nil {
+		if cursors[i], w, err = r.a.readWorld(ctx, store, ref); err != nil {
 			return nil, 0, err
 		}
 		format = w.GetFormat()
@@ -557,11 +537,11 @@ func walkQuadChanges(ctx context.Context, format WorldFormat, before, after *blo
 // writer on it.
 func (r *Regenerator) graft(ctx context.Context, store block.StoreOps, head, target *block.BlockRef) (*regenGraft, error) {
 	// Read target's graph tree and the head's World.
-	_, tw, err := r.readWorld(ctx, store, target)
+	_, tw, err := r.a.readWorld(ctx, store, target)
 	if err != nil {
 		return nil, errors.Wrap(err, "load trailing World")
 	}
-	tx, worldCursor, w, err := r.openWorld(ctx, store, head)
+	tx, worldCursor, w, err := r.a.openWorld(ctx, store, head)
 	if err != nil {
 		return nil, errors.Wrap(err, "load head World")
 	}
@@ -579,25 +559,6 @@ func (r *Regenerator) graft(ctx context.Context, store block.StoreOps, head, tar
 		return nil, errors.Wrap(err, "write grafted World")
 	}
 	return &regenGraft{r: r, store: store, ref: ref, format: w.Format, settings: w.GraphSettings}, nil
-}
-
-// openWorld opens a transaction on the World root at ref, writing through
-// store, or the bucket's transaction store when store is nil, and decodes it.
-func (r *Regenerator) openWorld(ctx context.Context, store block.StoreOps, ref *block.BlockRef) (*block.Transaction, *block.Cursor, *World, error) {
-	tx, cursor := r.a.root.BuildTransactionAtRefWithStore(nil, ref, store)
-	w, err := decodeWorld(ctx, cursor, ref)
-	return tx, cursor, w, err
-}
-
-// readWorld opens the World root at ref in a read-only transaction, reading
-// through store as openWorld does, and decodes it. A walk of its graph tree
-// follows stored pages through ReadCursor, bounded by the decoded-block cache.
-// On a writable transaction each page it loaded would stay on the cursor tree.
-func (r *Regenerator) readWorld(ctx context.Context, store block.StoreOps, ref *block.BlockRef) (*block.Cursor, *World, error) {
-	tx, cursor := r.a.root.BuildTransactionAtRefWithStore(nil, ref, store)
-	tx.SetReadOnly()
-	w, err := decodeWorld(ctx, cursor, ref)
-	return cursor, w, err
 }
 
 // decodeWorld decodes the World at cursor, the root at ref.
@@ -680,7 +641,7 @@ func (g *regenGraft) write(ctx context.Context) (*block.BlockRef, error) {
 	}
 
 	// Open the graph tree through deferred writes, so the tree rehashes once.
-	tx, worldCursor, _, err := g.r.openWorld(ctx, g.store, g.ref)
+	tx, worldCursor, _, err := g.r.a.openWorld(ctx, g.store, g.ref)
 	if err != nil {
 		return nil, err
 	}

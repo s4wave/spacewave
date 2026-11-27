@@ -51,6 +51,16 @@ func (t *Tx) IterateObjects(ctx context.Context, prefix string, reversed bool) w
 	return &lockedObjectIterator{run: run, held: it}
 }
 
+// visitObjects opens, visits and closes a temporary state iterator under one
+// live read lock. The callback must not retain the iterator.
+func (t *Tx) visitObjects(ctx context.Context, prefix string, reversed bool, fn func(world.ObjectIterator) error) error {
+	return t.lockedLive(ctx, func() error {
+		iter := t.state.IterateObjects(ctx, prefix, reversed)
+		defer iter.Close()
+		return fn(iter)
+	})
+}
+
 // CreateObject creates a object with a key and initial root ref.
 // Returns ErrObjectExists if the object already exists.
 func (t *Tx) CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
