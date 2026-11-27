@@ -30,8 +30,10 @@ const carriedBudget = MaxSyncStateSize / 10
 
 // carriedReserve is the part of MaxSyncStateSize that carriedRoom leaves for
 // what is added to a checkpoint body after its carried entries: the
-// signatures, about a hundred bytes each for an ed25519 key, so hundreds of
-// co-signers, and the growth of the enclosing length prefixes.
+// signatures, and the growth of the enclosing length prefixes. A signature
+// takes about a hundred bytes for an ed25519 key and about a kilobyte for
+// RSA-4096, so the reserve holds hundreds of ed25519 co-signers or about sixty
+// RSA-4096 ones.
 const carriedReserve = 64 * 1024
 
 // carriedRoom returns the encoded size the carried entries of inner may take.
