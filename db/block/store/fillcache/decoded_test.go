@@ -122,48 +122,60 @@ func (h *decodedHarness) refetched(c *Cache, ref *block.BlockRef, why string) {
 // TestCacheDecodedPoolAdmission reads a filled block twice through the cache
 // over a store that keeps its blocks, with a shared decoded-block cache: the
 // first read admits it to the pool and the second decodes it from the pool
-// without a store read. After the cache removes the block for a failed hash,
-// the next read misses the pool and reads the store again. An eviction step
-// reports the block removed before its delete, so a read once the row is gone
-// misses the pool.
+// without a store read. When the cache's row for a block is corrupted, a read
+// of the row finds the bad bytes and removes it, and the next read misses the
+// pool and reads the store again. An eviction removes only the cache's copy of
+// a block the store keeps, so a read once the row is gone still hits the pool.
 func TestCacheDecodedPoolAdmission(t *testing.T) {
 	ctx := t.Context()
 	c := openTest(t, filepath.Join(t.TempDir(), "cache", "blocks.db"), 64<<20)
 	src := newPacks()
 	h := newDecodedHarness(t, src, keptPacks{src})
 
-	// A removal for a failed hash reports the block removed.
-	removed := h.fill(c, "removed for its hash")
-	h.admitted(c, removed)
-	c.remove(removed)
+	// Corrupt the row of an admitted block and read the row past the pool,
+	// as a read in another scope would: it fails its hash and is removed.
+	corrupt := h.fill(c, "corrupted in the cache")
+	h.admitted(c, corrupt)
+	if _, err := c.store.GetDB().ExecContext(ctx, "UPDATE "+cacheTable+" SET value = randomblob(64)"); err != nil {
+		t.Fatal(err)
+	}
+	if _, found, err := c.kept.GetBlock(ctx, corrupt); err != nil || found {
+		t.Fatalf("read of the corrupt row: found %v, err %v; want a miss", found, err)
+	}
 	wait(t, c)
-	h.refetched(c, removed, "remove")
+	if held, err := c.blocks.GetBlockExists(ctx, corrupt); err != nil || held {
+		t.Fatalf("the corrupt row is still held: %v, %v", held, err)
+	}
+	h.refetched(c, corrupt, "a corrupt row")
 
 	// A step starts at a random key, so it may delete only the other row
-	// first: step until a delete takes the block, and read it right after that
-	// delete, before the step's last report.
+	// first: step until a delete takes the block, then read it.
 	evicted := h.fill(c, "evicted")
 	h.admitted(c, evicted)
-	wait(t, c)
-	var checked bool
-	evictDeleted = func() {
+	for i := 0; ; i++ {
+		if err := c.evict.step(ctx); err != nil {
+			t.Fatal(err)
+		}
 		held, err := c.blocks.GetBlockExists(ctx, evicted)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !held && !checked {
-			checked = true
-			h.refetched(c, evicted, "an eviction delete")
-		}
-	}
-	defer func() { evictDeleted = nil }()
-	for i := 0; !checked; i++ {
-		if err := c.evict.step(ctx); err != nil {
-			t.Fatal(err)
+		if !held {
+			break
 		}
 		if i == 100 {
 			t.Fatal("100 eviction steps left the block in the cache")
 		}
+	}
+	srcReads, hits := src.reads.Load(), h.pool.Snapshot().Hits
+	if n := h.read(c, evicted); n != 0 {
+		t.Fatalf("read after an eviction took %d store reads, want 0", n)
+	}
+	if got := h.pool.Snapshot().Hits; got != hits+1 {
+		t.Fatalf("read after an eviction missed the pool: hits %d -> %d", hits, got)
+	}
+	if got := src.reads.Load(); got != srcReads {
+		t.Fatalf("read after an eviction reached the durable store: %d -> %d", srcReads, got)
 	}
 }
 
