@@ -231,7 +231,7 @@ func TestWebBindingNarrowsSpacesList(t *testing.T) {
 	// Watch the list through a binding to one of them.
 	binding := &webBinding{le: logrus.NewEntry(logrus.New()), sessionIdx: 1, spaceID: "bound"}
 	strm := &testSendStream{}
-	if _, err := binding.filter(handler).InvokeMethod(s4wave_session.SRPCSessionResourceServiceServiceID, "WatchResourcesList", strm); err != nil {
+	if _, err := newWebBindingFilter(binding)(handler).InvokeMethod(s4wave_session.SRPCSessionResourceServiceServiceID, "WatchResourcesList", strm); err != nil {
 		t.Fatal(err)
 	}
 

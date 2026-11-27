@@ -334,7 +334,7 @@ func newWebListener(
 				sessionIdx: spec.sessionIdx,
 				spaceID:    spec.spaceID,
 			}
-			server = resource_server.NewFilteredResourceServer(rootMux, binding.filter, "")
+			server = resource_server.NewFilteredResourceServer(rootMux, newWebBindingFilter(binding), "")
 		}
 		mux := srpc.NewMux()
 		if err := server.Register(mux); err != nil {

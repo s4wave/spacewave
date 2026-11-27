@@ -25,9 +25,8 @@ import (
 // errWebBindingDenied is returned for a call outside a web binding.
 var errWebBindingDenied = errors.New("not available to a bound web listener")
 
-// webBinding limits a web listener's Resource service to reading one Space
-// in one session. It is the InvokerFilter for every Resource the listener
-// serves, so a call reaches a Resource only through webBindingMethods.
+// webBinding identifies the session and Space a bound web listener may read.
+// Its configuration is shared unchanged by the method and message adapters.
 type webBinding struct {
 	// le logs denied calls.
 	le *logrus.Entry
@@ -182,74 +181,3 @@ func webBindingReadTransaction(_ *webBinding, msg srpc.Message) bool {
 	req, ok := msg.(*s4wave_world.NewTransactionRequest)
 	return ok && !req.GetWrite()
 }
-
-// filter wraps a Resource invoker with the binding's method policy.
-func (b *webBinding) filter(inv srpc.Invoker) srpc.Invoker {
-	return &webBindingInvoker{binding: b, inv: inv}
-}
-
-// webBindingInvoker serves only the methods a webBinding admits.
-type webBindingInvoker struct {
-	binding *webBinding
-	inv     srpc.Invoker
-}
-
-// InvokeMethod denies methods outside webBindingMethods, checks the request
-// messages of the methods that need checks, and narrows their responses.
-func (i *webBindingInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bool, error) {
-	// Deny methods outside the list, then route the call through its check
-	// and response filter.
-	key := webMethod(serviceID, methodID)
-	check, ok := webBindingMethods[key]
-	if !ok {
-		i.binding.le.WithField("method", key).Info("web binding denied method")
-		return true, errors.Wrap(errWebBindingDenied, key)
-	}
-	narrow := webBindingResponses[key]
-	if check != nil || narrow != nil {
-		strm = &webBindingStream{
-			Stream:  strm,
-			binding: i.binding,
-			method:  key,
-			check:   check,
-			narrow:  narrow,
-		}
-	}
-	return i.inv.InvokeMethod(serviceID, methodID, strm)
-}
-
-// webBindingStream checks each request message it receives and narrows each
-// response it sends.
-type webBindingStream struct {
-	srpc.Stream
-	binding *webBinding
-	method  string
-	check   webBindingCheck
-	narrow  func(b *webBinding, msg srpc.Message)
-}
-
-// MsgRecv receives a request message and rejects it unless the check admits it.
-func (s *webBindingStream) MsgRecv(msg srpc.Message) error {
-	if err := s.Stream.MsgRecv(msg); err != nil {
-		return err
-	}
-	if s.check != nil && !s.check(s.binding, msg) {
-		s.binding.le.WithField("method", s.method).Info("web binding denied request")
-		return errors.Wrap(errWebBindingDenied, s.method)
-	}
-	return nil
-}
-
-// MsgSend narrows a response message and sends it.
-func (s *webBindingStream) MsgSend(msg srpc.Message) error {
-	if s.narrow != nil {
-		s.narrow(s.binding, msg)
-	}
-	return s.Stream.MsgSend(msg)
-}
-
-// _ is a type assertion
-var (
-	_ srpc.Invoker = (*webBindingInvoker)(nil)
-	_ srpc.Stream  = (*webBindingStream)(nil)
-)
