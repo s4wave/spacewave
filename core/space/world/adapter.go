@@ -126,8 +126,13 @@ type Adapter struct {
 	// cover records installed checkpoint coverage, nil before the first install.
 	cover *checkpointCover
 	// reportable is the installed head whose retained roots are held, which
-	// the head watches report.
+	// the head watches report. Its seqno only grows, except when Install
+	// adopts a checkpoint whose World disagrees with the replay suffix it
+	// replaces, which can lower the head's seqno.
 	reportable world.Head
+	// turnBase is the base of the open writer turn, held live from Begin
+	// until the turn's Release, or the zero Head.
+	turnBase world.Head
 	// watches are the WatchHead registrations.
 	watches []*headWatch
 	// accepted holds each accepted admission from its decision until its
@@ -180,12 +185,6 @@ type Adapter struct {
 	// ownership caches ownershipHead, guarded by bcast.
 	ownership     *sobject.SOOwnership
 	ownershipHead []byte
-}
-
-// headWatch is one WatchHead registration, guarded by the adapter's bcast.
-type headWatch struct {
-	// reporting is the head fn is running with, or zero.
-	reporting world.Head
 }
 
 // NewAdapter returns the adapter of the Space World of so. Execute serves it.
@@ -568,69 +567,6 @@ func (a *Adapter) Head(context.Context) (world.Head, error) {
 	return head, nil
 }
 
-// WatchHead calls fn on its own goroutine with the reportable head, then with
-// later ones, until release is called. Every head is durable and its retained
-// roots are held. A slow fn skips the heads it fell behind on, and the adapter
-// decides candidates without waiting for fn: their committers publish their
-// heads from the Admission. The head fn runs with stays live until it returns.
-func (a *Adapter) WatchHead(_ context.Context, fn func(world.Head)) (func(), error) {
-	// Register, so gatherLive sees the head each report runs with.
-	w := &headWatch{}
-	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		a.watches = append(a.watches, w)
-	})
-
-	// Report each reportable head that moved until release.
-	stop, done := make(chan struct{}), make(chan struct{})
-	go func() {
-		defer close(done)
-		var last world.Head
-		for {
-			// End on release even while heads keep moving.
-			select {
-			case <-stop:
-				return
-			default:
-			}
-
-			// Take the head and mark it reporting in one step, so it stays
-			// live from reportable to the engine's publication.
-			var wake <-chan struct{}
-			var head world.Head
-			a.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-				wake, head = getWaitCh(), a.reportable
-				if head.Root.GetEmpty() || (head.Root.EqualsRef(last.Root) && head.Seqno == last.Seqno) {
-					head = world.Head{}
-				}
-				w.reporting = head
-			})
-			if !head.Root.GetEmpty() {
-				fn(head)
-				last = head
-				a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-					w.reporting = world.Head{}
-				})
-				continue
-			}
-			select {
-			case <-stop:
-				return
-			case <-wake:
-			}
-		}
-	}()
-
-	// Release stops and joins the reports, then removes the registration.
-	// fn must not call it.
-	return sync.OnceFunc(func() {
-		close(stop)
-		<-done
-		a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-			a.watches = slices.DeleteFunc(a.watches, func(o *headWatch) bool { return o == w })
-		})
-	}), nil
-}
-
 // Begin takes the local writer turn at the provisional writer head. It refuses
 // nonwriters and departing owners, waits for opening replay, and returns
 // *sobject.WriteWait while replay waits.
@@ -651,9 +587,20 @@ func (a *Adapter) Begin(ctx context.Context) (world.Turn, error) {
 	if err != nil {
 		return nil, err
 	}
-	t := &spaceTurn{a: a, release: release}
+
+	// Hold the base live until the turn ends: the engine decodes it outside
+	// its lock before its writer registers, while decide or installHead may
+	// move a.writer off it.
+	t := &spaceTurn{a: a}
+	t.release = sync.OnceFunc(func() {
+		a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			a.turnBase = world.Head{}
+		})
+		release()
+	})
 	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		t.base = a.writer
+		a.turnBase = t.base
 		t.base.Durable = t.base.Root.EqualsRef(a.head.Root) && t.base.Seqno == a.head.Seqno
 		t.after, t.afterHead = a.writerAdmissionLocked(), a.headState.lastWrite(a.so.GetPeerID().String())
 	})
@@ -1572,7 +1519,15 @@ func (a *Adapter) decide(adms []*spaceAdmission, decision world.Decision, reason
 			if adm.state == admissionDecided {
 				continue
 			}
-			adm.state, adm.decision, adm.reason, adm.err, adm.head = admissionDecided, decision, reason, err, a.head
+			// An accepted admission names the reportable head: every
+			// Accepted decision follows the acceptHeight that reportable
+			// moves with, and a.head may lead it before its retained roots
+			// are held.
+			head := a.head
+			if decision == world.Accepted {
+				head = a.reportable
+			}
+			adm.state, adm.decision, adm.reason, adm.err, adm.head = admissionDecided, decision, reason, err, head
 			a.pending = slices.DeleteFunc(a.pending, func(o *spaceAdmission) bool { return o == adm })
 			if decision == world.Accepted && !adm.abandoned && !adm.candidate.Root.GetEmpty() {
 				if a.accepted == nil {

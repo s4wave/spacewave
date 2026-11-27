@@ -478,16 +478,23 @@ func (e *Engine) SetRootRef(ctx context.Context, ref *bucket.ObjectRef) error {
 	return err
 }
 
+// followHeadDecodedHook, when set, runs after followHead decodes a report and
+// before it takes the Engine lock, so a test can publish a head in between. A
+// production engine never sets it.
+var followHeadDecodedHook atomic.Pointer[func(world.Head)]
+
 // followHead installs a head the Authority's watch reports. The watch reports
 // heads in the order the Authority decides them, so a report is installed as
 // it comes, unless the engine published a head itself since the watch's last
 // report: a commit's head or a turn's base. Until the watch reports that head,
 // a report is installed only when its seqno is past it, or at its seqno with
 // another root that is still the Authority's head (one indexed root read), so
-// a late report of an older head never rolls the head back. A report while a
-// local writer holds a turn is installed without ending the writer: the
-// writer's candidate goes to the Authority on its own base, and the Authority
-// decides it against the head it holds.
+// a late report of an older head never rolls the head back. A head the
+// engine publishes while the report decodes ends the report only when it is
+// at or past the report's seqno. A report while a local writer holds a turn
+// is installed without ending the writer: the writer's candidate goes to the
+// Authority on its own base, and the Authority decides it against the head it
+// holds.
 func (e *Engine) followHead(head world.Head) {
 	// Read under closing: Close joins this call through the watch's release
 	// after canceling closing, so a read waiting on a missing block ends.
@@ -536,9 +543,18 @@ func (e *Engine) followHead(head world.Head) {
 		return
 	}
 
-	// Hold the engine unless the published head moved meanwhile.
+	// Let a test publish a head while the report waits for the lock.
+	if hook := followHeadDecodedHook.Load(); hook != nil {
+		(*hook)(head)
+	}
+
+	// Install unless a head the ordering above did not see was published
+	// meanwhile at or past the report's seqno. A head published meanwhile
+	// below it, such as an earlier commit's, does not end the report: the
+	// watch reports this head once, so dropping it would leave the engine
+	// behind the Authority.
 	locked = e.bcast.Lock()
-	if e.closed || e.pub.Load() != p {
+	if e.closed || (e.pub.Load() != p && !e.publishedBelow(head.Seqno)) {
 		locked.Unlock()
 		return
 	}

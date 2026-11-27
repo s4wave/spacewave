@@ -613,6 +613,87 @@ func TestEngineAuthorityRunThrough(t *testing.T) {
 		published("pipe-4", true)
 	})
 
+	// A commit that publishes its own head while the watch decodes a later
+	// report does not end that report: the watch reports each head once, so
+	// the engine must still reach the reported head.
+	t.Run("commit ahead of a stalled watch", func(t *testing.T) {
+		// Admit a write and leave it undecided, on a fixture of its own so
+		// its pending roots meet no earlier pipeline's.
+		f := newVolumeFixture(t)
+		head, err := f.engine.authority.Head(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		pipe := newPipeAuthority(f.store, head)
+		engine := f.openEngine(t, pipe)
+		w := fixtureWriter(t, engine)
+		fixtureObject(t, w, "stall-commit", "stall-commit")
+		done := make(chan error, 1)
+		go func() { done <- w.Commit(ctx) }()
+		adm := pipe.waitAdmitted(t, 1)
+
+		// Another writer's head builds on the admitted candidate.
+		root := f.base.Clone()
+		defer root.Release()
+		root.SetRootRef(adm.candidate.Root)
+		other, err := NewEngine(ctx, f.le, root, world_mock.LookupMockOp, nil, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ow := fixtureWriter(t, other)
+		fixtureObject(t, ow, "stall-later", "stall-later")
+		later, err := ow.CommitBlockTransaction(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		laterSeqno, err := other.GetSeqno(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := other.Close(); err != nil {
+			t.Fatal(err)
+		}
+
+		// Stall the watch after it decodes the later head.
+		decoded, resume := make(chan struct{}), make(chan struct{})
+		hook := func(h world.Head) {
+			if h.Root.EqualsRef(later.GetRootRef()) {
+				close(decoded)
+				<-resume
+			}
+		}
+		followHeadDecodedHook.Store(&hook)
+		defer followHeadDecodedHook.Store(nil)
+		reported := make(chan struct{})
+		go func() {
+			defer close(reported)
+			pipe.report(later.GetRootRef(), laterSeqno)
+		}()
+		<-decoded
+
+		// Accept the write without a report: its commit publishes its own,
+		// older head while the watch waits.
+		adm.resolve(world.Head{Root: adm.candidate.Root, Seqno: adm.candidate.Seqno, Durable: true}, world.Accepted)
+		if err := <-done; err != nil {
+			t.Fatal(err)
+		}
+		if !engine.GetRootRef().GetRootRef().EqualsRef(adm.candidate.Root) {
+			t.Fatal("the accepted commit did not publish its head")
+		}
+
+		// The watch resumes and installs the later head.
+		close(resume)
+		<-reported
+		waitCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+		if _, err := engine.WaitSeqno(waitCtx, laterSeqno); err != nil {
+			t.Fatalf("engine stayed behind the reported head: %v", err)
+		}
+		if !engine.GetRootRef().GetRootRef().EqualsRef(later.GetRootRef()) {
+			t.Fatal("the engine did not publish the reported head")
+		}
+	})
+
 	// A provisional deletion must not give a second writer false success.
 	t.Run("provisional no-op", func(t *testing.T) {
 		for _, mode := range []string{"default", "off"} {

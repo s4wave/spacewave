@@ -17,8 +17,9 @@ import (
 // pipeAuthority is an in-memory Authority that pipelines, as a Space's does: a
 // turn's base is the last admitted candidate, Admit holds the candidate's
 // blocks under its pending root and returns undecided, and the test decides
-// each candidate in order, optionally with a rebased head. A decision reports
-// the head to every watcher before the admission resolves.
+// each candidate in order, optionally with a rebased head. A decision resolves
+// the admission before it reports the head to every watcher, as a Space's
+// does: the Authority decides without waiting for its watch.
 type pipeAuthority struct {
 	// store holds the candidates' blocks.
 	store block.StoreOps
@@ -96,7 +97,7 @@ func (a *pipeAuthority) waitAdmitted(t *testing.T, n int) *pipeAdmission {
 }
 
 // decide accepts the nth candidate with the head at its root, or at rebased
-// when set, reports the head to every watcher, then resolves the admission.
+// when set, resolves the admission, then reports the head to every watcher.
 func (a *pipeAuthority) decide(t *testing.T, n int, rebased *block.BlockRef, seqno uint64) {
 	t.Helper()
 	adm := a.waitAdmitted(t, n)
@@ -111,10 +112,10 @@ func (a *pipeAuthority) decide(t *testing.T, n int, rebased *block.BlockRef, seq
 	}
 	watchers := a.watchers
 	a.mtx.Unlock()
+	adm.resolve(head, world.Accepted)
 	for _, fn := range watchers {
 		fn(head)
 	}
-	adm.resolve(head, world.Accepted)
 }
 
 // refuse supersedes the nth candidate without moving the decided head.

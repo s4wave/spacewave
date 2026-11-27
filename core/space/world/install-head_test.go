@@ -1237,6 +1237,36 @@ func TestGatherLiveKeepsPublishableHeads(t *testing.T) {
 		t.Fatal("the accepted candidate stayed live after Release")
 	}
 
+	// An accepted admission names the reportable head, not an installed head
+	// whose retained roots are not held yet, and keeps that head live with
+	// its candidate when the head is a rebase of it.
+	rebased, rebasedCandidate := ref("rebased World"), ref("rebased candidate World")
+	setReportable(rebased, 7)
+	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		a.head = world.Head{Root: ref("unheld World"), Seqno: 8, Durable: true}
+	})
+	adm = a.newAdmission(world.Candidate{Root: rebasedCandidate, Seqno: 6}, nil, nil, nil)
+	a.decide([]*spaceAdmission{adm}, world.Accepted, "", nil)
+	if h := adm.Head(); !h.Root.EqualsRef(rebased) || h.Seqno != 7 {
+		t.Fatalf("the accepted admission names %v, want the reportable head", h)
+	}
+	setReportable(ref("after rebase World"), 9)
+	if !live(rebased) || !live(rebasedCandidate) {
+		t.Fatal("a trim before the commit publishes would drop its rebased head")
+	}
+	adm.Release()
+	if live(rebased) || live(rebasedCandidate) {
+		t.Fatal("the rebased head stayed live after Release")
+	}
+
+	// A Release before the decision leaves the admission unheld.
+	early := a.newAdmission(world.Candidate{Root: ref("released World"), Seqno: 10}, nil, nil, nil)
+	early.Release()
+	a.decide([]*spaceAdmission{early}, world.Accepted, "", nil)
+	if len(a.accepted) != 0 {
+		t.Fatal("an admission released before its decision stays held with nothing to release it")
+	}
+
 	// An abandoned wait leaves its admission unheld.
 	abandoned := a.newAdmission(world.Candidate{Root: ref("abandoned World"), Seqno: 5}, nil, nil, nil)
 	ctx, cancel := context.WithCancel(t.Context())

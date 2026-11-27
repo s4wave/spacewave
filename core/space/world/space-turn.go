@@ -22,7 +22,8 @@ type spaceTurn struct {
 	// afterHead is this device's LastWrite in the installed head when the
 	// turn began, the write base was built after when after is nil.
 	afterHead []byte
-	// release unlocks the adapter's turn mutex once.
+	// release clears the adapter's turn base and unlocks its turn mutex
+	// once.
 	release func()
 }
 

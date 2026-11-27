@@ -16,10 +16,11 @@ type worldReaders interface {
 type liveWorlds struct {
 	// memory holds the Worlds whose pages may be kept in memory: the
 	// Worlds of the positions above the floor, the installed head, the
-	// writer head, the Worlds a checkpoint is storing, the heads the engine
-	// may still publish (the reportable head, each head a watch reports and
-	// each accepted admission's heads until its Release) and the Worlds the
-	// served engine's readers may still read. A trim holds them under the
+	// writer head, the open turn's base, the Worlds a checkpoint is
+	// storing, the heads the engine may still publish (the reportable head,
+	// each head a watch reports and each accepted admission's heads until
+	// its Release) and the Worlds the served engine's readers may still
+	// read. A trim holds them under the
 	// replay cursor root, and a sweep keeps their pages.
 	memory []*block.BlockRef
 	// candidates are the pending candidates' Worlds. A trim holds them under
@@ -57,9 +58,9 @@ func (a *Adapter) gatherLive() liveWorlds {
 
 	// Add the heads, the candidates and the retained roots.
 	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		// Add the installed, writer and reportable heads and the storing
-		// Worlds.
-		l.memory = append(l.memory, a.head.Root, a.writer.Root, a.reportable.Root)
+		// Add the installed, writer, reportable and turn base heads and the
+		// storing Worlds.
+		l.memory = append(l.memory, a.head.Root, a.writer.Root, a.reportable.Root, a.turnBase.Root)
 		for _, roots := range a.storing {
 			l.memory = append(l.memory, roots...)
 		}

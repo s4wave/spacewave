@@ -73,7 +73,8 @@ type spaceAdmission struct {
 	decision world.Decision
 	// reason is why replay refused the operation, when it did.
 	reason string
-	// head is the installed head once decided.
+	// head is the head once decided: for an accepted one, the reportable
+	// head, whose retained roots are held.
 	head world.Head
 	// err is the queue's failure, or the refusal as an error.
 	err error
@@ -85,8 +86,8 @@ type spaceAdmission struct {
 	// when the write ends unknown and drops it otherwise.
 	sent *settleEntry
 	// abandoned is set when the committer stopped waiting before the
-	// decision, so decide does not keep its heads live for a publication
-	// that never comes.
+	// decision, or released the admission, so decide does not keep its heads
+	// live for a publication that never comes.
 	abandoned bool
 }
 
@@ -95,8 +96,9 @@ func (s *spaceAdmission) Seqno() uint64 {
 	return s.candidate.Seqno
 }
 
-// Head returns the installed head when the candidate was decided: for an
-// accepted one, the head that holds its change. It is the zero Head before.
+// Head returns the head when the candidate was decided: for an accepted one,
+// the reportable head, which holds its change and whose retained roots are
+// held. It is the zero Head before.
 func (s *spaceAdmission) Head() world.Head {
 	var head world.Head
 	s.a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -153,9 +155,12 @@ func (s *spaceAdmission) OpHash() []byte {
 
 // Release drops an admission whose operation has not reached
 // QueueOperation, so it is never queued, and ends the liveness an accepted
-// one gave its heads for the committer's publication.
+// one gave its heads for the committer's publication. A Release before the
+// decision marks the admission abandoned in the same section, so a later
+// Accepted decision holds nothing that no Release would drop.
 func (s *spaceAdmission) Release() {
 	s.a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		s.abandoned = true
 		delete(s.a.accepted, s)
 	})
 	if s.a.queue.remove(s) {
