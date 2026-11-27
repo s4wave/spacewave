@@ -498,7 +498,7 @@ func (a *Adapter) endAdmissions() {
 		rest = slices.DeleteFunc(slices.Clone(a.pending), func(adm *spaceAdmission) bool { return adm.settle != nil })
 	})
 	for _, adm := range rest {
-		a.fail(adm, durabilityUnknown(adm, errAdapterStopped))
+		a.fail(adm, durabilityUnknown(adm.receipt.OpHash(), errAdapterStopped))
 	}
 }
 
@@ -1635,7 +1635,7 @@ func (a *Adapter) decideCovered(refused, unknown []*spaceAdmission) {
 		a.decide(refused, world.Rejected, reason, errors.Wrap(sobject.ErrRejectedOp, reason))
 	}
 	for _, adm := range unknown {
-		a.fail(adm, durabilityUnknown(adm, world.ErrOutcomeHidden))
+		a.fail(adm, durabilityUnknown(adm.receipt.OpHash(), world.ErrOutcomeHidden))
 	}
 }
 
@@ -1655,7 +1655,7 @@ func (a *Adapter) queued(adm *spaceAdmission, localID string, pos *sobject.SOOpe
 		if !sobject.ReloadFenceOff {
 			a.stopWrites()
 		}
-		a.fail(adm, durabilityUnknown(adm, err))
+		a.fail(adm, durabilityUnknown(adm.receipt.OpHash(), err))
 		return
 	case errors.Is(err, world.ErrEngineRetired):
 		a.fail(adm, err)
@@ -1682,8 +1682,13 @@ func (a *Adapter) queued(adm *spaceAdmission, localID string, pos *sobject.SOOpe
 	var installedHead bool
 	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		// Retain the durable position for checkpoint coverage. Only legacy
-		// replay learns attribution from the callback.
+		// replay learns attribution from the callback. A write the run's end
+		// already left unknown is now stored on this mount, so the next
+		// adapter on it may settle it.
 		adm.pos = pos
+		if adm.state == admissionDecided {
+			a.settles.markStored(a.so, pos.GetOpHash())
+		}
 		if a.legacyReplayMatcher {
 			adm.localID = localID
 			key := unmatchedRefusalKey(localID, pos.GetOpHash())

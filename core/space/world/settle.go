@@ -24,18 +24,25 @@ const reasonNotStored = "not stored by the write whose outcome was unknown"
 // set with each controller it constructs for the engine, and the controller
 // with each adapter it runs.
 //
-// Invariant: an entry resolves only from the replay of an adapter on another
-// mount than the one its write went unknown on. That mount loaded the state
-// storage held after the old mount wrote its last write, and the old mount
-// writes nothing after the unknown (the provider's reload fence and the
-// adapter's Reloading gate), so the settled head is the state at the unknown,
-// with the unknown write when it applied, plus what other devices wrote.
+// Invariant: an entry resolves only from the replay of an adapter whose
+// mount's state shows whether the write was stored. A mount other than the
+// one the write went unknown on loaded the state storage held after the old
+// mount wrote its last write, and the old mount writes nothing after the
+// unknown (the provider's reload fence and the adapter's Reloading gate), so
+// the settled head is the state at the unknown, with the unknown write when
+// it applied, plus what other devices wrote. The mount the write went
+// unknown on shows it only once the write's QueueOperation returned on it
+// without error (stored), as when the adapter ended before replay decided
+// the write: its state then holds the write, as it would for a live adapter.
+// A write still inside QueueOperation, or one whose outcome storage could
+// not show, waits for another mount, since a mount fenced for a reload may
+// lack a write storage holds.
 type settleSet struct {
 	// mtx guards entries.
 	mtx sync.Mutex
 	// entries are the unknown writes by operation hash. A resolved entry is
-	// kept, so a late WaitSettled still reads its answer. There is one per
-	// unknown write, which is rare.
+	// kept until a WaitSettled reads its answer, and keeps only that answer.
+	// There is one per unknown write, which is rare.
 	entries map[string]*settleEntry
 }
 
@@ -69,8 +76,11 @@ func (s *settleSets) get(engineID string) *settleSet {
 type settleEntry struct {
 	// pos is the operation's position in this device's chain.
 	pos *sobject.SOOperationPosition
-	// so is the mount the write went unknown on.
+	// so is the mount the write went unknown on, or nil once resolved.
 	so sobject.SharedObject
+	// stored reports that the write's QueueOperation returned on so without
+	// error, so the next adapter on so may settle it too.
+	stored bool
 	// done closes once the fields below are set.
 	done chan struct{}
 	// head is the installed head of the adapter that settled the write.
@@ -87,8 +97,9 @@ func newSettleSet() *settleSet {
 }
 
 // add registers the write at pos, which went unknown on so, and returns its
-// entry. A write already registered keeps its entry.
-func (s *settleSet) add(so sobject.SharedObject, pos *sobject.SOOperationPosition) *settleEntry {
+// entry. stored reports that its QueueOperation returned on so without error.
+// A write already registered keeps its entry.
+func (s *settleSet) add(so sobject.SharedObject, pos *sobject.SOOperationPosition, stored bool) *settleEntry {
 	// Keep the entry of a write already registered.
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
@@ -96,20 +107,32 @@ func (s *settleSet) add(so sobject.SharedObject, pos *sobject.SOOperationPositio
 	if ent, ok := s.entries[key]; ok {
 		return ent
 	}
-	ent := &settleEntry{pos: pos.CloneVT(), so: so, done: make(chan struct{})}
+	ent := &settleEntry{pos: pos.CloneVT(), so: so, stored: stored, done: make(chan struct{})}
 	s.entries[key] = ent
 	return ent
 }
 
-// unsettled returns the entries still unresolved whose write went unknown on
-// a mount other than so, in nonce order.
+// markStored records that the QueueOperation of the write of opHash returned
+// on so without error after its entry was registered, as when the adapter
+// ended while the call ran.
+func (s *settleSet) markStored(so sobject.SharedObject, opHash []byte) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	if ent, ok := s.entries[string(opHash)]; ok && ent.so == so {
+		ent.stored = true
+	}
+}
+
+// unsettled returns the entries still unresolved that an adapter on so may
+// settle, in nonce order: those whose write went unknown on another mount,
+// and those so stored.
 func (s *settleSet) unsettled(so sobject.SharedObject) []*settleEntry {
-	// Collect the open entries of other mounts.
+	// Collect the open entries so's state shows.
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	var out []*settleEntry
 	for _, ent := range s.entries {
-		if ent.so == so {
+		if ent.so == so && !ent.stored {
 			continue
 		}
 		select {
@@ -124,7 +147,8 @@ func (s *settleSet) unsettled(so sobject.SharedObject) []*settleEntry {
 	return out
 }
 
-// resolve sets the answer of ent once. A second call does nothing.
+// resolve sets the answer of ent once, and drops the mount it pins. A second
+// call does nothing.
 func (s *settleSet) resolve(ent *settleEntry, head world.Head, applied bool, err error) {
 	// Skip an entry already resolved.
 	s.mtx.Lock()
@@ -135,14 +159,18 @@ func (s *settleSet) resolve(ent *settleEntry, head world.Head, applied bool, err
 	default:
 	}
 	ent.head, ent.applied, ent.err = head, applied, err
+	ent.so = nil
 	close(ent.done)
 }
 
-// wait waits for the answer of the write of opHash.
+// wait waits for the answer of the write of opHash, and removes its entry once
+// it returns the answer. A WaitSettled already waiting reads it too, and a
+// later one returns ErrNoSettle.
 func (s *settleSet) wait(ctx context.Context, opHash []byte) (world.Head, bool, error) {
 	// Find the entry of opHash.
+	key := string(opHash)
 	s.mtx.Lock()
-	ent, ok := s.entries[string(opHash)]
+	ent, ok := s.entries[key]
 	s.mtx.Unlock()
 	if !ok || len(opHash) == 0 {
 		return world.Head{}, false, ErrNoSettle
@@ -152,14 +180,21 @@ func (s *settleSet) wait(ctx context.Context, opHash []byte) (world.Head, bool, 
 		return world.Head{}, false, context.Cause(ctx)
 	case <-ent.done:
 	}
+
+	// Remove the answered entry.
+	s.mtx.Lock()
+	if s.entries[key] == ent {
+		delete(s.entries, key)
+	}
+	s.mtx.Unlock()
 	return ent.head, ent.applied, ent.err
 }
 
-// durabilityUnknown returns the unknown outcome of adm with cause, naming its
-// operation when the signer published it.
-func durabilityUnknown(adm *spaceAdmission, cause error) error {
-	if hash := adm.receipt.OpHash(); len(hash) != 0 {
-		return &world.DurabilityUnknownError{OpHash: hash, Err: cause}
+// durabilityUnknown returns the unknown outcome of a write with cause, naming
+// its operation by opHash when the signer published one.
+func durabilityUnknown(opHash []byte, cause error) error {
+	if len(opHash) != 0 {
+		return &world.DurabilityUnknownError{OpHash: opHash, Err: cause}
 	}
 	return errors.Wrap(world.ErrDurabilityUnknown, cause.Error())
 }
@@ -234,8 +269,8 @@ func (a *Adapter) settleAdopted(ctx context.Context, adopted []*spaceAdmission) 
 // head, refused did not, and one a checkpoint covers without its outcome
 // resolves with that error. Any other unknown ending, as at unmount, leaves
 // it for the next adapter. A live write that ended unknown registers an entry,
-// resolved at once when a checkpoint hides its outcome. The caller holds
-// bcast.
+// stored when queued recorded its position, and resolved at once when a
+// checkpoint hides its outcome. The caller holds bcast.
 func (a *Adapter) settleDecidedLocked(adm *spaceAdmission) {
 	// Resolve an adopted write from its decision.
 	if ent := adm.settle; ent != nil {
@@ -256,7 +291,7 @@ func (a *Adapter) settleDecidedLocked(adm *spaceAdmission) {
 	if adm.decision != world.Undecided || !errors.As(adm.err, &unknown) || pos == nil || !bytes.Equal(unknown.OpHash, pos.GetOpHash()) {
 		return
 	}
-	ent := a.settles.add(a.so, pos)
+	ent := a.settles.add(a.so, pos, adm.pos != nil)
 	if errors.Is(adm.err, world.ErrOutcomeHidden) {
 		a.settles.resolve(ent, adm.head, false, adm.err)
 	}

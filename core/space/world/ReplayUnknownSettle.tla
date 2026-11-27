@@ -18,10 +18,15 @@
 \* which held its writes since the unknown, keeps the write's rows when it
 \* applied and drops them otherwise.
 \*
+\* The settle set (kept) holds the unknown write's entry from the unknown
+\* until WaitSettled reads its answer. It lives in the Space body's World
+\* factory, which the space sobject controller keeps across every mount run,
+\* so the restart does not drop it (KeptOnRestart).
+\*
 \* The invariants say the settle answers what storage holds, the settled head
-\* is the state at the unknown plus at most the unknown write, no stored
-\* operation was built on rows storage lacks, and an idle client's rows match
-\* storage.
+\* is the state at the unknown plus at most the unknown write, a held client's
+\* write stays settleable, no stored operation was built on rows storage
+\* lacks, and an idle client's rows match storage.
 EXTENDS Naturals, Sequences, FiniteSets
 
 N == 4
@@ -30,9 +35,9 @@ Runs == {"live", "postponed", "new"}
 Results == {"none", "applied", "lost"}
 
 VARIABLES st, tok, mtok, mview, run, fenced, qstop, inflight, rows, base,
-          unk, snap, result, shead, next, extUsed
+          unk, snap, result, shead, next, extUsed, kept
 vars == <<st, tok, mtok, mview, run, fenced, qstop, inflight, rows, base,
-          unk, snap, result, shead, next, extUsed>>
+          unk, snap, result, shead, next, extUsed, kept>>
 
 \* Range is the set of elements of a sequence.
 Range(s) == {s[i] : i \in DOMAIN s}
@@ -49,6 +54,10 @@ Held == unk # 0 /\ result = "none"
 SettleReady == run = "new"
 SettleView == st
 
+\* KeptOnRestart is whether the settle set still holds its entries after the
+\* restart: the factory that holds it outlives the mount run.
+KeptOnRestart == kept
+
 TypeOK ==
     /\ st \subseteq Ops
     /\ tok \in Nat /\ mtok \in Nat
@@ -64,13 +73,14 @@ TypeOK ==
     /\ shead \subseteq Ops
     /\ next \in 1..(N + 1)
     /\ extUsed \in BOOLEAN
+    /\ kept \in BOOLEAN
 
 Init ==
     /\ st = {} /\ tok = 0 /\ mtok = 0 /\ mview = {}
     /\ run = "live" /\ fenced = FALSE /\ qstop = FALSE
     /\ inflight = <<>> /\ rows = {} /\ base = [o \in Ops |-> {}]
     /\ unk = 0 /\ snap = {} /\ result = "none" /\ shead = {}
-    /\ next = 1 /\ extUsed = FALSE
+    /\ next = 1 /\ extUsed = FALSE /\ kept = FALSE
 
 \* Admit takes the client's next write on the rows it believes applied, while
 \* the adapter admits writes and the client holds none for a settle.
@@ -83,7 +93,7 @@ Admit ==
     /\ base' = [base EXCEPT ![next] = rows]
     /\ rows' = rows \cup {next}
     /\ next' = next + 1
-    /\ UNCHANGED <<st, tok, mtok, mview, run, fenced, qstop, unk, snap, result, shead, extUsed>>
+    /\ UNCHANGED <<st, tok, mtok, mview, run, fenced, qstop, unk, snap, result, shead, extUsed, kept>>
 
 \* Ok commits the oldest queued write over the token the mount holds.
 Ok ==
@@ -95,7 +105,7 @@ Ok ==
         /\ tok' = tok + 1 /\ mtok' = tok + 1
         /\ mview' = mview \cup {o}
     /\ inflight' = Tail(inflight)
-    /\ UNCHANGED <<run, fenced, qstop, rows, base, unk, snap, result, shead, next, extUsed>>
+    /\ UNCHANGED <<run, fenced, qstop, rows, base, unk, snap, result, shead, next, extUsed, kept>>
 
 \* Changed is a failed compare: storage holds another state, so the mount
 \* reloads and nothing was written. The client drops the write's rows.
@@ -106,7 +116,7 @@ Changed ==
     /\ run' = "postponed" /\ fenced' = TRUE
     /\ rows' = rows \ {Head(inflight)}
     /\ inflight' = Tail(inflight)
-    /\ UNCHANGED <<st, tok, mtok, mview, qstop, base, unk, snap, result, shead, next, extUsed>>
+    /\ UNCHANGED <<st, tok, mtok, mview, qstop, base, unk, snap, result, shead, next, extUsed, kept>>
 
 \* Unknown ends the oldest write unknown: storage holds it (landed) or not.
 \* The mount fences its writes and the adapter stops, both at once. The
@@ -121,6 +131,7 @@ Unknown(landed) ==
         /\ st' = IF landed THEN st \cup {o} ELSE st
         /\ tok' = IF landed THEN tok + 1 ELSE tok
     /\ snap' = st
+    /\ kept' = TRUE
     /\ run' = "postponed" /\ fenced' = TRUE /\ qstop' = TRUE
     /\ inflight' = Tail(inflight)
     /\ UNCHANGED <<mtok, mview, rows, base, result, shead, next, extUsed>>
@@ -132,14 +143,14 @@ Refuse ==
     /\ ~CommitGuard
     /\ rows' = rows \ {Head(inflight)}
     /\ inflight' = Tail(inflight)
-    /\ UNCHANGED <<st, tok, mtok, mview, run, fenced, qstop, base, unk, snap, result, shead, next, extUsed>>
+    /\ UNCHANGED <<st, tok, mtok, mview, run, fenced, qstop, base, unk, snap, result, shead, next, extUsed, kept>>
 
 \* Ext replaces the stored state with an equal one under a new token, as
 \* ReplaceSharedObjectState may.
 Ext ==
     /\ ~extUsed
     /\ tok' = tok + 1 /\ extUsed' = TRUE
-    /\ UNCHANGED <<st, mtok, mview, run, fenced, qstop, inflight, rows, base, unk, snap, result, shead, next>>
+    /\ UNCHANGED <<st, mtok, mview, run, fenced, qstop, inflight, rows, base, unk, snap, result, shead, next, kept>>
 
 \* Restart is the postponed restart firing: the new mount loads storage, and
 \* the writes the old run left queued end unsent.
@@ -150,13 +161,17 @@ Restart ==
     /\ fenced' = FALSE /\ qstop' = FALSE
     /\ rows' = rows \ Range(inflight)
     /\ inflight' = <<>>
+    /\ kept' = KeptOnRestart
     /\ UNCHANGED <<st, tok, base, unk, snap, result, shead, next, extUsed>>
 
-\* Settle answers WaitSettled: whether the unknown write applied, at the
-\* settling adapter's head. The client keeps or drops its rows.
+\* Settle answers WaitSettled from the write's entry: whether the unknown
+\* write applied, at the settling adapter's head, and removes the entry. The
+\* client keeps or drops its rows.
 Settle ==
     /\ Held
     /\ SettleReady
+    /\ kept
+    /\ kept' = FALSE
     /\ result' = IF unk \in SettleView THEN "applied" ELSE "lost"
     /\ shead' = SettleView
     /\ rows' = IF unk \in SettleView THEN rows ELSE rows \ {unk}
@@ -175,6 +190,10 @@ SettleCorrect == result # "none" => ((result = "applied") <=> (unk \in st))
 \* write when it applied. No write of the old run committed in between.
 SettleHead == result # "none" =>
     shead = snap \cup (IF result = "applied" THEN {unk} ELSE {})
+
+\* SettleKept: a client held for a settle has an entry to settle, so
+\* WaitSettled neither hangs nor returns ErrNoSettle across the restart.
+SettleKept == Held => kept
 
 \* BasesHeld: no stored operation was built on rows storage lacks.
 BasesHeld == \A o \in st : base[o] \subseteq st

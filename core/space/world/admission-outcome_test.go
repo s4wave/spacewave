@@ -413,3 +413,70 @@ func TestInstallDecidesCoveredAdmissions(t *testing.T) {
 	a.queued(early, "early", pos(1), nil)
 	expect(t, "before any install", early, admissionQueued, 0, nil)
 }
+
+// settleTestMount is a distinct SharedObject identity for the settle set.
+type settleTestMount struct {
+	sobject.SharedObject
+	// name tells the mounts apart.
+	name string
+}
+
+// TestSettleAdoptsOnlyWhatTheMountShows tries to make the settle set hand an
+// adapter a write its mount cannot answer. An adapter on the mount a write
+// went unknown on must not adopt it while its QueueOperation has not returned
+// there, since a mount fenced for a reload may lack a write storage holds and
+// would settle it as lost. It adopts it once the call returned without error,
+// and an adapter on another mount adopts it either way. A resolved entry
+// drops its mount and answers one WaitSettled.
+func TestSettleAdoptsOnlyWhatTheMountShows(t *testing.T) {
+	ctx := t.Context()
+	set := newSettleSet()
+	oldMount, newMount := &settleTestMount{name: "old"}, &settleTestMount{name: "new"}
+	inFlight := &sobject.SOOperationPosition{Nonce: 1, OpHash: []byte("in-flight")}
+	sent := &sobject.SOOperationPosition{Nonce: 2, OpHash: []byte("sent")}
+	set.add(oldMount, inFlight, false)
+	set.add(oldMount, sent, true)
+
+	// hashes returns the operation hashes an adapter on so would adopt.
+	hashes := func(so sobject.SharedObject) []string {
+		var out []string
+		for _, ent := range set.unsettled(so) {
+			out = append(out, string(ent.pos.GetOpHash()))
+		}
+		return out
+	}
+	if got := hashes(oldMount); len(got) != 1 || got[0] != "sent" {
+		t.Fatalf("an adapter on the same mount adopts %q, want only the sent write", got)
+	}
+	if got := hashes(newMount); len(got) != 2 || got[0] != "in-flight" || got[1] != "sent" {
+		t.Fatalf("an adapter on another mount adopts %q, want both in nonce order", got)
+	}
+
+	// The in-flight call returning stored makes it the same mount's to settle,
+	// and only that mount's call counts.
+	set.markStored(newMount, inFlight.GetOpHash())
+	if got := hashes(oldMount); len(got) != 1 {
+		t.Fatalf("another mount's call marked the write stored: the same mount adopts %q", got)
+	}
+	set.markStored(oldMount, inFlight.GetOpHash())
+	if got := hashes(oldMount); len(got) != 2 {
+		t.Fatalf("after its call returned the same mount adopts %q, want both", got)
+	}
+
+	// A resolved entry drops its mount, answers once, then is gone.
+	ent := set.unsettled(newMount)[0]
+	set.resolve(ent, world.Head{Seqno: 7}, true, nil)
+	if ent.so != nil {
+		t.Fatal("a resolved entry still pins its mount")
+	}
+	if got := hashes(oldMount); len(got) != 1 || got[0] != "sent" {
+		t.Fatalf("after the resolve the same mount adopts %q, want only the sent write", got)
+	}
+	head, applied, err := set.wait(ctx, inFlight.GetOpHash())
+	if err != nil || !applied || head.Seqno != 7 {
+		t.Fatalf("WaitSettled answered applied=%t at %d, %v; want applied at 7", applied, head.Seqno, err)
+	}
+	if _, _, err := set.wait(ctx, inFlight.GetOpHash()); !errors.Is(err, ErrNoSettle) {
+		t.Fatalf("a second WaitSettled returned %v, want ErrNoSettle", err)
+	}
+}
