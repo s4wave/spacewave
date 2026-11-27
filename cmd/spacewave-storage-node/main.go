@@ -97,10 +97,6 @@ func (a *args) run(ctx context.Context) error {
 		return errors.Wrap(err, "open pack log")
 	}
 	defer log.Close()
-	server, err := block_store_nodepush.NewServer(log, filepath.Join(a.dir, "reports"))
-	if err != nil {
-		return err
-	}
 
 	// Reach the pack store. It keeps no index: the node only adds packs.
 	client, remote, err := a.openRemote(le)
@@ -116,7 +112,10 @@ func (a *args) run(ctx context.Context) error {
 		return err
 	}
 	packs.SetRoom(func() bool { return a.hasRoom(le) })
-	server.SetPacks(packs)
+	server, err := block_store_nodepush.NewServer(log, filepath.Join(a.dir, "reports"), packs)
+	if err != nil {
+		return err
+	}
 	go packs.Run(ctx)
 	if a.backfill {
 		go a.fillAll(ctx, le, packs, client, packDir)

@@ -169,7 +169,7 @@ func (o *blockWorldOp) ApplyWorldOp(ctx context.Context, _ *logrus.Entry, ws wor
 var errOpNotEncoded = errors.New("bench op is not encoded")
 
 // commitTx runs fn in one write transaction on w and commits it.
-func commitTx(ctx context.Context, w *benchWorld, fn func(ws world.WorldState) error) error {
+func (w *benchWorld) commitTx(ctx context.Context, fn func(ws world.WorldState) error) error {
 	// Open the transaction, apply fn and commit.
 	tx, err := w.engine.NewTransaction(ctx, true)
 	if err != nil {

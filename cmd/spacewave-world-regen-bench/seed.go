@@ -49,7 +49,7 @@ func (a *seedArgs) Run(c *cli.Context) error {
 	start := time.Now()
 	for done < a.Results {
 		end := min(done+a.Batch, a.Results)
-		err := commitTx(ctx, w, func(ws world.WorldState) error {
+		err := w.commitTx(ctx, func(ws world.WorldState) error {
 			if done == 0 {
 				if err := writeHubs(ctx, ws); err != nil {
 					return err

@@ -20,7 +20,7 @@ func TestBuildSnapshotArgPreservesOrder(t *testing.T) {
 		},
 	}
 
-	arg, err := memlab.BuildSnapshotArg(snapshots)
+	arg, err := snapshots.BuildSnapshotArg()
 	if err != nil {
 		t.Fatalf("build snapshot arg: %v", err)
 	}

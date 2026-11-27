@@ -28,21 +28,15 @@ type MultiSessionScenario struct {
 // CreateMultiSessionScenario creates a PIN-backed local drive session and a
 // second local session in the same browser context.
 func CreateMultiSessionScenario(t testing.TB, h *Harness, session *TestSession) *MultiSessionScenario {
-	// Report failures at the caller.
+	// Finish the first local session before opening a second one.
 	t.Helper()
-
-	// Finish local onboarding in the first session.
 	first := CreateLocalOnboardingScenario(t, h, session)
-	page := session.Page()
-
-	// Open a second local quickstart and require a new session index.
-	NavigateHash(t, h, page, "#/quickstart/local")
-	secondSessionIndex := waitForSessionRoute(t, page)
+	secondSessionIndex := session.createLocalSession(t, h)
 	if secondSessionIndex == first.GetSessionIndex() {
 		t.Fatalf("expected quickstart/local to create a second session, got %d twice", secondSessionIndex)
 	}
 
-	// Record both sessions and wait for the local badge.
+	// Record both session identities after the document has settled.
 	scenario := &MultiSessionScenario{
 		h:                  h,
 		session:            session,
@@ -55,7 +49,15 @@ func CreateMultiSessionScenario(t testing.TB, h *Harness, session *TestSession) 
 	return scenario
 }
 
-// GetSession returns the browser context and Resource SDK session.
+// createLocalSession opens another local session in the current document.
+func (s *TestSession) createLocalSession(t testing.TB, h *Harness) uint32 {
+	// Open the quickstart and wait for its session route.
+	t.Helper()
+	h.navigateHash(t, s.page, "#/quickstart/local")
+	return waitForSessionRoute(t, s.page)
+}
+
+// GetSession returns the browser context and Resource SDK s.
 func (s *MultiSessionScenario) GetSession() *TestSession { return s.session }
 
 // GetFirstSessionIndex returns the PIN-backed drive session index.
@@ -70,12 +72,18 @@ func (s *MultiSessionScenario) GetFirstSpaceID() string { return s.firstSpaceID 
 // ExitToSessionSelector follows the same selector route used by local session
 // switch and lock commands.
 func (s *MultiSessionScenario) ExitToSessionSelector(t testing.TB) {
+	t.Helper()
+	s.session.ExitToSessionSelector(t)
+}
+
+// ExitToSessionSelector applies the scenario action to the current document.
+func (s *TestSession) ExitToSessionSelector(t testing.TB) {
 	// Report failures at the caller.
 	t.Helper()
 
 	// Open the session selector.
-	page := s.session.Page()
-	NavigateHash(t, s.h, page, "#/sessions")
+	page := s.page
+	s.h.navigateHash(t, page, "#/sessions")
 	err := page.Locator("[data-testid='session-selector']").First().WaitFor(
 		playwright.LocatorWaitForOptions{Timeout: playwright.Float(120000)},
 	)
@@ -86,12 +94,18 @@ func (s *MultiSessionScenario) ExitToSessionSelector(t testing.TB) {
 
 // SwitchToSession opens a session from the selector and waits for its route.
 func (s *MultiSessionScenario) SwitchToSession(t testing.TB, sessionIndex uint32) {
+	t.Helper()
+	s.session.SwitchToSession(t, sessionIndex)
+}
+
+// SwitchToSession applies the scenario action to the current document.
+func (s *TestSession) SwitchToSession(t testing.TB, sessionIndex uint32) {
 	// Report failures at the caller.
 	t.Helper()
 
 	// Click the session card and require its route.
 	s.ExitToSessionSelector(t)
-	page := s.session.Page()
+	page := s.page
 	card := page.Locator(
 		"[data-testid='session-card'][data-session-index='" + strconv.FormatUint(uint64(sessionIndex), 10) + "']",
 	).First()
@@ -106,11 +120,17 @@ func (s *MultiSessionScenario) SwitchToSession(t testing.TB, sessionIndex uint32
 
 // WaitForLocalBadge waits for the account bottom-bar badge to report LOCAL.
 func (s *MultiSessionScenario) WaitForLocalBadge(t testing.TB) {
+	t.Helper()
+	s.session.WaitForLocalBadge(t)
+}
+
+// WaitForLocalBadge applies the scenario action to the current document.
+func (s *TestSession) WaitForLocalBadge(t testing.TB) {
 	// Report failures at the caller.
 	t.Helper()
 
 	// Unlock with the PIN when the badge is behind the lock.
-	page := s.session.Page()
+	page := s.page
 	state, err := waitForLocalBadgeOrPIN(page)
 	if err != nil {
 		failWithPageBody(t, page, "wait for session provider badge or PIN unlock", err)
@@ -121,12 +141,13 @@ func (s *MultiSessionScenario) WaitForLocalBadge(t testing.TB) {
 	s.waitForLocalBadge(t)
 }
 
-func (s *MultiSessionScenario) waitForLocalBadge(t testing.TB) {
+// waitForLocalBadge applies the scenario action to the current document.
+func (s *TestSession) waitForLocalBadge(t testing.TB) {
 	// Report failures at the caller.
 	t.Helper()
 
 	// Require the visible provider badge to say LOCAL.
-	page := s.session.Page()
+	page := s.page
 	badge := page.Locator("[data-testid='session-account-provider-badge']").First()
 	if err := badge.WaitFor(playwright.LocatorWaitForOptions{Timeout: playwright.Float(120000)}); err != nil {
 		failWithPageBody(t, page, "wait for session provider badge", err)
@@ -143,13 +164,18 @@ func (s *MultiSessionScenario) waitForLocalBadge(t testing.TB) {
 // OpenFirstDrive opens the first session's drive Space as a nested route.
 func (s *MultiSessionScenario) OpenFirstDrive(t testing.TB) {
 	t.Helper()
+	s.session.openDrive(t, s.h, s.firstSessionIndex, s.firstSpaceID)
+}
 
-	page := s.session.Page()
-	NavigateHash(
+// openDrive opens the named session and Drive in the current document.
+func (s *TestSession) openDrive(t testing.TB, h *Harness, sessionIndex uint32, spaceID string) {
+	t.Helper()
+
+	page := s.page
+	h.navigateHash(
 		t,
-		s.h,
 		page,
-		"#/u/"+strconv.FormatUint(uint64(s.firstSessionIndex), 10)+"/so/"+s.firstSpaceID,
+		"#/u/"+strconv.FormatUint(uint64(sessionIndex), 10)+"/so/"+spaceID,
 	)
 	WaitForDriveShell(t, page)
 }
@@ -178,26 +204,33 @@ func (s *MultiSessionScenario) LockFirstSessionAtNestedRoute(t testing.TB) {
 	if err := sdk.LockSession(ctx); err != nil {
 		t.Fatalf("lock first session: %v", err)
 	}
-	WaitForPinUnlockOverlay(t, s.session.Page())
+	s.session.waitForPIN(t)
 }
 
 // UnlockVisiblePIN unlocks the currently visible PIN overlay.
 func (s *MultiSessionScenario) UnlockVisiblePIN(t testing.TB) {
 	t.Helper()
+	s.session.unlockDrivePIN(t, s.firstSessionIndex, s.firstSpaceID)
+}
+
+// unlockDrivePIN unlocks the document and checks the restored Drive route.
+func (s *TestSession) unlockDrivePIN(t testing.TB, sessionIndex uint32, spaceID string) {
+	t.Helper()
 
 	s.submitVisiblePIN(t)
-	WaitForDriveShell(t, s.session.Page())
-	if !strings.Contains(s.session.Page().URL(), "/u/"+strconv.FormatUint(uint64(s.firstSessionIndex), 10)+"/so/"+s.firstSpaceID) {
-		t.Fatalf("unlock did not restore first nested route, got %q", s.session.Page().URL())
+	WaitForDriveShell(t, s.page)
+	if !strings.Contains(s.page.URL(), "/u/"+strconv.FormatUint(uint64(sessionIndex), 10)+"/so/"+spaceID) {
+		t.Fatalf("unlock did not restore first nested route, got %q", s.page.URL())
 	}
 }
 
-func (s *MultiSessionScenario) submitVisiblePIN(t testing.TB) {
+// submitVisiblePIN applies the scenario action to the current document.
+func (s *TestSession) submitVisiblePIN(t testing.TB) {
 	// Report failures at the caller.
 	t.Helper()
 
 	// Fill and submit the visible PIN.
-	page := s.session.Page()
+	page := s.page
 	WaitForPinUnlockOverlay(t, page)
 	if err := page.Locator("[data-testid='pin-unlock-input']").Fill(multiSessionPIN); err != nil {
 		failWithPageBody(t, page, "fill pin unlock input", err)
@@ -342,4 +375,9 @@ func parseSessionRoute(rawURL string) (uint32, error) {
 		return 0, errors.Wrap(err, "parse session index")
 	}
 	return uint32(idx), nil
+}
+
+// waitForPIN waits for the current document's PIN overlay.
+func (s *TestSession) waitForPIN(t testing.TB) {
+	WaitForPinUnlockOverlay(t, s.page)
 }

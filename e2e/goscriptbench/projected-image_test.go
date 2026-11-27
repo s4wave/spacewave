@@ -16,9 +16,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aperturerobotics/util/gitroot"
 	trace_service_inject "github.com/s4wave/spacewave/core/trace/service/inject"
 	wasm "github.com/s4wave/spacewave/e2e/wasm"
+	"github.com/s4wave/spacewave/testbed/reporoot"
 	"github.com/sirupsen/logrus"
 )
 
@@ -38,7 +38,7 @@ func TestProjectedImageCacheDisabledRebuildsStartupModule(t *testing.T) {
 	}
 
 	// Locate the prerender source whose literal lands in the startup chunk.
-	repoRoot, err := gitroot.FindRepoRoot()
+	repoRoot, err := reporoot.Find()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -148,8 +148,14 @@ func bootProjectedImageHarness(t *testing.T, extra ...wasm.Option) *wasm.Harness
 }
 
 func TestProjectedImageSetupScriptCompiles(t *testing.T) {
+	// Resolve explicit source aliases in checkouts without Git metadata.
+	repoRoot, err := reporoot.Find()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	// Compile the setup and measure scripts and require both outputs.
-	scripts, err := wasm.CompileTestScripts(".", t.TempDir())
+	scripts, err := wasm.CompileTestScriptsFor(".", t.TempDir(), repoRoot, filepath.Join(repoRoot, "vendor"))
 	if err != nil {
 		t.Fatal(err.Error())
 	}

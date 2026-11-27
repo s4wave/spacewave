@@ -4,6 +4,10 @@ package goscriptbench
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
+	"image"
+	"image/png"
 	"testing"
 )
 
@@ -33,13 +37,16 @@ func TestProjectedImageFixtureDeterministic(t *testing.T) {
 		t.Fatalf("fixture dimensions = %dx%d", firstFixture.Width, firstFixture.Height)
 	}
 
-	// Require the encoded PNG size and hash to match the pinned values.
-	if firstFixture.EncodedBytes != 4_198_217 {
-		t.Fatalf("fixture size = %d bytes, want 4198217", firstFixture.EncodedBytes)
+	// Require the source pixel identity independently of the PNG encoder version.
+	decoded, err := png.Decode(bytes.NewReader(firstData))
+	if err != nil {
+		t.Fatal(err)
 	}
-	if firstFixture.SHA256 != "3470475e663fab4c571c4c1f3857c5bcad4902ad1058ed4cfae96b3bf5127724" {
-		t.Fatalf("fixture SHA-256 = %s", firstFixture.SHA256)
+	digest := sha256.Sum256(decoded.(*image.NRGBA).Pix)
+	if hex.EncodeToString(digest[:]) != "5301749e2d65c4622c3f12e63057827a4ebcb1ffce167e6fd494fe5fb893b478" {
+		t.Fatalf("fixture pixel SHA-256 = %x", digest)
 	}
+
 }
 
 func TestProjectedImageFixtureRejectsCorruption(t *testing.T) {

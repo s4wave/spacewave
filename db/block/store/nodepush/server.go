@@ -84,12 +84,16 @@ type pendingReport struct {
 
 // NewServer builds a Server keeping its reports in dir, and resumes the
 // reports an earlier process left unapplied.
-func NewServer(holder Holder, dir string) (*Server, error) {
+func NewServer(holder Holder, dir string, packs *PackFiles) (*Server, error) {
 	// Open the directory.
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return nil, err
 	}
-	s := &Server{holder: holder, dir: dir, wait: reportWait, retryBase: reportWait, wake: make(chan struct{}, 1), readSlots: make(chan struct{}, maxReadsInFlight)}
+	s := &Server{
+		packs: packs, holder: holder, dir: dir, wait: reportWait,
+		retryBase: reportWait, wake: make(chan struct{}, 1),
+		readSlots: make(chan struct{}, maxReadsInFlight),
+	}
 
 	// An empty report was applied. The sizes come from the directory walk, so
 	// the walk reads no report.
@@ -107,11 +111,6 @@ func NewServer(holder Holder, dir string) (*Server, error) {
 		}
 	}
 	return s, nil
-}
-
-// SetPacks serves reads from packs. Call it before Serve.
-func (s *Server) SetPacks(packs *PackFiles) {
-	s.packs = packs
 }
 
 // Serve runs conn until it ends. A newer connection ends an older one: the
@@ -441,61 +440,33 @@ func writeDurable(path string, data []byte) error {
 	return dir.Sync()
 }
 
-// ReportingRemote is the node's upload target: a packahead.Remote that records
-// a report for each pack it uploads.
-//
-// Invariant: a pack counts as uploaded only once its report is durable. A crash
-// between the upload and the report leaves HasPackfile false, so the drain
-// uploads the same bytes again and reports it, rather than skipping a pack the
-// local store would never hear of.
-type ReportingRemote struct {
-	remote packahead.Remote
-	server *Server
-}
-
-// NewReportingRemote wraps remote, reporting through server.
-func NewReportingRemote(remote packahead.Remote, server *Server) *ReportingRemote {
-	return &ReportingRemote{remote: remote, server: server}
-}
-
-// HasPackfile reports whether the pack has a durable report, which is written
-// only after the remote took the pack. So the node never lists the remote.
-func (r *ReportingRemote) HasPackfile(_ context.Context, id string) (bool, error) {
-	return r.server.reported(id), nil
-}
-
-// PutPackFile uploads a pack, then reports it.
-func (r *ReportingRemote) PutPackFile(ctx context.Context, id string, data []byte) (*packfile.PackfileEntry, error) {
-	// Upload the pack.
-	entry, err := r.remote.PutPackFile(ctx, id, data)
-	if err != nil {
-		return nil, err
-	}
-
+// reportUpload retains uploaded bytes for reads and records their block report.
+func (s *Server) reportUpload(id string, data []byte, entry *packfile.PackfileEntry) error {
 	// Keep it for reads before the local store can ask, so the first read
 	// doesn't download what the node is writing, then report it with what the
 	// local store needs to find its blocks.
 	index, err := packfile.ReadIndex(bytes.NewReader(data), uint64(len(data)))
 	if err != nil {
-		return nil, errors.Wrap(err, "read packfile index")
+		return errors.Wrap(err, "read packfile index")
 	}
 	keys := make([][]byte, len(index))
 	for i, e := range index {
 		keys[i] = e.GetKey()
 	}
+
+	// Encode the remote entry for the local store.
 	encoded, err := entry.MarshalVT()
 	if err != nil {
-		return nil, err
-	}
-	if r.server.packs != nil {
-		r.server.packs.Keep(id, data)
-	}
-	if err := r.server.report(&PackReport{PackId: id, Entry: encoded, Keys: keys}); err != nil {
-		return nil, err
+		return err
 	}
 
-	return entry, nil
+	// Keep uploaded bytes readable before notifying the local store.
+	if s.packs != nil {
+		s.packs.Keep(id, data)
+	}
+	if err := s.report(&PackReport{PackId: id, Entry: encoded, Keys: keys}); err != nil {
+		return err
+	}
+
+	return nil
 }
-
-// _ is a type assertion
-var _ packahead.Remote = (*ReportingRemote)(nil)

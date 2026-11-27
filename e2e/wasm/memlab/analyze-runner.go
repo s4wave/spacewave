@@ -26,72 +26,6 @@ type AnalysisResult struct {
 	PairDeltas []RetainedRpcDelta `json:"pairDeltas"`
 }
 
-// SnapshotAnalysis is per-snapshot analysis output.
-type SnapshotAnalysis struct {
-	// Label is the snapshot label given on the command line.
-	Label string `json:"label"`
-	// Path is the heap snapshot file.
-	Path string `json:"path"`
-	// Counts holds the leak-target object counts in this snapshot.
-	Counts ObjectCounts `json:"counts"`
-	// TopRetained lists the most retained service and method pairs in this snapshot.
-	TopRetained []RetainedRpcEntry `json:"topRetained"`
-}
-
-// ObjectCounts holds counts of leak-target objects.
-type ObjectCounts struct {
-	// ClientRpc counts retained client RPC objects.
-	ClientRpc int `json:"clientRpc"`
-	// ChannelStream counts retained channel streams.
-	ChannelStream int `json:"channelStream"`
-	// Promise counts retained promises.
-	Promise int `json:"promise"`
-	// Generator counts retained generators.
-	Generator int `json:"generator"`
-	// OnNext counts retained onNext callbacks.
-	OnNext int `json:"onNext"`
-}
-
-// RetainedRpcEntry is a service/method pair with a count.
-type RetainedRpcEntry struct {
-	// Service is the RPC service name.
-	Service string `json:"service"`
-	// Method is the RPC method name.
-	Method string `json:"method"`
-	// Count is the number of retained calls.
-	Count int `json:"count"`
-}
-
-// RetainedRpcDelta is a per-pair retained count delta between first and last snapshots.
-type RetainedRpcDelta struct {
-	// Service is the RPC service name.
-	Service string `json:"service"`
-	// Method is the RPC method name.
-	Method string `json:"method"`
-	// BaselineCount is the retained count in the first snapshot.
-	BaselineCount int `json:"baselineCount"`
-	// FinalCount is the retained count in the last snapshot.
-	FinalCount int `json:"finalCount"`
-	// Delta is FinalCount minus BaselineCount.
-	Delta int `json:"delta"`
-}
-
-// BuildSnapshotArg builds the ordered label=path argument for analyze.js.
-func BuildSnapshotArg(snapshots *SnapshotSet) (string, error) {
-	var pairs []string
-	for _, label := range snapshots.SnapshotLabels() {
-		path, ok := snapshots.Snapshots[label]
-		if !ok {
-			return "", errors.Errorf("missing snapshot path for label %q", label)
-		}
-		pairs = append(pairs, label+"="+path)
-	}
-	if len(pairs) == 0 {
-		return "", errors.New("no snapshots to analyze")
-	}
-	return strings.Join(pairs, ","), nil
-}
-
 // SortPairDeltas sorts pair deltas by descending delta, then final count, then name.
 func SortPairDeltas(pairDeltas []RetainedRpcDelta) {
 	if len(pairDeltas) < 2 {
@@ -155,7 +89,7 @@ func RunAnalysis(snapshots *SnapshotSet) (*AnalysisResult, error) {
 	script := filepath.Join(dir, "analyze.js")
 
 	// Encode the snapshot set as the script's argument.
-	arg, err := BuildSnapshotArg(snapshots)
+	arg, err := snapshots.BuildSnapshotArg()
 	if err != nil {
 		return nil, err
 	}

@@ -190,7 +190,7 @@ func (a *runArgs) write(ctx context.Context, w *benchWorld, stage *atomic.Value)
 		case <-tick.C:
 		}
 		start := time.Now()
-		err := commitTx(ctx, w, func(ws world.WorldState) error {
+		err := w.commitTx(ctx, func(ws world.WorldState) error {
 			return writeResults(ctx, ws, next, next+a.Batch)
 		})
 		took := time.Since(start)

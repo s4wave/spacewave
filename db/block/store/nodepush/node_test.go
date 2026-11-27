@@ -131,7 +131,7 @@ func TestNodeRunThrough(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer log.Close()
-	server, err := NewServer(log, dir+"/reports")
+	server, err := NewServer(log, dir+"/reports", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -298,7 +298,7 @@ func TestReportsNeverWedgeCommits(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	server, err := NewServer(nopHolder{}, dir)
+	server, err := NewServer(nopHolder{}, dir, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -366,7 +366,7 @@ func TestReportsNeverWedgeCommits(t *testing.T) {
 func TestReportWaitsOnNoConnection(t *testing.T) {
 	// Report more packs than any queue holds, with nobody connected.
 	ctx := t.Context()
-	server, err := NewServer(nopHolder{}, t.TempDir())
+	server, err := NewServer(nopHolder{}, t.TempDir(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -417,11 +417,10 @@ func TestReadThrough(t *testing.T) {
 		packs.Run(ctx)
 	}()
 	t.Cleanup(func() { <-running })
-	server, err := NewServer(nopHolder{}, dir+"/reports")
+	server, err := NewServer(nopHolder{}, dir+"/reports", packs)
 	if err != nil {
 		t.Fatal(err)
 	}
-	server.SetPacks(packs)
 	client := NewClient(logrus.NewEntry(logrus.New()), &slowApplier{})
 	end := connect(ctx, t, client, server)
 	var on atomic.Bool
@@ -495,11 +494,10 @@ func TestHungReadsHoldNoPush(t *testing.T) {
 	if err := syscall.Mkfifo(filepath.Join(dir, "packs", id), 0o600); err != nil {
 		t.Skip("no fifo here")
 	}
-	server, err := NewServer(nopHolder{}, dir+"/reports")
+	server, err := NewServer(nopHolder{}, dir+"/reports", packs)
 	if err != nil {
 		t.Fatal(err)
 	}
-	server.SetPacks(packs)
 	client := NewClient(logrus.NewEntry(logrus.New()), &slowApplier{})
 	end := connect(ctx, t, client, server)
 
@@ -567,7 +565,7 @@ func nextPending(s *Server) string {
 func TestReportsOutliveFailures(t *testing.T) {
 	// A report the local store refuses far past any number of tries.
 	ctx := t.Context()
-	server, err := NewServer(nopHolder{}, t.TempDir())
+	server, err := NewServer(nopHolder{}, t.TempDir(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

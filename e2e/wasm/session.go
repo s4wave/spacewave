@@ -222,6 +222,93 @@ func (s *TestSession) Page() playwright.Page { return s.page }
 // BrowserContext returns the Playwright BrowserContext for this session.
 func (s *TestSession) BrowserContext() playwright.BrowserContext { return s.browserCtx }
 
+// RunScript evaluates a compiled harness script on the session's current page.
+func (s *TestSession) RunScript(name string, args any) (any, error) {
+	return s.page.Evaluate(s.h.Script(name), args)
+}
+
+// NewPageCDPSession attaches Chromium diagnostics to the current document.
+func (s *TestSession) NewPageCDPSession() (playwright.CDPSession, error) {
+	return s.browserCtx.NewCDPSession(s.page)
+}
+
+// BrowserVersion reports the browser that owns the session's storage context.
+func (s *TestSession) BrowserVersion() string {
+	// A detached context has no browser version to report.
+	browser := s.browserCtx.Browser()
+	if browser == nil {
+		return ""
+	}
+	return browser.Version()
+}
+
+// OpenDriveQuickstart opens Drive and requires a dedicated runtime after its shell appears.
+func (s *TestSession) OpenDriveQuickstart(t testing.TB) (string, error) {
+	// Navigate without replacing the app's runtime.
+	t.Helper()
+	if _, err := s.page.Evaluate(`() => {
+		window.location.hash = '#/quickstart/drive'
+	}`); err != nil {
+		return "", errors.Wrap(err, "navigate to Drive quickstart")
+	}
+
+	// Return the created Drive route after the shell appears.
+	WaitForDriveShell(t, s.page)
+	if err := s.RequireDedicatedRuntime(); err != nil {
+		return "", err
+	}
+	return s.page.URL(), nil
+}
+
+// ReplaceDrivePage replaces the document and loads a retained Drive route.
+func (s *TestSession) ReplaceDrivePage(t testing.TB, targetHash string) error {
+	// Replace the page inside its current storage context.
+	t.Helper()
+	priorPage := s.page
+	if err := s.ReplacePageInCurrentContext(); err != nil {
+		return errors.Wrap(err, "replace benchmark page")
+	}
+	if s.page == nil || s.page == priorPage {
+		return errors.New("benchmark page was not replaced")
+	}
+
+	// Load the retained Drive and wait for its app and shell.
+	if _, err := s.page.Goto(s.h.BaseURL()+"/"+targetHash, playwright.PageGotoOptions{
+		Timeout:   playwright.Float(240000),
+		WaitUntil: playwright.WaitUntilStateDomcontentloaded,
+	}); err != nil {
+		return errors.Wrap(err, "load retained Drive route")
+	}
+	WaitForApp(t, s.page)
+	WaitForDriveShell(t, s.page)
+	return nil
+}
+
+// RequireDedicatedRuntime checks the mode selected during page startup.
+func (s *TestSession) RequireDedicatedRuntime() error {
+	// Read the runtime topology selected during page startup.
+	raw, err := s.page.Evaluate(`() => {
+		const marks = globalThis.__swStartupMarks ?? []
+		for (let idx = marks.length - 1; idx >= 0; idx--) {
+			const mark = marks[idx]
+			if (mark.label === 'runtime.mode-selected') {
+				return mark.detail?.mode ?? null
+			}
+		}
+		return null
+	}`)
+	if err != nil {
+		return errors.Wrap(err, "read GoScript runtime mode")
+	}
+
+	// Require a dedicated worker for the measured runtime generation.
+	mode, _ := raw.(string)
+	if mode != "dedicated-worker" {
+		return errors.Errorf("GoScript runtime mode = %q, want dedicated-worker", mode)
+	}
+	return nil
+}
+
 // ReplacePageInCurrentContext closes the current page and opens a fresh page in
 // the same BrowserContext. Clean sessions keep their isolated context. Retained
 // sessions keep the retained warm context.

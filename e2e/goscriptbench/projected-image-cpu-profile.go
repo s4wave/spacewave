@@ -23,7 +23,7 @@ func (p *ProjectedImage) captureBrowserCPUProfile(
 	}
 
 	// Bracket the browser action with the Chromium profiler.
-	cdp, err := p.session.BrowserContext().NewCDPSession(p.session.Page())
+	cdp, err := p.session.NewPageCDPSession()
 	if err != nil {
 		return Sample{}, nil, errors.Wrap(err, "create projected-image CDP session")
 	}

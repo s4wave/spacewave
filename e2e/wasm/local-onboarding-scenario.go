@@ -23,16 +23,25 @@ type LocalOnboardingScenario struct {
 // banner through the plan and setup pages, downloads a backup PEM, and sets
 // the session lock mode to PIN.
 func CreateLocalOnboardingScenario(t testing.TB, h *Harness, session *TestSession) *LocalOnboardingScenario {
+	t.Helper()
+
+	// Capture the identity produced by this document's setup.
+	sessionIndex, spaceID := session.createLocalOnboardingScenario(t, h)
+	return &LocalOnboardingScenario{session: session, sessionIndex: sessionIndex, spaceID: spaceID}
+}
+
+// createLocalOnboardingScenario drives the current document through the scenario setup.
+func (s *TestSession) createLocalOnboardingScenario(t testing.TB, h *Harness) (uint32, string) {
 	// Report failures at the caller.
 	t.Helper()
 
 	// Open Drive and wait until it is ready.
-	page := session.Page()
+	page := s.page
 	WaitForApp(t, page)
 	EnableQuickstartTimingLogs(t, page)
-	NavigateHash(t, h, page, "#/quickstart/drive")
+	h.navigateHash(t, page, "#/quickstart/drive")
 	CompleteDriveIntroWizard(t, page)
-	WaitForDriveReady(t, h, page)
+	h.waitForDriveReady(t, page)
 	AssertSetupBannerHidden(t, page)
 
 	// Upload the setup-banner fixture and wait for it.
@@ -52,13 +61,13 @@ func CreateLocalOnboardingScenario(t testing.TB, h *Harness, session *TestSessio
 	}
 
 	// Open account setup from the banner.
-	WaitForSetupBanner(t, h, page)
+	h.waitForSetupBanner(t, page)
 	if err := page.Locator("text=Finish setting up your account").First().Click(); err != nil {
 		failWithPageBody(t, page, "open setup banner", err)
 	}
 
 	// Choose local storage on the plan page.
-	WaitForPlanPage(t, h, page)
+	h.waitForPlanPage(t, page)
 	if err := page.Locator("button:visible:has-text('Continue with local storage')").First().Click(); err != nil {
 		failWithPageBody(t, page, "choose local storage plan", err)
 	}
@@ -68,13 +77,9 @@ func CreateLocalOnboardingScenario(t testing.TB, h *Harness, session *TestSessio
 	CompleteLocalSetupPemStep(t, page)
 	CompleteLocalSetupLockStep(t, page)
 	WaitForLocalSetupComplete(t, page)
-	WaitForSessionLockMode(t, h, session, sessionIndex, session_core.SessionLockMode_SESSION_LOCK_MODE_PIN_ENCRYPTED)
+	s.waitForSessionLockMode(t, h, sessionIndex, session_core.SessionLockMode_SESSION_LOCK_MODE_PIN_ENCRYPTED)
 
-	return &LocalOnboardingScenario{
-		session:      session,
-		sessionIndex: sessionIndex,
-		spaceID:      spaceID,
-	}
+	return sessionIndex, spaceID
 }
 
 // AssertSetupBannerHidden verifies the setup banner does not render before the
@@ -125,6 +130,12 @@ func (s *LocalOnboardingScenario) GetSpaceID() string { return s.spaceID }
 // WaitForSetupBanner waits for the local setup banner to render.
 func WaitForSetupBanner(t testing.TB, h *Harness, page playwright.Page) {
 	t.Helper()
+	h.waitForSetupBanner(t, page)
+}
+
+// waitForSetupBanner performs the harness navigation action on page.
+func (h *Harness) waitForSetupBanner(t testing.TB, page playwright.Page) {
+	t.Helper()
 
 	if _, err := page.Evaluate(h.Script("wait-for-setup-banner.ts"), map[string]any{
 		"deadlineMs": 120000,
@@ -135,6 +146,12 @@ func WaitForSetupBanner(t testing.TB, h *Harness, page playwright.Page) {
 
 // WaitForPlanPage waits for the plan selection page to render.
 func WaitForPlanPage(t testing.TB, h *Harness, page playwright.Page) {
+	t.Helper()
+	h.waitForPlanPage(t, page)
+}
+
+// waitForPlanPage performs the harness navigation action on page.
+func (h *Harness) waitForPlanPage(t testing.TB, page playwright.Page) {
 	t.Helper()
 
 	if _, err := page.Evaluate(h.Script("wait-for-plan-page.ts"), map[string]any{
@@ -244,6 +261,14 @@ func WaitForSessionLockMode(
 	sessionIndex uint32,
 	want session_core.SessionLockMode,
 ) {
+	t.Helper()
+	session.waitForSessionLockMode(t, h, sessionIndex, want)
+}
+
+// waitForSessionLockMode observes the SDK lock-state stream for the named session.
+func (s *TestSession) waitForSessionLockMode(
+	t testing.TB, h *Harness, sessionIndex uint32, want session_core.SessionLockMode,
+) {
 	// Report failures at the caller.
 	t.Helper()
 
@@ -252,7 +277,7 @@ func WaitForSessionLockMode(
 	defer cancel()
 
 	// Mount the session.
-	sdk, err := session.MountSessionByIdx(ctx, sessionIndex)
+	sdk, err := s.MountSessionByIdx(ctx, sessionIndex)
 	if err != nil {
 		t.Fatalf("mount session %d for lock-state check: %v", sessionIndex, err)
 	}

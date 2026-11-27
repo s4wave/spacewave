@@ -106,18 +106,13 @@ func (p *ProjectedImage) Setup(ctx context.Context) (RunMetadata, error) {
 
 	// Create the retained BrowserContext and navigate to the Drive quickstart.
 	p.session = p.harness.NewRetainedStatePageSession(p.t)
-	if _, err := p.session.Page().Evaluate(`() => {
-		window.location.hash = '#/quickstart/drive'
-	}`); err != nil {
-		return RunMetadata{}, errors.Wrap(err, "navigate to Drive quickstart")
-	}
-	wasm.WaitForDriveShell(p.t, p.session.Page())
-
-	// Record the created Drive route and its direct hash target.
-	if err := p.requireDedicatedRuntime(); err != nil {
+	pageURL, err := p.session.OpenDriveQuickstart(p.t)
+	if err != nil {
 		return RunMetadata{}, err
 	}
-	p.sessionIndex, p.spaceID, err = projectedImageRoute(p.session.Page().URL())
+
+	// Record the created Drive route and its direct hash target.
+	p.sessionIndex, p.spaceID, err = projectedImageRoute(pageURL)
 	if err != nil {
 		return RunMetadata{}, err
 	}
@@ -140,14 +135,14 @@ func (p *ProjectedImage) Setup(ctx context.Context) (RunMetadata, error) {
 	}
 
 	// Publish the verified fixture and cache boundary through workload metadata.
-	browser := p.session.BrowserContext().Browser()
-	if browser == nil || browser.Version() == "" {
+	browserVersion := p.session.BrowserVersion()
+	if browserVersion == "" {
 		return RunMetadata{}, errors.New("browser version is unavailable")
 	}
 	p.metadata = RunMetadata{
 		RunID:                p.config.RunID,
 		Engine:               p.config.Engine,
-		EngineVersion:        browser.Version(),
+		EngineVersion:        browserVersion,
 		Compiler:             "goscript",
 		SpacewaveRevision:    p.config.SpacewaveRevision,
 		GoScriptRevision:     p.config.GoScriptRevision,
@@ -203,26 +198,10 @@ func (p *ProjectedImage) Restart(ctx context.Context, _ SampleRequest) error {
 	p.readyToMeasure = false
 
 	// Replace the document and its dedicated worker inside the retained context.
-	priorPage := p.session.Page()
-	if err := p.session.ReplacePageInCurrentContext(); err != nil {
-		return errors.Wrap(err, "replace benchmark page")
+	if err := p.session.ReplaceDrivePage(p.t, p.targetHash); err != nil {
+		return err
 	}
-	page := p.session.Page()
-	if page == nil || page == priorPage {
-		return errors.New("benchmark page was not replaced")
-	}
-	if _, err := page.Goto(
-		p.harness.BaseURL()+"/"+p.targetHash,
-		playwright.PageGotoOptions{
-			Timeout:   playwright.Float(240000),
-			WaitUntil: playwright.WaitUntilStateDomcontentloaded,
-		},
-	); err != nil {
-		return errors.Wrap(err, "load retained Drive route")
-	}
-	wasm.WaitForApp(p.t, page)
-	wasm.WaitForDriveShell(p.t, page)
-	if err := p.requireDedicatedRuntime(); err != nil {
+	if err := p.session.RequireDedicatedRuntime(); err != nil {
 		return err
 	}
 
@@ -236,8 +215,12 @@ func (p *ProjectedImage) Restart(ctx context.Context, _ SampleRequest) error {
 	if len(workers) == 0 {
 		return errors.New("restart observed no dedicated GoScript worker")
 	}
+	priorWorkers := make(map[playwright.Worker]struct{}, len(p.priorWorkers))
+	for _, worker := range p.priorWorkers {
+		priorWorkers[worker] = struct{}{}
+	}
 	for _, worker := range workers {
-		if slices.Contains(p.priorWorkers, worker) {
+		if _, retained := priorWorkers[worker]; retained {
 			return errors.New("restart retained a prior dedicated GoScript worker")
 		}
 	}
@@ -260,7 +243,7 @@ func (p *ProjectedImage) Restart(ctx context.Context, _ SampleRequest) error {
 
 func (p *ProjectedImage) runFixtureScript(action, fixtureBase64 string, fixture Fixture) (projectedImageFixtureProof, error) {
 	// Execute the upload or verification module against the current page.
-	raw, err := p.session.Page().Evaluate(p.harness.Script(projectedImageSetupScript), map[string]any{
+	raw, err := p.session.RunScript(projectedImageSetupScript, map[string]any{
 		"action":        action,
 		"sessionIndex":  p.sessionIndex,
 		"spaceId":       p.spaceID,
@@ -298,30 +281,6 @@ func (p *ProjectedImage) runFixtureScript(action, fixtureBase64 string, fixture 
 		proof.encodedBytes = int64(value)
 	}
 	return proof, nil
-}
-
-func (p *ProjectedImage) requireDedicatedRuntime() error {
-	// Read the runtime topology selected during page startup.
-	raw, err := p.session.Page().Evaluate(`() => {
-		const marks = globalThis.__swStartupMarks ?? []
-		for (let idx = marks.length - 1; idx >= 0; idx--) {
-			const mark = marks[idx]
-			if (mark.label === 'runtime.mode-selected') {
-				return mark.detail?.mode ?? null
-			}
-		}
-		return null
-	}`)
-	if err != nil {
-		return errors.Wrap(err, "read GoScript runtime mode")
-	}
-
-	// Require the runtime generation selected by the benchmark state boundary.
-	mode, _ := raw.(string)
-	if mode != "dedicated-worker" {
-		return errors.Errorf("GoScript runtime mode = %q, want dedicated-worker", mode)
-	}
-	return nil
 }
 
 func projectedImageURL(sessionIndex uint32, spaceID string) string {

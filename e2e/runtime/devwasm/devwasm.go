@@ -19,9 +19,6 @@ import (
 // defaultWait bounds browser actions outside event-specific readiness waits.
 const defaultWait = 120 * time.Second
 
-// Options configures the dev WASM runtime adapter.
-type Options struct{}
-
 // Adapter drives scenarios through the existing browser WASM harness.
 type Adapter struct {
 	// h owns the application server and browser process.
@@ -94,7 +91,7 @@ func (a *Adapter) newPage() error {
 	// Retain storage when replacing a document in the same session.
 	var err error
 	if a.ctx == nil {
-		a.ctx, err = a.h.Browser().NewContext(playwright.BrowserNewContextOptions{AcceptDownloads: new(true)})
+		a.ctx, err = a.h.NewScenarioContext()
 		if err != nil {
 			return errors.Wrap(err, "create browser context")
 		}
@@ -226,7 +223,10 @@ func (a *Adapter) waitForNextTabPathCommit(action string, run func() error) erro
 	}
 
 	// Await the recorded commit and release its document marker.
-	_, err := a.page.WaitForFunction(`({ key }) => window[key]?.promise`, map[string]any{"key": key}, playwright.PageWaitForFunctionOptions{Timeout: durationMS(defaultWait)})
+	_, err := a.page.WaitForFunction(
+		`({ key }) => window[key]?.promise`, map[string]any{"key": key},
+		playwright.PageWaitForFunctionOptions{Timeout: durationMS(defaultWait)},
+	)
 	_, _ = a.page.Evaluate(`({ key }) => delete window[key]`, map[string]any{"key": key})
 	if err != nil {
 		return errors.Wrapf(err, "wait for tab path commit after %s", action)
@@ -367,7 +367,12 @@ func (a *Adapter) MoveContent(source string, target string) error {
 		const row = Array.from(browser.querySelectorAll('[role="row"]')).find((el) => el.textContent?.includes(target) && isVisible(el))
 		if (!(row instanceof HTMLElement)) throw new Error('target row not found: ' + target)
 		const transfer = new DataTransfer()
-		transfer.setData('application/x-s4wave-app-drag+json', JSON.stringify({version: 1, items: [{id: source, label: source, capabilities: [{kind: 'movable', value: {case: 'unixfs-entry', value: {unixfsId: 'files', path: '/' + source, isDir: false}}}]}]}))
+		transfer.setData('application/x-s4wave-app-drag+json', JSON.stringify({
+			version: 1,
+			items: [{id: source, label: source, capabilities: [{
+				kind: 'movable', value: {case: 'unixfs-entry', value: {unixfsId: 'files', path: '/' + source, isDir: false}},
+			}]}],
+		}))
 		for (const type of ['dragover', 'drop']) row.dispatchEvent(new DragEvent(type, {bubbles: true, cancelable: true, dataTransfer: transfer}))
 	}`, map[string]any{"source": source, "target": target})
 	return err

@@ -314,6 +314,20 @@ type localCDNHandler struct {
 	delay time.Duration
 }
 
+// newLocalCDNHandler configures the local CDN's optional round-trip delay.
+func newLocalCDNHandler(next http.Handler, delay string) (*localCDNHandler, error) {
+	// Parse the optional simulated network delay before serving requests.
+	h := &localCDNHandler{next: next}
+	if delay != "" {
+		var err error
+		h.delay, err = time.ParseDuration(delay)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return h, nil
+}
+
 // ServeHTTP counts fixture requests and rejects outbound proxy connections.
 func (h *localCDNHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	// Reject proxy requests for the external network.

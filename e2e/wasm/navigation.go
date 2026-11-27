@@ -206,6 +206,12 @@ func readRuntimeStartupProof(t testing.TB, h *Harness, page playwright.Page) map
 // NavigateHash changes the client-side hash route without reloading the page.
 func NavigateHash(t testing.TB, h *Harness, page playwright.Page, hash string) {
 	t.Helper()
+	h.navigateHash(t, page, hash)
+}
+
+// navigateHash performs the harness navigation action on page.
+func (h *Harness) navigateHash(t testing.TB, page playwright.Page, hash string) {
+	t.Helper()
 
 	_, err := page.Evaluate(h.Script("navigate-hash.ts"), map[string]any{
 		"targetHash": hash,
@@ -556,6 +562,12 @@ func EnableQuickstartTimingLogs(t testing.TB, page playwright.Page) {
 
 // WaitForDriveReady waits for the drive viewer to render its demo content.
 func WaitForDriveReady(t testing.TB, h *Harness, page playwright.Page) DriveReadyResult {
+	t.Helper()
+	return h.waitForDriveReady(t, page)
+}
+
+// waitForDriveReady performs the harness navigation action on page.
+func (h *Harness) waitForDriveReady(t testing.TB, page playwright.Page) DriveReadyResult {
 	// Report failures at the caller.
 	t.Helper()
 

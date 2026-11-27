@@ -70,21 +70,7 @@ func RunLoad(ctx context.Context, le *logrus.Entry, st *Store, conf *LoadConfig)
 	// Sample the store keys the views and writes read.
 	eng := st.Engine
 	l := &load{le: le, eng: eng, conf: conf, vol: st.Volume}
-	keys, err := sampleKeys(ctx, eng, conf.SampleKeys, conf.Seed)
-	if err != nil {
-		return nil, err
-	}
-	if len(keys) == 0 {
-		return nil, errors.New("the World holds no objects to read")
-	}
-	l.keys = keys
-
-	// Name the hot keys the writes rewrite and create them.
-	for i := range max(conf.HotKeys, 1) {
-		l.hot = append(l.hot, HotKeyPrefix+"hot-"+strconv.Itoa(i))
-	}
-	le.WithField("sampled-keys", len(keys)).Info("sampled store keys")
-	if err := l.createHot(ctx); err != nil {
+	if err := l.prepare(ctx); err != nil {
 		return nil, err
 	}
 
@@ -120,6 +106,26 @@ func RunLoad(ctx context.Context, le *logrus.Entry, st *Store, conf *LoadConfig)
 		err = gcErr
 	}
 	return report, err
+}
+
+// prepare samples read keys and creates the load's hot objects before timing.
+func (l *load) prepare(ctx context.Context) error {
+	// Sample the store keys the views and writes read.
+	keys, err := sampleKeys(ctx, l.eng, l.conf.SampleKeys, l.conf.Seed)
+	if err != nil {
+		return err
+	}
+	if len(keys) == 0 {
+		return errors.New("the World holds no objects to read")
+	}
+	l.keys = keys
+
+	// Name the hot keys the writes rewrite and create them.
+	for i := range max(l.conf.HotKeys, 1) {
+		l.hot = append(l.hot, HotKeyPrefix+"hot-"+strconv.Itoa(i))
+	}
+	l.le.WithField("sampled-keys", len(keys)).Info("sampled store keys")
+	return l.createHot(ctx)
 }
 
 // writeAllocProfile writes the heap allocation profile to path plus suffix,

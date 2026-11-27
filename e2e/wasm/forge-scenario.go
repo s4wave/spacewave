@@ -17,13 +17,22 @@ type ForgeScenario struct {
 
 // CreateForgeScenario creates a forge environment in a fresh harness session.
 func CreateForgeScenario(t testing.TB, h *Harness, session *TestSession) *ForgeScenario {
+	t.Helper()
+
+	// Capture the identity produced by this document's setup.
+	sessionIndex, spaceID := session.createForgeScenario(t, h)
+	return &ForgeScenario{session: session, sessionIndex: sessionIndex, spaceID: spaceID}
+}
+
+// createForgeScenario drives the current document through the scenario setup.
+func (s *TestSession) createForgeScenario(t testing.TB, h *Harness) (uint32, string) {
 	// Report failures at the caller.
 	t.Helper()
 
 	// Open the Forge quickstart.
-	page := session.Page()
+	page := s.page
 	WaitForApp(t, page)
-	NavigateHash(t, h, page, "#/quickstart/forge")
+	h.navigateHash(t, page, "#/quickstart/forge")
 	WaitForForgeViewer(t, page)
 
 	// Parse the quickstart route.
@@ -32,14 +41,10 @@ func CreateForgeScenario(t testing.TB, h *Harness, session *TestSession) *ForgeS
 		t.Fatalf("parse forge route: %v", err)
 	}
 
-	return &ForgeScenario{
-		session:      session,
-		sessionIndex: sessionIndex,
-		spaceID:      spaceID,
-	}
+	return sessionIndex, spaceID
 }
 
-// GetSession returns the owning test session.
+// GetSession returns the owning test s.
 func (s *ForgeScenario) GetSession() *TestSession { return s.session }
 
 // GetSessionIndex returns the 1-based session index from the quickstart route.

@@ -91,6 +91,11 @@ func (h *Harness) launchBrowser(pw *playwright.Playwright) (playwright.Browser, 
 // Browser returns the raw Playwright Browser handle, or nil if not launched.
 func (h *Harness) Browser() playwright.Browser { return h.browser }
 
+// NewScenarioContext opens an isolated context for scenario-owned pages.
+func (h *Harness) NewScenarioContext() (playwright.BrowserContext, error) {
+	return h.browser.NewContext(playwright.BrowserNewContextOptions{AcceptDownloads: new(true)})
+}
+
 // BrowserName returns the Playwright browser type selected for this harness.
 func (h *Harness) BrowserName() string { return h.browserName }
 

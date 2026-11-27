@@ -222,7 +222,7 @@ func (p *ProjectedImage) measureProjectedImageURL(
 	}
 
 	// Run the controlled image action entirely on the browser clock.
-	raw, err := p.session.Page().Evaluate(p.harness.Script(projectedImageMeasureScript), map[string]any{
+	raw, err := p.session.RunScript(projectedImageMeasureScript, map[string]any{
 		"id":             id,
 		"projectedUrl":   projectedURL,
 		"expectedWidth":  expectedWidth,

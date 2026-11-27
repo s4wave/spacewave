@@ -8,6 +8,7 @@ import (
 	"math"
 	"net"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
 
@@ -124,9 +125,12 @@ func (a *ClientArgs) BuildCommands() []*cli.Command {
 	}
 }
 
-// SetContext sets the context.
-func (a *ClientArgs) SetContext(c context.Context) {
-	a.ctx = c
+// NotifyInterrupt cancels command operations when the process is interrupted.
+// The caller must release the signal registration with the returned function.
+func (a *ClientArgs) NotifyInterrupt() (context.Context, context.CancelFunc) {
+	ctx, stop := signal.NotifyContext(a.GetContext(), os.Interrupt)
+	a.ctx = ctx
+	return ctx, stop
 }
 
 // GetContext returns the context. Falls back to context.Background() for CLI

@@ -49,6 +49,11 @@ func (a *checkArgs) Run(c *cli.Context) error {
 		return err
 	}
 
+	return w.checkHead(ctx, seeded, acked)
+}
+
+// checkHead proves the current head contains every acknowledged result.
+func (w *benchWorld) checkHead(ctx context.Context, seeded, acked int) error {
 	// Read the stage and open a read of the head.
 	stage, err := world_block.NewRegenerator(w.authority, world_block.RegenConfig{}).Stage(ctx)
 	if err != nil {

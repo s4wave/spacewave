@@ -165,12 +165,9 @@ func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 	// Serve the release assets on the reserved listening socket.
 	handler := releaseHandler(distDirs.releaseDist, distDirs.prerender, baseURL)
 	if os.Getenv(localCDNEnv) == "1" {
-		cdnHandler := &localCDNHandler{next: handler}
-		if v := os.Getenv(localCDNDelayEnv); v != "" {
-			cdnHandler.delay, err = time.ParseDuration(v)
-			if err != nil {
-				return nil, errors.Wrap(err, localCDNDelayEnv)
-			}
+		cdnHandler, err := newLocalCDNHandler(handler, os.Getenv(localCDNDelayEnv))
+		if err != nil {
+			return nil, errors.Wrap(err, localCDNDelayEnv)
 		}
 		handler = cdnHandler
 	}
