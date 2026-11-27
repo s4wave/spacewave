@@ -387,7 +387,6 @@ export interface NativePackageRecoveryStatus {
   pluginId?: string
   distDir?: string
   materialized?: boolean
-  invalidated?: boolean
   lastAction?: string
   lastError?: string
   updatedAt?: string
@@ -400,7 +399,6 @@ export const NativePackageRecoveryStatus: MessageType<NativePackageRecoveryStatu
       [1, 'plugin_id', 9],
       [2, 'dist_dir', 9],
       [3, 'materialized', 8],
-      [4, 'invalidated', 8],
       [5, 'last_action', 9],
       [6, 'last_error', 9],
       [7, 'updated_at', 9],

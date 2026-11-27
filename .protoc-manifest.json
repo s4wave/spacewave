@@ -5058,7 +5058,7 @@
           ]
         },
         "github.com/s4wave/spacewave/sdk/status": {
-          "hash": "3244c277c5c20f8d16d6aa4f4117fc8de3350b7a79fd00a6c20755052781d7a1",
+          "hash": "3a95889c3064dd18d1804b45baefb44b0c0a5410d865ba444ee89e68a12488ae",
           "generatedFiles": [
             "sdk/status/status.pb.go",
             "sdk/status/status.pb.ts",

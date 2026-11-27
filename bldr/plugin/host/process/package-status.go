@@ -13,9 +13,7 @@ type PluginPackageStatus struct {
 	DistDir string
 	// Materialized is set when the last sync wrote the plugin's checkout.
 	Materialized bool
-	// Invalidated is set when the last invalidation removed the plugin's dist.
-	Invalidated bool
-	// LastAction names the last action: "sync" or "invalidate".
+	// LastAction names the last action: "sync".
 	LastAction string
 	// LastError is the last action's error, or empty when it succeeded.
 	LastError string

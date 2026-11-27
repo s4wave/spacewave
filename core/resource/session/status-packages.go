@@ -68,7 +68,6 @@ func (r *StatusResource) buildNativePackageRecoveryStatuses() []*s4wave_status.N
 				PluginId:     status.PluginID,
 				DistDir:      status.DistDir,
 				Materialized: status.Materialized,
-				Invalidated:  status.Invalidated,
 				LastAction:   status.LastAction,
 				LastError:    status.LastError,
 				UpdatedAt:    formatRecoveryStatusTime(status.UpdatedAt),

@@ -101,37 +101,6 @@ func TestProcessHostSyncExecutableInode(t *testing.T) {
 	}
 }
 
-func TestProcessHostInvalidatePluginDistPreservesPluginState(t *testing.T) {
-	// Write a dist file and a state file for the plugin.
-	ctx := t.Context()
-	host := newTestProcessHost(t)
-	pluginID := "spacewave-app"
-
-	// Write the fixture files into the dist and state dirs.
-	distFile := filepath.Join(host.pluginDistDir(pluginID), "old.txt")
-	stateFile := filepath.Join(host.pluginStateDir(pluginID), "state.txt")
-	writeDiskFile(t, distFile, []byte("old dist"))
-	writeDiskFile(t, stateFile, []byte("state data"))
-
-	// Invalidate the plugin dist.
-	if err := host.InvalidatePluginDist(ctx, pluginID); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// The dist must be gone and the state preserved.
-	assertPathMissing(t, host.pluginDistDir(pluginID))
-	assertFileContents(t, stateFile, "state data")
-
-	// The package status must report the invalidation.
-	status := singlePackageStatus(t, host, pluginID)
-	if status.Materialized {
-		t.Fatalf("materialized = true after invalidation: %#v", status)
-	}
-	if !status.Invalidated || status.LastAction != "invalidate" || status.LastError != "" {
-		t.Fatalf("unexpected invalidation status: %#v", status)
-	}
-}
-
 func TestProcessHostSyncPluginDistRebuildsSelectedDistAndPreservesState(t *testing.T) {
 	// Write a stale dist file and a state file for the plugin.
 	ctx := t.Context()
@@ -164,7 +133,7 @@ func TestProcessHostSyncPluginDistRebuildsSelectedDistAndPreservesState(t *testi
 
 	// The package status must report the sync.
 	status := singlePackageStatus(t, host, pluginID)
-	if !status.Materialized || status.Invalidated || status.LastAction != "sync" || status.LastError != "" {
+	if !status.Materialized || status.LastAction != "sync" || status.LastError != "" {
 		t.Fatalf("unexpected sync status: %#v", status)
 	}
 	if status.DistDir != host.pluginDistDir(pluginID) {

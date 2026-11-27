@@ -161,7 +161,8 @@ message NativePackageRecoveryStatus {
   string plugin_id = 1;
   string dist_dir = 2;
   bool materialized = 3;
-  bool invalidated = 4;
+  reserved 4;
+  reserved "invalidated";
   string last_action = 5;
   string last_error = 6;
   string updated_at = 7;

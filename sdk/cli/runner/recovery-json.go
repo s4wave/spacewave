@@ -132,7 +132,6 @@ func writeNativePackageRecoveryJSON(ms *protojson.MarshalState, pkg *s4wave_stat
 	writeJSONStringField(ms, &f, "pluginId", pkg.GetPluginId())
 	writeJSONStringField(ms, &f, "distDir", pkg.GetDistDir())
 	writeJSONBoolField(ms, &f, "materialized", pkg.GetMaterialized())
-	writeJSONBoolField(ms, &f, "invalidated", pkg.GetInvalidated())
 
 	// Write the native package recovery outcome and finish its record.
 	writeJSONStringField(ms, &f, "lastAction", pkg.GetLastAction())

@@ -299,11 +299,7 @@ function NativePackagesSection({
                   {pkg.pluginId}
                 </span>
                 <span className="text-foreground-alt/70 shrink-0">
-                  {pkg.invalidated
-                    ? 'Invalidated'
-                    : pkg.materialized
-                      ? 'Ready'
-                      : 'Not unpacked'}
+                  {pkg.materialized ? 'Ready' : 'Not unpacked'}
                 </span>
               </div>
               {pkg.lastError && (

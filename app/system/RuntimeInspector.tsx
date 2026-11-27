@@ -557,10 +557,6 @@ function PluginRow({ plugin }: { plugin: PluginView }) {
                         value: nativePackage.materialized ?? false,
                       },
                       {
-                        label: 'Invalidated',
-                        value: nativePackage.invalidated ?? false,
-                      },
-                      {
                         label: 'Last action',
                         value: nativePackage.lastAction,
                       },

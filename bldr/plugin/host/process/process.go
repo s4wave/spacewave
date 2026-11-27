@@ -404,7 +404,7 @@ func (h *ProcessHost) syncPluginDist(ctx context.Context, pluginID, manifestRoot
 	// Create the plugin's dist checkout directory.
 	pluginDistDir := h.pluginDistDir(bldr_plugin.PluginArtifactID(pluginID, manifestRoot))
 	if err := os.MkdirAll(pluginDistDir, 0o755); err != nil {
-		h.recordPluginPackageStatus(pluginID, pluginDistDir, false, false, "sync", err)
+		h.recordPluginPackageStatus(pluginID, pluginDistDir, false, "sync", err)
 		return "", err
 	}
 
@@ -422,13 +422,13 @@ func (h *ProcessHost) syncPluginDist(ctx context.Context, pluginID, manifestRoot
 			return filepath.Clean(path) != entrypoint, nil
 		},
 	); err != nil {
-		h.recordPluginPackageStatus(pluginID, pluginDistDir, false, false, "sync", err)
+		h.recordPluginPackageStatus(pluginID, pluginDistDir, false, "sync", err)
 		return "", err
 	}
 
 	// Materialize the entrypoint executable as a fresh inode.
 	if err := materializeEntrypoint(ctx, pluginDist, entrypoint, pluginDistDir); err != nil {
-		h.recordPluginPackageStatus(pluginID, pluginDistDir, false, false, "sync", err)
+		h.recordPluginPackageStatus(pluginID, pluginDistDir, false, "sync", err)
 		return "", err
 	}
 
@@ -437,7 +437,7 @@ func (h *ProcessHost) syncPluginDist(ctx context.Context, pluginID, manifestRoot
 		WithField("plugin-id", pluginID).
 		WithField("dist-dir", pluginDistDir).
 		Debug("native plugin dist sync complete")
-	h.recordPluginPackageStatus(pluginID, pluginDistDir, true, false, "sync", nil)
+	h.recordPluginPackageStatus(pluginID, pluginDistDir, true, "sync", nil)
 	return pluginDistDir, nil
 }
 
@@ -538,26 +538,6 @@ func sameContents(a, b string) (bool, error) {
 	}
 }
 
-// InvalidatePluginDist clears only the derived native plugin dist checkout.
-// Plugin-owned state under the state directory is a separate protected surface.
-func (h *ProcessHost) InvalidatePluginDist(ctx context.Context, pluginID string) error {
-	// Reject invalidation of a canceled context or invalid plugin ID.
-	if err := ctx.Err(); err != nil {
-		h.recordPluginPackageStatus(pluginID, h.pluginDistDir(pluginID), false, false, "invalidate", err)
-		return err
-	}
-	if err := bldr_plugin.ValidatePluginID(pluginID, false); err != nil {
-		h.recordPluginPackageStatus(pluginID, h.pluginDistDir(pluginID), false, false, "invalidate", err)
-		return err
-	}
-
-	// Remove the dist checkout and record the result.
-	pluginDistDir := h.pluginDistDir(pluginID)
-	err := os.RemoveAll(pluginDistDir)
-	h.recordPluginPackageStatus(pluginID, pluginDistDir, false, err == nil, "invalidate", err)
-	return err
-}
-
 // PackageStatusSnapshot returns a read-only copy of native dist
 // materialization status. It never inspects or exposes plugin-owned state.
 func (h *ProcessHost) PackageStatusSnapshot() []PluginPackageStatus {
@@ -576,8 +556,7 @@ func (h *ProcessHost) GetPackageStatusCtr() ccontainer.Watchable[*PluginPackageS
 func (h *ProcessHost) recordPluginPackageStatus(
 	pluginID,
 	distDir string,
-	materialized,
-	invalidated bool,
+	materialized bool,
 	action string,
 	err error,
 ) {
@@ -590,7 +569,6 @@ func (h *ProcessHost) recordPluginPackageStatus(
 		PluginID:     pluginID,
 		DistDir:      distDir,
 		Materialized: materialized,
-		Invalidated:  invalidated,
 		LastAction:   action,
 		UpdatedAt:    time.Now().UTC(),
 	}
@@ -637,7 +615,6 @@ func pluginPackageStatusSnapshotEqual(a, b *PluginPackageStatusSnapshot) bool {
 		return a.PluginID == b.PluginID &&
 			a.DistDir == b.DistDir &&
 			a.Materialized == b.Materialized &&
-			a.Invalidated == b.Invalidated &&
 			a.LastAction == b.LastAction &&
 			a.LastError == b.LastError &&
 			a.UpdatedAt.Equal(b.UpdatedAt)
