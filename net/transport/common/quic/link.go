@@ -127,9 +127,15 @@ func newLink(
 	}, nil
 }
 
-// GetContext returns a context that is canceled when the Link is closed.
-func (l *Link) GetContext() context.Context {
-	return l.ctx
+// WaitClosed waits until the link closes or ctx ends.
+// It returns nil for link closure, or ctx's cause for caller cancellation.
+func (l *Link) WaitClosed(ctx context.Context) error {
+	select {
+	case <-l.ctx.Done():
+		return nil
+	case <-ctx.Done():
+		return context.Cause(ctx)
+	}
 }
 
 // GetUUID returns the link unique id.

@@ -254,11 +254,7 @@ func (w *WebSocket) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	httplog.
 		WithLoggerFields(w.le, req, 200).
 		Debug("started websocket conn")
-	select {
-	case <-w.ctx.Done():
-	case <-lnk.GetContext().Done():
-	case <-req.Context().Done():
-	}
+	_ = lnk.WaitClosed(req.Context())
 
 	// Close the packet connection and link after the request lifecycle ends.
 	_ = pc.Close()

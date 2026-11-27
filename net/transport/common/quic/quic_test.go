@@ -3,6 +3,7 @@ package transport_quic
 import (
 	"context"
 	"crypto/rand"
+	"errors"
 	"net"
 	"testing"
 	"time"
@@ -135,7 +136,9 @@ func TestSimultaneousOpenKeepsBothLinks(t *testing.T) {
 	tpt, handler, lnks := registerSessions(t, ctx, []bool{false, true})
 
 	// HandleSession closes a replaced session before returning.
-	if err := lnks[0].GetContext().Err(); err != nil {
+	waitCtx, cancelWait := context.WithTimeout(ctx, time.Millisecond)
+	defer cancelWait()
+	if err := lnks[0].WaitClosed(waitCtx); !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("accepted link closed by the dialed one: %v", err)
 	}
 	select {
