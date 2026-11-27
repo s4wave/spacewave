@@ -28,6 +28,14 @@
 \* when it opens, and again whenever a told entry appears (Adopt), so a Tell
 \* after its open is still settled (LateAdopt).
 \*
+\* The adapter's run may also end while its mount stays up, as when a member
+\* of the run fails and the bus runs it again (RunEnds). The write inside
+\* QueueOperation then ends unknown, and no reload follows. Its call still
+\* returns with a final result, stored or not, which the queue records on the
+\* entry (returned) even though the run's ctx ended. The next adapter on that
+\* mount (run = "rerun") settles the entry only once it was returned
+\* (ReturnRecorded).
+\*
 \* The invariants say the settle answers what storage holds, the settled head
 \* is the state at the unknown plus at most the unknown write, a held client's
 \* write stays settleable, no stored operation was built on rows storage
@@ -36,13 +44,15 @@ EXTENDS Naturals, Sequences, FiniteSets
 
 N == 4
 Ops == 1..N
-Runs == {"live", "postponed", "new"}
+Runs == {"live", "postponed", "new", "rerun"}
 Results == {"none", "applied", "lost"}
 
 VARIABLES st, tok, mtok, mview, run, fenced, qstop, inflight, rows, base,
-          unk, snap, result, shead, next, extUsed, kept, told, adopted
+          unk, snap, result, shead, next, extUsed, kept, told, adopted,
+          returned
 vars == <<st, tok, mtok, mview, run, fenced, qstop, inflight, rows, base,
-          unk, snap, result, shead, next, extUsed, kept, told, adopted>>
+          unk, snap, result, shead, next, extUsed, kept, told, adopted,
+          returned>>
 
 \* Range is the set of elements of a sequence.
 Range(s) == {s[i] : i \in DOMAIN s}
@@ -55,9 +65,9 @@ CommitGuard == ~fenced /\ ~qstop
 Held == unk # 0 /\ result = "none"
 
 \* SettleReady and SettleView are when and from what the settle answers: an
-\* adapter on the restarted mount that adopted the told entry, from the
-\* storage it loaded.
-SettleReady == run = "new" /\ told /\ adopted
+\* adapter on the restarted mount that adopted the told entry, or on the same
+\* mount once the write's call returned there, from the storage it shows.
+SettleReady == told /\ adopted /\ (run = "new" \/ (run = "rerun" /\ returned))
 SettleView == st
 
 \* KeptOnRestart is whether the settle set still holds its entries after the
@@ -66,6 +76,10 @@ KeptOnRestart == kept
 
 \* LateAdopt is whether a live adapter adopts an entry told after it opened.
 LateAdopt == TRUE
+
+\* ReturnRecorded is whether the queue records a call's return on the entry
+\* after the run's ctx ended.
+ReturnRecorded == TRUE
 
 TypeOK ==
     /\ st \subseteq Ops
@@ -84,6 +98,7 @@ TypeOK ==
     /\ extUsed \in BOOLEAN
     /\ kept \in BOOLEAN
     /\ told \in BOOLEAN /\ adopted \in BOOLEAN
+    /\ returned \in BOOLEAN
 
 Init ==
     /\ st = {} /\ tok = 0 /\ mtok = 0 /\ mview = {}
@@ -91,20 +106,20 @@ Init ==
     /\ inflight = <<>> /\ rows = {} /\ base = [o \in Ops |-> {}]
     /\ unk = 0 /\ snap = {} /\ result = "none" /\ shead = {}
     /\ next = 1 /\ extUsed = FALSE /\ kept = FALSE
-    /\ told = FALSE /\ adopted = FALSE
+    /\ told = FALSE /\ adopted = FALSE /\ returned = FALSE
 
 \* Admit takes the client's next write on the rows it believes applied, while
 \* the adapter admits writes and the client holds none for a settle.
 Admit ==
     /\ next <= N
-    /\ run \in {"live", "new"}
+    /\ run \in {"live", "new", "rerun"}
     /\ ~qstop
     /\ ~Held
     /\ inflight' = Append(inflight, next)
     /\ base' = [base EXCEPT ![next] = rows]
     /\ rows' = rows \cup {next}
     /\ next' = next + 1
-    /\ UNCHANGED <<st, tok, mtok, mview, run, fenced, qstop, unk, snap, result, shead, extUsed, kept, told, adopted>>
+    /\ UNCHANGED <<st, tok, mtok, mview, run, fenced, qstop, unk, snap, result, shead, extUsed, kept, told, adopted, returned>>
 
 \* Ok commits the oldest queued write over the token the mount holds.
 Ok ==
@@ -116,7 +131,7 @@ Ok ==
         /\ tok' = tok + 1 /\ mtok' = tok + 1
         /\ mview' = mview \cup {o}
     /\ inflight' = Tail(inflight)
-    /\ UNCHANGED <<run, fenced, qstop, rows, base, unk, snap, result, shead, next, extUsed, kept, told, adopted>>
+    /\ UNCHANGED <<run, fenced, qstop, rows, base, unk, snap, result, shead, next, extUsed, kept, told, adopted, returned>>
 
 \* Changed is a failed compare: storage holds another state, so the mount
 \* reloads and nothing was written. The client drops the write's rows.
@@ -127,7 +142,7 @@ Changed ==
     /\ run' = "postponed" /\ fenced' = TRUE
     /\ rows' = rows \ {Head(inflight)}
     /\ inflight' = Tail(inflight)
-    /\ UNCHANGED <<st, tok, mtok, mview, qstop, base, unk, snap, result, shead, next, extUsed, kept, told, adopted>>
+    /\ UNCHANGED <<st, tok, mtok, mview, qstop, base, unk, snap, result, shead, next, extUsed, kept, told, adopted, returned>>
 
 \* Unknown ends the oldest write unknown: storage holds it (landed) or not.
 \* The mount fences its writes and the adapter stops, both at once. The
@@ -145,7 +160,7 @@ Unknown(landed) ==
     /\ kept' = TRUE
     /\ run' = "postponed" /\ fenced' = TRUE /\ qstop' = TRUE
     /\ inflight' = Tail(inflight)
-    /\ UNCHANGED <<mtok, mview, rows, base, result, shead, next, extUsed, told, adopted>>
+    /\ UNCHANGED <<mtok, mview, rows, base, result, shead, next, extUsed, told, adopted, returned>>
 
 \* Refuse ends the oldest write of a refused run unsent, with
 \* ErrEngineRetired. The client drops its rows and writes it again later.
@@ -154,14 +169,14 @@ Refuse ==
     /\ ~CommitGuard
     /\ rows' = rows \ {Head(inflight)}
     /\ inflight' = Tail(inflight)
-    /\ UNCHANGED <<st, tok, mtok, mview, run, fenced, qstop, base, unk, snap, result, shead, next, extUsed, kept, told, adopted>>
+    /\ UNCHANGED <<st, tok, mtok, mview, run, fenced, qstop, base, unk, snap, result, shead, next, extUsed, kept, told, adopted, returned>>
 
 \* Ext replaces the stored state with an equal one under a new token, as
 \* ReplaceSharedObjectState may.
 Ext ==
     /\ ~extUsed
     /\ tok' = tok + 1 /\ extUsed' = TRUE
-    /\ UNCHANGED <<st, mtok, mview, run, fenced, qstop, inflight, rows, base, unk, snap, result, shead, next, kept, told, adopted>>
+    /\ UNCHANGED <<st, mtok, mview, run, fenced, qstop, inflight, rows, base, unk, snap, result, shead, next, kept, told, adopted, returned>>
 
 \* Restart is the postponed restart firing: the new mount loads storage, the
 \* writes the old run left queued end unsent, and the new adapter adopts the
@@ -175,7 +190,32 @@ Restart ==
     /\ inflight' = <<>>
     /\ kept' = KeptOnRestart
     /\ adopted' = told
-    /\ UNCHANGED <<st, tok, base, unk, snap, result, shead, next, extUsed, told>>
+    /\ UNCHANGED <<st, tok, base, unk, snap, result, shead, next, extUsed, told, returned>>
+
+\* RunEnds ends the live run while its mount stays up and the oldest write is
+\* inside QueueOperation: the write ends unknown, its call returns with a
+\* final result the mount shows, landed or not, and the writes still queued
+\* end unsent. The next adapter opens on the same mount with no reload.
+RunEnds(landed) ==
+    /\ run = "live"
+    /\ inflight # <<>>
+    /\ CommitGuard
+    /\ mtok = tok
+    /\ unk = 0
+    /\ LET o == Head(inflight) IN
+        /\ unk' = o
+        /\ st' = IF landed THEN st \cup {o} ELSE st
+        /\ tok' = IF landed THEN tok + 1 ELSE tok
+        /\ mtok' = IF landed THEN tok + 1 ELSE tok
+        /\ mview' = IF landed THEN mview \cup {o} ELSE mview
+        /\ rows' = rows \ Range(Tail(inflight))
+    /\ snap' = st
+    /\ kept' = TRUE
+    /\ run' = "rerun"
+    /\ returned' = ReturnRecorded
+    /\ adopted' = told
+    /\ inflight' = <<>>
+    /\ UNCHANGED <<fenced, qstop, base, result, shead, next, extUsed, told>>
 
 \* Tell is the old adapter registering the unknown write's outcome, before or
 \* after the restart. The client learns the unknown only then.
@@ -183,15 +223,15 @@ Tell ==
     /\ unk # 0
     /\ ~told
     /\ told' = TRUE
-    /\ UNCHANGED <<st, tok, mtok, mview, run, fenced, qstop, inflight, rows, base, unk, snap, result, shead, next, extUsed, kept, adopted>>
+    /\ UNCHANGED <<st, tok, mtok, mview, run, fenced, qstop, inflight, rows, base, unk, snap, result, shead, next, extUsed, kept, adopted, returned>>
 
 \* Adopt is the live adapter taking an entry told after it opened.
 Adopt ==
     /\ LateAdopt
-    /\ run = "new"
+    /\ run \in {"new", "rerun"}
     /\ told /\ ~adopted
     /\ adopted' = TRUE
-    /\ UNCHANGED <<st, tok, mtok, mview, run, fenced, qstop, inflight, rows, base, unk, snap, result, shead, next, extUsed, kept, told>>
+    /\ UNCHANGED <<st, tok, mtok, mview, run, fenced, qstop, inflight, rows, base, unk, snap, result, shead, next, extUsed, kept, told, returned>>
 
 \* Settle answers WaitSettled from the write's entry: whether the unknown
 \* write applied, at the settling adapter's head, and removes the entry. The
@@ -204,10 +244,11 @@ Settle ==
     /\ result' = IF unk \in SettleView THEN "applied" ELSE "lost"
     /\ shead' = SettleView
     /\ rows' = IF unk \in SettleView THEN rows ELSE rows \ {unk}
-    /\ UNCHANGED <<st, tok, mtok, mview, run, fenced, qstop, inflight, base, unk, snap, next, extUsed, told, adopted>>
+    /\ UNCHANGED <<st, tok, mtok, mview, run, fenced, qstop, inflight, base, unk, snap, next, extUsed, told, adopted, returned>>
 
 Next ==
     \/ Admit \/ Ok \/ Changed \/ Unknown(TRUE) \/ Unknown(FALSE)
+    \/ RunEnds(TRUE) \/ RunEnds(FALSE)
     \/ Refuse \/ Ext \/ Restart \/ Tell \/ Adopt \/ Settle
 
 \* The restart, the old adapter's Tell, the adoption and the settle each

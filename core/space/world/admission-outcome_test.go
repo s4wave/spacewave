@@ -2,6 +2,7 @@ package space_world
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"os"
 	"slices"
@@ -421,7 +422,9 @@ func TestInstallDecidesCoveredAdmissions(t *testing.T) {
 // make the settle set lose a write told after the next adapter opened, or hand
 // an adapter a write its mount cannot answer. The next adapter must learn of
 // each tell, settle a told write by absence only when it was sent before it
-// opened, and on the old mount only once its QueueOperation returned there.
+// opened, and on the old mount only once its QueueOperation returned there
+// with a result the mount shows: a failure after the run's ctx ended counts
+// only on a SharedObject that writes nothing after its call returns.
 // Its replay settles a write it applies whether or not the old adapter told it
 // yet. A decided write leaves no entry, and a resolved one drops its mount and
 // answers one WaitSettled.
@@ -466,11 +469,14 @@ func TestSettleAdoptsOnlyWhatTheMountShows(t *testing.T) {
 		t.Fatal("replaying the write again adopted it twice")
 	}
 	newA.decide([]*spaceAdmission{adm}, world.Accepted, "", nil)
+	if got := set.unresolved([]*settleEntry{replayed.sent, inFlight.sent}); !slices.Equal(got, []*settleEntry{inFlight.sent}) {
+		t.Fatal("an adapter would adopt again a write another replay resolved after it was told")
+	}
 
 	// The old adapter decides one write and tells the rest unknown, one of
 	// them after its QueueOperation returned.
 	oldA.decide([]*spaceAdmission{accepted}, world.Accepted, "", nil)
-	stored.pos = stored.receipt.Position()
+	oldA.sentReturned(stored, nil)
 	for _, adm := range []*spaceAdmission{inFlight, stored, replayed, late} {
 		oldA.fail(adm, durabilityUnknown(adm.receipt.OpHash(), errAdapterStopped))
 	}
@@ -503,7 +509,11 @@ func TestSettleAdoptsOnlyWhatTheMountShows(t *testing.T) {
 	if got := hashes(oldMount, set.last()); !slices.Equal(got, []string{"stored"}) {
 		t.Fatalf("an adapter on the old mount settles %q by absence, want only the stored write", got)
 	}
-	set.markStored(inFlight.sent)
+	oldA.sentReturned(inFlight, context.Canceled)
+	if got := hashes(oldMount, set.last()); !slices.Equal(got, []string{"stored"}) {
+		t.Fatalf("a failure after the run ended on a mount that may still commit made an adapter on it settle %q", got)
+	}
+	set.returned(inFlight.sent)
 	if got := hashes(oldMount, set.last()); !slices.Equal(got, []string{"in-flight", "stored"}) {
 		t.Fatalf("after its call returned an adapter on the old mount settles %q", got)
 	}

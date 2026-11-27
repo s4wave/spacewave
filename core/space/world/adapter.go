@@ -1692,13 +1692,8 @@ func (a *Adapter) queued(adm *spaceAdmission, localID string, pos *sobject.SOOpe
 	var installedHead bool
 	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		// Retain the durable position for checkpoint coverage. Only legacy
-		// replay learns attribution from the callback. A write the run's end
-		// already left unknown is now stored on this mount, so the next
-		// adapter on it may settle it.
+		// replay learns attribution from the callback.
 		adm.pos = pos
-		if adm.state == admissionDecided && adm.sent != nil {
-			a.settles.markStored(adm.sent)
-		}
 		if a.legacyReplayMatcher {
 			adm.localID = localID
 			key := unmatchedRefusalKey(localID, pos.GetOpHash())

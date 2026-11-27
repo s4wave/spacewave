@@ -48,13 +48,18 @@ const reasonNotStored = "not stored by the write whose outcome was unknown"
 // With sobject.ReloadFenceOff the old mount keeps writing until the reload
 // ends its run, so the head an entry settles at may hold writes that followed
 // the unknown. The mount the write went unknown on shows it only once the
-// write's QueueOperation returned on it without error (stored). A write still
-// inside QueueOperation, or one whose outcome storage could not show, waits
-// for another mount, since a mount fenced for a reload may lack a write
-// storage holds.
+// write's QueueOperation returned on it and the mount's state shows the
+// result (returned): the call returned no error, or the SharedObject writes
+// nothing after its call returns (sobject.SettledOperationQueuer) and the call
+// did not return ErrStateWriteUnknown. The queue records the return even when
+// the adapter's run ended first, so a run that ends while its mount stays up
+// leaves its writes to the next adapter on that mount. A write still inside
+// QueueOperation, or one whose outcome storage could not show, waits for
+// another mount, since a mount fenced for a reload may lack a write storage
+// holds.
 type settleSet struct {
 	// bcast guards the fields below and every entry's fields, and broadcasts
-	// when an entry is told, stored or resolved. Its holder takes no adapter
+	// when an entry is told, returned or resolved. Its holder takes no adapter
 	// lock: an adapter takes its own bcast first, then this one.
 	bcast broadcast.Broadcast
 	// entries are the writes sent and not yet decided, and the unknown ones
@@ -63,7 +68,7 @@ type settleSet struct {
 	entries map[uint64]*settleEntry
 	// sent is the send order of the last entry registered.
 	sent uint64
-	// rev counts the tells and stores, which can make an entry adoptable.
+	// rev counts the tells and returns, which can make an entry adoptable.
 	rev uint64
 }
 
@@ -107,9 +112,9 @@ type settleEntry struct {
 	so sobject.SharedObject
 	// told reports that the write's adapter decided it unknown.
 	told bool
-	// stored reports that the write's QueueOperation returned on so without
-	// error, so the next adapter on so may settle it too.
-	stored bool
+	// returned reports that the write's QueueOperation returned on so and so's
+	// state shows the result, so the next adapter on so may settle it too.
+	returned bool
 	// resolved reports that the fields below are set.
 	resolved bool
 	// head is the installed head of the adapter that settled the write.
@@ -155,13 +160,11 @@ func (s *settleSet) last() uint64 {
 	return seq
 }
 
-// tell records that the write of ent ended unknown at pos. stored reports
-// that its QueueOperation returned without error. An entry another adapter's
-// replay already resolved keeps its answer.
-func (s *settleSet) tell(ent *settleEntry, pos *sobject.SOOperationPosition, stored bool) {
+// tell records that the write of ent ended unknown at pos. An entry another
+// adapter's replay already resolved keeps its answer.
+func (s *settleSet) tell(ent *settleEntry, pos *sobject.SOOperationPosition) {
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		ent.pos, ent.receipt, ent.told = pos.CloneVT(), nil, true
-		ent.stored = stored
 		s.rev++
 		broadcast()
 	})
@@ -174,17 +177,27 @@ func (s *settleSet) drop(ent *settleEntry) {
 	})
 }
 
-// markStored records that the QueueOperation of ent's write returned without
-// error after the write was told unknown, as when the adapter ended while the
-// call ran.
-func (s *settleSet) markStored(ent *settleEntry) {
+// returned records that the QueueOperation of ent's write returned on its
+// mount and the mount's state shows the result. It wakes the adapters
+// waiting to settle a write already told unknown, as when the run ended while
+// the call ran.
+func (s *settleSet) returned(ent *settleEntry) {
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		ent.returned = true
 		if ent.told && !ent.resolved {
-			ent.stored = true
 			s.rev++
 			broadcast()
 		}
 	})
+}
+
+// unresolved returns the entries of ents no replay resolved yet, keeping
+// their order.
+func (s *settleSet) unresolved(ents []*settleEntry) []*settleEntry {
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		ents = slices.DeleteFunc(ents, func(ent *settleEntry) bool { return ent.resolved })
+	})
+	return ents
 }
 
 // replayed returns the unresolved entry of the operation of hash, which an
@@ -212,11 +225,11 @@ func (s *settleSet) replayed(hash []byte) (*settleEntry, *sobject.SOOperationPos
 	return ent, pos
 }
 
-// waitTold waits until the count of tells and stores differs from rev, and
+// waitTold waits until the count of tells and returns differs from rev, and
 // returns the entries an adapter on so that opened after send order upto may
 // settle by absence, in nonce order, with the new count. Those are the told,
 // unresolved entries sent by then, whose write went unknown on another mount
-// or that so stored.
+// or returned on so.
 func (s *settleSet) waitTold(ctx context.Context, so sobject.SharedObject, upto, rev uint64) ([]*settleEntry, uint64, error) {
 	var out []*settleEntry
 	err := s.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
@@ -225,7 +238,7 @@ func (s *settleSet) waitTold(ctx context.Context, so sobject.SharedObject, upto,
 		}
 		rev = s.rev
 		for _, ent := range s.entries {
-			if ent.told && !ent.resolved && ent.seq <= upto && (ent.so != so || ent.stored) {
+			if ent.told && !ent.resolved && ent.seq <= upto && (ent.so != so || ent.returned) {
 				out = append(out, ent)
 			}
 		}
@@ -341,17 +354,18 @@ func (a *Adapter) adoptedLocked(ent *settleEntry) *spaceAdmission {
 func (a *Adapter) adoptSettles(ctx context.Context) error {
 	var rev uint64
 	for {
-		// Wait for a tell or a store.
+		// Wait for a tell or a return.
 		ents, next, err := a.settles.waitTold(ctx, a.so, a.settleSeq, rev)
 		if err != nil {
 			return context.Canceled
 		}
 		rev = next
 
-		// Adopt the ones not adopted yet, and decide those the cover answers.
+		// Adopt the ones neither adopted nor resolved yet, and decide those the
+		// cover answers. A replay may have resolved one since waitTold read it.
 		var adopted, refused, unknown, accepted []*spaceAdmission
 		a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-			for _, ent := range ents {
+			for _, ent := range a.settles.unresolved(ents) {
 				if a.adoptedLocked(ent) != nil {
 					continue
 				}
@@ -391,6 +405,22 @@ func (a *Adapter) registerSent(adm *spaceAdmission) {
 			adm.sent = a.settles.register(a.so, &adm.receipt)
 		}
 	})
+}
+
+// sentReturned records on adm's settle entry that its QueueOperationWithReceipt
+// returned with err, when the mount's state then shows whether storage holds
+// the write: the call stored it, or the SharedObject writes nothing after its
+// call returns and the outcome was not unknown. The queue calls it even when
+// the run's ctx ended, since the entry outlives the run.
+func (a *Adapter) sentReturned(adm *spaceAdmission, err error) {
+	// The queue registered the entry itself, before the call.
+	if adm.sent == nil {
+		return
+	}
+	_, settled := a.so.(sobject.SettledOperationQueuer)
+	if err == nil || (settled && !errors.Is(err, sobject.ErrStateWriteUnknown)) {
+		a.settles.returned(adm.sent)
+	}
 }
 
 // settleAdopted decides each adopted write the mount's state lacks: once
@@ -442,8 +472,7 @@ func (a *Adapter) settleAdopted(ctx context.Context, adopted []*spaceAdmission) 
 // at its head, refused did not, and one a checkpoint covers without its
 // outcome resolves with that error. Any other unknown ending, as at unmount,
 // leaves it for the next adapter. A sent write that ended unknown under its
-// own hash tells its entry, stored when queued recorded its position, and
-// resolves it at once when a checkpoint hides its outcome. Any other ending
+// own hash tells its entry, and resolves it at once when a checkpoint hides its outcome. Any other ending
 // drops it, since no WaitSettled asks for it. The caller holds bcast.
 func (a *Adapter) settleDecidedLocked(adm *spaceAdmission) {
 	// Resolve an adopted write from its decision.
@@ -471,7 +500,7 @@ func (a *Adapter) settleDecidedLocked(adm *spaceAdmission) {
 		a.settles.drop(ent)
 		return
 	}
-	a.settles.tell(ent, pos, adm.pos != nil)
+	a.settles.tell(ent, pos)
 	if errors.Is(adm.err, world.ErrOutcomeHidden) {
 		a.settles.resolve(ent, adm.head, false, adm.err)
 	}
@@ -483,7 +512,10 @@ func (a *Adapter) settleDecidedLocked(adm *spaceAdmission) {
 // returns the answer once: a later call for the hash returns ErrNoSettle. A
 // write the installed checkpoint covers without recording its outcome
 // returns world.ErrOutcomeHidden, and an operation hash with no such write
-// returns ErrNoSettle.
+// returns ErrNoSettle. The caller must not hold an engine of this Space World
+// open across the call, as with Controller.AcquireWorldEngine: the answer may
+// come only from the next adapter, which starts once this one retired, and
+// retiring waits for every hold.
 func (e *Engine) WaitSettled(ctx context.Context, opHash []byte) (world.Head, bool, error) {
 	return e.a.settles.wait(ctx, opHash)
 }

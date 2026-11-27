@@ -14,7 +14,7 @@
     "name": "the old adapter settles from its own state before the restart",
     "replace": [
       [
-        "SettleReady == run = \"new\" /\\ told /\\ adopted",
+        "SettleReady == told /\\ adopted /\\ (run = \"new\" \\/ (run = \"rerun\" /\\ returned))",
         "SettleReady == run \\in {\"postponed\", \"new\"}"
       ],
       [
@@ -64,6 +64,17 @@
       [
         "LateAdopt == TRUE",
         "LateAdopt == FALSE"
+      ]
+    ],
+    "expect": "Answered",
+    "config": "ReplayUnknownSettle.cfg"
+  },
+  {
+    "name": "the queue drops a call's return once the run's ctx ended",
+    "replace": [
+      [
+        "ReturnRecorded == TRUE",
+        "ReturnRecorded == FALSE"
       ]
     ],
     "expect": "Answered",

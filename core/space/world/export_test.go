@@ -2,6 +2,7 @@ package space_world
 
 import (
 	"context"
+	"time"
 
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/world"
@@ -41,4 +42,33 @@ func SetAdmittedHook(fn func(world.Candidate)) func() {
 func SetCheckpointStoreHook(fn func(context.Context)) func() {
 	checkpointStoreHook.Store(&fn)
 	return func() { checkpointStoreHook.Store(nil) }
+}
+
+// WaitSigned waits until a write of eng's Space World is inside its
+// QueueOperation with its operation signed, and returns the operation's hash.
+// The signer publishes no event, so it checks the settle set each millisecond.
+func WaitSigned(ctx context.Context, eng *Engine) ([]byte, error) {
+	set := eng.a.settles
+	for {
+		// Find an undecided sent write whose receipt names its operation.
+		var hash []byte
+		set.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			for _, ent := range set.entries {
+				if !ent.told && !ent.resolved && len(ent.receipt.OpHash()) != 0 {
+					hash = ent.receipt.OpHash()
+					return
+				}
+			}
+		})
+		if hash != nil {
+			return hash, nil
+		}
+
+		// Look again shortly.
+		select {
+		case <-ctx.Done():
+			return nil, context.Cause(ctx)
+		case <-time.After(time.Millisecond):
+		}
+	}
 }

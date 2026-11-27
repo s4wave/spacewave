@@ -16,6 +16,19 @@ type SignedOperationQueuer interface {
 	QueueOperationWithReceipt(ctx context.Context, op []byte, receipt *SignedOperationReceipt) (string, *SOOperationPosition, error)
 }
 
+// SettledOperationQueuer is a SignedOperationQueuer whose
+// QueueOperationWithReceipt writes nothing after it returns, even when ctx
+// ended first. Unless it returned ErrStateWriteUnknown, the mount's state then
+// shows whether storage holds the operation, so a caller may judge the write
+// by its absence from that state. A provider whose call can return while its
+// write may still commit, such as one waiting on a remote request, does not
+// implement it.
+type SettledOperationQueuer interface {
+	SignedOperationQueuer
+	// SettlesQueuedOperations marks the contract and does nothing.
+	SettlesQueuedOperations()
+}
+
 // SignedOperationReceipt holds the immutable position of one signed operation.
 // Its zero value has no position. It must not be copied after first use.
 type SignedOperationReceipt struct {

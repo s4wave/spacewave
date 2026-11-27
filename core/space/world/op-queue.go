@@ -120,5 +120,7 @@ func (q *opQueue) queueOperation(ctx context.Context, adm *spaceAdmission) (stri
 		return "", nil, err
 	}
 	adm.a.registerSent(adm)
-	return so.QueueOperationWithReceipt(ctx, op, &adm.receipt)
+	localID, pos, err := so.QueueOperationWithReceipt(ctx, op, &adm.receipt)
+	adm.a.sentReturned(adm, err)
+	return localID, pos, err
 }

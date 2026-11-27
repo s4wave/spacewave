@@ -163,6 +163,7 @@ type SettleWaiter interface {
 	// ErrOutcomeHidden when a checkpoint folded the operation in without its
 	// outcome. It works after the engine that returned the unknown retired,
 	// since a successor settles the write, and waits until ctx ends while no
-	// engine can show the outcome.
+	// engine can show the outcome. The caller must not hold that engine open
+	// across the call: its successor may start only once it retired.
 	WaitSettled(ctx context.Context, opHash []byte) (head Head, applied bool, err error)
 }

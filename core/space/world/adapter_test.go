@@ -1,6 +1,7 @@
 package space_world_test
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"math"
@@ -343,6 +344,7 @@ func TestAdapterRunThrough(t *testing.T) {
 			t.Fatal("the collections freed nothing, so the run-through checked no hold")
 		}
 	})
+	t.Run("settle-after-run-ends", runSettleAfterRunEnds)
 	t.Run("plugin-op", runPluginOpThrough)
 	t.Run("plugin-op-waiting-write", runPluginOpWaitingWrite)
 	t.Run("plugin-op-approval", runPluginOpApproval)
@@ -729,6 +731,91 @@ func measureAdapterCommit(t *testing.T, n int) uint64 {
 		time.Sleep(10 * time.Millisecond)
 	}
 	return delta
+}
+
+// runSettleAfterRunEnds ends the adapter's run while a signed write waits
+// inside its state write and the mount stays up, as when the bus runs the
+// engine again after a run failed. The write ends unknown, and its
+// QueueOperation then fails with the run's ctx, storing nothing. No reload
+// follows, so only the next adapter on the same mount can settle it, and it
+// must answer by absence instead of waiting for a mount that never comes.
+func runSettleAfterRunEnds(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
+	f := newAdapterFixture(t)
+	eng, engRef := f.start(t)
+	defer func() { engRef.Release() }()
+	_ = f.space(t)
+	create := func(eng world.Engine, key string) error {
+		return world.ExecTransaction(ctx, eng, true, func(ctx context.Context, ws world.WorldState) error {
+			obj, err := ws.CreateObject(ctx, key, nil)
+			world.ReleaseObjectState(obj)
+			return err
+		})
+	}
+	if err := create(eng, "base"); err != nil {
+		t.Fatal(err)
+	}
+	var served *space_world.Engine
+	if err := world.AccessEngine(ctx, eng, func(_ context.Context, eng world.Engine) error {
+		served = eng.(*space_world.Engine)
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Hold the store's writer, so the next write signs its operation and then
+	// waits inside its state write.
+	storeID := provider_local.SobjectObjectStoreID("local", "test-account")
+	objs, _, objsRef, err := volume.ExBuildObjectStoreAPI(ctx, f.tb.Bus, false, storeID, f.volume.GetID(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer objsRef.Release()
+	writer, err := objs.GetObjectStore().NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	released := false
+	release := func() {
+		if !released {
+			released = true
+			writer.Discard()
+		}
+	}
+	defer release()
+	done := make(chan error, 1)
+	go func() { done <- create(eng, "held") }()
+	hash, err := space_world.WaitSigned(ctx, served)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// End the run with the mount up: the write ends unknown under its hash.
+	eng, engRef = f.remount(ctx, t, eng, engRef)
+	var unknown *world.DurabilityUnknownError
+	if err := <-done; !errors.As(err, &unknown) || !bytes.Equal(unknown.OpHash, hash) {
+		t.Fatalf("the write in flight at the run's end returned %v, want a durability unknown with its hash", err)
+	}
+
+	// The next adapter on the same mount answers by absence while the writer
+	// is still held, so the failed call cannot have stored the write.
+	_, applied, err := served.WaitSettled(ctx, unknown.OpHash)
+	if err != nil {
+		t.Fatalf("settling the write the run's end left unknown: %v", err)
+	}
+	if applied {
+		t.Fatal("the write settled as applied, but its state write never took the store's writer")
+	}
+	release()
+	if err := world.AccessEngine(ctx, eng, func(ctx context.Context, eng world.Engine) error {
+		return lacksObject(ctx, eng, "held")
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := create(eng, "after"); err != nil {
+		t.Fatalf("writing after the settle: %v", err)
+	}
 }
 
 // runAdapterThrough walks the adapter run-through on f.

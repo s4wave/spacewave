@@ -237,6 +237,13 @@ func (s *SharedObject) QueueOperation(ctx context.Context, op []byte) (string, *
 	return s.lsoHost.QueueOperation(ctx, op)
 }
 
+// SettlesQueuedOperations marks that QueueOperationWithReceipt writes nothing
+// after it returns (sobject.SettledOperationQueuer). The state write runs in
+// the call under the provider lock, a failure at its commit is read back from
+// storage, and a commit storage cannot show returns ErrStateWriteUnknown and
+// reloads the mount. The wait after the commit ignores ctx.
+func (s *SharedObject) SettlesQueuedOperations() {}
+
 // QueueOperationWithReceipt signs through the local host and supplies the
 // signed identity before the local state exposes it to replay.
 func (s *SharedObject) QueueOperationWithReceipt(ctx context.Context, op []byte, receipt *sobject.SignedOperationReceipt) (string, *sobject.SOOperationPosition, error) {
@@ -1360,6 +1367,7 @@ var (
 	_ sobject.SharedObjectProvider       = (*ProviderAccount)(nil)
 	_ sobject.SharedObject               = (*SharedObject)(nil)
 	_ sobject.SignedOperationQueuer      = (*SharedObject)(nil)
+	_ sobject.SettledOperationQueuer     = (*SharedObject)(nil)
 	_ sobject.InviteHost                 = (*SharedObject)(nil)
 	_ sobject.RosterHost                 = (*SharedObject)(nil)
 	_ sobject.SequencerHost              = (*SharedObject)(nil)
