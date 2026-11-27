@@ -8,7 +8,8 @@ import (
 )
 
 // TestStopperUsesPersistedRuntimeIdentity keeps crash recovery on the same
-// Docker CLI path and endpoint that created the container.
+// Docker CLI path and endpoint that created the container, and removes the
+// container after stopping it.
 func TestStopperUsesPersistedRuntimeIdentity(t *testing.T) {
 	// Stop the container through a runner that records its persisted CLI identity.
 	runner := &recordingRunner{}
@@ -24,11 +25,12 @@ func TestStopperUsesPersistedRuntimeIdentity(t *testing.T) {
 	if !stopped {
 		t.Fatal("runtime stop not confirmed")
 	}
-	want := recordedCommand{
-		name: "docker-test", args: []string{"stop", "--time", "3", "spacewave-runtime"},
-		env: []string{"DOCKER_HOST=unix:///test.sock"},
+	env := []string{"DOCKER_HOST=unix:///test.sock"}
+	want := []recordedCommand{
+		{name: "docker-test", args: []string{"stop", "--time", "3", "spacewave-runtime"}, env: env},
+		{name: "docker-test", args: []string{"rm", "--force", "spacewave-runtime"}, env: env},
 	}
-	if len(runner.commands) != 1 || !reflect.DeepEqual(runner.commands[0], want) {
-		t.Fatalf("stop command = %+v, want %+v", runner.commands, want)
+	if !reflect.DeepEqual(runner.commands, want) {
+		t.Fatalf("stop commands = %+v, want %+v", runner.commands, want)
 	}
 }

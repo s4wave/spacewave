@@ -65,9 +65,9 @@ func TestGiteaQEMUFlowgraph(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(fixture, "host-world.s4wave")); !os.IsNotExist(err) {
 		t.Fatal("fixture already contains a SQL World; prepare a new fixture")
 	}
-	// Fail stop requests only while the fixture gate exists; all other calls use Docker.
+	// Fail stop and remove requests only while the fixture gate exists; all other calls use Docker.
 	wrapper := filepath.Join(fixture, "docker-cli")
-	if err := os.WriteFile(wrapper, []byte("#!/bin/sh\nif [ \"$1\" = stop ] && [ -f \"$SPACEWAVE_STOP_BLOCK\" ]; then echo 'fixture stop temporarily unavailable' >&2; exit 75; fi\nexec \"$SPACEWAVE_REAL_DOCKER\" \"$@\"\n"), 0o700); err != nil {
+	if err := os.WriteFile(wrapper, []byte("#!/bin/sh\nif { [ \"$1\" = stop ] || [ \"$1\" = rm ]; } && [ -f \"$SPACEWAVE_STOP_BLOCK\" ]; then echo 'fixture stop temporarily unavailable' >&2; exit 75; fi\nexec \"$SPACEWAVE_REAL_DOCKER\" \"$@\"\n"), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	h := newWorkerHarnessWithOptions(t, workerHarnessOptions{
