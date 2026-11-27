@@ -555,8 +555,9 @@ func TestSelectedPluginAwaitsAdmission(t *testing.T) {
 
 	// With none admitted, admitting any root ends the wait.
 	waited := make(chan []*executePluginArgs, 1)
+	candidates := []*executePluginArgs{candidate(4), candidate(5)}
 	go func() {
-		got, _ := instance.admittedCandidates(ctx, []*executePluginArgs{candidate(4), candidate(5)})
+		got, _ := instance.admittedCandidates(ctx, candidates)
 		waited <- got
 	}()
 	select {
