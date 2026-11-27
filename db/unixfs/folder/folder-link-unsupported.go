@@ -1,6 +1,6 @@
 //go:build !darwin && !linux
 
-package unixfs_world
+package folder
 
 import "github.com/pkg/errors"
 

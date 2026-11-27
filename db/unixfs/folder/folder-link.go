@@ -1,4 +1,4 @@
-package unixfs_world
+package folder
 
 import (
 	"context"
@@ -17,6 +17,7 @@ import (
 	"github.com/s4wave/spacewave/db/block/blob"
 	block_store_filesegment "github.com/s4wave/spacewave/db/block/store/filesegment"
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
+	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/hash"
 )
@@ -132,7 +133,7 @@ func NewFolderLink(eng world.Engine, idx *block_store_filesegment.Index, objKey,
 // A two-way sync first applies the changes others made to the Drive, and
 // leaves each entry that holds a change it could not apply yet. A batch whose
 // entries another writer changed after the comparison returns a
-// *FileConflictError with none of the batch committed. Syncing again applies
+// *unixfs_world.FileConflictError with none of the batch committed. Syncing again applies
 // that change first.
 func (l *FolderLink) Sync(ctx context.Context, progress func(files, bytes uint64) error) error {
 	// Apply the Drive's changes, declare the destination, then walk the whole
@@ -309,7 +310,7 @@ func (l *FolderLink) begin(ctx context.Context, progress func(files, bytes uint6
 		return nil, err
 	}
 	defer rtx.Discard()
-	fsType, _, err := LookupFsType(ctx, rtx, l.objKey)
+	fsType, _, err := unixfs_world.LookupFsType(ctx, rtx, l.objKey)
 	if err != nil {
 		return nil, err
 	}
@@ -324,7 +325,7 @@ type folderSync struct {
 	// ws writes the batches.
 	ws world.WorldState
 	// fsType is the Drive's filesystem type.
-	fsType FSType
+	fsType unixfs_world.FSType
 	// rootID is the file-system identity of the folder's root.
 	rootID uint64
 	// progress receives the totals after each commit, if set.
@@ -334,7 +335,7 @@ type folderSync struct {
 	walked map[string]struct{}
 
 	// batch is the open batch, or nil.
-	batch *BatchFSWriter
+	batch *unixfs_world.BatchFSWriter
 	// pending counts the files in batch.
 	pending int
 	// batchBytes counts the bytes of the files in batch.
@@ -394,9 +395,9 @@ type goneEntry struct {
 }
 
 // writer returns the open batch, opening one when none is.
-func (s *folderSync) writer() *BatchFSWriter {
+func (s *folderSync) writer() *unixfs_world.BatchFSWriter {
 	if s.batch == nil {
-		s.batch = NewBatchFSWriter(s.ws, s.objKey, s.fsType, "")
+		s.batch = unixfs_world.NewBatchFSWriter(s.ws, s.objKey, s.fsType, "")
 	}
 	return s.batch
 }
@@ -419,7 +420,7 @@ func (s *folderSync) view(cb func(root *unixfs_block.FSTree) error) error {
 	}
 
 	// Read its root.
-	_, _, err = AccessUnixfsObject(s.ctx, obj, false, s.fsType, cb, nil)
+	_, _, err = unixfs_world.AccessUnixfsObject(s.ctx, obj, false, s.fsType, cb, nil)
 	return err
 }
 

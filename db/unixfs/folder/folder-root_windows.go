@@ -1,6 +1,6 @@
 //go:build windows
 
-package unixfs_world
+package folder
 
 import (
 	"os"

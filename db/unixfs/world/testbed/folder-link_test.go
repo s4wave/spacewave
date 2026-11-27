@@ -21,6 +21,7 @@ import (
 	hydra_testbed "github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
+	unixfs_folder "github.com/s4wave/spacewave/db/unixfs/folder"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
@@ -78,7 +79,7 @@ func TestFolderLinkSync(t *testing.T) {
 	idx := block_store_filesegment.NewIndex(kv, nil)
 	sync := func() (uint64, uint64) {
 		t.Helper()
-		link, err := unixfs_world.NewFolderLink(wtb.Engine, idx, objKey, folder, []string{"linked", "folder"}, false)
+		link, err := unixfs_folder.NewFolderLink(wtb.Engine, idx, objKey, folder, []string{"linked", "folder"}, false)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -216,7 +217,7 @@ func TestFolderLinkSync(t *testing.T) {
 	must(os.MkdirAll(filepath.Join(folder, "d5", "sub", "deep"), 0o755))
 	must(os.WriteFile(filepath.Join(folder, "d5", "sub", "deep", "n.txt"), []byte("deep"), 0o644))
 	must(os.Remove(filepath.Join(folder, "d6", "sub", "f6")))
-	link, err := unixfs_world.NewFolderLink(wtb.Engine, idx, objKey, folder, []string{"linked", "folder"}, false)
+	link, err := unixfs_folder.NewFolderLink(wtb.Engine, idx, objKey, folder, []string{"linked", "folder"}, false)
 	must(err)
 	var linked uint64
 	must(link.SyncDirs(ctx, []string{"d4", "d5/sub/deep", "d6/sub"}, func(files, _ uint64) error {
@@ -249,7 +250,7 @@ func TestFolderLinkSync(t *testing.T) {
 	if linked, _ := sync(); linked != 0 {
 		t.Fatalf("stat walk linked %d files changed under their stat, want 0", linked)
 	}
-	link, err = unixfs_world.NewFolderLink(wtb.Engine, idx, objKey, folder, []string{"linked", "folder"}, false)
+	link, err = unixfs_folder.NewFolderLink(wtb.Engine, idx, objKey, folder, []string{"linked", "folder"}, false)
 	must(err)
 	linked = 0
 	must(link.Reindex(ctx, []string{"d7/sub/f7", "d7/sub/gone"}, func(files, _ uint64) error {
@@ -274,12 +275,12 @@ func TestFolderLinkSync(t *testing.T) {
 	for _, e := range ents {
 		must(os.RemoveAll(filepath.Join(folder, e.Name())))
 	}
-	link, err = unixfs_world.NewFolderLink(wtb.Engine, idx, objKey, folder, []string{"linked", "folder"}, false)
+	link, err = unixfs_folder.NewFolderLink(wtb.Engine, idx, objKey, folder, []string{"linked", "folder"}, false)
 	must(err)
-	if err := link.Sync(ctx, nil); !errors.Is(err, unixfs_world.ErrFolderRootChanged) {
+	if err := link.Sync(ctx, nil); !errors.Is(err, unixfs_folder.ErrFolderRootChanged) {
 		t.Fatalf("sync of the stand-in root returned %v, want ErrFolderRootChanged", err)
 	}
-	if err := link.SyncDirs(ctx, []string{"d4"}, nil); !errors.Is(err, unixfs_world.ErrFolderRootChanged) {
+	if err := link.SyncDirs(ctx, []string{"d4"}, nil); !errors.Is(err, unixfs_folder.ErrFolderRootChanged) {
 		t.Fatalf("targeted sync of the stand-in root returned %v, want ErrFolderRootChanged", err)
 	}
 	expect(map[string]string{"d4/new.txt": "file", "d3/sub": "file"})
@@ -324,7 +325,7 @@ func TestFolderLinkTwoWay(t *testing.T) {
 	must(os.WriteFile(filepath.Join(folder, "b.txt"), []byte("owner b"), 0o644))
 	idx := block_store_filesegment.NewIndex(store_kvtx_inmem.NewStore(), nil)
 	dest := []string{"linked", "folder"}
-	link, err := unixfs_world.NewFolderLink(wtb.Engine, idx, objKey, folder, dest, true)
+	link, err := unixfs_folder.NewFolderLink(wtb.Engine, idx, objKey, folder, dest, true)
 	must(err)
 	must(link.Sync(ctx, nil))
 
@@ -424,7 +425,7 @@ func TestFolderLinkStageRecovery(t *testing.T) {
 	}
 	idx := block_store_filesegment.NewIndex(store_kvtx_inmem.NewStore(), nil)
 	dest := []string{"linked", "folder"}
-	link, err := unixfs_world.NewFolderLink(wtb.Engine, idx, objKey, folder, dest, true)
+	link, err := unixfs_folder.NewFolderLink(wtb.Engine, idx, objKey, folder, dest, true)
 	must(err)
 	must(link.Sync(ctx, nil))
 
@@ -457,7 +458,7 @@ func TestFolderLinkStageRecovery(t *testing.T) {
 	// The restarted node removes the versions the Drive holds and the cut
 	// fetch, keeps the edit under its conflict name and publishes it, and
 	// applies c.txt again.
-	link, err = unixfs_world.NewFolderLink(wtb.Engine, idx, objKey, folder, dest, true)
+	link, err = unixfs_folder.NewFolderLink(wtb.Engine, idx, objKey, folder, dest, true)
 	must(err)
 	var linked uint64
 	count := func(files, _ uint64) error {
@@ -580,8 +581,8 @@ func TestFolderLinkApplyRaces(t *testing.T) {
 	}
 
 	type action = func(path string)
-	type races = map[unixfs_world.ApplyStep]action
-	none := unixfs_world.ApplyStep(-1)
+	type races = map[unixfs_folder.ApplyStep]action
+	none := unixfs_folder.ApplyStep(-1)
 	cases := []struct {
 		// name identifies the case.
 		name string
@@ -596,7 +597,7 @@ func TestFolderLinkApplyRaces(t *testing.T) {
 		// race acts on the file at each step.
 		race races
 		// crash freezes the sync at the step, after its race, and restarts.
-		crash unixfs_world.ApplyStep
+		crash unixfs_folder.ApplyStep
 		// deny makes the displaced file unreadable after the exchange, failing
 		// its check, then readable again for a second pass.
 		deny bool
@@ -606,29 +607,29 @@ func TestFolderLinkApplyRaces(t *testing.T) {
 		conflicts []string
 		trashed   []string
 	}{
-		{name: "edit before the check", race: races{unixfs_world.ApplyStaged: editIt}, crash: none, at: edit, conflicts: []string{member}},
-		{name: "edit before the exchange", race: races{unixfs_world.ApplyChecked: editIt}, crash: none, at: member, conflicts: []string{edit}},
+		{name: "edit before the check", race: races{unixfs_folder.ApplyStaged: editIt}, crash: none, at: edit, conflicts: []string{member}},
+		{name: "edit before the exchange", race: races{unixfs_folder.ApplyChecked: editIt}, crash: none, at: member, conflicts: []string{edit}},
 		{name: "edit through a handle after the exchange", handle: true, crash: none, at: member, conflicts: []string{handled}},
 		{name: "same-stat edit before the check", before: coarseEdit, crash: none, at: member, conflicts: []string{coarse}},
-		{name: "same-stat edit before the exchange", race: races{unixfs_world.ApplyChecked: coarseEdit}, crash: none, at: member, conflicts: []string{coarse}},
+		{name: "same-stat edit before the exchange", race: races{unixfs_folder.ApplyChecked: coarseEdit}, crash: none, at: member, conflicts: []string{coarse}},
 		{name: "same-stat edit through a handle after the exchange", handle: true, keep: true, crash: none, at: member, conflicts: []string{handled}},
 		{name: "other bytes under the member's stat", before: func(path string) { put(path, mimic, written) }, crash: none, at: mimic, conflicts: []string{member}},
-		{name: "file created before the restore", before: remove, race: races{unixfs_world.ApplyRestoring: recreate}, crash: none, at: created, conflicts: []string{member}},
+		{name: "file created before the restore", before: remove, race: races{unixfs_folder.ApplyRestoring: recreate}, crash: none, at: created, conflicts: []string{member}},
 		{name: "delete", del: true, crash: none, trashed: []string{base}},
 		{name: "edit before the delete's check", del: true, before: editIt, crash: none, at: edit},
-		{name: "edit before the move to the trash", del: true, race: races{unixfs_world.ApplyChecked: editIt}, crash: none, at: edit},
-		{name: "same-stat edit before the move to the trash", del: true, race: races{unixfs_world.ApplyChecked: coarseEdit}, crash: none, at: coarse},
-		{name: "edit trashed, then the path recreated", del: true, race: races{unixfs_world.ApplyChecked: editIt, unixfs_world.ApplyTrashed: recreate}, crash: none, at: created, conflicts: []string{edit}},
-		{name: "check of an exchanged edit fails", race: races{unixfs_world.ApplyChecked: editIt}, deny: true, crash: none, at: member, conflicts: []string{edit}},
-		{name: "crash after the fetch", crash: unixfs_world.ApplyStaged, at: member},
-		{name: "crash after the check", crash: unixfs_world.ApplyChecked, at: member},
-		{name: "crash after the exchange", crash: unixfs_world.ApplySwapped, at: member},
-		{name: "crash after an edit was exchanged", race: races{unixfs_world.ApplyChecked: editIt}, crash: unixfs_world.ApplySwapped, at: member, conflicts: []string{edit}},
-		{name: "crash after a same-stat edit was exchanged", race: races{unixfs_world.ApplyChecked: coarseEdit}, crash: unixfs_world.ApplySwapped, at: member, conflicts: []string{coarse}},
-		{name: "crash before the restore", before: remove, crash: unixfs_world.ApplyRestoring, at: member},
-		{name: "crash after the delete's check", del: true, crash: unixfs_world.ApplyChecked, trashed: []string{base}},
-		{name: "crash after the move to the trash", del: true, crash: unixfs_world.ApplyTrashed, trashed: []string{base}},
-		{name: "crash after an edit moved to the trash", del: true, race: races{unixfs_world.ApplyChecked: editIt}, crash: unixfs_world.ApplyTrashed, trashed: []string{edit}},
+		{name: "edit before the move to the trash", del: true, race: races{unixfs_folder.ApplyChecked: editIt}, crash: none, at: edit},
+		{name: "same-stat edit before the move to the trash", del: true, race: races{unixfs_folder.ApplyChecked: coarseEdit}, crash: none, at: coarse},
+		{name: "edit trashed, then the path recreated", del: true, race: races{unixfs_folder.ApplyChecked: editIt, unixfs_folder.ApplyTrashed: recreate}, crash: none, at: created, conflicts: []string{edit}},
+		{name: "check of an exchanged edit fails", race: races{unixfs_folder.ApplyChecked: editIt}, deny: true, crash: none, at: member, conflicts: []string{edit}},
+		{name: "crash after the fetch", crash: unixfs_folder.ApplyStaged, at: member},
+		{name: "crash after the check", crash: unixfs_folder.ApplyChecked, at: member},
+		{name: "crash after the exchange", crash: unixfs_folder.ApplySwapped, at: member},
+		{name: "crash after an edit was exchanged", race: races{unixfs_folder.ApplyChecked: editIt}, crash: unixfs_folder.ApplySwapped, at: member, conflicts: []string{edit}},
+		{name: "crash after a same-stat edit was exchanged", race: races{unixfs_folder.ApplyChecked: coarseEdit}, crash: unixfs_folder.ApplySwapped, at: member, conflicts: []string{coarse}},
+		{name: "crash before the restore", before: remove, crash: unixfs_folder.ApplyRestoring, at: member},
+		{name: "crash after the delete's check", del: true, crash: unixfs_folder.ApplyChecked, trashed: []string{base}},
+		{name: "crash after the move to the trash", del: true, crash: unixfs_folder.ApplyTrashed, trashed: []string{base}},
+		{name: "crash after an edit moved to the trash", del: true, race: races{unixfs_folder.ApplyChecked: editIt}, crash: unixfs_folder.ApplyTrashed, trashed: []string{edit}},
 	}
 	for i, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -647,7 +648,7 @@ func TestFolderLinkApplyRaces(t *testing.T) {
 			put(path, base, owned)
 			idx := block_store_filesegment.NewIndex(store_kvtx_inmem.NewStore(), nil)
 			dest := []string{"races", fmt.Sprintf("c%02d", i)}
-			link, err := unixfs_world.NewFolderLink(wtb.Engine, idx, objKey, folder, dest, true)
+			link, err := unixfs_folder.NewFolderLink(wtb.Engine, idx, objKey, folder, dest, true)
 			must(err)
 			must(link.Sync(ctx, nil))
 
@@ -676,13 +677,13 @@ func TestFolderLinkApplyRaces(t *testing.T) {
 				if race == nil {
 					race = races{}
 				}
-				race[unixfs_world.ApplySwapped] = func(string) { stageMode(0) }
+				race[unixfs_folder.ApplySwapped] = func(string) { stageMode(0) }
 			}
 			if tc.handle {
 				h, err := os.OpenFile(path, os.O_WRONLY, 0)
 				must(err)
 				defer h.Close()
-				race = races{unixfs_world.ApplySwapped: func(string) {
+				race = races{unixfs_folder.ApplySwapped: func(string) {
 					_, err := h.WriteAt([]byte(handled[:5]), 0)
 					must(err)
 					if tc.keep {
@@ -698,7 +699,7 @@ func TestFolderLinkApplyRaces(t *testing.T) {
 			// Apply the change with the races, and, for a crash, freeze the
 			// sync at its step and restart the node.
 			frozen := make(chan struct{})
-			link.SetApplyHook(func(step unixfs_world.ApplyStep, at string) {
+			link.SetApplyHook(func(step unixfs_folder.ApplyStep, at string) {
 				if at != path {
 					return
 				}
@@ -724,7 +725,7 @@ func TestFolderLinkApplyRaces(t *testing.T) {
 			default:
 				go func() { _ = link.Sync(ctx, nil) }()
 				<-frozen
-				link, err = unixfs_world.NewFolderLink(wtb.Engine, idx, objKey, folder, dest, true)
+				link, err = unixfs_folder.NewFolderLink(wtb.Engine, idx, objKey, folder, dest, true)
 				must(err)
 				must(link.Sync(ctx, nil))
 			}

@@ -1,6 +1,6 @@
 //go:build darwin
 
-package unixfs_world
+package folder
 
 import (
 	"os"

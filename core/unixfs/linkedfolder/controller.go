@@ -20,6 +20,7 @@ import (
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
 	block_store_filesegment "github.com/s4wave/spacewave/db/block/store/filesegment"
+	unixfs_folder "github.com/s4wave/spacewave/db/unixfs/folder"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
@@ -110,7 +111,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 		// Follow the folder while its root is on the file system it was
 		// linked on, and wait for that file system while it is not.
-		link, err := unixfs_world.NewFolderLink(eng, files.GetIndex(), c.conf.GetObjectKey(), c.conf.GetFolder(), c.conf.DestPath(), c.conf.GetTwoWay())
+		link, err := unixfs_folder.NewFolderLink(eng, files.GetIndex(), c.conf.GetObjectKey(), c.conf.GetFolder(), c.conf.DestPath(), c.conf.GetTwoWay())
 		if err != nil {
 			return err
 		}
@@ -128,7 +129,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		// Resume following when the folder returns to its original file system.
 		for {
 			err := c.run(ctx, link, stale, staleReady, remote)
-			if !errors.Is(err, unixfs_world.ErrFolderRootChanged) {
+			if !errors.Is(err, unixfs_folder.ErrFolderRootChanged) {
 				return err
 			}
 			c.le.WithError(err).Warn("waiting for the folder's file system")
@@ -176,7 +177,7 @@ const rootRecheck = 5 * time.Second
 
 // waitRoot returns once the folder's root is back on the file system it was
 // linked on.
-func waitRoot(ctx context.Context, link *unixfs_world.FolderLink) error {
+func waitRoot(ctx context.Context, link *unixfs_folder.FolderLink) error {
 	ticker := time.NewTicker(rootRecheck) //gostyle:timer external
 	defer ticker.Stop()
 	for {
@@ -186,7 +187,7 @@ func waitRoot(ctx context.Context, link *unixfs_world.FolderLink) error {
 		case <-ticker.C:
 		}
 		err := link.CheckRoot(ctx)
-		if !errors.Is(err, unixfs_world.ErrFolderRootChanged) {
+		if !errors.Is(err, unixfs_folder.ErrFolderRootChanged) {
 			return err
 		}
 	}
@@ -194,7 +195,7 @@ func waitRoot(ctx context.Context, link *unixfs_world.FolderLink) error {
 
 // run syncs the folder and follows its changes. It returns
 // ErrFolderRootChanged once the root leaves its file system.
-func (c *Controller) run(ctx context.Context, link *unixfs_world.FolderLink, stale *stalePaths, staleReady, remote <-chan struct{}) error {
+func (c *Controller) run(ctx context.Context, link *unixfs_folder.FolderLink, stale *stalePaths, staleReady, remote <-chan struct{}) error {
 	// Watch the folder before the sync reads it, so no change escapes both.
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -231,7 +232,7 @@ func (c *Controller) run(ctx context.Context, link *unixfs_world.FolderLink, sta
 // first sync when resync is set.
 func (c *Controller) follow(
 	ctx context.Context,
-	link *unixfs_world.FolderLink,
+	link *unixfs_folder.FolderLink,
 	watcher *fsnotify.Watcher,
 	stale *stalePaths,
 	staleReady <-chan struct{},
@@ -480,7 +481,7 @@ func (c *Controller) showIndexing() {
 
 // showWatching shows the link following the folder, with the files waiting
 // out a backoff because they kept changing during their reads.
-func (c *Controller) showWatching(link *unixfs_world.FolderLink) {
+func (c *Controller) showWatching(link *unixfs_folder.FolderLink) {
 	detail := "watching"
 	switch n, _ := link.Changing(); n {
 	case 0:

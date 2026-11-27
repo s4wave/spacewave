@@ -1,6 +1,6 @@
 //go:build linux
 
-package unixfs_world
+package folder
 
 import (
 	"fmt"

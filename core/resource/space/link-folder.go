@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
+	unixfs_folder "github.com/s4wave/spacewave/db/unixfs/folder"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 )
 
@@ -34,7 +34,7 @@ func (r *SpaceResource) LinkFolder(
 			dest = append(dest, part)
 		}
 	}
-	link, err := unixfs_world.NewFolderLink(r.space.GetWorldEngine(), files.GetIndex(), req.GetObjectKey(), req.GetFolder(), dest, false)
+	link, err := unixfs_folder.NewFolderLink(r.space.GetWorldEngine(), files.GetIndex(), req.GetObjectKey(), req.GetFolder(), dest, false)
 	if err != nil {
 		return err
 	}
@@ -63,7 +63,7 @@ func (r *SpaceResource) ResetFolderRoot(
 	}
 
 	// Record the root's file system.
-	previous, current, err := unixfs_world.ResetFolderRoot(ctx, files.GetIndex(), req.GetFolder())
+	previous, current, err := unixfs_folder.ResetFolderRoot(ctx, files.GetIndex(), req.GetFolder())
 	if err != nil {
 		return nil, err
 	}

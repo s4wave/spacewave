@@ -1,6 +1,6 @@
-//go:build linux
+//go:build darwin
 
-package unixfs_world
+package folder
 
 import (
 	"os"
@@ -17,17 +17,9 @@ const twoWaySupported = true
 var errExchangeUnsupported = errors.New("file system cannot exchange files atomically")
 
 // renameNoReplace renames oldpath to newpath, failing with fs.ErrExist when
-// newpath exists. A file system without RENAME_NOREPLACE links the file under
-// newpath, which fails the same way, then unlinks oldpath.
+// newpath exists.
 func renameNoReplace(oldpath, newpath string) error {
-	err := unix.Renameat2(unix.AT_FDCWD, oldpath, unix.AT_FDCWD, newpath, unix.RENAME_NOREPLACE)
-	if errors.Is(err, unix.EINVAL) || errors.Is(err, unix.ENOSYS) {
-		if err := os.Link(oldpath, newpath); err != nil {
-			return err
-		}
-		return os.Remove(oldpath)
-	}
-	if err != nil {
+	if err := unix.RenamexNp(oldpath, newpath, unix.RENAME_EXCL); err != nil {
 		return &os.LinkError{Op: "rename", Old: oldpath, New: newpath, Err: err}
 	}
 	return nil
@@ -35,8 +27,8 @@ func renameNoReplace(oldpath, newpath string) error {
 
 // exchange atomically swaps the files at a and b.
 func exchange(a, b string) error {
-	err := unix.Renameat2(unix.AT_FDCWD, a, unix.AT_FDCWD, b, unix.RENAME_EXCHANGE)
-	if errors.Is(err, unix.EINVAL) || errors.Is(err, unix.ENOSYS) {
+	err := unix.RenamexNp(a, b, unix.RENAME_SWAP)
+	if errors.Is(err, unix.ENOTSUP) || errors.Is(err, unix.EINVAL) {
 		return errExchangeUnsupported
 	}
 	if err != nil {

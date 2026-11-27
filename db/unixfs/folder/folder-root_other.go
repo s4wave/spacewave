@@ -1,6 +1,6 @@
 //go:build !unix && !windows
 
-package unixfs_world
+package folder
 
 import "github.com/pkg/errors"
 

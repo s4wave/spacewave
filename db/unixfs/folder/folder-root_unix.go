@@ -1,6 +1,6 @@
 //go:build unix
 
-package unixfs_world
+package folder
 
 import (
 	"os"
