@@ -188,8 +188,8 @@ func TestHandleIncomingStreamClosesOnContextCancel(t *testing.T) {
 		le:            logrus.NewEntry(log),
 		bus:           tb.Bus,
 		info:          controller.NewInfo("test/transport", controller.MustParseVersion("0.0.1"), "test transport"),
-		links:         make(map[uint64]*establishedLink),
-		linksByPeerID: make(map[peer.ID][]*establishedLink),
+		links:         make(map[uint64]*registeredLink),
+		linksByPeerID: make(map[peer.ID][]*registeredLink),
 	}
 	strm := newBlockingMountedStream(protocolID)
 	lnk := &mountedStreamTestLink{localPeer: localPeer, remotePeer: remotePeer}
@@ -303,8 +303,8 @@ func TestMountedSignalingStreamReacceptAfterContextCancel(t *testing.T) {
 		le:            logrus.NewEntry(log),
 		bus:           tbs.Bus,
 		info:          controller.NewInfo("test/transport", controller.MustParseVersion("0.0.1"), "test transport"),
-		links:         make(map[uint64]*establishedLink),
-		linksByPeerID: make(map[peer.ID][]*establishedLink),
+		links:         make(map[uint64]*registeredLink),
+		linksByPeerID: make(map[peer.ID][]*registeredLink),
 	}
 	lnk := &mountedStreamTestLink{localPeer: localPeer, remotePeer: remotePeer}
 

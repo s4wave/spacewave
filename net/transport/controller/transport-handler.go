@@ -6,13 +6,21 @@ import (
 
 	"github.com/aperturerobotics/util/promise"
 	"github.com/s4wave/spacewave/net/link"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/transport"
+	"github.com/sirupsen/logrus"
 )
 
 // transportHandler handles callbacks from a transport.
 type transportHandler struct {
-	// c is the controller.
-	c *Controller
+	// authorizePeer checks whether a remote peer may mount.
+	authorizePeer func(context.Context, peer.ID) (uint64, error)
+	// loggerForLink decorates callback logs with link identity.
+	loggerForLink func(link.Link) *logrus.Entry
+	// registerLink reconciles an authorized link with the live indexes.
+	registerLink func(context.Context, func(context.Context) (transport.Transport, error), link.Link, uint64, func(link.Link))
+	// removeLink unregisters a lost link.
+	removeLink func(link.Link)
 	// ctx is the context.
 	ctx context.Context
 	// tpt contains the transport.
@@ -25,13 +33,23 @@ type transportHandler struct {
 	authorizing map[link.Link]struct{}
 }
 
-// newTransportHandler constructs the transport handler.
-func newTransportHandler(ctx context.Context, c *Controller) *transportHandler {
+// buildTransportHandler binds transport callbacks to the controller operations.
+func (c *Controller) buildTransportHandler(ctx context.Context) *transportHandler {
+	// Preserve the direct-mount path when peer authorization is disabled.
+	var authorizePeer func(context.Context, peer.ID) (uint64, error)
+	if c.authorizePeer != nil {
+		authorizePeer = c.authorizeLinkPeer
+	}
+
+	// Bind callback operations and allocate this execution's authorization set.
 	return &transportHandler{
-		ctx:         ctx,
-		c:           c,
-		tpt:         promise.NewPromise[transport.Transport](),
-		authorizing: make(map[link.Link]struct{}),
+		ctx:           ctx,
+		authorizePeer: authorizePeer,
+		loggerForLink: c.loggerForLink,
+		registerLink:  c.mountLink,
+		removeLink:    c.removeLink,
+		tpt:           promise.NewPromise[transport.Transport](),
+		authorizing:   make(map[link.Link]struct{}),
 	}
 }
 
@@ -41,38 +59,31 @@ func newTransportHandler(ctx context.Context, c *Controller) *transportHandler {
 // mounting.
 func (h *transportHandler) HandleLinkEstablished(lnk link.Link) {
 	// Mount directly when every peer is admitted.
-	if h.c.authorizePeer == nil {
-		h.mountLink(lnk, 0)
+	if h.authorizePeer == nil {
+		h.registerLink(h.ctx, h.tpt.Await, lnk, 0, h.queueAuthorization)
 		return
 	}
 
 	// Authorize the peer off the callback path.
-	h.authMtx.Lock()
-	h.authorizing[lnk] = struct{}{}
-	h.authMtx.Unlock()
-	go h.authorizeLink(lnk)
+	h.queueAuthorization(lnk)
 }
 
 // authorizeLink authorizes the remote peer of lnk, then mounts the link
 // unless it was lost meanwhile. A refused link closes with the reason.
 func (h *transportHandler) authorizeLink(lnk link.Link) {
 	// Note the authorization epoch, then authorize the peer.
-	var epoch uint64
-	h.c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		epoch = h.c.authEpoch
-	})
-	err := h.c.authorizePeer(h.ctx, lnk.GetRemotePeer())
+	epoch, err := h.authorizePeer(h.ctx, lnk.GetRemotePeer())
 
 	// Drop a lost link, close a refused one, and mount the rest.
 	if !h.takeAuthorizing(lnk) {
 		return
 	}
 	if err != nil {
-		h.c.loggerForLink(lnk).WithError(err).Warn("remote peer refused, closing link")
+		h.loggerForLink(lnk).WithError(err).Warn("remote peer refused, closing link")
 		_ = link.CloseWithReason(lnk, err.Error())
 		return
 	}
-	h.mountLink(lnk, epoch)
+	h.registerLink(h.ctx, h.tpt.Await, lnk, epoch, h.queueAuthorization)
 }
 
 // takeAuthorizing removes lnk from the links awaiting authorization and
@@ -86,83 +97,17 @@ func (h *transportHandler) takeAuthorizing(lnk link.Link) bool {
 	return ok
 }
 
-// mountLink registers an admitted link with the controller. epoch is the
-// authorization epoch the admission read. A link admitted under an older
-// epoch is authorized again instead.
-func (h *transportHandler) mountLink(lnk link.Link, epoch uint64) {
-	// Capture link identity for registration and logging.
-	le := h.c.loggerForLink(lnk)
+// queueAuthorization records an outstanding authorization before starting it.
+func (h *transportHandler) queueAuthorization(lnk link.Link) {
+	h.authMtx.Lock()
+	h.authorizing[lnk] = struct{}{}
+	h.authMtx.Unlock()
+	go h.authorizeLink(lnk)
+}
 
-	// Capture the incoming link identity for the controller indexes.
-	luuid := lnk.GetUUID()
-	remotePeer := lnk.GetRemotePeer()
-
-	// Await the constructed transport before accepting the link.
-	tpt, err := h.tpt.Await(h.ctx)
-	if err != nil {
-		le.WithError(err).Warn("link established while transport exited, closing link")
-		go lnk.Close()
-		return
-	}
-
-	// Reconcile the link under the controller broadcast lock.
-	h.c.bcast.HoldLockMaybeAsync(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-		// Require an active execution context before registering links.
-		execCtx := h.c.execCtx
-		if execCtx == nil {
-			le.Warn("link established while transport exited, closing link")
-			go lnk.Close()
-			return
-		}
-
-		// Reject self-dialed links before registration.
-		if remotePeer == h.c.peerID {
-			le.Warn("self-dial detected, closing link")
-			go lnk.Close()
-			return
-		}
-
-		// Authorize again when the admitted peers changed meanwhile.
-		if h.c.authEpoch != epoch {
-			h.authMtx.Lock()
-			h.authorizing[lnk] = struct{}{}
-			h.authMtx.Unlock()
-			go h.authorizeLink(lnk)
-			return
-		}
-
-		// Reconcile an existing registration before accepting the incoming link.
-		el, elOk := h.c.links[luuid]
-		if elOk {
-			if el.lnk == lnk {
-				// Ignore duplicate callbacks for the same link instance.
-				le.Debug("duplicate handle-link-established call")
-				return
-			}
-
-			// Close the previous link before replacing it.
-			le.Debug("closing existing link identical to incoming link")
-			h.c.flushEstablishedLink(el, true)
-			broadcast()
-		}
-
-		// Build the mounted and established link state.
-		mlnk := newMountedLink(h.c, tpt, lnk)
-		el, err := newEstablishedLink(h.c.le, execCtx, h.c.bus, lnk, mlnk, tpt, h.c)
-		if err != nil {
-			h.c.le.WithError(err).Warn("unable to construct established link")
-			go lnk.Close()
-			return
-		}
-
-		// Publish the new link in both indexes.
-		h.c.links[luuid] = el
-		h.c.linksByPeerID[remotePeer] = append(h.c.linksByPeerID[remotePeer], el)
-
-		// Report the established link and wake transport state subscribers.
-		le.Info("link established")
-		broadcast()
-	})
+// setTransport supplies the constructed transport to waiting link callbacks.
+func (h *transportHandler) setTransport(tpt transport.Transport) {
+	h.tpt.SetResult(tpt, nil)
 }
 
 // HandleLinkLost is called when a link is lost.
@@ -172,27 +117,8 @@ func (h *transportHandler) HandleLinkLost(lnk link.Link) {
 		return
 	}
 
-	// Unregister the mounted link.
-	h.c.bcast.HoldLockMaybeAsync(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-		// Remove the link by UUID on the common loss path.
-		luuid := lnk.GetUUID()
-		if el, elOk := h.c.links[luuid]; elOk {
-			delete(h.c.links, luuid)
-			h.c.flushEstablishedLink(el, false)
-			broadcast()
-			return
-		}
-
-		// Fall back to identity comparison if the UUID changed.
-		for k, l := range h.c.links {
-			if l.lnk == lnk {
-				delete(h.c.links, k)
-				h.c.flushEstablishedLink(l, false)
-				broadcast()
-				break
-			}
-		}
-	})
+	// Ask the link index owner to remove the mounted link.
+	h.removeLink(lnk)
 }
 
 // _ is a type assertion

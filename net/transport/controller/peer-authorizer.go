@@ -13,14 +13,15 @@ import (
 // link can carry it.
 type PeerAuthorizer func(ctx context.Context, remotePeer peer.ID) error
 
-// Option configures a Controller.
-type Option func(*Controller)
+// Option configures peer admission for a transport controller.
+type Option struct {
+	// authorizePeer checks a remote peer before its link mounts.
+	authorizePeer PeerAuthorizer
+}
 
 // WithPeerAuthorizer checks every link, inbound or dialed, before it mounts.
 func WithPeerAuthorizer(authorize PeerAuthorizer) Option {
-	return func(c *Controller) {
-		c.authorizePeer = authorize
-	}
+	return Option{authorizePeer: authorize}
 }
 
 // Reauthorize applies the authorizer again to every mounted link and closes

@@ -4,13 +4,19 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/tptaddr"
+	"github.com/s4wave/spacewave/net/transport"
 	"github.com/s4wave/spacewave/net/transport/common/dialer"
 )
 
 // dialTptAddrResolver resolves DialTptAddr directives.
 type dialTptAddrResolver struct {
-	c   *Controller
+	// waitTransport waits for the transport to become ready.
+	waitTransport func(context.Context) (transport.Transport, error)
+	// acquireDialer holds an address dial request and supplies its options.
+	acquireDialer func(peer.ID, string, *dialer.DialerOpts) (*linkDialer, func())
+	// dir holds the address and peer constraints.
 	dir tptaddr.DialTptAddr
 }
 
@@ -21,7 +27,7 @@ type dialTptAddrResolver struct {
 // Values will be maintained from the previous call.
 func (o *dialTptAddrResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
 	// Wait for the transport that can resolve this address directive.
-	tpt, err := o.c.GetTransport(ctx)
+	tpt, err := o.waitTransport(ctx)
 	if err != nil {
 		return err
 	}
@@ -60,18 +66,11 @@ func (o *dialTptAddrResolver) Resolve(ctx context.Context, handler directive.Res
 	}
 
 	// Reference the destination address dialer until resolution finishes.
-	c := o.c
-	ref, dialer, _ := c.linkDialers.AddKeyRef(linkDialerKey{
-		peerID:      destPeerID,
-		dialAddress: dialAddr,
-	})
-	defer ref.Release()
-
-	// Supply the directive address to the referenced peer dialer.
-	dialer.opts.SetResult(dialerOpts, nil)
+	dialer, release := o.acquireDialer(destPeerID, dialAddr, dialerOpts)
+	defer release()
 
 	// wait for dialer to finish
-	lnk, err := dialer.lnk.WaitValue(ctx, nil)
+	lnk, err := dialer.awaitLink(ctx)
 	if err != nil {
 		return err
 	}
@@ -111,8 +110,9 @@ func (c *Controller) resolveDialTptAddr(
 
 	// Return a resolver.
 	return directive.Resolvers(&dialTptAddrResolver{
-		c:   c,
-		dir: dir,
+		waitTransport: c.GetTransport,
+		acquireDialer: c.acquireLinkDialer,
+		dir:           dir,
 	}), nil
 }
 

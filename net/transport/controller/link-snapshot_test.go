@@ -45,8 +45,8 @@ func TestLinkLossBroadcastsSnapshotWaiters(t *testing.T) {
 	})
 
 	// Subscribe to link establishment before registering the incoming link.
-	h := newTransportHandler(ctx, c)
-	_ = h.tpt.SetResult(tpt, nil)
+	h := c.buildTransportHandler(ctx)
+	h.setTransport(tpt)
 	_, waitEstablished := c.GetLinkedPeerIDsSnapshotWithWait([]peer.ID{remotePeer})
 
 	// Establish the peer link and verify the snapshot subscriber wakes.

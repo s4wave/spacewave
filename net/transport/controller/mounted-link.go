@@ -9,27 +9,29 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/protocol"
 	"github.com/s4wave/spacewave/net/stream"
-	"github.com/s4wave/spacewave/net/transport"
 	"github.com/sirupsen/logrus"
 )
 
 // mountedLink implements a mounted link.
 type mountedLink struct {
-	c    *Controller
-	tpt  transport.Transport
+	// le reports outgoing stream negotiation.
+	le *logrus.Entry
+	// verbose enables outgoing stream logs.
+	verbose bool
+	// link carries the mounted streams.
 	link link.Link
 }
 
 // newMountedLink constructs a new mounted link for a transport link.
 func newMountedLink(
-	c *Controller,
-	tpt transport.Transport,
+	le *logrus.Entry,
+	verbose bool,
 	link link.Link,
 ) *mountedLink {
 	return &mountedLink{
-		c:    c,
-		tpt:  tpt,
-		link: link,
+		le:      le,
+		verbose: verbose,
+		link:    link,
 	}
 }
 
@@ -103,8 +105,8 @@ func (l *mountedLink) OpenMountedStream(
 	_ = est.SetDeadline(time.Time{})
 
 	// Log the mounted stream when verbose transport logging is enabled.
-	if l.c.verbose {
-		l.c.le.
+	if l.verbose {
+		l.le.
 			WithFields(logrus.Fields{
 				"link-id":     l.link.GetUUID(),
 				"protocol-id": protocolID,

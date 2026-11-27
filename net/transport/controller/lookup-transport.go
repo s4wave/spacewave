@@ -9,7 +9,9 @@ import (
 
 // lookupTransportResolver resolves lookupTransport directives.
 type lookupTransportResolver struct {
-	c   *Controller
+	// waitTransport waits for the transport to become ready.
+	waitTransport func(context.Context) (transport.Transport, error)
+	// dir holds the lookup constraints.
 	dir transport.LookupTransport
 }
 
@@ -20,7 +22,7 @@ type lookupTransportResolver struct {
 // Values will be maintained from the previous call.
 func (o *lookupTransportResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
 	// Wait for the transport requested by the lookup directive.
-	tpt, err := o.c.GetTransport(ctx)
+	tpt, err := o.waitTransport(ctx)
 	if err != nil {
 		return err
 	}
@@ -66,8 +68,8 @@ func (c *Controller) resolveLookupTransport(_ context.Context, dir transport.Loo
 
 	// Return a resolver.
 	return directive.Resolvers(&lookupTransportResolver{
-		c:   c,
-		dir: dir,
+		waitTransport: c.GetTransport,
+		dir:           dir,
 	}), nil
 }
 

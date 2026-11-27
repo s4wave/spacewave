@@ -7,20 +7,30 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/s4wave/spacewave/net/link"
+	"github.com/s4wave/spacewave/net/stream"
 	"github.com/s4wave/spacewave/net/transport"
 	"github.com/sirupsen/logrus"
 )
 
-// establishedLink holds state for an established link.
+// registeredLink is an immutable index entry for a mounted link.
+// The session owns stream dispatch and the directive demand lifetime.
+type registeredLink struct {
+	// lnk supplies connection identity to the controller's indexes.
+	lnk link.Link
+	// mlnk supplies protocol stream operations to link demand resolvers.
+	mlnk link.MountedLink
+	// session runs accepted streams and holds their link demand.
+	session *establishedLink
+}
+
+// establishedLink accepts streams while its link demand remains live.
 type establishedLink struct {
 	// le is the log entry.
 	le *logrus.Entry
-	// c is the transport controller.
-	c *Controller
+	// handleIncomingStream dispatches each accepted stream.
+	handleIncomingStream func(context.Context, transport.Transport, link.Link, stream.Stream, stream.OpenOpts)
 	// lnk is the link.
 	lnk link.Link
-	// mlnk is the mounted link.
-	mlnk link.MountedLink
 	// tpt is the transport.
 	tpt transport.Transport
 	// di is the directive instance.
@@ -37,9 +47,8 @@ func newEstablishedLink(
 	rctx context.Context,
 	b bus.Bus,
 	lnk link.Link,
-	mlnk link.MountedLink,
 	tpt transport.Transport,
-	ctrl *Controller,
+	handleIncomingStream func(context.Context, transport.Transport, link.Link, stream.Stream, stream.OpenOpts),
 ) (*establishedLink, error) {
 	// Construct an EstablishLink directive.
 	// The controller will match the directive to this link.
@@ -63,16 +72,15 @@ func newEstablishedLink(
 		ctxCancel()
 	})
 	el := &establishedLink{
-		le:   le.WithField("peer-id", lnk.GetRemotePeer().String()),
-		lnk:  lnk,
-		mlnk: mlnk,
-		tpt:  tpt,
-		di:   di,
+		le:  le.WithField("peer-id", lnk.GetRemotePeer().String()),
+		lnk: lnk,
+		tpt: tpt,
+		di:  di,
 		cancel: func() {
 			relDispose()
 			ctxCancel()
 		},
-		c: ctrl,
+		handleIncomingStream: handleIncomingStream,
 	}
 	go el.acceptStreamPump(ctx)
 
@@ -91,7 +99,7 @@ func newEstablishedLink(
 // when the accept loop exits.
 func (e *establishedLink) acceptStreamPump(ctx context.Context) {
 	// accept streams
-	lnk, ctrl := e.lnk, e.c
+	lnk := e.lnk
 	defer func() {
 		// close the directive instance early if there are no non-weak refs.
 		// Closing the directive skips the hold-open (unref dispose dur)
@@ -116,7 +124,26 @@ func (e *establishedLink) acceptStreamPump(ctx context.Context) {
 		}
 
 		if strm != nil {
-			go ctrl.HandleIncomingStream(ctx, e.tpt, lnk, strm, strmOpts)
+			go e.handleIncomingStream(ctx, e.tpt, lnk, strm, strmOpts)
 		}
 	}
+}
+
+// releaseDemand stops accepted streams and releases unreferenced peer demand.
+// hasNextLink keeps the demand alive while the controller replaces a link.
+func (e *establishedLink) releaseDemand(hasNextLink bool) {
+	// Cancel the stream context and release its disposal callback.
+	e.cancel()
+
+	// End unused demand immediately when this peer has no replacement link.
+	if !hasNextLink {
+		_ = e.di.CloseIfUnreferenced(false)
+	}
+}
+
+// closeLinkAsync closes the physical link outside the controller's index lock.
+func (e *establishedLink) closeLinkAsync() {
+	go func() {
+		_ = e.lnk.Close()
+	}()
 }

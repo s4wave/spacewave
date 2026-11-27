@@ -3,14 +3,25 @@ package transport_controller
 import (
 	"context"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/s4wave/spacewave/net/link"
+	"github.com/s4wave/spacewave/net/peer"
+	"github.com/s4wave/spacewave/net/transport"
 	"github.com/s4wave/spacewave/net/transport/common/dialer"
 )
 
 // establishLinkResolver resolves establishLink directives.
 type establishLinkResolver struct {
-	c   *Controller
+	// bus holds source-scoped peer link demand.
+	bus bus.Bus
+	// waitTransport waits for the transport to become ready.
+	waitTransport func(context.Context) (transport.Transport, error)
+	// acquireDialer holds an address dial request and supplies its options.
+	acquireDialer func(peer.ID, string, *dialer.DialerOpts) (*linkDialer, func())
+	// snapshotLinks copies a peer's links and subscribes to changes atomically.
+	snapshotLinks func(peer.ID, []*registeredLink) ([]*registeredLink, <-chan struct{})
+	// dir holds the requested source and destination peers.
 	dir link.EstablishLinkWithPeer
 }
 
@@ -22,7 +33,7 @@ type establishLinkResolver struct {
 func (o *establishLinkResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
 	// Wait for the transport that can establish the target peer link.
 	targetPeerID := o.dir.EstablishLinkTargetPeerId()
-	tpt, err := o.c.GetTransport(ctx)
+	tpt, err := o.waitTransport(ctx)
 	if err != nil {
 		return err
 	}
@@ -33,7 +44,7 @@ func (o *establishLinkResolver) Resolve(ctx context.Context, handler directive.R
 	if sourcePeerID == "" {
 		// If the directive filtered only by destination peer ID, add a EstablishLink
 		// directive for the source to ensure there is a reference.
-		_, estLinkRef, err := o.c.bus.AddDirective(ctx, link.NewEstablishLinkWithPeer(tptSourcePeerID, targetPeerID), nil)
+		_, estLinkRef, err := o.bus.AddDirective(ctx, link.NewEstablishLinkWithPeer(tptSourcePeerID, targetPeerID), nil)
 		if err != nil {
 			return err
 		}
@@ -57,22 +68,19 @@ func (o *establishLinkResolver) Resolve(ctx context.Context, handler directive.R
 		if dialerOpts.GetAddress() != "" {
 			// Add a reference to request that the controller dial
 			// that peer.
-			dialRef, dial, _ := o.c.linkDialers.AddKeyRef(linkDialerKey{peerID: targetPeerID, dialAddress: dialAddress})
-			defer dialRef.Release()
-
-			// Try to dial the peer at that address.
-			dial.opts.SetResult(dialerOpts, nil)
+			_, release := o.acquireDialer(targetPeerID, dialAddress, dialerOpts)
+			defer release()
 		}
 	}
 
 	// Avoid churn by using a uniqueListResolver.
 	uniqueListResolver := directive.NewUniqueListXfrmResolver(
-		func(v *establishedLink) uint64 {
+		func(v *registeredLink) uint64 {
 			return v.lnk.GetUUID()
-		}, func(k uint64, a, b *establishedLink) bool {
+		}, func(k uint64, a, b *registeredLink) bool {
 			return a == b
 		},
-		func(k uint64, v *establishedLink) (link.EstablishLinkWithPeerValue, bool) {
+		func(k uint64, v *registeredLink) (link.EstablishLinkWithPeerValue, bool) {
 			return v.mlnk, true
 		},
 		handler,
@@ -80,7 +88,7 @@ func (o *establishLinkResolver) Resolve(ctx context.Context, handler directive.R
 
 	// Wait for the link(s) to be resolved.
 	var waitCh <-chan struct{}
-	var values []*establishedLink
+	var values []*registeredLink
 	for {
 		if ctx.Err() != nil {
 			return context.Canceled
@@ -88,13 +96,7 @@ func (o *establishLinkResolver) Resolve(ctx context.Context, handler directive.R
 
 		// reuse the slice
 		values = values[:0]
-		o.c.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-			// get all links matching the target peer
-			values = append(values, o.c.linksByPeerID[targetPeerID]...)
-
-			// get the wait ch to watch for changes
-			waitCh = getWaitCh()
-		})
+		values, waitCh = o.snapshotLinks(targetPeerID, values)
 
 		// update the unique list resolver, emitting values to the resolver
 		// handler.
@@ -134,8 +136,11 @@ func (c *Controller) resolveEstablishLink(
 
 	// Return a resolver.
 	return directive.Resolvers(&establishLinkResolver{
-		c:   c,
-		dir: dir,
+		bus:           c.bus,
+		waitTransport: c.GetTransport,
+		acquireDialer: c.acquireLinkDialer,
+		snapshotLinks: c.snapshotPeerLinks,
+		dir:           dir,
 	}), nil
 }
 

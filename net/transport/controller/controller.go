@@ -100,9 +100,9 @@ type Controller struct {
 	// nil until resolved
 	tpt transport.Transport
 	// links is the set of active links, keyed by link uuid.
-	links map[uint64]*establishedLink
+	links map[uint64]*registeredLink
 	// linksByPeerID is the set of links keyed by peer id.
-	linksByPeerID map[peer.ID][]*establishedLink
+	linksByPeerID map[peer.ID][]*registeredLink
 	// authEpoch counts Reauthorize calls, so a link admitted before the
 	// latest one is authorized again before it mounts.
 	authEpoch uint64
@@ -126,11 +126,11 @@ func NewController(
 		lookupPeerID: peerID,
 		verbose:      verbose,
 
-		links:         make(map[uint64]*establishedLink),
-		linksByPeerID: make(map[peer.ID][]*establishedLink),
+		links:         make(map[uint64]*registeredLink),
+		linksByPeerID: make(map[peer.ID][]*registeredLink),
 	}
 	for _, opt := range opts {
-		opt(c)
+		c.authorizePeer = opt.authorizePeer
 	}
 	c.linkDialers = keyed.NewKeyedRefCount(c.buildLinkDialer)
 	return c
@@ -197,7 +197,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 
 	// Construct the transport
-	handler := newTransportHandler(ctx, c)
+	handler := c.buildTransportHandler(ctx)
 	tpt, err := c.ctor(
 		ctx,
 		c.le,
@@ -210,7 +210,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	defer tpt.Close()
 
 	// store the transport
-	handler.tpt.SetResult(tpt, nil)
+	handler.setTransport(tpt)
 
 	// Prepare the transport execution context and its cancellation.
 	if c.verbose {
@@ -354,7 +354,7 @@ func (c *Controller) HandleIncomingStream(
 	}
 
 	// Wrap the incoming link and stream for the mounted protocol handler.
-	var mlnk link.MountedLink = newMountedLink(c, tpt, lnk)
+	var mlnk link.MountedLink = newMountedLink(c.le, c.verbose, lnk)
 	var mstrm link.MountedStream = newMountedStream(strm, strmOpts, pid, mlnk)
 
 	// bus is the controller bus
@@ -432,18 +432,14 @@ func (c *Controller) DialPeerAddr(ctx context.Context, peerID peer.ID, opts *dia
 	}
 
 	// Keep the peer address dialer referenced while waiting for its link.
-	ref, dial, _ := c.linkDialers.AddKeyRef(linkDialerKey{peerID: peerID, dialAddress: opts.GetAddress()})
-	defer ref.Release()
-
-	// Supply the requested peer address to the referenced dialer.
-	_ = dial.opts.SetResult(opts, nil)
-
-	return dial.lnk.WaitValue(ctx, nil)
+	dial, release := c.acquireLinkDialer(peerID, opts.GetAddress(), opts)
+	defer release()
+	return dial.awaitLink(ctx)
 }
 
 // flushEstablishedLink closes an established link and cleans it up.
 // mtx is locked by caller
-func (c *Controller) flushEstablishedLink(el *establishedLink, hasNextLink bool) {
+func (c *Controller) flushEstablishedLink(el *registeredLink, hasNextLink bool) {
 	// Report the established link loss through its identifying logger.
 	le := c.loggerForLink(el.lnk)
 	le.Info("link lost/closed")
@@ -473,32 +469,18 @@ func (c *Controller) flushEstablishedLink(el *establishedLink, hasNextLink bool)
 	}
 
 	// Cancel the established link context to release its dependent streams.
-	el.cancel()
-
-	// close the directive if unreferenced (skipping unref dispose dir)
-	if !hasNextLink {
-		_ = el.di.CloseIfUnreferenced(false)
-	}
+	el.session.releaseDemand(hasNextLink)
 
 	// clear lnk from any dialers that were resolved with it.
 	c.linkDialers.RestartAllRoutines(func(lk linkDialerKey, ld *linkDialer) bool {
 		if lk.peerID != peerID {
 			return false
 		}
-		if ld.lnk.GetValue() != el.lnk {
-			return false
-		}
-
-		// clear the lnk value and restart if the controller has no new
-		// link.
-		ld.lnk.SetValue(nil)
-		return !hasNextLink
+		return ld.clearLink(el.lnk) && !hasNextLink
 	})
 
 	// Call close on the link on a separate goroutine.
-	go func() {
-		_ = el.lnk.Close()
-	}()
+	el.session.closeLinkAsync()
 }
 
 // loggerForLink wraps a logger with fields identifying the link.
@@ -515,5 +497,131 @@ func (c *Controller) Close() error {
 	return nil
 }
 
-// _ is a type assertion
+// authorizeLinkPeer checks a peer against the current authorization revision.
+func (c *Controller) authorizeLinkPeer(ctx context.Context, remotePeer peer.ID) (uint64, error) {
+	// Capture the revision before invoking the configured peer authorizer.
+	var epoch uint64
+	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		epoch = c.authEpoch
+	})
+
+	// Return the authorization decision with the revision it checked.
+	return epoch, c.authorizePeer(ctx, remotePeer)
+}
+
+// mountLink registers an admitted link, repeating authorization if its epoch changed.
+func (c *Controller) mountLink(
+	ctx context.Context,
+	waitTransport func(context.Context) (transport.Transport, error),
+	lnk link.Link,
+	epoch uint64,
+	authorizeAgain func(link.Link),
+) {
+	// Capture the link identity before updating the live indexes.
+	le := c.loggerForLink(lnk)
+	luuid := lnk.GetUUID()
+	remotePeer := lnk.GetRemotePeer()
+
+	// Await the constructed transport before accepting the link.
+	tpt, err := waitTransport(ctx)
+	if err != nil {
+		le.WithError(err).Warn("link established while transport exited, closing link")
+		go lnk.Close()
+		return
+	}
+
+	// Reconcile the link under the controller broadcast lock.
+	c.bcast.HoldLockMaybeAsync(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		// Require an active execution context before registering links.
+		execCtx := c.execCtx
+		if execCtx == nil {
+			le.Warn("link established while transport exited, closing link")
+			go lnk.Close()
+			return
+		}
+
+		// Reject self-dialed links before registration.
+		if remotePeer == c.peerID {
+			le.Warn("self-dial detected, closing link")
+			go lnk.Close()
+			return
+		}
+
+		// Authorize again when the admitted peers changed meanwhile.
+		if c.authEpoch != epoch {
+			authorizeAgain(lnk)
+			return
+		}
+
+		// Reconcile an existing registration before accepting the incoming link.
+		el, elOk := c.links[luuid]
+		if elOk {
+			if el.lnk == lnk {
+				// Ignore duplicate callbacks for the same link instance.
+				le.Debug("duplicate handle-link-established call")
+				return
+			}
+
+			// Close the previous link before replacing it.
+			le.Debug("closing existing link identical to incoming link")
+			c.flushEstablishedLink(el, true)
+			broadcast()
+		}
+
+		// Build the mounted and established link state.
+		mlnk := newMountedLink(c.le, c.verbose, lnk)
+		session, err := newEstablishedLink(c.le, execCtx, c.bus, lnk, tpt, c.HandleIncomingStream)
+		if err != nil {
+			c.le.WithError(err).Warn("unable to construct established link")
+			go lnk.Close()
+			return
+		}
+
+		// Publish the new link in both indexes.
+		el = &registeredLink{lnk: lnk, mlnk: mlnk, session: session}
+		c.links[luuid] = el
+		c.linksByPeerID[remotePeer] = append(c.linksByPeerID[remotePeer], el)
+
+		// Report the established link and wake transport state subscribers.
+		le.Info("link established")
+		broadcast()
+	})
+}
+
+// removeLink unregisters a lost link and wakes link subscribers.
+func (c *Controller) removeLink(lnk link.Link) {
+	// Unregister the mounted link.
+	c.bcast.HoldLockMaybeAsync(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		// Remove the link by UUID on the common loss path.
+		luuid := lnk.GetUUID()
+		if el, elOk := c.links[luuid]; elOk {
+			delete(c.links, luuid)
+			c.flushEstablishedLink(el, false)
+			broadcast()
+			return
+		}
+
+		// Fall back to identity comparison if the UUID changed.
+		for k, l := range c.links {
+			if l.lnk == lnk {
+				delete(c.links, k)
+				c.flushEstablishedLink(l, false)
+				broadcast()
+				break
+			}
+		}
+	})
+}
+
+// snapshotPeerLinks copies a peer's mounted entries and subscribes under the index lock.
+func (c *Controller) snapshotPeerLinks(peerID peer.ID, values []*registeredLink) ([]*registeredLink, <-chan struct{}) {
+	var waitCh <-chan struct{}
+	c.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		values = append(values, c.linksByPeerID[peerID]...)
+		waitCh = getWaitCh()
+	})
+	return values, waitCh
+}
+
+// _ is a type assertion.
 var _ transport.Controller = (*Controller)(nil)
