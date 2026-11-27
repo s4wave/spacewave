@@ -88,9 +88,32 @@ func (g *Generation) GetScheduler() *plugin_host_scheduler.Controller {
 	return g.scheduler
 }
 
-// GetSpaceController returns the plugin/space controller.
-func (g *Generation) GetSpaceController() *plugin_space.Controller {
-	return g.space
+// ReconcilePlugins wakes plugin loading and rereads process bindings after
+// the runtime's external inputs change.
+func (g *Generation) ReconcilePlugins() {
+	g.space.NotifyChanged()
+}
+
+// ObserveRegistration reports whether plugins are still registering and a
+// channel closed when their registration state changes.
+func (g *Generation) ObserveRegistration() (bool, <-chan struct{}) {
+	return g.space.GetRegistrationPendingAndWaitCh()
+}
+
+// ObserveLoadedPlugins returns loaded plugin IDs and their next change channel.
+func (g *Generation) ObserveLoadedPlugins() ([]string, <-chan struct{}) {
+	return g.space.GetLoadedPluginIDsAndWaitCh()
+}
+
+// ObserveRequestedPlugins returns requested plugin IDs and their next change channel.
+func (g *Generation) ObserveRequestedPlugins() ([]string, <-chan struct{}) {
+	return g.space.GetRequestedPluginIDsAndWaitCh()
+}
+
+// WatchAwaitingApproval reports which requested plugins wait for device approval
+// until ctx ends or the scheduler lookup fails.
+func (g *Generation) WatchAwaitingApproval(ctx context.Context, pluginIDs []string, cb func([]string)) error {
+	return g.space.WatchAwaitingApproval(ctx, pluginIDs, cb)
 }
 
 // Done returns a channel closed after the generation is released.
@@ -244,8 +267,7 @@ func (g *Generation) start(
 	// its own plugins also answers the parent's loads of its installation.
 	// A Space hosted in a plugin sends those loads to the parent, which
 	// answers them.
-	scheduler := plugin_host_scheduler.NewController(le, child, schedulerConf)
-	scheduler.SetPluginHostBus(parent)
+	scheduler := plugin_host_scheduler.NewControllerWithHostBus(le, child, parent, schedulerConf)
 	if err := g.addController(ctx, child, scheduler); err != nil {
 		return err
 	}

@@ -146,7 +146,7 @@ func (l *opPluginLoader) resolveAwaiting(ctx context.Context, h directive.Resolv
 			case <-genCtx.Done():
 			}
 		}()
-		err := gen.GetSpaceController().WatchAwaitingApproval(genCtx, requested, show)
+		err := gen.WatchAwaitingApproval(genCtx, requested, show)
 		genCancel()
 		if ctx.Err() != nil {
 			return

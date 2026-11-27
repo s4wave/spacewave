@@ -105,6 +105,6 @@ func (c *Controller) updateDemands(change func()) {
 		gen = c.gen
 	})
 	if gen != nil {
-		gen.GetSpaceController().NotifyChanged()
+		gen.ReconcilePlugins()
 	}
 }

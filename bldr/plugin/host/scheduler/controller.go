@@ -53,7 +53,7 @@ type Controller struct {
 	le *logrus.Entry
 	// bus is the controller bus.
 	bus bus.Bus
-	// hostBus supplies live hosts. The bus is bound before Execute.
+	// hostBus supplies live hosts and is fixed at construction.
 	hostBus bus.Bus
 	// conf is the config.
 	conf *Config
@@ -175,13 +175,24 @@ func NewController(
 	bus bus.Bus,
 	conf *Config,
 ) *Controller {
+	return NewControllerWithHostBus(le, bus, bus, conf)
+}
+
+// NewControllerWithHostBus constructs a scheduler that loads plugins on b and
+// discovers hosts on hostBus. Both buses remain fixed for its lifetime.
+func NewControllerWithHostBus(
+	le *logrus.Entry,
+	b bus.Bus,
+	hostBus bus.Bus,
+	conf *Config,
+) *Controller {
 	// note: conf.Validate enforces a valid peer id upstream, so the discard
 	// here only tolerates configs that have not passed Validate yet.
 	peerID, _ := conf.ParsePeerID()
 	c := &Controller{
 		le:                  le,
-		bus:                 bus,
-		hostBus:             bus,
+		bus:                 b,
+		hostBus:             hostBus,
 		conf:                conf,
 		objKey:              conf.GetObjectKey(),
 		peerID:              peerID,
@@ -191,8 +202,10 @@ func NewController(
 		pluginHostsCtr:      ccontainer.NewCContainerWithEqual(nil, pluginHostSetEqual),
 		manifestCopyGateCtr: ccontainer.NewCContainer[ManifestCopyGate](nil),
 	}
+
+	// Bind plugin routines and host RPC to the scheduler bus.
 	c.pluginInstances = keyed.NewKeyedRefCountWithLogger(c.newPluginInstance, le.WithField("tracker", "running-plugin"))
-	c.hostClient = srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(bifrost_rpc.NewInvoker(bus, "plugin-host", true))))
+	c.hostClient = srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(bifrost_rpc.NewInvoker(b, "plugin-host", true))))
 	return c
 }
 
@@ -663,12 +676,6 @@ func (c *Controller) buildPluginMux(
 	}
 
 	return mux, pluginHostRoot.Release
-}
-
-// SetPluginHostBus binds host discovery before Execute. Hosts remain owned by
-// their publishing bus. The scheduler owns their watch and selection lifetime.
-func (c *Controller) SetPluginHostBus(hostBus bus.Bus) {
-	c.hostBus = hostBus
 }
 
 // _ is a type assertion

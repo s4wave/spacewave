@@ -253,25 +253,39 @@ func NewFactory(b bus.Bus, opts ...FactoryOption) controller.Factory {
 			return &Config{}
 		},
 		func(base *bus.BusController[*Config]) (*Controller, error) {
-			c := &Controller{
-				BusController:   base,
-				manifestSource:  factoryConf.manifestSource,
-				loadTarget:      factoryConf.loadTarget,
-				demanded:        factoryConf.demanded,
-				accountPlugins:  factoryConf.accountPlugins,
-				replayPlugins:   factoryConf.replayPlugins,
-				bindingsChanged: factoryConf.bindingsChanged,
-				resolvers:       make(map[*resolverEntry]struct{}),
-				bindingsStale:   true,
-				processConfigs:  make(map[string]processConfig),
-			}
-			c.processes = keyed.NewKeyedWithLogger(
-				c.buildProcessRoutine,
-				base.GetLogger().WithField("subsystem", "process"),
-				keyed.WithRetry[string, processConfig](processRetryBackoff),
-			)
-			return c, nil
+			return newController(base, factoryConf), nil
 		},
+	)
+}
+
+// newController constructs the Space controller and its process routines.
+func newController(base *bus.BusController[*Config], factoryConf factoryConfig) *Controller {
+	// Build the plugin and process reconciliation state.
+	c := &Controller{
+		BusController:   base,
+		manifestSource:  factoryConf.manifestSource,
+		loadTarget:      factoryConf.loadTarget,
+		demanded:        factoryConf.demanded,
+		accountPlugins:  factoryConf.accountPlugins,
+		replayPlugins:   factoryConf.replayPlugins,
+		bindingsChanged: factoryConf.bindingsChanged,
+		resolvers:       make(map[*resolverEntry]struct{}),
+		bindingsStale:   true,
+		processConfigs:  make(map[string]processConfig),
+	}
+
+	// Bind process routines to this controller before it can execute.
+	c.initProcesses()
+	return c
+}
+
+// initProcesses binds the process routines to their owning controller.
+// It runs once during construction, before Execute or any published reference.
+func (c *Controller) initProcesses() {
+	c.processes = keyed.NewKeyedWithLogger(
+		c.buildProcessRoutine,
+		c.GetLogger().WithField("subsystem", "process"),
+		keyed.WithRetry[string, processConfig](processRetryBackoff),
 	)
 }
 

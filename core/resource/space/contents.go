@@ -419,12 +419,12 @@ func (r *SpaceContentsResource) WatchState(
 				runtimeErr = errors.Wrap(hostErr, "watch daemon plugin hosts")
 			}
 			var ids []string
-			ids, loadedCh = gen.GetSpaceController().GetLoadedPluginIDsAndWaitCh()
+			ids, loadedCh = gen.ObserveLoadedPlugins()
 			for _, pid := range ids {
 				loadedIDs[pid] = struct{}{}
 			}
 			var requested []string
-			requested, requestedCh = gen.GetSpaceController().GetRequestedPluginIDsAndWaitCh()
+			requested, requestedCh = gen.ObserveRequestedPlugins()
 			requestedIDs = pluginids.Missing(slices.Concat(pluginIDs, accountIDs), requested)
 
 			var statusSnapshot *bldr_plugin.PluginStatusSnapshot

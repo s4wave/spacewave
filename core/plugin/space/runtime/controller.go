@@ -147,7 +147,7 @@ func (c *Controller) SetAccountPluginIDs(ids []string) {
 		broadcast()
 	})
 	if changed && gen != nil {
-		gen.GetSpaceController().NotifyChanged()
+		gen.ReconcilePlugins()
 	}
 }
 
@@ -193,7 +193,7 @@ func (c *Controller) NotifyProcessBindingsChanged() {
 
 	// Reconcile process bindings within the running Space generation.
 	if gen != nil {
-		gen.GetSpaceController().NotifyChanged()
+		gen.ReconcilePlugins()
 	}
 }
 
@@ -226,7 +226,7 @@ func (c *Controller) holdWhileRegistering(ctx context.Context, handler directive
 		pending := gen == nil && err == nil
 		var spaceCh <-chan struct{}
 		if gen != nil {
-			pending, spaceCh = gen.GetSpaceController().GetRegistrationPendingAndWaitCh()
+			pending, spaceCh = gen.ObserveRegistration()
 		}
 
 		// Report the registration state and wait for the generation or
@@ -295,7 +295,7 @@ func (c *Controller) runGeneration(ctx context.Context, retry backoff.BackOff) e
 	// Publish the generation, then reconcile the demands that changed before
 	// updateDemands could see it.
 	c.publish(gen, nil)
-	gen.GetSpaceController().NotifyChanged()
+	gen.ReconcilePlugins()
 	retry.Reset()
 
 	// Withdraw the generation before stopping it so mounts stop installing routes.
