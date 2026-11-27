@@ -253,26 +253,44 @@ func (nopHolder) Append(context.Context, []packahead.Block) error { return nil }
 
 // slowApplier takes delay to apply each report, and refuses the pack stuck.
 type slowApplier struct {
-	delay   atomic.Int64
+	// delay is the duration of each application attempt.
+	delay atomic.Int64
+	// applied counts distinct successfully applied packs.
 	applied atomic.Int64
-	mtx     sync.Mutex
-	stuck   string
+	// mtx protects stuck and seen.
+	mtx sync.Mutex
+	// stuck is a pack that cannot be applied.
+	stuck string
+	// seen tracks packs already counted as applied.
+	seen map[string]struct{}
 }
 
-// ApplyPack counts the report after the delay.
+// ApplyPack counts each successful pack once after the delay.
 func (a *slowApplier) ApplyPack(ctx context.Context, report *PackReport) error {
+	// Check whether this pack can ever be applied.
 	a.mtx.Lock()
 	stuck := a.stuck
 	a.mtx.Unlock()
 	if report.GetPackId() == stuck {
 		return errors.New("pack merged away")
 	}
+
+	// Apply the report after the configured delay unless its caller stops.
 	select {
 	case <-time.After(time.Duration(a.delay.Load())):
 	case <-ctx.Done():
 		return ctx.Err()
 	}
-	a.applied.Add(1)
+	// Reports may be retried before the server receives their acknowledgement.
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+	if a.seen == nil {
+		a.seen = make(map[string]struct{})
+	}
+	if _, seen := a.seen[report.GetPackId()]; !seen {
+		a.seen[report.GetPackId()] = struct{}{}
+		a.applied.Add(1)
+	}
 	return nil
 }
 
