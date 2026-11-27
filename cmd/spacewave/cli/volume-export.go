@@ -144,6 +144,7 @@ func (r *volumeExport) reuseBlock(ctx context.Context, ref *block.BlockRef) (boo
 	}
 
 	// Remove proven corrupt bytes even when the source cannot replace them.
+	// #nosec G703 -- the name is the operator-named directory joined with a B58 ref, which holds no separator.
 	if err := os.Remove(filepath.Join(r.out, ref.MarshalString())); err != nil {
 		return false, errors.Wrap(err, "remove corrupt exported block")
 	}
@@ -173,6 +174,9 @@ func (r *volumeExport) writeBlock(ref *block.BlockRef, data []byte) (err error) 
 	if err != nil {
 		return err
 	}
+
+	// Publish the block under its ref.
+	// #nosec G703 -- both names are in the operator-named directory, and a B58 ref holds no separator.
 	return errors.Wrap(os.Rename(out.Name(), filepath.Join(r.out, ref.MarshalString())), "publish exported block")
 }
 

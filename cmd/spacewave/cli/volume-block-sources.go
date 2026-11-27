@@ -81,7 +81,7 @@ type dirBlocks string
 func (d dirBlocks) GetStoredBlock(_ context.Context, ref *block.BlockRef) (_ *block.StoredBlock, err error) {
 	// Judge the name itself, so a symlink or a special file is refused unopened.
 	path := filepath.Join(string(d), ref.MarshalString())
-	named, err := os.Lstat(path)
+	named, err := os.Lstat(path) // #nosec G703 -- the operator-named directory joined with a B58 ref, which holds no separator.
 	if errors.Is(err, os.ErrNotExist) {
 		return nil, nil
 	}
@@ -93,6 +93,7 @@ func (d dirBlocks) GetStoredBlock(_ context.Context, ref *block.BlockRef) (_ *bl
 	}
 
 	// Read the file that was judged: a name replaced between the two calls is refused.
+	// #nosec G703 -- path is the name judged above.
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, errors.Wrapf(err, "open block %s", path)
