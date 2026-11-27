@@ -9,7 +9,7 @@ import (
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/core/cdn"
-	cdn_rootserve "github.com/s4wave/spacewave/core/cdn/rootserve"
+	cdn_rootserve "github.com/s4wave/spacewave/core/cdn/hosting/rootserve"
 	"github.com/sirupsen/logrus"
 )
 

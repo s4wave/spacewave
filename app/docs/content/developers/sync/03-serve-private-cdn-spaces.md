@@ -21,7 +21,7 @@ covers, and keep them on their own server volume.
 
 ## Issue grants
 
-`core/cdn/grant` issues grants for the Spaces a `cdn_writer.Writer` owns.
+`core/cdn/hosting/grant` issues grants for the Spaces a `cdn_writer.Writer` owns.
 `cdn_grant.NewB2` mints B2 native download authorizations; its application key
 stays on your server.
 

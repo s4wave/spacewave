@@ -15,10 +15,10 @@ import (
 
 	"github.com/pkg/errors"
 	cdn_bstore "github.com/s4wave/spacewave/core/cdn/bstore"
+	"github.com/s4wave/spacewave/core/cdn/hosting/writer/writertest"
 	cdn_mirror "github.com/s4wave/spacewave/core/cdn/mirror"
 	cdn_publish "github.com/s4wave/spacewave/core/cdn/publish"
 	cdn_world_controller "github.com/s4wave/spacewave/core/cdn/world/controller"
-	"github.com/s4wave/spacewave/core/cdn/writer/writertest"
 	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/delta"
 	"github.com/s4wave/spacewave/core/release/publisher"
 	"github.com/s4wave/spacewave/db/block"

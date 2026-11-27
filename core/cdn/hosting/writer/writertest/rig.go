@@ -1,6 +1,3 @@
-// Package writertest runs a CDN Space writer for tests: an in-process bucket
-// behind a counting proxy, a pointer handler, and a writer over a file-backed
-// World, each served on loopback, with a new Space owned by a new key.
 package writertest
 
 import (
@@ -21,9 +18,9 @@ import (
 	"time"
 
 	"github.com/s4wave/spacewave/core/cdn"
-	cdn_rootserve "github.com/s4wave/spacewave/core/cdn/rootserve"
-	cdn_writer "github.com/s4wave/spacewave/core/cdn/writer"
-	cdn_writer_world "github.com/s4wave/spacewave/core/cdn/writer/world"
+	cdn_rootserve "github.com/s4wave/spacewave/core/cdn/hosting/rootserve"
+	cdn_writer "github.com/s4wave/spacewave/core/cdn/hosting/writer"
+	cdn_writer_world "github.com/s4wave/spacewave/core/cdn/hosting/writer/world"
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
 	"github.com/s4wave/spacewave/core/release/publisher"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"

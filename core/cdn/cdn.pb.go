@@ -23,7 +23,7 @@ import (
 // commit and is served with no-cache and a strong ETag. The packs it lists
 // never change and stay on the CDN host, cached for a year. Spacewave's
 // Worker writes cdn.spacewave.app. A self-hosted writer serves the pointer
-// from its own host with core/cdn/rootserve. Anonymous clients fetch and
+// from its own host with core/cdn/hosting/rootserve. Anonymous clients fetch and
 // decode this blob to discover the current signed checkpoint and the set of
 // packs they need to reconstruct Space state. No writer round-trip is
 // required for the packs.

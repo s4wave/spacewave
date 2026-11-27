@@ -1,8 +1,3 @@
-// Package cdn_writer_world keeps CDN Space root pointers in a World: one
-// CdnSpace object per Space, written by two typed operations, import and
-// commit. The pointer state then survives restarts and replicates with the
-// rest of the World. A server whose World runs these operations adds
-// SpaceTypes to its schema.
 package cdn_writer_world
 
 import (
@@ -12,7 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/cdn"
-	cdn_writer "github.com/s4wave/spacewave/core/cdn/writer"
+	cdn_writer "github.com/s4wave/spacewave/core/cdn/hosting/writer"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"

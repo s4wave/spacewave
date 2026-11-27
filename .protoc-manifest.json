@@ -1541,7 +1541,7 @@
           ]
         },
         "github.com/s4wave/spacewave/core/cdn": {
-          "hash": "dd96b6ddb8c781a823dbf132d98786b4addec1254f808fbc896c78e771efa447",
+          "hash": "8aa77a93586fb2d9af4bd6b93d72655decf3d67fcad31346b649e511e3d61b83",
           "generatedFiles": [
             "core/cdn/cdn.pb.go",
             "core/cdn/cdn.pb.ts"
@@ -1560,6 +1560,18 @@
             "core/cdn/bstore/controller/controller.proto"
           ]
         },
+        "github.com/s4wave/spacewave/core/cdn/hosting/writer/world": {
+          "hash": "497a09bc77f4d1fdae323df3e6e3289edb6286b7fb03023b4687bf8760d6ac0e",
+          "generatedFiles": [
+            "core/cdn/hosting/writer/world/space.pb.go",
+            "core/cdn/hosting/writer/world/space.pb.ts",
+            "core/cdn/hosting/writer/world/space_typeid.pb.go",
+            "core/cdn/hosting/writer/world/space_typeid.pb.ts"
+          ],
+          "protoFiles": [
+            "core/cdn/hosting/writer/world/space.proto"
+          ]
+        },
         "github.com/s4wave/spacewave/core/cdn/world/controller": {
           "hash": "d9a611529a0eb773bb95008bb7a82f961202988f1f1866dc05cb6ed232bb0413",
           "generatedFiles": [
@@ -1570,18 +1582,6 @@
           ],
           "protoFiles": [
             "core/cdn/world/controller/controller.proto"
-          ]
-        },
-        "github.com/s4wave/spacewave/core/cdn/writer/world": {
-          "hash": "fe16df4f3abe1d6b5217e0c61b9b255ff526de6b7f7f15fada2bd3053c7559a4",
-          "generatedFiles": [
-            "core/cdn/writer/world/space.pb.go",
-            "core/cdn/writer/world/space.pb.ts",
-            "core/cdn/writer/world/space_typeid.pb.go",
-            "core/cdn/writer/world/space_typeid.pb.ts"
-          ],
-          "protoFiles": [
-            "core/cdn/writer/world/space.proto"
           ]
         },
         "github.com/s4wave/spacewave/core/changelog": {

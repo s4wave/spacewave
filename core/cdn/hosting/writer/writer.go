@@ -15,7 +15,7 @@ import (
 	packedmsg "github.com/s4wave/spacewave/bldr/util/packedmsg"
 	"github.com/s4wave/spacewave/core/cdn"
 	cdn_bstore "github.com/s4wave/spacewave/core/cdn/bstore"
-	cdn_rootserve "github.com/s4wave/spacewave/core/cdn/rootserve"
+	cdn_rootserve "github.com/s4wave/spacewave/core/cdn/hosting/rootserve"
 	"github.com/s4wave/spacewave/core/sobject"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	"github.com/s4wave/spacewave/db/packfile"

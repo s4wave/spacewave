@@ -14,8 +14,8 @@ import (
 
 	"github.com/aperturerobotics/starpc/srpc"
 	cdn_bstore "github.com/s4wave/spacewave/core/cdn/bstore"
+	"github.com/s4wave/spacewave/core/cdn/hosting/writer/writertest"
 	cdn_mirror "github.com/s4wave/spacewave/core/cdn/mirror"
-	"github.com/s4wave/spacewave/core/cdn/writer/writertest"
 	"github.com/s4wave/spacewave/db/block"
 	block_rpc "github.com/s4wave/spacewave/db/block/rpc"
 	block_rpc_client "github.com/s4wave/spacewave/db/block/rpc/client"

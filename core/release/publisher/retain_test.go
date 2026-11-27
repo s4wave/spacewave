@@ -11,8 +11,8 @@ import (
 
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
+	"github.com/s4wave/spacewave/core/cdn/hosting/writer/writertest"
 	cdn_publish "github.com/s4wave/spacewave/core/cdn/publish"
-	"github.com/s4wave/spacewave/core/cdn/writer/writertest"
 	"github.com/s4wave/spacewave/core/release"
 	"github.com/s4wave/spacewave/core/release/publisher"
 	"github.com/s4wave/spacewave/db/block"

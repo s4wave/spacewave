@@ -18,10 +18,10 @@ import (
 
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
+	cdn_writer "github.com/s4wave/spacewave/core/cdn/hosting/writer"
+	"github.com/s4wave/spacewave/core/cdn/hosting/writer/writertest"
 	cdn_publish "github.com/s4wave/spacewave/core/cdn/publish"
 	cdn_world_controller "github.com/s4wave/spacewave/core/cdn/world/controller"
-	cdn_writer "github.com/s4wave/spacewave/core/cdn/writer"
-	"github.com/s4wave/spacewave/core/cdn/writer/writertest"
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
 	"github.com/s4wave/spacewave/core/provider/spacewave/clouderror"
 	"github.com/s4wave/spacewave/core/release"

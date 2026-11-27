@@ -40,7 +40,7 @@ until the pointer moves, so a poll costs one small request.
 
 ## Serve the pointer from your server
 
-`core/cdn/rootserve` serves pointers with those rules. Mount it under the
+`core/cdn/hosting/rootserve` serves pointers with those rules. Mount it under the
 pointer base and tell it each new pointer after its commit is durable:
 
 ```go
