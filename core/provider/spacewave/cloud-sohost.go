@@ -1050,10 +1050,12 @@ func (h *cloudSOHost) applyConfigMutation(
 	epoch *sobject.SOKeyEpoch,
 ) error {
 	// Serialize with peer imports. Every caller posts the change to the cloud
-	// first, so a closed host returns errHostClosed for a change the cloud
-	// has committed. The host stores nothing, and the next mount verifies the
-	// change when it pulls the cloud's config chain.
+	// first, so a closed host has a change the cloud committed and the host
+	// cannot store: report it as written with an unknown outcome.
 	release, err := h.lockAccept(ctx)
+	if errors.Is(err, errHostClosed) {
+		return errConfigUnapplied
+	}
 	if err != nil {
 		return err
 	}

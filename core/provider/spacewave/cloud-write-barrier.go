@@ -36,7 +36,9 @@ import (
 //     settles it from what the cache holds.
 //   - A closed host's write returns sobject.ErrMountReloading, and the mount
 //     reports itself released when its run ends, so the World remounts and
-//     writes through the next run.
+//     writes through the next run. A config change the cloud committed before
+//     the host closed is written, so it returns sobject.ErrStateWriteUnknown
+//     instead.
 //   - Code that deletes an object's cache, such as a reseed, ends the object's
 //     run and holds its run slot while it deletes, so no host writes the cache
 //     during the delete and no run loads it half deleted.
@@ -54,6 +56,13 @@ var cloudWriteBarrierOff = os.Getenv(CloudWriteBarrierEnv) == "off"
 // ended. The write stored nothing. It wraps sobject.ErrMountReloading, so the
 // World retires the engine on the ended mount and writes through the next.
 var errHostClosed = fmt.Errorf("cloud shared object host closed: %w", sobject.ErrMountReloading)
+
+// errConfigUnapplied is returned for a config change the cloud committed that
+// the host could not apply because its run had ended. The cloud holds the
+// change, so it wraps sobject.ErrStateWriteUnknown and not ErrMountReloading:
+// a caller must not take the change as unwritten. The next mount verifies the
+// change when it pulls the cloud's config chain.
+var errConfigUnapplied = fmt.Errorf("cloud committed a config change after its host closed: %w", sobject.ErrStateWriteUnknown)
 
 // lockAccept takes acceptMu for a write of the host's accepted state. It
 // returns errHostClosed, holding nothing, once the host is closed.
@@ -129,7 +138,11 @@ type cloudRunSlot struct {
 }
 
 // take queues a slot for soID behind the newest one. Call release exactly
-// once, after the holder's last write of the object's cache.
+// once, after the holder's last write of the object's cache. A holder other
+// than the object's run, such as a reseed, must end the current run before it
+// waits: a run holds its slot for as long as its host stays open, even with
+// no writes left, as holdTerminalMountError does, so a wait that leaves the
+// run going never returns.
 func (h *cloudRunHandoff) take(soID string) *cloudRunSlot {
 	// Keep the old behavior when the barrier is off.
 	if cloudWriteBarrierOff {

@@ -552,6 +552,13 @@ func TestCloudHostWriteBarrier(t *testing.T) {
 	if err := writeLocalOperation(t, a, key); !errors.Is(err, errHostClosed) {
 		t.Errorf("ended host accepted a write: %v", err)
 	}
+
+	// A config change the cloud committed reaches A after it closed: A reports
+	// it written with an unknown outcome, never as unwritten.
+	err := a.applyConfigMutation(t.Context(), &sobject.SOConfigChange{}, nil, nil)
+	if !errors.Is(err, sobject.ErrStateWriteUnknown) || errors.Is(err, sobject.ErrMountReloading) {
+		t.Errorf("ended host's committed config change = %v, want sobject.ErrStateWriteUnknown", err)
+	}
 	cache, err := account.loadVerifiedSOStateCache(t.Context(), testSharedObjectID)
 	if err != nil {
 		t.Fatal(err)
