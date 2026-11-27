@@ -386,10 +386,11 @@ func testSetRootAbandoned(t *testing.T) {
 // cut it boots again and, before the World engine starts and replay holds
 // anything, frees every block no durable hold keeps. Every stored operation's
 // roots must then be stored, and every blob that reads back must read whole.
-// A blob that read back after an earlier cut, or whose write returned before
-// its cut, must read back after every later one. A write that returns after
-// its cut is not checked, as a process that lost power reports nothing. The
-// cuts end at the first write that makes no call at its cut point. At least
+// A blob that read back after an earlier cut, or whose write returned
+// without an error, must read back after every later one. A write returns
+// after its cut when its state commit failed: the store may still show the
+// commit, so the write must report its outcome unknown rather than stored.
+// The cuts end at the first write that makes no call at its cut point. At least
 // one cut must lose a write after its hold, or the run did not test the
 // window the ordering closes.
 func testSetRootPowerCut(t *testing.T) {
@@ -470,8 +471,7 @@ func testSetRootPowerCut(t *testing.T) {
 		k := "cut-" + strconv.Itoa(n)
 		held.Store(false)
 		dev.CrashAfter(n)
-		err := write(k)
-		if err == nil && !f.bootDev.isCut() {
+		if err := write(k); err == nil {
 			acked = append(acked, k)
 		}
 
@@ -493,7 +493,7 @@ func testSetRootPowerCut(t *testing.T) {
 	check("after a clean boot", uint64(cuts))
 	for _, k := range acked {
 		if !found[k] {
-			t.Fatalf("write %s returned before the cut but is gone", k)
+			t.Fatalf("write %s returned without an error but is gone", k)
 		}
 	}
 	if unordered.Load() {

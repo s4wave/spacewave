@@ -421,12 +421,15 @@ func (t *Tx) commit(ctx context.Context, ordered bool) error {
 	})
 
 	// Write them against the published state, which the writer lock keeps
-	// current, then release the snapshot and the lock.
+	// current, unless a flush failed, then release the snapshot and the lock.
 	defer db.endWrite()
 	if db.sched != nil {
 		defer db.sched.fg.begin()()
 	}
-	err := db.w.commit(ctx, db.cur.Load(), changes, false)
+	err := db.failure()
+	if err == nil {
+		err = db.w.commit(ctx, db.cur.Load(), changes, false)
+	}
 	db.release(t.st, t.stripe)
 	seq := db.cur.Load().seq
 	db.w.unlock()

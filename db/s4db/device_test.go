@@ -3,8 +3,10 @@ package s4db
 import (
 	"bytes"
 	"context"
+	"errors"
 	"maps"
 	"math/rand/v2"
+	"sync/atomic"
 	"testing"
 
 	kvtest "github.com/s4wave/spacewave/db/kvtx/kvtest"
@@ -153,5 +155,132 @@ func TestDeviceChurn(t *testing.T) {
 		if err := db.Close(); err != nil {
 			t.Fatal(err)
 		}
+	}
+}
+
+// failFlushDevice is a device whose next flushing call fails, once armed,
+// without reaching the device, as a drive that reports a write error does.
+type failFlushDevice struct {
+	*device.Memory
+	// armed fails the next call with flush set.
+	armed atomic.Bool
+}
+
+// errFlushFault is the failure failFlushDevice injects.
+var errFlushFault = errors.New("injected flush failure")
+
+// Write fails a flushing call once armed, and otherwise writes to memory.
+func (d *failFlushDevice) Write(ctx context.Context, writes []device.Write, flush bool) error {
+	if flush && d.armed.Swap(false) {
+		return errFlushFault
+	}
+	return d.Memory.Write(ctx, writes, flush)
+}
+
+// putKey commits key with a value derived from it, durably.
+func putKey(db *DB, key string) error {
+	ctx := context.Background()
+	tx, err := db.NewTransaction(ctx, true)
+	if err != nil {
+		return err
+	}
+	if err := tx.Set(ctx, []byte(key), []byte("v-"+key)); err != nil {
+		tx.Discard()
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+// hasKey reads whether a new transaction finds key.
+func hasKey(db *DB, key string) (bool, error) {
+	ctx := context.Background()
+	tx, err := db.NewTransaction(ctx, false)
+	if err != nil {
+		return false, err
+	}
+	defer tx.Discard()
+	_, found, err := tx.Get(ctx, []byte(key))
+	return found, err
+}
+
+// TestDeviceFailedFlushStops fails one durable flush and checks that the
+// handle then shows the failed commit to no one: every new transaction,
+// commit and Sync fails with ErrFlushFailed without a device call, so no
+// later flush claims the failed commit durable, and recovery after a power
+// loss keeps every durable commit. With fail-stop off, the old behavior returns: the failed commit
+// reads as stored though a power loss drops it.
+func TestDeviceFailedFlushStops(t *testing.T) {
+	ctx := context.Background()
+	r := rand.New(rand.NewPCG(7, 7))
+
+	// Fail the flush of a durable commit after one that succeeded.
+	mem := device.NewMemory()
+	dev := &failFlushDevice{Memory: mem}
+	db := openDevice(t, dev, Options{})
+	if err := putKey(db, "kept"); err != nil {
+		t.Fatal(err)
+	}
+	dev.armed.Store(true)
+	if err := putKey(db, "failed"); !errors.Is(err, errFlushFault) || !errors.Is(err, ErrFlushFailed) {
+		t.Fatalf("commit with a failed flush returned %v", err)
+	}
+
+	// The handle refuses every new read, write and flush, without calling
+	// the device, so no later flush claims the failed commit durable.
+	calls := mem.Calls()
+	if _, err := hasKey(db, "failed"); !errors.Is(err, ErrFlushFailed) {
+		t.Fatalf("read after a failed flush returned %v", err)
+	}
+	if err := putKey(db, "after"); !errors.Is(err, ErrFlushFailed) {
+		t.Fatalf("commit after a failed flush returned %v", err)
+	}
+	if err := db.Sync(ctx); !errors.Is(err, ErrFlushFailed) {
+		t.Fatalf("Sync after a failed flush returned %v", err)
+	}
+	if got := mem.Calls(); got != calls {
+		t.Fatalf("failed handle made %d device calls", got-calls)
+	}
+	if err := db.Close(); !errors.Is(err, ErrFlushFailed) {
+		t.Fatalf("Close after a failed flush returned %v", err)
+	}
+
+	// A power loss keeps the durable commit. Close issued the failed
+	// commit's collected writes without a flush, so recovery may keep it or
+	// not, and the refused commit is gone.
+	mem.PowerLoss(r)
+	db = openDevice(t, mem, Options{})
+	for key, want := range map[string]bool{"kept": true, "after": false} {
+		if got, err := hasKey(db, key); err != nil || got != want {
+			t.Fatalf("after the power loss %q found=%v err=%v, want %v", key, got, err, want)
+		}
+	}
+	if err := putKey(db, "reopened"); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	// With fail-stop off, the failed commit reads as stored, and a power
+	// loss drops it.
+	failStopOff = true
+	t.Cleanup(func() { failStopOff = false })
+	mem = device.NewMemory()
+	dev = &failFlushDevice{Memory: mem}
+	db = openDevice(t, dev, Options{})
+	dev.armed.Store(true)
+	if err := putKey(db, "failed"); !errors.Is(err, errFlushFault) || errors.Is(err, ErrFlushFailed) {
+		t.Fatalf("commit with fail-stop off returned %v", err)
+	}
+	if got, err := hasKey(db, "failed"); err != nil || !got {
+		t.Fatalf("with fail-stop off the failed commit found=%v err=%v", got, err)
+	}
+	mem.CrashAfter(0)
+	_ = db.Close()
+	mem.PowerLoss(r)
+	db = openDevice(t, mem, Options{})
+	defer db.Close()
+	if got, err := hasKey(db, "failed"); err != nil || got {
+		t.Fatalf("with fail-stop off the power loss kept the failed commit: found=%v err=%v", got, err)
 	}
 }

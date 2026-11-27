@@ -133,7 +133,10 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 	// failure at the commit may have stored the write, so read the token key
 	// now: token means the write committed, and the state's token under it or
 	// none means it did not. Any other state may follow this write, so its
-	// outcome is unknown. The mount reloads whenever storage holds, or may
+	// outcome is unknown. The read is sound because the store shows no failed
+	// commit as stored (kvtx.AtomicCommitStore): s4db refuses every new
+	// transaction once a flush fails, so the read fails and the outcome is
+	// unknown, rather than finding a token a power loss would drop. The mount reloads whenever storage holds, or may
 	// hold, another state than the one it last wrote. The caller holds
 	// ent.writeMtx.
 	settle := func(sharedObjectID string, ent *soStateEntry, token []byte, ended bool, err error) error {

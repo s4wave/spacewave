@@ -174,7 +174,10 @@ type OrderedCommitStore interface {
 // every mutation. The fence is atomicity: a store configured not to sync still
 // commits all of a transaction or none of it. A write transaction's reads must
 // see the writes of every committed transaction of every process, so a check
-// and the write it guards land together. Wrappers that
+// and the write it guards land together. A Commit that fails must not leave
+// its writes visible as stored: a later transaction either does not see them
+// or fails, until the store is opened again, so a caller that reads back after
+// a failed Commit finds a write only when storage holds it. Wrappers that
 // defer Commit across calls, and stores that split blocks into another domain,
 // must not advertise this capability. In-memory stores can implement it for
 // transactional tests. Implementing the capability does not make their data

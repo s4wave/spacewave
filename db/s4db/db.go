@@ -47,6 +47,8 @@ const (
 type DB struct {
 	// s is the database file.
 	s storage
+	// failStop is s on a writable handle with fail-stop on, or nil.
+	failStop *failStop
 	// hdr is the file header.
 	hdr *header
 	// opts holds the options with defaults applied.
@@ -142,7 +144,8 @@ func open(s storage, opts Options) (*DB, error) {
 
 // openOwned constructs a handle after its caller claimed writable ownership.
 func openOwned(s storage, opts Options) (*DB, error) {
-	// Build the database on s with its flusher and writer.
+	// Build the database on s with its flusher and writer. A writable
+	// handle fails stop on its first failed flush.
 	opts = opts.withDefaults()
 	db := &DB{
 		s:      s,
@@ -154,7 +157,11 @@ func openOwned(s storage, opts Options) (*DB, error) {
 		cache:  newBlockCache(int64(opts.CacheBytes)),
 		runs:   runs{readers: make(map[uint64]*runReader)},
 	}
-	db.flush = newFlusher(s, &db.cur)
+	if !opts.ReadOnly && !failStopOff {
+		db.failStop = newFailStop(s, &db.bcast)
+		db.s = db.failStop
+	}
+	db.flush = newFlusher(db.s, &db.cur)
 	db.w = &writer{db: db}
 
 	// Recover the state, releasing everything on failure.
@@ -571,9 +578,13 @@ func (db *DB) readValue(v value) ([]byte, error) {
 // NewTransaction opens a transaction. A write transaction holds the writer
 // lock until Commit or Discard.
 func (db *DB) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
-	// Refuse a closed handle and serve a read from the published state.
+	// Refuse a closed or failed handle and serve a read from the published
+	// state.
 	if db.closed.Load() {
 		return nil, ErrClosed
+	}
+	if err := db.failure(); err != nil {
+		return nil, err
 	}
 	if !write {
 		st, stripe := db.acquire()

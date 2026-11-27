@@ -210,8 +210,13 @@ func (db *DB) waitMemtable(ctx context.Context, background bool) error {
 	}
 	start := time.Now()
 	err := db.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
+		// Fail once the handle closes or a flush fails, then wait until
+		// the memtable fits.
 		if db.closed.Load() {
 			return false, ErrClosed
+		}
+		if err := db.failure(); err != nil {
+			return false, err
 		}
 		st := db.cur.Load()
 		if background && st.stalled() {
