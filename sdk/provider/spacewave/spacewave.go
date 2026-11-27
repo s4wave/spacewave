@@ -98,11 +98,6 @@ func (s *SpacewaveProvider) PasskeyConfirmSignup(ctx context.Context, req *Passk
 	return s.service.PasskeyConfirmSignup(ctx, req)
 }
 
-// RelayDesktopPasskey relays a browser ceremony result back to native alpha.
-func (s *SpacewaveProvider) RelayDesktopPasskey(ctx context.Context, req *RelayDesktopPasskeyRequest) (*RelayDesktopPasskeyResponse, error) {
-	return s.service.RelayDesktopPasskey(ctx, req)
-}
-
 // RequestRecoveryEmail requests a recovery email for an account.
 func (s *SpacewaveProvider) RequestRecoveryEmail(ctx context.Context, email, turnstileToken string) (*RequestRecoveryEmailResponse, error) {
 	return s.service.RequestRecoveryEmail(ctx, &RequestRecoveryEmailRequest{
