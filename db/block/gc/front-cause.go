@@ -20,6 +20,11 @@ const (
 	FrontDamaged
 	// FrontPoppable means the front entry's free proof holds.
 	FrontPoppable
+	// FrontUnborn means the store holds neither bytes, a child list nor a hole record for a block at one holder.
+	// The count cannot tell the implied holder of an unborn block from one real holder, so the reference scan settles it.
+	FrontUnborn
+	// frontCauses is the number of causes.
+	frontCauses
 )
 
 // String returns the cause for an operator's diagnostic report.
@@ -35,6 +40,8 @@ func (c FrontCause) String() string {
 		return "damaged"
 	case FrontPoppable:
 		return "poppable"
+	case FrontUnborn:
+		return "absent, one holder, no list or hole"
 	default:
 		return "unknown"
 	}
@@ -42,6 +49,9 @@ func (c FrontCause) String() string {
 
 // readFrontCause reads the front's detailed proof with the collector's read order and short circuits.
 // The ripe sequence and errors are also those of frontProven.
+//
+// Cost: one count read for a block held above one. A block at one adds the reads of Records.unborn,
+// which end at the list read for a listed block.
 func readFrontCause(ctx context.Context, rec *Records, blocks block.StoreOps, cursor uint64, key []byte) (FrontCause, uint64, error) {
 	// Require exactly a block key, then zero holders, ripe at a sequence the
 	// cursor reached.
@@ -49,8 +59,16 @@ func readFrontCause(ctx context.Context, rec *Records, blocks block.StoreOps, cu
 		return FrontHeldByHolders, 0, errBadBlockKey
 	}
 	holders, ripe, err := rec.holders(ctx, key)
-	if err != nil || holders != 0 {
+	if err != nil || holders > 1 {
 		return FrontHeldByHolders, 0, err
+	}
+	if holders == 1 {
+		// One holder may be only the implied holder of an unborn block.
+		unborn, err := rec.unborn(ctx, blocks, key)
+		if err != nil || !unborn {
+			return FrontHeldByHolders, 0, err
+		}
+		return FrontUnborn, 0, nil
 	}
 	if ripe > cursor {
 		return FrontRipening, ripe, nil

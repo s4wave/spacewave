@@ -166,7 +166,7 @@ func openAuditScratch(t *testing.T, name string) (store_kvtx_sqlite.Store, error
 func testAuditWalk(t *testing.T) {
 	// Build the hole, the undercount and the parent ahead of its child.
 	v, clk := newLivenessVolume(t, true)
-	swapCollector(v, v.newCollector(collectorStore{v: v}, true, 0))
+	swapCollector(v, v.newCollector(collectorStore{v: v}, true, false, 0))
 	ctx := t.Context()
 	tr := testTree{}
 	h := tr.add(t, "H")

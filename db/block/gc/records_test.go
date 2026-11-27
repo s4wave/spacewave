@@ -498,6 +498,7 @@ func TestSettleStatusFrontCauses(t *testing.T) {
 		{"released", 0, 5, true, false, kindReleased, FrontPoppable, frontPop},
 		{"parked", 0, 5, true, false, kindParked, FrontPoppable, frontPop},
 		{"absent", 0, 5, false, false, 0, FrontPoppable, frontPop},
+		{"unborn", 1, 0, false, false, 0, FrontUnborn, frontUnborn},
 	}
 	collector := NewCollector(diagnosticStore{data: data, keys: keys}, CollectorOptions{})
 	for _, tc := range cases {

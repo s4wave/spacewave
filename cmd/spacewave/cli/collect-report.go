@@ -77,7 +77,11 @@ func (r *collectReport) add(res block_gc.CollectResult) {
 	sum.Parked += res.Parked
 	sum.Requeued += res.Requeued
 	sum.Unmarked += res.Unmarked
+
+	// Sum the front's counts and the sweep's.
 	sum.Popped += res.Popped
+	sum.Unreferenced += res.Unreferenced
+	sum.RefScanned += res.RefScanned
 	sum.Seeded += res.Seeded
 	sum.FrontScanned += res.FrontScanned
 	sum.Swept += res.Swept
@@ -114,6 +118,7 @@ func (r *collectReport) progress() {
 		"freed":         r.res.Freed,
 		"front-scanned": r.res.FrontScanned,
 		"popped":        r.res.Popped,
+		"ref-scanned":   r.res.RefScanned,
 		"swept":         r.res.Swept,
 		"slices":        r.res.Slices,
 		"store-time":    r.res.StoreTime.Round(time.Millisecond).String(),
@@ -158,6 +163,8 @@ func (r *collectReport) fields() [][2]string {
 		{"Front seeded", strconv.FormatUint(res.Seeded, 10)},
 		{"Front scanned", strconv.FormatUint(res.FrontScanned, 10)},
 		{"Front popped", strconv.FormatUint(res.Popped, 10)},
+		{"Front popped unreferenced", strconv.FormatUint(res.Unreferenced, 10)},
+		{"Reference scan records", strconv.FormatUint(res.RefScanned, 10)},
 		{"Front left at the last full scan", front},
 		{"Flipped", strconv.FormatBool(res.Flipped)},
 		{"Returned to unadopted", strconv.FormatBool(res.Unadopted)},

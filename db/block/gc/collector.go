@@ -8,6 +8,7 @@ import (
 	"math"
 	"slices"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/pkg/errors"
@@ -200,11 +201,17 @@ type Collector struct {
 	//  - an adoption recounts and queues blocks at zero, and stamps a new
 	//    AdoptAtUnixMilli, which frontAdoptAt records at the scan's start;
 	//  - the Volume turns freeable or its recount clears, while the scan
-	//    returns early and so never reaches the end.
-	// A hold, a push or a park turns no proof true: a Land's hold dequeues
-	// the block until its up nets, a push adds a held block or one whose
-	// count the recount owes, and a park keeps the proof that a queue entry
-	// gave. The one proof that turns true with no event is a damaged
+	//    returns early and so never reaches the end;
+	//  - the netting takes a front block to one holder, which may leave an
+	//    unborn block unreferenced, or a reference scan ended with a
+	//    candidate it could not take, each of which frontWoke records, or
+	//    a push adds a block without a list at one holder, which unbornPush
+	//    records. The reference scan, not the proof, pops such an entry,
+	//    and a front scan is what offers it one, as unrefScan describes.
+	// A hold, any other push or a park turns no proof true: a Land's hold
+	// dequeues the block until its up nets, such a push adds a held block or
+	// one whose count the recount owes, and a park keeps the proof that a
+	// queue entry gave. The one proof that turns true with no event is a damaged
 	// entry's, an unlisted block at zero whose bytes then go, so a scan
 	// that keeps a damaged entry does not go idle.
 	// The idle decides only when the scan runs, never what it pops: each
@@ -218,6 +225,17 @@ type Collector struct {
 	// frontAdoptAt is the adoption mark under which the current or last
 	// front scan started; a new adoption ends the idle.
 	frontAdoptAt int64
+	// frontWoke reports an event since the current or last front scan
+	// started that may leave an unborn front block unreferenced, as
+	// frontIdle lists. It ends the idle.
+	frontWoke bool
+	// unbornPush reports that a transaction committed since the current or
+	// last front scan started pushed a block without a list at one holder,
+	// as NoteUnbornPush describes. It ends the idle. Any goroutine sets it.
+	unbornPush atomic.Bool
+	// unref is the reference scan over the unborn front entries at one
+	// holder that the front scan kept.
+	unref unrefScan
 	// page is the scratch of the slices viewSlices runs, reused across
 	// slices.
 	page keyPage
@@ -754,6 +772,18 @@ func eachSlice[P any](
 			return false, err
 		}
 		from = next
+	}
+}
+
+// NoteUnbornPush tells the collector that a committed transaction pushed
+// onto the front a block without a list at one holder, as
+// Records.PushedUnborn reports, so the next pass scans the front and offers
+// the entry to the reference scan. Any goroutine may call it. A note for a
+// push the scan already read costs one front scan. With the reference scan
+// switched off no pop follows such a push, so the note is dropped.
+func (c *Collector) NoteUnbornPush() {
+	if !c.opts.KeepUnreferenced {
+		c.unbornPush.Store(true)
 	}
 }
 

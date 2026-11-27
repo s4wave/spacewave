@@ -34,7 +34,7 @@ type SettleStatus struct {
 	// FrontSample holds the first front entries' blocks.
 	FrontSample []*block.BlockRef
 	// FrontCauses counts the front entries read by their detailed proof, with one ref per cause.
-	FrontCauses [5]FrontCauseCount
+	FrontCauses [frontCauses]FrontCauseCount
 	// Holes counts the recorded holes, up to the limit, written off or not.
 	Holes int
 	// OpenHoles counts the holes among Holes no operator wrote off, which

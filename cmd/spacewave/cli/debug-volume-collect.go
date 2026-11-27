@@ -24,6 +24,8 @@ type debugVolumeCollectArgs struct {
 	frees bool
 	// grace is the collector's grace period, empty for its default.
 	grace string
+	// keepUnreferenced turns the collector's reference scan off.
+	keepUnreferenced bool
 	// load is the writer run beside the passes.
 	load volumeLoadOpts
 	// cpuProfile is the file that receives a CPU profile of the run, empty
@@ -47,6 +49,11 @@ func (a *debugVolumeCollectArgs) BuildFlags() []cli.Flag {
 			Name:        "grace",
 			Usage:       "how long a block waits at zero before a pass frees it, such as 15m; empty uses the collector's default",
 			Destination: &a.grace,
+		},
+		&cli.BoolFlag{
+			Name:        "keep-unreferenced",
+			Usage:       "keep the front entries of absent blocks nothing references, the old behavior, which holds the flip on them",
+			Destination: &a.keepUnreferenced,
 		},
 		&cli.Float64Flag{
 			Name:        "load-rate",
@@ -97,7 +104,9 @@ func (a *debugVolumeCollectArgs) Run(c *cli.Context) error {
 	// run at its next commit, so a stopped run still prints its totals.
 	ctx, stop := signal.NotifyContext(c.Context, os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	conf := a.upgrade.StoreConfig(&store_kvtx.Config{CollectorFrees: a.frees, CollectorGraceDur: a.grace})
+	conf := a.upgrade.StoreConfig(&store_kvtx.Config{
+		CollectorFrees: a.frees, CollectorGraceDur: a.grace, CollectorKeepUnreferenced: a.keepUnreferenced,
+	})
 	rep, err := collectVolume(ctx, logrus.NewEntry(logrus.New()), path, conf, a.cacheBytes, a.load)
 	err = stderrors.Join(err, stopProfile())
 

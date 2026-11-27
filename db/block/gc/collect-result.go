@@ -24,6 +24,12 @@ type CollectResult struct {
 	// Popped counts the front entries the pass took off because the free
 	// proof held for their blocks.
 	Popped uint64
+	// Unreferenced counts the popped entries of unborn blocks that the
+	// reference scan found no root or holding list for. Popped includes
+	// them.
+	Unreferenced uint64
+	// RefScanned counts the roots and child lists the reference scan read.
+	RefScanned uint64
 	// Seeded counts the unverified seeds the seeding found and pushed onto the
 	// front, which hold the flip until the walk decodes them.
 	Seeded uint64

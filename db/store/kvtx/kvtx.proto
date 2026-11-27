@@ -59,6 +59,16 @@ message Config {
   // unless the operator passes --upgrade-format or
   // SPACEWAVE_UPGRADE_FORMAT=1.
   bool refuse_format_upgrade = 12;
+  // CollectorKeepUnreferenced turns off the collector's reference scan, as
+  // the collector ran before it had one. With the switch off (the default
+  // setting), a Volume settling its old generation takes off its front the
+  // entries of blocks it stores neither bytes, a child list nor a hole record
+  // for, once one read of every named root and child list finds nothing that
+  // references them. With it on such an entry stays and holds the flip, so
+  // the Volume frees nothing until an operator records or refills the block.
+  // This switch goes back to that behavior without a build. Remove the
+  // switch once the scan has run in production.
+  bool collector_keep_unreferenced = 13;
 
   // reserved: 1 mqueue_config
   // reserved: 4 gc_mark_walk, 5 disable_hold_counts, 6 upgrade_shared_counts,

@@ -98,7 +98,7 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 		// the settle, since netting and freeing passes run back to back, and
 		// warn of underflows.
 		settling := res.FrontScanned != 0 || res.Unmarked != 0 || res.Seeded != 0 || res.Popped != 0 ||
-			res.Parked != 0 || res.Swept != 0 || res.Flipped || res.Settled
+			res.RefScanned != 0 || res.Parked != 0 || res.Swept != 0 || res.Flipped || res.Settled
 		if res.Netted != 0 || res.Freed != 0 || res.Lapsed != 0 || settling {
 			le := c.le.
 				WithField("netted", res.Netted).
@@ -118,6 +118,8 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 					WithField("seeded", res.Seeded).
 					WithField("front-scanned", res.FrontScanned).
 					WithField("popped", res.Popped).
+					WithField("unreferenced", res.Unreferenced).
+					WithField("ref-scanned", res.RefScanned).
 					WithField("parked", res.Parked).
 					WithField("swept", res.Swept).
 					WithField("flipped", res.Flipped).

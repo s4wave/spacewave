@@ -640,6 +640,271 @@ func testLivenessSettleFlip(t *testing.T,
 		}
 	})
 
+	t.Run("unborn front entry at one holder", func(t *testing.T) {
+		// X is a block the store lacks, with neither a child list nor a hole
+		// record, on the front at one holder. It reads the same whether that
+		// holder is the implied one of a block never born, which nothing
+		// references once its parents parked, or a real one kept after a
+		// loss. The reference scan tells the two apart: it pops X only when
+		// no root and no holding list references it, and only while no push
+		// deleted the mark it wrote before it read them.
+		mark := func(t *testing.T, store kvtx.Store, ref *block.BlockRef) []byte {
+			t.Helper()
+			tx, err := store.NewTransaction(t.Context(), false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer tx.Discard()
+			value, _, err := tx.Get(t.Context(), slices.Concat(front, block_gc.BlockKey(ref)))
+			if err != nil {
+				t.Fatal(err)
+			}
+			return bytes.Clone(value)
+		}
+		// collectN collects n times, a grace period apart, and returns the
+		// totals.
+		collectN := func(t *testing.T, v *Volume, clk *testClock, n int) block_gc.CollectResult {
+			t.Helper()
+			var total block_gc.CollectResult
+			for range n {
+				clk.Add(block_gc.DefaultGrace + time.Second)
+				res := collectAll(t, v)
+				total.Parked += res.Parked
+				total.Popped += res.Popped
+				total.Unreferenced += res.Unreferenced
+				total.RefScanned += res.RefScanned
+				total.Flipped = total.Flipped || res.Flipped
+				total.Unadopted = total.Unadopted || res.Unadopted
+			}
+			return total
+		}
+		// stuck adopts an old store rooted on A in which the unreached P and
+		// R reference X, which the store lacks, and walks A and P, so the walk
+		// pushes X. With held, root main moves onto the old U, which stays
+		// unverified on the front and holds the flip.
+		stuck := func(t *testing.T, held bool) (*Volume, *testClock, kvtx.Store, testTree) {
+			t.Helper()
+			tr := testTree{}
+			tr.add(t, "A")
+			tr.add(t, "U")
+			tr.add(t, "X")
+			tr.add(t, "P", "X")
+			tr.add(t, "R", "X")
+			x := tr["X"]
+			delete(tr, "X")
+			v, clk, store := oldStore(t, tr, "A", []string{"A", "U", "P", "R"})
+			tr["X"] = x
+			if held {
+				if err := rootOnto(t, v, tr, "U"); err != nil {
+					t.Fatal(err)
+				}
+			}
+			verify(t, v, tr, "A", "P")
+			if !has(t, store, front, x.Ref) {
+				t.Fatal("the walk of P left the absent X off the front")
+			}
+			return v, clk, store, tr
+		}
+
+		t.Run("nothing references it", func(t *testing.T) {
+			// P and R park and release X, which falls to its implied holder.
+			// The scan pops it, and the flip and the sweep follow.
+			v, clk, store, tr := stuck(t, false)
+			res := collectN(t, v, clk, 4)
+			if res.Unreferenced != 1 || !res.Flipped || has(t, store, front, tr["X"].Ref) {
+				t.Fatalf("collect = %+v, want X popped as unreferenced and the flip", res)
+			}
+			settleAll(t, v, clk, store, tr)
+			requireStored(t, v, tr, true, "A")
+			requireStored(t, v, tr, false, "P", "R", "X")
+			requireAudit(t, v, 0)
+		})
+
+		t.Run("kept with the scan switched off", func(t *testing.T) {
+			// The Volume's switch keeps the entry and reads no list. With
+			// the switch off again the next collector pops it.
+			v, clk, store, tr := stuck(t, false)
+			swapCollector(v, v.newCollector(collectorStore{v: v}, true, true, 0))
+			if res := collectN(t, v, clk, 4); res.Unreferenced != 0 || res.RefScanned != 0 || res.Flipped || !has(t, store, front, tr["X"].Ref) {
+				t.Fatalf("collect with the scan off = %+v, want X kept and no list read", res)
+			}
+			if got := mark(t, store, tr["X"].Ref); len(got) != 0 {
+				t.Fatalf("X's front key holds the mark %x with the scan off, want none", got)
+			}
+			swapCollector(v, v.newCollector(collectorStore{v: v}, true, false, 0))
+			if res := collectN(t, v, clk, 4); res.Unreferenced != 1 || !res.Flipped {
+				t.Fatalf("collect with the scan on = %+v, want X popped and the flip", res)
+			}
+		})
+
+		t.Run("pushed between the mark and the pop", func(t *testing.T) {
+			// The walk verifies R after the scan marked X and before its
+			// pop, which pushes X and deletes the mark. That pop must leave
+			// X, and the next scan, which marks it again, pops it.
+			v, clk, store, tr := stuck(t, false)
+			x := tr["X"].Ref
+			var pushed, checked, kept bool
+			probe := &walkProbe{Store: collectorStore{v: v}, before: func() {
+				switch {
+				case pushed && !checked:
+					checked, kept = true, has(t, store, front, x)
+				case !pushed && len(mark(t, store, x)) != 0:
+					pushed = true
+					verify(t, v, tr, "R")
+				}
+			}}
+			swapCollector(v, v.newCollector(probe, true, false, 0))
+			res := collectN(t, v, clk, 4)
+			if !pushed || !kept {
+				t.Fatalf("collect = %+v with X pushed after its mark (%t), want that pop to keep X (%t)", res, pushed, kept)
+			}
+			if res.Unreferenced != 1 || !res.Flipped {
+				t.Fatalf("collect = %+v, want the next scan to pop X and the flip", res)
+			}
+		})
+
+		t.Run("marked by another collector", func(t *testing.T) {
+			// A second collector on the same store writes its own mark over
+			// the scan's before the pop. That mark stands for reads this
+			// scan did not make, so the pop must leave X, and the next scan,
+			// which marks it again, pops it.
+			v, clk, store, tr := stuck(t, false)
+			x := tr["X"].Ref
+			var marked, checked, kept bool
+			probe := &walkProbe{Store: collectorStore{v: v}, before: func() {
+				switch {
+				case marked && !checked:
+					checked, kept = true, has(t, store, front, x)
+				case !marked && len(mark(t, store, x)) != 0:
+					marked = true
+					tx, err := store.NewTransaction(t.Context(), true)
+					if err != nil {
+						t.Fatal(err)
+					}
+					defer tx.Discard()
+					if err := tx.Set(t.Context(), slices.Concat(front, block_gc.BlockKey(x)), []byte("another")); err != nil {
+						t.Fatal(err)
+					}
+					if err := tx.Commit(t.Context()); err != nil {
+						t.Fatal(err)
+					}
+				}
+			}}
+			swapCollector(v, v.newCollector(probe, true, false, 0))
+			res := collectN(t, v, clk, 4)
+			if !marked || !kept {
+				t.Fatalf("collect = %+v with X marked by another collector (%t), want that pop to keep X (%t)", res, marked, kept)
+			}
+			if res.Unreferenced != 1 || !res.Flipped {
+				t.Fatalf("collect = %+v, want the next scan to pop X and the flip", res)
+			}
+		})
+
+		t.Run("its parent held again after the pop", func(t *testing.T) {
+			// Once X is popped, a fill of N, which references the parked P,
+			// and a root onto N hold P again. The unpark of P's released
+			// list returns X to the front, where it holds the flip: a live
+			// list references a block the store lacks.
+			v, clk, store, tr := stuck(t, true)
+			x := tr["X"].Ref
+			if res := collectN(t, v, clk, 3); res.Unreferenced != 1 || res.Flipped || has(t, store, front, x) {
+				t.Fatalf("collect = %+v, want X popped and U holding the flip", res)
+			}
+			tr.add(t, "N", "P")
+			fill(t, v, tr, "N")
+			if err := v.SetBucketRoots(t.Context(), "b", nil, []block.NamedRoot{{Name: "keep", Ref: tr["N"].Ref}}); err != nil {
+				t.Fatal(err)
+			}
+			netAll(t, v)
+			if !has(t, store, front, x) {
+				t.Fatal("the unpark of the released P left X off the front")
+			}
+			verify(t, v, tr, "U")
+			if res := collectN(t, v, clk, 4); res.Flipped || !has(t, store, front, x) {
+				t.Fatalf("collect = %+v, want X, which the live P references, to hold the flip", res)
+			}
+			requireReads(t, v, tr, "A", "U", "N", "P")
+		})
+
+		// A holder references X: a held list, a root, or a held list with
+		// the hole recorded. The scan finds the holder and keeps X, reads
+		// the lists once and not again, and never reads them for a recorded
+		// hole. Once the holder releases X, X leaves the front and the flip
+		// comes.
+		for _, tc := range []struct {
+			name string
+			root bool
+			hole bool
+		}{
+			{name: "a held list references it"},
+			{name: "a root holds it", root: true},
+			{name: "a recorded hole", hole: true},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				tr := testTree{}
+				tr.add(t, "A")
+				x := tr.add(t, "X")
+				tr.add(t, "Q", "X")
+				v, clk, store := oldStore(t, tr, "A", []string{"A", "X", "Q"})
+				ctx := t.Context()
+
+				// Hold X by root main or through Q, then lose it.
+				holder, walked := "Q", []string{"A", "Q"}
+				if tc.root {
+					holder, walked = "X", []string{"A"}
+				}
+				// A pass before the loss leaves the front scan idle, so
+				// only the walk's push of the lost X ends the idle. A root's
+				// X is on the front already, and its loss is no event.
+				if err := rootOnto(t, v, tr, holder); err != nil {
+					t.Fatal(err)
+				}
+				if !tc.root {
+					clk.Add(block_gc.DefaultGrace + time.Second)
+					collectAll(t, v)
+				}
+				loseBlock(t, v, x)
+				verify(t, v, tr, walked...)
+				if tc.hole {
+					if _, err := v.Audit(ctx); err != nil {
+						t.Fatal(err)
+					}
+				}
+				if !has(t, store, front, x) {
+					t.Fatal("the lost X is off the front")
+				}
+
+				// The scan keeps X, and reads the lists once.
+				res := collectN(t, v, clk, 3)
+				if res.Unreferenced != 0 || res.Flipped || !has(t, store, front, x) || (res.RefScanned == 0) != tc.hole {
+					t.Fatalf("collect = %+v, want X kept on the front", res)
+				}
+				if res := collectN(t, v, clk, 2); res.RefScanned != 0 || res.Flipped {
+					t.Fatalf("collect again = %+v, want no second read of the lists", res)
+				}
+				if tc.hole {
+					return
+				}
+
+				// Release the holder, and X leaves the front.
+				if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "main", Previous: tr[holder].Ref}}); err != nil {
+					t.Fatal(err)
+				}
+				res = collectN(t, v, clk, 4)
+				if !res.Flipped || has(t, store, front, x) {
+					t.Fatalf("collect after the release = %+v, want X off the front and the flip", res)
+				}
+				if want := uint64(1); !tc.root && res.Unreferenced != want {
+					t.Fatalf("collect after the release = %+v, want X popped as unreferenced", res)
+				}
+				settleAll(t, v, clk, store, tr)
+				requireStored(t, v, tr, true, "A")
+				requireStored(t, v, tr, false, "Q", "X")
+				requireAudit(t, v, 0)
+			})
+		}
+	})
+
 	t.Run("put again of a swept child before its unmarked parent", func(t *testing.T) {
 		// The old chain G -> P -> C is garbage, among 300 old leaves, and C's
 		// key sorts more than a sweep slice before P's. Between the slice

@@ -174,8 +174,9 @@ func (d *directTx) Discard() {
 // settle reports the committed markers, forgets the pending proofs of the
 // blocks p removed, wakes Volume statistics watchers, notes that the Volume
 // is Settled when p saw or wrote it so, notes that a reopen with frees off
-// hides no block, wakes the writers waiting on a generation p moved and, when p returned the Volume to unadopted, starts the
-// recount, once p committed.
+// hides no block, wakes the writers waiting on a generation p moved, starts
+// the recount when p returned the Volume to unadopted, and tells the
+// collector of an unborn block p pushed onto the front, once p committed.
 func (d *directTx) settle() {
 	if d.committed {
 		if d.p.rec.Settled() {
@@ -195,6 +196,9 @@ func (d *directTx) settle() {
 		d.v.broadcastStorageStatsChanged()
 		if d.p.rec.Unadopted() {
 			d.v.wakeAdopt()
+		}
+		if d.p.rec.PushedUnborn() {
+			d.v.collector.NoteUnbornPush()
 		}
 	}
 }

@@ -183,10 +183,12 @@ func (r *Records) listState(ctx context.Context, key []byte) (listed, marked boo
 // the front while it has holders, until the walk reads it through the full
 // read chain and writes its list, as ListRebuild describes. The walk owes
 // a written-off hole no decode, so no push returns one to the front, as
-// Records.writeOffHole describes.
+// Records.writeOffHole describes. A block without a list pushed at one holder
+// may be one nothing references, which only the reference scan pops, so the
+// push notes it for PushedUnborn.
 //
-// Cost: one list read, and for a block without a list one point read
-// more, or two while a hole is recorded.
+// Cost: one list read, and for a block without a list a count read and one
+// point read more, or two while a hole is recorded.
 func (r *Records) pushOwed(ctx context.Context, key []byte) (bool, error) {
 	listed, marked, err := r.listState(ctx, key)
 	if err != nil || marked {
@@ -196,6 +198,11 @@ func (r *Records) pushOwed(ctx context.Context, key []byte) (bool, error) {
 		if off, err := r.writtenOff(ctx, key); err != nil || off {
 			return false, err
 		}
+		holders, _, err := r.holders(ctx, key)
+		if err != nil {
+			return false, err
+		}
+		r.pushedUnborn = r.pushedUnborn || holders == 1
 	}
 	return true, r.addFront(ctx, key)
 }
@@ -484,6 +491,12 @@ func (c *Collector) settle(ctx context.Context, past func() bool, res *CollectRe
 	if more, err := c.scanFront(ctx, state, past, res); err != nil || more {
 		return more, err
 	}
+
+	// Settle the unborn entries the scan kept at one holder, which no count
+	// proves unreferenced, as unrefScan describes.
+	if more, err := c.settleUnreferenced(ctx, state, past, res); err != nil || more {
+		return more, err
+	}
 	proof, err := c.readFlipProof(ctx)
 	if err != nil {
 		return false, err
@@ -636,19 +649,25 @@ func (c *Collector) clearHoles(ctx context.Context) error {
 // Cost: per pass with the front idle, nothing; per event, one scan of the
 // whole front in read snapshots, each slice then holding the writer for at
 // most sliceRecords entries and up to six point reads per entry, whatever
-// the deleted front keys. While a damaged entry
-// stands, every pass that reaches the settle scans, as before the idle.
+// the deleted front keys. An entry at one holder costs up to five. While a
+// damaged entry stands, every pass that reaches the settle scans, as before
+// the idle.
 func (c *Collector) scanFront(ctx context.Context, state *LivenessState, past func() bool, res *CollectResult) (bool, error) {
 	// Skip an idle front no event woke.
 	cursor, adoptAt := state.GetUpCursor(), state.GetAdoptAtUnixMilli()
-	woke := c.frontWake != 0 && cursor >= c.frontWake
+	woke := c.frontWoke || c.unbornPush.Load() || (c.frontWake != 0 && cursor >= c.frontWake)
 	if c.frontIdle && !woke && adoptAt == c.frontAdoptAt {
 		return false, nil
 	}
 
-	// Start a scan at the head, from which each event counts again.
+	// Start a scan at the head, from which each event counts again. A new
+	// adoption counted every holder, so the reference scan's findings lapse.
 	if c.frontIdle || c.front.key == nil {
-		c.frontIdle, c.frontWake, c.frontAdoptAt = false, 0, adoptAt
+		if adoptAt != c.frontAdoptAt {
+			c.unref.forget()
+		}
+		c.frontIdle, c.frontWake, c.frontWoke, c.frontAdoptAt = false, 0, false, adoptAt
+		c.unbornPush.Store(false)
 		c.front = frontPos{}
 	}
 	more, err := viewSlices(ctx, c, &c.front, past, &c.page, func(rec *Records, page *keyPage, from frontPos) error {
@@ -1061,6 +1080,10 @@ func (c *Collector) frontSlice(ctx context.Context, rec *Records, blocks block.S
 				wake = minWake(wake, ripe)
 			case frontDamaged:
 				damaged = true
+			case frontUnborn:
+				if !c.opts.KeepUnreferenced {
+					c.unref.offer(key)
+				}
 			}
 			return nil
 		}
@@ -1108,6 +1131,10 @@ const (
 	// while its bytes remain: it pops once the bytes go too, which no
 	// record write announces.
 	frontDamaged
+	// frontUnborn is a block at one holder the store holds neither bytes,
+	// a list nor a hole record for. The proof at zero never pops it, so the
+	// reference scan takes it, as unrefScan describes.
+	frontUnborn
 )
 
 // frontProven reads the free proof for the front entry of the block at key,
@@ -1124,6 +1151,8 @@ func (c *Collector) frontProven(ctx context.Context, rec *Records, blocks block.
 		return frontRipening, ripe, err
 	case FrontDamaged:
 		return frontDamaged, ripe, err
+	case FrontUnborn:
+		return frontUnborn, ripe, err
 	default:
 		return frontHeld, ripe, err
 	}
@@ -1334,8 +1363,8 @@ func (c *Collector) dropRunSlice(ctx context.Context, rec *Records, res *Collect
 func (c *Collector) restartSettle() {
 	c.runFrom, c.sweepFrom, c.sweptRun, c.dropFrom = nil, nil, false, nil
 	c.seedRoot, c.seedDown, c.seededRoots, c.seeded = nil, 0, false, false
-	c.front, c.frontIdle, c.frontWake, c.frontAdoptAt = frontPos{}, false, 0, 0
-	c.requeueFrom, c.requeued = nil, false
+	c.front, c.frontIdle, c.frontWake, c.frontWoke, c.frontAdoptAt = frontPos{}, false, 0, false, 0
+	c.unref, c.requeueFrom, c.requeued = unrefScan{}, nil, false
 }
 
 // appendDowns appends down, block keys losing one holder each, to the down

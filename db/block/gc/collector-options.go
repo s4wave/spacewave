@@ -46,6 +46,12 @@ type CollectorOptions struct {
 	// Collector's invariant 10 describes. Each path reads which park a block
 	// has, so the option may change between passes.
 	ParkKeepsHolds bool
+	// KeepUnreferenced turns the reference scan off, as before it existed:
+	// a front entry of an unborn block at one holder stays on the front
+	// and holds the flip, whether or not anything references the block.
+	// Off, the default, the scan pops the ones no root or holding list
+	// references, as unrefScan describes.
+	KeepUnreferenced bool
 }
 
 // sliceTarget is how long the collector's own work in one transaction aims

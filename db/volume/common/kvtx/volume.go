@@ -293,7 +293,7 @@ func NewVolume(
 				return nil, err
 			}
 		}
-		v.collector = v.newCollector(collectorStore{v: v}, conf.GetCollectorFrees(), grace)
+		v.collector = v.newCollector(collectorStore{v: v}, conf.GetCollectorFrees(), conf.GetCollectorKeepUnreferenced(), grace)
 		v.fillHold = grace
 		v.heldMode = rootHeldMode(conf.GetRootHeldCheck(), conf.GetCollectorFrees())
 		if err := v.startLiveness(ctx, state, parked); err != nil {
@@ -349,14 +349,15 @@ func rootHeldMode(check store_kvtx.RootHeldCheck, frees bool) block_gc.HeldMode 
 }
 
 // newCollector returns the collector of the Volume over store, which frees
-// when frees is set, with grace as its grace period, zero for the default
-// grace period.
-func (v *Volume) newCollector(store block_gc.Store, frees bool, grace time.Duration) *block_gc.Collector {
+// when frees is set and runs no reference scan when keepUnreferenced is,
+// with grace as its grace period, zero for the default grace period.
+func (v *Volume) newCollector(store block_gc.Store, frees, keepUnreferenced bool, grace time.Duration) *block_gc.Collector {
 	opts := block_gc.CollectorOptions{
-		Frees: frees,
-		Grace: grace,
-		Now:   v.now,
-		Phase: v.collectorPhase,
+		Frees:            frees,
+		Grace:            grace,
+		Now:              v.now,
+		Phase:            v.collectorPhase,
+		KeepUnreferenced: keepUnreferenced,
 	}
 	if w, ok := v.kvtxStore.(kvtx.WriterQueueStore); ok {
 		opts.WritersWaiting = w.WritersWaiting

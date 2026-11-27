@@ -107,13 +107,16 @@ const (
 	// kindFront keys a block on the settle's front, by the block: a block
 	// with no list from content, stored or absent, referenced by a young or
 	// verified block, a root or a down page not netted yet, which the walk
-	// still has to decode. It holds no value. Land and the walk push onto
-	// it while the generation is Open, as Generation_GENERATION_OPEN
+	// still has to decode. Every push writes it with no value, and the
+	// reference scan sets its token on an entry it may pop, so a push
+	// since the mark shows, as unrefScan describes. Land and the walk push
+	// onto it while the generation is Open, as Generation_GENERATION_OPEN
 	// describes. A write that marks the block's list takes its entry off,
 	// and so does the collector once its free proof holds for the block. An
 	// entry whose block the store does not list stays while it has holders
 	// or its bytes remain, for the walk to list it. With neither the proof
-	// pops it. A written-off hole is never on it, as Records.writeOffHole
+	// pops it, and the reference scan pops one left at its implied holder
+	// that no root or holding list references. A written-off hole is never on it, as Records.writeOffHole
 	// describes.
 	kindFront byte = 'G'
 	// kindUnmarked keys an entry of the unmarked run, by the block: a block
@@ -380,6 +383,9 @@ type Records struct {
 	// unadopted reports that a write in the transaction returned the Volume
 	// to unadopted.
 	unadopted bool
+	// pushedUnborn reports that a write in the transaction pushed onto the
+	// front a block without a list at one holder.
+	pushedUnborn bool
 	// genKnown reports that gen holds the Volume's generation as the
 	// transaction sees it, read from the state, written with it, or told by
 	// AssumeSettled.
@@ -454,6 +460,15 @@ func (r *Records) unadopt(state *LivenessState) {
 // recount.
 func (r *Records) Unadopted() bool {
 	return r.unadopted
+}
+
+// PushedUnborn reports whether a write in the transaction pushed onto the
+// front a block without a child list that reads one holder, which may be an
+// unborn block nothing references. Once it commits, the owner of the
+// Volume's collector tells it with Collector.NoteUnbornPush, since no
+// netting event follows such a push.
+func (r *Records) PushedUnborn() bool {
+	return r.pushedUnborn
 }
 
 // key returns prefix, kind and the parts concatenated.
@@ -871,8 +886,14 @@ func (r *Records) park(ctx context.Context, queued, parked, key []byte) error {
 // write in place of a cascade of ups. Land refuses a hold onto a parked block
 // except in a partial batch, as a cache fill puts, so such a fill's up or an
 // underflow reaches it: the free parks only up to the up cursor, so no up
-// logged before the park nets after it. It reads the released key and the list
-// record.
+// logged before the park nets after it. A released park's children the walk
+// owes a decode return to the front, absent ones too, which is what lets the
+// reference scan pop an absent child of a released list, as unrefScan
+// describes. That push runs with the reference scan switched off too, where
+// it only keeps an entry the front would have lacked. It reads the released
+// key and the list record, and for a released park one list record per
+// child, with a hole read for an unlisted one and a front key written for
+// each child owed, all in the caller's transaction.
 func (r *Records) unpark(ctx context.Context, state *LivenessState, key []byte, ripe uint64) error {
 	// Delete the park's key, noting a recount for a released one.
 	released, err := r.tx.Exists(ctx, r.releasedKey(ripe, key))
@@ -892,11 +913,23 @@ func (r *Records) unpark(ctx context.Context, state *LivenessState, key []byte, 
 	}
 
 	// Leave the run when the list is marked.
-	_, marked, err := r.listState(ctx, key)
-	if err != nil || !marked {
+	list, listed, err := r.tx.Get(ctx, r.key(kindChildren, key))
+	if err != nil || !listed {
 		return err
 	}
-	return r.tx.Delete(ctx, r.key(kindUnmarked, key))
+	if listMarked(list) {
+		if err := r.tx.Delete(ctx, r.key(kindUnmarked, key)); err != nil {
+			return err
+		}
+	}
+
+	// Return a released list's owed children to the front, as unrunParked
+	// does: the list holds them again, and the walk or the reference scan
+	// may have popped one while the park left it unheld.
+	if !released {
+		return nil
+	}
+	return r.pushChildren(ctx, listKeys(list), nil)
 }
 
 // unrunParked takes each parked block of kind, kindParked or kindReleased, that
@@ -1122,7 +1155,9 @@ func (r *Records) runIncomplete(ctx context.Context) (bool, error) {
 }
 
 // addFront pushes the block at key onto the front, raising the add
-// revision, as kindAddRev describes. It is the one writer of a front key.
+// revision, as kindAddRev describes. It is the one writer that adds a front
+// key, and it writes no value, which deletes the mark a reference scan set
+// on an entry already there.
 func (r *Records) addFront(ctx context.Context, key []byte) error {
 	if err := r.raiseAddRev(ctx); err != nil {
 		return err

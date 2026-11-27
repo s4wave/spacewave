@@ -278,6 +278,14 @@ func (n *netting) writeNode(ctx context.Context, nd *node, holders0, ripe0 uint6
 		}
 	}
 
+	// A front block a down leaves at one holder may be an unborn block that
+	// nothing references any more, which only the reference scan pops.
+	if holders == 1 && nd.delta < 0 {
+		if err := n.wakeUnreferenced(ctx, nd.key); err != nil {
+			return err
+		}
+	}
+
 	// Ripen a block at zero that could have gained a holder. A block parked
 	// while Open that an up and a down in this netting left at zero stays
 	// parked at its ripe sequence: its park already gave its children their
@@ -345,6 +353,21 @@ func (n *netting) wakeFront(ctx context.Context, key []byte, ripe uint64) error 
 	fronted, err := n.rec.tx.Exists(ctx, n.rec.key(kindFront, key))
 	if err == nil && fronted {
 		n.c.wakeFront(ripe)
+	}
+	return err
+}
+
+// wakeUnreferenced ends the front scan's idle when the block at key, which
+// the netting leaves at one holder, is on the front while Open, as
+// Collector.wakeUnreferenced describes. Cost: one point read per block a
+// down leaves at one holder while Open.
+func (n *netting) wakeUnreferenced(ctx context.Context, key []byte) error {
+	if n.c.opts.KeepUnreferenced || n.state.GetGeneration() != Generation_GENERATION_OPEN {
+		return nil
+	}
+	fronted, err := n.rec.tx.Exists(ctx, n.rec.key(kindFront, key))
+	if err == nil && fronted {
+		n.c.wakeUnreferenced(key)
 	}
 	return err
 }

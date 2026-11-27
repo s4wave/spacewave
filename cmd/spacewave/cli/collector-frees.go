@@ -32,6 +32,9 @@ type CollectorFrees struct {
 	// trustListed takes a source's recorded refs as read from content, as
 	// block.SetTrustListedRefs describes.
 	trustListed bool
+	// keepUnreferenced turns the named Volumes' reference scan off, as
+	// store_kvtx.Config.CollectorKeepUnreferenced describes.
+	keepUnreferenced bool
 }
 
 // NewCollectorFrees constructs a CollectorFrees selecting no Volume.
@@ -53,6 +56,12 @@ func (f *CollectorFrees) BuildFlags() []cli.Flag {
 				"refused with --collector-frees, since such a list may lack a child a free would then take. " +
 				"Verify the copied lists with debug ref-repair before turning frees on",
 			Destination: &f.trustListed,
+		},
+		&cli.BoolFlag{
+			Name: "collector-keep-unreferenced",
+			Usage: "keep on the front of each --collector-frees volume the entries of absent blocks nothing references, the old behavior; " +
+				"such an entry holds the flip, so the volume frees nothing until the block is recorded as a hole or refilled",
+			Destination: &f.keepUnreferenced,
 		},
 	}
 }
@@ -110,5 +119,6 @@ func (f *CollectorFrees) ConfigureVolume(id string, conf config.Config) {
 		storeConf = &store_kvtx.Config{}
 	}
 	storeConf.CollectorFrees = true
+	storeConf.CollectorKeepUnreferenced = f.keepUnreferenced
 	volumeConf.StoreConfig = storeConf
 }

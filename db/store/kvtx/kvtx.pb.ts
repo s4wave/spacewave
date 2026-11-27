@@ -113,6 +113,18 @@ export interface Config {
    * SPACEWAVE_UPGRADE_FORMAT=1.
    */
   refuseFormatUpgrade?: boolean
+  /**
+   * CollectorKeepUnreferenced turns off the collector's reference scan, as
+   * the collector ran before it had one. With the switch off (the default
+   * setting), a Volume settling its old generation takes off its front the
+   * entries of blocks it stores neither bytes, a child list nor a hole record
+   * for, once one read of every named root and child list finds nothing that
+   * references them. With it on such an entry stays and holds the flip, so
+   * the Volume frees nothing until an operator records or refills the block.
+   * This switch goes back to that behavior without a build. Remove the
+   * switch once the scan has run in production.
+   */
+  collectorKeepUnreferenced?: boolean
 }
 
 export const Config: MessageType<Config> =
@@ -123,4 +135,5 @@ export const Config: MessageType<Config> =
     [9, 'root_held_check', 14, 0, RootHeldCheck_Enum],
     [11, 'stage_one_transaction', 8],
     [12, 'refuse_format_upgrade', 8],
+    [13, 'collector_keep_unreferenced', 8],
   ])

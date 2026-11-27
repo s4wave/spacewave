@@ -114,6 +114,16 @@ type Config struct {
 	// unless the operator passes --upgrade-format or
 	// SPACEWAVE_UPGRADE_FORMAT=1.
 	RefuseFormatUpgrade bool `protobuf:"varint,12,opt,name=refuse_format_upgrade,json=refuseFormatUpgrade,proto3" json:"refuseFormatUpgrade,omitempty"`
+	// CollectorKeepUnreferenced turns off the collector's reference scan, as
+	// the collector ran before it had one. With the switch off (the default
+	// setting), a Volume settling its old generation takes off its front the
+	// entries of blocks it stores neither bytes, a child list nor a hole record
+	// for, once one read of every named root and child list finds nothing that
+	// references them. With it on such an entry stays and holds the flip, so
+	// the Volume frees nothing until an operator records or refills the block.
+	// This switch goes back to that behavior without a build. Remove the
+	// switch once the scan has run in production.
+	CollectorKeepUnreferenced bool `protobuf:"varint,13,opt,name=collector_keep_unreferenced,json=collectorKeepUnreferenced,proto3" json:"collectorKeepUnreferenced,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -164,6 +174,13 @@ func (x *Config) GetRefuseFormatUpgrade() bool {
 	return false
 }
 
+func (x *Config) GetCollectorKeepUnreferenced() bool {
+	if x != nil {
+		return x.CollectorKeepUnreferenced
+	}
+	return false
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -175,6 +192,7 @@ func (m *Config) CloneVT() *Config {
 	r.RootHeldCheck = m.RootHeldCheck
 	r.StageOneTransaction = m.StageOneTransaction
 	r.RefuseFormatUpgrade = m.RefuseFormatUpgrade
+	r.CollectorKeepUnreferenced = m.CollectorKeepUnreferenced
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -207,6 +225,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.RefuseFormatUpgrade != that.RefuseFormatUpgrade {
+		return false
+	}
+	if this.CollectorKeepUnreferenced != that.CollectorKeepUnreferenced {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -298,6 +319,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("refuseFormatUpgrade")
 		s.WriteBool(x.RefuseFormatUpgrade)
 	}
+	if x.CollectorKeepUnreferenced || s.HasField("collectorKeepUnreferenced") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("collectorKeepUnreferenced")
+		s.WriteBool(x.CollectorKeepUnreferenced)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -333,6 +359,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "refuse_format_upgrade", "refuseFormatUpgrade":
 			s.AddField("refuse_format_upgrade")
 			x.RefuseFormatUpgrade = s.ReadBool()
+		case "collector_keep_unreferenced", "collectorKeepUnreferenced":
+			s.AddField("collector_keep_unreferenced")
+			x.CollectorKeepUnreferenced = s.ReadBool()
 		}
 	})
 }
@@ -370,6 +399,11 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.CollectorKeepUnreferenced {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.CollectorKeepUnreferenced)
+		i--
+		dAtA[i] = 0x68
 	}
 	if m.RefuseFormatUpgrade {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.RefuseFormatUpgrade)
@@ -416,6 +450,7 @@ func (m *Config) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.RootHeldCheck)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.StageOneTransaction)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.RefuseFormatUpgrade)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.CollectorKeepUnreferenced)
 	n += len(m.unknownFields)
 	return n
 }
@@ -450,6 +485,10 @@ func (x *Config) MarshalProtoText() string {
 	if x.RefuseFormatUpgrade != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "refuse_format_upgrade")
 		protobuf_go_lite.TextWriteBool(&sb, x.RefuseFormatUpgrade)
+	}
+	if x.CollectorKeepUnreferenced != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "collector_keep_unreferenced")
+		protobuf_go_lite.TextWriteBool(&sb, x.CollectorKeepUnreferenced)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -540,6 +579,16 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.RefuseFormatUpgrade = bool(v)
+		case 13:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CollectorKeepUnreferenced", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.CollectorKeepUnreferenced = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

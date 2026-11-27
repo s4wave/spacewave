@@ -92,7 +92,7 @@ func auditCollector(t *testing.T, v *Volume, frees bool) {
 		return
 	}
 	audited := &paceProbe{Store: collectorStore{v: v}, limit: math.MaxInt, after: func() { requireFront(t, v) }}
-	swapCollector(v, v.newCollector(audited, frees, 0))
+	swapCollector(v, v.newCollector(audited, frees, false, 0))
 }
 
 // swapCollector replaces the collector v opened with. A Volume reads its
@@ -188,6 +188,8 @@ func collectAll(t *testing.T, v *Volume) block_gc.CollectResult {
 		total.Underflows += res.Underflows
 		total.Unmarked += res.Unmarked
 		total.Popped += res.Popped
+		total.Unreferenced += res.Unreferenced
+		total.RefScanned += res.RefScanned
 		total.Seeded += res.Seeded
 		total.Swept += res.Swept
 		total.Flipped = total.Flipped || res.Flipped
@@ -1041,7 +1043,7 @@ func newAdmitVolume(t *testing.T, frees bool) (*Volume, *testClock, testTree, fu
 	t.Helper()
 	v, clk := newLivenessVolume(t, true)
 	if !frees {
-		v.collector = v.newCollector(collectorStore{v: v}, false, block_gc.DefaultGrace)
+		v.collector = v.newCollector(collectorStore{v: v}, false, false, block_gc.DefaultGrace)
 	}
 	tr, admit := admitTree(t, v)
 	return v, clk, tr, admit
@@ -1179,7 +1181,7 @@ func requireNotHeld(t *testing.T, v *Volume, tr testTree, err error) {
 // period, and checks that the admitted tree is stored whole.
 func requireAdmitKept(t *testing.T, v *Volume, clk *testClock, tr testTree) {
 	t.Helper()
-	swapCollector(v, v.newCollector(collectorStore{v: v}, true, block_gc.DefaultGrace))
+	swapCollector(v, v.newCollector(collectorStore{v: v}, true, false, block_gc.DefaultGrace))
 	if err := v.withDirectAtomic(t.Context(), nil); err != nil {
 		t.Fatal(err)
 	}

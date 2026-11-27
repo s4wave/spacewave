@@ -452,7 +452,7 @@ func testLivenessLand(t *testing.T) {
 	t.Run("admit with the check off", func(t *testing.T) {
 		// Off with frees on checks nothing: the move lands and counts none.
 		v, clk := newLivenessVolume(t, true)
-		v.collector = v.newCollector(collectorStore{v: v}, false, block_gc.DefaultGrace)
+		v.collector = v.newCollector(collectorStore{v: v}, false, false, block_gc.DefaultGrace)
 		v.heldMode = rootHeldMode(store_kvtx.RootHeldCheck_ROOT_HELD_CHECK_OFF, true)
 		tr, admit := admitTree(t, v)
 		buildAndRelease(t, v, clk, tr)
