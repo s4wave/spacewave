@@ -16,6 +16,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/util/conc"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/packfile"
@@ -281,7 +282,8 @@ func (a *slowApplier) ApplyPack(ctx context.Context, report *PackReport) error {
 // hold back the rest, and every other must apply on a live connection.
 func TestReportsNeverWedgeCommits(t *testing.T) {
 	// A node with a backlog, starting with a report that never applies.
-	ctx := t.Context()
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
 	dir := t.TempDir()
 	keys := make([][]byte, 2000)
 	for i := range keys {
@@ -312,17 +314,22 @@ func TestReportsNeverWedgeCommits(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer listener.Close()
-	go func() {
+	running := conc.NewConcurrentQueue(0)
+	defer func() {
+		cancel()
+		_ = listener.Close()
+		_ = running.WaitIdle(context.Background(), nil)
+	}()
+	running.Enqueue(func() {
 		if conn, err := listener.Accept(); err == nil {
 			_ = server.Serve(ctx, conn)
 		}
-	}()
-	go func() {
-		_ = client.Run(ctx, func(context.Context) (net.Conn, error) {
-			return net.Dial("tcp", listener.Addr().String())
+	})
+	running.Enqueue(func() {
+		_ = client.Run(ctx, func(ctx context.Context) (net.Conn, error) {
+			return (&net.Dialer{}).DialContext(ctx, "tcp", listener.Addr().String())
 		}, time.Millisecond)
-	}()
+	})
 	waitFor(t, func() bool {
 		client.mtx.Lock()
 		defer client.mtx.Unlock()
@@ -331,17 +338,21 @@ func TestReportsNeverWedgeCommits(t *testing.T) {
 
 	// Commit load throughout, giving up quickly as a Publisher does.
 	big := entry(t, strings.Repeat("x", 1<<20))
-	stop := make(chan struct{})
-	var load sync.WaitGroup
+	loadCtx, stopLoad := context.WithCancel(ctx)
+	load := conc.NewConcurrentQueue(0)
+	defer func() {
+		stopLoad()
+		_ = load.WaitIdle(context.Background(), nil)
+	}()
 	for range 4 {
-		load.Go(func() {
+		load.Enqueue(func() {
 			for {
 				select {
-				case <-stop:
+				case <-loadCtx.Done():
 					return
 				default:
 				}
-				sendCtx, done := context.WithTimeout(ctx, 20*time.Millisecond)
+				sendCtx, done := context.WithTimeout(loadCtx, 20*time.Millisecond)
 				_ = client.Send(sendCtx, []*block.PutBatchEntry{big})
 				done()
 			}
@@ -350,8 +361,10 @@ func TestReportsNeverWedgeCommits(t *testing.T) {
 
 	// Every report but the stuck one applies, with the load still running.
 	waitFor(t, func() bool { return apply.applied.Load() == packs-1 })
-	close(stop)
-	load.Wait()
+	stopLoad()
+	if err := load.WaitIdle(ctx, nil); err != nil {
+		t.Fatal(err)
+	}
 
 	// The connection still answers a commit at once.
 	sendCtx, done := context.WithTimeout(ctx, 3*time.Second)
