@@ -332,9 +332,11 @@ func NewPackStore(le *logrus.Entry, client ObjectStore, bucket, prefix string, o
 	return s
 }
 
-// Close stops compaction and the refresh and releases the open packfile
-// readers.
+// Close stops compaction and the refresh, releases the open packfile readers,
+// and waits for the index tail drain to end, so the caller may close the index
+// store after it.
 func (s *PackStore) Close() {
+	// Stop the background work and release the readers.
 	s.compactor.ClearContext()
 	s.refresher.ClearContext()
 	if s.indexer != nil {
@@ -342,6 +344,11 @@ func (s *PackStore) Close() {
 	}
 	s.leaveReadCache()
 	s.packs.Close()
+
+	// Wait for the tail drain, which writes the index.
+	if s.index != nil {
+		s.index.closeTails()
+	}
 }
 
 // GetHashType returns 0 to use the default hash type.

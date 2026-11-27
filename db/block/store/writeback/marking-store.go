@@ -42,18 +42,20 @@ type MarkingStore struct {
 	marker kvtx.BlockMarker
 	// fillsOnly marks only the cache fills, as NewFillMarkingStore describes.
 	fillsOnly bool
+	// observer sees every write that succeeded, shared with every copy.
+	observer *observerSlot
 }
 
 // NewMarkingStore wraps store, calling mark after each successful write.
 func NewMarkingStore(store block.StoreOps, mark MarkFunc) *MarkingStore {
-	return &MarkingStore{store: store, mark: mark}
+	return &MarkingStore{store: store, mark: mark, observer: &observerSlot{}}
 }
 
 // NewTxMarkingStore wraps store, which marks every written block with marker
 // in the transaction that stores it. A write no transaction marked is marked
 // by calling mark after it, or fails when mark is nil.
 func NewTxMarkingStore(store block.StoreOps, marker kvtx.BlockMarker, mark MarkFunc) *MarkingStore {
-	return &MarkingStore{store: store, marker: marker, mark: mark}
+	return &MarkingStore{store: store, marker: marker, mark: mark, observer: &observerSlot{}}
 }
 
 // NewFillMarkingStore wraps a packed store that diverts, marking only its
@@ -62,7 +64,7 @@ func NewTxMarkingStore(store block.StoreOps, marker kvtx.BlockMarker, mark MarkF
 // in the local store as a full value, and one read from a peer the backend
 // lacks uploads and stays resident only through its marker.
 func NewFillMarkingStore(m *MarkingStore) *MarkingStore {
-	return &MarkingStore{store: m.store, mark: m.mark, marker: m.marker, fillsOnly: true}
+	return &MarkingStore{store: m.store, mark: m.mark, marker: m.marker, observer: m.observer, fillsOnly: true}
 }
 
 // GetStoreParts returns the wrapped store.
@@ -86,7 +88,7 @@ func (m *MarkingStore) BeginReadOperation(ctx context.Context) (block.StoreOps, 
 	if err != nil {
 		return nil, nil, err
 	}
-	return &MarkingStore{store: store, mark: m.mark, marker: m.marker, fillsOnly: m.fillsOnly}, release, nil
+	return &MarkingStore{store: store, mark: m.mark, marker: m.marker, observer: m.observer, fillsOnly: m.fillsOnly}, release, nil
 }
 
 // PutBlock stores a block and marks it, even when it already existed.
@@ -100,6 +102,9 @@ func (m *MarkingStore) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 	if m.marker != nil {
 		ctx, req := kvtx.WithBlockMarker(ctx, m.marker)
 		ref, existed, err := m.store.PutBlock(ctx, data, opts)
+		if err == nil {
+			m.observeRef(ref)
+		}
 		if err == nil && !ref.GetEmpty() && !req.Applied() {
 			err = m.markUnapplied(ctx, []Mark{{Hash: ref.GetHash(), Size: int64(len(data)), At: time.Now()}})
 		}
@@ -108,6 +113,9 @@ func (m *MarkingStore) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 
 	// Store the block, then mark it when the write landed.
 	ref, existed, err := m.store.PutBlock(ctx, data, opts)
+	if err == nil {
+		m.observeRef(ref)
+	}
 	if err == nil && !ref.GetEmpty() {
 		err = m.mark(ctx, []Mark{{Hash: ref.GetHash(), Size: int64(len(data)), At: time.Now()}})
 	}
@@ -133,6 +141,7 @@ func (m *MarkingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBa
 		if err != nil {
 			return nil, err
 		}
+		m.observeEntries(entries, nil)
 		if !req.Applied() && slices.ContainsFunc(entries, isMarked) {
 			return existed, m.markEntriesUnapplied(ctx, entries)
 		}
@@ -146,6 +155,7 @@ func (m *MarkingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBa
 	if err != nil {
 		return nil, err
 	}
+	m.observeEntries(entries, nil)
 	return existed, m.markEntries(ctx, entries)
 }
 

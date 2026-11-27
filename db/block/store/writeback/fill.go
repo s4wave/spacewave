@@ -80,6 +80,9 @@ func (s *Store) CacheFill(ref *block.BlockRef, stored *block.StoredBlock) {
 
 // queueFill queues f, starting a drain when none runs.
 func (s *Store) queueFill(f fill) {
+	// See the read before the queue may drop it: the block was read.
+	s.observeFill(f.ref)
+
 	// Skip a block already queued, and drop a fill past the byte bound.
 	q := &s.fills
 	key := fillKey(f.ref)
