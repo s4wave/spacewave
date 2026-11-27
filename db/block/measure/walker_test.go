@@ -8,7 +8,9 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -447,15 +449,17 @@ func TestMeasureBoundsWAL(t *testing.T) {
 // TestMeasureResumeMatchesUninterrupted stops a shared, typed DAG at every
 // range read and at every index lookup, which lands both inside a level and
 // inside a sighting merge, and requires each resumed walk to report exactly
-// what one uninterrupted walk reports.
+// what one uninterrupted serial walk reports. Each block has its own pack, so
+// a level makes one read per block; with four reads in flight, a stopped read
+// fails while others are still out, and their results are discarded.
 func TestMeasureResumeMatchesUninterrupted(t *testing.T) {
 	// Three levels share children, so a merge files each child from several parents.
-	var pack []byte
 	type place struct {
-		off int64
-		n   int
+		pack uint32
+		raw  []byte
 	}
 	locations := map[string]place{}
+	packs := map[string][]byte{}
 	put := func(data string, kids ...*block.BlockRef) *block.BlockRef {
 		ref, err := block.BuildBlockRef([]byte(data), nil)
 		if err != nil {
@@ -465,8 +469,9 @@ func TestMeasureResumeMatchesUninterrupted(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		locations[ref.MarshalString()] = place{int64(len(pack)), len(raw)}
-		pack = append(pack, raw...)
+		num := uint32(len(locations) + 1)
+		locations[ref.MarshalString()] = place{num, raw}
+		packs["p"+strconv.Itoa(int(num))] = raw
 		return ref
 	}
 	hole, err := block.BuildBlockRef([]byte("absent"), nil)
@@ -490,16 +495,28 @@ func TestMeasureResumeMatchesUninterrupted(t *testing.T) {
 	mergeChunk = 3
 	defer func() { mergeChunk = prev }()
 
+	// stop is how one walk ended its first attempt.
+	type stop struct {
+		// merging reports that the stop left a merge cursor past its start.
+		merging bool
+		// overlapped reports that the stopped read failed with another read out.
+		overlapped bool
+	}
+
 	// walk runs to completion, failing once at the given read or lookup.
-	walk := func(failRead, failLocate int) (string, bool) {
+	walk := func(inflight, failRead, failLocate int) (string, stop) {
 		path := filepath.Join(t.TempDir(), "work.db")
-		reads, locates := 0, 0
-		merging, seeded := false, false
+		var reads, active atomic.Int32
+		var st stop
+		var overlapped atomic.Bool
+		locates := 0
+		seeded := false
 		open := func() *Walker {
 			w, err := Open(path)
 			if err != nil {
 				t.Fatal(err)
 			}
+			w.Inflight = inflight
 			w.Locate = func(_ context.Context, ref *block.BlockRef) (uint32, int64, int, bool, error) {
 				if seeded {
 					locates++
@@ -508,14 +525,22 @@ func TestMeasureResumeMatchesUninterrupted(t *testing.T) {
 					return 0, 0, 0, false, errors.New("stopped lookup")
 				}
 				p, ok := locations[ref.MarshalString()]
-				return 1, p.off, p.n, ok, nil
+				return p.pack, 0, len(p.raw), ok, nil
 			}
-			w.ReadRange = func(_ context.Context, _ string, off int64, n int) ([]byte, error) {
-				reads++
-				if reads == failRead {
+			w.ReadRange = func(_ context.Context, id string, off int64, n int) ([]byte, error) {
+				// Hold each parallel read briefly, so reads of one level overlap.
+				i := reads.Add(1)
+				now := active.Add(1)
+				defer active.Add(-1)
+				for wait := 0; inflight > 1 && now < 2 && wait < 20; wait++ {
+					time.Sleep(time.Millisecond)
+					now = active.Load()
+				}
+				if int(i) == failRead {
+					overlapped.Store(now > 1)
 					return nil, errors.New("stopped read")
 				}
-				return pack[off : off+int64(n)], nil
+				return packs[id][off : off+int64(n)], nil
 			}
 			// The root types its tops, so each top also carries a descriptor context.
 			w.Describe = func(_ context.Context, ref *block.BlockRef, _ []byte, _ []byte) (string, []Child, error) {
@@ -528,8 +553,11 @@ func TestMeasureResumeMatchesUninterrupted(t *testing.T) {
 				}
 				return "fixture", kids, nil
 			}
-			if err = w.AddPack(t.Context(), 1, "one", uint64(len(pack))); err != nil {
-				t.Fatal(err)
+			for id, raw := range packs {
+				num, _ := strconv.Atoi(id[1:])
+				if err = w.AddPack(t.Context(), uint32(num), id, uint64(len(raw))); err != nil {
+					t.Fatal(err)
+				}
 			}
 			return w
 		}
@@ -546,7 +574,7 @@ func TestMeasureResumeMatchesUninterrupted(t *testing.T) {
 			if attempt != 0 {
 				t.Fatalf("second stop: %v", err)
 			}
-			if err = w.DB.QueryRowContext(t.Context(), "SELECT EXISTS(SELECT 1 FROM merge_cursor WHERE child<>'')").Scan(&merging); err != nil {
+			if err = w.DB.QueryRowContext(t.Context(), "SELECT EXISTS(SELECT 1 FROM merge_cursor WHERE child<>'')").Scan(&st.merging); err != nil {
 				t.Fatal(err)
 			}
 			if err = w.Close(); err != nil {
@@ -561,26 +589,36 @@ func TestMeasureResumeMatchesUninterrupted(t *testing.T) {
 		}
 		lines := strings.Split(strings.TrimSpace(out.String()), "\n")
 		slices.Sort(lines)
-		return strings.Join(lines, "\n"), merging
+		st.overlapped = overlapped.Load()
+		return strings.Join(lines, "\n"), st
 	}
 
-	want, _ := walk(0, 0)
+	want, _ := walk(1, 0, 0)
 	if !strings.Contains(want, "total\t27\t") || !strings.Contains(want, "pending\t0\t0") || !strings.Contains(want, "pending:sightings\t0\t0") {
 		t.Fatalf("wrong uninterrupted walk:\n%s", want)
 	}
-	midMerge := false
-	for i := 1; i <= 40; i++ {
-		got, _ := walk(i, 0)
-		if got != want {
-			t.Fatalf("read %d resumed differently:\n%s\nwant:\n%s", i, got, want)
+	for _, inflight := range []int{1, 4} {
+		if got, _ := walk(inflight, 0, 0); got != want {
+			t.Fatalf("inflight %d walked differently:\n%s\nwant:\n%s", inflight, got, want)
 		}
-		got, merging := walk(0, i)
-		if got != want {
-			t.Fatalf("lookup %d resumed differently:\n%s\nwant:\n%s", i, got, want)
+		midMerge, overlapped := false, false
+		for i := 1; i <= 40; i++ {
+			got, st := walk(inflight, i, 0)
+			if got != want {
+				t.Fatalf("inflight %d read %d resumed differently:\n%s\nwant:\n%s", inflight, i, got, want)
+			}
+			overlapped = overlapped || st.overlapped
+			got, st = walk(inflight, 0, i)
+			if got != want {
+				t.Fatalf("inflight %d lookup %d resumed differently:\n%s\nwant:\n%s", inflight, i, got, want)
+			}
+			midMerge = midMerge || st.merging
 		}
-		midMerge = midMerge || merging
-	}
-	if !midMerge {
-		t.Fatal("no stop landed inside a merge")
+		if !midMerge {
+			t.Fatalf("inflight %d: no stop landed inside a merge", inflight)
+		}
+		if inflight > 1 && !overlapped {
+			t.Fatalf("inflight %d: no read stopped with another read in flight", inflight)
+		}
 	}
 }

@@ -5,7 +5,10 @@ import (
 	"math"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -29,7 +32,7 @@ func TestMeasurementReaderStopsAtFirstSlowDown(t *testing.T) {
 		w.Write([]byte("SlowDown"))
 	}))
 	defer srv.Close()
-	reader, err := NewMeasurementReader(&ClientConfig{Endpoint: strings.TrimPrefix(srv.URL, "http://"), DisableSsl: true}, time.Second)
+	reader, err := NewMeasurementReader(&ClientConfig{Endpoint: strings.TrimPrefix(srv.URL, "http://"), DisableSsl: true}, serialLimits)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,8 +41,8 @@ func TestMeasurementReaderStopsAtFirstSlowDown(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
 	defer cancel()
 	_, err = reader.ReadRange(ctx, "fixture", "packs/one", 4, 4)
-	if err == nil || calls != 1 || reader.Requests != 1 || ctx.Err() != nil {
-		t.Fatalf("error=%v calls=%d requests=%d context=%v", err, calls, reader.Requests, ctx.Err())
+	if err == nil || calls != 1 || reader.Requests.Load() != 1 || ctx.Err() != nil {
+		t.Fatalf("error=%v calls=%d requests=%d context=%v", err, calls, reader.Requests.Load(), ctx.Err())
 	}
 }
 
@@ -56,7 +59,7 @@ func TestMeasurementReaderMissingExtent(t *testing.T) {
 			}
 			w.WriteHeader(status)
 		}))
-		reader, err := NewMeasurementReader(&ClientConfig{Endpoint: strings.TrimPrefix(srv.URL, "http://"), DisableSsl: true}, time.Second)
+		reader, err := NewMeasurementReader(&ClientConfig{Endpoint: strings.TrimPrefix(srv.URL, "http://"), DisableSsl: true}, serialLimits)
 		if err != nil {
 			srv.Close()
 			t.Fatal(err)
@@ -75,7 +78,7 @@ func TestMeasurementReaderMissingPrefix(t *testing.T) {
 	calls := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { calls++; w.WriteHeader(http.StatusNotFound) }))
 	defer srv.Close()
-	reader, err := NewMeasurementReader(&ClientConfig{Endpoint: strings.TrimPrefix(srv.URL, "http://"), DisableSsl: true}, 500*time.Millisecond)
+	reader, err := NewMeasurementReader(&ClientConfig{Endpoint: strings.TrimPrefix(srv.URL, "http://"), DisableSsl: true}, serialLimits)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,7 +106,7 @@ func TestMeasurementReaderInvalidExtent(t *testing.T) {
 		w.Write([]byte("x"))
 	}))
 	defer srv.Close()
-	reader, err := NewMeasurementReader(&ClientConfig{Endpoint: strings.TrimPrefix(srv.URL, "http://"), DisableSsl: true}, time.Second)
+	reader, err := NewMeasurementReader(&ClientConfig{Endpoint: strings.TrimPrefix(srv.URL, "http://"), DisableSsl: true}, serialLimits)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,6 +134,102 @@ func TestMeasurementReaderInvalidExtent(t *testing.T) {
 		tx.Discard()
 		if _, _, _, _, err = LocateMeasurementBlock(t.Context(), store, ref); !errors.Is(err, ErrMeasurementExtent) {
 			t.Fatalf("extent %+v: %v", extent, err)
+		}
+	}
+}
+
+// serialLimits is one request at a time at two requests a second.
+var serialLimits = MeasurementLimits{Rate: 2, ByteRate: 1 << 20, Inflight: 1}
+
+// TestMeasurementReaderPacesParallelReads holds concurrent callers to the
+// lane count and spaces request starts by the slower of the two rates.
+func TestMeasurementReaderPacesParallelReads(t *testing.T) {
+	// A slow loopback range server records each start and the peak concurrency.
+	var mu sync.Mutex
+	var starts []time.Time
+	active, peak := 0, 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		starts = append(starts, time.Now())
+		active++
+		peak = max(peak, active)
+		mu.Unlock()
+		time.Sleep(60 * time.Millisecond)
+		mu.Lock()
+		active--
+		mu.Unlock()
+		w.WriteHeader(http.StatusPartialContent)
+		w.Write(make([]byte, 100))
+	}))
+	defer srv.Close()
+
+	// At 30 requests a second and 2000 bytes a second, 100-byte reads start 50ms apart.
+	reader, err := NewMeasurementReader(&ClientConfig{Endpoint: strings.TrimPrefix(srv.URL, "http://"), DisableSsl: true}, MeasurementLimits{Rate: 30, ByteRate: 2000, Inflight: 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var wg sync.WaitGroup
+	for range 6 {
+		wg.Go(func() {
+			if _, err := reader.ReadRange(t.Context(), "fixture", "packs/one", 0, 100); err != nil {
+				t.Error(err)
+			}
+		})
+	}
+	wg.Wait()
+	if peak != 2 || len(starts) != 6 || reader.Bytes.Load() != 600 {
+		t.Fatalf("peak=%d starts=%d bytes=%d", peak, len(starts), reader.Bytes.Load())
+	}
+	slices.SortFunc(starts, time.Time.Compare)
+	for i := 1; i < len(starts); i++ {
+		if gap := starts[i].Sub(starts[i-1]); gap < 45*time.Millisecond {
+			t.Fatalf("start %d followed the previous after %v", i, gap)
+		}
+	}
+}
+
+// TestMeasurementReaderSlowDownStopsParallelReads latches the first 503:
+// callers waiting for their start send nothing after it.
+func TestMeasurementReaderSlowDownStopsParallelReads(t *testing.T) {
+	// The loopback service refuses every request with SlowDown.
+	var calls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	defer srv.Close()
+	reader, err := NewMeasurementReader(&ClientConfig{Endpoint: strings.TrimPrefix(srv.URL, "http://"), DisableSsl: true}, MeasurementLimits{Rate: 10, ByteRate: 1 << 20, Inflight: 4})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Eight callers start 100ms apart; the first answer stops the other seven.
+	var wg sync.WaitGroup
+	var failed atomic.Int32
+	for range 8 {
+		wg.Go(func() {
+			if _, err := reader.ReadRange(t.Context(), "fixture", "packs/one", 0, 4); err != nil && strings.Contains(err.Error(), "HTTP 503") {
+				failed.Add(1)
+			}
+		})
+	}
+	wg.Wait()
+	if calls.Load() != 1 || failed.Load() != 8 || reader.Requests.Load() != 1 {
+		t.Fatalf("calls=%d failed=%d requests=%d", calls.Load(), failed.Load(), reader.Requests.Load())
+	}
+}
+
+// TestMeasurementReaderRefusesUnboundedLimits requires every limit.
+func TestMeasurementReaderRefusesUnboundedLimits(t *testing.T) {
+	for _, limits := range []MeasurementLimits{
+		{Rate: 0, ByteRate: 1, Inflight: 1},
+		{Rate: MaxMeasurementRate + 1, ByteRate: 1, Inflight: 1},
+		{Rate: 1, ByteRate: 0, Inflight: 1},
+		{Rate: 1, ByteRate: 1, Inflight: 0},
+		{Rate: 1, ByteRate: 1, Inflight: MaxMeasurementInflight + 1},
+	} {
+		if _, err := NewMeasurementReader(&ClientConfig{Endpoint: "127.0.0.1:1", DisableSsl: true}, limits); err == nil {
+			t.Fatalf("accepted %+v", limits)
 		}
 	}
 }

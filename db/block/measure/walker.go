@@ -41,6 +41,9 @@ type Walker struct {
 	Children func(context.Context, *block.BlockRef) ([]*block.BlockRef, bool, error)
 	// Describe returns a type label and typed children, without storing state.
 	Describe func(context.Context, *block.BlockRef, []byte, []byte) (string, []Child, error)
+	// Inflight is the most frontier range reads outstanding at once; below 1 means 1.
+	// ReadRange must then be safe for concurrent calls, including a type lookup's.
+	Inflight int
 
 	// types caches the interned id of each type descriptor; the walk sees a handful.
 	types map[string]int64
@@ -51,8 +54,10 @@ type Walker struct {
 // Open creates or resumes a scratch database. Close releases it. Callers must
 // bind immutable input identities with Bind before seeding or resuming.
 func Open(path string) (*Walker, error) {
-	// Bound SQLite's page cache and keep durable resume commits local.
-	store, err := sqlite.OpenWithPragmas(context.Background(), path, "scratch", sqlite.Pragmas{FullSync: true, CacheSize: -4096, TempStore: 1})
+	// Bound SQLite's page cache. Commits run at synchronous=NORMAL: a power
+	// loss may roll back recent visits, which resume repeats, and a commit
+	// that must survive one, such as a spending reservation, calls Sync.
+	store, err := sqlite.OpenWithPragmas(context.Background(), path, "scratch", sqlite.Pragmas{CacheSize: -4096, TempStore: 1})
 	if err != nil {
 		return nil, err
 	}
@@ -112,6 +117,24 @@ func (w *Walker) checkpoint(ctx context.Context) error {
 	}
 	var busy, frames, copied int
 	return w.DB.QueryRowContext(ctx, "PRAGMA wal_checkpoint(TRUNCATE)").Scan(&busy, &frames, &copied)
+}
+
+// Sync makes every commit so far durable across a power loss. At
+// synchronous=NORMAL a commit reaches the write-ahead log without a flush, and
+// SQLite recovers the log only up to its first unflushed frame, so flushing
+// the log keeps every earlier commit. A checkpoint flushes the log before it
+// copies or truncates it, so a commit it moved into the database stays durable.
+func (w *Walker) Sync() error {
+	// Flush the log file through its own descriptor, which shares the inode.
+	f, err := os.OpenFile(w.wal, os.O_RDWR, 0)
+	if err != nil {
+		return err
+	}
+	err = f.Sync()
+	if cerr := f.Close(); err == nil {
+		err = cerr
+	}
+	return err
 }
 
 // Close closes the scratch database after its last committed position.
@@ -301,13 +324,39 @@ type item struct {
 	n int
 }
 
-// next returns one bounded contiguous run at the lowest pending level. The
-// disk index orders an entire frontier by pack and offset without collecting it.
-func (w *Walker) next(ctx context.Context) ([]item, error) {
-	// Take at most 4096 refs in pack order from the first pending level.
-	rows, err := w.DB.QueryContext(ctx, `SELECT ref,coalesce((SELECT type FROM descriptors d WHERE d.ref=nodes.ref AND d.done=0 LIMIT 1),type),depth,pack,off,n,
- EXISTS(SELECT 1 FROM cache WHERE cache.ref=nodes.ref)
- FROM nodes WHERE state=0 ORDER BY depth,pack,off LIMIT 4096`)
+// position is a place in the frontier's order within one level.
+type position struct {
+	// depth is the level.
+	depth int
+	// pack is the pack number of the last entry taken.
+	pack uint32
+	// off is that entry's offset; -1 precedes every entry of pack 0.
+	off int64
+}
+
+// frontierColumns reads one pending entry, its next unfinished type and
+// whether its bytes are cached.
+const frontierColumns = `ref,coalesce((SELECT type FROM descriptors d WHERE d.ref=nodes.ref AND d.done=0 LIMIT 1),type),depth,pack,off,n,
+ EXISTS(SELECT 1 FROM cache WHERE cache.ref=nodes.ref)`
+
+// next returns one bounded contiguous run of pending entries. With no
+// position it starts at the lowest pending level; otherwise it continues the
+// position's level after it. The frontier index orders a whole level by pack
+// and offset without collecting it, and each half of the continuation seeks
+// that index exactly.
+func (w *Walker) next(ctx context.Context, from *position) ([]item, error) {
+	// Take at most 4096 refs in pack order.
+	query := `SELECT ` + frontierColumns + ` FROM nodes WHERE state=0 ORDER BY depth,pack,off LIMIT 4096`
+	var args []any
+	if from != nil {
+		query = `SELECT * FROM (SELECT ` + frontierColumns + ` FROM nodes INDEXED BY frontier WHERE state=0 AND depth=?1 AND pack=?2 AND off>?3 ORDER BY off LIMIT 4096)
+ UNION ALL SELECT * FROM (SELECT ` + frontierColumns + ` FROM nodes INDEXED BY frontier WHERE state=0 AND depth=?1 AND pack>?2 ORDER BY pack,off LIMIT 4096)
+ LIMIT 4096`
+		args = []any{from.depth, int64(from.pack), from.off}
+	}
+
+	// Cut the rows into the first run of nearby entries in one pack.
+	rows, err := w.DB.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -334,7 +383,7 @@ func (w *Walker) next(ctx context.Context) ([]item, error) {
 }
 
 // Run measures until the frontier drains or any read fails. Transport errors
-// leave the current run pending; no error is silently converted into a hole.
+// leave the outstanding runs pending; no error is silently converted into a hole.
 func (w *Walker) Run(ctx context.Context) error {
 	// A configuration stop survives process replacement without spending another request.
 	if err := w.checkSource(ctx); err != nil {
@@ -352,15 +401,15 @@ func (w *Walker) Run(ctx context.Context) error {
 		}
 	}
 
-	// Walk one bounded run, or one merge, per iteration.
+	// Walk one level pass, or one merge, per iteration.
 	for {
-		// Bound the log the previous run's commits added.
+		// Bound the log the previous pass's commits added.
 		if err := w.checkpoint(ctx); err != nil {
 			return err
 		}
 
-		// Read the next breadth-first run, outside any scratch transaction.
-		run, err := w.next(ctx)
+		// Read the lowest pending run, outside any scratch transaction.
+		run, err := w.next(ctx, nil)
 		if err != nil {
 			return err
 		}
@@ -375,106 +424,193 @@ func (w *Walker) Run(ctx context.Context) error {
 		if len(run) == 0 {
 			return nil
 		}
-		if run[0].n == 0 {
-			if _, err = w.DB.ExecContext(ctx, "UPDATE nodes SET state=1,kind='hole:index' WHERE ref=?", run[0].ref); err != nil {
+		if err = w.pass(ctx, run); err != nil {
+			return err
+		}
+	}
+}
+
+// pass walks one level from its first run, keeping up to Inflight range reads
+// outstanding. The calling goroutine owns the scratch database: fetchers only
+// call ReadRange, and their results commit here in arrival order. Any order
+// within a level builds the same graph, because a visit appends only
+// sightings for the next level, which merge files after the level ends. A
+// position past each run taken keeps a run from going out twice. An entry the
+// pass leaves pending, such as one with a second reaching type or one whose
+// read was still out when the pass stopped, keeps state 0, so the next pass
+// or a resume takes it again; a resume may download its bytes again.
+func (w *Walker) pass(ctx context.Context, run []item) error {
+	// Cancel the outstanding reads when any result stops the pass.
+	ctx, cancel := context.WithCancelCause(ctx)
+	defer cancel(nil)
+	type fetched struct {
+		run  []item
+		data []byte
+		err  error
+	}
+	results := make(chan fetched, max(1, w.Inflight))
+	from := &position{depth: run[0].depth, off: -1}
+	inflight, ended := 0, false
+	var failed error
+	for {
+		// Dispatch until every lane is busy or the level has no run past the position.
+		for failed == nil && !ended && inflight < cap(results) {
+			if run == nil {
+				if run, failed = w.next(ctx, from); failed != nil {
+					break
+				}
+				if len(run) == 0 {
+					ended = true
+					break
+				}
+			}
+			r := run
+			run = nil
+			last := r[len(r)-1]
+			from = &position{depth: last.depth, pack: last.pack, off: last.off}
+			id, size, err := w.prepare(ctx, r)
+			if err != nil {
+				failed = err
+				break
+			}
+			if size == 0 {
+				continue
+			}
+			inflight++
+			go func() {
+				data, err := w.ReadRange(ctx, id, r[0].off, size)
+				results <- fetched{run: r, data: data, err: err}
+			}()
+		}
+		if failed != nil {
+			cancel(failed)
+		}
+		if inflight == 0 {
+			return failed
+		}
+
+		// Settle one read; after a failure, only wait for the rest to return.
+		f := <-results
+		inflight--
+		if failed != nil {
+			continue
+		}
+		failed = w.settle(ctx, f.run, f.data, f.err)
+		if failed == nil {
+			failed = w.checkpoint(ctx)
+		}
+	}
+}
+
+// prepare settles a run that needs no read: an index hole, cached bytes, or
+// extents the frozen index already contradicts. Otherwise it returns the pack
+// ID and the length of the one range read that covers the run.
+func (w *Walker) prepare(ctx context.Context, run []item) (string, int, error) {
+	// An unlocated entry is a hole until a later sighting supplies its bytes.
+	if run[0].n == 0 {
+		_, err := w.DB.ExecContext(ctx, "UPDATE nodes SET state=1,kind='hole:index' WHERE ref=?", run[0].ref)
+		return "", 0, err
+	}
+	if run[0].cached {
+		for _, it := range run {
+			if err := w.visit(ctx, it); err != nil {
+				return "", 0, err
+			}
+		}
+		return "", 0, nil
+	}
+	var id string
+	var size int64
+	if err := w.DB.QueryRowContext(ctx, "SELECT id,size FROM packs WHERE num=?", int64(run[0].pack)).Scan(&id, &size); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			for _, it := range run {
+				if err = w.hole(ctx, it.ref, "hole:extent"); err != nil {
+					return "", 0, err
+				}
+			}
+			return "", 0, nil
+		}
+		return "", 0, err
+	}
+
+	// Remove only the invalid extents, preserving neighboring valid blocks.
+	var end int64
+	invalid := false
+	for _, it := range run {
+		if it.off < 0 || it.n <= 0 || it.off > size-int64(it.n) {
+			if err := w.hole(ctx, it.ref, "hole:extent"); err != nil {
+				return "", 0, err
+			}
+			invalid = true
+		}
+		end = max(end, it.off+int64(it.n))
+	}
+	if invalid {
+		return "", 0, nil
+	}
+	return id, int(end - run[0].off), nil
+}
+
+// settle commits one completed range read: a source judgment becomes holes,
+// and verified bytes are cached and visited. A transport failure is returned
+// with the run still pending.
+func (w *Walker) settle(ctx context.Context, run []item, data []byte, err error) error {
+	// Classify only completed source judgments.
+	if errors.Is(err, ErrSourceConfiguration) {
+		refs := make([]string, 0, len(run))
+		for _, it := range run {
+			refs = append(refs, it.ref)
+		}
+		return w.stopSource(ctx, refs...)
+	}
+	if errors.Is(err, block.ErrNotFound) || errors.Is(err, ErrInvalidExtent) {
+		kind := "hole:source"
+		if errors.Is(err, ErrInvalidExtent) {
+			kind = "hole:extent"
+		}
+		for _, it := range run {
+			if err = w.hole(ctx, it.ref, kind); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	// Cache each verified encoded block for type lookups and crash resume.
+	for _, it := range run {
+		at := it.off - run[0].off
+		if at < 0 || at+int64(it.n) > int64(len(data)) {
+			if err = w.hole(ctx, it.ref, "hole:extent"); err != nil {
 				return err
 			}
 			continue
 		}
-		if run[0].cached {
-			for _, it := range run {
-				if err = w.visit(ctx, it); err != nil {
-					return err
-				}
-			}
-			continue
-		}
-		var id string
-		var size int64
-		if err = w.DB.QueryRowContext(ctx, "SELECT id,size FROM packs WHERE num=?", int64(run[0].pack)).Scan(&id, &size); err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				for _, it := range run {
-					if err = w.hole(ctx, it.ref, "hole:extent"); err != nil {
-						return err
-					}
-				}
-				continue
-			}
-			return err
-		}
-		// Remove only the invalid extents, preserving neighboring valid blocks.
-		var end int64
-		invalid := false
-		for _, it := range run {
-			if it.off < 0 || it.n <= 0 || it.off > size-int64(it.n) {
-				if err = w.hole(ctx, it.ref, "hole:extent"); err != nil {
-					return err
-				}
-				invalid = true
-			}
-			end = max(end, it.off+int64(it.n))
-		}
-		if invalid {
-			continue
-		}
-
-		data, err := w.ReadRange(ctx, id, run[0].off, int(end-run[0].off))
-		if errors.Is(err, block.ErrNotFound) || errors.Is(err, ErrInvalidExtent) || errors.Is(err, ErrSourceConfiguration) {
-			readErr := err
-			if errors.Is(readErr, ErrSourceConfiguration) {
-				refs := make([]string, 0, len(run))
-				for _, it := range run {
-					refs = append(refs, it.ref)
-				}
-				return w.stopSource(ctx, refs...)
-			}
-			kind := "hole:source"
-			if errors.Is(err, ErrInvalidExtent) {
-				kind = "hole:extent"
-			}
-			for _, it := range run {
-				if err = w.hole(ctx, it.ref, kind); err != nil {
-					return err
-				}
-			}
-			continue
-		}
+		ref, err := block.UnmarshalBlockRefB58(it.ref)
 		if err != nil {
 			return err
 		}
-
-		// Cache each verified encoded block for type lookups and crash resume.
-		for _, it := range run {
-			at := it.off - run[0].off
-			if at < 0 || at+int64(it.n) > int64(len(data)) {
-				if err = w.hole(ctx, it.ref, "hole:extent"); err != nil {
-					return err
-				}
-				continue
-			}
-			ref, err := block.UnmarshalBlockRefB58(it.ref)
-			if err != nil {
+		raw := data[at : at+int64(it.n)]
+		if _, err = decode(ref, raw); err != nil {
+			if err = w.hole(ctx, it.ref, "hole:corrupt"); err != nil {
 				return err
 			}
-			raw := data[at : at+int64(it.n)]
-			if _, err = decode(ref, raw); err != nil {
-				if err = w.hole(ctx, it.ref, "hole:corrupt"); err != nil {
-					return err
-				}
-				continue
-			}
-			if err = w.cache(ctx, it.ref, raw, "pack-index"); err != nil {
-				return err
-			}
+			continue
 		}
-
-		// Commit a block's result together with its deduplicated children.
-		for _, it := range run {
-			if err = w.visit(ctx, it); err != nil {
-				return err
-			}
+		if err = w.cache(ctx, it.ref, raw, "pack-index"); err != nil {
+			return err
 		}
 	}
+
+	// Commit a block's result together with its deduplicated children.
+	for _, it := range run {
+		if err = w.visit(ctx, it); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // decode verifies the payload before any child list is followed.
