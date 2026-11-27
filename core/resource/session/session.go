@@ -651,10 +651,6 @@ func (r *SessionResource) WatchResourcesList(
 	}()
 
 	// Project each list revision and stream its current index ObjectTypes.
-	// pendingInitial holds the workers whose first projection has not
-	// arrived.
-	// Projection updates are held until every first projection has arrived.
-	pendingInitial := make(map[string]uint64)
 	for {
 		select {
 		case <-ctx.Done():
@@ -687,7 +683,6 @@ func (r *SessionResource) WatchResourcesList(
 					}
 					worker.cancel()
 					delete(workers, id)
-					delete(pendingInitial, id)
 					if refs[id] == nil {
 						delete(objectTypes, id)
 					}
@@ -704,7 +699,6 @@ func (r *SessionResource) WatchResourcesList(
 						cancel:     workerCancel,
 						generation: workerGen,
 					}
-					pendingInitial[id] = workerGen
 					startGoroutine(func() {
 						r.watchSpaceIndexObjectType(workerCtx, ref.CloneVT(), id, workerGen, projectionCh)
 					})
@@ -714,21 +708,8 @@ func (r *SessionResource) WatchResourcesList(
 				return err
 			}
 		case projection := <-projectionCh:
-			// Drop output from a stopped worker or a repeated first projection.
-			worker, ok := workers[projection.id]
-			if !ok || worker.generation != projection.generation {
-				continue
-			}
-			if projection.initial {
-				if pendingInitial[projection.id] != projection.generation {
-					continue
-				}
-				delete(pendingInitial, projection.id)
-			}
-
-			// Record the type and send once every first projection arrived.
-			objectTypes[projection.id] = projection.objectType
-			if len(pendingInitial) != 0 {
+			// Publish each current generation without waiting for other Spaces.
+			if !projection.apply(workers, objectTypes) {
 				continue
 			}
 			if err := send(); err != nil {
@@ -754,18 +735,6 @@ func filterOutCdnSpace(list []*space.SpaceSoListEntry) []*space.SpaceSoListEntry
 	return out
 }
 
-// resourcesListProjectionEvent carries one generation's Space index projection.
-type resourcesListProjectionEvent struct {
-	// id selects the shared object in the current resource list.
-	id string
-	// generation rejects output from a replaced projection worker.
-	generation uint64
-	// objectType is the projected index ObjectType, or empty when unavailable.
-	objectType string
-	// initial distinguishes the first projection from subsequent updates.
-	initial bool
-}
-
 // resourcesListProjectionWorker retains one generation's cancellation boundary.
 type resourcesListProjectionWorker struct {
 	// ref is the SharedObject the worker projects.
@@ -776,6 +745,7 @@ type resourcesListProjectionWorker struct {
 	generation uint64
 }
 
+// watchSpaceIndexObjectType publishes durable type changes for one worker generation.
 func (r *SessionResource) watchSpaceIndexObjectType(
 	ctx context.Context,
 	ref *sobject.SharedObjectRef,
@@ -784,13 +754,12 @@ func (r *SessionResource) watchSpaceIndexObjectType(
 	events chan<- resourcesListProjectionEvent,
 ) {
 	// Send one generation-scoped projection result unless the watch is canceled.
-	sendProjection := func(initial bool, objectType string) bool {
+	sendProjection := func(objectType string) bool {
 		select {
 		case events <- resourcesListProjectionEvent{
 			id:         id,
 			generation: generation,
 			objectType: objectType,
-			initial:    initial,
 		}:
 			return true
 		case <-ctx.Done():
@@ -803,19 +772,17 @@ func (r *SessionResource) watchSpaceIndexObjectType(
 	if err != nil {
 		if !errors.Is(err, context.Canceled) {
 			r.le.WithError(err).WithField("space-id", id).Warn("failed to project Space index ObjectType")
-			sendProjection(true, "")
+			sendProjection("")
 		}
 		return
 	}
 
 	// A pending readback does not prove the type is absent: the blocking
 	// mount below reports the durable type as a later live update.
-	initialPending := true
 	if mountedSpace == nil {
-		if !sendProjection(true, "") {
+		if !sendProjection("") {
 			return
 		}
-		initialPending = false
 		mountedSpace, mountedSpaceRef, err = space.ExMountSpaceSoBody(ctx, r.b, ref, false, nil)
 		if err != nil {
 			if !errors.Is(err, context.Canceled) {
@@ -840,16 +807,16 @@ func (r *SessionResource) watchSpaceIndexObjectType(
 		if !first && objectType == previous {
 			return nil
 		}
-		if !sendProjection(initialPending, objectType) {
+		if !sendProjection(objectType) {
 			return context.Canceled
 		}
-		initialPending, first, previous = false, false, objectType
+		first, previous = false, objectType
 		return nil
 	})
 	if !errors.Is(err, context.Canceled) {
 		r.le.WithError(err).WithField("space-id", id).Warn("failed to watch Space index ObjectType")
-		if initialPending {
-			sendProjection(true, "")
+		if first {
+			sendProjection("")
 		}
 	}
 }

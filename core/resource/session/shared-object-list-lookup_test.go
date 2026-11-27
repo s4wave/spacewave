@@ -3,6 +3,7 @@ package resource_session
 import (
 	"context"
 	"errors"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/s4wave/spacewave/core/provider"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/core/space"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
@@ -245,5 +247,70 @@ func TestAcceptedCloudInviteReportsRefreshError(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "refresh shared object list after accepted invite") {
 		t.Fatalf("expected contextual refresh error, got %q", err.Error())
+	}
+}
+
+// TestResourcesListProjectionRejectsReplacedWorker checks that a late result
+// cannot overwrite the current reference's type or restore a removed member.
+func TestResourcesListProjectionRejectsReplacedWorker(t *testing.T) {
+	// Retain the replacement generation and its already-published type.
+	entry := &sobject.SharedObjectListEntry{
+		Ref: sobject.NewSharedObjectRef("spacewave", "account-1", "so-1", "new-store"),
+	}
+	list := []*space.SpaceSoListEntry{{Entry: entry}}
+	workers := map[string]resourcesListProjectionWorker{"so-1": {ref: entry.Ref, generation: 2}}
+	types := map[string]string{"so-1": "new-type"}
+	before := resourcesListResponse(list, types)
+
+	// Deliver a result from the canceled generation after its replacement.
+	stale := resourcesListProjectionEvent{id: "so-1", generation: 1, objectType: "stale-type"}
+	if stale.apply(workers, types) {
+		t.Fatal("accepted replaced worker")
+	}
+	if !resourcesListResponse(list, types).EqualVT(before) {
+		t.Fatal("late result changed the visible response")
+	}
+
+	// Admit the replacement's next type independently of any other worker.
+	current := resourcesListProjectionEvent{id: "so-1", generation: 2, objectType: "current-type"}
+	if !current.apply(workers, types) || types["so-1"] != "current-type" {
+		t.Fatal("current worker did not publish")
+	}
+
+	// Ignore a duplicate type before copying a whole resource list.
+	if current.apply(workers, types) {
+		t.Fatal("unchanged type produced an update")
+	}
+
+	// Refuse an in-flight result after membership removes that worker.
+	delete(workers, "so-1")
+	delete(types, "so-1")
+	if current.apply(workers, types) || len(types) != 0 {
+		t.Fatal("removed worker restored a type")
+	}
+}
+
+// BenchmarkResourcesListResponse measures a 300-member response copy and wire
+// encoding so the independent update cost can be estimated per watch.
+func BenchmarkResourcesListResponse(b *testing.B) {
+	// Keep a stable 300-member catalog with one projected type per member.
+	list := make([]*space.SpaceSoListEntry, 300)
+	types := make(map[string]string, len(list))
+	for i := range list {
+		id := strconv.Itoa(i)
+		list[i] = &space.SpaceSoListEntry{Entry: &sobject.SharedObjectListEntry{Ref: sobject.NewSharedObjectRef("local", "account", id, id)}}
+		types[id] = "canvas"
+	}
+	previous := resourcesListResponse(list, types)
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	// Copy, compare and encode the same response the Session sends.
+	for b.Loop() {
+		response := resourcesListResponse(list, types)
+		response.EqualVT(previous)
+		if _, err := response.MarshalVT(); err != nil {
+			b.Fatal(err)
+		}
 	}
 }
