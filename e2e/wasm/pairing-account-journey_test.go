@@ -159,7 +159,7 @@ func waitPairingSpaceCopy(t *testing.T, stream s4wave_session.SRPCSessionResourc
 		if err != nil {
 			t.Fatalf("waiting for copied Space: %v (last copy state: %s)", err, lastError)
 		}
-		for _, copy := range state.GetLocalCopies() {
+		for _, copy := range state.GetPeer().GetLocalCopies() {
 			if copy.GetSharedObjectId() != id {
 				continue
 			}

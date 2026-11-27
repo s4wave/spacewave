@@ -79,12 +79,7 @@ func buildSyncStatusSnapshot(
 	case *provider_local.ProviderAccount:
 		return buildLocalSyncStatusSnapshot(sess, acc, rate, now)
 	default:
-		return &s4wave_session.WatchSyncStatusResponse{
-			State:          s4wave_session.SyncStatusState_SyncStatusState_SYNCED,
-			Direction:      s4wave_session.SyncActivityDirection_SyncActivityDirection_NONE,
-			TransportState: s4wave_session.SyncTransportState_SyncTransportState_UNKNOWN,
-			P2PState:       s4wave_session.SyncP2PState_SyncP2PState_UNKNOWN,
-		}, nil
+		return &s4wave_session.WatchSyncStatusResponse{}, nil
 	}
 }
 
@@ -95,12 +90,7 @@ func buildSpacewaveSyncStatusSnapshot(
 	now time.Time,
 ) (*s4wave_session.WatchSyncStatusResponse, []<-chan struct{}) {
 	// Read the account status under the account broadcast.
-	var accountCh <-chan struct{}
-	var status provider.ProviderAccountStatus
-	acc.GetAccountBroadcast().HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-		accountCh = getWaitCh()
-		status = acc.GetAccountStatus()
-	})
+	status, accountCh := acc.SnapshotAccountStatus()
 
 	// Read sync telemetry and transport composition for this session.
 	telemetry, telemetryCh := acc.GetSyncTelemetrySnapshotWithWait()
@@ -109,8 +99,21 @@ func buildSpacewaveSyncStatusSnapshot(
 		sessionID = ref.GetProviderResourceRef().GetId()
 	}
 	composition, compositionCh := acc.GetTransportCompositionSnapshotWithWait(sessionID)
-	return syncStatusFromSpacewaveTelemetry(telemetry, status, composition, rate, now),
+	return &s4wave_session.WatchSyncStatusResponse{
+			Cloud:  syncStatusFromSpacewaveTelemetry(telemetry, rate, now),
+			Access: syncStatusAccountAccess(status),
+			Peer:   syncStatusFromSpacewaveComposition(composition),
+		},
 		[]<-chan struct{}{accountCh, telemetryCh, compositionCh}
+}
+
+// syncStatusFromSpacewaveComposition projects only the selected Session's direct path.
+func syncStatusFromSpacewaveComposition(composition provider_spacewave.TransportCompositionSnapshot) *s4wave_session.SyncPeerProgress {
+	return &s4wave_session.SyncPeerProgress{
+		State:           syncStatusSpacewaveP2PState(composition.P2PState),
+		LastError:       composition.LastError,
+		ActivePeerCount: composition.ActivePeerCount,
+	}
 }
 
 // syncStatusHeld returns the held state of store, or nil while the store holds
@@ -146,7 +149,6 @@ func buildLocalSyncStatusSnapshot(
 	transportRunning, transportCh := acc.GetTransportSnapshotWithWait()
 	p2pRunning, p2pCh := acc.GetP2PSyncSnapshotWithWait()
 	resp := syncStatusFromLocalState(pairingSnapshot, transportRunning, p2pRunning)
-	resp.LocalAccount = true
 
 	// List the Spaces the account replicates while P2P sync is running.
 	progress, copyCh := acc.GetAccountCopyProgress()
@@ -175,7 +177,7 @@ func buildLocalSyncStatusSnapshot(
 		}
 		resp.LocalCopies = append(resp.LocalCopies, item)
 		if !item.Complete {
-			resp.PendingDownloadCount++
+			resp.Transfer.PendingDownloadCount++
 		}
 	}
 	slices.SortFunc(resp.LocalCopies, func(a, b *s4wave_session.SyncLocalCopyStatus) int {
@@ -197,33 +199,36 @@ func buildLocalSyncStatusSnapshot(
 	}
 	resp.PeerUploadBytes, resp.PeerDownloadBytes = traffic.UploadedBytes, traffic.DownloadedBytes
 	if !traffic.LastActivity.IsZero() {
-		resp.LastActivityAt = timestamppb.New(traffic.LastActivity)
+		resp.Transfer.LastActivityAt = timestamppb.New(traffic.LastActivity)
 	}
 
 	// Mark the snapshot active, apply rates, and set direction and P2P state.
-	if resp.PendingDownloadCount > 0 || now.Sub(traffic.LastActivity) < 2*syncStatusRateWindow {
-		resp.State = s4wave_session.SyncStatusState_SyncStatusState_ACTIVE
+	if resp.Transfer.PendingDownloadCount > 0 || now.Sub(traffic.LastActivity) < 2*syncStatusRateWindow {
+		resp.Transfer.State = s4wave_session.SyncStatusState_SyncStatusState_ACTIVE
 	}
 	if rate != nil {
-		rate.apply(resp, syncStatusCounters{
+		rate.apply(resp.Transfer, syncStatusCounters{
 			uploadBytes:   signedTransferCounter(traffic.UploadedBytes),
 			downloadBytes: signedTransferCounter(traffic.DownloadedBytes),
 		}, now)
 	}
-	if resp.UploadBytesPerSecond > 0 {
-		resp.Direction = s4wave_session.SyncActivityDirection_SyncActivityDirection_UPLOAD
+	if resp.Transfer.UploadBytesPerSecond > 0 {
+		resp.Transfer.Direction = s4wave_session.SyncActivityDirection_SyncActivityDirection_UPLOAD
 	}
-	if resp.DownloadBytesPerSecond > 0 || resp.PendingDownloadCount > 0 {
-		if resp.Direction == s4wave_session.SyncActivityDirection_SyncActivityDirection_UPLOAD {
-			resp.Direction = s4wave_session.SyncActivityDirection_SyncActivityDirection_UPLOAD_DOWNLOAD
+	if resp.Transfer.DownloadBytesPerSecond > 0 || resp.Transfer.PendingDownloadCount > 0 {
+		if resp.Transfer.Direction == s4wave_session.SyncActivityDirection_SyncActivityDirection_UPLOAD {
+			resp.Transfer.Direction = s4wave_session.SyncActivityDirection_SyncActivityDirection_UPLOAD_DOWNLOAD
 		} else {
-			resp.Direction = s4wave_session.SyncActivityDirection_SyncActivityDirection_DOWNLOAD
+			resp.Transfer.Direction = s4wave_session.SyncActivityDirection_SyncActivityDirection_DOWNLOAD
 		}
 	}
 	if resp.ActivePeerCount == 0 {
-		resp.P2PState = s4wave_session.SyncP2PState_SyncP2PState_NO_PEERS
+		resp.State = s4wave_session.SyncP2PState_SyncP2PState_NO_PEERS
 	}
-	return resp, append(waits, pairingCh, transportCh, p2pCh, copyCh)
+	return &s4wave_session.WatchSyncStatusResponse{
+		Access: s4wave_session.SyncAccountAccessState_SyncAccountAccessState_LOCAL,
+		Peer:   resp,
+	}, append(waits, pairingCh, transportCh, p2pCh, copyCh)
 }
 
 // syncUploadHold returns the status form of the account limit holding uploads.
@@ -239,28 +244,24 @@ func syncUploadHold(hold provider_spacewave.SyncTelemetryUploadHold) s4wave_sess
 
 func syncStatusFromSpacewaveTelemetry(
 	telemetry provider_spacewave.SyncTelemetrySnapshot,
-	status provider.ProviderAccountStatus,
-	composition provider_spacewave.TransportCompositionSnapshot,
 	rate *syncStatusRateState,
 	now time.Time,
-) *s4wave_session.WatchSyncStatusResponse {
+) *s4wave_session.SyncCloudProgress {
 	// Copy Spacewave telemetry into a synced snapshot.
-	resp := &s4wave_session.WatchSyncStatusResponse{
-		State:                             s4wave_session.SyncStatusState_SyncStatusState_SYNCED,
-		Direction:                         syncStatusDirection(telemetry),
-		TransportState:                    syncStatusSpacewaveTransportState(status),
-		P2PState:                          syncStatusSpacewaveP2PState(composition.P2PState),
-		PendingUploadBytes:                nonNegativeUint64(telemetry.PendingUploadBytes),
-		PendingDownloadBytes:              0,
-		PendingUploadCount:                uint32Count(telemetry.PendingUploadCount),
-		PendingDownloadCount:              0,
-		ActiveUploadBytes:                 nonNegativeUint64(telemetry.ActiveUploadBytes),
-		ActiveUploadTransferredBytes:      nonNegativeUint64(telemetry.ActiveUploadTransferredBytes),
-		InFlightUploadCount:               uint32Count(telemetry.InFlightPushes),
+	resp := &s4wave_session.SyncCloudProgress{
+		Transfer: &s4wave_session.SyncTransferProgress{
+			State:                        s4wave_session.SyncStatusState_SyncStatusState_SYNCED,
+			Direction:                    syncStatusDirection(telemetry),
+			PendingUploadBytes:           nonNegativeUint64(telemetry.PendingUploadBytes),
+			PendingDownloadBytes:         0,
+			PendingUploadCount:           uint32Count(telemetry.PendingUploadCount),
+			PendingDownloadCount:         0,
+			ActiveUploadBytes:            nonNegativeUint64(telemetry.ActiveUploadBytes),
+			ActiveUploadTransferredBytes: nonNegativeUint64(telemetry.ActiveUploadTransferredBytes),
+			InFlightUploadCount:          uint32Count(telemetry.InFlightPushes),
+			LastError:                    telemetry.LastError,
+		},
 		ActiveStoreCount:                  uint32Count(telemetry.StoreCount),
-		ActivePeerCount:                   composition.ActivePeerCount,
-		DirectP2PDisabled:                 !composition.DirectP2PEnabled,
-		LastError:                         telemetry.LastError,
 		UploadError:                       telemetry.UploadError,
 		UploadHold:                        syncUploadHold(telemetry.UploadHold),
 		PackRangeRequestCount:             telemetry.RangeRequestCount,
@@ -317,21 +318,18 @@ func syncStatusFromSpacewaveTelemetry(
 		})
 	}
 
-	// Overlay the composition error, activity, direction, and transfer rates.
-	if composition.LastError != "" {
-		resp.LastError = composition.LastError
-	}
+	// Classify only cloud activity and failures, then apply cloud rates.
 	if !telemetry.LastActivityAt.IsZero() {
-		resp.LastActivityAt = timestamppb.New(telemetry.LastActivityAt)
+		resp.Transfer.LastActivityAt = timestamppb.New(telemetry.LastActivityAt)
 	}
-	if resp.Direction != s4wave_session.SyncActivityDirection_SyncActivityDirection_NONE {
-		resp.State = s4wave_session.SyncStatusState_SyncStatusState_ACTIVE
+	if resp.Transfer.Direction != s4wave_session.SyncActivityDirection_SyncActivityDirection_NONE {
+		resp.Transfer.State = s4wave_session.SyncStatusState_SyncStatusState_ACTIVE
 	}
-	if resp.LastError != "" {
-		resp.State = s4wave_session.SyncStatusState_SyncStatusState_ERROR
+	if resp.Transfer.LastError != "" {
+		resp.Transfer.State = s4wave_session.SyncStatusState_SyncStatusState_ERROR
 	}
 	if rate != nil {
-		rate.apply(resp, syncStatusCounters{
+		rate.apply(resp.Transfer, syncStatusCounters{
 			uploadBytes:   telemetry.PushedBytes + telemetry.ActiveUploadTransferredBytes,
 			downloadBytes: telemetry.FetchedBytes,
 		}, now)
@@ -360,17 +358,19 @@ func syncStatusFromLocalState(
 	snapshot pairing.Snapshot,
 	transportRunning bool,
 	p2pRunning bool,
-) *s4wave_session.WatchSyncStatusResponse {
+) *s4wave_session.SyncPeerProgress {
 	p2pState, errMsg := syncStatusLocalP2PState(snapshot, transportRunning, p2pRunning)
-	resp := &s4wave_session.WatchSyncStatusResponse{
-		State:          s4wave_session.SyncStatusState_SyncStatusState_SYNCED,
-		Direction:      s4wave_session.SyncActivityDirection_SyncActivityDirection_NONE,
-		TransportState: syncStatusLocalTransportState(transportRunning),
-		P2PState:       p2pState,
-		LastError:      errMsg,
+	resp := &s4wave_session.SyncPeerProgress{
+		Transfer: &s4wave_session.SyncTransferProgress{
+			State:     s4wave_session.SyncStatusState_SyncStatusState_SYNCED,
+			Direction: s4wave_session.SyncActivityDirection_SyncActivityDirection_NONE,
+		},
+		NetworkState: syncStatusLocalTransportState(transportRunning),
+		State:        p2pState,
+		LastError:    errMsg,
 	}
 	if errMsg != "" {
-		resp.State = s4wave_session.SyncStatusState_SyncStatusState_ERROR
+		resp.Transfer.State = s4wave_session.SyncStatusState_SyncStatusState_ERROR
 	}
 	return resp
 }
@@ -395,22 +395,23 @@ func syncStatusDirection(
 	return s4wave_session.SyncActivityDirection_SyncActivityDirection_NONE
 }
 
-func syncStatusSpacewaveTransportState(
-	status provider.ProviderAccountStatus,
-) s4wave_session.SyncTransportState {
+// syncStatusAccountAccess preserves the account's access decision without inferring socket health.
+func syncStatusAccountAccess(status provider.ProviderAccountStatus) s4wave_session.SyncAccountAccessState {
 	switch status {
-	case provider.ProviderAccountStatus_ProviderAccountStatus_READY,
-		provider.ProviderAccountStatus_ProviderAccountStatus_DORMANT:
-		return s4wave_session.SyncTransportState_SyncTransportState_ONLINE
-	case provider.ProviderAccountStatus_ProviderAccountStatus_PENDING,
-		provider.ProviderAccountStatus_ProviderAccountStatus_NONE:
-		return s4wave_session.SyncTransportState_SyncTransportState_CONNECTING
-	case provider.ProviderAccountStatus_ProviderAccountStatus_FAILED,
-		provider.ProviderAccountStatus_ProviderAccountStatus_DELETED,
-		provider.ProviderAccountStatus_ProviderAccountStatus_UNAUTHENTICATED:
-		return s4wave_session.SyncTransportState_SyncTransportState_ERROR
+	case provider.ProviderAccountStatus_ProviderAccountStatus_READY:
+		return s4wave_session.SyncAccountAccessState_SyncAccountAccessState_READY
+	case provider.ProviderAccountStatus_ProviderAccountStatus_DORMANT:
+		return s4wave_session.SyncAccountAccessState_SyncAccountAccessState_DORMANT
+	case provider.ProviderAccountStatus_ProviderAccountStatus_PENDING, provider.ProviderAccountStatus_ProviderAccountStatus_NONE:
+		return s4wave_session.SyncAccountAccessState_SyncAccountAccessState_PENDING
+	case provider.ProviderAccountStatus_ProviderAccountStatus_FAILED:
+		return s4wave_session.SyncAccountAccessState_SyncAccountAccessState_FAILED
+	case provider.ProviderAccountStatus_ProviderAccountStatus_DELETED:
+		return s4wave_session.SyncAccountAccessState_SyncAccountAccessState_DELETED
+	case provider.ProviderAccountStatus_ProviderAccountStatus_UNAUTHENTICATED:
+		return s4wave_session.SyncAccountAccessState_SyncAccountAccessState_UNAUTHENTICATED
 	default:
-		return s4wave_session.SyncTransportState_SyncTransportState_UNKNOWN
+		return s4wave_session.SyncAccountAccessState_SyncAccountAccessState_UNKNOWN
 	}
 }
 
@@ -496,7 +497,7 @@ func syncStatusP2PState(
 }
 
 func (s *syncStatusRateState) apply(
-	resp *s4wave_session.WatchSyncStatusResponse,
+	resp *s4wave_session.SyncTransferProgress,
 	counters syncStatusCounters,
 	now time.Time,
 ) {
@@ -531,6 +532,7 @@ func (s *syncStatusRateState) apply(
 	resp.DownloadBytesPerSecond = s.downloadRate
 }
 
+// waitSyncStatus waits on source changes and the existing transfer-rate sample deadline.
 func waitSyncStatus(ctx context.Context, waitChs []<-chan struct{}) error {
 	// Sample rates and clear stale activity even after the final transfer.
 	waitCtx, cancel := context.WithTimeout(ctx, syncStatusRateWindow)

@@ -12,10 +12,26 @@ export function SyncInspector({ sync }: { sync: SessionSyncStatusView }) {
         <Facts
           facts={[
             { label: 'State', value: sync.summaryLabel },
-            { label: 'Transport', value: sync.transportLabel },
+            {
+              label: sync.local ? 'Network' : 'Account access',
+              value: sync.transportLabel,
+            },
             { label: 'Peer-to-peer', value: sync.p2pLabel },
             { label: 'Last activity', value: sync.lastActivityLabel },
-            { label: 'Last error', value: sync.lastError, tone: 'error' },
+            {
+              label: sync.local ? 'Peer error' : 'Cloud error',
+              value: sync.lastError,
+              tone: 'error',
+            },
+            ...(!sync.local
+              ? [
+                  {
+                    label: 'Peer error',
+                    value: sync.peerError,
+                    tone: 'error' as const,
+                  },
+                ]
+              : []),
           ]}
         />
       </InspectorSection>

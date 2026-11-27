@@ -1,0 +1,13 @@
+[
+  {
+    "name": "a direct failure replaces cloud progress",
+    "replace": [
+      [
+        "  /\\ UNCHANGED <<cloud, access, replication, open, cloudSeen>>",
+        "  /\\ cloud' = IF peer' = \"error\" THEN \"error\" ELSE cloud\n  /\\ UNCHANGED <<access, replication, open, cloudSeen>>"
+      ]
+    ],
+    "expect": "CloudOwnsProgress",
+    "config": "SessionSyncStatus.cfg"
+  }
+]

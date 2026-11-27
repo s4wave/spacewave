@@ -1,0 +1,21 @@
+---
+title: "Session sync: independent source observations"
+---
+stateDiagram-v2
+  s0: Synced
+  s1: Synced#59; peer failed
+  s2: Local copy active
+  s3: Local copy failed
+  [*] --> s0
+  s0 --> s1: peer status changes
+  s0 --> s2: copy progress changes
+  s0 --> s3: copy progress changes
+  s1 --> s0: peer status changes
+  s1 --> s2: copy progress changes
+  s1 --> s3: copy progress changes
+  s2 --> s0: copy progress changes
+  s2 --> s3: copy progress changes
+  s3 --> s0: copy progress changes
+  s3 --> s2: copy progress changes
+  s2 --> s1: copy progress changes
+  s3 --> s1: copy progress changes

@@ -21,9 +21,21 @@ DESCRIPTOR: _descriptor.FileDescriptor
 
 class SyncStatusState(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
+    SyncStatusState_UNKNOWN: _ClassVar[SyncStatusState]
     SyncStatusState_SYNCED: _ClassVar[SyncStatusState]
     SyncStatusState_ACTIVE: _ClassVar[SyncStatusState]
     SyncStatusState_ERROR: _ClassVar[SyncStatusState]
+
+class SyncAccountAccessState(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    SyncAccountAccessState_UNKNOWN: _ClassVar[SyncAccountAccessState]
+    SyncAccountAccessState_LOCAL: _ClassVar[SyncAccountAccessState]
+    SyncAccountAccessState_READY: _ClassVar[SyncAccountAccessState]
+    SyncAccountAccessState_PENDING: _ClassVar[SyncAccountAccessState]
+    SyncAccountAccessState_DORMANT: _ClassVar[SyncAccountAccessState]
+    SyncAccountAccessState_FAILED: _ClassVar[SyncAccountAccessState]
+    SyncAccountAccessState_DELETED: _ClassVar[SyncAccountAccessState]
+    SyncAccountAccessState_UNAUTHENTICATED: _ClassVar[SyncAccountAccessState]
 
 class SyncUploadHold(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -96,9 +108,18 @@ class MoveSpaceStoragePhase(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     MoveSpaceStoragePhase_FETCH: _ClassVar[MoveSpaceStoragePhase]
     MoveSpaceStoragePhase_UPLOAD: _ClassVar[MoveSpaceStoragePhase]
     MoveSpaceStoragePhase_DONE: _ClassVar[MoveSpaceStoragePhase]
+SyncStatusState_UNKNOWN: SyncStatusState
 SyncStatusState_SYNCED: SyncStatusState
 SyncStatusState_ACTIVE: SyncStatusState
 SyncStatusState_ERROR: SyncStatusState
+SyncAccountAccessState_UNKNOWN: SyncAccountAccessState
+SyncAccountAccessState_LOCAL: SyncAccountAccessState
+SyncAccountAccessState_READY: SyncAccountAccessState
+SyncAccountAccessState_PENDING: SyncAccountAccessState
+SyncAccountAccessState_DORMANT: SyncAccountAccessState
+SyncAccountAccessState_FAILED: SyncAccountAccessState
+SyncAccountAccessState_DELETED: SyncAccountAccessState
+SyncAccountAccessState_UNAUTHENTICATED: SyncAccountAccessState
 SyncUploadHold_NONE: SyncUploadHold
 SyncUploadHold_STORAGE_FULL: SyncUploadHold
 SyncUploadHold_SPENDING_LIMIT: SyncUploadHold
@@ -331,11 +352,19 @@ class SyncHeldState(_message.Message):
     def __init__(self, damaged_block_count: _Optional[int] = ..., held_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., partial: _Optional[bool] = ...) -> None: ...
 
 class WatchSyncStatusResponse(_message.Message):
-    __slots__ = ("state", "direction", "transport_state", "p2p_state", "pending_upload_bytes", "pending_download_bytes", "pending_upload_count", "pending_download_count", "upload_bytes_per_second", "download_bytes_per_second", "active_upload_bytes", "active_upload_transferred_bytes", "in_flight_upload_count", "active_store_count", "active_peer_count", "last_error", "last_activity_at", "pack_range_request_count", "pack_range_response_bytes", "pack_full_response_fallback_count", "pack_full_response_fallback_bytes", "pack_last_full_response_fallback_bytes", "pack_manifest_entries", "pack_block_count_total", "pack_block_count_min", "pack_block_count_max", "pack_size_bytes_total", "pack_size_bytes_min", "pack_size_bytes_max", "pack_bloom_filter_count", "pack_bloom_missing_count", "pack_bloom_invalid_count", "pack_bloom_max_false_positive_rate", "pack_bloom_risk_pack_count", "pack_lookup_count", "pack_candidate_packs", "pack_opened_packs", "pack_negative_packs", "pack_target_hits", "pack_last_candidate_packs", "pack_last_opened_packs", "pack_last_negative_packs", "pack_last_target_hit", "pack_index_cache_hits", "pack_index_cache_misses", "pack_index_cache_read_errors", "pack_index_cache_write_errors", "pack_remote_index_loads", "pack_remote_index_bytes", "pack_last_remote_index_bytes", "pack_index_tail_fetch_count", "pack_index_tail_fetch_bytes", "pack_index_tail_response_bytes", "direct_p2p_disabled", "block_stores", "local_account", "local_copies", "peer_upload_bytes", "peer_download_bytes", "peers", "upload_error", "upload_hold")
+    __slots__ = ("cloud", "access", "peer")
+    CLOUD_FIELD_NUMBER: _ClassVar[int]
+    ACCESS_FIELD_NUMBER: _ClassVar[int]
+    PEER_FIELD_NUMBER: _ClassVar[int]
+    cloud: SyncCloudProgress
+    access: SyncAccountAccessState
+    peer: SyncPeerProgress
+    def __init__(self, cloud: _Optional[_Union[SyncCloudProgress, _Mapping]] = ..., access: _Optional[_Union[SyncAccountAccessState, str]] = ..., peer: _Optional[_Union[SyncPeerProgress, _Mapping]] = ...) -> None: ...
+
+class SyncTransferProgress(_message.Message):
+    __slots__ = ("state", "direction", "pending_upload_bytes", "pending_download_bytes", "pending_upload_count", "pending_download_count", "upload_bytes_per_second", "download_bytes_per_second", "active_upload_bytes", "active_upload_transferred_bytes", "in_flight_upload_count", "last_error", "last_activity_at")
     STATE_FIELD_NUMBER: _ClassVar[int]
     DIRECTION_FIELD_NUMBER: _ClassVar[int]
-    TRANSPORT_STATE_FIELD_NUMBER: _ClassVar[int]
-    P2P_STATE_FIELD_NUMBER: _ClassVar[int]
     PENDING_UPLOAD_BYTES_FIELD_NUMBER: _ClassVar[int]
     PENDING_DOWNLOAD_BYTES_FIELD_NUMBER: _ClassVar[int]
     PENDING_UPLOAD_COUNT_FIELD_NUMBER: _ClassVar[int]
@@ -345,10 +374,27 @@ class WatchSyncStatusResponse(_message.Message):
     ACTIVE_UPLOAD_BYTES_FIELD_NUMBER: _ClassVar[int]
     ACTIVE_UPLOAD_TRANSFERRED_BYTES_FIELD_NUMBER: _ClassVar[int]
     IN_FLIGHT_UPLOAD_COUNT_FIELD_NUMBER: _ClassVar[int]
-    ACTIVE_STORE_COUNT_FIELD_NUMBER: _ClassVar[int]
-    ACTIVE_PEER_COUNT_FIELD_NUMBER: _ClassVar[int]
     LAST_ERROR_FIELD_NUMBER: _ClassVar[int]
     LAST_ACTIVITY_AT_FIELD_NUMBER: _ClassVar[int]
+    state: SyncStatusState
+    direction: SyncActivityDirection
+    pending_upload_bytes: int
+    pending_download_bytes: int
+    pending_upload_count: int
+    pending_download_count: int
+    upload_bytes_per_second: int
+    download_bytes_per_second: int
+    active_upload_bytes: int
+    active_upload_transferred_bytes: int
+    in_flight_upload_count: int
+    last_error: str
+    last_activity_at: _timestamp_pb2.Timestamp
+    def __init__(self, state: _Optional[_Union[SyncStatusState, str]] = ..., direction: _Optional[_Union[SyncActivityDirection, str]] = ..., pending_upload_bytes: _Optional[int] = ..., pending_download_bytes: _Optional[int] = ..., pending_upload_count: _Optional[int] = ..., pending_download_count: _Optional[int] = ..., upload_bytes_per_second: _Optional[int] = ..., download_bytes_per_second: _Optional[int] = ..., active_upload_bytes: _Optional[int] = ..., active_upload_transferred_bytes: _Optional[int] = ..., in_flight_upload_count: _Optional[int] = ..., last_error: _Optional[str] = ..., last_activity_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+
+class SyncCloudProgress(_message.Message):
+    __slots__ = ("transfer", "active_store_count", "pack_range_request_count", "pack_range_response_bytes", "pack_full_response_fallback_count", "pack_full_response_fallback_bytes", "pack_last_full_response_fallback_bytes", "pack_manifest_entries", "pack_block_count_total", "pack_block_count_min", "pack_block_count_max", "pack_size_bytes_total", "pack_size_bytes_min", "pack_size_bytes_max", "pack_bloom_filter_count", "pack_bloom_missing_count", "pack_bloom_invalid_count", "pack_bloom_max_false_positive_rate", "pack_bloom_risk_pack_count", "pack_lookup_count", "pack_candidate_packs", "pack_opened_packs", "pack_negative_packs", "pack_target_hits", "pack_last_candidate_packs", "pack_last_opened_packs", "pack_last_negative_packs", "pack_last_target_hit", "pack_index_cache_hits", "pack_index_cache_misses", "pack_index_cache_read_errors", "pack_index_cache_write_errors", "pack_remote_index_loads", "pack_remote_index_bytes", "pack_last_remote_index_bytes", "pack_index_tail_fetch_count", "pack_index_tail_fetch_bytes", "pack_index_tail_response_bytes", "block_stores", "upload_error", "upload_hold")
+    TRANSFER_FIELD_NUMBER: _ClassVar[int]
+    ACTIVE_STORE_COUNT_FIELD_NUMBER: _ClassVar[int]
     PACK_RANGE_REQUEST_COUNT_FIELD_NUMBER: _ClassVar[int]
     PACK_RANGE_RESPONSE_BYTES_FIELD_NUMBER: _ClassVar[int]
     PACK_FULL_RESPONSE_FALLBACK_COUNT_FIELD_NUMBER: _ClassVar[int]
@@ -385,32 +431,11 @@ class WatchSyncStatusResponse(_message.Message):
     PACK_INDEX_TAIL_FETCH_COUNT_FIELD_NUMBER: _ClassVar[int]
     PACK_INDEX_TAIL_FETCH_BYTES_FIELD_NUMBER: _ClassVar[int]
     PACK_INDEX_TAIL_RESPONSE_BYTES_FIELD_NUMBER: _ClassVar[int]
-    DIRECT_P2P_DISABLED_FIELD_NUMBER: _ClassVar[int]
     BLOCK_STORES_FIELD_NUMBER: _ClassVar[int]
-    LOCAL_ACCOUNT_FIELD_NUMBER: _ClassVar[int]
-    LOCAL_COPIES_FIELD_NUMBER: _ClassVar[int]
-    PEER_UPLOAD_BYTES_FIELD_NUMBER: _ClassVar[int]
-    PEER_DOWNLOAD_BYTES_FIELD_NUMBER: _ClassVar[int]
-    PEERS_FIELD_NUMBER: _ClassVar[int]
     UPLOAD_ERROR_FIELD_NUMBER: _ClassVar[int]
     UPLOAD_HOLD_FIELD_NUMBER: _ClassVar[int]
-    state: SyncStatusState
-    direction: SyncActivityDirection
-    transport_state: SyncTransportState
-    p2p_state: SyncP2PState
-    pending_upload_bytes: int
-    pending_download_bytes: int
-    pending_upload_count: int
-    pending_download_count: int
-    upload_bytes_per_second: int
-    download_bytes_per_second: int
-    active_upload_bytes: int
-    active_upload_transferred_bytes: int
-    in_flight_upload_count: int
+    transfer: SyncTransferProgress
     active_store_count: int
-    active_peer_count: int
-    last_error: str
-    last_activity_at: _timestamp_pb2.Timestamp
     pack_range_request_count: int
     pack_range_response_bytes: int
     pack_full_response_fallback_count: int
@@ -447,16 +472,32 @@ class WatchSyncStatusResponse(_message.Message):
     pack_index_tail_fetch_count: int
     pack_index_tail_fetch_bytes: int
     pack_index_tail_response_bytes: int
-    direct_p2p_disabled: bool
     block_stores: _containers.RepeatedCompositeFieldContainer[SyncBlockStoreStatus]
-    local_account: bool
+    upload_error: str
+    upload_hold: SyncUploadHold
+    def __init__(self, transfer: _Optional[_Union[SyncTransferProgress, _Mapping]] = ..., active_store_count: _Optional[int] = ..., pack_range_request_count: _Optional[int] = ..., pack_range_response_bytes: _Optional[int] = ..., pack_full_response_fallback_count: _Optional[int] = ..., pack_full_response_fallback_bytes: _Optional[int] = ..., pack_last_full_response_fallback_bytes: _Optional[int] = ..., pack_manifest_entries: _Optional[int] = ..., pack_block_count_total: _Optional[int] = ..., pack_block_count_min: _Optional[int] = ..., pack_block_count_max: _Optional[int] = ..., pack_size_bytes_total: _Optional[int] = ..., pack_size_bytes_min: _Optional[int] = ..., pack_size_bytes_max: _Optional[int] = ..., pack_bloom_filter_count: _Optional[int] = ..., pack_bloom_missing_count: _Optional[int] = ..., pack_bloom_invalid_count: _Optional[int] = ..., pack_bloom_max_false_positive_rate: _Optional[float] = ..., pack_bloom_risk_pack_count: _Optional[int] = ..., pack_lookup_count: _Optional[int] = ..., pack_candidate_packs: _Optional[int] = ..., pack_opened_packs: _Optional[int] = ..., pack_negative_packs: _Optional[int] = ..., pack_target_hits: _Optional[int] = ..., pack_last_candidate_packs: _Optional[int] = ..., pack_last_opened_packs: _Optional[int] = ..., pack_last_negative_packs: _Optional[int] = ..., pack_last_target_hit: _Optional[bool] = ..., pack_index_cache_hits: _Optional[int] = ..., pack_index_cache_misses: _Optional[int] = ..., pack_index_cache_read_errors: _Optional[int] = ..., pack_index_cache_write_errors: _Optional[int] = ..., pack_remote_index_loads: _Optional[int] = ..., pack_remote_index_bytes: _Optional[int] = ..., pack_last_remote_index_bytes: _Optional[int] = ..., pack_index_tail_fetch_count: _Optional[int] = ..., pack_index_tail_fetch_bytes: _Optional[int] = ..., pack_index_tail_response_bytes: _Optional[int] = ..., block_stores: _Optional[_Iterable[_Union[SyncBlockStoreStatus, _Mapping]]] = ..., upload_error: _Optional[str] = ..., upload_hold: _Optional[_Union[SyncUploadHold, str]] = ...) -> None: ...
+
+class SyncPeerProgress(_message.Message):
+    __slots__ = ("state", "last_error", "transfer", "network_state", "active_peer_count", "local_copies", "peer_upload_bytes", "peer_download_bytes", "peers")
+    STATE_FIELD_NUMBER: _ClassVar[int]
+    LAST_ERROR_FIELD_NUMBER: _ClassVar[int]
+    TRANSFER_FIELD_NUMBER: _ClassVar[int]
+    NETWORK_STATE_FIELD_NUMBER: _ClassVar[int]
+    ACTIVE_PEER_COUNT_FIELD_NUMBER: _ClassVar[int]
+    LOCAL_COPIES_FIELD_NUMBER: _ClassVar[int]
+    PEER_UPLOAD_BYTES_FIELD_NUMBER: _ClassVar[int]
+    PEER_DOWNLOAD_BYTES_FIELD_NUMBER: _ClassVar[int]
+    PEERS_FIELD_NUMBER: _ClassVar[int]
+    state: SyncP2PState
+    last_error: str
+    transfer: SyncTransferProgress
+    network_state: SyncTransportState
+    active_peer_count: int
     local_copies: _containers.RepeatedCompositeFieldContainer[SyncLocalCopyStatus]
     peer_upload_bytes: int
     peer_download_bytes: int
     peers: _containers.RepeatedCompositeFieldContainer[SyncPeerTransferStatus]
-    upload_error: str
-    upload_hold: SyncUploadHold
-    def __init__(self, state: _Optional[_Union[SyncStatusState, str]] = ..., direction: _Optional[_Union[SyncActivityDirection, str]] = ..., transport_state: _Optional[_Union[SyncTransportState, str]] = ..., p2p_state: _Optional[_Union[SyncP2PState, str]] = ..., pending_upload_bytes: _Optional[int] = ..., pending_download_bytes: _Optional[int] = ..., pending_upload_count: _Optional[int] = ..., pending_download_count: _Optional[int] = ..., upload_bytes_per_second: _Optional[int] = ..., download_bytes_per_second: _Optional[int] = ..., active_upload_bytes: _Optional[int] = ..., active_upload_transferred_bytes: _Optional[int] = ..., in_flight_upload_count: _Optional[int] = ..., active_store_count: _Optional[int] = ..., active_peer_count: _Optional[int] = ..., last_error: _Optional[str] = ..., last_activity_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., pack_range_request_count: _Optional[int] = ..., pack_range_response_bytes: _Optional[int] = ..., pack_full_response_fallback_count: _Optional[int] = ..., pack_full_response_fallback_bytes: _Optional[int] = ..., pack_last_full_response_fallback_bytes: _Optional[int] = ..., pack_manifest_entries: _Optional[int] = ..., pack_block_count_total: _Optional[int] = ..., pack_block_count_min: _Optional[int] = ..., pack_block_count_max: _Optional[int] = ..., pack_size_bytes_total: _Optional[int] = ..., pack_size_bytes_min: _Optional[int] = ..., pack_size_bytes_max: _Optional[int] = ..., pack_bloom_filter_count: _Optional[int] = ..., pack_bloom_missing_count: _Optional[int] = ..., pack_bloom_invalid_count: _Optional[int] = ..., pack_bloom_max_false_positive_rate: _Optional[float] = ..., pack_bloom_risk_pack_count: _Optional[int] = ..., pack_lookup_count: _Optional[int] = ..., pack_candidate_packs: _Optional[int] = ..., pack_opened_packs: _Optional[int] = ..., pack_negative_packs: _Optional[int] = ..., pack_target_hits: _Optional[int] = ..., pack_last_candidate_packs: _Optional[int] = ..., pack_last_opened_packs: _Optional[int] = ..., pack_last_negative_packs: _Optional[int] = ..., pack_last_target_hit: _Optional[bool] = ..., pack_index_cache_hits: _Optional[int] = ..., pack_index_cache_misses: _Optional[int] = ..., pack_index_cache_read_errors: _Optional[int] = ..., pack_index_cache_write_errors: _Optional[int] = ..., pack_remote_index_loads: _Optional[int] = ..., pack_remote_index_bytes: _Optional[int] = ..., pack_last_remote_index_bytes: _Optional[int] = ..., pack_index_tail_fetch_count: _Optional[int] = ..., pack_index_tail_fetch_bytes: _Optional[int] = ..., pack_index_tail_response_bytes: _Optional[int] = ..., direct_p2p_disabled: _Optional[bool] = ..., block_stores: _Optional[_Iterable[_Union[SyncBlockStoreStatus, _Mapping]]] = ..., local_account: _Optional[bool] = ..., local_copies: _Optional[_Iterable[_Union[SyncLocalCopyStatus, _Mapping]]] = ..., peer_upload_bytes: _Optional[int] = ..., peer_download_bytes: _Optional[int] = ..., peers: _Optional[_Iterable[_Union[SyncPeerTransferStatus, _Mapping]]] = ..., upload_error: _Optional[str] = ..., upload_hold: _Optional[_Union[SyncUploadHold, str]] = ...) -> None: ...
+    def __init__(self, state: _Optional[_Union[SyncP2PState, str]] = ..., last_error: _Optional[str] = ..., transfer: _Optional[_Union[SyncTransferProgress, _Mapping]] = ..., network_state: _Optional[_Union[SyncTransportState, str]] = ..., active_peer_count: _Optional[int] = ..., local_copies: _Optional[_Iterable[_Union[SyncLocalCopyStatus, _Mapping]]] = ..., peer_upload_bytes: _Optional[int] = ..., peer_download_bytes: _Optional[int] = ..., peers: _Optional[_Iterable[_Union[SyncPeerTransferStatus, _Mapping]]] = ...) -> None: ...
 
 class SyncPeerTransferStatus(_message.Message):
     __slots__ = ("peer_id", "uploaded_bytes", "downloaded_bytes", "connected")

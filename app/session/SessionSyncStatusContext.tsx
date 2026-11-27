@@ -6,6 +6,9 @@ import {
   SyncP2PState,
   SyncStatusState,
   SyncTransportState,
+  SyncAccountAccessState,
+  type SyncTransferProgress,
+  type SyncCloudProgress,
   type WatchSyncStatusResponse,
 } from '@s4wave/sdk/session/session.pb.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
@@ -33,6 +36,7 @@ export interface SessionSyncStatusView extends SessionSyncSummary {
   snapshot: WatchSyncStatusResponse | null
   transportLabel: string
   p2pLabel: string
+  peerError: string
   uploadRateLabel: string
   downloadRateLabel: string
   pendingUploadLabel: string
@@ -67,6 +71,7 @@ const loadingView: SessionSyncStatusView = {
   ariaLabel: 'Session sync status: checking',
   transportLabel: 'Transport unknown',
   p2pLabel: 'P2P unknown',
+  peerError: '',
   uploadRateLabel: '0 B/s',
   downloadRateLabel: '0 B/s',
   pendingUploadLabel: '0 B',
@@ -192,26 +197,27 @@ export function buildSessionSyncStatusView(
     return loadingView
   }
 
-  const state = snapshot?.state ?? SyncStatusState.SyncStatusState_SYNCED
-  const direction =
-    snapshot?.direction ?? SyncActivityDirection.SyncActivityDirection_NONE
-  const transport =
-    snapshot?.transportState ?? SyncTransportState.SyncTransportState_UNKNOWN
-  const p2p = snapshot?.p2pState ?? SyncP2PState.SyncP2PState_UNKNOWN
-  const lastError = snapshot?.lastError ?? ''
+  const cloud = snapshot?.cloud
+  const peer = snapshot?.peer
   const local =
-    !!snapshot?.localAccount ||
-    transport === SyncTransportState.SyncTransportState_UNAVAILABLE
-  const copies = snapshot?.localCopies ?? []
+    snapshot?.access === SyncAccountAccessState.SyncAccountAccessState_LOCAL
+  const transfer = local ? peer?.transfer : cloud?.transfer
+  const state = transfer?.state ?? SyncStatusState.SyncStatusState_UNKNOWN
+  const direction =
+    transfer?.direction ?? SyncActivityDirection.SyncActivityDirection_NONE
+  const p2p = peer?.state ?? SyncP2PState.SyncP2PState_UNKNOWN
+  const peerError = peer?.lastError ?? ''
+  const lastError = local ? peerError : (transfer?.lastError ?? '')
+  const copies = peer?.localCopies ?? []
   const incomplete = copies.filter((copy) => !copy.complete).length
   const storageFull = copies.filter(
     (copy) => !copy.complete && isStorageQuotaError(copy.error ?? ''),
   ).length
-  const paused = incomplete > 0 && !snapshot?.activePeerCount
+  const paused = incomplete > 0 && !peer?.activePeerCount
   const visualState =
     storageFull > 0
       ? 'error'
-      : syncVisualState(snapshot, state, direction, lastError)
+      : syncVisualState(transfer, state, direction, lastError)
   let summaryLabel = syncSummaryLabel(visualState, direction, local)
   let detailLabel = syncDetailLabel(visualState, direction, local, lastError)
   if (storageFull > 0) {
@@ -227,8 +233,8 @@ export function buildSessionSyncStatusView(
       ? `${copies.length - incomplete} of ${copies.length} Spaces available offline. ${paused ? 'Waiting for a linked Session.' : 'You can use your account while copying continues.'}`
       : 'The latest received Spaces and their contents are stored on this device.'
   }
-  const uploadRateLabel = formatRate(snapshot?.uploadBytesPerSecond)
-  const downloadRateLabel = formatRate(snapshot?.downloadBytesPerSecond)
+  const uploadRateLabel = formatRate(transfer?.uploadBytesPerSecond)
+  const downloadRateLabel = formatRate(transfer?.downloadBytesPerSecond)
 
   return {
     snapshot,
@@ -241,31 +247,33 @@ export function buildSessionSyncStatusView(
     detailLabel,
     ariaLabel: `Session sync status: ${summaryLabel}`,
     transportLabel: local
-      ? transport === SyncTransportState.SyncTransportState_ONLINE
+      ? peer?.networkState === SyncTransportState.SyncTransportState_ONLINE
         ? 'Peer network ready'
         : 'Peer network offline'
-      : syncTransportLabel(transport),
-    p2pLabel: local
-      ? snapshot?.activePeerCount
-        ? `${snapshot.activePeerCount} linked Session${snapshot.activePeerCount === 1 ? '' : 's'} online`
-        : 'No linked Sessions online'
-      : syncP2PLabel(p2p),
+      : syncAccessLabel(snapshot?.access),
+    p2pLabel:
+      local && !peerError
+        ? peer?.activePeerCount
+          ? `${peer.activePeerCount} linked Session${peer.activePeerCount === 1 ? '' : 's'} online`
+          : 'No linked Sessions online'
+        : syncP2PLabel(p2p),
+    peerError,
     uploadRateLabel,
     downloadRateLabel,
-    pendingUploadLabel: formatBytes(snapshot?.pendingUploadBytes),
-    activeUploadLabel: formatActiveUpload(snapshot),
-    pendingDownloadLabel: formatBytes(snapshot?.pendingDownloadBytes),
+    pendingUploadLabel: formatBytes(transfer?.pendingUploadBytes),
+    activeUploadLabel: formatActiveUpload(transfer),
+    pendingDownloadLabel: formatBytes(transfer?.pendingDownloadBytes),
     packRangeLabel: formatCountBytes(
-      snapshot?.packRangeRequestCount,
-      snapshot?.packRangeResponseBytes,
+      cloud?.packRangeRequestCount,
+      cloud?.packRangeResponseBytes,
     ),
     packIndexTailLabel: formatCountBytes(
-      snapshot?.packIndexTailFetchCount,
-      snapshot?.packIndexTailResponseBytes,
+      cloud?.packIndexTailFetchCount,
+      cloud?.packIndexTailResponseBytes,
     ),
-    packLookupLabel: formatPackLookup(snapshot),
-    packIndexCacheLabel: formatPackIndexCache(snapshot),
-    lastActivityLabel: formatLastActivity(snapshot?.lastActivityAt),
+    packLookupLabel: formatPackLookup(cloud),
+    packIndexCacheLabel: formatPackIndexCache(cloud),
+    lastActivityLabel: formatLastActivity(transfer?.lastActivityAt),
     lastError,
     localCopies: copies.map((copy) => ({
       id: copy.sharedObjectId ?? '',
@@ -280,9 +288,9 @@ export function buildSessionSyncStatusView(
       detail: `${formatBytes(copy.bytes)} stored · ${formatCount(copy.blocks)} blocks`,
       error: copy.error ?? '',
     })),
-    peerUploadLabel: formatBytes(snapshot?.peerUploadBytes),
-    peerDownloadLabel: formatBytes(snapshot?.peerDownloadBytes),
-    peers: (snapshot?.peers ?? []).map((peer) => ({
+    peerUploadLabel: formatBytes(peer?.peerUploadBytes),
+    peerDownloadLabel: formatBytes(peer?.peerDownloadBytes),
+    peers: (peer?.peers ?? []).map((peer) => ({
       id: peer.peerId ?? '',
       name: `Session …${(peer.peerId ?? '').slice(-8)}`,
       state: peer.connected ? 'Connected' : 'Offline',
@@ -292,7 +300,7 @@ export function buildSessionSyncStatusView(
 }
 
 function syncVisualState(
-  snapshot: WatchSyncStatusResponse | null,
+  transfer: SyncTransferProgress | null | undefined,
   state: SyncStatusState,
   direction: SyncActivityDirection,
   lastError: string,
@@ -302,7 +310,7 @@ function syncVisualState(
   }
   if (
     state === SyncStatusState.SyncStatusState_ACTIVE &&
-    hasVisibleSyncWork(snapshot, direction)
+    hasVisibleSyncWork(transfer, direction)
   ) {
     return 'active'
   }
@@ -310,15 +318,15 @@ function syncVisualState(
 }
 
 function hasVisibleSyncWork(
-  snapshot: WatchSyncStatusResponse | null,
+  transfer: SyncTransferProgress | null | undefined,
   direction: SyncActivityDirection,
 ): boolean {
   return (
     direction !== SyncActivityDirection.SyncActivityDirection_NONE ||
-    hasBytes(snapshot?.pendingUploadBytes) ||
-    hasBytes(snapshot?.pendingDownloadBytes) ||
-    hasCount(snapshot?.pendingUploadCount) ||
-    hasCount(snapshot?.pendingDownloadCount)
+    hasBytes(transfer?.pendingUploadBytes) ||
+    hasBytes(transfer?.pendingDownloadBytes) ||
+    hasCount(transfer?.pendingUploadCount) ||
+    hasCount(transfer?.pendingDownloadCount)
   )
 }
 
@@ -404,39 +412,51 @@ function activeDirectionDetail(
   return 'Sync active.'
 }
 
-function syncTransportLabel(state: SyncTransportState): string {
-  if (state === SyncTransportState.SyncTransportState_ONLINE) {
-    return 'Cloud online'
+// syncAccessLabel describes account access without claiming the cloud socket is healthy.
+function syncAccessLabel(state?: SyncAccountAccessState): string {
+  switch (state) {
+    case SyncAccountAccessState.SyncAccountAccessState_READY:
+    case SyncAccountAccessState.SyncAccountAccessState_DORMANT:
+      return 'Account ready'
+    case SyncAccountAccessState.SyncAccountAccessState_PENDING:
+      return 'Account opening'
+    case SyncAccountAccessState.SyncAccountAccessState_FAILED:
+      return 'Account unavailable'
+    case SyncAccountAccessState.SyncAccountAccessState_DELETED:
+      return 'Account deleted'
+    case SyncAccountAccessState.SyncAccountAccessState_UNAUTHENTICATED:
+      return 'Sign in required'
+    case SyncAccountAccessState.SyncAccountAccessState_LOCAL:
+      return 'Local account'
+    default:
+      return 'Account access unknown'
   }
-  if (state === SyncTransportState.SyncTransportState_CONNECTING) {
-    return 'Cloud connecting'
-  }
-  if (state === SyncTransportState.SyncTransportState_UNAVAILABLE) {
-    return 'Cloud unavailable'
-  }
-  if (state === SyncTransportState.SyncTransportState_ERROR) {
-    return 'Cloud transport error'
-  }
-  return 'Cloud transport unknown'
 }
 
 function syncP2PLabel(state: SyncP2PState): string {
-  if (state === SyncP2PState.SyncP2PState_NO_PEERS) {
-    return 'No P2P peers'
+  switch (state) {
+    case SyncP2PState.SyncP2PState_NO_PEERS:
+      return 'No P2P peers'
+    case SyncP2PState.SyncP2PState_IDLE:
+      return 'P2P idle'
+    case SyncP2PState.SyncP2PState_ACTIVE:
+      return 'P2P active'
+    case SyncP2PState.SyncP2PState_ERROR:
+      return 'P2P error'
+    case SyncP2PState.SyncP2PState_DISABLED:
+      return 'P2P disabled'
+    case SyncP2PState.SyncP2PState_STARTING:
+      return 'P2P starting'
+    case SyncP2PState.SyncP2PState_FALLBACK_NO_PEER:
+      return 'P2P waiting for a peer'
+    default:
+      return 'P2P unknown'
   }
-  if (state === SyncP2PState.SyncP2PState_IDLE) {
-    return 'P2P idle'
-  }
-  if (state === SyncP2PState.SyncP2PState_ACTIVE) {
-    return 'P2P active'
-  }
-  if (state === SyncP2PState.SyncP2PState_ERROR) {
-    return 'P2P error'
-  }
-  return 'P2P unknown'
 }
 
-function formatActiveUpload(snapshot: WatchSyncStatusResponse | null): string {
+function formatActiveUpload(
+  snapshot: SyncTransferProgress | null | undefined,
+): string {
   const active = snapshot?.activeUploadBytes ?? 0n
   const sent = snapshot?.activeUploadTransferredBytes ?? 0n
   const count = snapshot?.inFlightUploadCount ?? 0
@@ -458,14 +478,16 @@ function formatCount(count?: bigint): string {
   return Number(count ?? 0n).toLocaleString()
 }
 
-function formatPackLookup(snapshot: WatchSyncStatusResponse | null): string {
+function formatPackLookup(
+  snapshot: SyncCloudProgress | null | undefined,
+): string {
   const opened = snapshot?.packLastOpenedPacks ?? 0
   const candidates = snapshot?.packLastCandidatePacks ?? 0
   return `${opened} opened / ${candidates} candidates`
 }
 
 function formatPackIndexCache(
-  snapshot: WatchSyncStatusResponse | null,
+  snapshot: SyncCloudProgress | null | undefined,
 ): string {
   const hits = formatCount(snapshot?.packIndexCacheHits)
   const misses = formatCount(snapshot?.packIndexCacheMisses)

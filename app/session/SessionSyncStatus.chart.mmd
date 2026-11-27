@@ -1,0 +1,21 @@
+---
+title: "Session sync: independent source observations"
+---
+stateDiagram-v2
+  s0: Synced
+  s1: Cloud sync active
+  s2: Cloud sync failed
+  s3: Synced#59; peer failed
+  [*] --> s0
+  s0 --> s1: cloud progress changes
+  s0 --> s2: cloud progress changes
+  s0 --> s3: peer status changes
+  s1 --> s0: cloud progress changes
+  s1 --> s2: cloud progress changes
+  s2 --> s0: cloud progress changes
+  s2 --> s1: cloud progress changes
+  s3 --> s0: peer status changes
+  s3 --> s1: cloud progress changes
+  s3 --> s2: cloud progress changes
+  s1 --> s3: cloud progress changes
+  s2 --> s3: cloud progress changes

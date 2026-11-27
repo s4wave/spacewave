@@ -6,7 +6,7 @@ import {
   SyncActivityDirection,
   SyncP2PState,
   SyncStatusState,
-  SyncTransportState,
+  SyncAccountAccessState,
 } from '@s4wave/sdk/session/session.pb.js'
 
 import { BottomBarRoot } from '@s4wave/web/frame/bottom-bar-root.js'
@@ -50,18 +50,22 @@ describe('SessionSyncStatusButton', () => {
     {
       name: 'connected account with an incomplete local copy',
       view: view({
-        state: SyncStatusState.SyncStatusState_ACTIVE,
-        localAccount: true,
-        activePeerCount: 1,
-        pendingDownloadCount: 1,
-        localCopies: [
-          {
-            sharedObjectId: 'drive',
-            displayName: 'My Drive',
-            complete: false,
-            bytes: 4096n,
+        access: SyncAccountAccessState.SyncAccountAccessState_LOCAL,
+        peer: {
+          activePeerCount: 1,
+          localCopies: [
+            {
+              sharedObjectId: 'drive',
+              displayName: 'My Drive',
+              complete: false,
+              bytes: 4096n,
+            },
+          ],
+          transfer: {
+            state: SyncStatusState.SyncStatusState_ACTIVE,
+            pendingDownloadCount: 1,
           },
-        ],
+        },
       }),
       label: 'Copying Spaces',
       detail:
@@ -70,16 +74,19 @@ describe('SessionSyncStatusButton', () => {
     {
       name: 'durable copy with no peer online',
       view: view({
-        localAccount: true,
-        activePeerCount: 0,
-        localCopies: [
-          {
-            sharedObjectId: 'drive',
-            displayName: 'My Drive',
-            complete: true,
-            bytes: 4096n,
-          },
-        ],
+        access: SyncAccountAccessState.SyncAccountAccessState_LOCAL,
+        peer: {
+          activePeerCount: 0,
+          localCopies: [
+            {
+              sharedObjectId: 'drive',
+              displayName: 'My Drive',
+              complete: true,
+              bytes: 4096n,
+            },
+          ],
+          transfer: {},
+        },
       }),
       label: 'Available offline',
       detail:
@@ -89,17 +96,20 @@ describe('SessionSyncStatusButton', () => {
     {
       name: 'local copy out of browser storage',
       view: view({
-        localAccount: true,
-        activePeerCount: 1,
-        localCopies: [
-          {
-            sharedObjectId: 'drive',
-            displayName: 'My Drive',
-            complete: false,
-            error:
-              'seg-1: getFileHandle: QuotaExceededError: The operation failed because it would cause the application to exceed its storage quota.',
-          },
-        ],
+        access: SyncAccountAccessState.SyncAccountAccessState_LOCAL,
+        peer: {
+          activePeerCount: 1,
+          localCopies: [
+            {
+              sharedObjectId: 'drive',
+              displayName: 'My Drive',
+              complete: false,
+              error:
+                'seg-1: getFileHandle: QuotaExceededError: The operation failed because it would cause the application to exceed its storage quota.',
+            },
+          ],
+          transfer: {},
+        },
       }),
       label: 'Storage full',
       detail:
@@ -108,8 +118,9 @@ describe('SessionSyncStatusButton', () => {
     {
       name: 'idle cloud',
       view: view({
-        state: SyncStatusState.SyncStatusState_SYNCED,
-        transportState: SyncTransportState.SyncTransportState_ONLINE,
+        access: SyncAccountAccessState.SyncAccountAccessState_READY,
+        cloud: { transfer: { state: SyncStatusState.SyncStatusState_SYNCED } },
+        peer: {},
       }),
       label: 'Synced',
       detail: 'All sync work complete.',
@@ -117,7 +128,9 @@ describe('SessionSyncStatusButton', () => {
     {
       name: 'active without visible work',
       view: view({
-        state: SyncStatusState.SyncStatusState_ACTIVE,
+        access: SyncAccountAccessState.SyncAccountAccessState_READY,
+        cloud: { transfer: { state: SyncStatusState.SyncStatusState_ACTIVE } },
+        peer: {},
       }),
       label: 'Synced',
       detail: 'All sync work complete.',
@@ -126,13 +139,19 @@ describe('SessionSyncStatusButton', () => {
     {
       name: 'active upload',
       view: view({
-        state: SyncStatusState.SyncStatusState_ACTIVE,
-        direction: SyncActivityDirection.SyncActivityDirection_UPLOAD,
-        uploadBytesPerSecond: 2048n,
-        pendingUploadBytes: 4096n,
-        activeUploadBytes: 8192n,
-        activeUploadTransferredBytes: 2048n,
-        inFlightUploadCount: 1,
+        access: SyncAccountAccessState.SyncAccountAccessState_READY,
+        cloud: {
+          transfer: {
+            state: SyncStatusState.SyncStatusState_ACTIVE,
+            direction: SyncActivityDirection.SyncActivityDirection_UPLOAD,
+            pendingUploadBytes: 4096n,
+            uploadBytesPerSecond: 2048n,
+            activeUploadBytes: 8192n,
+            activeUploadTransferredBytes: 2048n,
+            inFlightUploadCount: 1,
+          },
+        },
+        peer: {},
       }),
       label: 'Uploading changes',
       detail: 'Uploading to cloud.',
@@ -140,9 +159,15 @@ describe('SessionSyncStatusButton', () => {
     {
       name: 'active download',
       view: view({
-        state: SyncStatusState.SyncStatusState_ACTIVE,
-        direction: SyncActivityDirection.SyncActivityDirection_DOWNLOAD,
-        downloadBytesPerSecond: 4096n,
+        access: SyncAccountAccessState.SyncAccountAccessState_READY,
+        cloud: {
+          transfer: {
+            state: SyncStatusState.SyncStatusState_ACTIVE,
+            direction: SyncActivityDirection.SyncActivityDirection_DOWNLOAD,
+            downloadBytesPerSecond: 4096n,
+          },
+        },
+        peer: {},
       }),
       label: 'Downloading updates',
       detail: 'Downloading from cloud.',
@@ -150,10 +175,14 @@ describe('SessionSyncStatusButton', () => {
     {
       name: 'local download from peers',
       view: view({
-        state: SyncStatusState.SyncStatusState_ACTIVE,
-        direction: SyncActivityDirection.SyncActivityDirection_DOWNLOAD,
-        downloadBytesPerSecond: 4096n,
-        localAccount: true,
+        access: SyncAccountAccessState.SyncAccountAccessState_LOCAL,
+        peer: {
+          transfer: {
+            state: SyncStatusState.SyncStatusState_ACTIVE,
+            direction: SyncActivityDirection.SyncActivityDirection_DOWNLOAD,
+            downloadBytesPerSecond: 4096n,
+          },
+        },
       }),
       label: 'Downloading updates',
       detail: 'Downloading from peers.',
@@ -161,10 +190,17 @@ describe('SessionSyncStatusButton', () => {
     {
       name: 'mixed activity',
       view: view({
-        state: SyncStatusState.SyncStatusState_ACTIVE,
-        direction: SyncActivityDirection.SyncActivityDirection_UPLOAD_DOWNLOAD,
-        uploadBytesPerSecond: 1024n,
-        downloadBytesPerSecond: 2048n,
+        access: SyncAccountAccessState.SyncAccountAccessState_READY,
+        cloud: {
+          transfer: {
+            state: SyncStatusState.SyncStatusState_ACTIVE,
+            direction:
+              SyncActivityDirection.SyncActivityDirection_UPLOAD_DOWNLOAD,
+            uploadBytesPerSecond: 1024n,
+            downloadBytesPerSecond: 2048n,
+          },
+        },
+        peer: {},
       }),
       label: 'Syncing changes',
       detail: 'Uploading and downloading.',
@@ -172,8 +208,14 @@ describe('SessionSyncStatusButton', () => {
     {
       name: 'error',
       view: view({
-        state: SyncStatusState.SyncStatusState_ERROR,
-        lastError: 'upload failed',
+        access: SyncAccountAccessState.SyncAccountAccessState_READY,
+        cloud: {
+          transfer: {
+            state: SyncStatusState.SyncStatusState_ERROR,
+            lastError: 'upload failed',
+          },
+        },
+        peer: {},
       }),
       label: 'Sync needs attention',
       detail: 'upload failed',
@@ -181,8 +223,8 @@ describe('SessionSyncStatusButton', () => {
     {
       name: 'local ready',
       view: view({
-        state: SyncStatusState.SyncStatusState_SYNCED,
-        transportState: SyncTransportState.SyncTransportState_UNAVAILABLE,
+        access: SyncAccountAccessState.SyncAccountAccessState_LOCAL,
+        peer: { transfer: { state: SyncStatusState.SyncStatusState_SYNCED } },
       }),
       label: 'Local ready',
       detail: 'Local session ready.',
@@ -190,23 +232,27 @@ describe('SessionSyncStatusButton', () => {
     {
       name: 'p2p active',
       view: view({
-        state: SyncStatusState.SyncStatusState_SYNCED,
-        transportState: SyncTransportState.SyncTransportState_ONLINE,
-        p2pState: SyncP2PState.SyncP2PState_ACTIVE,
+        access: SyncAccountAccessState.SyncAccountAccessState_READY,
+        cloud: { transfer: { state: SyncStatusState.SyncStatusState_SYNCED } },
+        peer: { state: SyncP2PState.SyncP2PState_ACTIVE },
       }),
       label: 'Synced',
       detail: 'All sync work complete.',
       p2pLabel: 'P2P active',
     },
     {
-      name: 'p2p error',
+      name: 'cloud success with a p2p error',
       view: view({
-        state: SyncStatusState.SyncStatusState_ERROR,
-        p2pState: SyncP2PState.SyncP2PState_ERROR,
-        lastError: 'pairing failed',
+        access: SyncAccountAccessState.SyncAccountAccessState_READY,
+        cloud: { transfer: { state: SyncStatusState.SyncStatusState_SYNCED } },
+        peer: {
+          state: SyncP2PState.SyncP2PState_ERROR,
+          lastError: 'pairing failed',
+        },
       }),
-      label: 'Sync needs attention',
-      detail: 'pairing failed',
+      label: 'Synced',
+      detail: 'All sync work complete.',
+      peerError: 'pairing failed',
       p2pLabel: 'P2P error',
     },
   ])('renders $name status in the collapsed button and popover', (test) => {
@@ -222,6 +268,9 @@ describe('SessionSyncStatusButton', () => {
     ).toBe(`Session sync status: ${test.label}`)
     expect(screen.getAllByText(test.label).length).toBeGreaterThan(0)
     expect(screen.getAllByText(test.detail).length).toBeGreaterThan(0)
+    if (test.peerError) {
+      expect(screen.getByText(test.peerError)).toBeTruthy()
+    }
     if (test.p2pLabel) {
       expect(screen.getByText(test.p2pLabel)).toBeTruthy()
     }
@@ -237,7 +286,9 @@ describe('SessionSyncStatusButton', () => {
   it('closes the popover on Escape', () => {
     mockUseSessionSyncStatus.mockReturnValue(
       view({
-        state: SyncStatusState.SyncStatusState_SYNCED,
+        access: SyncAccountAccessState.SyncAccountAccessState_READY,
+        cloud: { transfer: { state: SyncStatusState.SyncStatusState_SYNCED } },
+        peer: {},
       }),
     )
 
@@ -253,15 +304,19 @@ describe('SessionSyncStatusButton', () => {
   it('renders compact pack-read diagnostics from the sync snapshot', () => {
     mockUseSessionSyncStatus.mockReturnValue(
       view({
-        state: SyncStatusState.SyncStatusState_SYNCED,
-        packRangeRequestCount: 3n,
-        packRangeResponseBytes: 4096n,
-        packIndexTailFetchCount: 1n,
-        packIndexTailResponseBytes: 2048n,
-        packLastOpenedPacks: 2,
-        packLastCandidatePacks: 5,
-        packIndexCacheHits: 7n,
-        packIndexCacheMisses: 1n,
+        access: SyncAccountAccessState.SyncAccountAccessState_READY,
+        cloud: {
+          transfer: { state: SyncStatusState.SyncStatusState_SYNCED },
+          packRangeRequestCount: 3n,
+          packRangeResponseBytes: 4096n,
+          packIndexTailFetchCount: 1n,
+          packIndexTailResponseBytes: 2048n,
+          packLastOpenedPacks: 2,
+          packLastCandidatePacks: 5,
+          packIndexCacheHits: 7n,
+          packIndexCacheMisses: 1n,
+        },
+        peer: {},
       }),
     )
 
@@ -277,12 +332,18 @@ describe('SessionSyncStatusButton', () => {
   it('renders in-flight upload progress separately from queued upload bytes', () => {
     mockUseSessionSyncStatus.mockReturnValue(
       view({
-        state: SyncStatusState.SyncStatusState_ACTIVE,
-        direction: SyncActivityDirection.SyncActivityDirection_UPLOAD,
-        pendingUploadBytes: 65536n,
-        activeUploadBytes: 32768n,
-        activeUploadTransferredBytes: 8192n,
-        inFlightUploadCount: 1,
+        access: SyncAccountAccessState.SyncAccountAccessState_READY,
+        cloud: {
+          transfer: {
+            state: SyncStatusState.SyncStatusState_ACTIVE,
+            direction: SyncActivityDirection.SyncActivityDirection_UPLOAD,
+            pendingUploadBytes: 65536n,
+            activeUploadBytes: 32768n,
+            activeUploadTransferredBytes: 8192n,
+            inFlightUploadCount: 1,
+          },
+        },
+        peer: {},
       }),
     )
 
