@@ -25,7 +25,7 @@ func TestFlowsCountNewBlocksByPath(t *testing.T) {
 	// existing.
 	v, _ := newTestVolume(t)
 	logger, hook := logrus_test.NewNullLogger()
-	v.SetLogger(logrus.NewEntry(logger))
+	v.le = logrus.NewEntry(logger)
 	ctx := t.Context()
 	known := &block.PutOpts{RefsKnown: true}
 	direct := []byte("direct block")

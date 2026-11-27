@@ -1,4 +1,4 @@
-package volume_redis
+package store_kvtx_redis
 
 import (
 	"context"

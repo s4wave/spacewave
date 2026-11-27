@@ -1,4 +1,4 @@
-package volume_redis
+package store_kvtx_redis
 
 import (
 	"context"
@@ -79,7 +79,7 @@ func (l *lease) Publish(ctx context.Context, event coord.Event) (*coord.Snapshot
 
 func (l *lease) keepalive(ctx context.Context) {
 	//gostyle:timer deadline
-	ticker := time.NewTicker(redisLeaseRenew)
+	ticker := time.NewTicker(LeaseRenewInterval)
 	defer ticker.Stop()
 	l.keepaliveWith(ctx, ticker.C, l.renew)
 }
@@ -155,7 +155,7 @@ func redisLeaseDoScript(
 // renew extends the lease's TTL with the compare-and-set script.
 func (l *lease) renew() error {
 	// Borrow a connection bounded by the renewal window.
-	deadline := time.Now().Add(redisLeaseRenew)
+	deadline := time.Now().Add(LeaseRenewInterval)
 	ctx, cancel := context.WithDeadline(context.Background(), deadline)
 	defer cancel()
 
@@ -219,7 +219,7 @@ func (l *lease) Release(context.Context) error {
 	// Delete the redis key when the lease was still held.
 	var releaseErr error
 	if !lost {
-		deadline := time.Now().Add(redisLeaseRenew)
+		deadline := time.Now().Add(LeaseRenewInterval)
 		ctx, cancel := context.WithDeadline(context.Background(), deadline)
 		defer cancel()
 

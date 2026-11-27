@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/s4wave/spacewave/db/coord"
 	coord_inmem "github.com/s4wave/spacewave/db/coord/inmem"
 	coord_s4db "github.com/s4wave/spacewave/db/coord/s4db"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -119,7 +120,21 @@ func NewVolume(ctx context.Context, le *logrus.Entry, conf *Config) (_ *Volume, 
 		return storageStats(ctx, db, path)
 	}
 	op.Handoff()
-	vol, err := volume_kvtx.NewVolume(
+	vol, err := volume_kvtx.NewVolumeWithBackend(
+		volume_kvtx.Backend{
+			Coordinate: func(id string, _ coord.Coordinator) coord.Coordinator {
+				return coord_s4db.NewCoordinator(db, coord_inmem.ForVolume(id))
+			},
+			Logger: le,
+			StorageFlows: func(f *volume.VolumeFlows) {
+				st, err := db.Stats(context.Background())
+				if err != nil {
+					return
+				}
+				f.Values = valueFlows(families, st.Families)
+				f.BackgroundWaitMax = st.BackgroundWaitMax
+			},
+		},
 		ctx, ControllerID, keys, store, conf.GetStoreConfig(),
 		conf.GetNoGenerateKey(), conf.GetNoWriteKey(), stats, db.Close,
 		func() error { return os.Remove(path) },
@@ -139,21 +154,7 @@ func NewVolume(ctx context.Context, le *logrus.Entry, conf *Config) (_ *Volume, 
 		le.WithField("path", path).Info("volume collector frees on")
 	}
 
-	// Coordinate writers across processes through the database file, log
-	// puts without references, measure the file and its disk for the volume's
-	// health, and report the values each key family wrote and freed and the
-	// longest a commit waited behind a background step. The database returns
-	// what collection frees on its own, so the reserve state needs no release.
-	vol.Coordinator = coord_s4db.NewCoordinator(db, coord_inmem.ForVolume(vol.GetID()))
-	vol.SetLogger(le)
-	vol.SetStorageFlows(func(f *volume.VolumeFlows) {
-		st, err := db.Stats(context.Background())
-		if err != nil {
-			return
-		}
-		f.Values = valueFlows(families, st.Families)
-		f.BackgroundWaitMax = st.BackgroundWaitMax
-	})
+	// Measure the backing file and disk for the volume health report.
 	vol.SetHealthSizes(func(ctx context.Context) (volume_kvtx.HealthSizes, error) {
 		return healthSizes(ctx, db, path, conf.GetReserveBytes())
 	})

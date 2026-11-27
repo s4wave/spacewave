@@ -3,6 +3,7 @@ package volume_redis
 import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/gomodule/redigo/redis"
+	store_kvtx_redis "github.com/s4wave/spacewave/db/store/kvtx/redis"
 )
 
 // ConfigID is the id attached to the config objects.
@@ -13,14 +14,13 @@ const redisClientName = "bifrost"
 // BuildRedisOptions builds redis options from the config.
 func (c *Config) BuildRedisOptions() ([]redis.DialOption, error) {
 	return []redis.DialOption{
-		redis.DialConnectTimeout(redisLeaseRenew),
-		redis.DialReadTimeout(redisLeaseRenew),
-		redis.DialWriteTimeout(redisLeaseRenew),
+		redis.DialConnectTimeout(store_kvtx_redis.LeaseRenewInterval),
+		redis.DialReadTimeout(store_kvtx_redis.LeaseRenewInterval),
+		redis.DialWriteTimeout(store_kvtx_redis.LeaseRenewInterval),
 	}, nil
 }
 
-// Validate validates the configuration.
-// This is a cursory validation to see if the values "look correct."
+// Validate checks the volume, store and Redis connection configuration.
 func (c *Config) Validate() error {
 	if _, err := c.BuildRedisOptions(); err != nil {
 		return err

@@ -11,7 +11,6 @@ import (
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	"github.com/s4wave/spacewave/db/volume"
-	"github.com/sirupsen/logrus"
 )
 
 // putPath identifies a path that writes blocks into the volume, for its flows.
@@ -73,20 +72,6 @@ func ValueFamilies(keys *store_kvkey.KVKey) []ValueFamily {
 		{Name: "object", Prefix: keys.GetObjectStoreFullPrefix()},
 		{Name: "liveness", Prefix: livenessPrefix},
 	}
-}
-
-// SetLogger sets the logger that reports the first caller of each write path
-// putting a block without its references. It is called once, before the volume
-// is used. Without the logger nothing is logged.
-func (v *Volume) SetLogger(le *logrus.Entry) {
-	v.le = le
-}
-
-// SetStorageFlows sets fn to fill in what the volume's storage counts itself,
-// such as the values it wrote and freed by key family. It is called once,
-// before the volume is used.
-func (v *Volume) SetStorageFlows(fn func(*volume.VolumeFlows)) {
-	v.storageFlows = fn
 }
 
 // GetFlows returns the blocks each write path stored that the volume did not

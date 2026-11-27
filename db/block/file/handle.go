@@ -10,6 +10,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
 	"github.com/s4wave/spacewave/db/block/sbset"
+	"github.com/s4wave/spacewave/db/tx"
 )
 
 // Handle is an open file handle using a block transaction.
@@ -505,6 +506,22 @@ func (r *Handle) followRootRangeBlobRef(
 		return nil, nil, nil
 	}
 	return blobi.(*blob.Blob), ncs, nil
+}
+
+// commit writes the file transaction and retains its committed cursor.
+func (r *Handle) commit(btx *block.Transaction) (*block.BlockRef, *block.Cursor, error) {
+	// Discard the file read state and require a writable block transaction.
+	r.clearReadState()
+	if btx == nil {
+		return nil, nil, tx.ErrNotWrite
+	}
+
+	// Commit the file blocks and retain the resulting cursor on success.
+	ref, ncs, err := btx.Write(r.ctx, true)
+	if err == nil {
+		r.bcs = ncs
+	}
+	return ref, ncs, err
 }
 
 // _ is a type assertion

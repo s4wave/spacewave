@@ -35,6 +35,18 @@ type BatchLoad struct {
 
 // AddRead adds the block a read of T through r would fetch from the store.
 func AddRead[T any, PT Ptr[T]](ctx context.Context, b *BatchLoad, r ReadCursor) {
+	b.addRead(ctx, r, wouldHit[T, PT])
+}
+
+// AddCursorRead adds the block an Unmarshal of T at c would fetch from the
+// store. A position that holds its decoded block, a sub-block, or a change of
+// its own adds nothing.
+func AddCursorRead[T any, PT Ptr[T]](ctx context.Context, b *BatchLoad, c *Cursor) {
+	b.addCursorRead(ctx, c, wouldHit[T, PT])
+}
+
+// addRead admits a reader through its transaction's cache before queuing its block.
+func (b *BatchLoad) addRead(ctx context.Context, r ReadCursor, hit func(context.Context, ReadCursor) bool) {
 	// Look the reader up in the cache its read would use, as
 	// UnmarshalReadBlock does.
 	if r.ref.GetEmpty() || !b.admit(ctx, r.source) {
@@ -43,21 +55,19 @@ func AddRead[T any, PT Ptr[T]](ctx context.Context, b *BatchLoad, r ReadCursor) 
 	if !r.source.t.readOnly.Load() && decodedBlockCacheFromContext(ctx) == nil {
 		ctx = WithDecodedBlockCache(ctx, r.source.t.readerCache())
 	}
-	if !wouldHit[T, PT](ctx, r) {
+	if !hit(ctx, r) {
 		b.refs = append(b.refs, r.ref)
 	}
 }
 
-// AddCursorRead adds the block an Unmarshal of T at c would fetch from the
-// store. A position that holds its decoded block, a sub-block, or a change of
-// its own adds nothing.
-func AddCursorRead[T any, PT Ptr[T]](ctx context.Context, b *BatchLoad, c *Cursor) {
+// addCursorRead queues an unloaded cursor block when its read would miss the cache.
+func (b *BatchLoad) addCursorRead(ctx context.Context, c *Cursor, hit func(context.Context, ReadCursor) bool) {
 	// A position reads through its transaction's read cache, as Unmarshal does.
 	ref := c.unloadedRef()
 	if ref == nil || !b.admit(ctx, c) {
 		return
 	}
-	if !wouldHit[T, PT](ctx, ReadCursor{source: c, ref: ref}) {
+	if !hit(ctx, ReadCursor{source: c, ref: ref}) {
 		b.refs = append(b.refs, ref)
 	}
 }

@@ -12,10 +12,10 @@ type HandleRangeSlice struct {
 	ranges   *[]*Range
 }
 
-// NewHandleRangeSlice builds a slice with a handle for sorting the block graph.
-func NewHandleRangeSlice(h *Handle) *HandleRangeSlice {
-	ranges := &h.root.Ranges
-	rangeSet := h.rangeSet
+// rangeSlice binds sorting to the handle's ranges and block graph.
+func (r *Handle) rangeSlice() *HandleRangeSlice {
+	ranges := &r.root.Ranges
+	rangeSet := r.rangeSet
 	return &HandleRangeSlice{rangeSet: rangeSet, ranges: ranges}
 }
 

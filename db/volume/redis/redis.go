@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/s4wave/spacewave/db/coord"
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	skvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	kvtx_vlogger "github.com/s4wave/spacewave/db/store/kvtx/vlogger"
@@ -47,7 +48,6 @@ func NewRedis(
 	if err != nil {
 		return nil, err
 	}
-	store.SetContext(ctx)
 
 	// Wrap the store in a logger when verbose logging is enabled.
 	var vstore skvtx.Store = store
@@ -56,7 +56,10 @@ func NewRedis(
 	}
 
 	// Construct the volume over the store.
-	vol, err := kvtx.NewVolume(
+	vol, err := kvtx.NewVolumeWithBackend(
+		kvtx.Backend{Coordinate: func(_ string, inner coord.Coordinator) coord.Coordinator {
+			return store.NewCoordinator(string(kvkey.GetObjectStorePrefixByID(ControllerID)), inner)
+		}},
 		ctx,
 		ControllerID,
 		kvkey,
@@ -65,15 +68,10 @@ func NewRedis(
 		conf.GetNoGenerateKey(),
 		conf.GetNoWriteKey(),
 		nil,
-		store.GetPool().Close,
+		store.Close,
 	)
 	if err != nil {
 		return nil, err
 	}
-	vol.Coordinator = NewCoordinator(
-		store.GetPool(),
-		string(kvkey.GetObjectStorePrefixByID(ControllerID)),
-		vol.Coordinator,
-	)
 	return vol, nil
 }

@@ -10,6 +10,7 @@ import (
 	bdb "github.com/aperturerobotics/bbolt"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/coord"
 	coord_bolt "github.com/s4wave/spacewave/db/coord/bolt"
 	coord_filelock "github.com/s4wave/spacewave/db/coord/filelock"
 	coord_inmem "github.com/s4wave/spacewave/db/coord/inmem"
@@ -81,7 +82,10 @@ func NewBolt(
 	// storage stats.
 	boltDB := store.GetDB()
 	path := conf.GetPath()
-	vol, err := kvtx.NewVolume(
+	vol, err := kvtx.NewVolumeWithBackend(
+		kvtx.Backend{Coordinate: func(id string, _ coord.Coordinator) coord.Coordinator {
+			return coord_filelock.NewCoordinator(filepath.Dir(path), path, coord_bolt.NewCoordinator(boltDB, coord_inmem.ForVolume(id)))
+		}},
 		ctx,
 		ControllerID,
 		kvkey,
@@ -121,22 +125,18 @@ func NewBolt(
 		return nil, err
 	}
 
-	// Coordinate writers across processes through the volume file lock.
-	vol.Coordinator = coord_filelock.NewCoordinator(
-		filepath.Dir(path),
-		path,
-		coord_bolt.NewCoordinator(boltDB, coord_inmem.ForVolume(vol.GetID())),
-	)
 	return vol, nil
 }
 
 // boltDBProvider is implemented by types that expose a *bdb.DB.
 type boltDBProvider interface {
+	// GetDB returns the backing Bolt database.
 	GetDB() *bdb.DB
 }
 
 // storeUnwrapper is implemented by store wrappers like VLoggerStore.
 type storeUnwrapper interface {
+	// Unwrap returns the wrapped transaction store.
 	Unwrap() skvtx.Store
 }
 

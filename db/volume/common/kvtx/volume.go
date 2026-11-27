@@ -17,7 +17,6 @@ import (
 	pkg_errors "github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
-	"github.com/s4wave/spacewave/db/coord"
 	coord_inmem "github.com/s4wave/spacewave/db/coord/inmem"
 	"github.com/s4wave/spacewave/db/kvtx"
 	hstore "github.com/s4wave/spacewave/db/store"
@@ -39,8 +38,8 @@ type Volume struct {
 	volumeID string
 	// Store is the hydra store.
 	hstore.Store
-	// Coordinator coordinates direct multi-writer ObjectStore access.
-	coord.Coordinator
+	// volumeCoordinator coordinates direct multi-writer ObjectStore access.
+	volumeCoordinator
 	// Peer indicates the volume has a peer identity.
 	peer.Peer
 	// kvtxStore is the underlying kvtx store.
@@ -262,7 +261,7 @@ func NewVolume(
 	}
 
 	// Coordinate direct writers using the initialized Volume identity.
-	v.Coordinator = coord_inmem.ForVolume(v.GetID())
+	v.volumeCoordinator = coord_inmem.ForVolume(v.GetID())
 
 	// Keep liveness, roots, pins and stages on a store that commits atomically.
 	if atomicStore, ok := store.(kvtx.AtomicCommitStore); ok && atomicStore.SupportsAtomicCommit() {

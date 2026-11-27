@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/s4wave/spacewave/db/coord"
 	coord_filelock "github.com/s4wave/spacewave/db/coord/filelock"
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	skvtx "github.com/s4wave/spacewave/db/store/kvtx"
@@ -60,17 +61,15 @@ func NewSqliteWithOptions(
 
 	// Wrap the opened store as a volume with database deletion support.
 	path := conf.GetPath()
-	vol, err := NewWithStore(ctx, le, conf, store, func() error { return os.Remove(path) })
+	vol, err := NewWithStore(ctx, le, conf, store, func() error { return os.Remove(path) }, kvtx.Backend{
+		Coordinate: func(_ string, inner coord.Coordinator) coord.Coordinator {
+			return coord_filelock.NewCoordinator(filepath.Dir(path), path+"\x00"+conf.GetTable(), inner)
+		},
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	// Coordinate volume writes by database path and table namespace.
-	vol.Coordinator = coord_filelock.NewCoordinator(
-		filepath.Dir(path),
-		path+"\x00"+conf.GetTable(),
-		vol.Coordinator,
-	)
 	return vol, nil
 }
 
@@ -86,7 +85,7 @@ type Store interface {
 
 // NewWithStore takes ownership of an opened SQLite store, including on failure.
 // The opener configures durability and coordinates access to the backing path.
-func NewWithStore(ctx context.Context, le *logrus.Entry, conf *Config, store Store, deleteFn func() error) (*Sqlite, error) {
+func NewWithStore(ctx context.Context, le *logrus.Entry, conf *Config, store Store, deleteFn func() error, backend ...kvtx.Backend) (*Sqlite, error) {
 	// Configure the volume key namespace while taking ownership of the store.
 	db := store.GetDB()
 	kvkey, err := kvkey.NewKVKey(conf.GetKvKeyOpts())
@@ -102,7 +101,12 @@ func NewWithStore(ctx context.Context, le *logrus.Entry, conf *Config, store Sto
 	}
 
 	// Build the volume with SQLite storage statistics and pool cleanup.
-	vol, err := kvtx.NewVolume(
+	var policy kvtx.Backend
+	if len(backend) != 0 {
+		policy = backend[0]
+	}
+	vol, err := kvtx.NewVolumeWithBackend(
+		policy,
 		ctx,
 		ControllerID,
 		kvkey,

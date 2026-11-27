@@ -8,6 +8,7 @@ import (
 
 	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/net/util/confparse"
 )
@@ -141,14 +142,14 @@ func (c *ClientConfig) ParseURL() (*url.URL, error) {
 	return confparse.ParseURL(c.GetUrl())
 }
 
-// SetContext sets the context used to get clients for the next transaction.
-func (s *Store) SetContext(ctx context.Context) {
-	s.ctx = ctx
+// Close closes the store's Redis connections.
+func (s *Store) Close() error {
+	return s.pool.Close()
 }
 
-// GetPool returns the redis pool.
-func (s *Store) GetPool() *redis.Pool {
-	return s.pool
+// NewCoordinator coordinates keyed writes through this store's Redis connections.
+func (s *Store) NewCoordinator(storeID string, inner coord.Coordinator) *Coordinator {
+	return NewCoordinator(s.pool, storeID, inner)
 }
 
 // NewTransaction returns a new transaction against the store.

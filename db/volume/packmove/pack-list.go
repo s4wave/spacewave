@@ -46,10 +46,7 @@ func PackList(ctx context.Context, cfg PackConfig) (PackProgress, error) {
 	defer func() { _ = run.log.close() }()
 
 	// Read the listed blocks after the log's last key.
-	reader := &listBatchReader{src: cfg.Source, prefix: cfg.Keys.GetBlockFullPrefix(), list: bufio.NewReader(f), resume: run.after(), packBytes: cfg.PackBytes}
-	if reader.packBytes <= 0 {
-		reader.packBytes = DefaultPackBytes
-	}
+	reader := newListBatchReader(cfg, f, run.after())
 	err = run.pipe(ctx, reader.next, nil)
 	return run.snapshot(), err
 }
@@ -72,6 +69,15 @@ type listBatchReader struct {
 	packBytes int
 	// queue holds the keys read from the list and not yet in a batch.
 	queue [][]byte
+}
+
+// newListBatchReader binds the input list and resume key to the pack size policy.
+func newListBatchReader(cfg PackConfig, list io.Reader, resume []byte) *listBatchReader {
+	packBytes := cfg.PackBytes
+	if packBytes <= 0 {
+		packBytes = DefaultPackBytes
+	}
+	return &listBatchReader{src: cfg.Source, prefix: cfg.Keys.GetBlockFullPrefix(), list: bufio.NewReader(list), resume: resume, packBytes: packBytes}
 }
 
 // next reads the batch after the last one, or returns nil at the end of the

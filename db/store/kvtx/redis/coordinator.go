@@ -1,4 +1,4 @@
-package volume_redis
+package store_kvtx_redis
 
 import (
 	"context"
@@ -15,7 +15,8 @@ import (
 const (
 	redisLeasePrefix = "spacewave/coord/lease/"
 	redisLeaseTTL    = 30 * time.Second
-	redisLeaseRenew  = redisLeaseTTL / 3
+	// LeaseRenewInterval bounds Redis lease renewal and connection operations.
+	LeaseRenewInterval = redisLeaseTTL / 3
 	// redisLeaseRetryDelay paces keyed acquisition retries: redis reports a
 	// held key only at probe time and cannot broadcast its release here.
 	redisLeaseRetryDelay = 250 * time.Millisecond

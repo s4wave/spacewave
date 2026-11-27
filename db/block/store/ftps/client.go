@@ -158,16 +158,10 @@ func (c *Client) Conns() int {
 // Close waits for running calls and logs out every session. A later call
 // dials again.
 func (c *Client) Close() {
-	held := make([]*slot, 0, c.pool.Len())
-	for range c.pool.Len() {
-		s, _ := c.takeSlot(context.Background())
-		c.drop(s)
-		held = append(held, s)
-	}
-	c.quits.Wait()
-	for _, s := range held {
-		c.pool.Put(s.lease)
-	}
+	c.pool.WithAll(func(l *lanes.Lease[*slot]) {
+		l.Lane.lease = l
+		c.drop(l.Lane)
+	}, c.quits.Wait)
 }
 
 // PutObject writes the object under a temporary name in its directory and

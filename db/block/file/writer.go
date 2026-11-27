@@ -10,7 +10,6 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
-	"github.com/s4wave/spacewave/db/tx"
 )
 
 // Writer is a handle that can write to a handle.
@@ -37,21 +36,10 @@ func NewWriter(
 	}
 }
 
-// CommitWriter commits any pending writes using a block transaction.
+// Commit commits any pending writes using a block transaction.
 // Note: the block transaction must match the handle's block cursor.
-func CommitWriter(w *Writer) (*block.BlockRef, *block.Cursor, error) {
-	// Discard the file read state and require a writable block transaction.
-	w.clearReadState()
-	if w.btx == nil {
-		return nil, nil, tx.ErrNotWrite
-	}
-
-	// Commit the file blocks and retain the resulting cursor on success.
-	ref, ncs, err := w.btx.Write(w.ctx, true)
-	if err == nil {
-		w.bcs = ncs
-	}
-	return ref, ncs, err
+func (w *Writer) Commit() (*block.BlockRef, *block.Cursor, error) {
+	return w.commit(w.btx)
 }
 
 // Write writes to the handle, immediately flushing if btx is set.
@@ -65,7 +53,7 @@ func (w *Writer) Write(p []byte) (n int, err error) {
 	// Advance the file position and flush an attached block transaction.
 	w.idx += uint64(len(p))
 	if w.btx != nil {
-		_, _, err = CommitWriter(w)
+		_, _, err = w.Commit()
 		if err != nil {
 			return 0, err
 		}
@@ -572,7 +560,7 @@ func (w *Writer) moveRangeToRootBlob() error {
 
 // sortRanges sorts the root ranges stitching the block graph.
 func (w *Writer) sortRanges() {
-	hrs := NewHandleRangeSlice(w.Handle)
+	hrs := w.rangeSlice()
 	sort.Sort(hrs)
 }
 
