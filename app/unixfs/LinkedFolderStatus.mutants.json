@@ -38,10 +38,8 @@
     "config": "LinkedFolderStatusRaces-cloud.cfg"
   },
   {
-    "name": "a row says unavailable while a holder serves the file",
-    "replace": [
-      ["    [] Serves(r, pub) -> \"Available from its holders\"\n", ""]
-    ],
+    "name": "a row says unavailable while a reached peer keeps a full copy",
+    "replace": [["  \\/ r = \"member\" /\\ lapOnline\n", ""]],
     "expect": "HintTruthful",
     "config": "LinkedFolderStatusRaces-local.cfg"
   }

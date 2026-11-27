@@ -19,6 +19,8 @@ export interface UnixFSAudioFileViewerProps {
   title: string
   // inlineFileURL is the projected raw file URL used for playback.
   inlineFileURL: string
+  // onOpened is called once the file's bytes have arrived.
+  onOpened?: () => void
 }
 
 const Player = createPlayer({
@@ -87,11 +89,14 @@ function buildAudioErrorState(error: MediaError | null): AudioPreviewState {
 function UnixFSAudioPlayerSurface({
   title,
   inlineFileURL,
+  onOpened,
 }: UnixFSAudioFileViewerProps) {
   const [state, setState] = useState<AudioPreviewState>(
     initialAudioPreviewState,
   )
 
+  // handleReady marks the audio ready, and opened, once its metadata or
+  // data arrives.
   const handleReady = useCallback(() => {
     setState((prev) => {
       if (prev.status === 'ready' && !prev.buffering) {
@@ -102,7 +107,8 @@ function UnixFSAudioPlayerSurface({
         buffering: false,
       }
     })
-  }, [])
+    onOpened?.()
+  }, [onOpened])
 
   const handleBuffering = useCallback(() => {
     setState((prev) => {

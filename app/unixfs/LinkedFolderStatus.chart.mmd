@@ -6,21 +6,22 @@ stateDiagram-v2
   s1: No row yet
   s2: Listed, Open shown
   s3: Opening
-  s4: Opened
-  s5: Unavailable, holders named
-  s6: Newer version on its way
+  s4: Unavailable, holders named
+  s5: Opened
+  s6: Could not read, Retry shown
   [*] --> s0
   s0 --> s1: the folder finishes indexing
   s0 --> s2: the row appears
   s1 --> s2: the row appears
   s2 --> s3: opens it
-  s3 --> s4: its chunks arrive
-  s3 --> s5: no holder answers
-  s5 --> s3: opens it
-  s5 --> s2: the owner's Device wakes
-  s2 --> s5: the owner's Device sleeps
-  s2 --> s6: the owner edits it
-  s5 --> s6: the owner's Device wakes
+  s3 --> s5: its chunks arrive
+  s0 --> s4: the row appears
+  s2 --> s4: the owner's Device sleeps or the owner's laptop sleeps
+  s3 --> s4: the owner's Device sleeps or the owner's laptop sleeps
+  s3 --> s6: no holder answers
+  s1 --> s4: the row appears
+  s4 --> s2: the owner's Device wakes or the owner's laptop wakes
+  s4 --> s3: the owner's Device wakes or the owner's laptop wakes
   s6 --> s3: opens it
-  s6 --> s5: the owner's Device sleeps
-  s6 --> s2: the edit is published
+  s6 --> s4: the owner's laptop sleeps or the owner's Device sleeps
+  s4 --> s6: the owner's laptop wakes or the owner's Device wakes

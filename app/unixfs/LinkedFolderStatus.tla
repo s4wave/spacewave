@@ -48,23 +48,32 @@ Allowed(p, b) ==
   \/ b = "resetRoot" /\ p = "linker" /\ online /\ linked = "rejected"
   \/ b = "manageBilling" /\ p = "linker" /\ hold # "none"
 
+\* What a reader observes of the holders, from the Drive's watched links: the
+\* linking Device awake with its folder not rejected, Spacewave Cloud in a
+\* cloud-backed Space, or for Bob any other peer he reaches, such as Alice's
+\* laptop while awake. The reader knows no holder's version, so a reachable
+\* holder may still answer with nothing; its fetch then fails and offers Retry.
+HolderReachable(r) ==
+  \/ online /\ linked # "rejected"
+  \/ CloudBacked
+  \/ r = "member" /\ lapOnline
+
 \* A row's words: where the file is, or why it cannot be read now, from what
-\* the reader observes. A reachable linking Device whose file moved on
-\* answers that its version is superseded; an edit not yet published is not
-\* visible to anyone else. The row names the Devices that hold an unavailable
-\* file.
+\* the reader observes. With no holder reachable the row says so and names
+\* the linking Devices, before and during a fetch, so a fetch that hangs
+\* still says why; an edit not yet published is not visible to anyone else.
 RowHint(r) ==
   CASE file[r] = "none" ->
          IF linked = "indexing" THEN "The owner's Device is indexing the folder"
          ELSE "Nothing published yet"
-    [] file[r] = "filling" -> "Opening"
     [] file[r] = "present" /\ RowPresence /\ have[r] < pub ->
          "On this device; newer version on its way"
     [] file[r] = "present" /\ RowPresence -> "On this device"
     [] file[r] = "present" -> "Opened"
-    [] Serves(r, pub) -> "Available from its holders"
-    [] online /\ linked # "rejected" -> "A newer version is on its way"
-    [] OTHER -> "Unavailable: no holder can serve it now"
+    [] ~HolderReachable(r) -> "Unavailable: no holder can serve it now"
+    [] file[r] = "filling" -> "Opening"
+    [] file[r] = "unavailable" -> "Could not read it; Retry"
+    [] OTHER -> "Available from its holders"
 
 \* The sync status button's words for a stopped cloud upload queue. The
 \* browser's own quota keeps its label, which names this browser instead.

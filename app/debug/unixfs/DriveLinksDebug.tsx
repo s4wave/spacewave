@@ -21,6 +21,7 @@ import {
   type DriveLinksView,
 } from '@s4wave/app/unixfs/drive-links.js'
 import { TextFileFrame } from '@s4wave/app/unixfs/UnixFSTextFileViewer.js'
+import { UnixFSFileViewer } from '@s4wave/app/unixfs/UnixFSFileViewer.js'
 import {
   deriveTextFileView,
   initialTextFileState,
@@ -30,6 +31,16 @@ import {
 
 // noop stands in for every press; a fixture holds one state.
 const noop = () => {}
+
+// imageStat, idleRoot and hangingURL open a photo whose bytes never arrive,
+// as a fetch from an offline holder does.
+const imageStat = {
+  info: { isDir: false, name: 'ferry.jpg' },
+  fileKind: 'file' as const,
+  mimeType: 'image/jpeg',
+}
+const idleRoot = { value: null, loading: false, error: null, retry: noop }
+const hangingURL = '/debug/unavailable/ferry.jpg'
 
 const { ONLINE, OFFLINE } = DeviceAvailabilityState
 
@@ -60,7 +71,14 @@ function view(
   return {
     rows: [driveLinkRow({ ...link, availability })],
     cloud: cloudRow(hold),
+    othersReached: 0,
   }
+}
+
+// local is a Space Spacewave Cloud does not hold, so the linking Device is
+// the only holder.
+function local(link: DriveLink, availability: DeviceAvailabilityState) {
+  return { ...view(link, availability), cloud: null }
 }
 
 const indexing = DriveLinkState.DriveLinkState_INDEXING
@@ -74,9 +92,9 @@ const content: TextContent = {
   text: 'Day 1: the ferry leaves at nine.\nDay 2: the lighthouse.',
 }
 
-// file is the open file in one state: opening, opened, or failed because
-// no store this device reached held its blocks.
-type FileState = 'opening' | 'opened' | 'unavailable'
+// file is the open file in one state: opening, opened, or failed while a
+// holder looked reachable.
+type FileState = 'opening' | 'opened' | 'failed'
 
 function fileView(state: FileState) {
   switch (state) {
@@ -92,7 +110,7 @@ function fileView(state: FileState) {
         reduceTextFile(initialTextFileState, { type: 'read', content }),
         true,
       )
-    case 'unavailable':
+    case 'failed':
       return deriveTextFileView(
         {
           value: null,
@@ -108,6 +126,8 @@ function fileView(state: FileState) {
 interface Fixture {
   links: DriveLinksView
   file?: FileState
+  // image opens a photo in the image viewer instead of the text file.
+  image?: boolean
   hold?: SyncUploadHold
 }
 
@@ -121,11 +141,9 @@ const fixtures: Record<string, Fixture> = {
   listed: { links: view(laptop(linked), ONLINE) },
   opening: { links: view(laptop(linked), ONLINE), file: 'opening' },
   opened: { links: view(laptop(linked), ONLINE), file: 'opened' },
-  unavailable: { links: view(laptop(linked), OFFLINE), file: 'unavailable' },
-  'newer-version': {
-    links: view(laptop(linked), ONLINE),
-    file: 'unavailable',
-  },
+  unavailable: { links: local(laptop(linked), OFFLINE), file: 'opening' },
+  'unavailable-image': { links: local(laptop(linked), OFFLINE), image: true },
+  'newer-version': { links: view(laptop(linked), ONLINE), file: 'failed' },
   // Alice on the linking laptop.
   'here-indexing': {
     links: view(here(indexing, 1284n, 3_520_000_000n), ONLINE),
@@ -153,7 +171,8 @@ const fixtures: Record<string, Fixture> = {
  * DriveLinksDebug renders a Drive's linked-folder strip in one state of
  * LinkedFolderStatus.tla, with the open file under it where the state has
  * one, and the sync status panel for a hold: folder-indexing, no-row,
- * listed, opening, opened, unavailable, newer-version, here-indexing,
+ * listed, opening, opened, unavailable, unavailable-image, newer-version,
+ * here-indexing,
  * here-rejected, here-held and here-spending. An unknown or missing state
  * shows listed.
  */
@@ -173,6 +192,16 @@ export function DriveLinksDebug() {
             onSave={noop}
             retryRead={noop}
             readBack={noop}
+          />
+        )}
+        {fixture.image && (
+          <UnixFSFileViewer
+            path="/trips/ferry.jpg"
+            stat={imageStat}
+            rootHandle={idleRoot}
+            objectKey="files"
+            hideToolbar
+            inlineFileURL={hangingURL}
           />
         )}
       </DriveLinksViewProvider>

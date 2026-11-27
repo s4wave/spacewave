@@ -21,6 +21,8 @@ export interface UnixFSPdfFileViewerProps {
   title: string
   // inlineFileURL is the projected raw file URL used for the PDF document.
   inlineFileURL: string
+  // onOpened is called once the document has loaded.
+  onOpened?: () => void
 }
 
 // PdfFailure is why the document did not load and whether reading it again
@@ -126,6 +128,7 @@ function fitPageWidth({
 function UnixFSPdfViewerSurface({
   title,
   inlineFileURL,
+  onOpened,
 }: UnixFSPdfFileViewerProps) {
   // The frame the page fits, and the preview's state.
   const frameRef = useRef<HTMLDivElement | null>(null)
@@ -176,7 +179,8 @@ function UnixFSPdfViewerSurface({
     }
   }, [])
 
-  // handleDocumentLoadSuccess shows the first page of the loaded document.
+  // handleDocumentLoadSuccess shows the first page of the loaded document,
+  // which has opened.
   const handleDocumentLoadSuccess = useCallback(
     ({ numPages }: { numPages: number }) => {
       setState((prev) => ({
@@ -185,8 +189,9 @@ function UnixFSPdfViewerSurface({
         numPages,
         pageNumber: clampPage(1, numPages),
       }))
+      onOpened?.()
     },
-    [],
+    [onOpened],
   )
 
   // handleDocumentLoadError shows what the load failure means.

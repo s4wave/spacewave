@@ -16,13 +16,11 @@ type Status = {
 
 export const title = 'Linked file row: what a member sees'
 
-// serves mirrors the spec's Serves for Bob: the linking Device, Spacewave
-// Cloud, or Alice's laptop holding the version and able to answer.
-const serves = (v: Status) =>
-  v.pub > 0 &&
-  ((v.online && v.linked !== 'rejected' && v.disk === v.pub) ||
-    v.cver === v.pub ||
-    (v.lapOnline && v.copy === v.pub))
+// reachable mirrors the spec's HolderReachable for Bob in the charted
+// config, which has no cloud: the linking Device awake with its folder not
+// rejected, or Alice's laptop awake.
+const reachable = (v: Status) =>
+  (v.online && v.linked !== 'rejected') || v.lapOnline
 
 export const state = (v: Status) => {
   const f = v.file.member
@@ -31,13 +29,10 @@ export const state = (v: Status) => {
       ? 'No row yet, folder indexing'
       : 'No row yet'
   }
-  if (f === 'filling') return 'Opening'
   if (f === 'present') return 'Opened'
-  if (f === 'unavailable' && !serves(v)) {
-    return v.online && v.linked !== 'rejected'
-      ? 'Newer version on its way'
-      : 'Unavailable, holders named'
-  }
+  if (!reachable(v)) return 'Unavailable, holders named'
+  if (f === 'filling') return 'Opening'
+  if (f === 'unavailable') return 'Could not read, Retry shown'
   return 'Listed, Open shown'
 }
 
@@ -49,6 +44,9 @@ const steps: Record<string, string> = {
   Sleep: "the owner's Device sleeps",
   Upload: 'Spacewave Cloud receives it',
   Backfill: "the owner's laptop copies it",
+  PressKeep: 'Alice switches a full copy on or off',
+  LaptopSleep: "the owner's laptop sleeps",
+  LaptopWake: "the owner's laptop wakes",
   Appear: 'the row appears',
   PressOpen: 'opens it',
   Filled: 'its chunks arrive',

@@ -91,16 +91,27 @@ func (a *FsLinkArgs) openLinkTarget(c *cli.Context) (string, fsURI, s4wave_space
 		return "", fsURI{}, nil, nil, errors.New("link source must be a directory")
 	}
 
-	// Mount the session.
-	ctx := c.Context
-	client, err := connectDaemonFromContext(ctx, c, a.statePath)
+	// Mount the destination's Space.
+	spaceSvc, release, err := mountURISpace(c, a.statePath, uri)
 	if err != nil {
 		return "", fsURI{}, nil, nil, err
+	}
+	return folder, uri, spaceSvc, release, nil
+}
+
+// mountURISpace mounts the session and the Space a spacewave: URI names and
+// returns the Space resource with the release of both mounts.
+func mountURISpace(c *cli.Context, statePath string, uri fsURI) (s4wave_space.SRPCSpaceResourceServiceClient, func(), error) {
+	// Mount the session.
+	ctx := c.Context
+	client, err := connectDaemonFromContext(ctx, c, statePath)
+	if err != nil {
+		return nil, nil, err
 	}
 	sess, err := client.mountSession(ctx, uri.sessionIdx)
 	if err != nil {
 		client.close()
-		return "", fsURI{}, nil, nil, err
+		return nil, nil, err
 	}
 	releaseSession := func() {
 		sess.Release()
@@ -111,14 +122,14 @@ func (a *FsLinkArgs) openLinkTarget(c *cli.Context) (string, fsURI, s4wave_space
 	spaceID, err := client.resolveSpaceID(ctx, sess, uri.spaceID)
 	if err != nil {
 		releaseSession()
-		return "", fsURI{}, nil, nil, err
+		return nil, nil, err
 	}
 	spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, spaceID)
 	if err != nil {
 		releaseSession()
-		return "", fsURI{}, nil, nil, err
+		return nil, nil, err
 	}
-	return folder, uri, spaceSvc, func() {
+	return spaceSvc, func() {
 		spaceCleanup()
 		releaseSession()
 	}, nil

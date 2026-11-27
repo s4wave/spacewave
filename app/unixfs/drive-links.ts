@@ -14,6 +14,8 @@ import { formatBytes, formatCount } from '@s4wave/app/system/format.js'
  * - linked: the Drive equals the folder.
  * - rejected: the folder's root is on another file system than the one it
  *   was linked on; folder is set on the linking Device, which offers Reset.
+ *
+ * here is set on the linking Device itself, which holds the folder's files.
  */
 export interface DriveLinkRow {
   deviceKey: string
@@ -22,6 +24,7 @@ export interface DriveLinkRow {
   state: 'offline' | 'starting' | 'indexing' | 'linked' | 'rejected'
   label: string
   detail: string
+  here: boolean
   folder?: string
 }
 
@@ -31,6 +34,9 @@ export interface DriveLinksView {
   // cloud is set in a Space Spacewave Cloud holds, with the line its row
   // shows.
   cloud: { label: string; detail: string; held: boolean } | null
+  // othersReached is how many peers besides the linking Devices this session
+  // reaches; any may serve the files, as a Device keeping a full copy does.
+  othersReached: number
 }
 
 /** driveLinkRow derives a linking Device's line from its link. */
@@ -39,6 +45,7 @@ export function driveLinkRow(link: DriveLink): DriveLinkRow {
     deviceKey: link.deviceKey ?? '',
     name: link.deviceLabel || 'Device',
     path: '/' + (link.path ?? ''),
+    here: !!link.local,
   }
   const local = link.local
   if (link.availability === DeviceAvailabilityState.OFFLINE) {
@@ -110,30 +117,30 @@ export function cloudRow(hold: SyncUploadHold): DriveLinksView['cloud'] {
 }
 
 /**
- * unavailableMessage says why a file in a linked Drive could not be read:
- * a linking Device that is online and linked has moved on from the version
- * listed, so a newer one is on its way; otherwise no holder can serve it,
- * and the message names the holders.
+ * unavailableNote says that no holder of a linked Drive's files can serve one
+ * now, naming the linking Devices, or returns null while one may. It is
+ * LinkedFolderStatus.tla's RowHint for a file this Device has not opened,
+ * derived from the holders' watched state alone, so it holds before and
+ * during a fetch and a fetch that hangs still shows it. A holder may serve
+ * while it is this Device, which links the folder itself; a linking Device
+ * whose availability is not offline and whose folder is not rejected, an
+ * unknown availability counting as reachable; any other peer the session
+ * reaches, such as a Device keeping a full copy; or Spacewave Cloud in a
+ * cloud-backed Space. HintTruthful asks that the note never show while one
+ * of them serves; a fetch that fails while one looks reachable is the
+ * viewer's own failure, with Retry.
  */
-export function unavailableMessage(view: DriveLinksView): string {
-  if (view.rows.some((r) => r.state === 'linked' || r.state === 'indexing')) {
-    return 'A newer version is on its way.'
-  }
-  const holders = view.rows.map((r) => r.name)
-  if (view.cloud) holders.push('Spacewave Cloud')
-  return `Unavailable: no holder can serve it now. Held by ${listNames(holders)}.`
+export function unavailableNote(view: DriveLinksView | null): string | null {
+  if (!view || view.cloud || view.othersReached > 0) return null
+  const reachable = (r: DriveLinkRow) =>
+    r.here || (r.state !== 'offline' && r.state !== 'rejected')
+  if (view.rows.some(reachable)) return null
+  const names = view.rows.map((r) => r.name)
+  return `Unavailable: no holder can serve it now. Held by ${listNames(names)}.`
 }
 
 /** listNames joins names as prose: "a", "a and b", "a, b and c". */
 function listNames(names: string[]): string {
   if (names.length <= 1) return names[0] ?? 'nobody reachable'
   return names.slice(0, -1).join(', ') + ' and ' + names.at(-1)
-}
-
-/**
- * isBlockUnavailable reports whether a read failed because no store this
- * device reached held a block of the file.
- */
-export function isBlockUnavailable(err: Error): boolean {
-  return err.message.includes('block not found')
 }

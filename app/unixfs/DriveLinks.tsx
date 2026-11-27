@@ -6,7 +6,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { LuCloud, LuFolderSync, LuRotateCcw } from 'react-icons/lu'
+import { LuCloud, LuCloudOff, LuFolderSync, LuRotateCcw } from 'react-icons/lu'
 
 import { useWatchStateRpc } from '@aptre/bldr-react'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
@@ -24,6 +24,7 @@ import { useSessionSyncSummary } from '@s4wave/app/session/SessionSyncStatusCont
 import {
   cloudRow,
   driveLinkRow,
+  unavailableNote,
   type DriveLinkRow,
   type DriveLinksView,
 } from './drive-links.js'
@@ -36,6 +37,27 @@ const DriveLinksContext = createContext<DriveLinksView | null>(null)
  */
 export function useDriveLinks(): DriveLinksView | null {
   return use(DriveLinksContext)
+}
+
+/**
+ * FileHoldersNote is the row every file viewer draws above a linked Drive's
+ * file that has not opened when no holder can serve it, naming the linking
+ * Devices; opened hides it, since this Device then holds the file. It draws
+ * nothing outside a linked Drive.
+ */
+export function FileHoldersNote({ opened }: { opened: boolean }) {
+  const note = unavailableNote(useDriveLinks())
+  if (opened || !note) return null
+  return (
+    <p
+      role="status"
+      data-testid="file-holders-note"
+      className="viewer-inset-x min-h-viewer-fact-row border-foreground/8 bg-warning/8 text-foreground flex shrink-0 items-center gap-2 border-b py-1 text-xs"
+    >
+      <LuCloudOff aria-hidden className="text-warning size-3.5 shrink-0" />
+      <span className="max-w-prose min-w-0 flex-1 leading-snug">{note}</span>
+    </p>
+  )
 }
 
 /** DriveLinksViewProvider provides a view of the linked folders as it is. */
@@ -81,6 +103,7 @@ export function DriveLinksProvider({
     return {
       rows: links.map(driveLinkRow),
       cloud: isCloud ? cloudRow(uploadHold) : null,
+      othersReached: resp?.otherPeersReached ?? 0,
     }
   }, [isCloud, resp, uploadHold])
   return <DriveLinksContext value={view}>{children}</DriveLinksContext>

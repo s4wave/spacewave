@@ -61,6 +61,7 @@ func newFsCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 		Subcommands: []*cli.Command{
 			newFsSyncCommand(),
 			newFsLinkCommand(),
+			newFsLinksCommand(),
 			newFsResetRootCommand(),
 			newFsRestoreCommand(),
 			buildFsLsCommand(),

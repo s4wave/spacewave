@@ -2054,6 +2054,11 @@ type WatchDriveLinksResponse struct {
 	// Links holds one entry per linking Device, in Flowgraph key, node ID and
 	// Device key order.
 	Links []*DriveLink `protobuf:"bytes,1,rep,name=links,proto3" json:"links,omitempty"`
+	// OtherPeersReached is how many peers this session reaches now besides the
+	// linking Devices. Any of them may serve the Drive's files, as a Device
+	// that keeps a full copy of the Space does, so a file is unavailable only
+	// while it is zero.
+	OtherPeersReached uint32 `protobuf:"varint,2,opt,name=other_peers_reached,json=otherPeersReached,proto3" json:"otherPeersReached,omitempty"`
 }
 
 func (x *WatchDriveLinksResponse) Reset() {
@@ -2067,6 +2072,13 @@ func (x *WatchDriveLinksResponse) GetLinks() []*DriveLink {
 		return x.Links
 	}
 	return nil
+}
+
+func (x *WatchDriveLinksResponse) GetOtherPeersReached() uint32 {
+	if x != nil {
+		return x.OtherPeersReached
+	}
+	return 0
 }
 
 // DriveLink is one Device linking a folder into the Drive.
@@ -3380,6 +3392,7 @@ func (m *WatchDriveLinksResponse) CloneVT() *WatchDriveLinksResponse {
 		return (*WatchDriveLinksResponse)(nil)
 	}
 	r := new(WatchDriveLinksResponse)
+	r.OtherPeersReached = m.OtherPeersReached
 	r.Links = protobuf_go_lite.CloneVTSlice(m.Links)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -4952,6 +4965,9 @@ func (this *WatchDriveLinksResponse) EqualVT(that *WatchDriveLinksResponse) bool
 		return false
 	}
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.Links, that.Links, func() *DriveLink { return &DriveLink{} }) {
+		return false
+	}
+	if this.OtherPeersReached != that.OtherPeersReached {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -8592,6 +8608,11 @@ func (x *WatchDriveLinksResponse) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if x.OtherPeersReached != 0 || s.HasField("otherPeersReached") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("otherPeersReached")
+		s.WriteUint32(x.OtherPeersReached)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -8627,6 +8648,9 @@ func (x *WatchDriveLinksResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.Links = append(x.Links, v)
 			})
+		case "other_peers_reached", "otherPeersReached":
+			s.AddField("other_peers_reached")
+			x.OtherPeersReached = s.ReadUint32()
 		}
 	})
 }
@@ -11890,6 +11914,11 @@ func (m *WatchDriveLinksResponse) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.OtherPeersReached != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.OtherPeersReached))
+		i--
+		dAtA[i] = 0x10
+	}
 	if len(m.Links) > 0 {
 		for iNdEx := len(m.Links) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.Links[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -13296,6 +13325,7 @@ func (m *WatchDriveLinksResponse) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.OtherPeersReached)
 	n += len(m.unknownFields)
 	return n
 }
@@ -14711,6 +14741,10 @@ func (x *WatchDriveLinksResponse) MarshalProtoText() string {
 			}
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.OtherPeersReached != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "other_peers_reached")
+		protobuf_go_lite.TextWriteUint(&sb, x.OtherPeersReached)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -18654,6 +18688,15 @@ func (m *WatchDriveLinksResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OtherPeersReached", wireType)
+			}
+			m.OtherPeersReached = 0
+			m.OtherPeersReached, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

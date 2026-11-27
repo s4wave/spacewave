@@ -59,7 +59,7 @@ func newServeCommand(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_pol
 	var startupPipeID string
 	var launcher string
 	var runtimeTracePath string
-	var udpListen string
+	var udp serveUDP
 	var udpPeers cli.StringSlice
 	var takeover bool
 	idleTimeout := defaultDaemonIdleTimeout
@@ -102,7 +102,12 @@ func newServeCommand(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_pol
 			&cli.StringFlag{
 				Name:        "udp-listen",
 				Usage:       "serve other sessions of the account over UDP on this host:port; disables idle shutdown unless --idle-timeout is set",
-				Destination: &udpListen,
+				Destination: &udp.listen,
+			},
+			&cli.UintFlag{
+				Name:        "udp-session-index",
+				Usage:       "serve this session on the --udp-listen socket (default: the daemon's only session)",
+				Destination: &udp.sessionIdx,
 			},
 			&cli.StringSliceFlag{
 				Name: "udp-peer",
@@ -117,6 +122,7 @@ func newServeCommand(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_pol
 			},
 		}, append(append(frees.BuildFlags(), upgrade.BuildFlags()...), serveColdPackFlags()...)...),
 		Action: func(c *cli.Context) (retErr error) {
+			udp.peers = udpPeers.Value()
 			return runWithRuntimeTrace(runtimeTracePath, func() error {
 				return runServeCommand(
 					c,
@@ -126,8 +132,7 @@ func newServeCommand(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_pol
 					daemon.Launcher(launcher),
 					takeover,
 					idleTimeout,
-					udpListen,
-					udpPeers.Value(),
+					udp,
 					deviceGrant,
 					frees,
 				)
@@ -146,8 +151,7 @@ func runServeCommand(
 	launcher daemon.Launcher,
 	takeover bool,
 	idleTimeout time.Duration,
-	udpListen string,
-	udpPeers []string,
+	udp serveUDP,
 	deviceGrant string,
 	frees *CollectorFrees,
 ) (retErr error) {
@@ -181,7 +185,7 @@ func runServeCommand(
 		}
 
 		// Remote sessions are not local clients, so a listener stays up.
-		if udpListen != "" {
+		if udp.listen != "" {
 			idleTimeout = 0
 		}
 	}
@@ -492,9 +496,9 @@ func runServeCommand(
 	// Public service starts only after the launcher relinquishes custody.
 	srv := srpc.NewServer(mux)
 	releaseStartupDemand()
-	if udpListen != "" {
+	if udp.listen != "" {
 		go func() {
-			if err := serveUDPListener(serveCtx, le, readyClient, udpListen, udpPeers); err != nil {
+			if err := serveUDPListener(serveCtx, le, readyClient, udp); err != nil {
 				le.WithError(err).Error("UDP listener stopped")
 			}
 		}()

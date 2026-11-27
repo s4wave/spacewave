@@ -1661,12 +1661,22 @@ export interface WatchDriveLinksResponse {
    * Device key order.
    */
   links?: DriveLink[]
+  /**
+   * OtherPeersReached is how many peers this session reaches now besides the
+   * linking Devices. Any of them may serve the Drive's files, as a Device
+   * that keeps a full copy of the Space does, so a file is unavailable only
+   * while it is zero.
+   */
+  otherPeersReached?: number
 }
 
 export const WatchDriveLinksResponse: MessageType<WatchDriveLinksResponse> =
   /* @__PURE__ */ createMessageType<WatchDriveLinksResponse>(
     's4wave.space.WatchDriveLinksResponse',
-    () => [[1, 'links', 11, 1, DriveLink.codec]],
+    () => [
+      [1, 'links', 11, 1, DriveLink.codec],
+      [2, 'other_peers_reached', 13],
+    ],
   )
 
 /**

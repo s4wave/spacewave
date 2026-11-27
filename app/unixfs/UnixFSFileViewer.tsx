@@ -37,6 +37,7 @@ import {
 } from '@s4wave/web/object/ViewerFloat.js'
 import { ViewerStatus } from '@s4wave/web/object/ViewerStatus.js'
 import { cn } from '@s4wave/web/style/utils.js'
+import { FileHoldersNote } from './DriveLinks.js'
 import { UnixFSAudioFileViewer } from './UnixFSAudioFileViewer.js'
 import { UnixFSPdfFileViewer } from './UnixFSPdfFileViewer.js'
 import { UnixFSVideoFileViewer } from './UnixFSVideoFileViewer.js'
@@ -144,9 +145,11 @@ function freshImage(url?: string): ImageLoad {
 function ImageFileViewer({
   alt,
   inlineFileURL,
+  onOpened,
 }: {
   alt: string
   inlineFileURL?: string
+  onOpened: () => void
 }) {
   // actual draws the image at its own size rather than fitted to the pane.
   const [actual, setActual] = useState(false)
@@ -201,6 +204,7 @@ function ImageFileViewer({
                   : 'max-h-full max-w-full object-contain',
               )}
               src={inlineFileURL}
+              onLoad={onOpened}
               onError={handleError}
             />
           )}
@@ -364,14 +368,19 @@ function SymlinkBody({
   )
 }
 
-/** FileBody renders the file content for its kind. */
+/**
+ * FileBody renders the file content for its kind; a media viewer calls
+ * onOpened once the file's bytes arrive.
+ */
 function FileBody({
   path,
   stat,
   rootHandle,
   body,
+  onOpened,
 }: Pick<UnixFSFileViewerProps, 'path' | 'stat' | 'rootHandle'> & {
   body: Exclude<FileBodyKind, { kind: 'text' }>
+  onOpened: () => void
 }) {
   switch (body.kind) {
     case 'symlink':
@@ -381,6 +390,7 @@ function FileBody({
         <ImageFileViewer
           alt={baseName(path, 'image')}
           inlineFileURL={body.url}
+          onOpened={onOpened}
         />
       )
     case 'pdf':
@@ -388,6 +398,7 @@ function FileBody({
         <UnixFSPdfFileViewer
           title={baseName(path, 'pdf')}
           inlineFileURL={body.url}
+          onOpened={onOpened}
         />
       )
     case 'audio':
@@ -395,6 +406,7 @@ function FileBody({
         <UnixFSAudioFileViewer
           title={baseName(path, 'audio')}
           inlineFileURL={body.url}
+          onOpened={onOpened}
         />
       )
     case 'video':
@@ -402,6 +414,7 @@ function FileBody({
         <UnixFSVideoFileViewer
           title={baseName(path, 'video')}
           inlineFileURL={body.url}
+          onOpened={onOpened}
         />
       )
     case 'binary':
@@ -471,6 +484,11 @@ export function UnixFSFileViewer({
   // draft never moves to another file; an unmount by a parent ends it too.
   const spaceId = SpaceContainerContext.useContextSafe()?.spaceId
   const body = fileBodyKindFor(stat, inlineFileURL)
+  // openedURL is the address whose bytes a media viewer last reported
+  // arrived, so another file or version starts unopened.
+  const [openedURL, setOpenedURL] = useState<string>()
+  const bodyURL = 'url' in body ? body.url : undefined
+  const handleOpened = useCallback(() => setOpenedURL(bodyURL), [bodyURL])
   if (body.kind === 'text') {
     const renderToolbar = (presses: ReactNode) => (
       <FileToolbar
@@ -511,7 +529,16 @@ export function UnixFSFileViewer({
 
       {/* File content */}
       <div className="bg-file-back flex min-h-0 flex-1 flex-col overflow-hidden">
-        <FileBody path={path} stat={stat} rootHandle={rootHandle} body={body} />
+        {body.kind !== 'symlink' && (
+          <FileHoldersNote opened={!!bodyURL && openedURL === bodyURL} />
+        )}
+        <FileBody
+          path={path}
+          stat={stat}
+          rootHandle={rootHandle}
+          body={body}
+          onOpened={handleOpened}
+        />
       </div>
       {footer}
     </div>

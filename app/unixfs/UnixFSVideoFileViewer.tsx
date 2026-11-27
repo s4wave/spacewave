@@ -26,6 +26,8 @@ export interface UnixFSVideoFileViewerProps {
   title: string
   // inlineFileURL is the projected raw file URL used for playback.
   inlineFileURL: string
+  // onOpened is called once the file's bytes have arrived.
+  onOpened?: () => void
 }
 
 const Player = createPlayer({
@@ -81,6 +83,7 @@ function videoFailure(error: MediaError | null): VideoPreviewState {
 function UnixFSVideoPlayerSurface({
   title,
   inlineFileURL,
+  onOpened,
 }: UnixFSVideoFileViewerProps) {
   // The video element, and what it shows.
   const mediaRef = useRef<HTMLVideoElement | null>(null)
@@ -102,6 +105,12 @@ function UnixFSVideoPlayerSurface({
         : { status: 'ready', buffering: false },
     )
   }, [])
+
+  // handleCanPlay marks the video ready and opened once its data arrives.
+  const handleCanPlay = useCallback(() => {
+    handleReady()
+    onOpened?.()
+  }, [handleReady, onOpened])
 
   // handleLoadStart returns to loading when the element loads its source.
   const handleLoadStart = useCallback(() => {
@@ -202,7 +211,7 @@ function UnixFSVideoPlayerSurface({
               aria-label={title}
               className="h-full max-h-full w-full max-w-full bg-black object-contain"
               data-testid="unixfs-video-element"
-              onCanPlay={handleReady}
+              onCanPlay={handleCanPlay}
               onError={handleError}
               onLoadedMetadata={handleLoadedMetadata}
               onLoadStart={handleLoadStart}

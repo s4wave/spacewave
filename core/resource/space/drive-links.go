@@ -13,6 +13,7 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/s4wave/spacewave/net/peer"
+	transport_controller "github.com/s4wave/spacewave/net/transport/controller"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
@@ -23,7 +24,9 @@ import (
 // Device's entry carries the node state its Device record holds, which the
 // Device writes only on a transition; the entry of a link running on this
 // Device also carries its live counts, which no World record holds, and each
-// entry carries whether this session reaches its Device now.
+// entry carries whether this session reaches its Device now. The response
+// counts the other peers the session reaches, which may also serve the
+// Drive's files.
 //
 // Each World change to a Flowgraph or a linking Device rereads the Flowgraphs
 // of the Space; a count or link change rereads nothing.
@@ -263,34 +266,37 @@ func driveLinkState(capability *s4wave_device.DeviceCapability) s4wave_space.Dri
 }
 
 // joinLiveLinks builds the response from the linking nodes, setting each
-// entry's liveness from the session's transport st, and adding to each entry
-// of a link running on this Device its folder and counts. observed is unset
-// when the session has no peer, so liveness is unknown. It returns the change
-// channels of the links and counts it read.
+// entry's liveness from the session's transport st and counting the other
+// peers it reaches, and adding to each entry of a link running on this Device
+// its folder and counts. observed is unset when the session has no peer, so
+// liveness is unknown. It returns the change channels of the links and counts
+// it read.
 func joinLiveLinks(
 	links []driveLink,
 	running []unixfs_linkedfolder.RunningLink,
 	st *transport.SessionTransport,
 	observed bool,
 ) (*s4wave_space.WatchDriveLinksResponse, []<-chan struct{}) {
-	// Snapshot the linking Devices the session reaches.
-	var reached map[peer.ID]struct{}
+	// Snapshot the peers the session reaches.
+	reached := make(map[peer.ID]struct{})
 	var waits []<-chan struct{}
 	if st != nil {
-		peers := make([]peer.ID, 0, len(links))
-		for _, l := range links {
-			if id, err := peer.IDB58Decode(l.peerID); err == nil {
-				peers = append(peers, id)
-			}
+		var snaps []transport_controller.LinkSnapshot
+		snaps, waits = st.GetLinkSnapshotsWithWait()
+		for _, s := range snaps {
+			reached[s.RemotePeerID] = struct{}{}
 		}
-		reached, waits = st.GetLinkedPeerIDsSnapshotWithWait(peers)
 	}
 
 	// Join each entry's liveness, then its running link.
 	resp := &s4wave_space.WatchDriveLinksResponse{Links: make([]*s4wave_space.DriveLink, 0, len(links))}
+	others := maps.Clone(reached)
 	for _, l := range links {
 		link := l.link.CloneVT()
 		link.Availability = linkAvailability(l.peerID, observed, reached)
+		if id, err := peer.IDB58Decode(l.peerID); err == nil {
+			delete(others, id)
+		}
 		for _, rl := range running {
 			conf := rl.GetConfig()
 			if conf.GetDevicePeerId() != l.peerID || conf.GetFolder() != l.folder || conf.GetPath() != link.GetPath() {
@@ -308,6 +314,7 @@ func joinLiveLinks(
 		}
 		resp.Links = append(resp.Links, link)
 	}
+	resp.OtherPeersReached = uint32(len(others)) //nolint:gosec // bounded by the session transport's linked peers.
 	return resp, waits
 }
 

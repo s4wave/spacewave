@@ -26,8 +26,7 @@ import { ViewerStatus } from '@s4wave/web/object/ViewerStatus.js'
 import { useSaveHold } from '@s4wave/app/sobject/space-replay.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 
-import { useDriveLinks } from './DriveLinks.js'
-import { isBlockUnavailable, unavailableMessage } from './drive-links.js'
+import { FileHoldersNote } from './DriveLinks.js'
 
 import {
   decodeText,
@@ -429,6 +428,9 @@ export function TextFileFrame({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {head}
+      <FileHoldersNote
+        opened={view.state !== 'waiting' && view.state !== 'failed'}
+      />
       <TextFileBody
         view={view}
         readOnly={readOnly}
@@ -504,8 +506,6 @@ function ReadBody({
 }: Omit<TextFileBodyProps, 'view'> & {
   view: Exclude<TextFileView, { state: 'editing' }>
 }) {
-  // links names the holders of a linked Drive's file no holder could serve.
-  const links = useDriveLinks()
   if (view.state === 'waiting') {
     return <ViewerStatus state="waiting" what="the file" rows={0} />
   }
@@ -513,11 +513,7 @@ function ReadBody({
     return (
       <ViewerStatus
         state="failed"
-        message={
-          links && isBlockUnavailable(view.error)
-            ? unavailableMessage(links)
-            : `Could not read the file: ${view.error.message}`
-        }
+        message={`Could not read the file: ${view.error.message}`}
         retry={retryRead}
       />
     )
