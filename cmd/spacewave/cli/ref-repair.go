@@ -93,6 +93,10 @@ type refRepairResult struct {
 	// peerRead is the number of walked blocks the volume lacks that the
 	// peer read resolved, whose lists the rebuild writes without bytes.
 	peerRead uint64
+	// peerListing reports that the run requested a peer listing.
+	peerListing bool
+	// peerListed counts distinct refs served by the peer and listed.
+	peerListed uint64
 	// synthetic is the number of blocks listed with no children because the
 	// synthetic set contains them, as refRepair.synthetic describes.
 	synthetic uint64

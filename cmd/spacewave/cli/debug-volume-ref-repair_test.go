@@ -640,6 +640,9 @@ func TestDebugRefRepair(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Follow a peer parent to its peer child in a single walk, in both source forms.
+	checkRefRepairPeer(t, path, scanArgs.peerBlocks, parent, peerChild, parentData, peerData)
+
 	// A listing path that aliases the Volume must leave its bytes intact.
 	scanBefore := sum()
 	alias := filepath.Join(filepath.Dir(scanOpts.frontOut), "volume-link")
@@ -1782,6 +1785,14 @@ func makeVolumeRefillTarget(t *testing.T, path string, refs []*block.BlockRef, d
 
 // makeVolumeRefillSource writes raw block keys in a file with an older volume format.
 func makeVolumeRefillSource(t *testing.T, path string, refs []*block.BlockRef, data [][]byte) {
+	// Keep only the source hits, including one deliberately corrupt copy.
+	t.Helper()
+	makeVolumeBlockSource(t, path, []*block.BlockRef{refs[0], refs[1], refs[3], refs[5]},
+		[][]byte{data[0], []byte("corrupt copy"), data[3], data[5]})
+}
+
+// makeVolumeBlockSource writes raw block fixtures into a stopped s4db file.
+func makeVolumeBlockSource(t *testing.T, path string, refs []*block.BlockRef, data [][]byte) {
 	// Open only the s4db engine so the fixture can put bytes under any key.
 	t.Helper()
 	ctx := t.Context()
@@ -1802,19 +1813,16 @@ func makeVolumeRefillSource(t *testing.T, path string, refs []*block.BlockRef, d
 
 	// Write the selected bytes and format in one commit, then stop the source.
 	keys := kvkey.NewDefaultKVKey()
-	for _, i := range []int{0, 1, 3, 5} {
-		key, err := refs[i].MarshalKey()
+	for i, ref := range refs {
+		key, err := ref.MarshalKey()
 		if err != nil {
 			t.Fatal(err)
 		}
-		dat := data[i]
-		if i == 1 {
-			dat = []byte("corrupt copy")
-		}
-		if err := tx.Set(ctx, keys.GetBlockKey(key), dat); err != nil {
+		if err := tx.Set(ctx, keys.GetBlockKey(key), data[i]); err != nil {
 			t.Fatal(err)
 		}
 	}
+
 	if err := tx.Set(ctx, keys.GetFormatVersionKey(), kvkey.MarshalFormatVersion(kvkey.FormatVersion-1)); err != nil {
 		t.Fatal(err)
 	}
@@ -1875,5 +1883,117 @@ func checkVolumeRefillReport(t *testing.T, report string, labels []string, size,
 		if !found || label != labels[i] || strings.TrimSpace(count) != counts[i] {
 			t.Fatalf("refill row %q, want %s = %s", line, labels[i], counts[i])
 		}
+	}
+}
+
+// checkRefRepairPeer follows two absent levels and protects all listing inputs.
+func checkRefRepairPeer(t *testing.T, path, directory string, parent, child *block.BlockRef, parentData, childData []byte) {
+	// Check that help describes both peer flags and source forms.
+	t.Helper()
+	ctx := t.Context()
+	help, err := runVolumeBlockCLI(t, "ref-repair", "--help")
+	if err != nil || !strings.Contains(help, "--peer-out") || !strings.Contains(help, "or a stopped Volume file") {
+		t.Fatalf("ref repair peer help %q: %v", help, err)
+	}
+
+	// Open the stopped target and evict the parent's bytes.
+	le := logrus.NewEntry(logrus.New())
+	vol, err := openStoppedVolume(ctx, le, path, volumeWritable)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := vol.RmBlock(ctx, parent); err != nil {
+		t.Fatal(err)
+	}
+	if err := vol.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Give both source forms the missing parent and child.
+	if err := os.WriteFile(filepath.Join(directory, parent.MarshalString()), parentData, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	source := filepath.Join(t.TempDir(), "peer.s4db")
+	makeVolumeBlockSource(t, source, []*block.BlockRef{parent, child}, [][]byte{parentData, childData})
+	targetData, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Exercise flag wiring, traversal order, private permissions and the report in both modes.
+	for _, peer := range []string{directory, source} {
+		for _, dryRun := range []bool{true, false} {
+			// Use an independent target so a writing run cannot change later expectations.
+			target := filepath.Join(t.TempDir(), "target.s4db")
+			if err := os.WriteFile(target, targetData, 0o600); err != nil {
+				t.Fatal(err)
+			}
+			listing := filepath.Join(t.TempDir(), "peer.refs")
+			args := []string{"--peer-blocks", peer, "--peer-out", listing, "--scan-untyped"}
+			if dryRun {
+				args = append(args, "--dry-run")
+			}
+			report, err := runVolumeBlockCLI(t, "ref-repair", append(args, target)...)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// The file is directly usable as --refs and includes each served block once.
+			got, err := os.ReadFile(listing)
+			want := parent.MarshalString() + "\n" + child.MarshalString() + "\n"
+			if err != nil || string(got) != want {
+				t.Fatalf("peer %s, dry %v: listing %q, want %q: %v", peer, dryRun, got, want, err)
+			}
+			info, err := os.Stat(listing)
+			if err != nil || info.Mode().Perm() != 0o600 {
+				t.Fatalf("peer listing permissions: %v, %v", info, err)
+			}
+			if !slices.ContainsFunc(strings.Split(report, "\n"), func(line string) bool {
+				return strings.Join(strings.Fields(line), " ") == "Peer blocks listed: 2"
+			}) {
+				t.Fatalf("peer listing report: %s", report)
+			}
+		}
+	}
+
+	// Reject direct paths and file aliases before opening either input for writing.
+	for _, input := range []string{path, source} {
+		before := sumVolumeRefillFile(t, input)
+		alias := filepath.Join(t.TempDir(), "alias")
+		if err := os.Link(input, alias); err != nil {
+			t.Fatal(err)
+		}
+		symlink := filepath.Join(t.TempDir(), "symlink")
+		if err := os.Symlink(input, symlink); err != nil {
+			t.Fatal(err)
+		}
+		for _, output := range []string{input, alias, symlink} {
+			if _, err := runVolumeBlockCLI(t, "ref-repair", "--peer-blocks", source, "--peer-out", output, path); err == nil {
+				t.Fatalf("accepted peer listing alias %s", output)
+			}
+
+			// Reject the same aliases when used as a peer of the target itself.
+			if input == path {
+				if _, err := runVolumeBlockCLI(t, "ref-repair", "--peer-blocks", output, path); err == nil {
+					t.Fatalf("accepted target as peer %s", output)
+				}
+			}
+			if sumVolumeRefillFile(t, input) != before {
+				t.Fatalf("refused peer or listing changed %s", input)
+			}
+		}
+	}
+
+	// Restore the parent's bytes so the existing scan run-through keeps its fixture.
+	vol, err = openStoppedVolume(ctx, le, path, volumeWritable)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer vol.Close()
+	if _, _, err := vol.Store.PutBlock(ctx, parentData, &block.PutOpts{ForceBlockRef: parent}); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(filepath.Join(directory, parent.MarshalString())); err != nil {
+		t.Fatal(err)
 	}
 }
