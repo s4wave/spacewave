@@ -5,6 +5,7 @@ package resource_root
 import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
+	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	space "github.com/s4wave/spacewave/core/space"
 	s4wave_command_registry "github.com/s4wave/spacewave/sdk/command/registry"
 	s4wave_configtype_registry "github.com/s4wave/spacewave/sdk/configtype/registry"
@@ -181,3 +182,92 @@ func webBindingReadTransaction(_ *webBinding, msg srpc.Message) bool {
 	req, ok := msg.(*s4wave_world.NewTransactionRequest)
 	return ok && !req.GetWrite()
 }
+
+// webBindingInvoker serves only the methods a webBinding admits.
+type webBindingInvoker struct {
+	// binding identifies the scope checked by each message adapter.
+	binding *webBinding
+	// inv dispatches admitted methods to the Resource.
+	inv srpc.Invoker
+}
+
+// InvokeMethod denies methods outside webBindingMethods, checks the request
+// messages of the methods that need checks, and narrows their responses.
+func (i *webBindingInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+	// Deny methods outside the list, then route the call through its check
+	// and response filter.
+	key := webMethod(serviceID, methodID)
+	check, ok := webBindingMethods[key]
+	if !ok {
+		i.binding.le.WithField("method", key).Info("web binding denied method")
+		return true, errors.Wrap(errWebBindingDenied, key)
+	}
+
+	// Wrap messages only when the method needs validation or projection.
+	narrow := webBindingResponses[key]
+	if check != nil || narrow != nil {
+		strm = &webBindingStream{
+			Stream:  strm,
+			binding: i.binding,
+			method:  key,
+			check:   check,
+			narrow:  narrow,
+		}
+	}
+
+	// Dispatch through the selected message adapter.
+	return i.inv.InvokeMethod(serviceID, methodID, strm)
+}
+
+// newWebBindingFilter wraps each Resource invoker in the bound listener's policy.
+func newWebBindingFilter(binding *webBinding) resource_server.InvokerFilter {
+	return func(inv srpc.Invoker) srpc.Invoker {
+		return &webBindingInvoker{binding: binding, inv: inv}
+	}
+}
+
+// webBindingStream checks each request message it receives and narrows each
+// response it sends.
+type webBindingStream struct {
+	// Stream carries the method's request and response messages.
+	srpc.Stream
+	// binding identifies the scope checked by the selected policies.
+	binding *webBinding
+	// method identifies denied requests in logs and errors.
+	method string
+	// check admits request messages, or is nil for unrestricted requests.
+	check webBindingCheck
+	// narrow projects response messages, or is nil for unchanged responses.
+	narrow func(b *webBinding, msg srpc.Message)
+}
+
+// MsgRecv receives a request message and rejects it unless the check admits it.
+func (s *webBindingStream) MsgRecv(msg srpc.Message) error {
+	// Receive the request before applying its scope check.
+	if err := s.Stream.MsgRecv(msg); err != nil {
+		return err
+	}
+
+	// Reject requests outside the configured listener scope.
+	if s.check != nil && !s.check(s.binding, msg) {
+		s.binding.le.WithField("method", s.method).Info("web binding denied request")
+		return errors.Wrap(errWebBindingDenied, s.method)
+	}
+
+	// Admit the checked request.
+	return nil
+}
+
+// MsgSend narrows a response message and sends it.
+func (s *webBindingStream) MsgSend(msg srpc.Message) error {
+	// Project the response before passing it to the transport.
+	if s.narrow != nil {
+		s.narrow(s.binding, msg)
+	}
+
+	// Send the projected response through the underlying stream.
+	return s.Stream.MsgSend(msg)
+}
+
+var _ srpc.Invoker = (*webBindingInvoker)(nil)
+var _ srpc.Stream = (*webBindingStream)(nil)
