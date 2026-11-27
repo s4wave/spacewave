@@ -50,7 +50,9 @@ var refusalHandoffOff = os.Getenv(RefusalHandoffEnv) == "off"
 //   - Each candidate starts from the last pending candidate or installed head.
 //   - An installed head keeps every previously applied operation until replay
 //     places or refuses it again.
-//   - Every head watcher sees an accepted candidate's head before its decision.
+//   - A head stays live from its install until its report and every accepted
+//     admission that names it end (gatherLive), since the engine publishes it
+//     after the Space moved on.
 //   - Root moves hold all gatherLive Worlds before releasing old holders.
 type Adapter struct {
 	// le is the logger.
@@ -101,11 +103,6 @@ type Adapter struct {
 	cursorWorlds, pendingWorlds, checkpointWorlds rootSet
 	// imported holds HoldImport roots until replay-base or payloads holds them.
 	imported rootSet
-	// watchMtx serializes the head watchers' callbacks.
-	watchMtx sync.Mutex
-	// reported is the last head reported, guarded by watchMtx.
-	reported world.Head
-
 	// bcast guards fields below unless another owner is stated.
 	bcast broadcast.Broadcast
 	// head is the installed head.
@@ -128,8 +125,15 @@ type Adapter struct {
 	unmatched map[string]spacePosition
 	// cover records installed checkpoint coverage, nil before the first install.
 	cover *checkpointCover
-	// watchers receive each installed head.
-	watchers []*headWatch
+	// reportable is the installed head whose retained roots are held, which
+	// the head watches report.
+	reportable world.Head
+	// watches are the WatchHead registrations.
+	watches []*headWatch
+	// accepted holds each accepted admission from its decision until its
+	// Release, so the head it names stays live while its committer publishes
+	// it. An admission whose committer abandoned the wait is not held.
+	accepted map[*spaceAdmission]struct{}
 	// installed records whether the first checkpoint was installed.
 	installed bool
 	// checkpoint and checkpointSeqno are the checkpoint backfill copies.
@@ -139,7 +143,7 @@ type Adapter struct {
 	headHeight    uint64
 	headPositions int
 	// acceptHeight records the last fully published checkpoint height.
-	// Covered admissions wait until retained roots and head watchers reach it.
+	// Covered admissions wait until its retained roots are held.
 	acceptHeight uint64
 	// replayState drives gateWrite, starting in Opening.
 	replayState *sobject.SOReplayState
@@ -178,10 +182,10 @@ type Adapter struct {
 	ownershipHead []byte
 }
 
-// headWatch is one WatchHead registration.
+// headWatch is one WatchHead registration, guarded by the adapter's bcast.
 type headWatch struct {
-	// fn receives each installed head.
-	fn func(world.Head)
+	// reporting is the head fn is running with, or zero.
+	reporting world.Head
 }
 
 // NewAdapter returns the adapter of the Space World of so. Execute serves it.
@@ -564,29 +568,67 @@ func (a *Adapter) Head(context.Context) (world.Head, error) {
 	return head, nil
 }
 
-// WatchHead calls fn with the installed head, then with each later installed
-// head, until release is called. Every head is durable. The adapter calls fn
-// before it decides the candidates the head holds.
+// WatchHead calls fn on its own goroutine with the reportable head, then with
+// later ones, until release is called. Every head is durable and its retained
+// roots are held. A slow fn skips the heads it fell behind on, and the adapter
+// decides candidates without waiting for fn: their committers publish their
+// heads from the Admission. The head fn runs with stays live until it returns.
 func (a *Adapter) WatchHead(_ context.Context, fn func(world.Head)) (func(), error) {
-	// Register and report the current head, serialized with later reports.
-	w := &headWatch{fn: fn}
-	a.watchMtx.Lock()
-	var head world.Head
+	// Register, so gatherLive sees the head each report runs with.
+	w := &headWatch{}
 	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		a.watchers = append(a.watchers, w)
-		head = a.head
+		a.watches = append(a.watches, w)
 	})
-	if !head.Root.GetEmpty() {
-		fn(head)
-	}
-	a.watchMtx.Unlock()
 
-	// Release removes the registration.
-	return func() {
+	// Report each reportable head that moved until release.
+	stop, done := make(chan struct{}), make(chan struct{})
+	go func() {
+		defer close(done)
+		var last world.Head
+		for {
+			// End on release even while heads keep moving.
+			select {
+			case <-stop:
+				return
+			default:
+			}
+
+			// Take the head and mark it reporting in one step, so it stays
+			// live from reportable to the engine's publication.
+			var wake <-chan struct{}
+			var head world.Head
+			a.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+				wake, head = getWaitCh(), a.reportable
+				if head.Root.GetEmpty() || (head.Root.EqualsRef(last.Root) && head.Seqno == last.Seqno) {
+					head = world.Head{}
+				}
+				w.reporting = head
+			})
+			if !head.Root.GetEmpty() {
+				fn(head)
+				last = head
+				a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+					w.reporting = world.Head{}
+				})
+				continue
+			}
+			select {
+			case <-stop:
+				return
+			case <-wake:
+			}
+		}
+	}()
+
+	// Release stops and joins the reports, then removes the registration.
+	// fn must not call it.
+	return sync.OnceFunc(func() {
+		close(stop)
+		<-done
 		a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-			a.watchers = slices.DeleteFunc(a.watchers, func(o *headWatch) bool { return o == w })
+			a.watches = slices.DeleteFunc(a.watches, func(o *headWatch) bool { return o == w })
 		})
-	}, nil
+	}), nil
 }
 
 // Begin takes the local writer turn at the provisional writer head. It refuses
@@ -1532,6 +1574,12 @@ func (a *Adapter) decide(adms []*spaceAdmission, decision world.Decision, reason
 			}
 			adm.state, adm.decision, adm.reason, adm.err, adm.head = admissionDecided, decision, reason, err, a.head
 			a.pending = slices.DeleteFunc(a.pending, func(o *spaceAdmission) bool { return o == adm })
+			if decision == world.Accepted && !adm.abandoned && !adm.candidate.Root.GetEmpty() {
+				if a.accepted == nil {
+					a.accepted = make(map[*spaceAdmission]struct{})
+				}
+				a.accepted[adm] = struct{}{}
+			}
 			a.settleDecidedLocked(adm)
 			done = append(done, adm)
 		}
@@ -1565,13 +1613,14 @@ func (a *Adapter) writerAdmissionLocked() *spaceAdmission {
 }
 
 // installHead publishes the last replay position, holds its retained roots,
-// notifies head watchers, then decides the admissions it proves applied.
+// makes the head reportable, then decides the admissions it proves applied.
+// It never waits for a head watch: the engine builds its readers on the
+// watch's goroutine.
 func (a *Adapter) installHead(ctx context.Context) error {
 	// Install the head.
 	state, seqno := a.replay.head()
 	height, positions := a.replay.height, len(a.replay.positions)
 	head := world.Head{Root: state.GetHeadRef().GetRootRef().Clone(), Seqno: seqno, Durable: true}
-	var watchers []*headWatch
 	a.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		// Advance the replay position even when refusal leaves the World unchanged.
 		moved := a.headHeight != height || a.headPositions != positions
@@ -1584,7 +1633,6 @@ func (a *Adapter) installHead(ctx context.Context) error {
 		if changed || moved {
 			broadcast()
 		}
-		watchers = slices.Clone(a.watchers)
 	})
 
 	// Retry retained-root holds until publication succeeds.
@@ -1592,22 +1640,15 @@ func (a *Adapter) installHead(ctx context.Context) error {
 		return err
 	}
 
-	// Notify watchers before deciding candidates, without repeating heads.
-	if !head.Root.GetEmpty() {
-		a.watchMtx.Lock()
-		if !head.Root.EqualsRef(a.reported.Root) || head.Seqno != a.reported.Seqno {
-			for _, w := range watchers {
-				w.fn(head)
-			}
-			a.reported = head
-		}
-		a.watchMtx.Unlock()
-	}
-
-	// Collect candidates with the finished height atomically so queued cannot
-	// miss both this collection and its immediate-acceptance check.
+	// Make the head reportable and collect candidates with the finished
+	// height atomically, so queued cannot miss both this collection and its
+	// immediate-acceptance check.
 	var placed []*spaceAdmission
-	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+	a.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if !head.Root.EqualsRef(a.reportable.Root) || head.Seqno != a.reportable.Seqno {
+			a.reportable = head
+			broadcast()
+		}
 		a.acceptHeight = height
 		for _, adm := range a.pending {
 			if adm.state == admissionPlaced || adm.state == admissionCovered {

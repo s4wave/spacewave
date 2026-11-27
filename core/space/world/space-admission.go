@@ -84,6 +84,10 @@ type spaceAdmission struct {
 	// queue passed it to QueueOperationWithReceipt, or nil. decide tells it
 	// when the write ends unknown and drops it otherwise.
 	sent *settleEntry
+	// abandoned is set when the committer stopped waiting before the
+	// decision, so decide does not keep its heads live for a publication
+	// that never comes.
+	abandoned bool
 }
 
 // Seqno returns the World seqno at the candidate's root.
@@ -111,17 +115,15 @@ func (s *spaceAdmission) WaitDecided(ctx context.Context) (world.Decision, error
 	select {
 	case <-s.done:
 	case <-ctx.Done():
-		select {
-		case <-s.done:
-		default:
-			return world.Undecided, context.Cause(ctx)
-		}
 	}
 
-	// Read it.
-	var decision world.Decision
-	var err error
+	// Read it, or mark the wait abandoned under the lock decide takes.
+	decision, err := world.Undecided, context.Cause(ctx)
 	s.a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if s.state != admissionDecided {
+			s.abandoned = true
+			return
+		}
 		decision, err = s.decision, s.err
 	})
 	return decision, err
@@ -150,8 +152,12 @@ func (s *spaceAdmission) OpHash() []byte {
 }
 
 // Release drops an admission whose operation has not reached
-// QueueOperation, so it is never queued.
+// QueueOperation, so it is never queued, and ends the liveness an accepted
+// one gave its heads for the committer's publication.
 func (s *spaceAdmission) Release() {
+	s.a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		delete(s.a.accepted, s)
+	})
 	if s.a.queue.remove(s) {
 		s.a.fail(s, world.ErrSuperseded)
 	}

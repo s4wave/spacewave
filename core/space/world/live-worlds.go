@@ -16,7 +16,9 @@ type worldReaders interface {
 type liveWorlds struct {
 	// memory holds the Worlds whose pages may be kept in memory: the
 	// Worlds of the positions above the floor, the installed head, the
-	// writer head, the Worlds a checkpoint is storing and the Worlds the
+	// writer head, the Worlds a checkpoint is storing, the heads the engine
+	// may still publish (the reportable head, each head a watch reports and
+	// each accepted admission's heads until its Release) and the Worlds the
 	// served engine's readers may still read. A trim holds them under the
 	// replay cursor root, and a sweep keeps their pages.
 	memory []*block.BlockRef
@@ -55,10 +57,24 @@ func (a *Adapter) gatherLive() liveWorlds {
 
 	// Add the heads, the candidates and the retained roots.
 	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		l.memory = append(l.memory, a.head.Root, a.writer.Root)
+		// Add the installed, writer and reportable heads and the storing
+		// Worlds.
+		l.memory = append(l.memory, a.head.Root, a.writer.Root, a.reportable.Root)
 		for _, roots := range a.storing {
 			l.memory = append(l.memory, roots...)
 		}
+
+		// Add the heads the engine may publish after the Space moved on.
+		// Each stays here until the engine's readers hold it, which
+		// readRoots reads after this section.
+		for _, w := range a.watches {
+			l.memory = append(l.memory, w.reporting.Root)
+		}
+		for adm := range a.accepted {
+			l.memory = append(l.memory, adm.candidate.Root, adm.head.Root)
+		}
+
+		// Add the candidates and the retained roots.
 		for _, adm := range a.pending {
 			l.candidates = append(l.candidates, adm.candidate.Root)
 			l.payloads = append(l.payloads, adm.payloads...)

@@ -133,10 +133,8 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 		return e.publishCallerHead(ctx, turn, nextRootRef, rootBlock, changes, err)
 	}
 
-	// Record the published head at admission, and the candidate the next
-	// writer may build on.
+	// Record the candidate the next writer may build on.
 	locked = e.engine.bcast.Lock()
-	admittedAt := e.engine.pub.Load()
 	if err == nil && adm != nil {
 		e.engine.admitted = &admittedHead{root: nextRootRef.GetRootRef(), world: rootBlock}
 	}
@@ -157,7 +155,7 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 
 	// Wait outside the turn. On deadline, leave the queued operation with
 	// the Authority: Release could remove it before the driver takes it.
-	published, err := e.waitDurable(ctx, adm, nextRootRef)
+	published, seqno, err := e.waitDurable(ctx, adm, nextRootRef)
 	if !errors.Is(err, errDurabilityDeadline) {
 		defer adm.Release()
 	}
@@ -171,15 +169,29 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 		pending.confirm()
 	}
 
-	// Publish the head, unless a head was published since the admission: the
-	// next writer's durable base or a head the watch reported, which holds
-	// this candidate's change or a later one. A durable commit stays a
-	// success when the engine closed meanwhile, or the install failed: the
+	// Publish the receipt's head unless one at or past its seqno is
+	// published, as a head the watch reported or the next writer's durable
+	// base, which holds this candidate's change or a later one. The
+	// Authority keeps the head's blocks until the deferred Release. A
+	// rebased head's root is decoded before taking the Engine lock, so the
+	// install reads no block under it. A durable commit stays a success when
+	// the engine closed meanwhile, or the decode or install failed: the
 	// Authority holds its head, and the head watch or the next open installs
 	// it.
+	if !e.engine.publishedBelow(seqno) {
+		return published, nil
+	}
+	if rootBlock == nil {
+		if rootBlock, err = e.engine.decodeRoot(e.engine.closing, published); err != nil {
+			if e.engine.closing.Err() == nil && !errors.Is(err, ErrEngineClosed) {
+				e.engine.le.WithError(err).Warn("unable to read a durable World head; the authority holds it")
+			}
+			return published, nil
+		}
+	}
 	locked = e.engine.bcast.Lock()
 	retirement = engineRetirement{}
-	if !e.engine.closed && e.engine.pub.Load() == admittedAt {
+	if !e.engine.closed && e.engine.publishedBelow(seqno) {
 		if !e.engine.head.root.GetRef().EqualsRef(e.baseHeadRef) {
 			changes = nil
 		}
@@ -350,12 +362,12 @@ func WithDurabilityTimeout(ctx context.Context) (context.Context, context.Cancel
 }
 
 // waitDurable waits for the Authority's decision and record, and returns the
-// head to publish. The writer turn has ended but the Authority still owns the
+// head to publish with its seqno. The writer turn has ended but the Authority still owns the
 // admitted operation and its payloads. The request's cancellation cannot end
 // the wait. Expiry leaves queued work with the Authority and never permits
 // replay: neither elapsed time nor head progress proves that this candidate
 // applied or was refused.
-func (e *EngineTx) waitDurable(ctx context.Context, adm world.Admission, next *bucket.ObjectRef) (*bucket.ObjectRef, error) {
+func (e *EngineTx) waitDurable(ctx context.Context, adm world.Admission, next *bucket.ObjectRef) (*bucket.ObjectRef, uint64, error) {
 	// Keep the request values, but bound the wait by engine close or the
 	// server's budget, with one budget for both waits and reconciliation.
 	ctx, cancel := context.WithCancelCause(context.WithoutCancel(ctx))
@@ -371,13 +383,13 @@ func (e *EngineTx) waitDurable(ctx context.Context, adm world.Admission, next *b
 	switch {
 	case decision == world.Superseded:
 		head := adm.Head()
-		return nil, errors.Wrapf(world.ErrSuperseded, "head moved to seqno %d", head.Seqno)
+		return nil, 0, errors.Wrapf(world.ErrSuperseded, "head moved to seqno %d", head.Seqno)
 	case decision == world.Undecided && ctx.Err() != nil:
-		return nil, context.Cause(ctx)
+		return nil, 0, context.Cause(ctx)
 	case decision != world.Accepted && err == nil:
-		return nil, errors.Errorf("world candidate %s", decision)
+		return nil, 0, errors.Errorf("world candidate %s", decision)
 	case err != nil:
-		return nil, err
+		return nil, 0, err
 	}
 
 	// Wait for the record that makes the head durable, and publish the head
@@ -386,20 +398,20 @@ func (e *EngineTx) waitDurable(ctx context.Context, adm world.Admission, next *b
 		if head := adm.Head(); !head.Root.GetEmpty() && !head.Root.EqualsRef(next.GetRootRef()) {
 			published := next.Clone()
 			published.RootRef = head.Root.Clone()
-			return published, nil
+			return published, head.Seqno, nil
 		}
-		return next, nil
+		return next, adm.Seqno(), nil
 	}
 
 	// Reconcile a lost report only while the wait is live. An Authority's
 	// Head may return a result even when its context ended during the read.
 	if cause := context.Cause(ctx); cause != nil {
-		return nil, cause
+		return nil, 0, cause
 	}
 	head, herr := e.engine.authority.Head(ctx)
 	switch {
 	case ctx.Err() != nil:
-		return nil, context.Cause(ctx)
+		return nil, 0, context.Cause(ctx)
 	case herr != nil:
 		// The Authority accepted the candidate, so a failed reconcile leaves
 		// its outcome unknown. The head read's error stays text: its
@@ -408,19 +420,19 @@ func (e *EngineTx) waitDurable(ctx context.Context, adm world.Admission, next *b
 		if !errors.Is(err, world.ErrDurabilityUnknown) {
 			err = stderrors.Join(world.ErrDurabilityUnknown, err)
 		}
-		return nil, errors.Wrapf(err, "read head: %v", herr)
+		return nil, 0, errors.Wrapf(err, "read head: %v", herr)
 	// For a live wait, the accepted candidate is on the Authority's linear
 	// order: its root or a later head confirms an ordinary lost report.
 	case head.Root.EqualsRef(next.GetRootRef()):
-		return next, nil
+		return next, adm.Seqno(), nil
 	case head.Seqno > adm.Seqno():
 		published := next.Clone()
 		published.RootRef = head.Root.Clone()
-		return published, nil
+		return published, head.Seqno, nil
 	case errors.Is(err, world.ErrDurabilityUnknown):
-		return nil, err
+		return nil, 0, err
 	}
-	return nil, stderrors.Join(errors.Wrapf(world.ErrSuperseded, "candidate lost: head at seqno %d", head.Seqno), err)
+	return nil, 0, stderrors.Join(errors.Wrapf(world.ErrSuperseded, "candidate lost: head at seqno %d", head.Seqno), err)
 }
 
 // namedUnknown names adm's signed operation in err when err leaves the

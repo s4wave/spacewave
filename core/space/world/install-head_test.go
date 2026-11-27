@@ -158,7 +158,7 @@ func trimNow(t *testing.T, a *Adapter) {
 }
 
 // TestInstallHeadRetriesRetainedHold checks that a head whose retained-root
-// hold failed is held and reported to the watchers by the next install, that
+// hold failed is held and made reportable by the next install, that
 // its placed candidate is decided only then, as is one whose QueueOperation
 // returns after the failed install with a position the installed checkpoint
 // covers, that a later install of the same retained set reads and moves
@@ -219,8 +219,6 @@ func TestInstallHeadRetriesRetainedHold(t *testing.T) {
 	}}
 	adm := &spaceAdmission{state: admissionCovered, done: make(chan struct{})}
 	a.pending = []*spaceAdmission{adm}
-	var reports []world.Head
-	a.watchers = []*headWatch{{fn: func(h world.Head) { reports = append(reports, h) }}}
 
 	// The installed checkpoint at height 1 covers this device's operation
 	// late and records that it applied.
@@ -230,14 +228,15 @@ func TestInstallHeadRetriesRetainedHold(t *testing.T) {
 	lateAdm := &spaceAdmission{a: a, op: []byte("op"), done: make(chan struct{})}
 	a.pending = append(a.pending, lateAdm)
 
-	// The first install fails its hold, reports nothing and decides nothing,
-	// and the late QueueOperation that returns after it waits for the head.
+	// The first install fails its hold, makes nothing reportable and decides
+	// nothing, and the late QueueOperation that returns after it waits for
+	// the head.
 	if err := a.installHead(ctx); err == nil {
 		t.Fatal("the first install held the retained roots through a failing store")
 	}
 	a.queued(lateAdm, "late", late, nil)
-	if len(reports) != 0 || adm.state == admissionDecided || lateAdm.state == admissionDecided {
-		t.Fatalf("a failed install reported %d heads and decided %v, the late one %v", len(reports), adm.state == admissionDecided, lateAdm.state == admissionDecided)
+	if !a.reportable.Root.GetEmpty() || adm.state == admissionDecided || lateAdm.state == admissionDecided {
+		t.Fatalf("a failed install made %v reportable and decided %v, the late one %v", a.reportable, adm.state == admissionDecided, lateAdm.state == admissionDecided)
 	}
 
 	// A replay-placed admission of this device's next operation, which the
@@ -262,15 +261,16 @@ func TestInstallHeadRetriesRetainedHold(t *testing.T) {
 	})
 	a.decideCovered(refused, unknown)
 
-	// The next install holds them, reports the head once, then decides both.
+	// The next install holds them, makes the head reportable, then decides
+	// both.
 	if err := a.installHead(ctx); err != nil {
 		t.Fatal(err)
 	}
 	if store.held()[RootRetained].GetEmpty() {
 		t.Fatal("the retry did not hold the retained roots")
 	}
-	if len(reports) != 1 || !reports[0].Root.EqualsRef(head) || adm.state != admissionDecided {
-		t.Fatalf("the retry reported %v and decided %v", reports, adm.state == admissionDecided)
+	if !a.reportable.Root.EqualsRef(head) || adm.state != admissionDecided {
+		t.Fatalf("the retry made %v reportable and decided %v", a.reportable, adm.state == admissionDecided)
 	}
 	if lateAdm.state != admissionDecided || lateAdm.decision != world.Accepted {
 		t.Fatalf("the retry left the late admission %v with decision %v, want Accepted", lateAdm.state, lateAdm.decision)
@@ -1161,6 +1161,93 @@ func openedNow() chan struct{} {
 	opened := make(chan struct{})
 	close(opened)
 	return opened
+}
+
+// TestGatherLiveKeepsPublishableHeads checks that a head the engine may still
+// publish after the Space moved on stays live: the head a watch is reporting,
+// until its report returns, and an accepted admission's candidate and head,
+// until its Release. An admission whose committer stopped waiting before the
+// decision is not held, since its committer never publishes or releases it.
+func TestGatherLiveKeepsPublishableHeads(t *testing.T) {
+	// Build an adapter with three heads.
+	ref := func(name string) *block.BlockRef {
+		t.Helper()
+		r, err := block.BuildBlockRef([]byte(name), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return r
+	}
+	first, second, candidate := ref("first World"), ref("second World"), ref("candidate World")
+	a := &Adapter{queue: &opQueue{}, le: logrus.NewEntry(logrus.New())}
+	a.replay = &spaceReplay{a: a}
+	live := func(root *block.BlockRef) bool {
+		return slices.ContainsFunc(a.gatherLive().memory, root.EqualsRef)
+	}
+	setReportable := func(root *block.BlockRef, seqno uint64) {
+		a.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			a.head = world.Head{Root: root, Seqno: seqno, Durable: true}
+			a.reportable = a.head
+			broadcast()
+		})
+	}
+
+	// A watch whose report blocks keeps the head it reports after the Space
+	// moves past it.
+	reporting, unblock := make(chan world.Head, 2), make(chan struct{})
+	release, err := a.WatchHead(t.Context(), func(h world.Head) {
+		reporting <- h
+		<-unblock
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+	setReportable(first, 1)
+	if h := <-reporting; !h.Root.EqualsRef(first) {
+		t.Fatalf("the watch reported %v, want the first head", h)
+	}
+	setReportable(second, 2)
+	if !live(first) || !live(second) {
+		t.Fatal("a trim during the report would drop the head the watch is reporting")
+	}
+
+	// The report returns, the watch skips to the latest head, and the head it
+	// reported leaves the live set.
+	unblock <- struct{}{}
+	if h := <-reporting; !h.Root.EqualsRef(second) {
+		t.Fatalf("the watch reported %v after the first head, want the latest", h)
+	}
+	close(unblock)
+	release()
+	if live(first) {
+		t.Fatal("the reported head stayed live after its report returned")
+	}
+
+	// An accepted admission keeps its candidate after the Space moves past
+	// it, until its Release.
+	adm := a.newAdmission(world.Candidate{Root: candidate, Seqno: 3}, nil, nil, nil)
+	a.decide([]*spaceAdmission{adm}, world.Accepted, "", nil)
+	setReportable(ref("later World"), 4)
+	if !live(candidate) {
+		t.Fatal("a trim before the commit publishes would drop its accepted candidate")
+	}
+	adm.Release()
+	if live(candidate) {
+		t.Fatal("the accepted candidate stayed live after Release")
+	}
+
+	// An abandoned wait leaves its admission unheld.
+	abandoned := a.newAdmission(world.Candidate{Root: ref("abandoned World"), Seqno: 5}, nil, nil, nil)
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	if decision, err := abandoned.WaitDecided(ctx); decision != world.Undecided || err == nil {
+		t.Fatalf("an ended wait returned %v, %v, want undecided", decision, err)
+	}
+	a.decide([]*spaceAdmission{abandoned}, world.Accepted, "", nil)
+	if len(a.accepted) != 0 {
+		t.Fatal("an abandoned admission stays held with nothing to release it")
+	}
 }
 
 // TestTrimKeepsWorldHeldOutside checks, on a Volume that frees at once, that

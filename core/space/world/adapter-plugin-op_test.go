@@ -282,6 +282,27 @@ func waitHealth(ctx context.Context, t *testing.T, health ccontainer.Watchable[*
 	}
 }
 
+// waitEngineAtHead waits until eng publishes the head its Space installed.
+// The engine follows replayed heads on its own goroutine, so a read right
+// after the Space's health changes may see the head before.
+func waitEngineAtHead(ctx context.Context, t *testing.T, eng world.Engine) {
+	t.Helper()
+	var a *space_world.Adapter
+	if err := world.AccessEngine(ctx, eng, func(_ context.Context, eng world.Engine) error {
+		a = eng.(*space_world.Engine).GetAdapter()
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	head, err := a.Head(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := eng.WaitSeqno(ctx, head.Seqno); err != nil {
+		t.Fatalf("the engine never published the Space's head at seqno %d: %v", head.Seqno, err)
+	}
+}
+
 // runPluginOpDeadline makes the plugin's handler answer replay's first run of
 // its operation with the error a plugin call returns at the operation
 // deadline. The deadline is a fact about this device, not the operation, so
@@ -521,6 +542,7 @@ func runPluginOpLateWait(t *testing.T) {
 	waitHealth(ctx, t, health, "caught up again", func(h *sobject.SharedObjectHealth) bool {
 		return h.GetReplay().GetCaughtUp() != nil
 	})
+	waitEngineAtHead(ctx, t, s.eng)
 	got := objectRoot(ctx, t, s.eng, "plugin-object")
 	if got.GetRootRef().EqualVT(stale.GetRootRef()) || got.EqualVT(written) {
 		t.Fatalf("plugin-object root after catch up = %v, want the later operation's", got)

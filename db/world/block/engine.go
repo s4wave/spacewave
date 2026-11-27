@@ -710,6 +710,14 @@ func (e *Engine) acquireHead() *publishedHead {
 	}
 }
 
+// publishedBelow reports whether the published head is below seqno, so a
+// head at seqno would advance it. It reads without the Engine lock; an
+// install rechecks it under the lock. After Close it reports false.
+func (e *Engine) publishedBelow(seqno uint64) bool {
+	p := e.pub.Load()
+	return p != nil && p.seqno < seqno
+}
+
 // headSignal is one published head as revision waiters see it.
 type headSignal struct {
 	// changed closes when a newer head or the Engine's close replaces this

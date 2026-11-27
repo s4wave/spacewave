@@ -41,7 +41,9 @@ type Authority interface {
 	Head(ctx context.Context) (Head, error)
 	// WatchHead calls fn with the current head, then with each later head in
 	// the order the Authority decides them, until release is called.
-	// A head arrives once when accepted and again when durable.
+	// A head arrives once when accepted and again when durable. A slow fn
+	// may skip heads it fell behind on, and the Authority decides candidates
+	// without waiting for fn.
 	// fn runs on one goroutine at a time and must not begin a turn.
 	WatchHead(ctx context.Context, fn func(Head)) (release func(), err error)
 	// Begin waits for a write turn.

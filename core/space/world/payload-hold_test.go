@@ -579,6 +579,7 @@ func runMissingTreePage(
 	waitHealth(ctx, t, health, "caught up after the pages returned", func(h *sobject.SharedObjectHealth) bool {
 		return h.GetReplay().GetCaughtUp() != nil
 	})
+	waitEngineAtHead(ctx, t, eng)
 	var wrote bool
 	if err := world.ExecTransaction(ctx, eng, false, func(ctx context.Context, ws world.WorldState) error {
 		var err error
