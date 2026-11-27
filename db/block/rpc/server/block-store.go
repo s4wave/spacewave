@@ -6,6 +6,7 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	block_rpc "github.com/s4wave/spacewave/db/block/rpc"
+	"github.com/s4wave/spacewave/db/tx"
 )
 
 // BlockStore implements the BlockStore RPC service.
@@ -57,7 +58,7 @@ func (s *BlockStore) PutBlock(
 	}
 	outRef, existed, err := s.store.PutBlock(ctx, req.GetData(), req.GetPutOpts())
 	if err != nil {
-		resp.Error = err.Error()
+		resp.Error, resp.Failure = err.Error(), writeFailure(err)
 	} else {
 		resp.Ref = outRef
 		resp.Existed = existed
@@ -94,7 +95,7 @@ func (s *BlockStore) PutBlockBatch(
 	// Report the store's batch result through the service response.
 	existed, err := s.store.PutBlockBatch(ctx, entries)
 	if err != nil {
-		resp.Error = err.Error()
+		resp.Error, resp.Failure = err.Error(), writeFailure(err)
 	} else {
 		resp.Existed = existed
 	}
@@ -171,9 +172,18 @@ func (s *BlockStore) RmBlock(
 	err := s.store.RmBlock(ctx, req.GetRef())
 	resp := &block_rpc.RmBlockResponse{}
 	if err != nil {
-		resp.Error = err.Error()
+		resp.Error, resp.Failure = err.Error(), writeFailure(err)
 	}
 	return resp, nil
+}
+
+// writeFailure classifies a failed write so the client can return the same
+// error identity: a read-only transaction's refusal stays tx.ErrNotWrite.
+func writeFailure(err error) block_rpc.WriteBlockFailure {
+	if errors.Is(err, tx.ErrNotWrite) {
+		return block_rpc.WriteBlockFailure_WRITE_BLOCK_FAILURE_NOT_WRITE
+	}
+	return block_rpc.WriteBlockFailure_WRITE_BLOCK_FAILURE_ERROR
 }
 
 // StatBlock returns metadata about a block without reading its data.

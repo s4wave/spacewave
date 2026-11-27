@@ -2285,7 +2285,7 @@
           ]
         },
         "github.com/s4wave/spacewave/db/block/rpc": {
-          "hash": "2c8bd08998c5eac060333d8b4826bd416530212b6ab753077d3d38392548d952",
+          "hash": "6ba4a4e0de0c8164219da040979938abd73fdc1cb5f96a8c5e671700499bc1bf",
           "generatedFiles": [
             "db/block/rpc/block.pb.go",
             "db/block/rpc/block.pb.ts",

@@ -10,6 +10,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_rpc "github.com/s4wave/spacewave/db/block/rpc"
 	block_rpc_server "github.com/s4wave/spacewave/db/block/rpc/server"
+	"github.com/s4wave/spacewave/db/tx"
 )
 
 // testBlockStoreClient records feature and batch calls without a transport.
@@ -282,6 +283,47 @@ func TestBlockStoreGetBlockKeepsCorruptClass(t *testing.T) {
 		}
 		if !errors.Is(err, block.ErrBlockCorrupt) {
 			t.Fatalf("read with refs %v: %v, want ErrBlockCorrupt", withRefs, err)
+		}
+	}
+}
+
+// serverBlockStoreClient answers the write RPCs from a real service.
+type serverBlockStoreClient struct {
+	testBlockStoreClient
+	// server serves every write.
+	server *block_rpc_server.BlockStore
+}
+
+func (c *serverBlockStoreClient) PutBlock(ctx context.Context, req *block_rpc.PutBlockRequest) (*block_rpc.PutBlockResponse, error) {
+	return c.server.PutBlock(ctx, req)
+}
+
+func (c *serverBlockStoreClient) PutBlockBatch(ctx context.Context, req *block_rpc.PutBlockBatchRequest) (*block_rpc.PutBlockBatchResponse, error) {
+	return c.server.PutBlockBatch(ctx, req)
+}
+
+func (c *serverBlockStoreClient) RmBlock(ctx context.Context, req *block_rpc.RmBlockRequest) (*block_rpc.RmBlockResponse, error) {
+	return c.server.RmBlock(ctx, req)
+}
+
+// TestBlockStoreWritesKeepNotWrite checks that a serving store's read-only
+// refusal reaches the client as tx.ErrNotWrite on every write path, so a
+// caller can tell a read transaction's refusal from a failed write.
+func TestBlockStoreWritesKeepNotWrite(t *testing.T) {
+	data := []byte("block")
+	ref, err := block.BuildBlockRef(data, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := block_rpc_server.NewBlockStore(block.NewReadOnlyStore(block.NopStoreOps{}))
+	store := NewBlockStore(&serverBlockStoreClient{server: server}, 0, false)
+
+	_, _, putErr := store.PutBlock(t.Context(), data, nil)
+	_, batchErr := store.PutBlockBatch(t.Context(), []*block.PutBatchEntry{{Ref: ref, Data: data}})
+	rmErr := store.RmBlock(t.Context(), ref)
+	for name, err := range map[string]error{"PutBlock": putErr, "PutBlockBatch": batchErr, "RmBlock": rmErr} {
+		if !errors.Is(err, tx.ErrNotWrite) || err.Error() != tx.ErrNotWrite.Error() {
+			t.Fatalf("%s: %v, want tx.ErrNotWrite", name, err)
 		}
 	}
 }

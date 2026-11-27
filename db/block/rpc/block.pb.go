@@ -16,6 +16,44 @@ import (
 	hash "github.com/s4wave/spacewave/net/hash"
 )
 
+// WriteBlockFailure classifies a failed block write.
+type WriteBlockFailure int32
+
+const (
+	// WRITE_BLOCK_FAILURE_ERROR is any failure without a class below. The error
+	// field carries the failure text.
+	WriteBlockFailure_WRITE_BLOCK_FAILURE_ERROR WriteBlockFailure = 0
+	// WRITE_BLOCK_FAILURE_NOT_WRITE means the serving store refused the write
+	// because its transaction is read-only: tx.ErrNotWrite.
+	WriteBlockFailure_WRITE_BLOCK_FAILURE_NOT_WRITE WriteBlockFailure = 1
+)
+
+// Enum value maps for WriteBlockFailure.
+var (
+	WriteBlockFailure_name = map[int32]string{
+		0: "WRITE_BLOCK_FAILURE_ERROR",
+		1: "WRITE_BLOCK_FAILURE_NOT_WRITE",
+	}
+	WriteBlockFailure_value = map[string]int32{
+		"WRITE_BLOCK_FAILURE_ERROR":     0,
+		"WRITE_BLOCK_FAILURE_NOT_WRITE": 1,
+	}
+)
+
+func (x WriteBlockFailure) Enum() *WriteBlockFailure {
+	p := new(WriteBlockFailure)
+	*p = x
+	return p
+}
+
+func (x WriteBlockFailure) String() string {
+	name, valid := WriteBlockFailure_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // GetBlockFailure classifies a failed block read.
 type GetBlockFailure int32
 
@@ -154,6 +192,9 @@ type PutBlockResponse struct {
 	Existed bool `protobuf:"varint,2,opt,name=existed,proto3" json:"existed,omitempty"`
 	// Error is any error adding the block to the store.
 	Error string `protobuf:"bytes,3,opt,name=error,proto3" json:"error,omitempty"`
+	// Failure classifies error, so the client returns the same error identity
+	// the serving store did.
+	Failure WriteBlockFailure `protobuf:"varint,4,opt,name=failure,proto3" json:"failure,omitempty"`
 }
 
 func (x *PutBlockResponse) Reset() {
@@ -181,6 +222,13 @@ func (x *PutBlockResponse) GetError() string {
 		return x.Error
 	}
 	return ""
+}
+
+func (x *PutBlockResponse) GetFailure() WriteBlockFailure {
+	if x != nil {
+		return x.Failure
+	}
+	return WriteBlockFailure_WRITE_BLOCK_FAILURE_ERROR
 }
 
 // PutBlockBatchEntry is one block write in a batch request.
@@ -267,6 +315,8 @@ type PutBlockBatchResponse struct {
 	// Existed reports, for each request entry in order, whether the block was
 	// already stored before the write. A tombstone entry reports false.
 	Existed []bool `protobuf:"varint,2,rep,packed,name=existed,proto3" json:"existed,omitempty"`
+	// Failure classifies error, as PutBlockResponse.failure does.
+	Failure WriteBlockFailure `protobuf:"varint,3,opt,name=failure,proto3" json:"failure,omitempty"`
 }
 
 func (x *PutBlockBatchResponse) Reset() {
@@ -287,6 +337,13 @@ func (x *PutBlockBatchResponse) GetExisted() []bool {
 		return x.Existed
 	}
 	return nil
+}
+
+func (x *PutBlockBatchResponse) GetFailure() WriteBlockFailure {
+	if x != nil {
+		return x.Failure
+	}
+	return WriteBlockFailure_WRITE_BLOCK_FAILURE_ERROR
 }
 
 // GetBlockRequest requests to get a block from the store.
@@ -519,6 +576,8 @@ type RmBlockResponse struct {
 	// Error is any error removing the block in the store.
 	// Will be empty if the block did not exist.
 	Error string `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// Failure classifies error, as PutBlockResponse.failure does.
+	Failure WriteBlockFailure `protobuf:"varint,2,opt,name=failure,proto3" json:"failure,omitempty"`
 }
 
 func (x *RmBlockResponse) Reset() {
@@ -532,6 +591,13 @@ func (x *RmBlockResponse) GetError() string {
 		return x.Error
 	}
 	return ""
+}
+
+func (x *RmBlockResponse) GetFailure() WriteBlockFailure {
+	if x != nil {
+		return x.Failure
+	}
+	return WriteBlockFailure_WRITE_BLOCK_FAILURE_ERROR
 }
 
 // StatBlockRequest requests metadata about a block.
@@ -727,6 +793,7 @@ func (m *PutBlockResponse) CloneVT() *PutBlockResponse {
 	r := new(PutBlockResponse)
 	r.Existed = m.Existed
 	r.Error = m.Error
+	r.Failure = m.Failure
 	r.Ref = protobuf_go_lite.CloneVTValue(m.Ref)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -780,6 +847,7 @@ func (m *PutBlockBatchResponse) CloneVT() *PutBlockBatchResponse {
 	}
 	r := new(PutBlockBatchResponse)
 	r.Error = m.Error
+	r.Failure = m.Failure
 	r.Existed = protobuf_go_lite.CloneSlice(m.Existed)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -918,6 +986,7 @@ func (m *RmBlockResponse) CloneVT() *RmBlockResponse {
 	}
 	r := new(RmBlockResponse)
 	r.Error = m.Error
+	r.Failure = m.Failure
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1107,6 +1176,9 @@ func (this *PutBlockResponse) EqualVT(that *PutBlockResponse) bool {
 	if this.Error != that.Error {
 		return false
 	}
+	if this.Failure != that.Failure {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -1180,6 +1252,9 @@ func (this *PutBlockBatchResponse) EqualVT(that *PutBlockBatchResponse) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualSlice(this.Existed, that.Existed) {
+		return false
+	}
+	if this.Failure != that.Failure {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1369,6 +1444,9 @@ func (this *RmBlockResponse) EqualVT(that *RmBlockResponse) bool {
 	if this.Error != that.Error {
 		return false
 	}
+	if this.Failure != that.Failure {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -1467,6 +1545,46 @@ func (this *SyncResponse) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+// MarshalProtoJSON marshals the WriteBlockFailure to JSON.
+func (x WriteBlockFailure) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), WriteBlockFailure_name)
+}
+
+// MarshalText marshals the WriteBlockFailure to text.
+func (x WriteBlockFailure) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), WriteBlockFailure_name)), nil
+}
+
+// MarshalJSON marshals the WriteBlockFailure to JSON.
+func (x WriteBlockFailure) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WriteBlockFailure from JSON.
+func (x *WriteBlockFailure) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(WriteBlockFailure_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read WriteBlockFailure enum: %v", err)
+		return
+	}
+	*x = WriteBlockFailure(v)
+}
+
+// UnmarshalText unmarshals the WriteBlockFailure from text.
+func (x *WriteBlockFailure) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), WriteBlockFailure_value)
+	if err != nil {
+		return err
+	}
+	*x = WriteBlockFailure(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the WriteBlockFailure from JSON.
+func (x *WriteBlockFailure) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the GetBlockFailure to JSON.
@@ -1730,6 +1848,11 @@ func (x *PutBlockResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("error")
 		s.WriteString(x.Error)
 	}
+	if x.Failure != 0 || s.HasField("failure") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("failure")
+		x.Failure.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1760,6 +1883,9 @@ func (x *PutBlockResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "error":
 			s.AddField("error")
 			x.Error = s.ReadString()
+		case "failure":
+			s.AddField("failure")
+			x.Failure.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -1949,6 +2075,11 @@ func (x *PutBlockBatchResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("existed")
 		s.WriteBoolArray(x.Existed)
 	}
+	if x.Failure != 0 || s.HasField("failure") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("failure")
+		x.Failure.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1976,6 +2107,9 @@ func (x *PutBlockBatchResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				return
 			}
 			x.Existed = s.ReadBoolArray()
+		case "failure":
+			s.AddField("failure")
+			x.Failure.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -2422,6 +2556,11 @@ func (x *RmBlockResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("error")
 		s.WriteString(x.Error)
 	}
+	if x.Failure != 0 || s.HasField("failure") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("failure")
+		x.Failure.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2442,6 +2581,9 @@ func (x *RmBlockResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "error":
 			s.AddField("error")
 			x.Error = s.ReadString()
+		case "failure":
+			s.AddField("failure")
+			x.Failure.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -2861,6 +3003,11 @@ func (m *PutBlockResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Failure != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Failure))
+		i--
+		dAtA[i] = 0x20
+	}
 	if len(m.Error) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.Error)
 		i--
@@ -3025,6 +3172,11 @@ func (m *PutBlockBatchResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Failure != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Failure))
+		i--
+		dAtA[i] = 0x18
 	}
 	if len(m.Existed) > 0 {
 		for iNdEx := len(m.Existed) - 1; iNdEx >= 0; iNdEx-- {
@@ -3407,6 +3559,11 @@ func (m *RmBlockResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Failure != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Failure))
+		i--
+		dAtA[i] = 0x10
+	}
 	if len(m.Error) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.Error)
 		i--
@@ -3657,6 +3814,7 @@ func (m *PutBlockResponse) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Existed)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Error)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Failure)
 	n += len(m.unknownFields)
 	return n
 }
@@ -3704,6 +3862,7 @@ func (m *PutBlockBatchResponse) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Error)
 	n += protobuf_go_lite.SizeBoolPacked(1, m.Existed)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Failure)
 	n += len(m.unknownFields)
 	return n
 }
@@ -3816,6 +3975,7 @@ func (m *RmBlockResponse) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Error)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Failure)
 	n += len(m.unknownFields)
 	return n
 }
@@ -3871,6 +4031,10 @@ func (m *SyncResponse) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Error)
 	n += len(m.unknownFields)
 	return n
+}
+
+func (x WriteBlockFailure) MarshalProtoText() string {
+	return x.String()
 }
 
 func (x GetBlockFailure) MarshalProtoText() string {
@@ -3958,6 +4122,10 @@ func (x *PutBlockResponse) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "error")
 		protobuf_go_lite.TextWriteString(&sb, x.Error)
 	}
+	if x.Failure != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "failure")
+		protobuf_go_lite.TextWriteStringer(&sb, WriteBlockFailure(x.Failure))
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -4039,6 +4207,10 @@ func (x *PutBlockBatchResponse) MarshalProtoText() string {
 			protobuf_go_lite.TextWriteBool(&sb, v)
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.Failure != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "failure")
+		protobuf_go_lite.TextWriteStringer(&sb, WriteBlockFailure(x.Failure))
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -4207,6 +4379,10 @@ func (x *RmBlockResponse) MarshalProtoText() string {
 	if x.Error != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "error")
 		protobuf_go_lite.TextWriteString(&sb, x.Error)
+	}
+	if x.Failure != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "failure")
+		protobuf_go_lite.TextWriteStringer(&sb, WriteBlockFailure(x.Failure))
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -4598,6 +4774,17 @@ func (m *PutBlockResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Error = v
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Failure", wireType)
+			}
+			m.Failure = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Failure = WriteBlockFailure(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -4835,6 +5022,17 @@ func (m *PutBlockBatchResponse) UnmarshalVT(dAtA []byte) error {
 				}
 			} else {
 				return fmt.Errorf("proto: wrong wireType = %d for field Existed", wireType)
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Failure", wireType)
+			}
+			m.Failure = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Failure = WriteBlockFailure(_v)
+			if err != nil {
+				return err
 			}
 		default:
 			iNdEx = preIndex
@@ -5390,6 +5588,17 @@ func (m *RmBlockResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Error = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Failure", wireType)
+			}
+			m.Failure = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Failure = WriteBlockFailure(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
