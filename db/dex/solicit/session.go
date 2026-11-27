@@ -52,6 +52,10 @@ type peerSession struct {
 	handling map[uint32]*handledRequest
 	// rate measures the session's delivery while pending is not empty.
 	rate deliveryRate
+	// frontier maps the key of each ref a subtree stream from the peer named
+	// and left unsent at its budget to its entry, which the next subtree
+	// request for one of them asks for with the rest.
+	frontier map[string]*frontierRef
 }
 
 // queuedSend states: a queued message is either written or abandoned by its
@@ -374,13 +378,23 @@ func (s *peerSession) handleRequest(
 		}
 	}()
 
-	// Answer the ref, with more set when the blocks under it follow: a subtree
-	// request whose ref this side holds with its refs known, sent as data. A
-	// subtree request reads as a walk, so a store laid out in graph order
+	// A subtree request reads as a walk, so a store laid out in graph order
 	// reads the subtree's structure with the ref.
 	if req.GetSubtreeBytes() != 0 {
 		requestCtx = block.WithSubtreeRead(requestCtx)
 	}
+
+	// Answer a frontier request with the stream alone, walking its roots as
+	// the children of one block.
+	if req.GetRef().GetEmpty() && len(req.GetRefs()) != 0 && req.GetSubtreeBytes() != 0 {
+		roots := req.GetRefs()[:min(len(req.GetRefs()), maxFrontierRefs)]
+		budget := min(req.GetSubtreeBytes(), maxSubtreeBytes)
+		s.sendSubtree(ctx, requestCtx, h, req.GetRequestId(), int(budget), roots, access)
+		return
+	}
+
+	// Answer the ref, with more set when the blocks under it follow: a subtree
+	// request whose ref this side holds with its refs known, sent as data.
 	resp, local := s.buildResponse(requestCtx, req)
 	resp.More = local && req.GetSubtreeBytes() != 0 && !resp.GetLinked() &&
 		resp.GetRefsKnown() && len(resp.GetRefs()) != 0
@@ -396,6 +410,24 @@ func (s *peerSession) handleRequest(
 		budget := min(req.GetSubtreeBytes(), maxSubtreeBytes)
 		s.sendSubtree(ctx, requestCtx, h, req.GetRequestId(), int(budget), resp.GetRefs(), access)
 	}
+}
+
+// subtreeCut returns the refs a subtree walk stopped at the budget leaves
+// unsent: next, the block that did not fit, then the blocks read and the
+// siblings not yet read at each level, deepest first, skipping those met, up
+// to maxFrontierRefs. The requester asks for them next in one
+// frontier request.
+func subtreeCut(stack []*subtreeFrame, next *block.BlockRef, seen map[string]struct{}) []*block.BlockRef {
+	cut := []*block.BlockRef{next}
+	for i := len(stack) - 1; i >= 0 && len(cut) < maxFrontierRefs; i-- {
+		cut = append(cut, stack[i].heldRefs...)
+		for _, ref := range stack[i].refs {
+			if _, ok := seen[ref.MapKey()]; !ok {
+				cut = append(cut, ref)
+			}
+		}
+	}
+	return cut[:min(len(cut), maxFrontierRefs)]
 }
 
 // maxSubtreeBytes bounds the block data a subtree request is answered with
@@ -427,7 +459,8 @@ type subtreeFrame struct {
 // depth first, a stop leaves whole subtrees unsent, at most the unsent
 // siblings along one path, rather than every block of a level. It walks no ref
 // the requester pruned and none twice. A last response without more ends the
-// stream, unless the request already ended.
+// stream, unless the request already ended; after a stop at the budget it
+// lists the refs the walk left, as subtreeCut gives them.
 func (s *peerSession) sendSubtree(ctx, requestCtx context.Context, h *handledRequest, id uint32, budget int, refs []*block.BlockRef, access RequestAccess) {
 	// Read this side's blocks through one reader for the whole walk.
 	r := &localReader{s: s}
@@ -441,6 +474,7 @@ func (s *peerSession) sendSubtree(ctx, requestCtx context.Context, h *handledReq
 	seen := make(map[string]struct{})
 	stack := []*subtreeFrame{{refs: refs}}
 	var sends []*queuedSend
+	var cut []*block.BlockRef
 	sent := 0
 	for len(stack) != 0 && requestCtx.Err() == nil {
 		top := stack[len(stack)-1]
@@ -456,6 +490,7 @@ func (s *peerSession) sendSubtree(ctx, requestCtx context.Context, h *handledReq
 				continue
 			}
 			if sent+len(blk.Data) > budget {
+				cut = subtreeCut(stack, ref, seen)
 				break
 			}
 			sent += len(blk.Data)
@@ -524,7 +559,7 @@ func (s *peerSession) sendSubtree(ctx, requestCtx context.Context, h *handledReq
 		}
 	}
 	if requestCtx.Err() == nil {
-		end := &DexMessage{RequestId: id, IsResponse: true}
+		end := &DexMessage{RequestId: id, IsResponse: true, Refs: cut}
 		if err := s.sendMessage(ctx, requestCtx, end, access, false); err != nil && ctx.Err() == nil {
 			s.le.WithError(err).Debug("dex session send error")
 		}
@@ -914,70 +949,34 @@ type subtreeAsk struct {
 // returned unverified; a linked answer to a request without linkedOK is an
 // error, so an untrusted peer cannot stand in a linked answer for the data.
 // With sub it also asks for the blocks under ref and returns those the peer
-// streams, as readSubtree keeps them.
+// streams, as readSubtree keeps them; a ref on the session's frontier is asked
+// for with the rest of it, as requestFrontier describes.
 func (s *peerSession) requestBlock(ctx context.Context, ref *block.BlockRef, hops uint32, linkedOK bool, sub *subtreeAsk) (*DexMessage, []*block.PutBatchEntry, error) {
 	// Reject block requests after the peer session closes.
 	if s.closed.Load() {
 		return nil, nil, errSessionClosed
 	}
 
-	// Build the request. Its answer may carry one block, and the budget's
-	// data under it.
-	id := s.nextID.Add(1)
-	req := &DexMessage{
-		RequestId:     id,
-		Ref:           ref,
-		RemainingHops: hops,
-		LinkedOk:      linkedOK,
-	}
-	p := &pendingRequest{wake: make(chan struct{}, 1), limit: maxMessageSize}
+	// Take ref from a frontier request when an earlier stream named it.
 	if sub != nil {
-		req.SubtreeBytes = sub.budget
-		p.limit += int(sub.budget)
-	}
-
-	// Register the pending request before sending it.
-	s.mtx.Lock()
-	if s.closed.Load() {
-		s.mtx.Unlock()
-		return nil, nil, errSessionClosed
-	}
-	s.pending[id] = p
-	s.rate.begin(time.Now())
-	s.mtx.Unlock()
-	defer func() {
-		s.mtx.Lock()
-		delete(s.pending, id)
-		if len(s.pending) == 0 {
-			s.rate.stop()
+		if found, blocks, ok := s.requestFrontier(ctx, ref, sub); ok {
+			return found, blocks, nil
 		}
-		s.mtx.Unlock()
-	}()
-
-	// Count the session's bytes toward the read while the request is
-	// pending.
-	if p := getReadProgress(ctx); p != nil {
-		defer p.end(p.begin(&s.rate.received))
 	}
 
-	// Send the block request to the peer.
-	if err := s.sendMsg(ctx, req); err != nil {
+	// Send the request. Its answer may carry one block, and the budget's data
+	// under it.
+	req := &DexMessage{Ref: ref, RemainingHops: hops, LinkedOk: linkedOK}
+	limit := 0
+	if sub != nil {
+		req.SubtreeBytes, limit = sub.budget, int(sub.budget)
+	}
+	p, finish, err := s.openRequest(ctx, req, limit)
+	if err != nil {
 		return nil, nil, err
 	}
-
-	// A request left before its last response tells the peer to stop serving
-	// it, so the peer does not spend its upload on responses nobody reads.
-	// The cancel outlives ctx and ends with the session, whose close fails
-	// the write.
 	open := true
-	defer func() {
-		if open && !s.closed.Load() {
-			sendCtx := context.WithoutCancel(ctx)
-			go func() {
-				_ = s.sendMsg(sendCtx, &DexMessage{RequestId: id, Cancel: true})
-			}()
-		}
-	}()
+	defer func() { finish(open) }()
 
 	// Await and check the answer for ref.
 	msgs, err := s.take(ctx, p)
@@ -991,13 +990,73 @@ func (s *peerSession) requestBlock(ctx context.Context, ref *block.BlockRef, hop
 	}
 
 	// Read the blocks under a verified block with its refs, when this request
-	// claims them.
+	// claims them, and remember what the stream named and did not send.
 	if sub == nil || found.GetLinked() || !found.GetRefsKnown() || (sub.claim != nil && !sub.claim()) {
 		return found, nil, nil
 	}
-	var blocks []*block.PutBatchEntry
-	blocks, open = s.readSubtree(ctx, id, p, sub, found.GetRefs(), msgs[1:])
+	blocks, unsent, open := s.readSubtree(ctx, req.GetRequestId(), p, sub, found.GetRefs(), msgs[1:])
+	s.rememberFrontier(unsent)
 	return found, blocks, nil
+}
+
+// openRequest sends req under a new request id and registers it to receive
+// its responses, which may carry limit bytes of block data beyond one
+// message. The caller takes them from the returned pending request, then
+// calls finish with whether the request is still open: finish unregisters it
+// and, while it is open, tells the peer to stop serving it, so the peer does
+// not spend its upload on responses nobody reads.
+func (s *peerSession) openRequest(ctx context.Context, req *DexMessage, limit int) (*pendingRequest, func(open bool), error) {
+	// Register the pending request before sending it.
+	id := s.nextID.Add(1)
+	req.RequestId = id
+	p := &pendingRequest{wake: make(chan struct{}, 1), limit: maxMessageSize + limit}
+	s.mtx.Lock()
+	if s.closed.Load() {
+		s.mtx.Unlock()
+		return nil, nil, errSessionClosed
+	}
+	s.pending[id] = p
+	s.rate.begin(time.Now())
+	s.mtx.Unlock()
+
+	// Count the session's bytes toward the read while the request is
+	// pending.
+	var endProgress func()
+	if rp := getReadProgress(ctx); rp != nil {
+		end := rp.begin(&s.rate.received)
+		endProgress = func() { rp.end(end) }
+	}
+
+	// Unregister the request, and cancel it at the peer while open. The
+	// cancel outlives ctx and ends with the session, whose close fails the
+	// write.
+	finish := func(open bool) {
+		// Release the registration and the progress count.
+		s.mtx.Lock()
+		delete(s.pending, id)
+		if len(s.pending) == 0 {
+			s.rate.stop()
+		}
+		s.mtx.Unlock()
+		if endProgress != nil {
+			endProgress()
+		}
+
+		// Tell the peer to stop serving a request left open.
+		if open && !s.closed.Load() {
+			sendCtx := context.WithoutCancel(ctx)
+			go func() {
+				_ = s.sendMsg(sendCtx, &DexMessage{RequestId: id, Cancel: true})
+			}()
+		}
+	}
+
+	// Send the request to the peer.
+	if err := s.sendMsg(ctx, req); err != nil {
+		finish(false)
+		return nil, nil, err
+	}
+	return p, finish, nil
 }
 
 // checkAnswer checks a peer's response to a request for ref. It returns the
@@ -1043,10 +1102,11 @@ func checkAnswer(ref *block.BlockRef, resp *DexMessage, linkedOK bool) (*DexMess
 // its prune arrived. A kept block's refs are the ones the peer listed, so its
 // entry is copied unless the process trusts listed refs, as
 // block.RefsSource.Asserted describes. After each batch of responses it
-// prunes the newly named
-// refs that sub.have reports held. It ends the stream at a block that fails
-// its hash or once the data passes sub.budget. It returns the kept blocks and
-// whether the request is still open.
+// prunes the newly named refs that sub.have reports held. It ends the stream
+// at a block that fails its hash or once the data passes sub.budget. It
+// returns the kept blocks and whether the request is still open, and, once the
+// stream ended, the refs its last response lists as left at the budget that
+// the stream named and the asker neither kept nor pruned.
 func (s *peerSession) readSubtree(
 	ctx context.Context,
 	id uint32,
@@ -1054,7 +1114,7 @@ func (s *peerSession) readSubtree(
 	sub *subtreeAsk,
 	refs []*block.BlockRef,
 	msgs []*DexMessage,
-) ([]*block.PutBatchEntry, bool) {
+) ([]*block.PutBatchEntry, []*block.BlockRef, bool) {
 	// want maps the key of each named ref to the ref, or to nil once its
 	// block is kept or it is pruned.
 	want := make(map[string]*block.BlockRef)
@@ -1079,11 +1139,17 @@ func (s *peerSession) readSubtree(
 		// Keep each block asked for.
 		for _, msg := range msgs {
 			if !msg.GetMore() {
-				return blocks, false
+				var unsent []*block.BlockRef
+				for _, ref := range msg.GetRefs() {
+					if want[ref.MapKey()] != nil {
+						unsent = append(unsent, want[ref.MapKey()])
+					}
+				}
+				return blocks, unsent, false
 			}
 			bytes += len(msg.GetData())
 			if bytes > int(sub.budget) {
-				return blocks, true
+				return blocks, nil, true
 			}
 			key := msg.GetRef().MapKey()
 			ref := want[key]
@@ -1091,7 +1157,7 @@ func (s *peerSession) readSubtree(
 				continue
 			}
 			if ref.VerifyData(msg.GetData(), true) != nil {
-				return blocks, true
+				return blocks, nil, true
 			}
 			want[key] = nil
 			blocks = append(blocks, &block.PutBatchEntry{
@@ -1112,7 +1178,7 @@ func (s *peerSession) readSubtree(
 		// Take the next responses.
 		var err error
 		if msgs, err = s.take(ctx, p); err != nil {
-			return blocks, true
+			return blocks, nil, true
 		}
 	}
 }

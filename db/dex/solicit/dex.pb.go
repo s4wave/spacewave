@@ -16,16 +16,20 @@ import (
 
 // DexMessage is a message sent over a DEX stream.
 // Each message is a request, a response, a cancel or a prune. A request has a
-// non-empty ref and a zero-value response. A response has is_response and the
-// response fields set. A cancel has cancel set and the request_id it withdraws.
-// A prune has prune set, the request_id of a subtree request and the refs its
-// requester holds.
+// non-empty ref, or is a frontier request, and a zero-value response. A
+// response has is_response and the response fields set. A cancel has cancel
+// set and the request_id it withdraws. A prune has prune set, the request_id
+// of a subtree request and the refs its requester holds.
 //
 // A response without more ends its request. A request with subtree_bytes set,
 // for a ref the responder holds with its refs known, is answered by a stream:
 // the response for ref with more set, then a response for each block under it
 // the responder sends, each with its ref and more set, then a last response
-// with neither. Any other request is answered by one response.
+// with neither, whose refs list, after a stop at the budget, the refs the
+// walk left unsent. A frontier request has no ref, refs naming several roots and
+// subtree_bytes set; it is answered by the same stream without the first
+// response, walking the roots as if one block named them. Any other request
+// is answered by one response.
 type DexMessage struct {
 	unknownFields []byte
 	// RequestId is a unique ID for this request/response pair.
@@ -47,7 +51,9 @@ type DexMessage struct {
 	// Zero means no forwarding allowed (local lookup only).
 	RemainingHops uint32 `protobuf:"varint,7,opt,name=remaining_hops,json=remainingHops,proto3" json:"remainingHops,omitempty"`
 	// Refs are the block's outgoing references when refs_known is set
-	// (response only). An empty list with refs_known set means a leaf.
+	// (response). An empty list with refs_known set means a leaf. On a
+	// frontier request they are the roots, on a stream's last response the
+	// refs left at the budget, and on a prune the held refs.
 	Refs []*block.BlockRef `protobuf:"bytes,8,rep,name=refs,proto3" json:"refs,omitempty"`
 	// RefsKnown is false when the responder held the block without its
 	// outgoing references (response only).

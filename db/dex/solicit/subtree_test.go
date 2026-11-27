@@ -11,6 +11,7 @@ import (
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
+	"golang.org/x/sync/errgroup"
 )
 
 // newTestLinkedSessions connects a session of asker to a session of server
@@ -65,44 +66,65 @@ func newSubtreeTestTree(t *testing.T, depth, fanout, size int) (linkedServeStore
 // syncSubtreeTestTree copies the tree under root from the peer behind sess
 // into dst the way a walk through the bucket lookup does: breadth first, it
 // asks for each block dst lacks, with a subtree of budget bytes unless budget
-// is zero, and writes back what arrives. It returns the requests it sent.
-func syncSubtreeTestTree(ctx context.Context, t *testing.T, sess *peerSession, dst block.StoreOps, root *block.BlockRef, children map[string][]*block.BlockRef, budget uint32) int {
+// is zero, and writes back what arrives. With concurrent set it asks for a
+// level's missing blocks at once, as the lookup's concurrent walk does. It
+// returns the requests the session sent.
+func syncSubtreeTestTree(ctx context.Context, t *testing.T, sess *peerSession, dst block.StoreOps, root *block.BlockRef, children map[string][]*block.BlockRef, budget uint32, concurrent bool) int {
 	t.Helper()
 	var sub *subtreeAsk
 	if budget != 0 {
 		sub = &subtreeAsk{budget: budget, have: dst.GetBlockExistsBatch}
 	}
-	requests := 0
+	fetch := func(ref *block.BlockRef) error {
+		// Check the store again, as a read through the lookup does, since an
+		// earlier answer at this level may have brought the block.
+		if held, err := dst.GetBlockExists(ctx, ref); err != nil || held {
+			return err
+		}
+		resp, blocks, err := sess.requestBlock(ctx, ref, 0, false, sub)
+		if err != nil || resp == nil {
+			return fmt.Errorf("request %s: found %v: %w", ref.MarshalString(), resp != nil, err)
+		}
+		blocks = append(blocks, &block.PutBatchEntry{Ref: ref, Data: resp.GetData(), Refs: resp.GetRefs(), RefsKnown: true})
+		_, err = dst.PutBlockBatch(ctx, blocks)
+		return err
+	}
+	start := sess.nextID.Load()
 	for level := []*block.BlockRef{root}; len(level) != 0; {
 		held, err := dst.GetBlockExistsBatch(ctx, level)
 		if err != nil {
 			t.Fatal(err)
 		}
 		var next []*block.BlockRef
+		var wg errgroup.Group
 		for i, ref := range level {
 			if !held[i] {
-				requests++
-				resp, blocks, err := sess.requestBlock(ctx, ref, 0, false, sub)
-				if err != nil || resp == nil {
-					t.Fatalf("request %s: found %v: %v", ref.MarshalString(), resp != nil, err)
-				}
-				blocks = append(blocks, &block.PutBatchEntry{Ref: ref, Data: resp.GetData(), Refs: resp.GetRefs(), RefsKnown: true})
-				if _, err := dst.PutBlockBatch(ctx, blocks); err != nil {
-					t.Fatal(err)
+				if !concurrent {
+					if err := fetch(ref); err != nil {
+						t.Fatal(err)
+					}
+				} else {
+					wg.Go(func() error { return fetch(ref) })
 				}
 			}
 			next = append(next, children[ref.MapKey()]...)
 		}
+		if err := wg.Wait(); err != nil {
+			t.Fatal(err)
+		}
 		level = next
 	}
-	return requests
+	return int(sess.nextID.Load() - start)
 }
 
 // TestSubtreeSyncScales copies a tree of fanout 10 and about 1 KiB blocks,
 // of 111 and then 1111 blocks, between two sessions with a 64 KiB subtree
-// budget. The requests stay a few per budget's worth of data at either size,
-// where asking one ref per request costs one per block: each budget's cut
-// leaves the unsent siblings along one path, each asked for on its own.
+// budget. The requests stay about one per budget's worth of data at either
+// size, where asking one ref per request costs one per block: each budget's
+// cut leaves the unsent siblings along one path on the session's frontier,
+// and the next miss asks for all of them at once. A concurrent copy of the
+// larger tree, whose misses join the frontier request already asking for
+// them, copies every block too.
 func TestSubtreeSyncScales(t *testing.T) {
 	ctx := t.Context()
 	const budget = 64 << 10
@@ -113,18 +135,10 @@ func TestSubtreeSyncScales(t *testing.T) {
 		server.SetLocalSource(func() block.StoreOps { return src })
 		sess := newTestLinkedSessions(t, ctx, newTestDexSolicitController(), server)
 
-		perRef := syncSubtreeTestTree(ctx, t, sess, block_mock.NewMockStore(hash.HashType_HashType_SHA256), root, children, 0)
+		perRef := syncSubtreeTestTree(ctx, t, sess, block_mock.NewMockStore(hash.HashType_HashType_SHA256), root, children, 0, false)
 		dst := block_mock.NewMockStore(hash.HashType_HashType_SHA256)
-		got := syncSubtreeTestTree(ctx, t, sess, dst, root, children, budget)
-		held, err := dst.GetBlockExistsBatch(ctx, all)
-		if err != nil {
-			t.Fatal(err)
-		}
-		for j, ref := range all {
-			if !held[j] {
-				t.Fatalf("depth %d: block %s not copied", depth, ref.MarshalString())
-			}
-		}
+		got := syncSubtreeTestTree(ctx, t, sess, dst, root, children, budget, false)
+		checkSubtreeCopied(ctx, t, dst, all)
 		budgets := float64(total) / budget
 		perBudget[i] = float64(got) / budgets
 		t.Logf("depth %d: %d blocks, %.1f budgets of data: %d requests with subtrees, %d one ref each", depth, len(children), budgets, got, perRef)
@@ -132,11 +146,35 @@ func TestSubtreeSyncScales(t *testing.T) {
 			t.Fatalf("depth %d: one ref each took %d requests for %d blocks", depth, perRef, len(children))
 		}
 	}
-	if perBudget[0] > 6 || perBudget[1] > 6 {
-		t.Fatalf("requests per budget %.1f at n and %.1f at 10n, want at most 6", perBudget[0], perBudget[1])
+	if perBudget[0] > 1.5 || perBudget[1] > 1.5 {
+		t.Fatalf("requests per budget %.1f at n and %.1f at 10n, want at most 1.5", perBudget[0], perBudget[1])
 	}
 	if perBudget[1] > 1.5*perBudget[0] {
 		t.Fatalf("requests per budget grew from %.1f at n to %.1f at 10n", perBudget[0], perBudget[1])
+	}
+
+	// Copy the larger tree with each level's misses asked for at once.
+	src, root, children, all, _ := newSubtreeTestTree(t, 4, 10, 1<<10)
+	server := newTestDexSolicitController()
+	server.SetLocalSource(func() block.StoreOps { return src })
+	sess := newTestLinkedSessions(t, ctx, newTestDexSolicitController(), server)
+	dst := block_mock.NewMockStore(hash.HashType_HashType_SHA256)
+	got := syncSubtreeTestTree(ctx, t, sess, dst, root, children, budget, true)
+	checkSubtreeCopied(ctx, t, dst, all)
+	t.Logf("concurrent: %d requests", got)
+}
+
+// checkSubtreeCopied fails t unless dst holds every block of all.
+func checkSubtreeCopied(ctx context.Context, t *testing.T, dst block.StoreOps, all []*block.BlockRef) {
+	t.Helper()
+	held, err := dst.GetBlockExistsBatch(ctx, all)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for j, ref := range all {
+		if !held[j] {
+			t.Fatalf("block %s not copied", ref.MarshalString())
+		}
 	}
 }
 
