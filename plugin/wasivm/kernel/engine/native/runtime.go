@@ -17,12 +17,8 @@ import (
 type Runtime struct {
 	// r is the wazero runtime.
 	r wazero.Runtime
-
-	// mtx guards instances.
-	mtx sync.Mutex
-	// instances maps each wazero module to its Instance, so a host call can
-	// find the instance that made it.
-	instances map[api.Module]*Instance
+	// table maps each wazero module to its Instance.
+	table *instanceTable
 }
 
 // New creates a Runtime.
@@ -31,8 +27,8 @@ func New(ctx context.Context) *Runtime {
 		WithCoreFeatures(api.CoreFeaturesV2 | experimental.CoreFeaturesThreads).
 		WithCloseOnContextDone(true)
 	return &Runtime{
-		r:         wazero.NewRuntimeWithConfig(ctx, cfg),
-		instances: make(map[api.Module]*Instance),
+		r:     wazero.NewRuntimeWithConfig(ctx, cfg),
+		table: &instanceTable{instances: make(map[api.Module]*Instance)},
 	}
 }
 
@@ -54,14 +50,14 @@ func (r *Runtime) Compile(ctx context.Context, wasm []byte) (engine.Module, erro
 	if err != nil {
 		return nil, err
 	}
-	return &Module{compiled: compiled, runtime: r}, nil
+	return &Module{r: r.r, compiled: compiled, table: r.table}, nil
 }
 
 // Snapshotter returns the snapshotter of the host call running under ctx, or
 // nil when its guest is not transformed with Asyncify.
 func (r *Runtime) Snapshotter(ctx context.Context) engine.Snapshotter {
 	fr := frameOf(ctx)
-	if fr == nil || fr.inst.unwinder == nil {
+	if fr == nil || !fr.suspendable() {
 		return nil
 	}
 	return snapshotter{fr: fr}
@@ -77,7 +73,7 @@ func (r *Runtime) Close(ctx context.Context) error {
 func (r *Runtime) hostCall(fn hostFunc) api.GoModuleFunc {
 	return func(ctx context.Context, mod api.Module, stack []uint64) {
 		// Run the call in the guest's innermost frame.
-		inst := r.instance(mod)
+		inst := r.table.get(mod)
 		var err error
 		if fr := inst.frame(); fr != nil {
 			err = fr.hostCall(ctx, fn, stack)
@@ -90,25 +86,34 @@ func (r *Runtime) hostCall(fn hostFunc) api.GoModuleFunc {
 	}
 }
 
-// instance returns the Instance of a wazero module.
-func (r *Runtime) instance(mod api.Module) *Instance {
-	r.mtx.Lock()
-	defer r.mtx.Unlock()
-	return r.instances[mod]
+// instanceTable maps each wazero module to its Instance, so a host call can
+// find the instance that made it.
+type instanceTable struct {
+	// mtx guards instances.
+	mtx sync.Mutex
+	// instances maps each wazero module to its Instance.
+	instances map[api.Module]*Instance
 }
 
-// addInstance records the Instance of a wazero module.
-func (r *Runtime) addInstance(mod api.Module, inst *Instance) {
-	r.mtx.Lock()
-	defer r.mtx.Unlock()
-	r.instances[mod] = inst
+// get returns the Instance of a wazero module.
+func (t *instanceTable) get(mod api.Module) *Instance {
+	t.mtx.Lock()
+	defer t.mtx.Unlock()
+	return t.instances[mod]
 }
 
-// removeInstance forgets the Instance of a wazero module.
-func (r *Runtime) removeInstance(mod api.Module) {
-	r.mtx.Lock()
-	defer r.mtx.Unlock()
-	delete(r.instances, mod)
+// add records the Instance of a wazero module.
+func (t *instanceTable) add(mod api.Module, inst *Instance) {
+	t.mtx.Lock()
+	defer t.mtx.Unlock()
+	t.instances[mod] = inst
+}
+
+// remove forgets the Instance of a wazero module.
+func (t *instanceTable) remove(mod api.Module) {
+	t.mtx.Lock()
+	defer t.mtx.Unlock()
+	delete(t.instances, mod)
 }
 
 // _ is a type assertion

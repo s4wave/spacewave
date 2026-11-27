@@ -10,10 +10,12 @@ import (
 
 // Module is a compiled wazero module.
 type Module struct {
+	// r is the wazero runtime that compiled it.
+	r wazero.Runtime
 	// compiled is the wazero module.
 	compiled wazero.CompiledModule
-	// runtime is the runtime that compiled it.
-	runtime *Runtime
+	// table records the instances of the runtime.
+	table *instanceTable
 }
 
 // Instantiate creates an instance of the module named name. The kernel calls
@@ -21,7 +23,7 @@ type Module struct {
 func (m *Module) Instantiate(ctx context.Context, name string) (engine.Instance, error) {
 	// Instantiate the guest without running its start functions.
 	cfg := wazero.NewModuleConfig().WithName(name).WithStartFunctions()
-	mod, err := m.runtime.r.InstantiateModule(ctx, m.compiled, cfg)
+	mod, err := m.r.InstantiateModule(ctx, m.compiled, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -32,8 +34,8 @@ func (m *Module) Instantiate(ctx context.Context, name string) (engine.Instance,
 		_ = mod.Close(ctx)
 		return nil, err
 	}
-	inst := &Instance{mod: mod, runtime: m.runtime, unwinder: unwinder}
-	m.runtime.addInstance(mod, inst)
+	inst := &Instance{mod: mod, table: m.table, calls: &callStack{unwinder: unwinder}}
+	m.table.add(mod, inst)
 	return inst, nil
 }
 

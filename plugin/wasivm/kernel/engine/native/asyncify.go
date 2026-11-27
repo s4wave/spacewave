@@ -35,10 +35,32 @@ type hostFunc = func(ctx context.Context, inst engine.Instance, stack []uint64) 
 // frameKey is the context key of the frame a host call runs in.
 type frameKey struct{}
 
+// callStack is the guest calls in progress on one instance, innermost last,
+// and the unwinder that suspends them. A host call may call into the guest
+// again, as a signal handler does.
+type callStack struct {
+	// unwinder suspends the guest, or is nil when the guest is not
+	// transformed with Asyncify.
+	unwinder *unwinder
+	// frames are the guest calls in progress, innermost last.
+	frames []*frame
+}
+
+// top returns the innermost guest call, or nil.
+func (s *callStack) top() *frame {
+	if len(s.frames) == 0 {
+		return nil
+	}
+	return s.frames[len(s.frames)-1]
+}
+
 // frame is one guest call in progress.
 type frame struct {
-	inst *Instance
-	// depth is the frame's index in the instance's frames.
+	// calls is the stack the frame is on.
+	calls *callStack
+	// inst is the instance the call runs in, which its host calls receive.
+	inst engine.Instance
+	// depth is the frame's index in the stack.
 	depth int
 	// name, fn and args are the export the call runs and its arguments.
 	// A rewind calls the export again.
@@ -62,15 +84,23 @@ func frameOf(ctx context.Context) *frame {
 	return fr
 }
 
-// call runs fn, the export name of i, with args as a new frame of i. When
-// rewind is set, the call first rewinds to that unwound stack, whose host
-// import then returns resume.
-func (i *Instance) call(ctx context.Context, name string, fn api.Function, args []uint64, rewind []byte, resume []uint64) ([]uint64, error) {
+// call runs fn, the export name of inst, with args as a new frame on the
+// stack. When rewind is set, the call first rewinds to that unwound stack,
+// whose host import then returns resume.
+func (s *callStack) call(
+	ctx context.Context,
+	inst engine.Instance,
+	name string,
+	fn api.Function,
+	args []uint64,
+	rewind []byte,
+	resume []uint64,
+) ([]uint64, error) {
 	// Push the frame, rewinding it first when it resumes an unwound stack.
-	fr := &frame{inst: i, depth: len(i.frames), name: name, fn: fn, args: args}
+	fr := &frame{calls: s, inst: inst, depth: len(s.frames), name: name, fn: fn, args: args}
 	ctx = context.WithValue(ctx, frameKey{}, fr)
-	i.frames = append(i.frames, fr)
-	defer func() { i.frames = i.frames[:fr.depth] }()
+	s.frames = append(s.frames, fr)
+	defer func() { s.frames = s.frames[:fr.depth] }()
 	if rewind != nil {
 		if err := fr.rewind(ctx, rewind, resume); err != nil {
 			return nil, err
@@ -100,7 +130,7 @@ func (i *Instance) call(ctx context.Context, name string, fn api.Function, args 
 
 		// Complete the capture and rewind to its host call.
 		fr.unwound = nil
-		stack, err := i.unwinder.stopUnwind(ctx)
+		stack, err := s.unwinder.stopUnwind(ctx)
 		if err != nil {
 			close(c.done)
 			return nil, err
@@ -113,12 +143,41 @@ func (i *Instance) call(ctx context.Context, name string, fn api.Function, args 
 	}
 }
 
+// suspendable reports whether the frame's guest is transformed with Asyncify,
+// so a host call can snapshot it.
+func (fr *frame) suspendable() bool {
+	return fr.calls.unwinder != nil
+}
+
+// outer returns the frame at depth on the frame's stack, or nil when the stack
+// is not that deep.
+func (fr *frame) outer(depth int) *frame {
+	if depth >= len(fr.calls.frames) {
+		return nil
+	}
+	return fr.calls.frames[depth]
+}
+
+// takeCapture returns the capture of the running host call, starting it on the
+// first snapshot. The host call unwinds the guest to it once it returns.
+func (fr *frame) takeCapture() *capture {
+	if fr.capture == nil {
+		fr.capture = &capture{
+			depth: fr.depth,
+			name:  fr.name,
+			args:  fr.args,
+			done:  make(chan struct{}),
+		}
+	}
+	return fr.capture
+}
+
 // rewind starts rewinding the frame's guest to the host import of stack,
 // which then returns resume. The caller then calls the export again.
 func (fr *frame) rewind(ctx context.Context, stack []byte, resume []uint64) error {
 	fr.rewinding = true
 	fr.resume = resume
-	return fr.inst.unwinder.startRewind(ctx, stack)
+	return fr.calls.unwinder.startRewind(ctx, stack)
 }
 
 // abandon ends the captures of a guest call that failed, so a fork waiting
@@ -142,7 +201,7 @@ func (fr *frame) hostCall(ctx context.Context, fn hostFunc, stack []uint64) erro
 		fr.rewinding = false
 		copy(stack, fr.resume)
 		fr.resume = nil
-		return fr.inst.unwinder.stopRewind(ctx)
+		return fr.calls.unwinder.stopRewind(ctx)
 	}
 
 	// Run the call, then unwind to complete a capture it took.
@@ -156,7 +215,7 @@ func (fr *frame) hostCall(ctx context.Context, fn hostFunc, stack []uint64) erro
 	fr.capture = nil
 	c.results = slices.Clone(stack)
 	fr.unwound = c
-	return fr.inst.unwinder.startUnwind(ctx)
+	return fr.calls.unwinder.startUnwind(ctx)
 }
 
 // capture is the guest stack unwound at one host call.
@@ -183,16 +242,7 @@ type snapshotter struct {
 
 // Snapshot captures the call stack of the running host call.
 func (s snapshotter) Snapshot() engine.Snapshot {
-	fr := s.fr
-	if fr.capture == nil {
-		fr.capture = &capture{
-			depth: fr.depth,
-			name:  fr.name,
-			args:  fr.args,
-			done:  make(chan struct{}),
-		}
-	}
-	return snapshot{c: fr.capture}
+	return snapshot{c: s.fr.takeCapture()}
 }
 
 // snapshot is the guest stack of one host call.
@@ -204,15 +254,18 @@ type snapshot struct {
 // not return: the restore panics through the guest to the frame's call.
 func (s snapshot) Restore(ctx context.Context, returnValues []uint64) {
 	// Find the frame at the capture's depth.
-	fr := frameOf(ctx)
-	if fr == nil || s.c.depth >= len(fr.inst.frames) {
+	var target *frame
+	if fr := frameOf(ctx); fr != nil {
+		target = fr.outer(s.c.depth)
+	}
+	if target == nil {
 		panic(errors.New("restore outside the guest call of its snapshot"))
 	}
 	if s.c.stack == nil {
 		panic(errNotUnwound)
 	}
 	panic(&restore{
-		frame:   fr.inst.frames[s.c.depth],
+		frame:   target,
 		stack:   s.c.stack,
 		results: slices.Clone(returnValues),
 	})
@@ -233,14 +286,10 @@ func (s snapshot) Resume(ctx context.Context, inst engine.Instance, returnValues
 
 	// Rewind a new outermost frame of inst to it.
 	target, ok := inst.(*Instance)
-	if !ok || target.unwinder == nil || s.c.depth != len(target.frames) {
+	if !ok {
 		return nil, errors.New("resume outside a fork of the snapshot's instance")
 	}
-	fn := target.mod.ExportedFunction(s.c.name)
-	if fn == nil {
-		return nil, errors.Errorf("resume of missing export %s", s.c.name)
-	}
-	return target.call(ctx, s.c.name, fn, s.c.args, s.c.stack, slices.Clone(returnValues))
+	return target.resume(ctx, s.c, slices.Clone(returnValues))
 }
 
 // restore carries a snapshot restore to the call of its frame.

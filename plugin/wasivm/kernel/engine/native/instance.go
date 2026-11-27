@@ -3,6 +3,7 @@ package native
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/tetratelabs/wazero/api"
 
 	"github.com/s4wave/spacewave/plugin/wasivm/kernel/engine"
@@ -13,22 +14,15 @@ import (
 type Instance struct {
 	// mod is the wazero module instance.
 	mod api.Module
-	// runtime is the runtime that instantiated it.
-	runtime *Runtime
-	// unwinder suspends the guest, or is nil when the guest is not
-	// transformed with Asyncify.
-	unwinder *unwinder
-	// frames are the guest calls in progress, innermost last. A host call
-	// may call into the guest again, as a signal handler does.
-	frames []*frame
+	// table records the instances of the runtime that instantiated it.
+	table *instanceTable
+	// calls are the guest calls in progress.
+	calls *callStack
 }
 
 // frame returns the innermost guest call, or nil.
 func (i *Instance) frame() *frame {
-	if len(i.frames) == 0 {
-		return nil
-	}
-	return i.frames[len(i.frames)-1]
+	return i.calls.top()
 }
 
 // Memory returns the instance's linear memory, or nil when the guest has
@@ -48,7 +42,7 @@ func (i *Instance) ExportedFunction(name string) engine.Function {
 	if fn == nil {
 		return nil
 	}
-	return &Function{inst: i, name: name, fn: fn}
+	return &Function{inst: i, calls: i.calls, name: name, fn: fn}
 }
 
 // ExportedGlobal returns an exported global, or nil when the guest does not
@@ -61,9 +55,23 @@ func (i *Instance) ExportedGlobal(name string) engine.Global {
 	return &Global{g: g}
 }
 
+// resume rewinds a new outermost guest call of the instance to the unwound
+// stack of c, whose host call then returns results. The instance is a fork of
+// the one c was taken in.
+func (i *Instance) resume(ctx context.Context, c *capture, results []uint64) ([]uint64, error) {
+	if i.calls.unwinder == nil || c.depth != len(i.calls.frames) {
+		return nil, errors.New("resume outside a fork of the snapshot's instance")
+	}
+	fn := i.mod.ExportedFunction(c.name)
+	if fn == nil {
+		return nil, errors.Errorf("resume of missing export %s", c.name)
+	}
+	return i.calls.call(ctx, i, c.name, fn, c.args, c.stack, results)
+}
+
 // Close stops the instance and releases it.
 func (i *Instance) Close(ctx context.Context) error {
-	i.runtime.removeInstance(i.mod)
+	i.table.remove(i.mod)
 	return i.mod.Close(ctx)
 }
 
