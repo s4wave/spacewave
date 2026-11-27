@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 
 	bldr_devtool "github.com/s4wave/spacewave/bldr/devtool"
 )
@@ -31,9 +32,8 @@ const (
 // Link the source to .s4wave/web, where the bldr web pkg resolver looks for a
 // materialized "@scope/name". Best effort: on failure the existing resolver
 // stages run and surface the original build error.
-func ensureWebSources(ctx context.Context, args *bldr_devtool.DevtoolArgs) {
+func ensureWebSources(ctx context.Context, le *logrus.Entry, args *bldr_devtool.DevtoolArgs) {
 	// Resolve the downstream repository root.
-	le := args.Logger
 	repoRoot, err := args.FindRepoRoot()
 	if err != nil {
 		le.WithError(err).Debug("ensure web sources: resolve repo root")

@@ -12,7 +12,7 @@ import (
 // PublishProject publishes a bundle to a repository.
 func (a *DevtoolArgs) PublishProject(ctx context.Context) error {
 	// init repo root and storage directories
-	le := a.Logger
+	le := a.logger
 
 	// Configure a finite release build with a minified entrypoint.
 	a.Watch = false                                       // explicitly disable watching during dist

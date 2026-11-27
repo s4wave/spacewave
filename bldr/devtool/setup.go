@@ -7,7 +7,7 @@ import "context"
 // ExecuteSetup executes the Setup CLI command.
 func (a *DevtoolArgs) ExecuteSetup(ctx context.Context) error {
 	// init repo root and storage directories
-	le := a.Logger
+	le := a.logger
 	repoRoot, stateDir, err := a.InitRepoRoot()
 	if err != nil {
 		return err

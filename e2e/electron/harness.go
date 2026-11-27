@@ -430,8 +430,7 @@ func (h *Harness) startDesktopRuntime(
 	h.doneErr = nil
 
 	// Configure Bldr to launch the Electron renderer from the harness state.
-	args := devtool.NewDevtoolArgs()
-	args.Logger = h.le
+	args := devtool.NewDevtoolArgs(h.le)
 	args.LogLevel = "debug"
 	args.StatePath = h.stateRoot
 	args.Watch = false

@@ -25,7 +25,7 @@ import (
 // ExecuteNativeProject starts the project as a native app.
 func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) (err error) {
 	// init repo root and storage directories
-	le := a.Logger
+	le := a.logger
 	repoRoot, stateDir, err := a.InitRepoRoot()
 	if err != nil {
 		return err

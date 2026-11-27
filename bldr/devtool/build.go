@@ -15,7 +15,7 @@ import (
 // BuildProject builds one of the targets defined in the project configuration.
 func (a *DevtoolArgs) BuildProject(ctx context.Context) (err error) {
 	// Resolve the project and state directories for a single build.
-	le := a.Logger
+	le := a.logger
 	a.Watch = a.BuildWatch
 	repoRoot, stateDir, err := a.InitRepoRoot()
 	if err != nil {

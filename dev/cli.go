@@ -10,6 +10,7 @@ package dev
 import (
 	"github.com/aperturerobotics/cli"
 	bldr_devtool "github.com/s4wave/spacewave/bldr/devtool"
+	"github.com/sirupsen/logrus"
 )
 
 // CLIName is the spacewave-dev binary name.
@@ -25,7 +26,8 @@ const downstreamSrcPath = "../.."
 // BuildApp constructs the spacewave-dev CLI application.
 func BuildApp() *cli.App {
 	// Configure the downstream source path for the devtool arguments.
-	args := bldr_devtool.NewDevtoolArgs()
+	le := logrus.NewEntry(logrus.New())
+	args := bldr_devtool.NewDevtoolArgs(le)
 	args.BldrSrcPath = downstreamSrcPath
 
 	// Construct the CLI application and expose the devtool commands.
@@ -40,7 +42,7 @@ func BuildApp() *cli.App {
 	app.Before = func(c *cli.Context) error {
 		switch c.Args().First() {
 		case "setup", "start", "build", "static":
-			ensureWebSources(c.Context, args)
+			ensureWebSources(c.Context, le, args)
 		}
 		return nil
 	}

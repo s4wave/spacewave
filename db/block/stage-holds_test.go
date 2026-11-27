@@ -35,9 +35,7 @@ func TestStageWrappersHoldCompleteRoots(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if len(held) != 1 || !held[0] || len(inner.Held) != 1 || !inner.Held[0].EqualVT(ref) {
-				t.Fatalf("held %v, inner stage held %v, want the root held", held, inner.Held)
-			}
+			inner.RequireHold(t, held, ref)
 		})
 	}
 }
@@ -63,9 +61,7 @@ func TestBufferedStoreHoldDoesNotFlushPendingWrites(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(held) != 1 || !held[0] || len(inner.Held) != 1 || !inner.Held[0].EqualVT(proved) {
-		t.Fatalf("held %v, inner held %v, want proved root", held, inner.Held)
-	}
+	inner.RequireHold(t, held, proved)
 	if exists, err := physical.GetBlockExists(ctx, pending); err != nil || exists {
 		t.Fatalf("pending write reached inner store during hold: exists=%v err=%v", exists, err)
 	}

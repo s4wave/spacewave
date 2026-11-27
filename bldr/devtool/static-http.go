@@ -13,7 +13,7 @@ import (
 // ExecuteStaticHttpServer runs the static http server command.
 func (a *DevtoolArgs) ExecuteStaticHttpServer(ctx context.Context) error {
 	// Resolve the static server address and filesystem root.
-	le := a.Logger
+	le := a.logger
 	listenAddr := a.WebListenAddr
 	servePath := a.ServeStaticPath
 	if servePath == "" {

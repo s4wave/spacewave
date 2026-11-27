@@ -9,7 +9,7 @@ import (
 var devtoolArgs *bldr_dev.DevtoolArgs
 
 func init() {
-	devtoolArgs = bldr_dev.NewDevtoolArgs()
+	devtoolArgs = bldr_dev.NewDevtoolArgs(nil)
 	commands = append(commands, devtoolArgs.BuildSubCommands()...)
 	flags = append(flags, devtoolArgs.BuildFlags()...)
 	afterFuncs = append(afterFuncs, devtoolArgs.CloseLogFiles)

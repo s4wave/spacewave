@@ -15,8 +15,8 @@ type HoldingStage struct {
 	block.LeasedRoots
 	block.RootProofs
 
-	// Held lists the roots held, in call order.
-	Held []*block.BlockRef
+	// held lists the roots held, in call order.
+	held []*block.BlockRef
 }
 
 // HoldsRoots reports that the stage holds roots.
@@ -29,7 +29,7 @@ func (s *HoldingStage) OpenStage(context.Context) (block.StoreOps, func(), error
 
 // HoldCompleteRoots holds and reports every root.
 func (s *HoldingStage) HoldCompleteRoots(_ context.Context, refs []*block.BlockRef) ([]bool, error) {
-	s.Held = append(s.Held, refs...)
+	s.held = append(s.held, refs...)
 	held := make([]bool, len(refs))
 	for i := range held {
 		held[i] = true
@@ -40,6 +40,14 @@ func (s *HoldingStage) HoldCompleteRoots(_ context.Context, refs []*block.BlockR
 // GetStoredBlockBatch passes the batch read to the wrapped store.
 func (s *HoldingStage) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, fn block.StoredBlockFunc) error {
 	return block.GetStoredBlockBatch(ctx, s.StoreOps, refs, fn)
+}
+
+// RequireHold fails t unless the result and the recorded calls hold exactly ref.
+func (s *HoldingStage) RequireHold(t testing.TB, held []bool, ref *block.BlockRef) {
+	t.Helper()
+	if len(held) != 1 || !held[0] || len(s.held) != 1 || !s.held[0].EqualVT(ref) {
+		t.Fatalf("stage held %v, inner stage held %v, want the root held", held, s.held)
+	}
 }
 
 // RequireStageHold fails t unless holding a root through a stage of the store
@@ -64,9 +72,7 @@ func RequireStageHold(t testing.TB, wrap func(block.StoreOps) block.StoreOps) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(held) != 1 || !held[0] || len(inner.Held) != 1 || !inner.Held[0].EqualVT(ref) {
-		t.Fatalf("stage held %v, inner stage held %v, want the root held", held, inner.Held)
-	}
+	inner.RequireHold(t, held, ref)
 }
 
 // _ is a type assertion

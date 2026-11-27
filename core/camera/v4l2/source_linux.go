@@ -64,18 +64,28 @@ func NewSource(path string) (_ frametrack.Source, err error) {
 		}
 	}()
 
-	// Ask the driver for compressed capture at its current size.
-	s.header, err = selectFormat(fd)
-	if err != nil {
+	// Negotiate and start capture before returning the source.
+	if err = s.initialize(); err != nil {
 		return nil, errors.Wrap(err, path)
 	}
-
-	// Give the driver its mapped buffers and start capture.
-	if err = s.start(); err != nil {
-		return nil, errors.Wrap(err, path)
-	}
-	s.forceKeyframe = s.header.Codec == frametrack.Codec_CODEC_H264_AVC && canForceKeyframe(fd)
 	return s, nil
+}
+
+// initialize negotiates compressed capture and discovers keyframe support.
+func (s *Source) initialize() error {
+	// Ask the driver for compressed capture at its current size.
+	header, err := selectFormat(s.fd)
+	if err != nil {
+		return err
+	}
+	s.header = header
+
+	// Start capture before querying the hardware keyframe control.
+	if err := s.start(); err != nil {
+		return err
+	}
+	s.forceKeyframe = s.header.Codec == frametrack.Codec_CODEC_H264_AVC && canForceKeyframe(s.fd)
+	return nil
 }
 
 // CanRequestKeyframe reports whether the device offers hardware keyframe control.

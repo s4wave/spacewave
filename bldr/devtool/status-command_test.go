@@ -85,7 +85,7 @@ func TestBuildCommandSummaryIncludesFiniteBuildInputs(t *testing.T) {
 
 func TestDevtoolArgsBuildPolicyOverride(t *testing.T) {
 	// Configure explicit build policy overrides.
-	args := NewDevtoolArgs()
+	args := NewDevtoolArgs(nil)
 	args.JSMinification = "disable"
 	args.JSSourcemaps = "enable"
 	args.GoScriptCodeSplitting = "disable"
@@ -113,7 +113,7 @@ func TestDevtoolArgsBuildPolicyOverride(t *testing.T) {
 }
 
 func TestDevtoolArgsBuildPolicyOverrideRejectsInvalidValue(t *testing.T) {
-	args := NewDevtoolArgs()
+	args := NewDevtoolArgs(nil)
 	args.JSMinification = "readable"
 
 	if _, err := args.BuildPolicyOverride(); err == nil {

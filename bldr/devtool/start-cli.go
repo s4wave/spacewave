@@ -21,7 +21,7 @@ import (
 // Forwards signals to the child and propagates its exit code.
 func (a *DevtoolArgs) ExecuteCliProject(ctx context.Context, manifestID string, args []string) error {
 	// Locate the CLI project root and its persistent build state.
-	le := a.Logger
+	le := a.logger
 	repoRoot, stateDir, err := a.InitRepoRoot()
 	if err != nil {
 		return err

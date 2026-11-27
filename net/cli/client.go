@@ -36,8 +36,8 @@ type ClientArgs struct {
 	AcceptConf stream_api_accept.Config
 	// ListeningConf is the listening configuration.
 	ListeningConf stream_listening.Config
-	// CbusConf is the controller-bus configuration.
-	CbusConf cbus_cli.ClientArgs
+	// cbusConf is the controller-bus configuration.
+	cbusConf cbus_cli.ClientArgs
 
 	// ctx is the context.
 	ctx context.Context
@@ -111,6 +111,22 @@ func (a *ClientArgs) BuildClient() (bifrost_api.BifrostAPIClient, error) {
 	conn := srpc.NewClientWithMuxedConn(muxedConn)
 	a.client = bifrost_api.NewBifrostAPIClient(conn)
 	return a.client, nil
+}
+
+// BuildControllerBusCommand binds the controller bus commands to the Bifrost client.
+func (a *ClientArgs) BuildControllerBusCommand() *cli.Command {
+	// Connect the controller bus commands when their group is invoked.
+	cmd := a.cbusConf.BuildControllerBusCommand()
+	cmd.Before = func(_ *cli.Context) error {
+		// Reuse the Bifrost connection for the controller bus commands.
+		client, err := a.BuildClient()
+		if err != nil {
+			return err
+		}
+		a.cbusConf.SetClient(client)
+		return nil
+	}
+	return cmd
 }
 
 // BuildBifrostCommand returns the controller-bus sub-command set.

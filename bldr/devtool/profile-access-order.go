@@ -64,7 +64,7 @@ func (a *DevtoolArgs) BuildProfileAccessOrderCommand() *cli.Command {
 // ExecuteProfileAccessOrder records startup access order for one built manifest.
 func (a *DevtoolArgs) ExecuteProfileAccessOrder(ctx context.Context) (err error) {
 	// Initialize the devtool repository root and state directory.
-	le := a.Logger
+	le := a.logger
 	repoRoot, stateDir, err := a.InitRepoRoot()
 	if err != nil {
 		return err
@@ -342,7 +342,10 @@ func recordDynamicImports(ctx context.Context, r *startupAccessRecorder, distFS 
 		return err
 	}
 	for _, chunkPath := range chunkPaths {
-		r.add(packfile_order.AccessOrderFilesystem_ACCESS_ORDER_FILESYSTEM_DIST, chunkPath, packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, chunkPath)
+		r.add(
+			packfile_order.AccessOrderFilesystem_ACCESS_ORDER_FILESYSTEM_DIST, chunkPath,
+			packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, chunkPath,
+		)
 	}
 	return nil
 }
@@ -381,7 +384,10 @@ func recordDynamicImportsFromFile(ctx context.Context, r *startupAccessRecorder,
 			!strings.HasPrefix(resolvedPath, "chunks/") && !strings.Contains(resolvedPath, "/chunks/") {
 			continue
 		}
-		r.add(packfile_order.AccessOrderFilesystem_ACCESS_ORDER_FILESYSTEM_DIST, resolvedPath, packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, specifier)
+		r.add(
+			packfile_order.AccessOrderFilesystem_ACCESS_ORDER_FILESYSTEM_DIST, resolvedPath,
+			packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, specifier,
+		)
 	}
 	return nil
 }

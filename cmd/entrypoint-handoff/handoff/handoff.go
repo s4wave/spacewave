@@ -717,8 +717,7 @@ func startDevtoolBus(
 	watch bool,
 ) (*bldr_devtool.DevtoolBus, error) {
 	// Configure the devtool args and build the bus.
-	args := bldr_devtool.NewDevtoolArgs()
-	args.Logger = le
+	args := bldr_devtool.NewDevtoolArgs(le)
 	args.BuildType = "release"
 	args.Watch = watch
 	args.UseGitRoot = false

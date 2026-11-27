@@ -76,7 +76,7 @@ func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) error {
 // compiler in user-facing status.
 func (a *DevtoolArgs) executeWebProject(ctx context.Context, compilerName, goPluginPlatformID string) (err error) {
 	// Initialize the repo root and storage directories.
-	le := a.Logger
+	le := a.logger
 	repoRoot, stateDir, err := a.InitRepoRoot()
 	if err != nil {
 		return err
@@ -184,7 +184,11 @@ func (d *DevtoolBus) ExecuteWebWasm(
 	forceDedicatedWorkers bool,
 	frontendService *bldr_project_controller.FrontendService,
 ) error {
-	return d.executeWebWasm(ctx, repoRoot, minifyEntrypoint, devMode, listenAddr, appID, startPlugins, admissionPluginID, startupManifestPreflights, webStartupSrcPath, forceDedicatedWorkers, frontendService, nil)
+	return d.executeWebWasm(
+		ctx, repoRoot, minifyEntrypoint, devMode, listenAddr, appID, startPlugins,
+		admissionPluginID, startupManifestPreflights, webStartupSrcPath,
+		forceDedicatedWorkers, frontendService, nil,
+	)
 }
 
 // executeWebWasm builds the wasm web entrypoint and serves it over HTTP

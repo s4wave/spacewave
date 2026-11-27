@@ -103,9 +103,7 @@ func (h *RequestHandler) handleStream(ctx context.Context, rwc io.ReadWriteClose
 	rw := newFramedResponseWriter(rwc)
 
 	// Add CORS headers.
-	rw.Header().Set("Access-Control-Allow-Origin", "*")
-	rw.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-	rw.Header().Set("Access-Control-Allow-Headers", "*")
+	rw.allowCrossOrigin()
 
 	// Route the request by path and method.
 	path := httpReq.URL.Path
@@ -223,6 +221,13 @@ func newFramedResponseWriter(w io.Writer) *framedResponseWriter {
 		w:      w,
 		header: http.Header{},
 	}
+}
+
+// allowCrossOrigin permits the web client to use the streamed response.
+func (rw *framedResponseWriter) allowCrossOrigin() {
+	rw.header.Set("Access-Control-Allow-Origin", "*")
+	rw.header.Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+	rw.header.Set("Access-Control-Allow-Headers", "*")
 }
 
 // Header returns the header map for the response.

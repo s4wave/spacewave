@@ -36,7 +36,7 @@ func (a *DevtoolArgs) startDevtoolTUI(
 		output:  os.Stderr,
 		openURL: openURL,
 	}
-	logfile.DiscardConsoleOutput(a.Logger.Logger)
+	logfile.DiscardConsoleOutput(a.logger.Logger)
 	return runner.start(ctx, producer)
 }
 

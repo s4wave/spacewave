@@ -26,8 +26,8 @@ const (
 
 // DevtoolArgs contains common flags for the dev tools.
 type DevtoolArgs struct {
-	// Logger is the root logger.
-	Logger *logrus.Entry
+	// logger is the root logger.
+	logger *logrus.Entry
 	// LogLevel is the log level string (debug, info, warn, error).
 	LogLevel string
 
@@ -130,9 +130,9 @@ type DevtoolArgs struct {
 	logFileCleanup func()
 }
 
-// NewDevtoolArgs constructs new default arguments.
-func NewDevtoolArgs() *DevtoolArgs {
-	a := &DevtoolArgs{}
+// NewDevtoolArgs constructs default arguments, using an info-level logger when le is nil.
+func NewDevtoolArgs(le *logrus.Entry) *DevtoolArgs {
+	a := &DevtoolArgs{logger: le}
 	a.FillDefaults()
 	return a
 }
@@ -140,10 +140,10 @@ func NewDevtoolArgs() *DevtoolArgs {
 // FillDefaults fills the args defaults.
 func (a *DevtoolArgs) FillDefaults() {
 	// Default to a stdout info-level logger when none is configured.
-	if a.Logger == nil {
+	if a.logger == nil {
 		log := logrus.New()
 		log.SetLevel(logrus.InfoLevel)
-		a.Logger = logrus.NewEntry(log)
+		a.logger = logrus.NewEntry(log)
 	}
 	if a.LogLevel == "" {
 		a.LogLevel = "info"
@@ -610,7 +610,7 @@ func (a *DevtoolArgs) applyLogLevel() {
 	if err != nil {
 		return
 	}
-	a.Logger.Logger.SetLevel(lvl)
+	a.logger.Logger.SetLevel(lvl)
 }
 
 // InitRepoRoot finds and initializes the repo root.
@@ -647,13 +647,13 @@ func (a *DevtoolArgs) InitRepoRoot() (
 				}
 			}
 			a.activeLogFile = specs[0].Path
-			cleanup, attachErr := logfile.AttachLogFiles(a.Logger.Logger, specs)
+			cleanup, attachErr := logfile.AttachLogFiles(a.logger.Logger, specs)
 			if attachErr != nil {
 				err = attachErr
 				return
 			}
 			a.logFileCleanup = cleanup
-			logfile.EnsureLoggerLevel(a.Logger.Logger, specs)
+			logfile.EnsureLoggerLevel(a.logger.Logger, specs)
 		}
 	}
 
