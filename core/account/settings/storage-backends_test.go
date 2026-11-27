@@ -323,3 +323,45 @@ func TestCatalogTombstoneGenerations(t *testing.T) {
 		}
 	}
 }
+
+// TestDriveBackendCannotOwnPrimaryStorage rejects default selection, direct
+// placement and changing an already used S3 backend into a Drive destination.
+func TestDriveBackendCannotOwnPrimaryStorage(t *testing.T) {
+	// A valid Drive credential reference permits backup registration only.
+	s := &AccountSettings{}
+	drive := testStorageBackend("drive", "Drive")
+	drive.S3 = nil
+	drive.Gdrive = &GdriveLocation{RootFolderId: "folder"}
+	if err := s.upsertStorageBackend(drive); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.setDefaultStorageBackend("drive"); err == nil {
+		t.Fatal("Drive became default primary storage")
+	}
+	if err := s.setBlockStorePlacement(&BlockStorePlacement{BlockStoreId: "space", StorageBackendId: "drive"}); err == nil {
+		t.Fatal("Space was placed on its backup")
+	}
+
+	// Updating a backend must enforce the same rule as creating a placement.
+	bucket := testStorageBackend("bucket", "Bucket")
+	if err := s.upsertStorageBackend(bucket); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.setDefaultStorageBackend("bucket"); err != nil {
+		t.Fatal(err)
+	}
+	changed := bucket.CloneVT()
+	changed.S3, changed.Gdrive = nil, &GdriveLocation{RootFolderId: "folder"}
+	if err := s.upsertStorageBackend(changed); err == nil {
+		t.Fatal("default backend changed to a Drive destination")
+	}
+	if err := s.setDefaultStorageBackend(""); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.setBlockStorePlacement(&BlockStorePlacement{BlockStoreId: "space", StorageBackendId: "bucket"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.upsertStorageBackend(changed); err == nil || s.FindStorageBackend("bucket").GetS3() == nil {
+		t.Fatal("live primary storage changed to Drive")
+	}
+}

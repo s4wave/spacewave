@@ -81,6 +81,16 @@ func (s *AccountSettings) upsertStorageBackend(backend *StorageBackend) error {
 		return errors.Errorf("a storage backend named %q already exists", backend.GetDisplayName())
 	}
 
+	// A Drive destination can never replace primary storage behind a live placement.
+	if backend.GetGdrive() != nil {
+		if s.GetDefaultStorageBackendId() == backend.GetId() {
+			return errors.New("Drive backends cannot be default primary storage")
+		}
+		if err := s.CheckStorageBackendUnused(backend.GetId()); err != nil {
+			return err
+		}
+	}
+
 	// Replace the backend's stored copy with the incoming one.
 	s.StorageBackends = slices.DeleteFunc(s.StorageBackends, func(current *StorageBackend) bool {
 		return current.GetId() == backend.GetId()
@@ -120,6 +130,10 @@ func (s *AccountSettings) setDefaultStorageBackend(id string) error {
 	if id != "" && s.FindStorageBackend(id) == nil {
 		return ErrStorageBackendNotFound
 	}
+	// Backups must never become a Space's primary storage or eviction target.
+	if s.FindStorageBackend(id).GetGdrive() != nil {
+		return errors.New("Drive backends are backup destinations, not primary storage")
+	}
 	s.DefaultStorageBackendId = id
 	return nil
 }
@@ -140,6 +154,9 @@ func (s *AccountSettings) setBlockStorePlacement(placement *BlockStorePlacement)
 	backendID := placement.GetStorageBackendId()
 	if backendID != "" && s.FindStorageBackend(backendID) == nil {
 		return ErrStorageBackendNotFound
+	}
+	if s.FindStorageBackend(backendID).GetGdrive() != nil {
+		return errors.New("Drive backends are backup destinations, not primary storage")
 	}
 	if err := s.checkReadFallback(placement); err != nil {
 		return err
@@ -244,17 +261,21 @@ func (b *StorageBackend) Validate() error {
 	// Validate the one location, S3, SQL or FTPS, and the credential reference.
 	// An FTPS backend logs in from a netrc file and has no credential Secret.
 	locations := 0
-	for _, set := range []bool{b.GetS3() != nil, b.GetSql() != nil, b.GetFtps() != nil} {
+	for _, set := range []bool{b.GetS3() != nil, b.GetSql() != nil, b.GetFtps() != nil, b.GetGdrive() != nil} {
 		if set {
 			locations++
 		}
 	}
 	if locations > 1 {
-		return errors.New("storage backend sets more than one of s3, sql and ftps")
+		return errors.New("storage backend sets more than one of s3, sql, ftps and gdrive")
 	}
 	switch {
 	case b.GetFtps() != nil:
 		return errors.Wrap(b.GetFtps().Validate(), "ftps")
+	case b.GetGdrive() != nil:
+		if b.GetGdrive().GetRootFolderId() == "" {
+			return errors.New("Drive root folder ID is required")
+		}
 	case b.GetSql() != nil:
 		if err := b.GetSql().Validate(); err != nil {
 			return errors.Wrap(err, "sql")

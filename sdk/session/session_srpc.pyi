@@ -1,6 +1,9 @@
 from collections.abc import AsyncIterator
 from typing import Protocol
 
+from core.account.settings import (
+    settings_pb2 as _github_com_s4wave_spacewave_core_account_settings_settings_pb2,
+)
 from sdk.session import (
     session_pb2 as _github_com_s4wave_spacewave_sdk_session_session_pb2,
 )
@@ -261,6 +264,24 @@ class SessionResourceServiceClient:
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchPluginApprovalsRequest,
     ) -> AsyncIterator[
         _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchPluginApprovalsResponse
+    ]: ...
+    async def set_space_backup(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.SetSpaceBackupRequest,
+    ) -> (
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.SetSpaceBackupResponse
+    ): ...
+    def run_space_backup(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.RunSpaceBackupRequest,
+    ) -> AsyncIterator[
+        _github_com_s4wave_spacewave_core_account_settings_settings_pb2.SpaceBackupState
+    ]: ...
+    def watch_space_backups(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchSpaceBackupsRequest,
+    ) -> AsyncIterator[
+        _github_com_s4wave_spacewave_core_account_settings_settings_pb2.SpaceBackupList
     ]: ...
     def watch_storage_backends(
         self,
@@ -555,6 +576,24 @@ class SessionResourceServiceServer(Protocol):
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchPluginApprovalsRequest,
     ) -> AsyncIterator[
         _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchPluginApprovalsResponse
+    ]: ...
+    async def set_space_backup(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.SetSpaceBackupRequest,
+    ) -> (
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.SetSpaceBackupResponse
+    ): ...
+    def run_space_backup(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.RunSpaceBackupRequest,
+    ) -> AsyncIterator[
+        _github_com_s4wave_spacewave_core_account_settings_settings_pb2.SpaceBackupState
+    ]: ...
+    def watch_space_backups(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchSpaceBackupsRequest,
+    ) -> AsyncIterator[
+        _github_com_s4wave_spacewave_core_account_settings_settings_pb2.SpaceBackupList
     ]: ...
     def watch_storage_backends(
         self,

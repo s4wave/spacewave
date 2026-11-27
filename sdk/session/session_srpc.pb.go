@@ -8,6 +8,7 @@ import (
 	context "context"
 
 	srpc "github.com/aperturerobotics/starpc/srpc"
+	account_settings "github.com/s4wave/spacewave/core/account/settings"
 )
 
 type SRPCSessionResourceServiceClient interface {
@@ -118,6 +119,12 @@ type SRPCSessionResourceServiceClient interface {
 	// WatchPluginApprovals streams the session's plugin decisions on this
 	// device: all of them first, then each decision written after.
 	WatchPluginApprovals(ctx context.Context, in *WatchPluginApprovalsRequest) (SRPCSessionResourceService_WatchPluginApprovalsClient, error)
+	// SetSpaceBackup configures a backup only on this device, with automatic off by default.
+	SetSpaceBackup(ctx context.Context, in *SetSpaceBackupRequest) (*SetSpaceBackupResponse, error)
+	// RunSpaceBackup requests a pass and streams its watchable state until it settles.
+	RunSpaceBackup(ctx context.Context, in *RunSpaceBackupRequest) (SRPCSessionResourceService_RunSpaceBackupClient, error)
+	// WatchSpaceBackups streams the complete local backup registry, then each change.
+	WatchSpaceBackups(ctx context.Context, in *WatchSpaceBackupsRequest) (SRPCSessionResourceService_WatchSpaceBackupsClient, error)
 	// WatchStorageBackends streams the account's storage backends and the
 	// Spaces placed on each.
 	WatchStorageBackends(ctx context.Context, in *WatchStorageBackendsRequest) (SRPCSessionResourceService_WatchStorageBackendsClient, error)
@@ -842,6 +849,81 @@ func (x *srpcSessionResourceService_WatchPluginApprovalsClient) RecvTo(m *WatchP
 	return x.MsgRecv(m)
 }
 
+func (c *srpcSessionResourceServiceClient) SetSpaceBackup(ctx context.Context, in *SetSpaceBackupRequest) (*SetSpaceBackupResponse, error) {
+	out := new(SetSpaceBackupResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "SetSpaceBackup", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcSessionResourceServiceClient) RunSpaceBackup(ctx context.Context, in *RunSpaceBackupRequest) (SRPCSessionResourceService_RunSpaceBackupClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "RunSpaceBackup", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcSessionResourceService_RunSpaceBackupClient{stream}
+	// A failed half-close means the call ended; MsgRecv reports its outcome.
+	_ = strm.CloseSend()
+	return strm, nil
+}
+
+type SRPCSessionResourceService_RunSpaceBackupClient interface {
+	srpc.Stream
+	Recv() (*account_settings.SpaceBackupState, error)
+	RecvTo(*account_settings.SpaceBackupState) error
+}
+
+type srpcSessionResourceService_RunSpaceBackupClient struct {
+	srpc.Stream
+}
+
+func (x *srpcSessionResourceService_RunSpaceBackupClient) Recv() (*account_settings.SpaceBackupState, error) {
+	m := new(account_settings.SpaceBackupState)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcSessionResourceService_RunSpaceBackupClient) RecvTo(m *account_settings.SpaceBackupState) error {
+	return x.MsgRecv(m)
+}
+
+func (c *srpcSessionResourceServiceClient) WatchSpaceBackups(ctx context.Context, in *WatchSpaceBackupsRequest) (SRPCSessionResourceService_WatchSpaceBackupsClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "WatchSpaceBackups", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcSessionResourceService_WatchSpaceBackupsClient{stream}
+	// A failed half-close means the call ended; MsgRecv reports its outcome.
+	_ = strm.CloseSend()
+	return strm, nil
+}
+
+type SRPCSessionResourceService_WatchSpaceBackupsClient interface {
+	srpc.Stream
+	Recv() (*account_settings.SpaceBackupList, error)
+	RecvTo(*account_settings.SpaceBackupList) error
+}
+
+type srpcSessionResourceService_WatchSpaceBackupsClient struct {
+	srpc.Stream
+}
+
+func (x *srpcSessionResourceService_WatchSpaceBackupsClient) Recv() (*account_settings.SpaceBackupList, error) {
+	m := new(account_settings.SpaceBackupList)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcSessionResourceService_WatchSpaceBackupsClient) RecvTo(m *account_settings.SpaceBackupList) error {
+	return x.MsgRecv(m)
+}
+
 func (c *srpcSessionResourceServiceClient) WatchStorageBackends(ctx context.Context, in *WatchStorageBackendsRequest) (SRPCSessionResourceService_WatchStorageBackendsClient, error) {
 	stream, err := c.cc.NewStream(ctx, c.serviceID, "WatchStorageBackends", in)
 	if err != nil {
@@ -1091,6 +1173,12 @@ type SRPCSessionResourceServiceServer interface {
 	// WatchPluginApprovals streams the session's plugin decisions on this
 	// device: all of them first, then each decision written after.
 	WatchPluginApprovals(*WatchPluginApprovalsRequest, SRPCSessionResourceService_WatchPluginApprovalsStream) error
+	// SetSpaceBackup configures a backup only on this device, with automatic off by default.
+	SetSpaceBackup(context.Context, *SetSpaceBackupRequest) (*SetSpaceBackupResponse, error)
+	// RunSpaceBackup requests a pass and streams its watchable state until it settles.
+	RunSpaceBackup(*RunSpaceBackupRequest, SRPCSessionResourceService_RunSpaceBackupStream) error
+	// WatchSpaceBackups streams the complete local backup registry, then each change.
+	WatchSpaceBackups(*WatchSpaceBackupsRequest, SRPCSessionResourceService_WatchSpaceBackupsStream) error
 	// WatchStorageBackends streams the account's storage backends and the
 	// Spaces placed on each.
 	WatchStorageBackends(*WatchStorageBackendsRequest, SRPCSessionResourceService_WatchStorageBackendsStream) error
@@ -1191,6 +1279,9 @@ func (SRPCSessionResourceServiceHandler) GetMethodIDs() []string {
 		"SetAccountPlugin",
 		"SetPluginApproval",
 		"WatchPluginApprovals",
+		"SetSpaceBackup",
+		"RunSpaceBackup",
+		"WatchSpaceBackups",
 		"WatchStorageBackends",
 		"CheckStorageBackend",
 		"AddStorageBackend",
@@ -1309,6 +1400,12 @@ func (d *SRPCSessionResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_SetPluginApproval(d.impl, strm)
 	case "WatchPluginApprovals":
 		return true, d.InvokeMethod_WatchPluginApprovals(d.impl, strm)
+	case "SetSpaceBackup":
+		return true, d.InvokeMethod_SetSpaceBackup(d.impl, strm)
+	case "RunSpaceBackup":
+		return true, d.InvokeMethod_RunSpaceBackup(d.impl, strm)
+	case "WatchSpaceBackups":
+		return true, d.InvokeMethod_WatchSpaceBackups(d.impl, strm)
 	case "WatchStorageBackends":
 		return true, d.InvokeMethod_WatchStorageBackends(d.impl, strm)
 	case "CheckStorageBackend":
@@ -1886,6 +1983,36 @@ func (SRPCSessionResourceServiceHandler) InvokeMethod_WatchPluginApprovals(impl 
 	}
 	serverStrm := &srpcSessionResourceService_WatchPluginApprovalsStream{strm}
 	return impl.WatchPluginApprovals(req, serverStrm)
+}
+
+func (SRPCSessionResourceServiceHandler) InvokeMethod_SetSpaceBackup(impl SRPCSessionResourceServiceServer, strm srpc.Stream) error {
+	req := new(SetSpaceBackupRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.SetSpaceBackup(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSessionResourceServiceHandler) InvokeMethod_RunSpaceBackup(impl SRPCSessionResourceServiceServer, strm srpc.Stream) error {
+	req := new(RunSpaceBackupRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcSessionResourceService_RunSpaceBackupStream{strm}
+	return impl.RunSpaceBackup(req, serverStrm)
+}
+
+func (SRPCSessionResourceServiceHandler) InvokeMethod_WatchSpaceBackups(impl SRPCSessionResourceServiceServer, strm srpc.Stream) error {
+	req := new(WatchSpaceBackupsRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcSessionResourceService_WatchSpaceBackupsStream{strm}
+	return impl.WatchSpaceBackups(req, serverStrm)
 }
 
 func (SRPCSessionResourceServiceHandler) InvokeMethod_WatchStorageBackends(impl SRPCSessionResourceServiceServer, strm srpc.Stream) error {
@@ -2509,6 +2636,60 @@ func (x *srpcSessionResourceService_WatchPluginApprovalsStream) Send(m *WatchPlu
 }
 
 func (x *srpcSessionResourceService_WatchPluginApprovalsStream) SendAndClose(m *WatchPluginApprovalsResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
+}
+
+type SRPCSessionResourceService_SetSpaceBackupStream interface {
+	srpc.Stream
+}
+
+type srpcSessionResourceService_SetSpaceBackupStream struct {
+	srpc.Stream
+}
+
+type SRPCSessionResourceService_RunSpaceBackupStream interface {
+	srpc.Stream
+	Send(*account_settings.SpaceBackupState) error
+	SendAndClose(*account_settings.SpaceBackupState) error
+}
+
+type srpcSessionResourceService_RunSpaceBackupStream struct {
+	srpc.Stream
+}
+
+func (x *srpcSessionResourceService_RunSpaceBackupStream) Send(m *account_settings.SpaceBackupState) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcSessionResourceService_RunSpaceBackupStream) SendAndClose(m *account_settings.SpaceBackupState) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
+}
+
+type SRPCSessionResourceService_WatchSpaceBackupsStream interface {
+	srpc.Stream
+	Send(*account_settings.SpaceBackupList) error
+	SendAndClose(*account_settings.SpaceBackupList) error
+}
+
+type srpcSessionResourceService_WatchSpaceBackupsStream struct {
+	srpc.Stream
+}
+
+func (x *srpcSessionResourceService_WatchSpaceBackupsStream) Send(m *account_settings.SpaceBackupList) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcSessionResourceService_WatchSpaceBackupsStream) SendAndClose(m *account_settings.SpaceBackupList) error {
 	if m != nil {
 		if err := x.MsgSend(m); err != nil {
 			return err

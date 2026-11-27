@@ -61,4 +61,42 @@ func TestSyncCarriesModTime(t *testing.T) {
 		t.Fatal(err)
 	}
 	checkFile("beyond", later)
+
+	// Populate read-only source directories before restoring their final modes.
+	files["readonly/inner/file.txt"] = &fstest.MapFile{Data: []byte("read-only tree"), Mode: 0o444}
+	readonlyCursor, err := unixfs_iofs.NewFSCursor(files)
+	if err != nil {
+		t.Fatal(err)
+	}
+	readonlyHandle, err := unixfs.NewFSHandle(readonlyCursor)
+	if err != nil {
+		readonlyCursor.Release()
+		t.Fatal(err)
+	}
+	defer readonlyHandle.Release()
+	if err := os.Chmod(directory, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		for _, name := range []string{"readonly", "readonly/inner"} {
+			if err := os.Chmod(filepath.Join(directory, name), 0o700); err != nil && !os.IsNotExist(err) {
+				t.Error(err)
+			}
+		}
+	})
+	if err := Sync(ctx, directory, readonlyHandle, DeleteMode_DeleteMode_DURING, nil); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(directory, "readonly/inner/file.txt"))
+	if err != nil || string(data) != "read-only tree" {
+		t.Fatalf("read-only directory contents: %q, %v", data, err)
+	}
+
+	// Preserve both nested source modes and the private destination root.
+	for name, mode := range map[string]os.FileMode{".": 0o700, "readonly": 0o555, "readonly/inner": 0o555} {
+		info, err := os.Stat(filepath.Join(directory, name))
+		if err != nil || info.Mode().Perm() != mode {
+			t.Fatalf("directory %s mode: %v, %v", name, info, err)
+		}
+	}
 }

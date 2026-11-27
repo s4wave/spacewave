@@ -29,8 +29,8 @@ const (
 	SecretKindProviderCredential = "provider_credential" // #nosec G101 -- this identifies a secret kind, not a credential value.
 	// ProviderCredentialContentType is the content type for provider credential payloads.
 	ProviderCredentialContentType = "application/json"
-	// SecretKindStorageCredential is the kind for storage backend access keys.
-	// The payload is a block_store_s3.Credentials message.
+	// SecretKindStorageCredential is the kind for storage backend authorization.
+	// The payload content type distinguishes access keys from Drive refresh tokens.
 	SecretKindStorageCredential = "storage_credential" // #nosec G101 -- this identifies a secret kind, not a credential value.
 	// StorageCredentialContentType is the content type for storage credential payloads.
 	StorageCredentialContentType = "application/x-protobuf"

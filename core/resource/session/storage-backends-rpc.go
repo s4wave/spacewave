@@ -7,6 +7,7 @@ import (
 	account_settings "github.com/s4wave/spacewave/core/account/settings"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
+	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 )
 
@@ -131,7 +132,16 @@ func (r *SessionResource) AddStorageBackend(
 	if err != nil {
 		return nil, err
 	}
-	id, check, err := localAcc.AddStorageBackend(ctx, req.GetDisplayName(), req.GetS3(), req.GetCredentials(), req.GetSetDefault())
+	var id string
+	var check *block_store_s3.CheckResult
+	if req.GetGdrive() != nil {
+		if req.GetS3() != nil || req.GetSetDefault() {
+			return nil, errors.New("Drive is a backup-only backend and cannot be a default placement")
+		}
+		id, check, err = localAcc.AddGdriveStorageBackend(ctx, req.GetDisplayName(), req.GetGdrive(), req.GetGdriveCredentials())
+	} else {
+		id, check, err = localAcc.AddStorageBackend(ctx, req.GetDisplayName(), req.GetS3(), req.GetCredentials(), req.GetSetDefault())
+	}
 	if err != nil {
 		return nil, err
 	}

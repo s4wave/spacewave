@@ -14,9 +14,12 @@ import (
 	provider "github.com/s4wave/spacewave/core/provider"
 	session "github.com/s4wave/spacewave/core/session"
 	sobject "github.com/s4wave/spacewave/core/sobject"
+	block "github.com/s4wave/spacewave/db/block"
 	s3 "github.com/s4wave/spacewave/db/block/store/s3"
+	envelope "github.com/s4wave/spacewave/net/envelope"
 	command "github.com/s4wave/spacewave/sdk/command"
 	secret "github.com/s4wave/spacewave/sdk/secret"
+	world "github.com/s4wave/spacewave/sdk/world"
 )
 
 // AccountSettings is the root state data for account settings SharedObjects.
@@ -187,17 +190,19 @@ type StorageBackend struct {
 	// S3 locates the S3-compatible bucket that holds the blocks.
 	S3 *S3Location `protobuf:"bytes,3,opt,name=s3,proto3" json:"s3,omitempty"`
 	// Credential is the redacted Secret whose payload holds the access keys.
-	// The payload value is a block_store_s3.Credentials message. For an SQL
-	// backend its access_key_id is the database user and its
-	// secret_access_key is the password.
+	// A Drive backend stores block.store.gdrive.Credentials. S3 and SQL store
+	// block.store.s3.Credentials. For SQL, access_key_id is the database user
+	// and secret_access_key is the password.
 	Credential *secret.Secret `protobuf:"bytes,4,opt,name=credential,proto3" json:"credential,omitempty"`
 	// Sql locates the SQL database that holds the blocks instead of a bucket.
-	// A backend sets exactly one of S3 and Sql.
+	// A backend sets exactly one location.
 	Sql *SqlLocation `protobuf:"bytes,5,opt,name=sql,proto3" json:"sql,omitempty"`
 	// Ftps locates the FTPS server that holds the packfiles instead of a
 	// bucket. It logs in from a netrc file on the host, so the backend has no
-	// credential Secret. A backend sets exactly one of S3, Sql and Ftps.
+	// credential Secret. A backend sets exactly one location.
 	Ftps *FtpsLocation `protobuf:"bytes,6,opt,name=ftps,proto3" json:"ftps,omitempty"`
+	// Gdrive locates an append-only ciphertext backup folder.
+	Gdrive *GdriveLocation `protobuf:"bytes,7,opt,name=gdrive,proto3" json:"gdrive,omitempty"`
 }
 
 func (x *StorageBackend) Reset() {
@@ -246,6 +251,43 @@ func (x *StorageBackend) GetFtps() *FtpsLocation {
 		return x.Ftps
 	}
 	return nil
+}
+
+func (x *StorageBackend) GetGdrive() *GdriveLocation {
+	if x != nil {
+		return x.Gdrive
+	}
+	return nil
+}
+
+// GdriveLocation names the app-created folder that holds encrypted packs.
+// It is a backup destination, never a Space's primary placement.
+type GdriveLocation struct {
+	unknownFields []byte
+	// RootFolderId is the immutable Drive folder identity.
+	RootFolderId string `protobuf:"bytes,1,opt,name=root_folder_id,json=rootFolderId,proto3" json:"rootFolderId,omitempty"`
+	// AccountLabel is the owner-supplied label, without an additional profile scope.
+	AccountLabel string `protobuf:"bytes,2,opt,name=account_label,json=accountLabel,proto3" json:"accountLabel,omitempty"`
+}
+
+func (x *GdriveLocation) Reset() {
+	*x = GdriveLocation{}
+}
+
+func (*GdriveLocation) ProtoMessage() {}
+
+func (x *GdriveLocation) GetRootFolderId() string {
+	if x != nil {
+		return x.RootFolderId
+	}
+	return ""
+}
+
+func (x *GdriveLocation) GetAccountLabel() string {
+	if x != nil {
+		return x.AccountLabel
+	}
+	return ""
 }
 
 // FtpsLocation locates a directory on an FTPS server that holds packfiles, read
@@ -1452,6 +1494,497 @@ func (x *RemoveSessionPresentationOp) GetPeerId() string {
 	return ""
 }
 
+// SpaceBackup configures one device-local backup. It is not a Space object,
+// placement, or retained-root operation, and automatic work is off by default.
+type SpaceBackup struct {
+	unknownFields []byte
+	// Id is the opaque backup identity.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// SpaceId is the source Space, mounted read-only by this device.
+	SpaceId string `protobuf:"bytes,2,opt,name=space_id,json=spaceId,proto3" json:"spaceId,omitempty"`
+	// StorageBackendId selects the account's Drive credential and folder.
+	StorageBackendId string `protobuf:"bytes,3,opt,name=storage_backend_id,json=storageBackendId,proto3" json:"storageBackendId,omitempty"`
+	// Automatic starts checkpoint-triggered passes only after explicit approval.
+	Automatic bool `protobuf:"varint,4,opt,name=automatic,proto3" json:"automatic,omitempty"`
+	// IntervalSeconds is the minimum time between automatic passes.
+	IntervalSeconds uint64 `protobuf:"varint,5,opt,name=interval_seconds,json=intervalSeconds,proto3" json:"intervalSeconds,omitempty"`
+}
+
+func (x *SpaceBackup) Reset() {
+	*x = SpaceBackup{}
+}
+
+func (*SpaceBackup) ProtoMessage() {}
+
+func (x *SpaceBackup) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *SpaceBackup) GetSpaceId() string {
+	if x != nil {
+		return x.SpaceId
+	}
+	return ""
+}
+
+func (x *SpaceBackup) GetStorageBackendId() string {
+	if x != nil {
+		return x.StorageBackendId
+	}
+	return ""
+}
+
+func (x *SpaceBackup) GetAutomatic() bool {
+	if x != nil {
+		return x.Automatic
+	}
+	return false
+}
+
+func (x *SpaceBackup) GetIntervalSeconds() uint64 {
+	if x != nil {
+		return x.IntervalSeconds
+	}
+	return 0
+}
+
+// SpaceBackupSnapshot is the plaintext that is sealed before leaving the device.
+type SpaceBackupSnapshot struct {
+	unknownFields []byte
+	// World is the committed root with its inline decryption transform.
+	World *world.WorldRootSnapshot `protobuf:"bytes,1,opt,name=world,proto3" json:"world,omitempty"`
+	// RetainedRoots are the additional roots proven in the same copy.
+	RetainedRoots []*block.BlockRef `protobuf:"bytes,2,rep,name=retained_roots,json=retainedRoots,proto3" json:"retainedRoots,omitempty"`
+}
+
+func (x *SpaceBackupSnapshot) Reset() {
+	*x = SpaceBackupSnapshot{}
+}
+
+func (*SpaceBackupSnapshot) ProtoMessage() {}
+
+func (x *SpaceBackupSnapshot) GetWorld() *world.WorldRootSnapshot {
+	if x != nil {
+		return x.World
+	}
+	return nil
+}
+
+func (x *SpaceBackupSnapshot) GetRetainedRoots() []*block.BlockRef {
+	if x != nil {
+		return x.RetainedRoots
+	}
+	return nil
+}
+
+// SpaceBackupIndex is an immutable, sealed snapshot in snapshots/.
+type SpaceBackupIndex struct {
+	unknownFields []byte
+	// ProviderAccountId supplies the username for password key derivation.
+	ProviderAccountId string `protobuf:"bytes,1,opt,name=provider_account_id,json=providerAccountId,proto3" json:"providerAccountId,omitempty"`
+	// EntityId identifies the recovery principal, never a device.
+	EntityId string `protobuf:"bytes,2,opt,name=entity_id,json=entityId,proto3" json:"entityId,omitempty"`
+	// Envelope seals SpaceBackupSnapshot to that entity's public keypairs.
+	Envelope *envelope.Envelope `protobuf:"bytes,3,opt,name=envelope,proto3" json:"envelope,omitempty"`
+}
+
+func (x *SpaceBackupIndex) Reset() {
+	*x = SpaceBackupIndex{}
+}
+
+func (*SpaceBackupIndex) ProtoMessage() {}
+
+func (x *SpaceBackupIndex) GetProviderAccountId() string {
+	if x != nil {
+		return x.ProviderAccountId
+	}
+	return ""
+}
+
+func (x *SpaceBackupIndex) GetEntityId() string {
+	if x != nil {
+		return x.EntityId
+	}
+	return ""
+}
+
+func (x *SpaceBackupIndex) GetEnvelope() *envelope.Envelope {
+	if x != nil {
+		return x.Envelope
+	}
+	return nil
+}
+
+// SpaceBackupPublished is a local proof of the newest index this device wrote.
+type SpaceBackupPublished struct {
+	unknownFields []byte
+	// Key is the immutable snapshots/ object key.
+	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	// Snapshot is the root set the index sealed and the pass proved.
+	Snapshot *SpaceBackupSnapshot `protobuf:"bytes,2,opt,name=snapshot,proto3" json:"snapshot,omitempty"`
+	// PublishedUnixSeconds is the successful publication time, for scheduling.
+	PublishedUnixSeconds int64 `protobuf:"varint,3,opt,name=published_unix_seconds,json=publishedUnixSeconds,proto3" json:"publishedUnixSeconds,omitempty"`
+	// RecipientFingerprint binds no-change reuse to the current account identity
+	// and public recovery keys. Rotating a key publishes a new sealed index.
+	RecipientFingerprint []byte `protobuf:"bytes,4,opt,name=recipient_fingerprint,json=recipientFingerprint,proto3" json:"recipientFingerprint,omitempty"`
+}
+
+func (x *SpaceBackupPublished) Reset() {
+	*x = SpaceBackupPublished{}
+}
+
+func (*SpaceBackupPublished) ProtoMessage() {}
+
+func (x *SpaceBackupPublished) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *SpaceBackupPublished) GetSnapshot() *SpaceBackupSnapshot {
+	if x != nil {
+		return x.Snapshot
+	}
+	return nil
+}
+
+func (x *SpaceBackupPublished) GetPublishedUnixSeconds() int64 {
+	if x != nil {
+		return x.PublishedUnixSeconds
+	}
+	return 0
+}
+
+func (x *SpaceBackupPublished) GetRecipientFingerprint() []byte {
+	if x != nil {
+		return x.RecipientFingerprint
+	}
+	return nil
+}
+
+// SpaceBackupPublication is the public readback of a sealed published index.
+// It deliberately omits the snapshot and every decryption transform.
+type SpaceBackupPublication struct {
+	unknownFields []byte
+	// Key names the immutable object that an entity credential can unseal.
+	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	// Seqno is the committed World sequence covered by that index.
+	Seqno uint64 `protobuf:"varint,2,opt,name=seqno,proto3" json:"seqno,omitempty"`
+	// PublishedUnixSeconds is the successful publication time.
+	PublishedUnixSeconds int64 `protobuf:"varint,3,opt,name=published_unix_seconds,json=publishedUnixSeconds,proto3" json:"publishedUnixSeconds,omitempty"`
+}
+
+func (x *SpaceBackupPublication) Reset() {
+	*x = SpaceBackupPublication{}
+}
+
+func (*SpaceBackupPublication) ProtoMessage() {}
+
+func (x *SpaceBackupPublication) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *SpaceBackupPublication) GetSeqno() uint64 {
+	if x != nil {
+		return x.Seqno
+	}
+	return 0
+}
+
+func (x *SpaceBackupPublication) GetPublishedUnixSeconds() int64 {
+	if x != nil {
+		return x.PublishedUnixSeconds
+	}
+	return 0
+}
+
+// SpaceBackupProgress is the bounded progress readback of one running pass.
+type SpaceBackupProgress struct {
+	unknownFields []byte
+	// ReadBytes counts source bytes read during this pass.
+	ReadBytes uint64 `protobuf:"varint,1,opt,name=read_bytes,json=readBytes,proto3" json:"readBytes,omitempty"`
+	// WrittenBytes counts ciphertext bytes committed to durable packs.
+	WrittenBytes uint64 `protobuf:"varint,2,opt,name=written_bytes,json=writtenBytes,proto3" json:"writtenBytes,omitempty"`
+	// Packs counts packs durably uploaded.
+	Packs uint64 `protobuf:"varint,3,opt,name=packs,proto3" json:"packs,omitempty"`
+	// Holes counts missing, corrupt or untyped reachable blocks.
+	Holes uint64 `protobuf:"varint,4,opt,name=holes,proto3" json:"holes,omitempty"`
+}
+
+func (x *SpaceBackupProgress) Reset() {
+	*x = SpaceBackupProgress{}
+}
+
+func (*SpaceBackupProgress) ProtoMessage() {}
+
+func (x *SpaceBackupProgress) GetReadBytes() uint64 {
+	if x != nil {
+		return x.ReadBytes
+	}
+	return 0
+}
+
+func (x *SpaceBackupProgress) GetWrittenBytes() uint64 {
+	if x != nil {
+		return x.WrittenBytes
+	}
+	return 0
+}
+
+func (x *SpaceBackupProgress) GetPacks() uint64 {
+	if x != nil {
+		return x.Packs
+	}
+	return 0
+}
+
+func (x *SpaceBackupProgress) GetHoles() uint64 {
+	if x != nil {
+		return x.Holes
+	}
+	return 0
+}
+
+// SpaceBackupWaiting is a recoverable waiting state, never a retry spin.
+type SpaceBackupWaiting struct {
+	unknownFields []byte
+	// ResumeUnixSeconds is the next known retry deadline, or zero for owner action.
+	ResumeUnixSeconds int64 `protobuf:"varint,1,opt,name=resume_unix_seconds,json=resumeUnixSeconds,proto3" json:"resumeUnixSeconds,omitempty"`
+}
+
+func (x *SpaceBackupWaiting) Reset() {
+	*x = SpaceBackupWaiting{}
+}
+
+func (*SpaceBackupWaiting) ProtoMessage() {}
+
+func (x *SpaceBackupWaiting) GetResumeUnixSeconds() int64 {
+	if x != nil {
+		return x.ResumeUnixSeconds
+	}
+	return 0
+}
+
+// SpaceBackupFailure contains a safe explanation and the next action.
+type SpaceBackupFailure struct {
+	unknownFields []byte
+	// Message excludes credentials and raw OAuth response bodies.
+	Message string `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+}
+
+func (x *SpaceBackupFailure) Reset() {
+	*x = SpaceBackupFailure{}
+}
+
+func (*SpaceBackupFailure) ProtoMessage() {}
+
+func (x *SpaceBackupFailure) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+// SpaceBackupIdle names a backup with no requested pass.
+type SpaceBackupIdle struct {
+	unknownFields []byte
+}
+
+func (x *SpaceBackupIdle) Reset() {
+	*x = SpaceBackupIdle{}
+}
+
+func (*SpaceBackupIdle) ProtoMessage() {}
+
+// SpaceBackupState is the watched result of the device's backup routine.
+type SpaceBackupState struct {
+	unknownFields []byte
+	// RunSequence identifies the requested or automatic pass observed by a watcher.
+	RunSequence uint64 `protobuf:"varint,10,opt,name=run_sequence,json=runSequence,proto3" json:"runSequence,omitempty"`
+	// Backup identifies the local configuration this state describes.
+	Backup *SpaceBackup `protobuf:"bytes,1,opt,name=backup,proto3" json:"backup,omitempty"`
+	// Types that are assignable to State:
+	//	*SpaceBackupState_Idle
+	//	*SpaceBackupState_Copying
+	//	*SpaceBackupState_UpToDate
+	//	*SpaceBackupState_Incomplete
+	//	*SpaceBackupState_WaitingUploadLimit
+	//	*SpaceBackupState_WaitingQuota
+	//	*SpaceBackupState_WaitingSignIn
+	//	*SpaceBackupState_Failed
+	State isSpaceBackupState_State `protobuf_oneof:"state"`
+}
+
+func (x *SpaceBackupState) Reset() {
+	*x = SpaceBackupState{}
+}
+
+func (*SpaceBackupState) ProtoMessage() {}
+
+func (x *SpaceBackupState) GetRunSequence() uint64 {
+	if x != nil {
+		return x.RunSequence
+	}
+	return 0
+}
+
+func (x *SpaceBackupState) GetBackup() *SpaceBackup {
+	if x != nil {
+		return x.Backup
+	}
+	return nil
+}
+
+func (m *SpaceBackupState) GetState() isSpaceBackupState_State {
+	if m != nil {
+		return m.State
+	}
+	return nil
+}
+
+func (x *SpaceBackupState) GetIdle() *SpaceBackupIdle {
+	if x, ok := x.GetState().(*SpaceBackupState_Idle); ok {
+		return x.Idle
+	}
+	return nil
+}
+
+func (x *SpaceBackupState) GetCopying() *SpaceBackupProgress {
+	if x, ok := x.GetState().(*SpaceBackupState_Copying); ok {
+		return x.Copying
+	}
+	return nil
+}
+
+func (x *SpaceBackupState) GetUpToDate() *SpaceBackupPublication {
+	if x, ok := x.GetState().(*SpaceBackupState_UpToDate); ok {
+		return x.UpToDate
+	}
+	return nil
+}
+
+func (x *SpaceBackupState) GetIncomplete() *SpaceBackupProgress {
+	if x, ok := x.GetState().(*SpaceBackupState_Incomplete); ok {
+		return x.Incomplete
+	}
+	return nil
+}
+
+func (x *SpaceBackupState) GetWaitingUploadLimit() *SpaceBackupWaiting {
+	if x, ok := x.GetState().(*SpaceBackupState_WaitingUploadLimit); ok {
+		return x.WaitingUploadLimit
+	}
+	return nil
+}
+
+func (x *SpaceBackupState) GetWaitingQuota() *SpaceBackupWaiting {
+	if x, ok := x.GetState().(*SpaceBackupState_WaitingQuota); ok {
+		return x.WaitingQuota
+	}
+	return nil
+}
+
+func (x *SpaceBackupState) GetWaitingSignIn() *SpaceBackupWaiting {
+	if x, ok := x.GetState().(*SpaceBackupState_WaitingSignIn); ok {
+		return x.WaitingSignIn
+	}
+	return nil
+}
+
+func (x *SpaceBackupState) GetFailed() *SpaceBackupFailure {
+	if x, ok := x.GetState().(*SpaceBackupState_Failed); ok {
+		return x.Failed
+	}
+	return nil
+}
+
+type isSpaceBackupState_State interface {
+	isSpaceBackupState_State()
+}
+
+type SpaceBackupState_Idle struct {
+	// Idle has no requested work.
+	Idle *SpaceBackupIdle `protobuf:"bytes,2,opt,name=idle,proto3,oneof"`
+}
+
+type SpaceBackupState_Copying struct {
+	// Copying reports a running, pinned pass.
+	Copying *SpaceBackupProgress `protobuf:"bytes,3,opt,name=copying,proto3,oneof"`
+}
+
+type SpaceBackupState_UpToDate struct {
+	// UpToDate names the newest completely proven sealed index.
+	UpToDate *SpaceBackupPublication `protobuf:"bytes,4,opt,name=up_to_date,json=upToDate,proto3,oneof"`
+}
+
+type SpaceBackupState_Incomplete struct {
+	// Incomplete publishes nothing and retries its holes on another pass.
+	Incomplete *SpaceBackupProgress `protobuf:"bytes,5,opt,name=incomplete,proto3,oneof"`
+}
+
+type SpaceBackupState_WaitingUploadLimit struct {
+	// WaitingUploadLimit resumes at the known upload reset deadline.
+	WaitingUploadLimit *SpaceBackupWaiting `protobuf:"bytes,6,opt,name=waiting_upload_limit,json=waitingUploadLimit,proto3,oneof"`
+}
+
+type SpaceBackupState_WaitingQuota struct {
+	// WaitingQuota needs more space in the destination.
+	WaitingQuota *SpaceBackupWaiting `protobuf:"bytes,7,opt,name=waiting_quota,json=waitingQuota,proto3,oneof"`
+}
+
+type SpaceBackupState_WaitingSignIn struct {
+	// WaitingSignIn needs the owner to authorize Drive again.
+	WaitingSignIn *SpaceBackupWaiting `protobuf:"bytes,8,opt,name=waiting_sign_in,json=waitingSignIn,proto3,oneof"`
+}
+
+type SpaceBackupState_Failed struct {
+	// Failed needs the stated correction before another requested pass.
+	Failed *SpaceBackupFailure `protobuf:"bytes,9,opt,name=failed,proto3,oneof"`
+}
+
+func (*SpaceBackupState_Idle) isSpaceBackupState_State() {}
+
+func (*SpaceBackupState_Copying) isSpaceBackupState_State() {}
+
+func (*SpaceBackupState_UpToDate) isSpaceBackupState_State() {}
+
+func (*SpaceBackupState_Incomplete) isSpaceBackupState_State() {}
+
+func (*SpaceBackupState_WaitingUploadLimit) isSpaceBackupState_State() {}
+
+func (*SpaceBackupState_WaitingQuota) isSpaceBackupState_State() {}
+
+func (*SpaceBackupState_WaitingSignIn) isSpaceBackupState_State() {}
+
+func (*SpaceBackupState_Failed) isSpaceBackupState_State() {}
+
+// SpaceBackupList is the device-local registry and its watch snapshot.
+type SpaceBackupList struct {
+	unknownFields []byte
+	// Backups contains each configured backup's latest state.
+	Backups []*SpaceBackupState `protobuf:"bytes,1,rep,name=backups,proto3" json:"backups,omitempty"`
+}
+
+func (x *SpaceBackupList) Reset() {
+	*x = SpaceBackupList{}
+}
+
+func (*SpaceBackupList) ProtoMessage() {}
+
+func (x *SpaceBackupList) GetBackups() []*SpaceBackupState {
+	if x != nil {
+		return x.Backups
+	}
+	return nil
+}
+
 func (m *AccountSettings) CloneVT() *AccountSettings {
 	if m == nil {
 		return (*AccountSettings)(nil)
@@ -1493,6 +2026,7 @@ func (m *StorageBackend) CloneVT() *StorageBackend {
 	r.Credential = protobuf_go_lite.CloneVTValue(m.Credential)
 	r.Sql = protobuf_go_lite.CloneVTValue(m.Sql)
 	r.Ftps = protobuf_go_lite.CloneVTValue(m.Ftps)
+	r.Gdrive = protobuf_go_lite.CloneVTValue(m.Gdrive)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1500,6 +2034,23 @@ func (m *StorageBackend) CloneVT() *StorageBackend {
 }
 
 func (m *StorageBackend) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *GdriveLocation) CloneVT() *GdriveLocation {
+	if m == nil {
+		return (*GdriveLocation)(nil)
+	}
+	r := new(GdriveLocation)
+	r.RootFolderId = m.RootFolderId
+	r.AccountLabel = m.AccountLabel
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GdriveLocation) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -2118,6 +2669,306 @@ func (m *RemoveSessionPresentationOp) CloneMessageVT() protobuf_go_lite.CloneMes
 	return m.CloneVT()
 }
 
+func (m *SpaceBackup) CloneVT() *SpaceBackup {
+	if m == nil {
+		return (*SpaceBackup)(nil)
+	}
+	r := new(SpaceBackup)
+	r.Id = m.Id
+	r.SpaceId = m.SpaceId
+	r.StorageBackendId = m.StorageBackendId
+	r.Automatic = m.Automatic
+	r.IntervalSeconds = m.IntervalSeconds
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SpaceBackup) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SpaceBackupSnapshot) CloneVT() *SpaceBackupSnapshot {
+	if m == nil {
+		return (*SpaceBackupSnapshot)(nil)
+	}
+	r := new(SpaceBackupSnapshot)
+	r.World = protobuf_go_lite.CloneVTValue(m.World)
+	r.RetainedRoots = protobuf_go_lite.CloneVTSlice(m.RetainedRoots)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SpaceBackupSnapshot) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SpaceBackupIndex) CloneVT() *SpaceBackupIndex {
+	if m == nil {
+		return (*SpaceBackupIndex)(nil)
+	}
+	r := new(SpaceBackupIndex)
+	r.ProviderAccountId = m.ProviderAccountId
+	r.EntityId = m.EntityId
+	r.Envelope = protobuf_go_lite.CloneVTValue(m.Envelope)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SpaceBackupIndex) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SpaceBackupPublished) CloneVT() *SpaceBackupPublished {
+	if m == nil {
+		return (*SpaceBackupPublished)(nil)
+	}
+	r := new(SpaceBackupPublished)
+	r.Key = m.Key
+	r.PublishedUnixSeconds = m.PublishedUnixSeconds
+	r.Snapshot = protobuf_go_lite.CloneVTValue(m.Snapshot)
+	r.RecipientFingerprint = protobuf_go_lite.CloneBytes(m.RecipientFingerprint)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SpaceBackupPublished) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SpaceBackupPublication) CloneVT() *SpaceBackupPublication {
+	if m == nil {
+		return (*SpaceBackupPublication)(nil)
+	}
+	r := new(SpaceBackupPublication)
+	r.Key = m.Key
+	r.Seqno = m.Seqno
+	r.PublishedUnixSeconds = m.PublishedUnixSeconds
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SpaceBackupPublication) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SpaceBackupProgress) CloneVT() *SpaceBackupProgress {
+	if m == nil {
+		return (*SpaceBackupProgress)(nil)
+	}
+	r := new(SpaceBackupProgress)
+	r.ReadBytes = m.ReadBytes
+	r.WrittenBytes = m.WrittenBytes
+	r.Packs = m.Packs
+	r.Holes = m.Holes
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SpaceBackupProgress) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SpaceBackupWaiting) CloneVT() *SpaceBackupWaiting {
+	if m == nil {
+		return (*SpaceBackupWaiting)(nil)
+	}
+	r := new(SpaceBackupWaiting)
+	r.ResumeUnixSeconds = m.ResumeUnixSeconds
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SpaceBackupWaiting) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SpaceBackupFailure) CloneVT() *SpaceBackupFailure {
+	if m == nil {
+		return (*SpaceBackupFailure)(nil)
+	}
+	r := new(SpaceBackupFailure)
+	r.Message = m.Message
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SpaceBackupFailure) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SpaceBackupIdle) CloneVT() *SpaceBackupIdle {
+	if m == nil {
+		return (*SpaceBackupIdle)(nil)
+	}
+	r := new(SpaceBackupIdle)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SpaceBackupIdle) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SpaceBackupState) CloneVT() *SpaceBackupState {
+	if m == nil {
+		return (*SpaceBackupState)(nil)
+	}
+	r := new(SpaceBackupState)
+	r.RunSequence = m.RunSequence
+	r.Backup = protobuf_go_lite.CloneVTValue(m.Backup)
+	if m.State != nil {
+		r.State = m.State.(interface {
+			CloneOneofVT() isSpaceBackupState_State
+		}).CloneOneofVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SpaceBackupState) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SpaceBackupState_Idle) CloneVT() *SpaceBackupState_Idle {
+	if m == nil {
+		return (*SpaceBackupState_Idle)(nil)
+	}
+	r := new(SpaceBackupState_Idle)
+	r.Idle = protobuf_go_lite.CloneVTValue(m.Idle)
+	return r
+}
+
+func (m *SpaceBackupState_Idle) CloneOneofVT() isSpaceBackupState_State {
+	return m.CloneVT()
+}
+
+func (m *SpaceBackupState_Copying) CloneVT() *SpaceBackupState_Copying {
+	if m == nil {
+		return (*SpaceBackupState_Copying)(nil)
+	}
+	r := new(SpaceBackupState_Copying)
+	r.Copying = protobuf_go_lite.CloneVTValue(m.Copying)
+	return r
+}
+
+func (m *SpaceBackupState_Copying) CloneOneofVT() isSpaceBackupState_State {
+	return m.CloneVT()
+}
+
+func (m *SpaceBackupState_UpToDate) CloneVT() *SpaceBackupState_UpToDate {
+	if m == nil {
+		return (*SpaceBackupState_UpToDate)(nil)
+	}
+	r := new(SpaceBackupState_UpToDate)
+	r.UpToDate = protobuf_go_lite.CloneVTValue(m.UpToDate)
+	return r
+}
+
+func (m *SpaceBackupState_UpToDate) CloneOneofVT() isSpaceBackupState_State {
+	return m.CloneVT()
+}
+
+func (m *SpaceBackupState_Incomplete) CloneVT() *SpaceBackupState_Incomplete {
+	if m == nil {
+		return (*SpaceBackupState_Incomplete)(nil)
+	}
+	r := new(SpaceBackupState_Incomplete)
+	r.Incomplete = protobuf_go_lite.CloneVTValue(m.Incomplete)
+	return r
+}
+
+func (m *SpaceBackupState_Incomplete) CloneOneofVT() isSpaceBackupState_State {
+	return m.CloneVT()
+}
+
+func (m *SpaceBackupState_WaitingUploadLimit) CloneVT() *SpaceBackupState_WaitingUploadLimit {
+	if m == nil {
+		return (*SpaceBackupState_WaitingUploadLimit)(nil)
+	}
+	r := new(SpaceBackupState_WaitingUploadLimit)
+	r.WaitingUploadLimit = protobuf_go_lite.CloneVTValue(m.WaitingUploadLimit)
+	return r
+}
+
+func (m *SpaceBackupState_WaitingUploadLimit) CloneOneofVT() isSpaceBackupState_State {
+	return m.CloneVT()
+}
+
+func (m *SpaceBackupState_WaitingQuota) CloneVT() *SpaceBackupState_WaitingQuota {
+	if m == nil {
+		return (*SpaceBackupState_WaitingQuota)(nil)
+	}
+	r := new(SpaceBackupState_WaitingQuota)
+	r.WaitingQuota = protobuf_go_lite.CloneVTValue(m.WaitingQuota)
+	return r
+}
+
+func (m *SpaceBackupState_WaitingQuota) CloneOneofVT() isSpaceBackupState_State {
+	return m.CloneVT()
+}
+
+func (m *SpaceBackupState_WaitingSignIn) CloneVT() *SpaceBackupState_WaitingSignIn {
+	if m == nil {
+		return (*SpaceBackupState_WaitingSignIn)(nil)
+	}
+	r := new(SpaceBackupState_WaitingSignIn)
+	r.WaitingSignIn = protobuf_go_lite.CloneVTValue(m.WaitingSignIn)
+	return r
+}
+
+func (m *SpaceBackupState_WaitingSignIn) CloneOneofVT() isSpaceBackupState_State {
+	return m.CloneVT()
+}
+
+func (m *SpaceBackupState_Failed) CloneVT() *SpaceBackupState_Failed {
+	if m == nil {
+		return (*SpaceBackupState_Failed)(nil)
+	}
+	r := new(SpaceBackupState_Failed)
+	r.Failed = protobuf_go_lite.CloneVTValue(m.Failed)
+	return r
+}
+
+func (m *SpaceBackupState_Failed) CloneOneofVT() isSpaceBackupState_State {
+	return m.CloneVT()
+}
+
+func (m *SpaceBackupList) CloneVT() *SpaceBackupList {
+	if m == nil {
+		return (*SpaceBackupList)(nil)
+	}
+	r := new(SpaceBackupList)
+	r.Backups = protobuf_go_lite.CloneVTSlice(m.Backups)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SpaceBackupList) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (this *AccountSettings) EqualVT(that *AccountSettings) bool {
 	if this == that {
 		return true
@@ -2204,11 +3055,37 @@ func (this *StorageBackend) EqualVT(that *StorageBackend) bool {
 	if !protobuf_go_lite.IsEqualVT(this.Ftps, that.Ftps) {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.Gdrive, that.Gdrive) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *StorageBackend) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*StorageBackend)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *GdriveLocation) EqualVT(that *GdriveLocation) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.RootFolderId != that.RootFolderId {
+		return false
+	}
+	if this.AccountLabel != that.AccountLabel {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GdriveLocation) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GdriveLocation)
 	if !ok {
 		return false
 	}
@@ -3091,6 +3968,419 @@ func (this *RemoveSessionPresentationOp) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *SpaceBackup) EqualVT(that *SpaceBackup) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Id != that.Id {
+		return false
+	}
+	if this.SpaceId != that.SpaceId {
+		return false
+	}
+	if this.StorageBackendId != that.StorageBackendId {
+		return false
+	}
+	if this.Automatic != that.Automatic {
+		return false
+	}
+	if this.IntervalSeconds != that.IntervalSeconds {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SpaceBackup) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SpaceBackup)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SpaceBackupSnapshot) EqualVT(that *SpaceBackupSnapshot) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.World, that.World) {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.RetainedRoots, that.RetainedRoots, func() *block.BlockRef { return &block.BlockRef{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SpaceBackupSnapshot) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SpaceBackupSnapshot)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SpaceBackupIndex) EqualVT(that *SpaceBackupIndex) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ProviderAccountId != that.ProviderAccountId {
+		return false
+	}
+	if this.EntityId != that.EntityId {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Envelope, that.Envelope) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SpaceBackupIndex) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SpaceBackupIndex)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SpaceBackupPublished) EqualVT(that *SpaceBackupPublished) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Key != that.Key {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Snapshot, that.Snapshot) {
+		return false
+	}
+	if this.PublishedUnixSeconds != that.PublishedUnixSeconds {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.RecipientFingerprint, that.RecipientFingerprint) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SpaceBackupPublished) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SpaceBackupPublished)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SpaceBackupPublication) EqualVT(that *SpaceBackupPublication) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Key != that.Key {
+		return false
+	}
+	if this.Seqno != that.Seqno {
+		return false
+	}
+	if this.PublishedUnixSeconds != that.PublishedUnixSeconds {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SpaceBackupPublication) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SpaceBackupPublication)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SpaceBackupProgress) EqualVT(that *SpaceBackupProgress) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ReadBytes != that.ReadBytes {
+		return false
+	}
+	if this.WrittenBytes != that.WrittenBytes {
+		return false
+	}
+	if this.Packs != that.Packs {
+		return false
+	}
+	if this.Holes != that.Holes {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SpaceBackupProgress) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SpaceBackupProgress)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SpaceBackupWaiting) EqualVT(that *SpaceBackupWaiting) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ResumeUnixSeconds != that.ResumeUnixSeconds {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SpaceBackupWaiting) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SpaceBackupWaiting)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SpaceBackupFailure) EqualVT(that *SpaceBackupFailure) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Message != that.Message {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SpaceBackupFailure) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SpaceBackupFailure)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SpaceBackupIdle) EqualVT(that *SpaceBackupIdle) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SpaceBackupIdle) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SpaceBackupIdle)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SpaceBackupState) EqualVT(that *SpaceBackupState) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.State == nil && that.State != nil {
+		return false
+	} else if this.State != nil {
+		if that.State == nil {
+			return false
+		}
+		if !this.State.(interface {
+			EqualVT(isSpaceBackupState_State) bool
+		}).EqualVT(that.State) {
+			return false
+		}
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Backup, that.Backup) {
+		return false
+	}
+	if this.RunSequence != that.RunSequence {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SpaceBackupState) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SpaceBackupState)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SpaceBackupState_Idle) EqualVT(thatIface isSpaceBackupState_State) bool {
+	that, ok := thatIface.(*SpaceBackupState_Idle)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Idle, that.Idle, func() *SpaceBackupIdle { return &SpaceBackupIdle{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *SpaceBackupState_Copying) EqualVT(thatIface isSpaceBackupState_State) bool {
+	that, ok := thatIface.(*SpaceBackupState_Copying)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Copying, that.Copying, func() *SpaceBackupProgress { return &SpaceBackupProgress{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *SpaceBackupState_UpToDate) EqualVT(thatIface isSpaceBackupState_State) bool {
+	that, ok := thatIface.(*SpaceBackupState_UpToDate)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.UpToDate, that.UpToDate, func() *SpaceBackupPublication { return &SpaceBackupPublication{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *SpaceBackupState_Incomplete) EqualVT(thatIface isSpaceBackupState_State) bool {
+	that, ok := thatIface.(*SpaceBackupState_Incomplete)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Incomplete, that.Incomplete, func() *SpaceBackupProgress { return &SpaceBackupProgress{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *SpaceBackupState_WaitingUploadLimit) EqualVT(thatIface isSpaceBackupState_State) bool {
+	that, ok := thatIface.(*SpaceBackupState_WaitingUploadLimit)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.WaitingUploadLimit, that.WaitingUploadLimit, func() *SpaceBackupWaiting { return &SpaceBackupWaiting{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *SpaceBackupState_WaitingQuota) EqualVT(thatIface isSpaceBackupState_State) bool {
+	that, ok := thatIface.(*SpaceBackupState_WaitingQuota)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.WaitingQuota, that.WaitingQuota, func() *SpaceBackupWaiting { return &SpaceBackupWaiting{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *SpaceBackupState_WaitingSignIn) EqualVT(thatIface isSpaceBackupState_State) bool {
+	that, ok := thatIface.(*SpaceBackupState_WaitingSignIn)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.WaitingSignIn, that.WaitingSignIn, func() *SpaceBackupWaiting { return &SpaceBackupWaiting{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *SpaceBackupState_Failed) EqualVT(thatIface isSpaceBackupState_State) bool {
+	that, ok := thatIface.(*SpaceBackupState_Failed)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Failed, that.Failed, func() *SpaceBackupFailure { return &SpaceBackupFailure{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *SpaceBackupList) EqualVT(that *SpaceBackupList) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Backups, that.Backups, func() *SpaceBackupState { return &SpaceBackupState{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SpaceBackupList) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SpaceBackupList)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 // MarshalProtoJSON marshals the AccountSettings message to JSON.
 func (x *AccountSettings) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -3484,6 +4774,11 @@ func (x *StorageBackend) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("ftps")
 		x.Ftps.MarshalProtoJSON(s.WithField("ftps"))
 	}
+	if x.Gdrive != nil || s.HasField("gdrive") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("gdrive")
+		x.Gdrive.MarshalProtoJSON(s.WithField("gdrive"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -3535,12 +4830,69 @@ func (x *StorageBackend) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Ftps = &FtpsLocation{}
 			x.Ftps.UnmarshalProtoJSON(s.WithField("ftps", true))
+		case "gdrive":
+			if s.ReadNil() {
+				x.Gdrive = nil
+				return
+			}
+			x.Gdrive = &GdriveLocation{}
+			x.Gdrive.UnmarshalProtoJSON(s.WithField("gdrive", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the StorageBackend from JSON.
 func (x *StorageBackend) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the GdriveLocation message to JSON.
+func (x *GdriveLocation) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.RootFolderId != "" || s.HasField("rootFolderId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rootFolderId")
+		s.WriteString(x.RootFolderId)
+	}
+	if x.AccountLabel != "" || s.HasField("accountLabel") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("accountLabel")
+		s.WriteString(x.AccountLabel)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GdriveLocation to JSON.
+func (x *GdriveLocation) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GdriveLocation message from JSON.
+func (x *GdriveLocation) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "root_folder_id", "rootFolderId":
+			s.AddField("root_folder_id")
+			x.RootFolderId = s.ReadString()
+		case "account_label", "accountLabel":
+			s.AddField("account_label")
+			x.AccountLabel = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the GdriveLocation from JSON.
+func (x *GdriveLocation) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -5014,6 +6366,750 @@ func (x *RemoveSessionPresentationOp) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the SpaceBackup message to JSON.
+func (x *SpaceBackup) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Id != "" || s.HasField("id") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("id")
+		s.WriteString(x.Id)
+	}
+	if x.SpaceId != "" || s.HasField("spaceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("spaceId")
+		s.WriteString(x.SpaceId)
+	}
+	if x.StorageBackendId != "" || s.HasField("storageBackendId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("storageBackendId")
+		s.WriteString(x.StorageBackendId)
+	}
+	if x.Automatic || s.HasField("automatic") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("automatic")
+		s.WriteBool(x.Automatic)
+	}
+	if x.IntervalSeconds != 0 || s.HasField("intervalSeconds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("intervalSeconds")
+		s.WriteUint64(x.IntervalSeconds)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SpaceBackup to JSON.
+func (x *SpaceBackup) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SpaceBackup message from JSON.
+func (x *SpaceBackup) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "id":
+			s.AddField("id")
+			x.Id = s.ReadString()
+		case "space_id", "spaceId":
+			s.AddField("space_id")
+			x.SpaceId = s.ReadString()
+		case "storage_backend_id", "storageBackendId":
+			s.AddField("storage_backend_id")
+			x.StorageBackendId = s.ReadString()
+		case "automatic":
+			s.AddField("automatic")
+			x.Automatic = s.ReadBool()
+		case "interval_seconds", "intervalSeconds":
+			s.AddField("interval_seconds")
+			x.IntervalSeconds = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SpaceBackup from JSON.
+func (x *SpaceBackup) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SpaceBackupSnapshot message to JSON.
+func (x *SpaceBackupSnapshot) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.World != nil || s.HasField("world") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("world")
+		x.World.MarshalProtoJSON(s.WithField("world"))
+	}
+	if len(x.RetainedRoots) > 0 || s.HasField("retainedRoots") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("retainedRoots")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.RetainedRoots {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("retainedRoots"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SpaceBackupSnapshot to JSON.
+func (x *SpaceBackupSnapshot) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SpaceBackupSnapshot message from JSON.
+func (x *SpaceBackupSnapshot) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "world":
+			if s.ReadNil() {
+				x.World = nil
+				return
+			}
+			x.World = &world.WorldRootSnapshot{}
+			x.World.UnmarshalProtoJSON(s.WithField("world", true))
+		case "retained_roots", "retainedRoots":
+			s.AddField("retained_roots")
+			if s.ReadNil() {
+				x.RetainedRoots = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.RetainedRoots = append(x.RetainedRoots, nil)
+					return
+				}
+				v := &block.BlockRef{}
+				v.UnmarshalProtoJSON(s.WithField("retained_roots", false))
+				if s.Err() != nil {
+					return
+				}
+				x.RetainedRoots = append(x.RetainedRoots, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SpaceBackupSnapshot from JSON.
+func (x *SpaceBackupSnapshot) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SpaceBackupIndex message to JSON.
+func (x *SpaceBackupIndex) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ProviderAccountId != "" || s.HasField("providerAccountId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("providerAccountId")
+		s.WriteString(x.ProviderAccountId)
+	}
+	if x.EntityId != "" || s.HasField("entityId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("entityId")
+		s.WriteString(x.EntityId)
+	}
+	if x.Envelope != nil || s.HasField("envelope") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("envelope")
+		x.Envelope.MarshalProtoJSON(s.WithField("envelope"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SpaceBackupIndex to JSON.
+func (x *SpaceBackupIndex) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SpaceBackupIndex message from JSON.
+func (x *SpaceBackupIndex) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "provider_account_id", "providerAccountId":
+			s.AddField("provider_account_id")
+			x.ProviderAccountId = s.ReadString()
+		case "entity_id", "entityId":
+			s.AddField("entity_id")
+			x.EntityId = s.ReadString()
+		case "envelope":
+			if s.ReadNil() {
+				x.Envelope = nil
+				return
+			}
+			x.Envelope = &envelope.Envelope{}
+			x.Envelope.UnmarshalProtoJSON(s.WithField("envelope", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SpaceBackupIndex from JSON.
+func (x *SpaceBackupIndex) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SpaceBackupPublished message to JSON.
+func (x *SpaceBackupPublished) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Key != "" || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		s.WriteString(x.Key)
+	}
+	if x.Snapshot != nil || s.HasField("snapshot") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("snapshot")
+		x.Snapshot.MarshalProtoJSON(s.WithField("snapshot"))
+	}
+	if x.PublishedUnixSeconds != 0 || s.HasField("publishedUnixSeconds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("publishedUnixSeconds")
+		s.WriteInt64(x.PublishedUnixSeconds)
+	}
+	if len(x.RecipientFingerprint) > 0 || s.HasField("recipientFingerprint") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("recipientFingerprint")
+		s.WriteBytes(x.RecipientFingerprint)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SpaceBackupPublished to JSON.
+func (x *SpaceBackupPublished) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SpaceBackupPublished message from JSON.
+func (x *SpaceBackupPublished) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "key":
+			s.AddField("key")
+			x.Key = s.ReadString()
+		case "snapshot":
+			if s.ReadNil() {
+				x.Snapshot = nil
+				return
+			}
+			x.Snapshot = &SpaceBackupSnapshot{}
+			x.Snapshot.UnmarshalProtoJSON(s.WithField("snapshot", true))
+		case "published_unix_seconds", "publishedUnixSeconds":
+			s.AddField("published_unix_seconds")
+			x.PublishedUnixSeconds = s.ReadInt64()
+		case "recipient_fingerprint", "recipientFingerprint":
+			s.AddField("recipient_fingerprint")
+			x.RecipientFingerprint = s.ReadBytes()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SpaceBackupPublished from JSON.
+func (x *SpaceBackupPublished) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SpaceBackupPublication message to JSON.
+func (x *SpaceBackupPublication) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Key != "" || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		s.WriteString(x.Key)
+	}
+	if x.Seqno != 0 || s.HasField("seqno") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("seqno")
+		s.WriteUint64(x.Seqno)
+	}
+	if x.PublishedUnixSeconds != 0 || s.HasField("publishedUnixSeconds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("publishedUnixSeconds")
+		s.WriteInt64(x.PublishedUnixSeconds)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SpaceBackupPublication to JSON.
+func (x *SpaceBackupPublication) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SpaceBackupPublication message from JSON.
+func (x *SpaceBackupPublication) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "key":
+			s.AddField("key")
+			x.Key = s.ReadString()
+		case "seqno":
+			s.AddField("seqno")
+			x.Seqno = s.ReadUint64()
+		case "published_unix_seconds", "publishedUnixSeconds":
+			s.AddField("published_unix_seconds")
+			x.PublishedUnixSeconds = s.ReadInt64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SpaceBackupPublication from JSON.
+func (x *SpaceBackupPublication) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SpaceBackupProgress message to JSON.
+func (x *SpaceBackupProgress) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ReadBytes != 0 || s.HasField("readBytes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("readBytes")
+		s.WriteUint64(x.ReadBytes)
+	}
+	if x.WrittenBytes != 0 || s.HasField("writtenBytes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("writtenBytes")
+		s.WriteUint64(x.WrittenBytes)
+	}
+	if x.Packs != 0 || s.HasField("packs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("packs")
+		s.WriteUint64(x.Packs)
+	}
+	if x.Holes != 0 || s.HasField("holes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("holes")
+		s.WriteUint64(x.Holes)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SpaceBackupProgress to JSON.
+func (x *SpaceBackupProgress) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SpaceBackupProgress message from JSON.
+func (x *SpaceBackupProgress) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "read_bytes", "readBytes":
+			s.AddField("read_bytes")
+			x.ReadBytes = s.ReadUint64()
+		case "written_bytes", "writtenBytes":
+			s.AddField("written_bytes")
+			x.WrittenBytes = s.ReadUint64()
+		case "packs":
+			s.AddField("packs")
+			x.Packs = s.ReadUint64()
+		case "holes":
+			s.AddField("holes")
+			x.Holes = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SpaceBackupProgress from JSON.
+func (x *SpaceBackupProgress) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SpaceBackupWaiting message to JSON.
+func (x *SpaceBackupWaiting) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ResumeUnixSeconds != 0 || s.HasField("resumeUnixSeconds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("resumeUnixSeconds")
+		s.WriteInt64(x.ResumeUnixSeconds)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SpaceBackupWaiting to JSON.
+func (x *SpaceBackupWaiting) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SpaceBackupWaiting message from JSON.
+func (x *SpaceBackupWaiting) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "resume_unix_seconds", "resumeUnixSeconds":
+			s.AddField("resume_unix_seconds")
+			x.ResumeUnixSeconds = s.ReadInt64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SpaceBackupWaiting from JSON.
+func (x *SpaceBackupWaiting) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SpaceBackupFailure message to JSON.
+func (x *SpaceBackupFailure) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Message != "" || s.HasField("message") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("message")
+		s.WriteString(x.Message)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SpaceBackupFailure to JSON.
+func (x *SpaceBackupFailure) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SpaceBackupFailure message from JSON.
+func (x *SpaceBackupFailure) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "message":
+			s.AddField("message")
+			x.Message = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SpaceBackupFailure from JSON.
+func (x *SpaceBackupFailure) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SpaceBackupIdle message to JSON.
+func (x *SpaceBackupIdle) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SpaceBackupIdle to JSON.
+func (x *SpaceBackupIdle) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SpaceBackupIdle message from JSON.
+func (x *SpaceBackupIdle) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the SpaceBackupIdle from JSON.
+func (x *SpaceBackupIdle) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SpaceBackupState message to JSON.
+func (x *SpaceBackupState) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Backup != nil || s.HasField("backup") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("backup")
+		x.Backup.MarshalProtoJSON(s.WithField("backup"))
+	}
+	if x.State != nil {
+		switch ov := x.State.(type) {
+		case *SpaceBackupState_Idle:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("idle")
+			ov.Idle.MarshalProtoJSON(s.WithField("idle"))
+		case *SpaceBackupState_Copying:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("copying")
+			ov.Copying.MarshalProtoJSON(s.WithField("copying"))
+		case *SpaceBackupState_UpToDate:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("upToDate")
+			ov.UpToDate.MarshalProtoJSON(s.WithField("upToDate"))
+		case *SpaceBackupState_Incomplete:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("incomplete")
+			ov.Incomplete.MarshalProtoJSON(s.WithField("incomplete"))
+		case *SpaceBackupState_WaitingUploadLimit:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("waitingUploadLimit")
+			ov.WaitingUploadLimit.MarshalProtoJSON(s.WithField("waitingUploadLimit"))
+		case *SpaceBackupState_WaitingQuota:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("waitingQuota")
+			ov.WaitingQuota.MarshalProtoJSON(s.WithField("waitingQuota"))
+		case *SpaceBackupState_WaitingSignIn:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("waitingSignIn")
+			ov.WaitingSignIn.MarshalProtoJSON(s.WithField("waitingSignIn"))
+		case *SpaceBackupState_Failed:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("failed")
+			ov.Failed.MarshalProtoJSON(s.WithField("failed"))
+		}
+	}
+	if x.RunSequence != 0 || s.HasField("runSequence") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("runSequence")
+		s.WriteUint64(x.RunSequence)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SpaceBackupState to JSON.
+func (x *SpaceBackupState) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SpaceBackupState message from JSON.
+func (x *SpaceBackupState) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "backup":
+			if s.ReadNil() {
+				x.Backup = nil
+				return
+			}
+			x.Backup = &SpaceBackup{}
+			x.Backup.UnmarshalProtoJSON(s.WithField("backup", true))
+		case "idle":
+			ov := &SpaceBackupState_Idle{}
+			x.State = ov
+			if s.ReadNil() {
+				ov.Idle = nil
+				return
+			}
+			ov.Idle = &SpaceBackupIdle{}
+			ov.Idle.UnmarshalProtoJSON(s.WithField("idle", true))
+		case "copying":
+			ov := &SpaceBackupState_Copying{}
+			x.State = ov
+			if s.ReadNil() {
+				ov.Copying = nil
+				return
+			}
+			ov.Copying = &SpaceBackupProgress{}
+			ov.Copying.UnmarshalProtoJSON(s.WithField("copying", true))
+		case "up_to_date", "upToDate":
+			ov := &SpaceBackupState_UpToDate{}
+			x.State = ov
+			if s.ReadNil() {
+				ov.UpToDate = nil
+				return
+			}
+			ov.UpToDate = &SpaceBackupPublication{}
+			ov.UpToDate.UnmarshalProtoJSON(s.WithField("up_to_date", true))
+		case "incomplete":
+			ov := &SpaceBackupState_Incomplete{}
+			x.State = ov
+			if s.ReadNil() {
+				ov.Incomplete = nil
+				return
+			}
+			ov.Incomplete = &SpaceBackupProgress{}
+			ov.Incomplete.UnmarshalProtoJSON(s.WithField("incomplete", true))
+		case "waiting_upload_limit", "waitingUploadLimit":
+			ov := &SpaceBackupState_WaitingUploadLimit{}
+			x.State = ov
+			if s.ReadNil() {
+				ov.WaitingUploadLimit = nil
+				return
+			}
+			ov.WaitingUploadLimit = &SpaceBackupWaiting{}
+			ov.WaitingUploadLimit.UnmarshalProtoJSON(s.WithField("waiting_upload_limit", true))
+		case "waiting_quota", "waitingQuota":
+			ov := &SpaceBackupState_WaitingQuota{}
+			x.State = ov
+			if s.ReadNil() {
+				ov.WaitingQuota = nil
+				return
+			}
+			ov.WaitingQuota = &SpaceBackupWaiting{}
+			ov.WaitingQuota.UnmarshalProtoJSON(s.WithField("waiting_quota", true))
+		case "waiting_sign_in", "waitingSignIn":
+			ov := &SpaceBackupState_WaitingSignIn{}
+			x.State = ov
+			if s.ReadNil() {
+				ov.WaitingSignIn = nil
+				return
+			}
+			ov.WaitingSignIn = &SpaceBackupWaiting{}
+			ov.WaitingSignIn.UnmarshalProtoJSON(s.WithField("waiting_sign_in", true))
+		case "failed":
+			ov := &SpaceBackupState_Failed{}
+			x.State = ov
+			if s.ReadNil() {
+				ov.Failed = nil
+				return
+			}
+			ov.Failed = &SpaceBackupFailure{}
+			ov.Failed.UnmarshalProtoJSON(s.WithField("failed", true))
+		case "run_sequence", "runSequence":
+			s.AddField("run_sequence")
+			x.RunSequence = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SpaceBackupState from JSON.
+func (x *SpaceBackupState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SpaceBackupList message to JSON.
+func (x *SpaceBackupList) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Backups) > 0 || s.HasField("backups") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("backups")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Backups {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("backups"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SpaceBackupList to JSON.
+func (x *SpaceBackupList) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SpaceBackupList message from JSON.
+func (x *SpaceBackupList) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "backups":
+			s.AddField("backups")
+			if s.ReadNil() {
+				x.Backups = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Backups = append(x.Backups, nil)
+					return
+				}
+				v := &SpaceBackupState{}
+				v.UnmarshalProtoJSON(s.WithField("backups", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Backups = append(x.Backups, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SpaceBackupList from JSON.
+func (x *SpaceBackupList) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *AccountSettings) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -5225,6 +7321,16 @@ func (m *StorageBackend) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Gdrive != nil {
+		size, err := m.Gdrive.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x3a
+	}
 	if m.Ftps != nil {
 		size, err := m.Ftps.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -5272,6 +7378,48 @@ func (m *StorageBackend) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	if len(m.Id) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.Id)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *GdriveLocation) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GdriveLocation) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GdriveLocation) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.AccountLabel) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.AccountLabel)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.RootFolderId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.RootFolderId)
 		i--
 		dAtA[i] = 0xa
 	}
@@ -6757,6 +8905,723 @@ func (m *RemoveSessionPresentationOp) MarshalToSizedBufferVT(dAtA []byte) (int, 
 	return len(dAtA) - i, nil
 }
 
+func (m *SpaceBackup) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SpaceBackup) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SpaceBackup) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.IntervalSeconds != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.IntervalSeconds))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.Automatic {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Automatic)
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.StorageBackendId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.StorageBackendId)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.SpaceId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SpaceId)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Id) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Id)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SpaceBackupSnapshot) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SpaceBackupSnapshot) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SpaceBackupSnapshot) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.RetainedRoots) > 0 {
+		for iNdEx := len(m.RetainedRoots) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.RetainedRoots[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if m.World != nil {
+		size, err := m.World.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SpaceBackupIndex) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SpaceBackupIndex) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SpaceBackupIndex) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Envelope != nil {
+		size, err := m.Envelope.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.EntityId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.EntityId)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ProviderAccountId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ProviderAccountId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SpaceBackupPublished) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SpaceBackupPublished) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SpaceBackupPublished) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.RecipientFingerprint) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.RecipientFingerprint)
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.PublishedUnixSeconds != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PublishedUnixSeconds))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.Snapshot != nil {
+		size, err := m.Snapshot.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Key) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Key)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SpaceBackupPublication) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SpaceBackupPublication) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SpaceBackupPublication) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.PublishedUnixSeconds != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PublishedUnixSeconds))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.Seqno != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Seqno))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Key) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Key)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SpaceBackupProgress) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SpaceBackupProgress) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SpaceBackupProgress) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Holes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Holes))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.Packs != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Packs))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.WrittenBytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.WrittenBytes))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.ReadBytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ReadBytes))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SpaceBackupWaiting) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SpaceBackupWaiting) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SpaceBackupWaiting) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.ResumeUnixSeconds != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ResumeUnixSeconds))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SpaceBackupFailure) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SpaceBackupFailure) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SpaceBackupFailure) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Message) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Message)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SpaceBackupIdle) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SpaceBackupIdle) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SpaceBackupIdle) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SpaceBackupState) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SpaceBackupState) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SpaceBackupState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if vtmsg, ok := m.State.(interface {
+		MarshalToSizedBufferVT([]byte) (int, error)
+	}); ok {
+		size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
+	if m.RunSequence != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.RunSequence))
+		i--
+		dAtA[i] = 0x50
+	}
+	if m.Backup != nil {
+		size, err := m.Backup.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SpaceBackupState_Idle) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SpaceBackupState_Idle) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Idle != nil {
+		size, err := m.Idle.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x12
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SpaceBackupState_Copying) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SpaceBackupState_Copying) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Copying != nil {
+		size, err := m.Copying.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x1a
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SpaceBackupState_UpToDate) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SpaceBackupState_UpToDate) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.UpToDate != nil {
+		size, err := m.UpToDate.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x22
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SpaceBackupState_Incomplete) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SpaceBackupState_Incomplete) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Incomplete != nil {
+		size, err := m.Incomplete.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x2a
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x2a
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SpaceBackupState_WaitingUploadLimit) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SpaceBackupState_WaitingUploadLimit) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.WaitingUploadLimit != nil {
+		size, err := m.WaitingUploadLimit.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x32
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x32
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SpaceBackupState_WaitingQuota) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SpaceBackupState_WaitingQuota) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.WaitingQuota != nil {
+		size, err := m.WaitingQuota.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x3a
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x3a
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SpaceBackupState_WaitingSignIn) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SpaceBackupState_WaitingSignIn) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.WaitingSignIn != nil {
+		size, err := m.WaitingSignIn.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x42
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x42
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SpaceBackupState_Failed) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SpaceBackupState_Failed) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Failed != nil {
+		size, err := m.Failed.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x4a
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x4a
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SpaceBackupList) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SpaceBackupList) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SpaceBackupList) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Backups) > 0 {
+		for iNdEx := len(m.Backups) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Backups[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *AccountSettings) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -6839,6 +9704,22 @@ func (m *StorageBackend) SizeVT() (n int) {
 		l = m.Ftps.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	if m.Gdrive != nil {
+		l = m.Gdrive.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GdriveLocation) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.RootFolderId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.AccountLabel)
 	n += len(m.unknownFields)
 	return n
 }
@@ -7418,6 +10299,283 @@ func (m *RemoveSessionPresentationOp) SizeVT() (n int) {
 	return n
 }
 
+func (m *SpaceBackup) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Id)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SpaceId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.StorageBackendId)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Automatic)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.IntervalSeconds)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SpaceBackupSnapshot) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.World != nil {
+		l = m.World.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	for _, e := range m.RetainedRoots {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SpaceBackupIndex) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ProviderAccountId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.EntityId)
+	if m.Envelope != nil {
+		l = m.Envelope.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SpaceBackupPublished) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Key)
+	if m.Snapshot != nil {
+		l = m.Snapshot.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.PublishedUnixSeconds)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.RecipientFingerprint)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SpaceBackupPublication) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Key)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Seqno)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.PublishedUnixSeconds)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SpaceBackupProgress) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ReadBytes)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.WrittenBytes)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Packs)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Holes)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SpaceBackupWaiting) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ResumeUnixSeconds)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SpaceBackupFailure) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Message)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SpaceBackupIdle) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SpaceBackupState) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Backup != nil {
+		l = m.Backup.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if vtmsg, ok := m.State.(interface{ SizeVT() int }); ok {
+		n += vtmsg.SizeVT()
+	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.RunSequence)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SpaceBackupState_Idle) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Idle != nil {
+		l = m.Idle.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *SpaceBackupState_Copying) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Copying != nil {
+		l = m.Copying.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *SpaceBackupState_UpToDate) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.UpToDate != nil {
+		l = m.UpToDate.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *SpaceBackupState_Incomplete) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Incomplete != nil {
+		l = m.Incomplete.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *SpaceBackupState_WaitingUploadLimit) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.WaitingUploadLimit != nil {
+		l = m.WaitingUploadLimit.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *SpaceBackupState_WaitingQuota) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.WaitingQuota != nil {
+		l = m.WaitingQuota.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *SpaceBackupState_WaitingSignIn) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.WaitingSignIn != nil {
+		l = m.WaitingSignIn.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *SpaceBackupState_Failed) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Failed != nil {
+		l = m.Failed.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *SpaceBackupList) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	for _, e := range m.Backups {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (x *AccountSettings) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "AccountSettings")
@@ -7591,10 +10749,32 @@ func (x *StorageBackend) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "ftps")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Ftps)
 	}
+	if x.Gdrive != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "gdrive")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Gdrive)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *StorageBackend) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *GdriveLocation) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "GdriveLocation")
+	if x.RootFolderId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "root_folder_id")
+		protobuf_go_lite.TextWriteString(&sb, x.RootFolderId)
+	}
+	if x.AccountLabel != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "account_label")
+		protobuf_go_lite.TextWriteString(&sb, x.AccountLabel)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *GdriveLocation) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -8202,6 +11382,294 @@ func (x *RemoveSessionPresentationOp) String() string {
 	return x.MarshalProtoText()
 }
 
+func (x *SpaceBackup) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SpaceBackup")
+	if x.Id != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "id")
+		protobuf_go_lite.TextWriteString(&sb, x.Id)
+	}
+	if x.SpaceId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "space_id")
+		protobuf_go_lite.TextWriteString(&sb, x.SpaceId)
+	}
+	if x.StorageBackendId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "storage_backend_id")
+		protobuf_go_lite.TextWriteString(&sb, x.StorageBackendId)
+	}
+	if x.Automatic != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "automatic")
+		protobuf_go_lite.TextWriteBool(&sb, x.Automatic)
+	}
+	if x.IntervalSeconds != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "interval_seconds")
+		protobuf_go_lite.TextWriteUint(&sb, x.IntervalSeconds)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SpaceBackup) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SpaceBackupSnapshot) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SpaceBackupSnapshot")
+	if x.World != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "world")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.World)
+	}
+	if len(x.RetainedRoots) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "retained_roots")
+		for i, v := range x.RetainedRoots {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &block.BlockRef{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SpaceBackupSnapshot) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SpaceBackupIndex) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SpaceBackupIndex")
+	if x.ProviderAccountId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "provider_account_id")
+		protobuf_go_lite.TextWriteString(&sb, x.ProviderAccountId)
+	}
+	if x.EntityId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "entity_id")
+		protobuf_go_lite.TextWriteString(&sb, x.EntityId)
+	}
+	if x.Envelope != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "envelope")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Envelope)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SpaceBackupIndex) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SpaceBackupPublished) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SpaceBackupPublished")
+	if x.Key != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "key")
+		protobuf_go_lite.TextWriteString(&sb, x.Key)
+	}
+	if x.Snapshot != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "snapshot")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Snapshot)
+	}
+	if x.PublishedUnixSeconds != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "published_unix_seconds")
+		protobuf_go_lite.TextWriteInt(&sb, x.PublishedUnixSeconds)
+	}
+	if len(x.RecipientFingerprint) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "recipient_fingerprint")
+		protobuf_go_lite.TextWriteBytes(&sb, x.RecipientFingerprint)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SpaceBackupPublished) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SpaceBackupPublication) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SpaceBackupPublication")
+	if x.Key != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "key")
+		protobuf_go_lite.TextWriteString(&sb, x.Key)
+	}
+	if x.Seqno != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "seqno")
+		protobuf_go_lite.TextWriteUint(&sb, x.Seqno)
+	}
+	if x.PublishedUnixSeconds != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "published_unix_seconds")
+		protobuf_go_lite.TextWriteInt(&sb, x.PublishedUnixSeconds)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SpaceBackupPublication) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SpaceBackupProgress) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SpaceBackupProgress")
+	if x.ReadBytes != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "read_bytes")
+		protobuf_go_lite.TextWriteUint(&sb, x.ReadBytes)
+	}
+	if x.WrittenBytes != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "written_bytes")
+		protobuf_go_lite.TextWriteUint(&sb, x.WrittenBytes)
+	}
+	if x.Packs != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "packs")
+		protobuf_go_lite.TextWriteUint(&sb, x.Packs)
+	}
+	if x.Holes != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "holes")
+		protobuf_go_lite.TextWriteUint(&sb, x.Holes)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SpaceBackupProgress) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SpaceBackupWaiting) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SpaceBackupWaiting")
+	if x.ResumeUnixSeconds != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "resume_unix_seconds")
+		protobuf_go_lite.TextWriteInt(&sb, x.ResumeUnixSeconds)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SpaceBackupWaiting) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SpaceBackupFailure) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SpaceBackupFailure")
+	if x.Message != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "message")
+		protobuf_go_lite.TextWriteString(&sb, x.Message)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SpaceBackupFailure) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SpaceBackupIdle) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "SpaceBackupIdle")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SpaceBackupIdle) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SpaceBackupState) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SpaceBackupState")
+	if x.Backup != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "backup")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Backup)
+	}
+	switch body := x.State.(type) {
+	case *SpaceBackupState_Idle:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "idle")
+		if body.Idle == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &SpaceBackupIdle{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Idle)
+		}
+	case *SpaceBackupState_Copying:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "copying")
+		if body.Copying == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &SpaceBackupProgress{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Copying)
+		}
+	case *SpaceBackupState_UpToDate:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "up_to_date")
+		if body.UpToDate == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &SpaceBackupPublication{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.UpToDate)
+		}
+	case *SpaceBackupState_Incomplete:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "incomplete")
+		if body.Incomplete == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &SpaceBackupProgress{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Incomplete)
+		}
+	case *SpaceBackupState_WaitingUploadLimit:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "waiting_upload_limit")
+		if body.WaitingUploadLimit == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &SpaceBackupWaiting{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.WaitingUploadLimit)
+		}
+	case *SpaceBackupState_WaitingQuota:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "waiting_quota")
+		if body.WaitingQuota == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &SpaceBackupWaiting{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.WaitingQuota)
+		}
+	case *SpaceBackupState_WaitingSignIn:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "waiting_sign_in")
+		if body.WaitingSignIn == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &SpaceBackupWaiting{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.WaitingSignIn)
+		}
+	case *SpaceBackupState_Failed:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "failed")
+		if body.Failed == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &SpaceBackupFailure{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Failed)
+		}
+	}
+	if x.RunSequence != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "run_sequence")
+		protobuf_go_lite.TextWriteUint(&sb, x.RunSequence)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SpaceBackupState) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SpaceBackupList) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SpaceBackupList")
+	if len(x.Backups) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "backups")
+		for i, v := range x.Backups {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &SpaceBackupState{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SpaceBackupList) String() string {
+	return x.MarshalProtoText()
+}
+
 func (m *AccountSettings) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -8532,6 +12000,84 @@ func (m *StorageBackend) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Gdrive", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Gdrive == nil {
+				m.Gdrive = &GdriveLocation{}
+			}
+			if err := m.Gdrive.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *GdriveLocation) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GdriveLocation: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GdriveLocation: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RootFolderId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.RootFolderId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AccountLabel", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.AccountLabel = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -10428,6 +13974,913 @@ func (m *RemoveSessionPresentationOp) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.PeerId = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SpaceBackup) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SpaceBackup: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SpaceBackup: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Id = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SpaceId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SpaceId = v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StorageBackendId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.StorageBackendId = v
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Automatic", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Automatic = bool(v)
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IntervalSeconds", wireType)
+			}
+			m.IntervalSeconds = 0
+			m.IntervalSeconds, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SpaceBackupSnapshot) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SpaceBackupSnapshot: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SpaceBackupSnapshot: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field World", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.World == nil {
+				m.World = &world.WorldRootSnapshot{}
+			}
+			if err := m.World.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RetainedRoots", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.RetainedRoots = append(m.RetainedRoots, &block.BlockRef{})
+			if err := m.RetainedRoots[len(m.RetainedRoots)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SpaceBackupIndex) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SpaceBackupIndex: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SpaceBackupIndex: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ProviderAccountId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ProviderAccountId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EntityId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.EntityId = v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Envelope", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Envelope == nil {
+				m.Envelope = &envelope.Envelope{}
+			}
+			if err := m.Envelope.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SpaceBackupPublished) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SpaceBackupPublished: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SpaceBackupPublished: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Key = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Snapshot", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Snapshot == nil {
+				m.Snapshot = &SpaceBackupSnapshot{}
+			}
+			if err := m.Snapshot.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PublishedUnixSeconds", wireType)
+			}
+			m.PublishedUnixSeconds = 0
+			m.PublishedUnixSeconds, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RecipientFingerprint", wireType)
+			}
+			m.RecipientFingerprint, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.RecipientFingerprint, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SpaceBackupPublication) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SpaceBackupPublication: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SpaceBackupPublication: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Key = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Seqno", wireType)
+			}
+			m.Seqno = 0
+			m.Seqno, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PublishedUnixSeconds", wireType)
+			}
+			m.PublishedUnixSeconds = 0
+			m.PublishedUnixSeconds, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SpaceBackupProgress) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SpaceBackupProgress: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SpaceBackupProgress: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReadBytes", wireType)
+			}
+			m.ReadBytes = 0
+			m.ReadBytes, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WrittenBytes", wireType)
+			}
+			m.WrittenBytes = 0
+			m.WrittenBytes, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Packs", wireType)
+			}
+			m.Packs = 0
+			m.Packs, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Holes", wireType)
+			}
+			m.Holes = 0
+			m.Holes, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SpaceBackupWaiting) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SpaceBackupWaiting: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SpaceBackupWaiting: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ResumeUnixSeconds", wireType)
+			}
+			m.ResumeUnixSeconds = 0
+			m.ResumeUnixSeconds, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SpaceBackupFailure) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SpaceBackupFailure: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SpaceBackupFailure: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Message", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Message = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SpaceBackupIdle) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SpaceBackupIdle: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SpaceBackupIdle: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SpaceBackupState) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SpaceBackupState: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SpaceBackupState: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Backup", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Backup == nil {
+				m.Backup = &SpaceBackup{}
+			}
+			if err := m.Backup.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Idle", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.State.(*SpaceBackupState_Idle); ok {
+				if err := oneof.Idle.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &SpaceBackupIdle{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.State = &SpaceBackupState_Idle{Idle: v}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Copying", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.State.(*SpaceBackupState_Copying); ok {
+				if err := oneof.Copying.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &SpaceBackupProgress{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.State = &SpaceBackupState_Copying{Copying: v}
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UpToDate", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.State.(*SpaceBackupState_UpToDate); ok {
+				if err := oneof.UpToDate.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &SpaceBackupPublication{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.State = &SpaceBackupState_UpToDate{UpToDate: v}
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Incomplete", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.State.(*SpaceBackupState_Incomplete); ok {
+				if err := oneof.Incomplete.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &SpaceBackupProgress{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.State = &SpaceBackupState_Incomplete{Incomplete: v}
+			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WaitingUploadLimit", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.State.(*SpaceBackupState_WaitingUploadLimit); ok {
+				if err := oneof.WaitingUploadLimit.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &SpaceBackupWaiting{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.State = &SpaceBackupState_WaitingUploadLimit{WaitingUploadLimit: v}
+			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WaitingQuota", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.State.(*SpaceBackupState_WaitingQuota); ok {
+				if err := oneof.WaitingQuota.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &SpaceBackupWaiting{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.State = &SpaceBackupState_WaitingQuota{WaitingQuota: v}
+			}
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WaitingSignIn", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.State.(*SpaceBackupState_WaitingSignIn); ok {
+				if err := oneof.WaitingSignIn.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &SpaceBackupWaiting{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.State = &SpaceBackupState_WaitingSignIn{WaitingSignIn: v}
+			}
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Failed", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.State.(*SpaceBackupState_Failed); ok {
+				if err := oneof.Failed.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &SpaceBackupFailure{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.State = &SpaceBackupState_Failed{Failed: v}
+			}
+			iNdEx = postIndex
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RunSequence", wireType)
+			}
+			m.RunSequence = 0
+			m.RunSequence, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SpaceBackupList) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SpaceBackupList: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SpaceBackupList: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Backups", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Backups = append(m.Backups, &SpaceBackupState{})
+			if err := m.Backups[len(m.Backups)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

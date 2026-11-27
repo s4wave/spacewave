@@ -330,6 +330,18 @@ func (t *bstoreTracker) openBackendStore(
 		return &openBackend{backend: backend, store: store}, nil
 	}
 
+	// Drive backups keep immutable packs and their location index locally.
+	if backend.GetGdrive() != nil {
+		client, err := t.a.openGdriveClient(ctx, backend)
+		if err != nil {
+			return nil, err
+		}
+		store := block_store_s3.NewPackStore(le, client, "", t.id+"/", &block_store_s3.PackStoreOptions{
+			KeepPacks: true, SoleWriter: true, Index: t.packIndexStore(),
+		})
+		return &openBackend{backend: backend, store: store}, nil
+	}
+
 	// Read the credentials of the placed S3 or SQL backend.
 	creds, err := t.a.ReadStorageCredentials(ctx, backend)
 	if err != nil {

@@ -1,0 +1,8 @@
+syntax = "proto3";
+package block.store.gdrive;
+
+// Credentials is the value of a storage credential Secret for Drive.
+message Credentials {
+  // RefreshToken renews access without another device sign-in. It is never logged.
+  string refresh_token = 1;
+}

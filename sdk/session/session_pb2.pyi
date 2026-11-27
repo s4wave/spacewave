@@ -7,6 +7,7 @@ from core.session import session_pb2 as _session_pb2
 from core.sobject import sobject_pb2 as _sobject_pb2
 from core.space import space_pb2 as _space_pb2
 from db.block.store.s3 import s3_pb2 as _s3_pb2
+from db.block.store.gdrive import gdrive_pb2 as _gdrive_pb2
 from net.hash import hash_pb2 as _hash_pb2
 from sdk.plugin.approval import approval_pb2 as _approval_pb2
 from google.protobuf import timestamp_pb2 as _timestamp_pb2
@@ -1107,16 +1108,20 @@ class CheckStorageBackendResponse(_message.Message):
     def __init__(self, result: _Optional[_Union[_s3_pb2.CheckResult, _Mapping]] = ...) -> None: ...
 
 class AddStorageBackendRequest(_message.Message):
-    __slots__ = ("display_name", "s3", "credentials", "set_default")
+    __slots__ = ("display_name", "s3", "credentials", "set_default", "gdrive", "gdrive_credentials")
     DISPLAY_NAME_FIELD_NUMBER: _ClassVar[int]
     S3_FIELD_NUMBER: _ClassVar[int]
     CREDENTIALS_FIELD_NUMBER: _ClassVar[int]
     SET_DEFAULT_FIELD_NUMBER: _ClassVar[int]
+    GDRIVE_FIELD_NUMBER: _ClassVar[int]
+    GDRIVE_CREDENTIALS_FIELD_NUMBER: _ClassVar[int]
     display_name: str
     s3: _settings_pb2.S3Location
     credentials: _s3_pb2.Credentials
     set_default: bool
-    def __init__(self, display_name: _Optional[str] = ..., s3: _Optional[_Union[_settings_pb2.S3Location, _Mapping]] = ..., credentials: _Optional[_Union[_s3_pb2.Credentials, _Mapping]] = ..., set_default: _Optional[bool] = ...) -> None: ...
+    gdrive: _settings_pb2.GdriveLocation
+    gdrive_credentials: _gdrive_pb2.Credentials
+    def __init__(self, display_name: _Optional[str] = ..., s3: _Optional[_Union[_settings_pb2.S3Location, _Mapping]] = ..., credentials: _Optional[_Union[_s3_pb2.Credentials, _Mapping]] = ..., set_default: _Optional[bool] = ..., gdrive: _Optional[_Union[_settings_pb2.GdriveLocation, _Mapping]] = ..., gdrive_credentials: _Optional[_Union[_gdrive_pb2.Credentials, _Mapping]] = ...) -> None: ...
 
 class AddStorageBackendResponse(_message.Message):
     __slots__ = ("storage_backend_id", "check")
@@ -1201,3 +1206,25 @@ class MoveSpaceStorageResponse(_message.Message):
     pending_bytes: int
     upload_error: str
     def __init__(self, phase: _Optional[_Union[MoveSpaceStoragePhase, str]] = ..., blocks_fetched: _Optional[int] = ..., blocks_total: _Optional[int] = ..., pending_blocks: _Optional[int] = ..., pending_bytes: _Optional[int] = ..., upload_error: _Optional[str] = ...) -> None: ...
+
+class SetSpaceBackupRequest(_message.Message):
+    __slots__ = ("backup",)
+    BACKUP_FIELD_NUMBER: _ClassVar[int]
+    backup: _settings_pb2.SpaceBackup
+    def __init__(self, backup: _Optional[_Union[_settings_pb2.SpaceBackup, _Mapping]] = ...) -> None: ...
+
+class SetSpaceBackupResponse(_message.Message):
+    __slots__ = ("backup",)
+    BACKUP_FIELD_NUMBER: _ClassVar[int]
+    backup: _settings_pb2.SpaceBackup
+    def __init__(self, backup: _Optional[_Union[_settings_pb2.SpaceBackup, _Mapping]] = ...) -> None: ...
+
+class RunSpaceBackupRequest(_message.Message):
+    __slots__ = ("backup_id",)
+    BACKUP_ID_FIELD_NUMBER: _ClassVar[int]
+    backup_id: str
+    def __init__(self, backup_id: _Optional[str] = ...) -> None: ...
+
+class WatchSpaceBackupsRequest(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...

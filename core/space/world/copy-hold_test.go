@@ -9,10 +9,12 @@ import (
 	"testing"
 	"time"
 
+	account_settings "github.com/s4wave/spacewave/core/account/settings"
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_filesegment "github.com/s4wave/spacewave/db/block/store/filesegment"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
+	"github.com/s4wave/spacewave/db/bucket"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	"github.com/s4wave/spacewave/db/world"
 )
@@ -569,5 +571,108 @@ func putUnheld(t *testing.T, store block.StoreOps, entries ...*block.PutBatchEnt
 	defer release()
 	if _, err := staged.PutBlockBatch(t.Context(), entries); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// TestBackupHoldsAreLocalAndIndependent pins two backups, releases the ordinary
+// replay hold and collects. Only device-local metadata changes; neither backup
+// can release the other's newest published root.
+func TestBackupHoldsAreLocalAndIndependent(t *testing.T) {
+	// The fake SharedObject implements no write method: queuing a Space operation
+	// would panic, so this exercises the reader path rather than an owner bypass.
+	ctx := t.Context()
+	a, collect := newVolumeAdapter(t, 1<<20, time.Nanosecond)
+	e := &Engine{a: a}
+	local := store_kvtx_inmem.NewStore()
+	makeRoot := func(data string) *block.BlockRef {
+		t.Helper()
+		ref, err := block.BuildBlockRef([]byte(data), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := a.moveRoots(ctx, []*block.PutBatchEntry{{Ref: ref, Data: []byte(data), RefsKnown: true}}, block.NamedRoot{Name: RootReplayBase, Ref: ref}); err != nil {
+			t.Fatal(err)
+		}
+		return ref
+	}
+	setCheckpoint := func(ref *block.BlockRef, seq uint64) *account_settings.SpaceBackupSnapshot {
+		t.Helper()
+		a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			a.installed = true
+			a.checkpoint = &InnerState{HeadRef: &bucket.ObjectRef{RootRef: ref}}
+			a.checkpointSeqno = seq
+			a.headState = a.checkpoint.CloneVT()
+			a.head.Seqno = seq
+		})
+		snapshot, _ := e.BackupSnapshot()
+		return snapshot
+	}
+	first := makeRoot("first backup checkpoint")
+	snapshot := setCheckpoint(first, 91)
+	before := a.headState.CloneVT()
+
+	// Block the disk fence and require the foreground root lock to remain available.
+	resume := make(chan struct{})
+	blocked := &backupSyncStore{StoreOps: a.pages.StoreOps, LeasedRoots: a.pages.StoreOps.(block.LeasedRoots),
+		entered: make(chan struct{}), resume: resume}
+	a.pages = block.NewPendingStore(blocked, 1<<20)
+	pinned := make(chan error, 1)
+	go func() { pinned <- e.PinBackup(ctx, "first", snapshot, local) }()
+	select {
+	case <-ctx.Done():
+		close(resume)
+		t.Fatal(context.Cause(ctx))
+	case <-blocked.entered:
+	}
+	foreground, cancel := context.WithTimeout(ctx, time.Second)
+	unlock, err := a.rootMtx.Lock(foreground)
+	cancel()
+	if err != nil {
+		t.Error("a foreground World root move waited behind the backup's disk fence")
+	} else {
+		unlock()
+	}
+	close(resume)
+	if err := <-pinned; err != nil {
+		t.Fatal(err)
+	}
+	if err := e.CompleteBackup(ctx, "first", snapshot, local); err != nil {
+		t.Fatal(err)
+	}
+	if !a.headState.EqualVT(before) || a.head.Seqno != 91 {
+		t.Fatal("backup changed the source World")
+	}
+
+	// Moving the replay base off the first root cannot free its published backup.
+	second := makeRoot("second backup checkpoint")
+	secondSnapshot := setCheckpoint(second, 92)
+	if err := e.PinBackup(ctx, "second", secondSnapshot, local); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.CompleteBackup(ctx, "second", secondSnapshot, local); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.moveRoots(ctx, nil, block.NamedRoot{Name: RootReplayBase}); err != nil {
+		t.Fatal(err)
+	}
+	collect()
+	for _, ref := range []*block.BlockRef{first, second} {
+		if found, err := a.pages.StoreOps.GetBlockExists(ctx, ref); err != nil || !found {
+			t.Fatalf("published backup root was freed: %s, %v", ref.MarshalString(), err)
+		}
+	}
+
+	// The compacted root contains just the two published roots and no old chain.
+	held, err := a.pages.GetRoot(ctx, RootBackup)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, found, err := a.pages.GetBlock(ctx, held)
+	if err != nil || !found {
+		t.Fatalf("local backup root: %v", err)
+	}
+	roots := &HeldRoots{}
+	if err := roots.UnmarshalVT(data); err != nil || len(roots.GetRoots()) != 2 || !roots.GetPrev().GetEmpty() {
+		t.Fatalf("backup holds were not bounded: %v, %v", roots, err)
 	}
 }

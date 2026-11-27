@@ -7,6 +7,9 @@ import "github.com/s4wave/spacewave/core/sobject/sobject.proto";
 import "github.com/s4wave/spacewave/db/block/store/s3/s3.proto";
 import "github.com/s4wave/spacewave/sdk/command/command.proto";
 import "github.com/s4wave/spacewave/sdk/secret/secret.proto";
+import "github.com/s4wave/spacewave/sdk/world/world.proto";
+import "github.com/s4wave/spacewave/db/block/block.proto";
+import "github.com/s4wave/spacewave/net/envelope/envelope.proto";
 
 // AccountSettings is the root state data for account settings SharedObjects.
 // The state data is stored as SORootInner.StateData.
@@ -63,17 +66,28 @@ message StorageBackend {
   // S3 locates the S3-compatible bucket that holds the blocks.
   S3Location s3 = 3;
   // Credential is the redacted Secret whose payload holds the access keys.
-  // The payload value is a block_store_s3.Credentials message. For an SQL
-  // backend its access_key_id is the database user and its
-  // secret_access_key is the password.
+  // A Drive backend stores block.store.gdrive.Credentials. S3 and SQL store
+  // block.store.s3.Credentials. For SQL, access_key_id is the database user
+  // and secret_access_key is the password.
   .s4wave.secret.Secret credential = 4;
   // Sql locates the SQL database that holds the blocks instead of a bucket.
-  // A backend sets exactly one of S3 and Sql.
+  // A backend sets exactly one location.
   SqlLocation sql = 5;
   // Ftps locates the FTPS server that holds the packfiles instead of a
   // bucket. It logs in from a netrc file on the host, so the backend has no
-  // credential Secret. A backend sets exactly one of S3, Sql and Ftps.
+  // credential Secret. A backend sets exactly one location.
   FtpsLocation ftps = 6;
+  // Gdrive locates an append-only ciphertext backup folder.
+  GdriveLocation gdrive = 7;
+}
+
+// GdriveLocation names the app-created folder that holds encrypted packs.
+// It is a backup destination, never a Space's primary placement.
+message GdriveLocation {
+  // RootFolderId is the immutable Drive folder identity.
+  string root_folder_id = 1;
+  // AccountLabel is the owner-supplied label, without an additional profile scope.
+  string account_label = 2;
 }
 
 // FtpsLocation locates a directory on an FTPS server that holds packfiles, read
@@ -405,4 +419,121 @@ message RemovePairedDeviceOp {
 message RemoveSessionPresentationOp {
   // PeerId is the peer ID of the session metadata entry to remove.
   string peer_id = 1;
+}
+
+// SpaceBackup configures one device-local backup. It is not a Space object,
+// placement, or retained-root operation, and automatic work is off by default.
+message SpaceBackup {
+  // Id is the opaque backup identity.
+  string id = 1;
+  // SpaceId is the source Space, mounted read-only by this device.
+  string space_id = 2;
+  // StorageBackendId selects the account's Drive credential and folder.
+  string storage_backend_id = 3;
+  // Automatic starts checkpoint-triggered passes only after explicit approval.
+  bool automatic = 4;
+  // IntervalSeconds is the minimum time between automatic passes.
+  uint64 interval_seconds = 5;
+}
+
+// SpaceBackupSnapshot is the plaintext that is sealed before leaving the device.
+message SpaceBackupSnapshot {
+  // World is the committed root with its inline decryption transform.
+  .s4wave.world.WorldRootSnapshot world = 1;
+  // RetainedRoots are the additional roots proven in the same copy.
+  repeated .block.BlockRef retained_roots = 2;
+}
+
+// SpaceBackupIndex is an immutable, sealed snapshot in snapshots/.
+message SpaceBackupIndex {
+  // ProviderAccountId supplies the username for password key derivation.
+  string provider_account_id = 1;
+  // EntityId identifies the recovery principal, never a device.
+  string entity_id = 2;
+  // Envelope seals SpaceBackupSnapshot to that entity's public keypairs.
+  .envelope.Envelope envelope = 3;
+}
+
+// SpaceBackupPublished is a local proof of the newest index this device wrote.
+message SpaceBackupPublished {
+  // Key is the immutable snapshots/ object key.
+  string key = 1;
+  // Snapshot is the root set the index sealed and the pass proved.
+  SpaceBackupSnapshot snapshot = 2;
+  // PublishedUnixSeconds is the successful publication time, for scheduling.
+  int64 published_unix_seconds = 3;
+  // RecipientFingerprint binds no-change reuse to the current account identity
+  // and public recovery keys. Rotating a key publishes a new sealed index.
+  bytes recipient_fingerprint = 4;
+}
+
+// SpaceBackupPublication is the public readback of a sealed published index.
+// It deliberately omits the snapshot and every decryption transform.
+message SpaceBackupPublication {
+  // Key names the immutable object that an entity credential can unseal.
+  string key = 1;
+  // Seqno is the committed World sequence covered by that index.
+  uint64 seqno = 2;
+  // PublishedUnixSeconds is the successful publication time.
+  int64 published_unix_seconds = 3;
+}
+
+// SpaceBackupProgress is the bounded progress readback of one running pass.
+message SpaceBackupProgress {
+  // ReadBytes counts source bytes read during this pass.
+  uint64 read_bytes = 1;
+  // WrittenBytes counts ciphertext bytes committed to durable packs.
+  uint64 written_bytes = 2;
+  // Packs counts packs durably uploaded.
+  uint64 packs = 3;
+  // Holes counts missing, corrupt or untyped reachable blocks.
+  uint64 holes = 4;
+}
+
+// SpaceBackupWaiting is a recoverable waiting state, never a retry spin.
+message SpaceBackupWaiting {
+  // ResumeUnixSeconds is the next known retry deadline, or zero for owner action.
+  int64 resume_unix_seconds = 1;
+}
+
+// SpaceBackupFailure contains a safe explanation and the next action.
+message SpaceBackupFailure {
+  // Message excludes credentials and raw OAuth response bodies.
+  string message = 1;
+}
+
+// SpaceBackupIdle names a backup with no requested pass.
+message SpaceBackupIdle {
+}
+
+// SpaceBackupState is the watched result of the device's backup routine.
+message SpaceBackupState {
+  // RunSequence identifies the requested or automatic pass observed by a watcher.
+  uint64 run_sequence = 10;
+  // Backup identifies the local configuration this state describes.
+  SpaceBackup backup = 1;
+  oneof state {
+    // Idle has no requested work.
+    SpaceBackupIdle idle = 2;
+    // Copying reports a running, pinned pass.
+    SpaceBackupProgress copying = 3;
+    // UpToDate names the newest completely proven sealed index.
+    SpaceBackupPublication up_to_date = 4;
+    // Incomplete publishes nothing and retries its holes on another pass.
+    SpaceBackupProgress incomplete = 5;
+    // WaitingUploadLimit resumes at the known upload reset deadline.
+    SpaceBackupWaiting waiting_upload_limit = 6;
+    // WaitingQuota needs more space in the destination.
+    SpaceBackupWaiting waiting_quota = 7;
+    // WaitingSignIn needs the owner to authorize Drive again.
+    SpaceBackupWaiting waiting_sign_in = 8;
+    // Failed needs the stated correction before another requested pass.
+    SpaceBackupFailure failed = 9;
+  }
+}
+
+// SpaceBackupList is the device-local registry and its watch snapshot.
+message SpaceBackupList {
+  // Backups contains each configured backup's latest state.
+  repeated SpaceBackupState backups = 1;
 }

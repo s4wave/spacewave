@@ -27,6 +27,7 @@ import (
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/singleflight"
 )
 
 // providerAccountTracker tracks a ProviderAccount in the world.
@@ -49,6 +50,22 @@ type ProviderAccount struct {
 	vol volume.Volume
 	// lifecycleCtx ends when the provider account loses its final reference.
 	lifecycleCtx context.Context
+
+	// driveClientsMtx guards the credential-scoped Drive transports and pacers.
+	driveClientsMtx sync.Mutex
+	// driveClients keeps one connection per saved backend, shared by all Space backups.
+	driveClients map[string]driveConnection
+	// driveLoads joins concurrent credential loads without holding a mutex during I/O.
+	driveLoads singleflight.Group
+
+	// backupsConfigMtx orders each small configuration commit and its publication.
+	backupsConfigMtx csync.Mutex
+	// backupsBcast guards the device-local backup registry and its watch.
+	backupsBcast broadcast.Broadcast
+	// backups keeps one account-lifetime routine per configured backup.
+	backups map[string]*SpaceBackup
+	// backupsLoader owns configuration loading and its completion notification.
+	backupsLoader *routine.RoutineContainer
 
 	// bstores contains the set of mounted block stores.
 	bstores *keyed.KeyedRefCount[string, *bstoreTracker]
@@ -229,6 +246,8 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		vol:          vol,
 		le:           le,
 		lifecycleCtx: ctx,
+		backups:      make(map[string]*SpaceBackup),
+		driveClients: make(map[string]driveConnection),
 	}
 
 	// Build the block store, shared object and session trackers.
@@ -320,8 +339,13 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 	defer providerAcc.StopSessionTransport()
 	defer providerAcc.StopP2PSync()
 
-	// Publish the account and wake the Session account waiters, and again
-	// once it is withdrawn.
+	// Resume only the backups configured on this device; no automatic switch is added.
+	providerAcc.backupsLoader = routine.NewRoutineContainerWithLogger(le.WithField("routine", "space-backup-loader"), routine.WithRetry(providerBackoff))
+	providerAcc.backupsLoader.SetRoutine(providerAcc.loadSpaceBackups)
+	providerAcc.backupsLoader.SetContext(ctx, true)
+	defer providerAcc.backupsLoader.ClearContext()
+
+	// Publish without waiting on optional backups. Backup APIs wait on their loader.
 	t.accCtr.SetValue(providerAcc)
 	t.p.wakeSessionWaiters()
 	defer t.p.wakeSessionWaiters()

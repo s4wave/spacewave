@@ -7,8 +7,8 @@ import (
 	"github.com/go-git/go-billy/v6"
 )
 
-// rootChtimesFS adds file time changes to a Billy disk filesystem, which has
-// none, without leaving its root directory.
+// rootChtimesFS adds file times and permissions to a Billy disk filesystem
+// without leaving its root directory.
 type rootChtimesFS struct {
 	// Filesystem is the disk filesystem all other operations go to.
 	billy.Filesystem
@@ -21,5 +21,13 @@ func (f *rootChtimesFS) Chtimes(name string, atime, mtime time.Time) error {
 	return f.root.Chtimes(name, atime, mtime)
 }
 
+// Chmod changes permissions within the same output root as file writes.
+func (f *rootChtimesFS) Chmod(name string, mode os.FileMode) error {
+	return f.root.Chmod(name, mode)
+}
+
 // _ is a type assertion
-var _ modTimeSetter = (*rootChtimesFS)(nil)
+var (
+	_ modTimeSetter = (*rootChtimesFS)(nil)
+	_ billy.Chmod   = (*rootChtimesFS)(nil)
+)

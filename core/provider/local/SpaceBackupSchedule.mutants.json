@@ -1,0 +1,4 @@
+[
+  {"name":"Keep an automatic request after disabling it", "replace":[["phase' = IF phase = \"copying\" /\\ origin = \"automatic\" THEN \"idle\" ELSE phase", "phase' = phase"]], "expect":"OffStopsAutomatic", "config":"SpaceBackupSchedule.cfg"},
+  {"name":"Start before the interval ends", "replace":[["/\\ now >= due", "/\\ TRUE"]], "expect":"MinimumInterval", "config":"SpaceBackupSchedule.cfg"}
+]
