@@ -36,7 +36,8 @@ type Config struct {
 	// keep its session open. The session's token is freed only once its
 	// sockets are confirmed closed. The data connections are then dialed by
 	// the client and wrapped in TLS without session resumption checks beyond
-	// the shared cache.
+	// the shared cache, each starting its TLS handshake as soon as it
+	// connects, which saves a round trip per transfer.
 	CloseOnDone bool
 	// ShutTimeout bounds the wait for the server's reply at a transfer's
 	// end; zero is 30 seconds.
@@ -46,4 +47,9 @@ type Config struct {
 	// session it does not answer in time keeps its token for good, since the
 	// server may still count it.
 	CloseConfirmWait time.Duration
+
+	// lateDataTLS leaves the data connections' TLS handshake to their first
+	// read or write under CloseOnDone, as without it, for the tests that
+	// time the round trip it saves.
+	lateDataTLS bool
 }

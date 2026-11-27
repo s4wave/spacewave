@@ -23,6 +23,10 @@ const closeConfirmWait = 10 * time.Second
 type session struct {
 	// tlsConf wraps the data connections in TLS.
 	tlsConf *tls.Config
+	// lateTLS leaves each data connection's TLS handshake to its first read
+	// or write, after the server's reply to the transfer command, as the FTP
+	// library does.
+	lateTLS bool
 	// confirmWait bounds the wait for the server to answer a close.
 	confirmWait time.Duration
 	// mtx guards the fields below.
@@ -74,7 +78,8 @@ func (s *session) idle() {
 
 // dialFunc returns the dial function of the session: the first dial is the
 // control connection, which the client upgrades with AUTH TLS itself, and
-// each later one a data connection, wrapped here in TLS.
+// each later one a data connection, wrapped here in TLS and its handshake
+// started at once.
 func (s *session) dialFunc(ctx context.Context) func(network, addr string) (net.Conn, error) {
 	return func(network, addr string) (net.Conn, error) {
 		// Tell the control connection, the first dial, from a data one.
@@ -107,7 +112,18 @@ func (s *session) dialFunc(ctx context.Context) func(network, addr string) (net.
 		if first {
 			return conn, nil
 		}
-		return tls.Client(conn, s.tlsConf), nil
+		tconn := tls.Client(conn, s.tlsConf)
+		if !s.lateTLS {
+			// Start the handshake now, not at the first read or write,
+			// which the FTP library makes only once the server answered the
+			// transfer command: the ClientHello waits in the server's socket
+			// until it accepts the data connection, so the reply and the
+			// handshake's first flight share a round trip. The library's
+			// read or write waits for this handshake and returns its error;
+			// closing the connection ends it.
+			go func() { _ = tconn.Handshake() }()
+		}
+		return tconn, nil
 	}
 }
 

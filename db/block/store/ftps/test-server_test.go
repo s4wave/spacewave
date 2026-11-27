@@ -43,6 +43,24 @@ type testServer struct {
 	spendPartial bool
 	// dialDelay delays each greeting, and readDelay each download read.
 	dialDelay, readDelay time.Duration
+	// linkRTT, when set, delays every byte the server sends on its control
+	// and data connections by that much, through linkConn.
+	linkRTT time.Duration
+	// links counts the connections accepted through linkConn.
+	links linkCounts
+}
+
+// linkCounts counts the connections a testServer accepted through linkConn
+// and its TLS handshakes.
+type linkCounts struct {
+	// ctrl and data count the control and data connections accepted.
+	ctrl, data int
+	// ctrlOpen and dataOpen are those the server has not closed, and
+	// ctrlPeak and dataPeak the most at once.
+	ctrlOpen, dataOpen, ctrlPeak, dataPeak int
+	// handshakes counts the server's TLS handshakes, and resumed those that
+	// resumed a session.
+	handshakes, resumed int
 }
 
 // startTestServer starts a testServer until the test ends. It returns the
@@ -54,6 +72,15 @@ func startTestServer(t *testing.T) (string, *tls.Config) {
 
 // startCountingServer starts a testServer and returns it for its counters.
 func startCountingServer(t *testing.T) (string, *tls.Config, *testServer) {
+	t.Helper()
+	return startLinkServer(t, 0)
+}
+
+// startLinkServer starts a testServer that delays every byte it sends by
+// rtt, when rtt is set: each exchange of a request and its reply then takes
+// one round trip of rtt, as over a link of that round trip with no bandwidth
+// limit. The TCP handshakes are not delayed.
+func startLinkServer(t *testing.T, rtt time.Duration) (string, *tls.Config, *testServer) {
 	t.Helper()
 
 	// Issue a self-signed certificate for 127.0.0.1.
@@ -91,11 +118,44 @@ func startCountingServer(t *testing.T) (string, *tls.Config, *testServer) {
 		open:     make(map[string]int),
 		peak:     make(map[string]int),
 		logins:   make(map[string]int),
+		linkRTT:  rtt,
+	}
+	srv.tlsConf.VerifyConnection = srv.countHandshake
+	if rtt > 0 {
+		srv.listener = &linkListener{Listener: listener, srv: srv}
 	}
 	ftp := ftpserver.NewFtpServer(srv)
 	go func() { _ = ftp.ListenAndServe() }()
 	t.Cleanup(func() { _ = ftp.Stop() })
 	return listener.Addr().String(), &tls.Config{RootCAs: roots}, srv
+}
+
+// countHandshake counts each TLS handshake of the server and whether it
+// resumed a session.
+func (s *testServer) countHandshake(cs tls.ConnectionState) error {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	s.links.handshakes++
+	if cs.DidResume {
+		s.links.resumed++
+	}
+	return nil
+}
+
+// linkCounts returns the counts of the connections accepted through linkConn.
+func (s *testServer) linkCounts() linkCounts {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	return s.links
+}
+
+// WrapPassiveListener delays the data connections like the control ones,
+// when the server has a link delay.
+func (s *testServer) WrapPassiveListener(listener net.Listener) (net.Listener, error) {
+	if s.linkRTT <= 0 {
+		return listener, nil
+	}
+	return &linkListener{Listener: listener, srv: s, data: true}, nil
 }
 
 // GetSettings requires TLS on the test listener.

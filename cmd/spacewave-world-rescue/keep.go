@@ -301,25 +301,20 @@ func orderPacksBy(packs []*packWork, mode string, overhead uint64) {
 }
 
 // wholeInPacks fails when packs bounds the plan and a listed whole pack is
-// outside it, as the plan would skip it in silence. The error counts the
-// missing ids and names none.
+// outside it, as the plan would skip it in silence. The error names and
+// counts none.
 func wholeInPacks(whole []string, packs map[string]bool) error {
 	// Pass when no pack list bounds the plan.
 	if packs == nil {
 		return nil
 	}
 
-	// Count the listed whole packs outside the pack list.
-	var n int
+	// Refuse any listed whole pack outside the pack list, naming none and
+	// counting none, so the message holds no digit to read as a reply code.
 	for _, id := range whole {
 		if !packs[id] {
-			n++
+			return errors.New("whole pack not in --packs: some --whole-packs ids are not in the --packs list; add them or drop them")
 		}
-	}
-
-	// Refuse any, naming none.
-	if n != 0 {
-		return errors.Errorf("whole pack not in --packs: %d of %d --whole-packs ids are not in the --packs list; add them or drop them", n, len(whole))
 	}
 	return nil
 }

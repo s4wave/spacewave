@@ -812,6 +812,7 @@ func (c *Client) dialOnce(ctx context.Context, login int) (*ftp.ServerConn, erro
 	// Track the session's sockets, closing them if ctx ends mid-dial under
 	// CloseOnDone or at CloseAll, which refuses the dial once it ran.
 	sess := newSession(c.tlsConf, cmp.Or(c.conf.CloseConfirmWait, closeConfirmWait), func() { c.leaks[login].Add(1) })
+	sess.lateTLS = c.conf.lateDataTLS
 	if err := c.sess.track(sess); err != nil {
 		return nil, err
 	}
