@@ -311,10 +311,10 @@ func verifyOne(ctx context.Context, rec *Records, entry *block.PutBatchEntry, va
 	verdict := listRewritten
 	if !listed {
 		packed = EncodeChildren(entry.Refs)
-		if err := rec.tx.Set(ctx, rec.key(kindChildren, key), markList(packed)); err != nil {
+		if err := rec.putList(ctx, key, packed); err != nil {
 			return listVerified, err
 		}
-		if err := rec.tx.Delete(ctx, rec.key(kindHole, key)); err != nil {
+		if err := rec.dropHole(ctx, key); err != nil {
 			return listVerified, err
 		}
 	} else {

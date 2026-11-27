@@ -321,7 +321,7 @@ func (c *Collector) unrefMarkSlice(ctx context.Context, rec *Records, blocks blo
 			delete(u.cands, string(key))
 			continue
 		}
-		if err := rec.tx.Set(ctx, rec.key(kindFront, key), u.token); err != nil {
+		if err := rec.markFront(ctx, key, u.token); err != nil {
 			return from, false, err
 		}
 	}
@@ -485,7 +485,7 @@ func (c *Collector) unrefPopSlice(ctx context.Context, rec *Records, blocks bloc
 		if !unborn {
 			continue
 		}
-		if err := rec.tx.Delete(ctx, rec.key(kindFront, key)); err != nil {
+		if err := rec.dropFront(ctx, key); err != nil {
 			return from, false, err
 		}
 		res.Popped++

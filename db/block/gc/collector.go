@@ -1036,7 +1036,7 @@ func (c *Collector) netLogs(ctx context.Context, n *netting, budget int) (bool, 
 		}
 		state.UpCursor = seq + 1
 		n.res.Netted++
-		return true, rec.tx.Delete(ctx, rec.upKey(seq))
+		return true, rec.dropUp(ctx, seq)
 	})
 	if err != nil || full {
 		return full, err
@@ -1189,7 +1189,7 @@ func (c *Collector) requeueSlice(ctx context.Context, rec *Records, res *Collect
 		if err != nil || !parked {
 			return err
 		}
-		if err := rec.tx.Delete(ctx, rec.key(kindParked, key)); err != nil {
+		if err := rec.dropParked(ctx, binary.BigEndian.Uint64(key), key[8:]); err != nil {
 			return err
 		}
 		if err := rec.enqueue(ctx, binary.BigEndian.Uint64(key), key[8:]); err != nil {
@@ -1256,8 +1256,7 @@ func (c *Collector) freeBlock(
 	}
 
 	// Check it is listed.
-	entry := rec.queueKey(ripe, key)
-	dequeue := func() error { return rec.tx.Delete(ctx, entry) }
+	dequeue := func() error { return rec.dequeue(ctx, ripe, key) }
 	listed, err := rec.HasChildren(ctx, ref)
 	if err != nil {
 		return false, err
@@ -1283,7 +1282,7 @@ func (c *Collector) freeBlock(
 	switch {
 	case park && c.opts.ParkKeepsHolds:
 		res.Parked++
-		return true, rec.park(ctx, entry, rec.parkedKey(ripe, key), key)
+		return true, rec.park(ctx, ripe, key, false)
 	case state.GetGeneration() == Generation_GENERATION_SWEEPING:
 		unmarked, err := rec.Unmarked(ctx, key)
 		if err != nil {
@@ -1309,7 +1308,7 @@ func (c *Collector) freeBlock(
 	// list and proof, and give its children their downs as a free does.
 	if park {
 		res.Parked++
-		if err := rec.park(ctx, entry, rec.releasedKey(ripe, key), key); err != nil {
+		if err := rec.park(ctx, ripe, key, true); err != nil {
 			return false, err
 		}
 		return true, f.give(ctx, c, rec, state, res, key, children)

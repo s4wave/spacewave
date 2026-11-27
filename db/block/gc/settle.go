@@ -112,6 +112,42 @@ func (r *Records) inRun(ctx context.Context, key []byte) (bool, error) {
 	return found && len(value) == 0, err
 }
 
+// setUnmarked writes an empty run entry for the block at key, which the
+// flip makes unmarked: the run's scan enters a list not from content, and
+// a park, a copied put and a kept park enter their block. It is the one
+// writer of an empty run entry.
+func (r *Records) setUnmarked(ctx context.Context, key []byte) error {
+	return r.tx.Set(ctx, r.key(kindUnmarked, key), nil)
+}
+
+// markSwept sets the run entry of the block at key to runSwept, once the
+// sweep deleted the block in the same transaction. The entry stays until
+// the run settles, as runSwept describes.
+func (r *Records) markSwept(ctx context.Context, key []byte) error {
+	return r.tx.Set(ctx, r.key(kindUnmarked, key), runSwept)
+}
+
+// dropUnmarked deletes the run entry of the block at key: the block left the
+// run while Open, as a mark of its list or an unpark does, or the run settles
+// and dropRunSlice deletes its entries. It is the one deleter of a block's
+// run entry.
+func (r *Records) dropUnmarked(ctx context.Context, key []byte) error {
+	return r.tx.Delete(ctx, r.key(kindUnmarked, key))
+}
+
+// completeRun writes the run's completion entry, once the run's scan
+// reached the last list, or at a reopen, whose run holds only the copied
+// block, as reopen describes. It is the one writer of the entry.
+func (r *Records) completeRun(ctx context.Context) error {
+	return r.tx.Set(ctx, r.key(kindUnmarked, runComplete), nil)
+}
+
+// dropRunComplete deletes the run's completion entry, in the transaction
+// that settles the generation after the last run entry went.
+func (r *Records) dropRunComplete(ctx context.Context) error {
+	return r.tx.Delete(ctx, r.key(kindUnmarked, runComplete))
+}
+
 // countKind returns the kind of the count record of the block at key:
 // kindUnmarkedCount while it is unmarked, since the flip froze its kindCount
 // record, and kindCount otherwise. Outside Sweeping it reads nothing more
@@ -246,13 +282,13 @@ func (r *Records) markedYoung(ctx context.Context, key, packed []byte, skip func
 		return err
 	}
 	if !parked {
-		if err := r.tx.Delete(ctx, r.key(kindUnmarked, key)); err != nil {
+		if err := r.dropUnmarked(ctx, key); err != nil {
 			return err
 		}
 	}
 
 	// Leave the front and push the children.
-	if err := r.tx.Delete(ctx, r.key(kindFront, key)); err != nil {
+	if err := r.dropFront(ctx, key); err != nil {
 		return err
 	}
 	return r.pushChildren(ctx, packed, skip)
@@ -269,7 +305,7 @@ func (r *Records) putCopied(ctx context.Context, ref *block.BlockRef, children [
 	if err := r.tx.Set(ctx, r.key(kindChildren, key), packChildren(nil, children)); err != nil {
 		return err
 	}
-	if err := r.tx.Set(ctx, r.key(kindUnmarked, key), nil); err != nil {
+	if err := r.setUnmarked(ctx, key); err != nil {
 		return err
 	}
 	return r.addFront(ctx, key)
@@ -319,7 +355,7 @@ func (r *Records) putCopied(ctx context.Context, ref *block.BlockRef, children [
 func (r *Records) reopen(ctx context.Context, state *LivenessState) error {
 	state.Generation = Generation_GENERATION_OPEN
 	r.genKnown, r.gen, r.moved = true, Generation_GENERATION_OPEN, true
-	return r.tx.Set(ctx, r.key(kindUnmarked, runComplete), nil)
+	return r.completeRun(ctx)
 }
 
 // keepParked finishes a copied put of the parked block at key, after
@@ -333,7 +369,7 @@ func (r *Records) keepParked(ctx context.Context, key []byte) error {
 	if err != nil || !listed || marked {
 		return err
 	}
-	if err := r.tx.Set(ctx, r.key(kindUnmarked, key), nil); err != nil {
+	if err := r.setUnmarked(ctx, key); err != nil {
 		return err
 	}
 	return r.addFront(ctx, key)
@@ -640,11 +676,7 @@ func (c *Collector) clearHoles(ctx context.Context) error {
 
 	// Write the mark unless a hole may have been recorded since.
 	return c.update(ctx, func(rec *Records, _ block.StoreOps) error {
-		now, err := rec.addRev(ctx)
-		if err != nil || now != rev {
-			return err
-		}
-		return rec.tx.Set(ctx, rec.key(kindHolesClear), nil)
+		return rec.markHolesClear(ctx, rev)
 	})
 }
 
@@ -987,7 +1019,7 @@ func (c *Collector) runSlice(ctx context.Context, rec *Records, res *CollectResu
 			return err
 		}
 		res.Unmarked++
-		return rec.tx.Set(ctx, rec.key(kindUnmarked, key), nil)
+		return rec.setUnmarked(ctx, key)
 	})
 	if err != nil {
 		return from, false, err
@@ -996,7 +1028,7 @@ func (c *Collector) runSlice(ctx context.Context, rec *Records, res *CollectResu
 	if page.full {
 		return from, true, nil
 	}
-	return from, false, rec.tx.Set(ctx, rec.key(kindUnmarked, runComplete), nil)
+	return from, false, rec.completeRun(ctx)
 }
 
 // frontPos is the front scan's position: the key after which it resumes,
@@ -1092,7 +1124,7 @@ func (c *Collector) frontSlice(ctx context.Context, rec *Records, blocks block.S
 		}
 
 		// Pop the rest.
-		if err := rec.tx.Delete(ctx, rec.key(kindFront, key)); err != nil {
+		if err := rec.dropFront(ctx, key); err != nil {
 			return err
 		}
 		popped, poppedRipe = true, max(poppedRipe, ripe)
@@ -1245,7 +1277,7 @@ func (c *Collector) flip(ctx context.Context, rec *Records, res *CollectResult, 
 	// Flip.
 	state.Generation = Generation_GENERATION_SWEEPING
 	res.Flipped = true
-	if err := rec.tx.Delete(ctx, rec.key(kindPopMark)); err != nil {
+	if err := rec.dropPopMark(ctx); err != nil {
 		return err
 	}
 	return rec.SetState(ctx, state)
@@ -1304,7 +1336,7 @@ func (c *Collector) sweepSlice(ctx context.Context, rec *Records, blocks block.S
 		}
 
 		// Mark it swept, so a later page skips it.
-		if err := rec.tx.Set(ctx, rec.key(kindUnmarked, key), runSwept); err != nil {
+		if err := rec.markSwept(ctx, key); err != nil {
 			return err
 		}
 		res.Swept++
@@ -1334,7 +1366,7 @@ func (c *Collector) dropRunSlice(ctx context.Context, rec *Records, res *Collect
 
 	// Delete the page's entries.
 	err = page.each(func(key []byte) error {
-		return rec.tx.Delete(ctx, rec.key(kindUnmarked, key))
+		return rec.dropUnmarked(ctx, key)
 	})
 	if err != nil {
 		return from, false, err
@@ -1345,7 +1377,7 @@ func (c *Collector) dropRunSlice(ctx context.Context, rec *Records, res *Collect
 	}
 
 	// Past the last, delete the completion entry and settle.
-	if err := rec.tx.Delete(ctx, rec.key(kindUnmarked, runComplete)); err != nil {
+	if err := rec.dropRunComplete(ctx); err != nil {
 		return from, false, err
 	}
 	state.Generation = Generation_GENERATION_SETTLED

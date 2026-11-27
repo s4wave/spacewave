@@ -3,7 +3,6 @@ package block_gc
 import (
 	"bytes"
 	"context"
-	"encoding/binary"
 	"maps"
 	"math"
 	"slices"
@@ -676,7 +675,7 @@ func (a *adoption) settle(ctx context.Context, rec *Records, state *LivenessStat
 		}
 	}
 	if hole && n == 0 {
-		if err := rec.tx.Delete(ctx, rec.key(kindHole, r.key)); err != nil {
+		if err := rec.dropHole(ctx, r.key); err != nil {
 			return err
 		}
 		return rec.SetHolders(ctx, ref, 1, 0)
@@ -803,7 +802,7 @@ func (a *adoption) hold(ctx context.Context, rec *Records, h holds) error {
 				return err
 			}
 		}
-		if err := rec.tx.Set(ctx, rec.key(kindCount, reads[i]), binary.AppendUvarint(nil, n+h[key].n)); err != nil {
+		if err := rec.setTally(ctx, reads[i], n+h[key].n); err != nil {
 			return err
 		}
 		if h[key].open {
@@ -923,12 +922,12 @@ func clearKinds(ctx context.Context, store Store, keep func(*LivenessState) bool
 
 			// Delete this page, including any bare kind key at the end.
 			err := page.each(func(key []byte) error {
-				return rec.tx.Delete(ctx, rec.key(kind, key))
+				return rec.clearRecord(ctx, kind, key)
 			})
 			if err != nil || page.full {
 				return false, err
 			}
-			return false, rec.tx.Delete(ctx, rec.key(kind))
+			return false, rec.clearRecord(ctx, kind, nil)
 		})
 		if err != nil || refused {
 			return err

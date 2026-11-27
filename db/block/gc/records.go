@@ -375,12 +375,17 @@ var errBadBlockKey = errors.New("liveness record names a block in an unknown enc
 // are live, and the up and down logs, free queue, proofs and state the
 // collector keeps. Every key begins with prefix. Opening Records reads nothing.
 //
-// Invariant: Records owns every key under prefix in tx. Code outside its
-// methods reads a liveness record only through a method named by the
-// record's kind, such as hasFront, childList or countsBatch, so each kind's
-// key layout is built in one place and a read cannot reach the wrong kind,
-// prefix or position. A read deletes nothing, but the collector frees a block
-// on what its reads report, so a wrong read is a wrong free.
+// Invariant: Records owns every key under prefix in tx, and only its
+// methods use tx. Code outside them reads and writes a liveness record only
+// through a method named by the record's kind and act, such as hasFront,
+// countsBatch, dropFront or dequeue, so each kind's key layout is built in
+// one place and no access can reach the wrong kind, prefix or position. A
+// read deletes nothing, but the collector frees a block on what its reads
+// report, so a wrong read is a wrong free. Each write method states which
+// writes of its kind it alone makes: only addFront adds a front key and only
+// markFront sets a front value, only addHole adds a hole key, and only
+// enqueue writes a queue entry and notes it in queued, so the add revision,
+// the holes-clear mark and the collector's queue position stay current.
 type Records struct {
 	// tx is the Volume transaction.
 	tx kvtx.TxOps
@@ -576,6 +581,13 @@ func (r *Records) kindKeys(kind byte, keys [][]byte) [][]byte {
 // PutChildren writes the child list of ref from its content, with listMark.
 func (r *Records) PutChildren(ctx context.Context, ref *block.BlockRef, children []*block.BlockRef) error {
 	return r.tx.Set(ctx, r.key(kindChildren, BlockKey(ref)), packChildren([]byte{listMark}, normalizeChildren(children)))
+}
+
+// putList writes the list of the block at key from packed, block keys the
+// caller decoded from the block's content, with listMark, as PutChildren
+// does from refs. Only a list written from content carries the mark.
+func (r *Records) putList(ctx context.Context, key, packed []byte) error {
+	return r.tx.Set(ctx, r.key(kindChildren, key), markList(packed))
 }
 
 // markList returns the packed block keys as a list value written from
@@ -938,9 +950,9 @@ func (r *Records) AnyParked(ctx context.Context) (bool, error) {
 	return r.anyOfKind(ctx, kindReleased)
 }
 
-// park parks the Dead block at key, queued at the queue key queued, while
-// Open: its queue entry turns into its parked key, parked, a kindParked key
-// or, when the caller gives the children their downs in the same
+// park parks the Dead block at key, queued at ripe, while Open: its queue
+// entry turns into its parked key, a kindParked key or, when released
+// reports that the caller gives the children their downs in the same
 // transaction, a kindReleased one, and it joins the run, so the flip unmarks
 // it with the old blocks. The walk skips a parked
 // block, so its list may lack a child the flip leaves in the run; a block
@@ -948,14 +960,19 @@ func (r *Records) AnyParked(ctx context.Context) (bool, error) {
 // again over a child the sweep deletes. An old block's run entry is
 // already empty, or the run's scan writes it, so the write changes nothing
 // there. It reads nothing.
-func (r *Records) park(ctx context.Context, queued, parked, key []byte) error {
-	if err := r.tx.Delete(ctx, queued); err != nil {
+func (r *Records) park(ctx context.Context, ripe uint64, key []byte, released bool) error {
+	// Turn the queue entry into the park's key, and join the run.
+	if err := r.dequeue(ctx, ripe, key); err != nil {
 		return err
+	}
+	parked := r.parkedKey(ripe, key)
+	if released {
+		parked = r.releasedKey(ripe, key)
 	}
 	if err := r.tx.Set(ctx, parked, nil); err != nil {
 		return err
 	}
-	return r.tx.Set(ctx, r.key(kindUnmarked, key), nil)
+	return r.setUnmarked(ctx, key)
 }
 
 // unpark ends the park of the block at key, parked at ripe, when it gains a
@@ -990,7 +1007,7 @@ func (r *Records) unpark(ctx context.Context, state *LivenessState, key []byte, 
 			return err
 		}
 	}
-	if err := r.tx.Delete(ctx, r.parkedKey(ripe, key)); err != nil {
+	if err := r.dropParked(ctx, ripe, key); err != nil {
 		return err
 	}
 
@@ -1000,7 +1017,7 @@ func (r *Records) unpark(ctx context.Context, state *LivenessState, key []byte, 
 		return err
 	}
 	if listMarked(list) {
-		if err := r.tx.Delete(ctx, r.key(kindUnmarked, key)); err != nil {
+		if err := r.dropUnmarked(ctx, key); err != nil {
 			return err
 		}
 	}
@@ -1040,7 +1057,7 @@ func (r *Records) unrunParked(ctx context.Context, kind byte, page *keyPage) err
 			return err
 		}
 		if listed && listMarked(list) {
-			if err := r.tx.Delete(ctx, r.key(kindUnmarked, key)); err != nil {
+			if err := r.dropUnmarked(ctx, key); err != nil {
 				return err
 			}
 		}
@@ -1096,18 +1113,21 @@ func (r *Records) repark(ctx context.Context, state *LivenessState, key []byte) 
 
 	// Delete the count, the parked keys, the queue entry, the front entry
 	// and, unless Sweeping, the run entry.
-	for _, del := range [][]byte{
-		r.key(kindCount, key), r.parkedKey(ripe, key), r.releasedKey(ripe, key),
-		r.queueKey(ripe, key), r.key(kindFront, key),
+	for _, del := range []func() error{
+		func() error { return r.tx.Delete(ctx, r.key(kindCount, key)) },
+		func() error { return r.dropParked(ctx, ripe, key) },
+		func() error { return r.tx.Delete(ctx, r.releasedKey(ripe, key)) },
+		func() error { return r.dequeue(ctx, ripe, key) },
+		func() error { return r.dropFront(ctx, key) },
 	} {
-		if err := r.tx.Delete(ctx, del); err != nil {
+		if err := del(); err != nil {
 			return nil, false, err
 		}
 	}
 	if state.GetGeneration() == Generation_GENERATION_SWEEPING {
 		return children, !released, nil
 	}
-	return children, !released, r.tx.Delete(ctx, r.key(kindUnmarked, key))
+	return children, !released, r.dropUnmarked(ctx, key)
 }
 
 // Held reports whether ref is present with holders: its count record is not
@@ -1292,6 +1312,45 @@ func (r *Records) addHole(ctx context.Context, key []byte) error {
 	return r.tx.Set(ctx, r.key(kindHole, key), nil)
 }
 
+// markFront sets the reference scan's token as the value of the front key
+// of the block at key, which the caller read exists in this transaction. It
+// is the one writer of a non-empty front value, so a push since the mark,
+// which writes none, clears it, as unrefScan describes. It never adds a
+// front key, so it raises no add revision.
+func (r *Records) markFront(ctx context.Context, key, token []byte) error {
+	return r.tx.Set(ctx, r.key(kindFront, key), token)
+}
+
+// dropFront takes the block at key off the front. It is the one deleter of
+// front keys: a pop, a mark of the block's list, a born block leaving the
+// front while Open, a repark, the reference scan's pop and a write-off all
+// call it. A delete adds no front key, so it raises no add revision.
+func (r *Records) dropFront(ctx context.Context, key []byte) error {
+	return r.tx.Delete(ctx, r.key(kindFront, key))
+}
+
+// dropHole deletes the hole key of the block at key, written off or not,
+// once a put or a list rebuild wrote its list or an adoption gave it its
+// holder, as kindHole describes. It is the one deleter of hole keys. A
+// delete adds no hole key, so it raises no add revision and leaves the
+// holes-clear mark to the collector's next check.
+func (r *Records) dropHole(ctx context.Context, key []byte) error {
+	return r.tx.Delete(ctx, r.key(kindHole, key))
+}
+
+// markHolesClear writes the holes-clear mark when the add revision is
+// still rev, the revision of a read snapshot that found no hole key. A
+// transaction that added a hole since raised the revision, so the mark is
+// written only while no hole key exists, as kindHolesClear describes. It is
+// the one writer of the mark, which addHole deletes. It reads one key.
+func (r *Records) markHolesClear(ctx context.Context, rev uint64) error {
+	now, err := r.addRev(ctx)
+	if err != nil || now != rev {
+		return err
+	}
+	return r.tx.Set(ctx, r.key(kindHolesClear), nil)
+}
+
 // raiseAddRev raises the add revision once per transaction. Cost: one point
 // read and one write, in a transaction that writes a front or hole key.
 func (r *Records) raiseAddRev(ctx context.Context) error {
@@ -1355,7 +1414,7 @@ func (r *Records) writeOffHole(ctx context.Context, key []byte) (bool, error) {
 	if err := r.tx.Set(ctx, r.key(kindHole, key), holeWrittenOff); err != nil {
 		return true, err
 	}
-	return true, r.tx.Delete(ctx, r.key(kindFront, key))
+	return true, r.dropFront(ctx, key)
 }
 
 // writtenOff reports whether the block at key is a written-off hole. It
@@ -1411,6 +1470,14 @@ func (r *Records) anyOfKind(ctx context.Context, kind byte) (bool, error) {
 // upKey returns the key of the up page seq.
 func (r *Records) upKey(seq uint64) []byte {
 	return r.key(kindUpLog, binary.BigEndian.AppendUint64(nil, seq))
+}
+
+// dropUp deletes the up page seq, in the netting transaction that applies
+// it and moves the up cursor past it, so each page nets once. Outside the
+// adoption's clear, which deletes the whole kind, it is the one deleter of
+// up pages.
+func (r *Records) dropUp(ctx context.Context, seq uint64) error {
+	return r.tx.Delete(ctx, r.upKey(seq))
 }
 
 // downKey returns the key of the down page seq.
@@ -1593,6 +1660,25 @@ func (r *Records) enqueue(ctx context.Context, ripe uint64, key []byte) error {
 	return r.tx.Set(ctx, r.queueKey(ripe, key), nil)
 }
 
+// dequeue deletes the queue entry of the block at key, ripe at ripe. It
+// does not remove the entry from queued: the collector reads the queue key
+// again in the free's transaction, so a noted entry a transaction deleted
+// frees nothing, as Collector.queueFrom describes. Outside the adoption's
+// clear, which deletes the whole kind, it is the one deleter of queue
+// entries.
+func (r *Records) dequeue(ctx context.Context, ripe uint64, key []byte) error {
+	return r.tx.Delete(ctx, r.queueKey(ripe, key))
+}
+
+// dropParked deletes the parked key of the block at key, ripe at ripe, as
+// an unpark, a repark or the requeue of a block still parked once the
+// generation left Open does. Outside the adoption's clear, which deletes
+// the whole kind, it is the one deleter of parked keys, and park the one
+// writer.
+func (r *Records) dropParked(ctx context.Context, ripe uint64, key []byte) error {
+	return r.tx.Delete(ctx, r.parkedKey(ripe, key))
+}
+
 // scanQueue calls fn with each Dead block on the free queue in ripe order,
 // from the entry at or after the queue position from, a ripe sequence and
 // block key as queuePos returns, or from the start when from is nil, until
@@ -1659,6 +1745,13 @@ func (r *Records) capPopMark(ctx context.Context, seq uint64) error {
 		return err
 	}
 	return r.tx.Set(ctx, r.key(kindPopMark), binary.BigEndian.AppendUint64(nil, seq))
+}
+
+// dropPopMark deletes the pop mark. Only the flip calls it, in the
+// transaction that moves the generation to Sweeping, as kindPopMark
+// describes.
+func (r *Records) dropPopMark(ctx context.Context) error {
+	return r.tx.Delete(ctx, r.key(kindPopMark))
 }
 
 // HasProof reports whether ref has a completion proof, which says the store

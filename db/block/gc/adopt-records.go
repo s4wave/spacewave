@@ -3,6 +3,7 @@ package block_gc
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"slices"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -19,6 +20,29 @@ func (r *Records) NoteAdoptRoot(ctx context.Context, bucketID, name string, held
 		return err
 	}
 	return r.tx.Set(ctx, key, BlockKey(held))
+}
+
+// markAdoptBorn records that Land gave birth to the block at key while the
+// Volume adopts, as kindAdoptBorn describes. The adoption's clear deletes
+// the kind when the adoption ends.
+func (r *Records) markAdoptBorn(ctx context.Context, key []byte) error {
+	return r.tx.Set(ctx, r.key(kindAdoptBorn, key), nil)
+}
+
+// setTally writes the adoption's count record of the block at key with n
+// holders past its implied one, in kindCount's encoding. Only the
+// adoption's hold writes a tally, over the record it read in the same
+// transaction.
+func (r *Records) setTally(ctx context.Context, key []byte, n uint64) error {
+	return r.tx.Set(ctx, r.key(kindCount, key), binary.AppendUvarint(nil, n))
+}
+
+// clearRecord deletes the record of kind at key, the key after the prefix
+// and kind, or the kind's empty key when key is empty. Only clearKinds calls
+// it, which owns every key of the kinds it clears while the adoption clears
+// them.
+func (r *Records) clearRecord(ctx context.Context, kind byte, key []byte) error {
+	return r.tx.Delete(ctx, r.key(kind, key))
 }
 
 // adoptRootStart returns the block key the root whose namedKey after its

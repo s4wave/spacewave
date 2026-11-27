@@ -417,7 +417,7 @@ func recordHole(ctx context.Context, rec *Records, h holeCount, res *AuditResult
 	// holds its children until its free, and a root reaching a freed block
 	// is the error LiveQueued reports.
 	if holders == 0 {
-		if err := rec.tx.Delete(ctx, rec.queueKey(ripe, BlockKey(h.ref))); err != nil {
+		if err := rec.dequeue(ctx, ripe, BlockKey(h.ref)); err != nil {
 			return err
 		}
 	}

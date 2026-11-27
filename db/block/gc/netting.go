@@ -324,7 +324,7 @@ func (n *netting) writeNode(ctx context.Context, nd *node, holders0, ripe0 uint6
 	// and on once it reaches zero or receives an up there, since the Land
 	// that wrote the up dequeued it.
 	if holders0 == 0 && (holders != 0 || ripe != ripe0) {
-		if err := n.rec.tx.Delete(ctx, n.rec.queueKey(ripe0, nd.key)); err != nil {
+		if err := n.rec.dequeue(ctx, ripe0, nd.key); err != nil {
 			return err
 		}
 	}

@@ -609,12 +609,12 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 		// entry would hold the flip for good. holdOutside pushed its
 		// unverified children.
 		if !b.copied && !b.keep && l.gen == Generation_GENERATION_OPEN {
-			if err := l.rec.tx.Delete(ctx, l.rec.key(kindFront, BlockKey(b.ref))); err != nil {
+			if err := l.rec.dropFront(ctx, BlockKey(b.ref)); err != nil {
 				return nil, err
 			}
 		}
 		if l.adopting && !b.keep {
-			if err := l.rec.tx.Set(ctx, l.rec.key(kindAdoptBorn, BlockKey(b.ref)), nil); err != nil {
+			if err := l.rec.markAdoptBorn(ctx, BlockKey(b.ref)); err != nil {
 				return nil, err
 			}
 		}
@@ -945,7 +945,7 @@ func (r *Records) refill(ctx context.Context, entry *block.PutBatchEntry) ([]*bl
 	if err := r.PutChildren(ctx, entry.Ref, children); err != nil {
 		return nil, err
 	}
-	if err := r.tx.Delete(ctx, r.key(kindHole, key)); err != nil {
+	if err := r.dropHole(ctx, key); err != nil {
 		return nil, err
 	}
 
@@ -1574,7 +1574,7 @@ func (l *lander) dequeue(ctx context.Context, key []byte) error {
 		return nil
 	}
 	delete(l.holds.zeros, string(key))
-	return l.rec.tx.Delete(ctx, l.rec.queueKey(ripe, key))
+	return l.rec.dequeue(ctx, ripe, key)
 }
 
 // SameRef reports whether a and b reference the same block, or are both empty.
