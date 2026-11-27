@@ -119,31 +119,50 @@ func (s *Store) beginBatchTransaction() (*bdb.Tx, error) {
 // and otherwise rolls txn back so it releases bolt's writer lock. A write
 // transaction opened before the failure thus commits nothing after it.
 //
-// Any failed write commit fails the store. bolt reports a failed write or
-// fsync of its own full commit like any other commit error, and after a
-// failed fsync Linux may mark the unwritten pages clean, so the next commit's
-// fsync succeeds and its meta page points at pages the drive never held.
+// A write commit runs under the flusher's flush lock, since bolt flushes its
+// file inside the commit: a full commit fsyncs, and on Linux an ordered one
+// fdatasyncs its data pages. Linux reports a writeback error to one fsync of
+// the file, so a commit beside the deadline flush could take the error the
+// flush needed, or the reverse. A commit failing on storage fails the store:
+// after a failed fsync Linux may mark the unwritten pages clean, so the next
+// commit's fsync succeeds and its meta page points at pages the drive never
+// held.
 func (s *Store) commit(txn *bdb.Tx, commitFn func() error) error {
 	// A read-only transaction writes nothing to fail.
 	if !txn.Writable() {
 		return commitFn()
 	}
 
-	// Commit unless the store failed, rolling back a refused transaction,
-	// and record a failed commit as the store's failure.
+	// Commit unless the store failed, rolling back a refused transaction.
 	ran := false
-	err := s.flusher.Admit(func() error {
+	err := s.flusher.Flushing(func() error {
 		ran = true
 		return commitFn()
-	})
+	}, storageErr)
 	if !ran {
 		_ = txn.Rollback()
-		return err
 	}
-	if err != nil {
-		return s.flusher.Fail(err)
+	return err
+}
+
+// storageErr reports whether a commit error may come from writing or
+// flushing the file. The errors bolt returns before it touches the file, or
+// for a file it no longer writes, are not; any other error is, so an unknown
+// one fails the store.
+func storageErr(err error) bool {
+	for _, refusal := range []error{
+		bdberrors.ErrTxClosed,
+		bdberrors.ErrTxNotWritable,
+		bdberrors.ErrDatabaseNotOpen,
+		bdberrors.ErrDatabaseReadOnly,
+		bdberrors.ErrLockFileChanged,
+		bdberrors.ErrMaxSizeReached,
+	} {
+		if errors.Is(err, refusal) {
+			return false
+		}
 	}
-	return nil
+	return true
 }
 
 // RefreshForCoordinationLock refreshes the underlying bbolt handle after an

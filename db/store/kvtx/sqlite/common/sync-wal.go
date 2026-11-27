@@ -97,3 +97,31 @@ func (w *LocalWAL) closeLocked() error {
 	}
 	return f.Close()
 }
+
+// syncWALAtOpen flushes the WAL of the database file at dbPath, then drops
+// its cached pages, before a writable Store opens the file. A WAL with no
+// file at the path, such as one a bridge keeps, has nothing to flush.
+//
+// A WAL flush that failed leaves the kernel's page cache holding frames the
+// drive may lack, with valid checksums, and the cache outlives the process.
+// SQLite recovers the WAL by reading it when the first connection opens, so
+// without the drop it would take those frames for committed. The flush makes
+// durable whatever pages the cache still holds dirty, so the drop keeps them,
+// and the reads after it see what the drive holds.
+func syncWALAtOpen(dbPath string) error {
+	// Open the WAL, which may not exist.
+	f, err := os.OpenFile(dbPath+"-wal", os.O_RDWR, 0)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	// Flush it, then drop its cached pages.
+	err = syncFileData(f)
+	if err == nil {
+		err = dropCachedPages(f)
+	}
+	return errors.Join(err, f.Close())
+}

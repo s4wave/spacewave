@@ -20,3 +20,9 @@ func syncFileData(f *os.File) error {
 func writeBackFile(f *os.File) error {
 	return unix.Fsync(int(f.Fd()))
 }
+
+// dropCachedPages does nothing: darwin has no call that drops a file's
+// cached pages.
+func dropCachedPages(*os.File) error {
+	return nil
+}

@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/s4wave/spacewave/db/kvtx"
 	kvtest "github.com/s4wave/spacewave/db/kvtx/kvtest"
 	"github.com/s4wave/spacewave/db/volume/device"
@@ -510,10 +511,85 @@ func TestFailedHandleWritesNothing(t *testing.T) {
 	}
 }
 
+// reportOnceStorage models Linux reporting a writeback error to one
+// fdatasync of an open file: its armed flush waits for release and fails, and
+// a flush that starts while that one runs returns success, as the fdatasync
+// whose error went to the other caller does.
+type reportOnceStorage struct {
+	storage
+	// armed holds the next durable flush and fails it.
+	armed atomic.Bool
+	// running is set while the held flush runs.
+	running atomic.Bool
+	// entered receives once the held flush arrives.
+	entered chan struct{}
+	// overlapped receives once a flush starts while the held one runs.
+	overlapped chan struct{}
+	// release ends the held flush with its error.
+	release chan error
+}
+
+// flushDurable holds and fails the armed flush, and reports success for a
+// flush overlapping it.
+func (s *reportOnceStorage) flushDurable() error {
+	if s.armed.Swap(false) {
+		s.running.Store(true)
+		defer s.running.Store(false)
+		s.entered <- struct{}{}
+		return <-s.release
+	}
+	if s.running.Load() {
+		s.overlapped <- struct{}{}
+		return nil
+	}
+	return s.storage.flushDurable()
+}
+
+// TestOverlappingFlushFails runs a second durable flush while the first is
+// failing. The second must not report success: syncThrough, the flush job
+// and writeSuper each take a flush's success as proof that what they wrote
+// is durable, and on Linux an overlapping fdatasync can succeed while the
+// one beside it receives the writeback error for the same pages.
+func TestOverlappingFlushFails(t *testing.T) {
+	h, err := device.OpenHandle(t.Context(), device.NewMemory(), deviceName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	inner := &reportOnceStorage{
+		storage:    deviceFile{h},
+		entered:    make(chan struct{}),
+		overlapped: make(chan struct{}, 1),
+		release:    make(chan error),
+	}
+	s := newFailStop(inner, new(broadcast.Broadcast))
+
+	// Hold the failing flush, then start a second one beside it.
+	inner.armed.Store(true)
+	first, second := make(chan error, 1), make(chan error, 1)
+	go func() { first <- s.flushDurable() }()
+	<-inner.entered
+	go func() { second <- s.flushDurable() }()
+	select {
+	case <-inner.overlapped:
+	case <-time.After(200 * time.Millisecond):
+	}
+
+	// Fail the first. Neither may report success.
+	inner.release <- errFlushFault
+	for _, ch := range []chan error{first, second} {
+		if err := <-ch; !errors.Is(err, kvtx.ErrFlushFailed) {
+			t.Fatalf("flush overlapping a failed flush returned %v", err)
+		}
+	}
+}
+
 // TestFailedFlushReopen fails a flush, closes the handle and reopens it, then
 // cuts the power under the new handle. A commit the reopened handle reads as
 // stored must survive the power cut: a reader takes what it reads after a
-// reopen for durable.
+// reopen for durable. It catches a writable open that reads before it
+// flushes. A close that sends the failed commit's held writes passes here,
+// since the open's flush then makes them durable, so
+// TestFailedHandleWritesNothing checks that close sends nothing.
 func TestFailedFlushReopen(t *testing.T) {
 	for seed := range uint64(24) {
 		r := rand.New(rand.NewPCG(seed, seed))

@@ -253,7 +253,7 @@ func newStore[T SQLiteDriverConfig](db *sql.DB, table string, config T, walBound
 	}
 
 	// Start the flusher, the WAL flow and the background checkpointer.
-	s.flusher = kvtx.NewOrderedFlusher(s.flushWAL, SyncDeadline)
+	s.flusher = kvtx.NewOrderedFlusher(s.markingFailure(s.flushWAL), SyncDeadline)
 	s.flow = newWALFlow(s.walSize, s.wakeCheckpoint, walBound, &s.stats)
 	go s.runCheckpoints(ctx)
 	openStores.Store(s, struct{}{})
@@ -277,11 +277,38 @@ func OpenWithPragmas[T SQLiteDriverConfig](ctx context.Context, path string, tab
 	// Hold the file before the pool opens it, and release the hold once a
 	// failed open has closed the pool.
 	hold := sharedFiles.hold(path)
+	if err := openFlush(hold, pragmas); err != nil {
+		return nil, errors.Join(err, hold.release())
+	}
 	store, err := openHeld(ctx, path, table, pragmas, config, hold)
 	if err != nil {
 		return nil, errors.Join(err, hold.release())
 	}
 	return store, nil
+}
+
+// openFlush refuses a file whose WAL flush failed in this process, and
+// flushes the WAL of a file a writable Store opens before SQLite reads it, so
+// SQLite recovers only frames the drive holds. kvtx.FailStopOff turns both
+// off.
+func openFlush(hold *fileHold, pragmas Pragmas) error {
+	// Skip a file in memory, a file the tests keep off the device, and the
+	// switch turned off.
+	if hold == nil || diskless || kvtx.FailStopOff {
+		return nil
+	}
+
+	// Refuse a failed file, then flush a writer's WAL.
+	if err := hold.failure(); err != nil {
+		return err
+	}
+	if pragmas.ReadOnly {
+		return nil
+	}
+	if err := syncWALAtOpen(hold.file.path); err != nil {
+		return errors.Join(kvtx.ErrFlushFailed, err)
+	}
+	return nil
 }
 
 // openHeld is OpenWithPragmas with the hold on the file at path taken. A Store
@@ -751,8 +778,10 @@ func (s *Store[T]) Close() error {
 	// WAL when its last connection closes, which would copy the frames
 	// whose flush failed into the database file, or stale bytes where the
 	// kernel dropped their pages. The pool's connections and their holds on
-	// the file stay until the process exits, and the first open after that
-	// recovers the WAL by its frame checksums.
+	// the file stay until the process exits. The file is marked failed, so
+	// no Store opens it in this process; the first writable open after the
+	// process exits flushes the WAL and drops its cached pages, so SQLite
+	// recovers only the frames the drive holds.
 	if s.flusher.Failed() != nil {
 		return errors.Join(flushErr, s.wal.Close(), s.hold.release())
 	}
@@ -769,6 +798,19 @@ func (s *Store[T]) flushWAL() error {
 		return err
 	}
 	return s.config.SyncWAL(&s.wal, file)
+}
+
+// markingFailure returns the flusher's flush: flush, marking the file failed
+// when it fails, before the flusher records the failure, so no Store opens
+// the file in this process from then on.
+func (s *Store[T]) markingFailure(flush func() error) func() error {
+	return func() error {
+		err := flush()
+		if err != nil && !kvtx.FailStopOff {
+			s.hold.fail()
+		}
+		return err
+	}
 }
 
 // dbFile returns the main database file SQLite reports, empty for one in

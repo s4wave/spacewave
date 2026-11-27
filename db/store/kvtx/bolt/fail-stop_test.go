@@ -7,6 +7,7 @@ import (
 	"errors"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	bdb "github.com/aperturerobotics/bbolt"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -117,4 +118,113 @@ func TestBoltOpenTxAfterFailedSync(t *testing.T) {
 	if found {
 		t.Fatal("a refused commit's write is visible")
 	}
+}
+
+// reportOnceStorage models Linux reporting a writeback error to one fsync of
+// an open file: its armed Sync waits for release and fails, and a Sync that
+// starts while that one runs returns success, as the fsync whose error went
+// to the other caller does.
+type reportOnceStorage struct {
+	*device.Handle
+	// armed holds the next Sync and fails it.
+	armed atomic.Bool
+	// running is set while the held Sync runs.
+	running atomic.Bool
+	// entered receives once the held Sync arrives.
+	entered chan struct{}
+	// overlapped receives once a Sync starts while the held one runs.
+	overlapped chan struct{}
+	// release ends the held Sync with its error.
+	release chan error
+}
+
+// Sync holds and fails the armed Sync, and reports success for a Sync
+// overlapping it.
+func (s *reportOnceStorage) Sync() error {
+	if s.armed.Swap(false) {
+		s.running.Store(true)
+		defer s.running.Store(false)
+		s.entered <- struct{}{}
+		return <-s.release
+	}
+	if s.running.Load() {
+		select {
+		case s.overlapped <- struct{}{}:
+		default:
+		}
+		return nil
+	}
+	return s.Handle.Sync()
+}
+
+// TestBoltCommitBesideFailedSync runs a full commit while the deadline
+// flush's fsync is failing. The commit must not report success: bolt fsyncs
+// inside the commit, and on Linux its fsync can succeed beside the failing
+// one for the same lost pages, so the commit would mark the ordered commits
+// before it durable and its meta page would point at pages the drive lacks.
+func TestBoltCommitBesideFailedSync(t *testing.T) {
+	ctx := context.Background()
+	h, err := device.OpenHandle(t.Context(), device.NewMemory(), "db")
+	if err != nil {
+		t.Fatal(err)
+	}
+	rs := &reportOnceStorage{
+		Handle:     h,
+		entered:    make(chan struct{}),
+		overlapped: make(chan struct{}, 1),
+		release:    make(chan error),
+	}
+	db, err := bdb.OpenStorage(rs, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := NewStore(db, []byte("fail"))
+	t.Cleanup(func() { _ = s.Close() })
+	commitTestKey(t, s, "ordered", true)
+
+	// Hold the failing flush of the ordered commit, then commit beside it.
+	rs.armed.Store(true)
+	synced := make(chan error, 1)
+	go func() { synced <- s.Sync(ctx) }()
+	<-rs.entered
+	tx := setKey(t, s, "full")
+	defer tx.Discard()
+	committed := make(chan error, 1)
+	go func() { committed <- tx.Commit(ctx) }()
+	select {
+	case <-rs.overlapped:
+	case <-time.After(200 * time.Millisecond):
+	}
+
+	// Fail the flush. Neither the flush nor the commit may report success.
+	rs.release <- errSyncFault
+	if err := <-synced; !errors.Is(err, kvtx.ErrFlushFailed) {
+		t.Fatalf("failed Sync returned %v", err)
+	}
+	if err := <-committed; !errors.Is(err, kvtx.ErrFlushFailed) {
+		t.Fatalf("commit beside a failed Sync returned %v", err)
+	}
+	if !s.flusher.Pending() {
+		t.Fatal("the ordered commit was marked durable after its flush failed")
+	}
+}
+
+// TestBoltRefusedCommitKeepsStore commits a closed transaction. bolt refuses
+// it before touching the file, so the store must not fail stop on it.
+func TestBoltRefusedCommitKeepsStore(t *testing.T) {
+	s, _ := openFailSyncStore(t)
+	btx, err := s.db.Begin(true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := btx.Rollback(); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.commit(btx, btx.Commit); err == nil || errors.Is(err, kvtx.ErrFlushFailed) {
+		t.Fatalf("commit of a closed transaction returned %v", err)
+	}
+	if err := s.flusher.Failed(); err != nil {
+		t.Fatalf("a refused commit failed the store: %v", err)
+	}
+	commitTestKey(t, s, "after", false)
 }

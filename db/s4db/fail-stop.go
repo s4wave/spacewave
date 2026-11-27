@@ -24,22 +24,34 @@ import (
 // pages and device writes included, and the drop makes recovery read what
 // the drive holds rather than pages that never reached it.
 //
+// Flushes and writebacks run one at a time, and a failed one is recorded
+// before the next starts. Linux reports a writeback error to one fdatasync of
+// an open file, so of two overlapping flushes one could fail while the other
+// returns success for the same lost pages, and its caller, syncThrough, the
+// flush job or writeSuper, would build on them.
+//
 // Invariants, once a flush or writeback of this handle fails:
-//   - no later flush succeeds, so no commit published before the failure is
-//     reported durable, through syncThrough or the flush job's setDurable;
-//   - no write, truncation or writeback starts after the failure is
-//     recorded, and close sends no write the handle still holds, so no
-//     record, free or shortening is built on a state the file may not hold;
+//   - no later flush starts, nor did one overlap it, so no commit published
+//     before the failure is reported durable, through syncThrough or the
+//     flush job's setDurable, and no superblock is written over a manifest
+//     the drive may lack;
+//   - no write or truncation starts after the failure is recorded, and close
+//     sends no write the handle still holds, so no record, free or shortening
+//     is built on a state the file may not hold;
 //   - the handle refuses every new transaction and every commit
 //     (DB.failure), so no caller reads a commit whose flush failed and takes
 //     it for stored.
 type failStop struct {
 	storage
-	// gate orders each call to the file against the failure: a call holds it
-	// shared from its check through its end, and recording the failure holds
-	// it alone, so a call either ends before the failure is recorded or sees
-	// it and does not start.
+	// gate orders each write and truncation against the failure: a call
+	// holds it shared from its check through its end, and recording the
+	// failure holds it alone, so a call either ends before the failure is
+	// recorded or sees it and does not start.
 	gate sync.RWMutex
+	// flushMtx serializes flushes and writebacks, each checking for the
+	// failure and recording its own under it. Writes do not take it, so a
+	// WriteAt never waits behind an fdatasync.
+	flushMtx sync.Mutex
 	// err is the first failure, joined with kvtx.ErrFlushFailed, or nil.
 	err atomic.Pointer[error]
 	// bcast wakes the handle's waiters once the failure is recorded, so a
@@ -61,7 +73,8 @@ func (s *failStop) failed() error {
 }
 
 // fail records err as the failure unless one is recorded, and returns the
-// recorded failure. A nil err records nothing. The caller must not hold gate.
+// recorded failure. A nil err records nothing. The caller holds flushMtx and
+// not gate.
 func (s *failStop) fail(err error) error {
 	// A call that succeeded records nothing.
 	if err == nil {
@@ -81,7 +94,8 @@ func (s *failStop) fail(err error) error {
 	return s.failed()
 }
 
-// pass runs call under the shared gate unless a flush failed.
+// pass runs call, a write or truncation, under the shared gate unless a flush
+// failed.
 func (s *failStop) pass(call func() error) error {
 	s.gate.RLock()
 	defer s.gate.RUnlock()
@@ -91,15 +105,26 @@ func (s *failStop) pass(call func() error) error {
 	return call()
 }
 
+// flush runs call, a flush or writeback, after every earlier one has ended
+// and recorded its failure, unless a flush failed, and records its failure.
+func (s *failStop) flush(call func() error) error {
+	s.flushMtx.Lock()
+	defer s.flushMtx.Unlock()
+	if err := s.failed(); err != nil {
+		return err
+	}
+	return s.fail(call())
+}
+
 // flushDurable flushes the file unless a flush failed.
 func (s *failStop) flushDurable() error {
-	return s.fail(s.pass(s.storage.flushDurable))
+	return s.flush(s.storage.flushDurable)
 }
 
 // writeback writes the chunks back unless a flush failed. A writeback error
 // can lose pages as a failed flush does, so it fails the handle too.
 func (s *failStop) writeback(chunks []uint64) error {
-	return s.fail(s.pass(func() error { return s.storage.writeback(chunks) }))
+	return s.flush(func() error { return s.storage.writeback(chunks) })
 }
 
 // WriteAt writes p at off unless a flush failed.

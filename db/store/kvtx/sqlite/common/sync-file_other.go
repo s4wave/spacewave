@@ -14,3 +14,9 @@ func syncFileData(f *os.File) error {
 func writeBackFile(*os.File) error {
 	return nil
 }
+
+// dropCachedPages does nothing: the platform has no call that drops a file's
+// cached pages.
+func dropCachedPages(*os.File) error {
+	return nil
+}

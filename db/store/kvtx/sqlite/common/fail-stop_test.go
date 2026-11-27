@@ -24,7 +24,8 @@ var errWALFault = errors.New("injected WAL flush failure")
 // write in the WAL before the flush, so after the failure a read would find
 // the failed write, which the drive may not hold, and take it for stored, and a
 // checkpoint would copy it into the database file. Close must not checkpoint
-// either, so the database file alone still lacks the failed write.
+// either, so the database file alone still lacks the failed write, and no
+// Store may open the file again in the process.
 func TestFailedWALFlushStops(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
@@ -119,6 +120,16 @@ func TestFailedWALFlushStops(t *testing.T) {
 	_ = db.Close()
 	assertCopy(t, path, false, "", "b", "pre")
 	assertCopy(t, path, true, "kept", "pre")
+
+	// A Store opened on the file in this process would read the failed
+	// write: the page cache may hold its WAL frames, and the pool left open
+	// keeps the WAL index that maps them. The open must be refused.
+	if reopened, err := store_kvtx_sqlite.Open(ctx, path, "kv"); !errors.Is(err, kvtx.ErrFlushFailed) {
+		if err == nil {
+			_ = reopened.Close()
+		}
+		t.Fatalf("reopen in the process after a failed flush returned %v", err)
+	}
 }
 
 // assertCopy copies the database at path, with its WAL when withWAL is set,

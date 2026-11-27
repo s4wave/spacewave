@@ -1,9 +1,12 @@
 package common
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"sync"
+
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // sharedFiles is the database files Stores in this process hold.
@@ -30,14 +33,21 @@ var sharedFiles = newFileTable()
 // removes it with its last. A hold taken after a file's last release, such as
 // a connection a closed pool was still opening, makes a new entry rather than
 // reviving the old one, and a release can only remove its own file's entry.
+//
+// failed marks each file whose WAL flush failed in this process. The mark
+// stays until the process exits: while it runs, the kernel's page cache may
+// hold WAL frames the drive never received, and the failed Store's pool,
+// left open, keeps the WAL index that maps them, so a Store opened on the
+// file would read them as committed.
 type fileTable struct {
-	mtx  sync.Mutex
-	open map[string]*sharedFile
+	mtx    sync.Mutex
+	open   map[string]*sharedFile
+	failed map[string]struct{}
 }
 
 // newFileTable returns an empty fileTable.
 func newFileTable() *fileTable {
-	return &fileTable{open: make(map[string]*sharedFile)}
+	return &fileTable{open: make(map[string]*sharedFile), failed: make(map[string]struct{})}
 }
 
 // sharedFile is one database file Stores in this process hold.
@@ -124,9 +134,39 @@ func (h *fileHold) writeBack(file string) {
 	_ = writeBackFile(fd)
 }
 
+// fail marks h's file failed for the life of the process.
+func (h *fileHold) fail() {
+	// Mark the file by its key, which outlives its entry in open.
+	if h == nil {
+		return
+	}
+	h.table.mtx.Lock()
+	h.table.failed[h.file.path] = struct{}{}
+	h.table.mtx.Unlock()
+}
+
+// failure returns an error joined with kvtx.ErrFlushFailed when a WAL flush
+// of h's file failed in this process, and otherwise nil.
+func (h *fileHold) failure() error {
+	// A file in memory has no flush to fail.
+	if h == nil {
+		return nil
+	}
+
+	// Look the file up among the failed ones.
+	h.table.mtx.Lock()
+	_, failed := h.table.failed[h.file.path]
+	h.table.mtx.Unlock()
+	if failed {
+		return errors.Join(kvtx.ErrFlushFailed, errors.New("a WAL flush of "+h.file.path+" failed in this process"))
+	}
+	return nil
+}
+
 // release drops the hold, closing the descriptor with the file's last. Only
-// the first release of h counts, and it must follow the close of the pool
-// that held the file.
+// the first release of h counts. It follows the close of the pool that held
+// the file, or the end of the Store's use of a pool left open after a failed
+// WAL flush, whose connections keep their own holds and so the descriptor.
 func (h *fileHold) release() error {
 	// Count the hold out once.
 	if h == nil {
