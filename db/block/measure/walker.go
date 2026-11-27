@@ -34,7 +34,7 @@ type Walker struct {
 // bind immutable input identities with Bind before seeding or resuming.
 func Open(path string) (*Walker, error) {
 	// Bound SQLite's page cache and keep durable resume commits local.
-	store, err := sqlite.OpenWithPragmas(context.Background(), path, "scratch", sqlite.Pragmas{FullSync: true, CacheSize: -4096})
+	store, err := sqlite.OpenWithPragmas(context.Background(), path, "scratch", sqlite.Pragmas{FullSync: true, CacheSize: -4096, TempStore: 1})
 	if err != nil {
 		return nil, err
 	}

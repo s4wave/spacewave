@@ -73,6 +73,12 @@ func TestMeasureResumeCountsSharedBlockOnce(t *testing.T) {
 		}
 	}
 
+	// Report sorts must spill to disk rather than collecting the graph in RAM.
+	var tempStore int
+	if err := w.DB.QueryRowContext(ctx, "PRAGMA temp_store").Scan(&tempStore); err != nil || tempStore != 1 {
+		t.Fatalf("temp_store=%d err=%v", tempStore, err)
+	}
+
 	// Stop at the second network read, after the first frontier committed.
 	read := w.ReadRange
 	calls := 0
